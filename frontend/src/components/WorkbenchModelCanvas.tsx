@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { GlassCard } from "./ui/GlassCard";
 import { createPortalFrameModelFromState, type WorkspaceState } from "../lib/workspace-state";
 import type { AnalysisMode, FrameLoad, FrameLoadDirection, StructureNode, TrussLoad } from "../types/structure";
@@ -221,9 +222,24 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
   const uniformLabelX = uniformRange
     ? shiftLoadLabelAwayFromPointLoads((uniformRange.startX + uniformRange.endX) / 2, pointLoadXs, beamStart + 118, beamEnd - 118, -1)
     : beamStart;
+  const beamSketchStyle: CSSProperties | undefined = (beam.previewStyle ?? "simple") === "color"
+    ? ({
+        "--beam-sketch-member": "var(--model-member)",
+        "--beam-sketch-node": "var(--model-node)",
+        "--beam-sketch-support-fill": "var(--model-support-fill)",
+        "--beam-sketch-support-stroke": "var(--model-support-stroke)",
+        "--beam-sketch-support-line": "var(--model-support-line)",
+        "--beam-sketch-load": "var(--model-load)",
+        "--beam-sketch-label": "var(--model-label)",
+        "--beam-sketch-muted": "var(--model-label)",
+        "--beam-sketch-badge-fill": "#fff7ed",
+        "--beam-sketch-badge-stroke": "var(--model-load)",
+        "--beam-sketch-selected": "var(--model-load)",
+      } as CSSProperties)
+    : undefined;
 
   return (
-    <svg viewBox="0 0 900 300" className="h-full w-full">
+    <svg viewBox="0 0 900 300" className="h-full w-full" style={beamSketchStyle}>
       <line x1={beamStart} y1={BEAM_SKETCH_AXIS_Y} x2={beamEnd} y2={BEAM_SKETCH_AXIS_Y} stroke="var(--beam-sketch-member)" strokeWidth="3.2" strokeLinecap="square" />
       {segments.map((segment) => {
         const selected = selection?.mode === "beam" && selection.type === "span" && selection.id === `span-${segment.index}`;

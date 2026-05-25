@@ -52,6 +52,8 @@ export interface BeamLinearLoadConfig {
   endRatio: number;
 }
 
+export type BeamPreviewStyle = 'simple' | 'color';
+
 export type BeamLoadInput =
   | { type: 'uniform'; qKnPerM: number; start?: number; end?: number; enabled?: boolean }
   | { type: 'point'; pointLoadKn: number; x: number; enabled?: boolean }
@@ -61,6 +63,7 @@ export interface BeamWorkspaceState {
   projectName: string;
   materialId: string;
   materials: Material[];
+  previewStyle: BeamPreviewStyle;
   beamType: BeamForm['beamType'];
   loadType: BeamForm['loadType'];
   uniformLoadEnabled: boolean;

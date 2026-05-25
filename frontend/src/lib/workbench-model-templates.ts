@@ -6,7 +6,7 @@ export interface BeamModelTemplate {
   title: string;
   description: string;
   tags: string[];
-  state: Omit<BeamWorkspaceState, "compareEnabled" | "scenarios" | "materials">;
+  state: Omit<BeamWorkspaceState, "compareEnabled" | "scenarios" | "materials" | "previewStyle">;
 }
 
 export interface FrameModelTemplate {
@@ -452,6 +452,7 @@ export function cloneBeamModelTemplate(template: BeamModelTemplate): BeamWorkspa
       constraints: support.constraints ? [...support.constraints] : undefined,
       springs: support.springs?.map((spring) => ({ ...spring })),
     })),
+    previewStyle: "simple",
     compareEnabled: false,
     scenarios: [],
   };
@@ -469,6 +470,7 @@ export function applyBeamModelTemplate(workspace: BeamWorkspaceState, template: 
   return {
     ...workspace,
     ...cloneBeamModelTemplate(template),
+    previewStyle: workspace.previewStyle,
   };
 }
 
