@@ -256,6 +256,17 @@ div[class*="text-[9px]"] {
   --model-guide: #94a3b8;
   --model-label: #52657a;
   --model-label-halo: rgba(248, 250, 252, 0.92);
+  --beam-sketch-member: #111827;
+  --beam-sketch-node: #111827;
+  --beam-sketch-support-fill: #f8fafc;
+  --beam-sketch-support-stroke: #334155;
+  --beam-sketch-support-line: #475569;
+  --beam-sketch-load: #1f2937;
+  --beam-sketch-label: #334155;
+  --beam-sketch-muted: #64748b;
+  --beam-sketch-badge-fill: #fff7ed;
+  --beam-sketch-badge-stroke: #f97316;
+  --beam-sketch-selected: #0284c7;
   background:
     linear-gradient(180deg, rgba(248, 250, 252, 0.72), rgba(241, 245, 249, 0.9)),
     radial-gradient(circle at 50% 10%, rgba(148, 163, 184, 0.12), transparent 52%);
@@ -272,6 +283,17 @@ div[class*="text-[9px]"] {
   --model-guide: #94a3b8;
   --model-label: #cbd5e1;
   --model-label-halo: rgba(2, 8, 23, 0.92);
+  --beam-sketch-member: #e2e8f0;
+  --beam-sketch-node: #e2e8f0;
+  --beam-sketch-support-fill: #0f172a;
+  --beam-sketch-support-stroke: #cbd5e1;
+  --beam-sketch-support-line: #94a3b8;
+  --beam-sketch-load: #e2e8f0;
+  --beam-sketch-label: #cbd5e1;
+  --beam-sketch-muted: #94a3b8;
+  --beam-sketch-badge-fill: rgba(251, 146, 60, 0.16);
+  --beam-sketch-badge-stroke: #fb923c;
+  --beam-sketch-selected: #38bdf8;
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.68), rgba(8, 20, 36, 0.86));
 }
 

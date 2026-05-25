@@ -224,21 +224,21 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
 
   return (
     <svg viewBox="0 0 900 300" className="h-full w-full">
-      <line x1={beamStart} y1={BEAM_SKETCH_AXIS_Y} x2={beamEnd} y2={BEAM_SKETCH_AXIS_Y} stroke="var(--model-member)" strokeWidth="4.5" strokeLinecap="round" />
+      <line x1={beamStart} y1={BEAM_SKETCH_AXIS_Y} x2={beamEnd} y2={BEAM_SKETCH_AXIS_Y} stroke="var(--beam-sketch-member)" strokeWidth="3.2" strokeLinecap="square" />
       {segments.map((segment) => {
         const selected = selection?.mode === "beam" && selection.type === "span" && selection.id === `span-${segment.index}`;
         return (
           <g key={segment.index} className="cursor-pointer" onClick={() => onSelect?.({ mode: "beam", type: "span", id: `span-${segment.index}` })}>
             <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="transparent" strokeWidth="20" strokeLinecap="round" />
-            {selected ? <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="var(--model-load)" strokeWidth="7" strokeLinecap="round" opacity="0.55" /> : null}
+            {selected ? <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="var(--beam-sketch-selected)" strokeWidth="7" strokeLinecap="round" opacity="0.45" /> : null}
             <line x1={segment.start} y1="184" x2={segment.end} y2="184" stroke="var(--model-guide)" strokeWidth="1.5" />
-            <text x={(segment.start + segment.end) / 2} y="210" textAnchor="middle" fontSize="14" fill="var(--model-label)">
-              第 {segment.index + 1} 跨 · {segment.length}m
+            <text x={(segment.start + segment.end) / 2} y="176" textAnchor="middle" fontSize="13" fontWeight="700" fill="var(--beam-sketch-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
+              ({segment.index + 1})
             </text>
-            <circle cx={segment.start} cy={BEAM_SKETCH_AXIS_Y} r="5" fill="var(--model-node)" />
+            <circle cx={segment.start} cy={BEAM_SKETCH_AXIS_Y} r="4.5" fill="var(--beam-sketch-node)" />
             {segment.index === segments.length - 1 ? (
               <>
-                <circle cx={segment.end} cy={BEAM_SKETCH_AXIS_Y} r="5" fill="var(--model-node)" />
+                <circle cx={segment.end} cy={BEAM_SKETCH_AXIS_Y} r="4.5" fill="var(--beam-sketch-node)" />
               </>
             ) : null}
           </g>
@@ -249,24 +249,24 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
         const selected = selection?.mode === "beam" && selection.type === "support" && selection.id === `support-${index}`;
         return (
           <g key={support.id} className="cursor-pointer" onClick={() => onSelect?.({ mode: "beam", type: "support", id: `support-${index}` })}>
-            <rect x={x - 24} y="148" width="48" height="58" rx="12" fill={selected ? "var(--model-load)" : "transparent"} opacity={selected ? "0.1" : "0"} />
+            <rect x={x - 24} y="148" width="48" height="58" rx="12" fill={selected ? "var(--beam-sketch-selected)" : "transparent"} opacity={selected ? "0.1" : "0"} />
             {support.type === "fixed" ? (
-              <rect x={x - 12} y={BEAM_SKETCH_AXIS_Y} width="24" height="36" rx="2" fill="var(--model-support-fill)" stroke="var(--model-support-stroke)" strokeWidth="1.4" />
+              <rect x={x - 12} y={BEAM_SKETCH_AXIS_Y} width="24" height="36" rx="2" fill="var(--beam-sketch-support-fill)" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
             ) : support.type === "free" ? (
-              <circle cx={x} cy={BEAM_SKETCH_AXIS_Y} r="9" fill="none" stroke="var(--model-support-stroke)" strokeWidth="1.6" strokeDasharray="3 3" />
+              <circle cx={x} cy={BEAM_SKETCH_AXIS_Y} r="9" fill="none" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.6" strokeDasharray="3 3" />
             ) : (
               <>
-                <polygon points={`${x - 15},180 ${x + 15},180 ${x},154`} fill="var(--model-support-fill)" stroke="var(--model-support-stroke)" strokeWidth="1.4" />
-                <line x1={x - 18} y1="184" x2={x + 18} y2="184" stroke="var(--model-support-line)" strokeWidth="2.2" />
+                <polygon points={`${x - 15},180 ${x + 15},180 ${x},154`} fill="var(--beam-sketch-support-fill)" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
+                <line x1={x - 18} y1="184" x2={x + 18} y2="184" stroke="var(--beam-sketch-support-line)" strokeWidth="2.2" />
                 {support.type === "roller" ? (
                   <>
-                    <circle cx={x - 8} cy="190" r="3" fill="none" stroke="var(--model-support-stroke)" strokeWidth="1.4" />
-                    <circle cx={x + 8} cy="190" r="3" fill="none" stroke="var(--model-support-stroke)" strokeWidth="1.4" />
+                    <circle cx={x - 8} cy="190" r="3" fill="none" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
+                    <circle cx={x + 8} cy="190" r="3" fill="none" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
                   </>
                 ) : null}
               </>
             )}
-            <text x={x} y="224" textAnchor="middle" fontSize="11" fontWeight="700" fill={selected ? "var(--model-load)" : "var(--model-label)"}>
+            <text x={x} y="224" textAnchor="middle" fontSize="11" fontWeight="700" fill={selected ? "var(--beam-sketch-selected)" : "var(--beam-sketch-label)"}>
               {support.id} · {beamSupportLabel(support.type)}
             </text>
           </g>
@@ -274,17 +274,17 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
       })}
       <g className="cursor-pointer" onClick={() => onSelect?.({ mode: "beam", type: "load", id: "primary" })}>
         <rect x={beamStart - 20} y="24" width={beamEnd - beamStart + 40} height="125" fill="transparent" />
-        {selection?.mode === "beam" && selection.type === "load" ? <rect x={beamStart - 16} y="28" width={beamEnd - beamStart + 32} height="118" rx="14" fill="var(--model-load)" opacity="0.07" /> : null}
+        {selection?.mode === "beam" && selection.type === "load" ? <rect x={beamStart - 16} y="28" width={beamEnd - beamStart + 32} height="118" rx="14" fill="var(--beam-sketch-selected)" opacity="0.07" /> : null}
         {uniformRange ? (
           <g>
-            <line x1={uniformRange.startX} y1={uniformGuideY} x2={uniformRange.endX} y2={uniformGuideY} stroke="var(--model-load)" strokeWidth="1.7" opacity="0.85" />
+            <line x1={uniformRange.startX} y1={uniformGuideY} x2={uniformRange.endX} y2={uniformGuideY} stroke="var(--beam-sketch-load)" strokeWidth="1.5" opacity="0.9" />
           </g>
         ) : null}
         {linearRanges.length === 1 ? linearRanges.map((range) => {
           const guideY = linearGuideBaseY;
           return (
             <g key={range.load.id}>
-              <line x1={range.startX} y1={guideY} x2={range.endX} y2={guideY} stroke="var(--model-load)" strokeWidth="1.5" strokeDasharray="5 5" opacity="0.75" />
+              <line x1={range.startX} y1={guideY} x2={range.endX} y2={guideY} stroke="var(--beam-sketch-load)" strokeWidth="1.4" strokeDasharray="5 5" opacity="0.72" />
             </g>
           );
         }) : (
@@ -293,14 +293,14 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
               const guideY = linearGuideBaseY + index * linearGuideGap;
               return (
                 <g key={range.load.id}>
-                  <line x1={range.startX} y1={guideY} x2={range.endX} y2={guideY} stroke="var(--model-load)" strokeWidth="1.5" strokeDasharray="5 5" opacity="0.75" />
+                  <line x1={range.startX} y1={guideY} x2={range.endX} y2={guideY} stroke="var(--beam-sketch-load)" strokeWidth="1.4" strokeDasharray="5 5" opacity="0.72" />
                 </g>
               );
             })}
           </g>
         )}
       </g>
-      <g stroke="var(--model-load)" strokeWidth={selection?.mode === "beam" && selection.type === "load" ? "3" : "2.1"} className="cursor-pointer" onClick={() => onSelect?.({ mode: "beam", type: "load", id: "primary" })}>
+      <g stroke="var(--beam-sketch-load)" strokeWidth={selection?.mode === "beam" && selection.type === "load" ? "2.8" : "1.9"} className="cursor-pointer" onClick={() => onSelect?.({ mode: "beam", type: "load", id: "primary" })}>
         {beam.uniformLoadEnabled ? visibleUniformArrows.map((x, index) => (
           <path key={`uniform-${index}`} d={`M${x.toFixed(1)} ${(uniformGuideY + 4).toFixed(1)} L${x.toFixed(1)} ${BEAM_DISTRIBUTED_LOAD_TIP_Y}`} markerEnd="url(#modelArrow)" />
         )) : null}
@@ -326,11 +326,11 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
       <g className="cursor-pointer" onClick={() => onSelect?.({ mode: "beam", type: "load", id: "primary" })} fontFamily={svgTextFont}>
         {uniformRange ? (
           <g>
-            <text x={uniformLabelX} y={uniformTitleY} textAnchor="middle" fontSize="13" fontWeight="700" fill="var(--model-load)" stroke="var(--model-load-halo)" strokeWidth="3" paintOrder="stroke">
-              q = {formatMagnitude(beam.q)} 千牛/米
+            <text x={uniformLabelX} y={uniformTitleY} textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--beam-sketch-load)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
+              q={formatMagnitude(beam.q)} kN/m
             </text>
             {!compactLoadLabels ? (
-              <text x={uniformLabelX} y={uniformSubtitleY} textAnchor="middle" fontSize="10.5" fill="var(--model-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
+              <text x={uniformLabelX} y={uniformSubtitleY} textAnchor="middle" fontSize="10.5" fill="var(--beam-sketch-muted)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
                 作用区间 {uniformRange.startRatio.toFixed(2)}-{uniformRange.endRatio.toFixed(2)}，长度 {(total * (uniformRange.endRatio - uniformRange.startRatio)).toFixed(2)} 米
               </text>
             ) : null}
@@ -341,11 +341,11 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
           const labelX = shiftLoadLabelAwayFromPointLoads((range.startX + range.endX) / 2, pointLoadXs, beamStart + 150, beamEnd - 150, uniformRange ? 1 : -1);
           return (
             <g key={`linear-label-${range.load.id}`}>
-              <text x={labelX} y={linearTitleY} textAnchor="middle" fontSize="13" fontWeight="700" fill="var(--model-load)" stroke="var(--model-load-halo)" strokeWidth="3" paintOrder="stroke">
-                q = {formatMagnitude(range.startLoad)} → {formatMagnitude(range.endLoad)} 千牛/米
+              <text x={labelX} y={linearTitleY} textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--beam-sketch-load)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
+                q={formatMagnitude(range.startLoad)}→{formatMagnitude(range.endLoad)} kN/m
               </text>
               {!compactLoadLabels ? (
-                <text x={labelX} y={linearSubtitleY} textAnchor="middle" fontSize="11" fill="var(--model-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
+                <text x={labelX} y={linearSubtitleY} textAnchor="middle" fontSize="11" fill="var(--beam-sketch-muted)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
                   作用区间 {range.startRatio.toFixed(2)}-{range.endRatio.toFixed(2)}，长度 {linearLengthM.toFixed(2)} 米
                 </text>
               ) : null}
@@ -357,11 +357,11 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
           const y = guideY - 4;
           return (
             <g key={`linear-label-${range.load.id}`}>
-              <line x1={beamStart + 4} y1={y - 4} x2={beamStart + 32} y2={y - 4} stroke="var(--model-load)" strokeWidth="1.7" strokeDasharray="5 5" />
-              <text x={beamStart + 40} y={y} textAnchor="start" fontSize="11.5" fontWeight="700" fill="var(--model-load)" stroke="var(--model-load-halo)" strokeWidth="3" paintOrder="stroke">
+              <line x1={beamStart + 4} y1={y - 4} x2={beamStart + 32} y2={y - 4} stroke="var(--beam-sketch-load)" strokeWidth="1.5" strokeDasharray="5 5" />
+              <text x={beamStart + 40} y={y} textAnchor="start" fontSize="11.5" fontWeight="700" fill="var(--beam-sketch-load)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
                 {range.load.id}: {formatMagnitude(range.startLoad)} → {formatMagnitude(range.endLoad)} kN/m
               </text>
-              <text x={beamStart + 190} y={y} textAnchor="start" fontSize="10.5" fill="var(--model-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
+              <text x={beamStart + 190} y={y} textAnchor="start" fontSize="10.5" fill="var(--beam-sketch-muted)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
                 区间 {range.startRatio.toFixed(2)}-{range.endRatio.toFixed(2)} / {linearLengthM.toFixed(2)}m
               </text>
             </g>
@@ -372,22 +372,25 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
           const labelY = pointLabelBaseY + (index % 2) * 16;
           const labelX = Math.min(beamEnd - 64, Math.max(beamStart + 64, x));
           return (
-            <text key={`point-label-${load.id}`} x={labelX} y={labelY} textAnchor="middle" fontSize="11.5" fontWeight="700" fill="var(--model-load)" stroke="var(--model-load-halo)" strokeWidth="3" paintOrder="stroke">
-              {load.id} = {formatMagnitude(load.magnitudeKn)} 千牛
+            <text key={`point-label-${load.id}`} x={labelX} y={labelY} textAnchor="middle" fontSize="11.5" fontWeight="700" fill="var(--beam-sketch-load)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
+              {load.id}={formatMagnitude(load.magnitudeKn)} kN
             </text>
           );
         })}
       </g>
-      <g fill="var(--model-label)" stroke="var(--model-label-halo)" strokeWidth="4" paintOrder="stroke" fontSize="12" fontWeight="700" fontFamily={svgTextFont}>
+      <g fontFamily={svgTextFont}>
         {nodeLabels.map((label) => (
-          <text key={`node-label-${label.index}`} x={label.labelX} y="132" textAnchor={label.anchor}>
-            节点 {label.index + 1}
-          </text>
+          <g key={`node-label-${label.index}`}>
+            <circle cx={label.labelX} cy="132" r="8" fill="var(--beam-sketch-badge-fill)" stroke="var(--beam-sketch-badge-stroke)" strokeWidth="1.4" />
+            <text x={label.labelX} y="136" textAnchor="middle" fontSize="10.5" fontWeight="700" fill="var(--beam-sketch-label)">
+              {label.index + 1}
+            </text>
+          </g>
         ))}
       </g>
       <defs>
         <marker id="modelArrow" viewBox="0 0 8 8" markerWidth="6.5" markerHeight="6.5" refX="7" refY="4" orient="auto">
-          <path d="M0 0 L8 4 L0 8z" fill="var(--model-load)" />
+          <path d="M0 0 L8 4 L0 8z" fill="var(--beam-sketch-load)" />
         </marker>
       </defs>
     </svg>
