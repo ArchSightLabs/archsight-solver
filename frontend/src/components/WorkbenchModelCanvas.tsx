@@ -48,7 +48,7 @@ const svgTextFont = "Inter, Microsoft YaHei, system-ui, sans-serif";
 const BEAM_SKETCH_AXIS_Y = 150;
 const BEAM_LOAD_BOTTOM_GUIDE_Y = BEAM_SKETCH_AXIS_Y - 38;
 const BEAM_LOAD_LANE_GAP_Y = 34;
-const BEAM_DISTRIBUTED_LOAD_TIP_Y = BEAM_SKETCH_AXIS_Y - 18;
+const BEAM_DISTRIBUTED_LOAD_TIP_Y = BEAM_SKETCH_AXIS_Y;
 const BEAM_POINT_LOAD_TIP_Y = BEAM_SKETCH_AXIS_Y - 6;
 
 function clampRatio(value: number, fallback: number) {
@@ -216,9 +216,7 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
   const pointLaneBaseY = pointLoads.length && (uniformRange || hasLinearLoads) ? (uniformRange ? uniformGuideY : linearTopGuideY) - loadLaneGapY : 88;
   const pointLabelBaseY = pointLoads.length && (uniformRange || hasLinearLoads) ? Math.max(compactLoadLabels ? 24 : 34, pointLaneBaseY - 10) : 74;
   const uniformTitleY = uniformGuideY - (compactLoadLabels ? 12 : 18);
-  const uniformSubtitleY = uniformGuideY - 4;
   const linearTitleY = linearGuideBaseY - (compactLoadLabels ? 12 : 19);
-  const linearSubtitleY = linearGuideBaseY - 5;
   const uniformLabelX = uniformRange
     ? shiftLoadLabelAwayFromPointLoads((uniformRange.startX + uniformRange.endX) / 2, pointLoadXs, beamStart + 118, beamEnd - 118, -1)
     : beamStart;
@@ -316,28 +314,32 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
           </g>
         )}
       </g>
-      <g stroke="var(--beam-sketch-load)" strokeWidth={selection?.mode === "beam" && selection.type === "load" ? "2.8" : "1.9"} className="cursor-pointer" onClick={() => onSelect?.({ mode: "beam", type: "load", id: "primary" })}>
-        {beam.uniformLoadEnabled ? visibleUniformArrows.map((x, index) => (
-          <path key={`uniform-${index}`} d={`M${x.toFixed(1)} ${(uniformGuideY + 4).toFixed(1)} L${x.toFixed(1)} ${BEAM_DISTRIBUTED_LOAD_TIP_Y}`} markerEnd="url(#modelArrow)" />
-        )) : null}
-        {visibleLinearArrows.flatMap((arrows, loadIndex) => {
-          const guideY = linearGuideBaseY + loadIndex * linearGuideGap;
-          const arrowEndY = BEAM_DISTRIBUTED_LOAD_TIP_Y;
-          return arrows.map((x, arrowIndex) => {
-            const top = guideY + 4 + (linearRanges.length === 1 ? arrowIndex * 2 : 0);
-            return <path key={`linear-${loadIndex}-${arrowIndex}`} d={`M${x.toFixed(1)} ${top} L${x.toFixed(1)} ${arrowEndY}`} markerEnd="url(#modelArrow)" />;
-          });
-        })}
-        {pointLoads.map((load, index) => {
-          const x = beamStart + (beamEnd - beamStart) * clampRatio(load.positionRatio, 0.5);
-          const labelY = pointLabelBaseY + (index % 2) * 16;
-          const arrowStartY = Math.min(labelY + 12, BEAM_POINT_LOAD_TIP_Y - 20);
-          return (
-            <g key={load.id}>
-              <path d={`M${x.toFixed(1)} ${arrowStartY} L${x.toFixed(1)} ${BEAM_POINT_LOAD_TIP_Y}`} markerEnd="url(#modelArrow)" />
-            </g>
-          );
-        })}
+      <g className="cursor-pointer" onClick={() => onSelect?.({ mode: "beam", type: "load", id: "primary" })}>
+        <g stroke="var(--beam-sketch-load)" strokeWidth={selection?.mode === "beam" && selection.type === "load" ? "1.55" : "1.15"}>
+          {beam.uniformLoadEnabled ? visibleUniformArrows.map((x, index) => (
+            <path key={`uniform-${index}`} d={`M${x.toFixed(1)} ${(uniformGuideY + 4).toFixed(1)} L${x.toFixed(1)} ${BEAM_DISTRIBUTED_LOAD_TIP_Y}`} markerEnd="url(#modelDistributedArrow)" />
+          )) : null}
+          {visibleLinearArrows.flatMap((arrows, loadIndex) => {
+            const guideY = linearGuideBaseY + loadIndex * linearGuideGap;
+            const arrowEndY = BEAM_DISTRIBUTED_LOAD_TIP_Y;
+            return arrows.map((x, arrowIndex) => {
+              const top = guideY + 4 + (linearRanges.length === 1 ? arrowIndex * 2 : 0);
+              return <path key={`linear-${loadIndex}-${arrowIndex}`} d={`M${x.toFixed(1)} ${top} L${x.toFixed(1)} ${arrowEndY}`} markerEnd="url(#modelDistributedArrow)" />;
+            });
+          })}
+        </g>
+        <g stroke="var(--beam-sketch-load)" strokeWidth={selection?.mode === "beam" && selection.type === "load" ? "2.8" : "1.9"}>
+          {pointLoads.map((load, index) => {
+            const x = beamStart + (beamEnd - beamStart) * clampRatio(load.positionRatio, 0.5);
+            const labelY = pointLabelBaseY + (index % 2) * 16;
+            const arrowStartY = Math.min(labelY + 12, BEAM_POINT_LOAD_TIP_Y - 20);
+            return (
+              <g key={load.id}>
+                <path d={`M${x.toFixed(1)} ${arrowStartY} L${x.toFixed(1)} ${BEAM_POINT_LOAD_TIP_Y}`} markerEnd="url(#modelArrow)" />
+              </g>
+            );
+          })}
+        </g>
       </g>
       <g className="cursor-pointer" onClick={() => onSelect?.({ mode: "beam", type: "load", id: "primary" })} fontFamily={svgTextFont}>
         {uniformRange ? (
@@ -345,30 +347,18 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
             <text x={uniformLabelX} y={uniformTitleY} textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--beam-sketch-load)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
               q={formatMagnitude(beam.q)} kN/m
             </text>
-            {!compactLoadLabels ? (
-              <text x={uniformLabelX} y={uniformSubtitleY} textAnchor="middle" fontSize="10.5" fill="var(--beam-sketch-muted)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
-                作用区间 {uniformRange.startRatio.toFixed(2)}-{uniformRange.endRatio.toFixed(2)}，长度 {(total * (uniformRange.endRatio - uniformRange.startRatio)).toFixed(2)} 米
-              </text>
-            ) : null}
           </g>
         ) : null}
         {linearRanges.length === 1 ? linearRanges.map((range) => {
-          const linearLengthM = total * (range.endRatio - range.startRatio);
           const labelX = shiftLoadLabelAwayFromPointLoads((range.startX + range.endX) / 2, pointLoadXs, beamStart + 150, beamEnd - 150, uniformRange ? 1 : -1);
           return (
             <g key={`linear-label-${range.load.id}`}>
               <text x={labelX} y={linearTitleY} textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--beam-sketch-load)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
                 q={formatMagnitude(range.startLoad)}→{formatMagnitude(range.endLoad)} kN/m
               </text>
-              {!compactLoadLabels ? (
-                <text x={labelX} y={linearSubtitleY} textAnchor="middle" fontSize="11" fill="var(--beam-sketch-muted)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
-                  作用区间 {range.startRatio.toFixed(2)}-{range.endRatio.toFixed(2)}，长度 {linearLengthM.toFixed(2)} 米
-                </text>
-              ) : null}
             </g>
           );
         }) : linearRanges.map((range, index) => {
-          const linearLengthM = total * (range.endRatio - range.startRatio);
           const guideY = linearGuideBaseY + index * linearGuideGap;
           const y = guideY - 4;
           return (
@@ -376,9 +366,6 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
               <line x1={beamStart + 4} y1={y - 4} x2={beamStart + 32} y2={y - 4} stroke="var(--beam-sketch-load)" strokeWidth="1.5" strokeDasharray="5 5" />
               <text x={beamStart + 40} y={y} textAnchor="start" fontSize="11.5" fontWeight="700" fill="var(--beam-sketch-load)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
                 {range.load.id}: {formatMagnitude(range.startLoad)} → {formatMagnitude(range.endLoad)} kN/m
-              </text>
-              <text x={beamStart + 190} y={y} textAnchor="start" fontSize="10.5" fill="var(--beam-sketch-muted)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
-                区间 {range.startRatio.toFixed(2)}-{range.endRatio.toFixed(2)} / {linearLengthM.toFixed(2)}m
               </text>
             </g>
           );
@@ -405,6 +392,9 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
         ))}
       </g>
       <defs>
+        <marker id="modelDistributedArrow" viewBox="0 0 8 8" markerWidth="4.4" markerHeight="4.4" refX="7" refY="4" orient="auto">
+          <path d="M0 0 L8 4 L0 8z" fill="var(--beam-sketch-load)" />
+        </marker>
         <marker id="modelArrow" viewBox="0 0 8 8" markerWidth="6.5" markerHeight="6.5" refX="7" refY="4" orient="auto">
           <path d="M0 0 L8 4 L0 8z" fill="var(--beam-sketch-load)" />
         </marker>
