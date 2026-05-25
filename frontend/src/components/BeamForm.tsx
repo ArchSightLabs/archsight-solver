@@ -47,6 +47,21 @@ const SUPPORT_DOF_MODE_OPTIONS: Array<{ label: string; value: SupportDofMode }> 
   { label: "释放", value: "free" },
 ];
 
+function LoadStatusBadge({ enabled }: { enabled: boolean }) {
+  return (
+    <span
+      className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[10px] font-black ${
+        enabled
+          ? "border-emerald-300/70 bg-emerald-50 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-300"
+          : "border-slate-300/80 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-400"
+      }`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${enabled ? "bg-emerald-500" : "bg-slate-400"}`} />
+      {enabled ? "已启用" : "已停用"}
+    </span>
+  );
+}
+
 function spanId(index: number) {
   return `span-${index}`;
 }
@@ -614,14 +629,17 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
               <div className={FIELD_LABEL_CLASS}>均布荷载</div>
               <div className="mt-1 font-mono text-[11px] text-muted-foreground">q = {value.q.toFixed(1)} kN/m</div>
             </div>
-            <Button
-              type="button"
-              variant={value.uniformLoadEnabled ? "default" : "outline"}
-              className={`h-8 rounded-lg px-3 text-[11px] font-semibold ${value.uniformLoadEnabled ? "" : "border-white/10 bg-white/[0.03] text-foreground/70"}`}
-              onClick={() => patchLoadState({ uniformLoadEnabled: !value.uniformLoadEnabled })}
-            >
-              {value.uniformLoadEnabled ? "启用" : "停用"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <LoadStatusBadge enabled={value.uniformLoadEnabled} />
+              <Button
+                type="button"
+                variant="outline"
+                className="h-8 rounded-lg border-white/10 bg-white/[0.03] px-3 text-[11px] font-semibold text-foreground/70 hover:border-sky-300/35 hover:bg-sky-400/10 hover:text-foreground"
+                onClick={() => patchLoadState({ uniformLoadEnabled: !value.uniformLoadEnabled })}
+              >
+                {value.uniformLoadEnabled ? "停用荷载" : "启用荷载"}
+              </Button>
+            </div>
           </div>
           {value.uniformLoadEnabled ? (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -652,14 +670,17 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
                 n = {activeLinearLoads.length || 1}，q1/q2 = {primaryLinearLoad.qStartKnPerM.toFixed(1)}/{primaryLinearLoad.qEndKnPerM.toFixed(1)} kN/m
               </div>
             </div>
-            <Button
-              type="button"
-              variant={value.linearLoadEnabled ? "default" : "outline"}
-              className={`h-8 rounded-lg px-3 text-[11px] font-semibold ${value.linearLoadEnabled ? "" : "border-white/10 bg-white/[0.03] text-foreground/70"}`}
-              onClick={() => patchLoadState({ linearLoadEnabled: !value.linearLoadEnabled })}
-            >
-              {value.linearLoadEnabled ? "启用" : "停用"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <LoadStatusBadge enabled={value.linearLoadEnabled} />
+              <Button
+                type="button"
+                variant="outline"
+                className="h-8 rounded-lg border-white/10 bg-white/[0.03] px-3 text-[11px] font-semibold text-foreground/70 hover:border-sky-300/35 hover:bg-sky-400/10 hover:text-foreground"
+                onClick={() => patchLoadState({ linearLoadEnabled: !value.linearLoadEnabled })}
+              >
+                {value.linearLoadEnabled ? "停用荷载" : "启用荷载"}
+              </Button>
+            </div>
           </div>
           {value.linearLoadEnabled ? (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

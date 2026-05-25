@@ -45,6 +45,8 @@ function formatMagnitude(value: number) {
 
 const svgTextFont = "Inter, Microsoft YaHei, system-ui, sans-serif";
 const BEAM_SKETCH_AXIS_Y = 150;
+const BEAM_LOAD_BOTTOM_GUIDE_Y = BEAM_SKETCH_AXIS_Y - 38;
+const BEAM_LOAD_LANE_GAP_Y = 34;
 const BEAM_DISTRIBUTED_LOAD_TIP_Y = BEAM_SKETCH_AXIS_Y - 18;
 const BEAM_POINT_LOAD_TIP_Y = BEAM_SKETCH_AXIS_Y - 6;
 
@@ -155,6 +157,20 @@ function buildBeamNodeLabels(nodeXs: number[], pointLoadXs: number[], beamStart:
   });
 }
 
+function shiftLoadLabelAwayFromPointLoads(labelX: number, pointLoadXs: number[], minX: number, maxX: number, preferredDirection: -1 | 1) {
+  const clampedX = Math.min(maxX, Math.max(minX, labelX));
+  if (!pointLoadXs.some((loadX) => Math.abs(loadX - clampedX) < 92)) {
+    return clampedX;
+  }
+
+  const shiftedX = clampedX + preferredDirection * 132;
+  if (shiftedX >= minX && shiftedX <= maxX) {
+    return shiftedX;
+  }
+
+  return Math.min(maxX, Math.max(minX, clampedX - preferredDirection * 132));
+}
+
 function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"]; selection?: WorkbenchSelection | null; onSelect?: (next: WorkbenchSelection) => void }) {
   const total = Math.max(1, beam.spans.reduce((sum, span) => sum + span.length, 0));
   const segments = beam.spans.reduce<Array<{ index: number; length: number; start: number; end: number }>>((items, span, index) => {
@@ -188,11 +204,23 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
   const loadArrowClearance = 30;
   const visibleUniformArrows = uniformRange ? buildLoadArrowXs(uniformRange.startX, uniformRange.endX).filter((x) => pointLoadXs.every((loadX) => Math.abs(loadX - x) >= loadArrowClearance)) : [];
   const visibleLinearArrows = linearArrows.map((arrows) => arrows.filter((x) => pointLoadXs.every((loadX) => Math.abs(loadX - x) >= loadArrowClearance)));
-  const uniformGuideY = 88;
-  const linearGuideBaseY = beam.uniformLoadEnabled ? 118 : 90;
-  const linearGuideGap = hasMultipleLinearLoads ? 18 : 0;
-  const linearLegendY = beam.uniformLoadEnabled ? 108 : 60;
-  const pointLabelBaseY = beam.uniformLoadEnabled && linearRanges.length ? 42 : beam.uniformLoadEnabled || linearRanges.length ? 104 : 74;
+  const hasLinearLoads = linearRanges.length > 0;
+  const activeLoadFamilyCount = (uniformRange ? 1 : 0) + (hasLinearLoads ? 1 : 0) + (pointLoads.length ? 1 : 0);
+  const compactLoadLabels = activeLoadFamilyCount >= 3;
+  const loadLaneGapY = compactLoadLabels ? 42 : BEAM_LOAD_LANE_GAP_Y;
+  const linearGuideBaseY = BEAM_LOAD_BOTTOM_GUIDE_Y;
+  const linearGuideGap = hasMultipleLinearLoads ? -18 : 0;
+  const linearTopGuideY = hasLinearLoads ? linearGuideBaseY + (linearRanges.length - 1) * linearGuideGap : linearGuideBaseY;
+  const uniformGuideY = uniformRange ? (hasLinearLoads ? linearTopGuideY - loadLaneGapY : BEAM_LOAD_BOTTOM_GUIDE_Y) : BEAM_LOAD_BOTTOM_GUIDE_Y;
+  const pointLaneBaseY = pointLoads.length && (uniformRange || hasLinearLoads) ? (uniformRange ? uniformGuideY : linearTopGuideY) - loadLaneGapY : 88;
+  const pointLabelBaseY = pointLoads.length && (uniformRange || hasLinearLoads) ? Math.max(compactLoadLabels ? 24 : 34, pointLaneBaseY - 10) : 74;
+  const uniformTitleY = uniformGuideY - (compactLoadLabels ? 12 : 18);
+  const uniformSubtitleY = uniformGuideY - 4;
+  const linearTitleY = linearGuideBaseY - (compactLoadLabels ? 12 : 19);
+  const linearSubtitleY = linearGuideBaseY - 5;
+  const uniformLabelX = uniformRange
+    ? shiftLoadLabelAwayFromPointLoads((uniformRange.startX + uniformRange.endX) / 2, pointLoadXs, beamStart + 118, beamEnd - 118, -1)
+    : beamStart;
 
   return (
     <svg viewBox="0 0 900 300" className="h-full w-full">
@@ -245,51 +273,26 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
         );
       })}
       <g className="cursor-pointer" onClick={() => onSelect?.({ mode: "beam", type: "load", id: "primary" })}>
-        <rect x={beamStart - 20} y="54" width={beamEnd - beamStart + 40} height="95" fill="transparent" />
-        {selection?.mode === "beam" && selection.type === "load" ? <rect x={beamStart - 16} y="58" width={beamEnd - beamStart + 32} height="88" rx="14" fill="var(--model-load)" opacity="0.07" /> : null}
+        <rect x={beamStart - 20} y="24" width={beamEnd - beamStart + 40} height="125" fill="transparent" />
+        {selection?.mode === "beam" && selection.type === "load" ? <rect x={beamStart - 16} y="28" width={beamEnd - beamStart + 32} height="118" rx="14" fill="var(--model-load)" opacity="0.07" /> : null}
         {uniformRange ? (
           <g>
-            <text x={(uniformRange.startX + uniformRange.endX) / 2} y="70" textAnchor="middle" fontSize="13" fontWeight="700" fill="var(--model-load)">
-              q = {formatMagnitude(beam.q)} 千牛/米
-            </text>
-            <text x={(uniformRange.startX + uniformRange.endX) / 2} y="84" textAnchor="middle" fontSize="10.5" fill="var(--model-label)">
-              作用区间 {uniformRange.startRatio.toFixed(2)}-{uniformRange.endRatio.toFixed(2)}，长度 {(total * (uniformRange.endRatio - uniformRange.startRatio)).toFixed(2)} 米
-            </text>
             <line x1={uniformRange.startX} y1={uniformGuideY} x2={uniformRange.endX} y2={uniformGuideY} stroke="var(--model-load)" strokeWidth="1.7" opacity="0.85" />
           </g>
         ) : null}
         {linearRanges.length === 1 ? linearRanges.map((range) => {
-          const linearLengthM = total * (range.endRatio - range.startRatio);
-          const labelX = Math.min(beamEnd - 150, Math.max(beamStart + 150, (range.startX + range.endX) / 2));
-          const titleY = beam.uniformLoadEnabled ? 95 : 58;
-          const subtitleY = titleY + 17;
           const guideY = linearGuideBaseY;
           return (
             <g key={range.load.id}>
-              <text x={labelX} y={titleY} textAnchor="middle" fontSize="13" fontWeight="700" fill="var(--model-load)">
-                q = {formatMagnitude(range.startLoad)} → {formatMagnitude(range.endLoad)} 千牛/米
-              </text>
-              <text x={labelX} y={subtitleY} textAnchor="middle" fontSize="11" fill="var(--model-label)">
-                作用区间 {range.startRatio.toFixed(2)}-{range.endRatio.toFixed(2)}，长度 {linearLengthM.toFixed(2)} 米
-              </text>
               <line x1={range.startX} y1={guideY} x2={range.endX} y2={guideY} stroke="var(--model-load)" strokeWidth="1.5" strokeDasharray="5 5" opacity="0.75" />
             </g>
           );
         }) : (
           <g fontFamily={svgTextFont}>
             {linearRanges.map((range, index) => {
-              const linearLengthM = total * (range.endRatio - range.startRatio);
-              const y = linearLegendY + index * 18;
               const guideY = linearGuideBaseY + index * linearGuideGap;
               return (
                 <g key={range.load.id}>
-                  <line x1={beamStart + 4} y1={y - 4} x2={beamStart + 32} y2={y - 4} stroke="var(--model-load)" strokeWidth="1.7" strokeDasharray="5 5" />
-                  <text x={beamStart + 40} y={y} textAnchor="start" fontSize="11.5" fontWeight="700" fill="var(--model-load)">
-                    {range.load.id}: {formatMagnitude(range.startLoad)} → {formatMagnitude(range.endLoad)} kN/m
-                  </text>
-                  <text x={beamStart + 190} y={y} textAnchor="start" fontSize="10.5" fill="var(--model-label)">
-                    区间 {range.startRatio.toFixed(2)}-{range.endRatio.toFixed(2)} / {linearLengthM.toFixed(2)}m
-                  </text>
                   <line x1={range.startX} y1={guideY} x2={range.endX} y2={guideY} stroke="var(--model-load)" strokeWidth="1.5" strokeDasharray="5 5" opacity="0.75" />
                 </g>
               );
@@ -305,33 +308,73 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
           const guideY = linearGuideBaseY + loadIndex * linearGuideGap;
           const arrowEndY = BEAM_DISTRIBUTED_LOAD_TIP_Y;
           return arrows.map((x, arrowIndex) => {
-            const top = guideY - 8 + (linearRanges.length === 1 ? arrowIndex * 4 : 0);
+            const top = guideY + 4 + (linearRanges.length === 1 ? arrowIndex * 2 : 0);
             return <path key={`linear-${loadIndex}-${arrowIndex}`} d={`M${x.toFixed(1)} ${top} L${x.toFixed(1)} ${arrowEndY}`} markerEnd="url(#modelArrow)" />;
           });
         })}
         {pointLoads.map((load, index) => {
           const x = beamStart + (beamEnd - beamStart) * clampRatio(load.positionRatio, 0.5);
           const labelY = pointLabelBaseY + (index % 2) * 16;
-          const labelX = Math.min(beamEnd - 64, Math.max(beamStart + 64, x));
           const arrowStartY = Math.min(labelY + 12, BEAM_POINT_LOAD_TIP_Y - 20);
           return (
             <g key={load.id}>
               <path d={`M${x.toFixed(1)} ${arrowStartY} L${x.toFixed(1)} ${BEAM_POINT_LOAD_TIP_Y}`} markerEnd="url(#modelArrow)" />
-              <text
-                x={labelX}
-                y={labelY}
-                textAnchor="middle"
-                fontSize="11.5"
-                fontWeight="700"
-                fill="var(--model-load)"
-                stroke="var(--model-load-halo)"
-                strokeWidth="3"
-                paintOrder="stroke"
-                fontFamily={svgTextFont}
-              >
-                {load.id} = {formatMagnitude(load.magnitudeKn)} 千牛
+            </g>
+          );
+        })}
+      </g>
+      <g className="cursor-pointer" onClick={() => onSelect?.({ mode: "beam", type: "load", id: "primary" })} fontFamily={svgTextFont}>
+        {uniformRange ? (
+          <g>
+            <text x={uniformLabelX} y={uniformTitleY} textAnchor="middle" fontSize="13" fontWeight="700" fill="var(--model-load)" stroke="var(--model-load-halo)" strokeWidth="3" paintOrder="stroke">
+              q = {formatMagnitude(beam.q)} 千牛/米
+            </text>
+            {!compactLoadLabels ? (
+              <text x={uniformLabelX} y={uniformSubtitleY} textAnchor="middle" fontSize="10.5" fill="var(--model-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
+                作用区间 {uniformRange.startRatio.toFixed(2)}-{uniformRange.endRatio.toFixed(2)}，长度 {(total * (uniformRange.endRatio - uniformRange.startRatio)).toFixed(2)} 米
+              </text>
+            ) : null}
+          </g>
+        ) : null}
+        {linearRanges.length === 1 ? linearRanges.map((range) => {
+          const linearLengthM = total * (range.endRatio - range.startRatio);
+          const labelX = shiftLoadLabelAwayFromPointLoads((range.startX + range.endX) / 2, pointLoadXs, beamStart + 150, beamEnd - 150, uniformRange ? 1 : -1);
+          return (
+            <g key={`linear-label-${range.load.id}`}>
+              <text x={labelX} y={linearTitleY} textAnchor="middle" fontSize="13" fontWeight="700" fill="var(--model-load)" stroke="var(--model-load-halo)" strokeWidth="3" paintOrder="stroke">
+                q = {formatMagnitude(range.startLoad)} → {formatMagnitude(range.endLoad)} 千牛/米
+              </text>
+              {!compactLoadLabels ? (
+                <text x={labelX} y={linearSubtitleY} textAnchor="middle" fontSize="11" fill="var(--model-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
+                  作用区间 {range.startRatio.toFixed(2)}-{range.endRatio.toFixed(2)}，长度 {linearLengthM.toFixed(2)} 米
+                </text>
+              ) : null}
+            </g>
+          );
+        }) : linearRanges.map((range, index) => {
+          const linearLengthM = total * (range.endRatio - range.startRatio);
+          const guideY = linearGuideBaseY + index * linearGuideGap;
+          const y = guideY - 4;
+          return (
+            <g key={`linear-label-${range.load.id}`}>
+              <line x1={beamStart + 4} y1={y - 4} x2={beamStart + 32} y2={y - 4} stroke="var(--model-load)" strokeWidth="1.7" strokeDasharray="5 5" />
+              <text x={beamStart + 40} y={y} textAnchor="start" fontSize="11.5" fontWeight="700" fill="var(--model-load)" stroke="var(--model-load-halo)" strokeWidth="3" paintOrder="stroke">
+                {range.load.id}: {formatMagnitude(range.startLoad)} → {formatMagnitude(range.endLoad)} kN/m
+              </text>
+              <text x={beamStart + 190} y={y} textAnchor="start" fontSize="10.5" fill="var(--model-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
+                区间 {range.startRatio.toFixed(2)}-{range.endRatio.toFixed(2)} / {linearLengthM.toFixed(2)}m
               </text>
             </g>
+          );
+        })}
+        {pointLoads.map((load, index) => {
+          const x = beamStart + (beamEnd - beamStart) * clampRatio(load.positionRatio, 0.5);
+          const labelY = pointLabelBaseY + (index % 2) * 16;
+          const labelX = Math.min(beamEnd - 64, Math.max(beamStart + 64, x));
+          return (
+            <text key={`point-label-${load.id}`} x={labelX} y={labelY} textAnchor="middle" fontSize="11.5" fontWeight="700" fill="var(--model-load)" stroke="var(--model-load-halo)" strokeWidth="3" paintOrder="stroke">
+              {load.id} = {formatMagnitude(load.magnitudeKn)} 千牛
+            </text>
           );
         })}
       </g>
@@ -695,6 +738,29 @@ function trussLoadDirection(direction: TrussMemberLoad["direction"], value: numb
   return value >= 0 ? { x: 0, y: -1 } : { x: 0, y: 1 };
 }
 
+function trussEquivalentNodalForces(qStart: number, qEnd: number, memberLength: number) {
+  return {
+    startForce: memberLength * (2 * qStart + qEnd) / 6,
+    endForce: memberLength * (qStart + 2 * qEnd) / 6,
+  };
+}
+
+function trussOffsetSegment(start: { x: number; y: number }, end: { x: number; y: number }, center: { x: number; y: number }, offset: number) {
+  const midX = (start.x + end.x) / 2;
+  const midY = (start.y + end.y) / 2;
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const length = Math.hypot(dx, dy) || 1;
+  const normal = { x: -dy / length, y: dx / length };
+  const outward = (midX - center.x) * normal.x + (midY - center.y) * normal.y >= 0 ? 1 : -1;
+  const offsetX = normal.x * outward * offset;
+  const offsetY = normal.y * outward * offset;
+  return {
+    start: { x: start.x + offsetX, y: start.y + offsetY },
+    end: { x: end.x + offsetX, y: end.y + offsetY },
+  };
+}
+
 function pointOnSegment(start: { x: number; y: number }, end: { x: number; y: number }, ratio: number) {
   return {
     x: start.x + (end.x - start.x) * ratio,
@@ -717,6 +783,7 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
     y: 280 - ((point.y - minY) / Math.max(1, maxY - minY)) * 190,
   });
   const nodeMap = new Map(nodes.map((node) => [node.id, map(node)]));
+  const rawNodeMap = new Map(nodes.map((node) => [node.id, node]));
   const memberMap = new Map(members.map((member) => [member.id, member]));
   const trussCenterX = 110 + 680 / 2;
   const trussMidY = 280 - 190 / 2;
@@ -789,36 +856,33 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
             const member = memberMap.get(load.member);
             const start = member ? nodeMap.get(member.start) : null;
             const end = member ? nodeMap.get(member.end) : null;
-            if (!start || !end) return [];
+            const rawStart = member ? rawNodeMap.get(member.start) : null;
+            const rawEnd = member ? rawNodeMap.get(member.end) : null;
+            if (!start || !end || !rawStart || !rawEnd) return [];
             const { qStart, qEnd } = trussMemberLoadValues(load);
             const maxQ = Math.max(Math.abs(qStart), Math.abs(qEnd));
             if (maxQ <= 1e-9) return [];
-            const representative = Math.abs(qStart) >= Math.abs(qEnd) ? qStart : qEnd;
-            const guideDirection = trussLoadDirection(load.direction, representative);
-            const guideOffset = 42;
-            const guideStart = {
-              x: start.x - guideDirection.x * guideOffset,
-              y: start.y - guideDirection.y * guideOffset,
-            };
-            const guideEnd = {
-              x: end.x - guideDirection.x * guideOffset,
-              y: end.y - guideDirection.y * guideOffset,
-            };
+            const memberLength = Math.hypot(rawEnd.x - rawStart.x, rawEnd.y - rawStart.y);
+            const { startForce, endForce } = trussEquivalentNodalForces(qStart, qEnd, memberLength);
+            const maxForce = Math.max(Math.abs(startForce), Math.abs(endForce), 1e-9);
+            const guide = trussOffsetSegment(start, end, { x: trussCenterX, y: trussMidY }, 18);
             const selected = selection?.mode === "truss" && selection.type === "load" && selection.id === `load-${index}`;
-            const labelMid = pointOnSegment(guideStart, guideEnd, 0.5);
+            const labelMid = pointOnSegment(guide.start, guide.end, 0.5);
+            const equivalentArrows = [
+              { key: "start", force: startForce, anchor: pointOnSegment(start, end, 0.08) },
+              { key: "end", force: endForce, anchor: pointOnSegment(start, end, 0.92) },
+            ];
             const items = [
               <g key={`${index}-member-load`} className="cursor-pointer" onClick={() => onSelect?.({ mode: "truss", type: "load", id: `load-${index}` })}>
-                <line x1={guideStart.x} y1={guideStart.y} x2={guideEnd.x} y2={guideEnd.y} strokeWidth={selected ? "2.8" : "1.6"} strokeDasharray="5 4" opacity="0.85" />
-                {[0.2, 0.5, 0.8].map((ratio) => {
-                  const qAtRatio = qStart + (qEnd - qStart) * ratio;
-                  if (Math.abs(qAtRatio) <= 1e-9) return null;
-                  const point = pointOnSegment(start, end, ratio);
-                  const direction = trussLoadDirection(load.direction, qAtRatio);
-                  const arrowLength = 30 + 16 * Math.abs(qAtRatio) / maxQ;
+                <line x1={guide.start.x} y1={guide.start.y} x2={guide.end.x} y2={guide.end.y} strokeWidth={selected ? "2.8" : "1.6"} strokeDasharray="5 4" opacity="0.85" />
+                {equivalentArrows.map((arrow) => {
+                  if (Math.abs(arrow.force) <= 1e-9) return null;
+                  const direction = trussLoadDirection(load.direction, arrow.force);
+                  const arrowLength = 30 + 16 * Math.abs(arrow.force) / maxForce;
                   return (
                     <path
-                      key={ratio}
-                      d={`M${point.x - direction.x * arrowLength} ${point.y - direction.y * arrowLength} L${point.x - direction.x * 8} ${point.y - direction.y * 8}`}
+                      key={arrow.key}
+                      d={`M${arrow.anchor.x - direction.x * arrowLength} ${arrow.anchor.y - direction.y * arrowLength} L${arrow.anchor.x - direction.x * 8} ${arrow.anchor.y - direction.y * 8}`}
                       markerEnd="url(#trussArrow)"
                       strokeWidth={selected ? "3.2" : "1.9"}
                     />
@@ -836,7 +900,7 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
                   fontWeight="700"
                   fontFamily={svgTextFont}
                 >
-                  杆件荷载 {formatSignedMagnitude(qStart)}{Math.abs(qStart - qEnd) > 1e-9 ? `→${formatSignedMagnitude(qEnd)}` : ""} kN/m
+                  杆件等效荷载 {formatSignedMagnitude(qStart)}{Math.abs(qStart - qEnd) > 1e-9 ? `→${formatSignedMagnitude(qEnd)}` : ""} kN/m
                 </text>
               </g>,
             ];

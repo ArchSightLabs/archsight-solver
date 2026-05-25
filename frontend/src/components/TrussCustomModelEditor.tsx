@@ -45,12 +45,12 @@ const MEMBER_KIND_OPTIONS = [
 
 const LOAD_TYPE_OPTIONS = [
   { value: "nodal", label: "节点荷载" },
-  { value: "distributed", label: "构件等效荷载" },
+  { value: "distributed", label: "杆件等效节点荷载" },
 ];
 
 const MEMBER_LOAD_DIRECTION_OPTIONS = [
-  { value: "global_y", label: "全局 Y" },
-  { value: "global_x", label: "全局 X" },
+  { value: "global_y", label: "全局 Y（竖向）" },
+  { value: "global_x", label: "全局 X（水平）" },
 ];
 
 function nextDraftId(prefix: string, existingIds: string[]): string {
@@ -134,7 +134,7 @@ export function TrussCustomModelEditor({ value, onChange, onResetToBenchmark, ac
   const loadOptions = useMemo(
     () => value.loads.map((load, index) => ({
       value: `load-${index}`,
-      label: load.type === "nodal" ? `节点荷载 ${index + 1}（${load.node}）` : `杆件荷载 ${index + 1}（${load.member}）`,
+      label: load.type === "nodal" ? `节点荷载 ${index + 1}（${load.node}）` : `杆件等效荷载 ${index + 1}（${load.member}）`,
     })),
     [value.loads]
   );
@@ -463,7 +463,7 @@ export function TrussCustomModelEditor({ value, onChange, onResetToBenchmark, ac
         {isMemberLoad ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1">
-              <div className={fieldLabelClass}>等效方向</div>
+              <div className={fieldLabelClass}>等效节点力方向（全局）</div>
               <DropdownSelect value={load.direction ?? "global_y"} onChange={(nextValue) => updateLoad(index, { direction: nextValue as "global_x" | "global_y" } as Partial<TrussLoad>)} options={MEMBER_LOAD_DIRECTION_OPTIONS} className="text-xs font-mono" menuClassName="text-xs font-mono" />
             </div>
             <div className="space-y-1">
@@ -663,7 +663,7 @@ export function TrussCustomModelEditor({ value, onChange, onResetToBenchmark, ac
               </Button>
               <Button variant="outline" size="sm" onClick={addMemberLoad} disabled={value.members.length === 0} className="h-8 rounded-lg px-2 text-[10px]">
                 <Plus className="mr-1 h-3 w-3" />
-                新增杆件荷载
+                新增杆件等效荷载
               </Button>
             </div>
           </div>
@@ -850,7 +850,7 @@ export function TrussCustomModelEditor({ value, onChange, onResetToBenchmark, ac
             </Button>
             <Button variant="outline" size="sm" onClick={addMemberLoad} disabled={value.members.length === 0} className="h-8 rounded-xl">
               <Plus className="mr-1.5 h-3.5 w-3.5" />
-              新增杆件荷载
+              新增杆件等效荷载
             </Button>
           </div>
         </div>
@@ -893,7 +893,7 @@ export function TrussCustomModelEditor({ value, onChange, onResetToBenchmark, ac
                 {isMemberLoad ? (
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     <div className="space-y-1">
-                      <div className={fieldLabelClass}>等效方向</div>
+                      <div className={fieldLabelClass}>等效节点力方向（全局）</div>
                       <DropdownSelect
                         value={load.direction ?? "global_y"}
                         onChange={(nextValue) => updateLoad(index, { direction: nextValue as "global_x" | "global_y" } as Partial<TrussLoad>)}
