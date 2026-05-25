@@ -268,8 +268,19 @@ async function renderBeamPreview(results: BeamCalculationResults) {
     graphics.push({ type: "polygon", shape: { points: [[x, y0 + 4], [x - 18, y0 + 34], [x + 18, y0 + 34]] }, style: { fill: "#22c55e" } });
   }
   for (const load of beam.loads) {
-    const x = mapX(load.x);
-    graphics.push({ type: "line", shape: { x1: x, y1: y0 - 90, x2: x, y2: y0 - 16 }, style: { stroke: "#ef4444", lineWidth: 3 } });
+    if (load.type === "point") {
+      const x = mapX(load.x);
+      graphics.push({ type: "line", shape: { x1: x, y1: y0 - 90, x2: x, y2: y0 - 16 }, style: { stroke: "#ef4444", lineWidth: 3 } });
+      continue;
+    }
+    const startX = mapX(load.startX ?? Math.max(0, load.x - (load.length ?? total) / 2));
+    const endX = mapX(load.endX ?? Math.min(total, load.x + (load.length ?? total) / 2));
+    graphics.push({ type: "line", shape: { x1: startX, y1: y0 - 88, x2: endX, y2: y0 - 88 }, style: { stroke: "#ef4444", lineWidth: 2 } });
+    const arrowCount = Math.max(4, Math.min(24, Math.floor((endX - startX) / 30)));
+    for (let index = 0; index < arrowCount; index += 1) {
+      const x = startX + (endX - startX) * ((index + 0.5) / arrowCount);
+      graphics.push({ type: "line", shape: { x1: x, y1: y0 - 84, x2: x, y2: y0 - 16 }, style: { stroke: "#ef4444", lineWidth: 2 } });
+    }
   }
   if (beam.curve?.length) {
     const maxAbs = Math.max(...beam.curve.map((point) => Math.abs(point.vMm)), 1e-9);
@@ -297,7 +308,7 @@ async function renderBeamOverlay(results: BeamCalculationResults, metric: "momen
   const maxAbs = Math.max(...samples.map((point) => Math.abs(point.value)), 1e-9);
   const mapX = (x: number) => 70 + (x / total) * 760;
   const y0 = 270;
-  const mapY = (value: number) => y0 - (value / maxAbs) * 105;
+  const mapY = (value: number) => y0 + (metric === "moment" ? 1 : -1) * (value / maxAbs) * 105;
   const basePoints = samples.map((point) => [mapX(point.x), y0]);
   const resultPoints = samples.map((point) => [mapX(point.x), mapY(point.value)]);
   const areaPoints = [...resultPoints, ...basePoints.slice().reverse()];

@@ -40,10 +40,33 @@ function activeBeamLinearLoads(value: BeamWorkspaceState): BeamLinearLoadConfig[
   }];
 }
 
+function normalizedRatioRange(startRatio: number, endRatio: number) {
+  let start = Number.isFinite(startRatio) ? Math.min(Math.max(startRatio, 0), 1) : 0;
+  let end = Number.isFinite(endRatio) ? Math.min(Math.max(endRatio, 0), 1) : 1;
+  if (end < start) {
+    [start, end] = [end, start];
+  }
+  if (Math.abs(end - start) < 1e-9) {
+    end = Math.min(1, start + 0.01);
+    if (Math.abs(end - start) < 1e-9) {
+      start = Math.max(0, end - 0.01);
+    }
+  }
+  return { start, end };
+}
+
 function buildBeamLoads(value: BeamWorkspaceState) {
   const totalLength = Math.max(value.spans.reduce((sum, span) => sum + span.length, 0), 1e-9);
+  const uniformRange = normalizedRatioRange(value.uniformLoadStartRatio, value.uniformLoadEndRatio);
+  const uniformLoad = {
+    type: "uniform" as const,
+    qKnPerM: value.q,
+    ...(uniformRange.start > 1e-9 || uniformRange.end < 1 - 1e-9
+      ? { start: uniformRange.start * totalLength, end: uniformRange.end * totalLength }
+      : {}),
+  };
   return [
-    ...(value.uniformLoadEnabled ? [{ type: "uniform" as const, qKnPerM: value.q }] : []),
+    ...(value.uniformLoadEnabled ? [uniformLoad] : []),
     ...activeBeamLinearLoads(value).map((load) => {
       const startRatio = Math.min(load.startRatio, load.endRatio);
       const endRatio = Math.max(load.startRatio, load.endRatio);
@@ -83,6 +106,8 @@ export function buildBeamPayload(value: BeamWorkspaceState, projectName = value.
     q: value.q,
     pointLoad: primaryPointLoad?.magnitudeKn ?? value.pointLoad,
     pointLoadPositionRatio: primaryPointLoad?.positionRatio ?? value.pointLoadPositionRatio,
+    uniformLoadStartRatio: normalizedRatioRange(value.uniformLoadStartRatio, value.uniformLoadEndRatio).start,
+    uniformLoadEndRatio: normalizedRatioRange(value.uniformLoadStartRatio, value.uniformLoadEndRatio).end,
     distributedLoadStart: value.distributedLoadStart,
     distributedLoadEnd: value.distributedLoadEnd,
     distributedLoadStartRatio: value.distributedLoadStartRatio,

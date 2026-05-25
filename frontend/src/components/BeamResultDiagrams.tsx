@@ -237,9 +237,10 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
       .sort((a, b) => a.x - b.x);
     const maxAbs = Math.max(...samples.map((point) => Math.abs(point.value)), 0);
     const offsetScale = maxAbs > 1e-9 ? (compact ? 64 : 82) / maxAbs : 0;
+    const valueToSvgOffset = selectedMetric.key === "momentKnM" ? 1 : -1;
     const mapX = (x: number) => BEAM_LEFT + (clamp(x, 0, totalLength) / totalLength) * BEAM_LEN;
     const basePoints = samples.map((point) => ({ x: mapX(point.x), y: BEAM_Y }));
-    const resultPoints = samples.map((point) => ({ x: mapX(point.x), y: BEAM_Y - point.value * offsetScale, value: point.value, stationM: point.x }));
+    const resultPoints = samples.map((point) => ({ x: mapX(point.x), y: BEAM_Y + valueToSvgOffset * point.value * offsetScale, value: point.value, stationM: point.x }));
     const extreme = resultPoints.reduce<{ x: number; y: number; value: number; stationM: number } | null>((current, point) => {
       if (!current || Math.abs(point.value) > Math.abs(current.value)) return point;
       return current;
@@ -359,7 +360,7 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
             strokeOpacity="0.92"
             strokeWidth={selectedMetric.diagramType === "line" ? RESULT_LINE_STROKE_WIDTH : RESULT_AREA_STROKE_WIDTH}
             strokeLinecap="butt"
-            strokeLinejoin="miter"
+            strokeLinejoin="round"
           />
 
           {beam.supports.map((support, index) => {

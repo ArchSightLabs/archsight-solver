@@ -65,6 +65,10 @@ def _request_for_case(base: Dict[str, Any], case: Dict[str, Any]) -> Dict[str, A
         "load_type_label",
         "q_kn",
         "uniform_q_npm",
+        "uniform_start_ratio",
+        "uniform_end_ratio",
+        "uniform_start",
+        "uniform_end",
         "point_load_kn",
         "point_load_n",
         "point_position_ratio",
@@ -82,13 +86,38 @@ def _request_for_case(base: Dict[str, Any], case: Dict[str, Any]) -> Dict[str, A
     for key in keys:
         if key in case:
             request[key] = case[key]
+    if "load_type" in case:
+        request["loads"] = [
+            {
+                "type": case["load_type"],
+                "q_kn": case.get("q_kn", request["q_kn"]),
+                "uniform_q_npm": case.get("uniform_q_npm", request["uniform_q_npm"]),
+                "uniform_start_ratio": case.get("uniform_start_ratio", request["uniform_start_ratio"]),
+                "uniform_end_ratio": case.get("uniform_end_ratio", request["uniform_end_ratio"]),
+                "uniform_start": case.get("uniform_start", request["uniform_start"]),
+                "uniform_end": case.get("uniform_end", request["uniform_end"]),
+                "point_load_kn": case.get("point_load_kn", request["point_load_kn"]),
+                "point_load_n": case.get("point_load_n", request["point_load_n"]),
+                "point_position_ratio": case.get("point_position_ratio", request["point_position_ratio"]),
+                "point_position": case.get("point_position", request["point_position"]),
+                "distributed_start_ratio": case.get("distributed_start_ratio", request["distributed_start_ratio"]),
+                "distributed_end_ratio": case.get("distributed_end_ratio", request["distributed_end_ratio"]),
+                "distributed_start": case.get("distributed_start", request["distributed_start"]),
+                "distributed_end": case.get("distributed_end", request["distributed_end"]),
+                "distributed_start_kn": case.get("distributed_start_kn", request["distributed_start_kn"]),
+                "distributed_end_kn": case.get("distributed_end_kn", request["distributed_end_kn"]),
+                "distributed_start_npm": case.get("distributed_start_npm", request["distributed_start_npm"]),
+                "distributed_end_npm": case.get("distributed_end_npm", request["distributed_end_npm"]),
+            }
+        ]
     request["reference_load_kn_per_m"] = _reference_load(request)
     return request
 
 
 def _reference_load(request: Dict[str, Any]) -> float:
     if request["load_type"] == "uniform":
-        return float(request["q_kn"])
+        region_ratio = max(1e-9, (float(request["uniform_end"]) - float(request["uniform_start"])) / max(float(request["total_length"]), 1e-9))
+        return float(request["q_kn"]) * region_ratio
     if request["load_type"] == "point":
         return float(request["point_load_kn"]) / max(float(request["total_length"]), 1e-9)
     region_ratio = max(1e-9, (float(request["distributed_end"]) - float(request["distributed_start"])) / max(float(request["total_length"]), 1e-9))

@@ -79,6 +79,23 @@ function buildLinearLoadRange(load: ReturnType<typeof activeBeamLinearLoads>[num
   return { startRatio, endRatio, startLoad, endLoad, startX, endX };
 }
 
+function buildUniformLoadRange(beam: WorkspaceState["beam"], beamStart: number, beamEnd: number) {
+  let startRatio = clampRatio(beam.uniformLoadStartRatio, 0);
+  let endRatio = clampRatio(beam.uniformLoadEndRatio, 1);
+  if (endRatio < startRatio) {
+    [startRatio, endRatio] = [endRatio, startRatio];
+  }
+  if (Math.abs(endRatio - startRatio) < 1e-9) {
+    endRatio = Math.min(1, startRatio + 0.01);
+    if (Math.abs(endRatio - startRatio) < 1e-9) {
+      startRatio = Math.max(0, endRatio - 0.01);
+    }
+  }
+  const startX = beamStart + (beamEnd - beamStart) * startRatio;
+  const endX = beamStart + (beamEnd - beamStart) * endRatio;
+  return { startRatio, endRatio, startX, endX, load: beam.q };
+}
+
 function beamSupportLabel(type: string) {
   if (type === "fixed") return "固结";
   if (type === "roller") return "滚动";
@@ -86,15 +103,14 @@ function beamSupportLabel(type: string) {
   return "铰支";
 }
 
-function buildUniformLoadArrowXs(segments: Array<{ start: number; end: number }>) {
-  if (!segments.length) return [];
+function buildLoadArrowXs(start: number, end: number, minSpacing = 30) {
+  const width = end - start;
+  if (width <= 0) return [];
 
-  return segments.flatMap((segment) => {
-    const width = segment.end - segment.start;
-    if (width <= 0) return [];
-
-    const innerRatios = width >= 180 ? [0.32, 0.68] : [0.5];
-    return innerRatios.map((ratio) => segment.start + width * ratio);
+  const arrowCount = Math.max(3, Math.min(28, Math.floor(width / minSpacing)));
+  return Array.from({ length: arrowCount }, (_, index) => {
+    const ratio = (index + 0.5) / arrowCount;
+    return start + width * ratio;
   });
 }
 
@@ -145,11 +161,11 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
   }, []);
   const beamStart = segments[0]?.start ?? 96;
   const beamEnd = segments[segments.length - 1]?.end ?? 804;
+  const uniformRange = beam.uniformLoadEnabled ? buildUniformLoadRange(beam, beamStart, beamEnd) : null;
   const linearRanges = activeBeamLinearLoads(beam).map((load) => ({
     load,
     ...buildLinearLoadRange(load, beamStart, beamEnd),
   }));
-  const uniformArrows = buildUniformLoadArrowXs(segments);
   const nodeLabelXs = segments.flatMap((segment) => (segment.index === segments.length - 1 ? [segment.start, segment.end] : [segment.start]));
   const pointLoads = beam.pointLoads ?? [];
   const pointLoadXs = pointLoads.map((load) => beamStart + (beamEnd - beamStart) * clampRatio(load.positionRatio, 0.5));
@@ -167,11 +183,12 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
     });
   });
   const loadArrowClearance = 30;
-  const visibleUniformArrows = uniformArrows.filter((x) => pointLoadXs.every((loadX) => Math.abs(loadX - x) >= loadArrowClearance));
+  const visibleUniformArrows = uniformRange ? buildLoadArrowXs(uniformRange.startX, uniformRange.endX).filter((x) => pointLoadXs.every((loadX) => Math.abs(loadX - x) >= loadArrowClearance)) : [];
   const visibleLinearArrows = linearArrows.map((arrows) => arrows.filter((x) => pointLoadXs.every((loadX) => Math.abs(loadX - x) >= loadArrowClearance)));
-  const linearGuideBaseY = beam.uniformLoadEnabled ? 108 : 90;
+  const uniformGuideY = 88;
+  const linearGuideBaseY = beam.uniformLoadEnabled ? 118 : 90;
   const linearGuideGap = hasMultipleLinearLoads ? 18 : 0;
-  const linearLegendY = beam.uniformLoadEnabled ? 96 : 60;
+  const linearLegendY = beam.uniformLoadEnabled ? 108 : 60;
   const pointLabelBaseY = beam.uniformLoadEnabled || linearRanges.length ? 116 : 74;
 
   return (
@@ -227,10 +244,16 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
       <g className="cursor-pointer" onClick={() => onSelect?.({ mode: "beam", type: "load", id: "primary" })}>
         <rect x={beamStart - 20} y="54" width={beamEnd - beamStart + 40} height="95" fill="transparent" />
         {selection?.mode === "beam" && selection.type === "load" ? <rect x={beamStart - 16} y="58" width={beamEnd - beamStart + 32} height="88" rx="14" fill="var(--model-load)" opacity="0.07" /> : null}
-        {beam.uniformLoadEnabled ? (
-          <text x={(beamStart + beamEnd) / 2} y="72" textAnchor="middle" fontSize="13" fontWeight="700" fill="var(--model-load)">
-            q = {formatMagnitude(beam.q)} 千牛/米
-          </text>
+        {uniformRange ? (
+          <g>
+            <text x={(uniformRange.startX + uniformRange.endX) / 2} y="70" textAnchor="middle" fontSize="13" fontWeight="700" fill="var(--model-load)">
+              q = {formatMagnitude(beam.q)} 千牛/米
+            </text>
+            <text x={(uniformRange.startX + uniformRange.endX) / 2} y="84" textAnchor="middle" fontSize="10.5" fill="var(--model-label)">
+              作用区间 {uniformRange.startRatio.toFixed(2)}-{uniformRange.endRatio.toFixed(2)}，长度 {(total * (uniformRange.endRatio - uniformRange.startRatio)).toFixed(2)} 米
+            </text>
+            <line x1={uniformRange.startX} y1={uniformGuideY} x2={uniformRange.endX} y2={uniformGuideY} stroke="var(--model-load)" strokeWidth="1.7" opacity="0.85" />
+          </g>
         ) : null}
         {linearRanges.length === 1 ? linearRanges.map((range) => {
           const linearLengthM = total * (range.endRatio - range.startRatio);
@@ -273,7 +296,7 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
       </g>
       <g stroke="var(--model-load)" strokeWidth={selection?.mode === "beam" && selection.type === "load" ? "3" : "2.1"} className="cursor-pointer" onClick={() => onSelect?.({ mode: "beam", type: "load", id: "primary" })}>
         {beam.uniformLoadEnabled ? visibleUniformArrows.map((x, index) => (
-          <path key={`uniform-${index}`} d={`M${x.toFixed(1)} 86 L${x.toFixed(1)} 132`} markerEnd="url(#modelArrow)" />
+          <path key={`uniform-${index}`} d={`M${x.toFixed(1)} ${(uniformGuideY + 4).toFixed(1)} L${x.toFixed(1)} 132`} markerEnd="url(#modelArrow)" />
         )) : null}
         {visibleLinearArrows.flatMap((arrows, loadIndex) => {
           const guideY = linearGuideBaseY + loadIndex * linearGuideGap;

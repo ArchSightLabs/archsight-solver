@@ -36,10 +36,18 @@ def build_preview_beam(solution: Dict[str, Any]) -> Dict[str, Any]:
     loads: List[Dict[str, Any]] = []
     for load in solution.get("load_items", []):
         if load.get("type") == "uniform":
-            marker_count = max(4, min(8, len(spans) * 2))
-            for idx in range(marker_count):
-                x = total_length * (idx + 0.5) / marker_count if marker_count else 0.0
-                loads.append({"type": "uniform", "x": float(x), "intensityKnPerM": float(load.get("magnitudeKnPerM", 0.0)), "length": float(total_length / max(1, len(spans)))})
+            start_x = float(load.get("start", 0.0))
+            end_x = float(load.get("end", total_length))
+            loads.append(
+                {
+                    "type": "uniform",
+                    "x": float((start_x + end_x) / 2.0),
+                    "intensityKnPerM": float(load.get("magnitudeKnPerM", 0.0)),
+                    "startX": start_x,
+                    "endX": end_x,
+                    "length": float(max(0.0, end_x - start_x)),
+                }
+            )
         elif load.get("type") == "point":
             loads.append({"type": "point", "x": float(load.get("position", 0.0)), "intensityKn": float(load.get("magnitudeKn", 0.0))})
         elif load.get("type") == "linear":

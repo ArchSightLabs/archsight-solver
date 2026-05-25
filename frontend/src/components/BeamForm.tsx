@@ -100,13 +100,33 @@ function supportIndexFromId(id: string) {
 
 function formatLoadSummary(value: BeamWorkspaceState) {
   const linearLoads = activeBeamLinearLoads(value);
+  const uniformRange = normalizedBeamRatioRange(value.uniformLoadStartRatio, value.uniformLoadEndRatio);
+  const uniformRangeLabel = uniformRange.startRatio <= 1e-9 && uniformRange.endRatio >= 1 - 1e-9
+    ? "全长"
+    : `${uniformRange.startRatio.toFixed(2)}-${uniformRange.endRatio.toFixed(2)}`;
   const parts = [
-    value.uniformLoadEnabled ? `均布 ${value.q.toFixed(1)} kN/m` : null,
+    value.uniformLoadEnabled ? `均布 ${value.q.toFixed(1)} kN/m · ${uniformRangeLabel}` : null,
     linearLoads.length === 1 ? `线性 ${linearLoads[0].qStartKnPerM.toFixed(1)} → ${linearLoads[0].qEndKnPerM.toFixed(1)} kN/m` : null,
     linearLoads.length > 1 ? `线性分布荷载 ${linearLoads.length} 条` : null,
     value.pointLoads.length ? `集中力 ${value.pointLoads.length} 个` : null,
   ].filter(Boolean);
   return parts.length ? parts.join(" + ") : "无荷载";
+}
+
+function normalizedBeamRatioRange(startValue: number, endValue: number) {
+  let startRatio = Number.isFinite(startValue) ? Math.min(Math.max(startValue, 0), 1) : 0;
+  let endRatio = Number.isFinite(endValue) ? Math.min(Math.max(endValue, 0), 1) : 1;
+  if (endRatio < startRatio) {
+    [startRatio, endRatio] = [endRatio, startRatio];
+  }
+  if (Math.abs(endRatio - startRatio) < 1e-9) {
+    if (endRatio < 1) {
+      endRatio = Math.min(1, endRatio + 0.01);
+    } else {
+      startRatio = Math.max(0, startRatio - 0.01);
+    }
+  }
+  return { startRatio, endRatio };
 }
 
 function activeBeamLinearLoads(value: BeamWorkspaceState): BeamWorkspaceState["linearLoads"] {
@@ -203,6 +223,17 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
       distributedLoadEnd: nextLoad.qEndKnPerM,
       distributedLoadStartRatio: nextLoad.startRatio,
       distributedLoadEndRatio: nextLoad.endRatio,
+    });
+  };
+
+  const updateUniformLoadRange = (patch: Partial<Pick<BeamWorkspaceState, "uniformLoadStartRatio" | "uniformLoadEndRatio">>) => {
+    const range = normalizedBeamRatioRange(
+      patch.uniformLoadStartRatio ?? value.uniformLoadStartRatio,
+      patch.uniformLoadEndRatio ?? value.uniformLoadEndRatio
+    );
+    patchLoadState({
+      uniformLoadStartRatio: range.startRatio,
+      uniformLoadEndRatio: range.endRatio,
     });
   };
 
@@ -509,6 +540,8 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
   const totalLength = value.spans.reduce((sum, span) => sum + span.length, 0);
   const loadSummary = formatLoadSummary(value);
   const activeLinearLoads = activeBeamLinearLoads(value);
+  const uniformRange = normalizedBeamRatioRange(value.uniformLoadStartRatio, value.uniformLoadEndRatio);
+  const uniformLoadLength = totalLength * (uniformRange.endRatio - uniformRange.startRatio);
   const primaryLinearLoad = activeLinearLoads[0] ?? {
     id: "L1",
     qStartKnPerM: value.distributedLoadStart,
@@ -591,9 +624,22 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
             </Button>
           </div>
           {value.uniformLoadEnabled ? (
-            <div className="space-y-1">
-              <div className={FIELD_LABEL_CLASS}>均布荷载 q（kN/m）</div>
-              <Input type="number" step="0.1" value={value.q} onChange={(event) => updateWorkspace("q", Number(event.target.value) || 0)} className="h-10 min-w-0 font-mono text-xs" />
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-1 sm:col-span-2">
+                <div className={FIELD_LABEL_CLASS}>均布荷载 q（kN/m）</div>
+                <Input type="number" step="0.1" value={value.q} onChange={(event) => updateWorkspace("q", Number(event.target.value) || 0)} className="h-10 min-w-0 font-mono text-xs" />
+              </div>
+              <div className="space-y-1">
+                <div className={FIELD_LABEL_CLASS}>起点位置比例（0-1）</div>
+                <Input type="number" step="0.05" min="0" max="1" value={uniformRange.startRatio} onChange={(event) => updateUniformLoadRange({ uniformLoadStartRatio: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+              </div>
+              <div className="space-y-1">
+                <div className={FIELD_LABEL_CLASS}>终点位置比例（0-1）</div>
+                <Input type="number" step="0.05" min="0" max="1" value={uniformRange.endRatio} onChange={(event) => updateUniformLoadRange({ uniformLoadEndRatio: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+              </div>
+              <div className="rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 font-mono text-[11px] text-muted-foreground sm:col-span-2">
+                作用区间 {uniformRange.startRatio.toFixed(2)}-{uniformRange.endRatio.toFixed(2)}，长度 {uniformLoadLength.toFixed(2)} m
+              </div>
             </div>
           ) : null}
         </section>

@@ -226,7 +226,8 @@ def beam_preview_png(beam: Dict[str, Any]) -> bytes:
         if load.get("type") == "point":
             _arrow(canvas, x, y0 - 78, x, y0 - 14, RED)
         else:
-            x2 = sx(min(total, float(load.get("x", 0.0)) + max(length, total * 0.15)))
+            x = sx(float(load.get("startX", load.get("x", 0.0))))
+            x2 = sx(float(load.get("endX", min(total, float(load.get("x", 0.0)) + max(length, total * 0.15)))))
             for tick in range(8):
                 xt = x + (x2 - x) * tick / 7
                 _arrow(canvas, xt, y0 - 72, xt, y0 - 16, RED)

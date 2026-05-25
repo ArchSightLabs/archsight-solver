@@ -82,8 +82,12 @@ def _is_symbolic_check_supported(
     load_type: str,
     support_specs: Sequence[Dict[str, Any]] | None,
     total_length: float,
+    uniform_start: float = 0.0,
+    uniform_end: float | None = None,
 ) -> bool:
     if load_type != "uniform":
+        return False
+    if abs(float(uniform_start)) > 1e-9 or abs(float(uniform_end if uniform_end is not None else total_length) - float(total_length)) > 1e-9:
         return False
     if beam_type == "simply_supported" and len(support_specs or []) == 2:
         return True
@@ -103,8 +107,10 @@ def build_symbolic_check(
     uniform_q_npm: float,
     E: float,
     I: float,
+    uniform_start: float = 0.0,
+    uniform_end: float | None = None,
 ) -> Dict[str, Any]:
-    if not _is_symbolic_check_supported(beam_type, load_type, support_specs, total_length):
+    if not _is_symbolic_check_supported(beam_type, load_type, support_specs, total_length, uniform_start, uniform_end):
         return {
             "available": False,
             "scope": "首版教学校核仅覆盖静定简支梁在全跨均布荷载作用下的教材公式。",
@@ -187,6 +193,8 @@ def finite_element_solution(
                 "type": load_type,
                 "q_kn": load_spec.get("q_kn", 0.0),
                 "uniform_q_npm": load_spec.get("uniform_q_npm", 0.0),
+                "uniform_start": load_spec.get("uniform_start", 0.0),
+                "uniform_end": load_spec.get("uniform_end", total_length),
                 "point_load_kn": load_spec.get("point_load_kn", 0.0),
                 "point_load_n": load_spec.get("point_load_n", 0.0),
                 "point_position": load_spec.get("point_position", 0.0),
@@ -200,7 +208,10 @@ def finite_element_solution(
             }
         ]
     for load in beam_loads:
-        if load.get("type") == "point":
+        if load.get("type") == "uniform":
+            extra_node_positions.append(float(load.get("uniform_start", 0.0)))
+            extra_node_positions.append(float(load.get("uniform_end", total_length)))
+        elif load.get("type") == "point":
             extra_node_positions.append(float(load.get("point_position", 0.0)))
         elif load.get("type") == "linear":
             extra_node_positions.append(float(load.get("distributed_start", 0.0)))
@@ -232,7 +243,10 @@ def finite_element_solution(
         for load in beam_loads:
             current_type = load.get("type")
             if current_type == "uniform":
-                intensity += float(load.get("uniform_q_npm", 0.0))
+                uniform_start = float(load.get("uniform_start", 0.0))
+                uniform_end = float(load.get("uniform_end", total_length))
+                if uniform_start - 1e-12 <= x_global <= uniform_end + 1e-12:
+                    intensity += float(load.get("uniform_q_npm", 0.0))
             elif current_type == "linear":
                 distributed_start = float(load.get("distributed_start", 0.0))
                 distributed_end = float(load.get("distributed_end", 0.0))
@@ -339,21 +353,62 @@ def finite_element_solution(
             }
         )
 
+    gauss_points = [
+        (-math.sqrt(3.0 / 5.0), 5.0 / 9.0),
+        (0.0, 8.0 / 9.0),
+        (math.sqrt(3.0 / 5.0), 5.0 / 9.0),
+    ]
+
+    def distributed_integrals(x_start: float, local_x: float) -> Tuple[float, float]:
+        if local_x <= 1e-12:
+            return 0.0, 0.0
+        shear_integral = 0.0
+        moment_integral = 0.0
+        for xi_raw, weight in gauss_points:
+            local_position = 0.5 * (xi_raw + 1.0) * local_x
+            q_x = load_intensity(x_start + local_position)
+            factor = weight * local_x / 2.0
+            shear_integral += q_x * factor
+            moment_integral += q_x * (local_x - local_position) * factor
+        return shear_integral, moment_integral
+
+    def point_load_integrals(element_index: int, x_start: float, x_end: float, local_x: float) -> Tuple[float, float]:
+        shear_jump = 0.0
+        moment_jump = 0.0
+        for load in beam_loads:
+            if load.get("type") != "point":
+                continue
+            point_position = float(load.get("point_position", 0.0))
+            point_load_n = float(load.get("point_load_n", 0.0))
+            is_last_element = element_index == len(element_data) - 1
+            in_element = (x_start <= point_position < x_end) or (is_last_element and abs(point_position - x_end) <= 1e-12)
+            local_position = point_position - x_start
+            if in_element and local_position <= local_x + 1e-12:
+                shear_jump += point_load_n
+                moment_jump += point_load_n * max(0.0, local_x - local_position)
+        return shear_jump, moment_jump
+
     for element in element_data:
         dofs = element["dofs"]
         d_local = displacement[dofs]
         sample_count = max(8, int(math.ceil(element["length"] / total_length * 80)))
         local_x = np.linspace(0.0, element["length"], sample_count)
+        internal_forces = element["k_local"] @ d_local - element["f_local"]
+        shear_start = float(internal_forces[0])
+        moment_start = float(internal_forces[1])
         for index, lx in enumerate(local_x):
             if index == sample_count - 1 and element["index"] < len(element_data) - 1:
                 continue
             xi = lx / element["length"]
             displacement_value = float(shape_functions(xi, element["length"]) @ d_local)
-            internal_forces = element["k_local"] @ d_local - element["f_local"]
+            distributed_shear, distributed_moment = distributed_integrals(element["x_start"], float(lx))
+            point_shear, point_moment = point_load_integrals(element["index"], element["x_start"], element["x_end"], float(lx))
+            shear_value = shear_start + distributed_shear + point_shear
+            moment_value = moment_start - shear_start * float(lx) - distributed_moment - point_moment
             x_values.append(element["x_start"] + lx)
             v_values.append(displacement_value)
-            moment_values.append(float(internal_forces[1]))
-            shear_values.append(float(internal_forces[0]))
+            moment_values.append(float(moment_value))
+            shear_values.append(float(shear_value))
 
     x_values.append(total_length)
     v_values.append(float(displacement[-2]))
@@ -371,7 +426,14 @@ def finite_element_solution(
     for load in beam_loads:
         current_type = load.get("type")
         if current_type == "uniform":
-            load_items.append({"type": "uniform", "start": 0.0, "end": total_length, "magnitudeKnPerM": round(from_si(float(load.get("uniform_q_npm", 0.0)), "distributed", "kN/m"), 4)})
+            load_items.append(
+                {
+                    "type": "uniform",
+                    "start": round(float(load.get("uniform_start", 0.0)), 6),
+                    "end": round(float(load.get("uniform_end", total_length)), 6),
+                    "magnitudeKnPerM": round(from_si(float(load.get("uniform_q_npm", 0.0)), "distributed", "kN/m"), 4),
+                }
+            )
         elif current_type == "point":
             load_items.append({"type": "point", "position": round(float(load.get("point_position", 0.0)), 6), "magnitudeKn": round(from_si(float(load.get("point_load_n", 0.0)), "force", "kN"), 4)})
         elif current_type == "linear":
@@ -423,6 +485,8 @@ def finite_element_solution(
             support_specs=support_specs,
             total_length=total_length,
             uniform_q_npm=float(beam_loads[0].get("uniform_q_npm", 0.0)) if len(beam_loads) == 1 and beam_loads[0].get("type") == "uniform" else 0.0,
+            uniform_start=float(beam_loads[0].get("uniform_start", 0.0)) if len(beam_loads) == 1 and beam_loads[0].get("type") == "uniform" else 0.0,
+            uniform_end=float(beam_loads[0].get("uniform_end", total_length)) if len(beam_loads) == 1 and beam_loads[0].get("type") == "uniform" else total_length,
             E=E,
             I=I,
         ),

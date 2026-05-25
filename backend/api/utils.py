@@ -235,6 +235,8 @@ def build_calculation_response(data, operation='calculate'):
             'loadValue': load_value,
             'loadPosition': request_data['point_position'],
             'loadEnd': load_end,
+            'uniformLoadStartRatio': request_data['uniform_start_ratio'],
+            'uniformLoadEndRatio': request_data['uniform_end_ratio'],
             'freq': request_data['freq'],
             'duration': request_data['duration'],
             'E': request_data['E_gpa'],

@@ -27,7 +27,7 @@ LOAD,uniform,12
 test("parseBeamTextModel imports superposed beam loads", () => {
   const result = parseBeamTextModel(`
 SPAN,8,210,4500
-LOAD,uniform,4
+LOAD,uniform,4,0.25,0.75
 LOAD,linear,2,6,0.25,0.75
 LOAD,point,12,0.25
 LOAD,point,8,0.75
@@ -36,6 +36,8 @@ LOAD,point,8,0.75
   assert.ok(result.patch);
   assert.equal(result.patch?.loadType, "combined");
   assert.equal(result.patch?.uniformLoadEnabled, true);
+  assert.equal(result.patch?.uniformLoadStartRatio, 0.25);
+  assert.equal(result.patch?.uniformLoadEndRatio, 0.75);
   assert.equal(result.patch?.linearLoadEnabled, true);
   assert.deepEqual(result.patch?.linearLoads, [
     { id: "L1", qStartKnPerM: 2, qEndKnPerM: 6, startRatio: 0.25, endRatio: 0.75 },
@@ -145,7 +147,7 @@ test("serializeBeamTextModel keeps long format hints as real comment lines", () 
   const text = serializeBeamTextModel(createDefaultBeamWorkspaceState());
 
   assert.match(text, /# 支座类型：fixed=固定支座；pinned=铰支座；roller=滚动支座；free=自由端\/无约束/u);
-  assert.match(text, /# LOAD,uniform,q_kN_per_m {2}均布荷载，q 为 kN\/m\n# LOAD,point,P_kN,ratio {2}集中力，P 为 kN，ratio 为跨全长相对位置 0-1\n# LOAD,linear,q1,q2,startRatio,endRatio {2}线性分布荷载，q1\/q2 为起止强度 kN\/m/u);
+  assert.match(text, /# LOAD,uniform,q_kN_per_m,startRatio,endRatio {2}均布荷载，q 为 kN\/m，范围比例默认 0-1\n# LOAD,point,P_kN,ratio {2}集中力，P 为 kN，ratio 为跨全长相对位置 0-1\n# LOAD,linear,q1,q2,startRatio,endRatio {2}线性分布荷载，q1\/q2 为起止强度 kN\/m/u);
   assert.doesNotMatch(text, /\nLOAD,linear,q1,q2,startRatio,endRatio/u);
 });
 

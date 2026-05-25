@@ -318,8 +318,16 @@ export function parseBeamTextModel(text: string): BeamTextParseResult {
           diagnostics.push(`第 ${lineIndex + 1} 行：均布荷载 q_kN_per_m 必须为数字。`);
           continue;
         }
+        const startRatio = tokens.length >= 5 ? toNumber(tokens[3]) : 0;
+        const endRatio = tokens.length >= 5 ? toNumber(tokens[4]) : 1;
+        if (startRatio === null || endRatio === null || startRatio < 0 || startRatio > 1 || endRatio < 0 || endRatio > 1 || startRatio >= endRatio) {
+          diagnostics.push(`第 ${lineIndex + 1} 行：均布荷载范围比例必须满足 0 <= startRatio < endRatio <= 1。`);
+          continue;
+        }
         uniformLoadEnabled = true;
         patch.q = q;
+        patch.uniformLoadStartRatio = startRatio;
+        patch.uniformLoadEndRatio = endRatio;
       } else {
         diagnostics.push(`第 ${lineIndex + 1} 行：荷载类型必须为 uniform、point 或 linear。`);
       }
@@ -393,7 +401,7 @@ export function serializeBeamTextModel(value: BeamWorkspaceState): string {
         }]
     : [];
   const loadLines = [
-    ...(value.uniformLoadEnabled ? [`LOAD,uniform,${value.q}`] : []),
+    ...(value.uniformLoadEnabled ? [`LOAD,uniform,${value.q},${value.uniformLoadStartRatio},${value.uniformLoadEndRatio}`] : []),
     ...linearLoads.map((load) => `LOAD,linear,${load.qStartKnPerM},${load.qEndKnPerM},${load.startRatio},${load.endRatio}`),
     ...value.pointLoads.map((load) => `LOAD,point,${load.magnitudeKn},${load.positionRatio}`),
   ];
@@ -420,7 +428,7 @@ export function serializeBeamTextModel(value: BeamWorkspaceState): string {
       )
     ),
     "",
-    "# LOAD,uniform,q_kN_per_m  均布荷载，q 为 kN/m",
+    "# LOAD,uniform,q_kN_per_m,startRatio,endRatio  均布荷载，q 为 kN/m，范围比例默认 0-1",
     "# LOAD,point,P_kN,ratio  集中力，P 为 kN，ratio 为跨全长相对位置 0-1",
     "# LOAD,linear,q1,q2,startRatio,endRatio  线性分布荷载，q1/q2 为起止强度 kN/m",
     ...(loadLines.length ? loadLines : ["# 无荷载"]),

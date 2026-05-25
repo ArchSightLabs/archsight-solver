@@ -610,6 +610,24 @@ function normalizeBeamPointLoads(rawLoads: unknown, fallback: BeamPointLoadConfi
   });
 }
 
+function normalizeBeamRange(startValue: unknown, endValue: unknown, fallbackStart = 0, fallbackEnd = 1) {
+  let startRatio = Number(startValue);
+  let endRatio = Number(endValue);
+  startRatio = Number.isFinite(startRatio) ? Math.min(Math.max(startRatio, 0), 1) : fallbackStart;
+  endRatio = Number.isFinite(endRatio) ? Math.min(Math.max(endRatio, 0), 1) : fallbackEnd;
+  if (endRatio < startRatio) {
+    [startRatio, endRatio] = [endRatio, startRatio];
+  }
+  if (Math.abs(endRatio - startRatio) < 1e-9) {
+    if (endRatio < 1) {
+      endRatio = Math.min(1, endRatio + 0.01);
+    } else {
+      startRatio = Math.max(0, startRatio - 0.01);
+    }
+  }
+  return { startRatio, endRatio };
+}
+
 function normalizeBeamLinearLoads(rawLoads: unknown, fallback: BeamLinearLoadConfig[] = []): BeamLinearLoadConfig[] {
   const source = Array.isArray(rawLoads) ? rawLoads : fallback;
   const seen = new Set<string>();
@@ -618,20 +636,7 @@ function normalizeBeamLinearLoads(rawLoads: unknown, fallback: BeamLinearLoadCon
     const id = normalizeTextId(candidate.id, `L${index + 1}`, seen, "L", index);
     const qStartKnPerM = Number(candidate.qStartKnPerM);
     const qEndKnPerM = Number(candidate.qEndKnPerM);
-    let startRatio = Number(candidate.startRatio);
-    let endRatio = Number(candidate.endRatio);
-    startRatio = Number.isFinite(startRatio) ? Math.min(Math.max(startRatio, 0), 1) : 0;
-    endRatio = Number.isFinite(endRatio) ? Math.min(Math.max(endRatio, 0), 1) : 1;
-    if (endRatio < startRatio) {
-      [startRatio, endRatio] = [endRatio, startRatio];
-    }
-    if (Math.abs(endRatio - startRatio) < 1e-9) {
-      if (endRatio < 1) {
-        endRatio = Math.min(1, endRatio + 0.01);
-      } else {
-        startRatio = Math.max(0, startRatio - 0.01);
-      }
-    }
+    const { startRatio, endRatio } = normalizeBeamRange(candidate.startRatio, candidate.endRatio);
     return {
       id,
       qStartKnPerM: Number.isFinite(qStartKnPerM) ? qStartKnPerM : 0,
@@ -701,6 +706,8 @@ export function createDefaultBeamWorkspaceState(): BeamWorkspaceState {
     linearLoads: [],
     pointLoads: [],
     q: 10,
+    uniformLoadStartRatio: 0,
+    uniformLoadEndRatio: 1,
     pointLoad: 0,
     pointLoadPositionRatio: 0.5,
     distributedLoadStart: 10,
@@ -835,7 +842,13 @@ export function normalizeBeamWorkspaceState(value: Partial<BeamWorkspaceState> |
   const beamType = value?.beamType === "simply_supported" || value?.beamType === "cantilever" || value?.beamType === "continuous" ? value.beamType : base.beamType;
   const totalLength = beamSpanBoundaries(normalizedSpans).at(-1) ?? DEFAULT_BEAM_SPAN.length;
   const fallbackSupports = defaultBeamSupports(beamType, normalizedSpans);
-  const hasModernLoadFields = value?.uniformLoadEnabled !== undefined || value?.linearLoadEnabled !== undefined || Array.isArray(value?.pointLoads) || Array.isArray(value?.linearLoads);
+  const hasModernLoadFields =
+    value?.uniformLoadEnabled !== undefined ||
+    value?.uniformLoadStartRatio !== undefined ||
+    value?.uniformLoadEndRatio !== undefined ||
+    value?.linearLoadEnabled !== undefined ||
+    Array.isArray(value?.pointLoads) ||
+    Array.isArray(value?.linearLoads);
   const legacyPointLoads = value?.loadType === "point"
     ? [{
         id: "P1",
@@ -856,6 +869,7 @@ export function normalizeBeamWorkspaceState(value: Partial<BeamWorkspaceState> |
   const uniformLoadEnabled = hasModernLoadFields ? Boolean(value?.uniformLoadEnabled) : value?.loadType !== "point" && value?.loadType !== "linear";
   const linearLoadEnabled = hasModernLoadFields ? Boolean(value?.linearLoadEnabled) && linearLoads.length > 0 : value?.loadType === "linear";
   const pointLoads = normalizeBeamPointLoads(value?.pointLoads, legacyPointLoads);
+  const uniformRange = normalizeBeamRange(value?.uniformLoadStartRatio, value?.uniformLoadEndRatio, base.uniformLoadStartRatio, base.uniformLoadEndRatio);
   const primaryLinearLoad = linearLoads[0];
   const activeTypeCount = (uniformLoadEnabled ? 1 : 0) + (linearLoadEnabled ? linearLoads.length : 0) + pointLoads.length;
   const loadType: BeamWorkspaceState["loadType"] =
@@ -877,6 +891,8 @@ export function normalizeBeamWorkspaceState(value: Partial<BeamWorkspaceState> |
     beamType,
     loadType,
     uniformLoadEnabled,
+    uniformLoadStartRatio: uniformRange.startRatio,
+    uniformLoadEndRatio: uniformRange.endRatio,
     linearLoadEnabled,
     linearLoads,
     pointLoads,

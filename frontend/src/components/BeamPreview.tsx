@@ -14,6 +14,20 @@ type BeamLoadArrow = BeamLoadMarker & {
   labelY: number;
 };
 
+type BeamDistributedLoadBand = {
+  key: string;
+  type: "uniform" | "linear";
+  startX: number;
+  endX: number;
+  labelX: number;
+  guideY: number;
+  labelY: number;
+  arrowStartY: number;
+  arrowEndY: number;
+  arrowXs: number[];
+  label: string;
+};
+
 type BeamSummaryItem = {
   label: string;
   main: ReactNode;
@@ -36,6 +50,12 @@ function supportTypeLabel(type: string) {
   return "铰支";
 }
 
+function distributedArrowXs(startX: number, endX: number) {
+  const width = Math.max(0, endX - startX);
+  const arrowCount = Math.max(3, Math.min(30, Math.floor(width / 28)));
+  return Array.from({ length: arrowCount }, (_, index) => startX + width * ((index + 0.5) / arrowCount));
+}
+
 export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
   const totalLength = beam?.totalLength || 1;
 
@@ -53,7 +73,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
   }, [beam?.curve, mapX, mapY]);
 
   const loadArrows = useMemo(() => {
-    return (beam?.loads || []).map((load): BeamLoadArrow => {
+    return (beam?.loads || []).filter((load) => load.type === "point").map((load): BeamLoadArrow => {
       const x = mapX(load.x);
       const mag = load.intensityKnPerM ?? load.intensityKn ?? 1;
       const len = 30 + Math.min(44, Math.abs(mag) * 1.5);
@@ -68,32 +88,66 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
     });
   }, [beam?.loads, mapX]);
 
-  const distributedLoadLabels = useMemo(() => {
+  const distributedLoadBands = useMemo(() => {
     const loads = beam?.loads ?? [];
-    const labels: Array<{ x: number; y: number; text: string }> = [];
+    const bands: BeamDistributedLoadBand[] = [];
     const uniformLoads = loads.filter((load) => load.type === "uniform");
     const linearLoads = loads.filter((load) => load.type === "linear");
 
-    if (uniformLoads.length) {
-      const positions = uniformLoads.map((load) => mapX(load.x));
-      labels.push({
-        x: positions.reduce((sum, value) => sum + value, 0) / positions.length,
-        y: BEAM_Y - 106,
-        text: `沿梁均布荷载 ${Math.abs(uniformLoads[0]?.intensityKnPerM || 0).toFixed(1)} 千牛/米`,
+    uniformLoads.forEach((load, index) => {
+      const startX = mapX(load.startX ?? Math.max(0, load.x - (load.length ?? totalLength) / 2));
+      const endX = mapX(load.endX ?? Math.min(totalLength, load.x + (load.length ?? totalLength) / 2));
+      const intensity = load.intensityKnPerM ?? 0;
+      const downward = intensity >= 0;
+      const guideY = downward ? BEAM_Y - 70 : BEAM_Y + 70;
+      bands.push({
+        key: `uniform-${index}`,
+        type: "uniform",
+        startX,
+        endX,
+        labelX: (startX + endX) / 2,
+        guideY,
+        labelY: downward ? guideY - 10 : guideY + 18,
+        arrowStartY: downward ? guideY + 5 : guideY - 5,
+        arrowEndY: downward ? BEAM_Y - 8 : BEAM_Y + 8,
+        arrowXs: distributedArrowXs(startX, endX),
+        label: `q = ${Math.abs(intensity).toFixed(1)} 千牛/米`,
       });
-    }
+    });
 
     if (linearLoads.length) {
-      const positions = linearLoads.map((load) => mapX(load.x));
-      labels.push({
-        x: positions.reduce((sum, value) => sum + value, 0) / positions.length,
-        y: uniformLoads.length ? BEAM_Y - 88 : BEAM_Y - 106,
-        text: `沿梁线性分布荷载 ${Math.abs(linearLoads[0]?.intensityKnPerM || 0).toFixed(1)} → ${Math.abs(linearLoads[linearLoads.length - 1]?.intensityKnPerM || 0).toFixed(1)} 千牛/米`,
+      const grouped = new Map<string, BeamLoadMarker[]>();
+      linearLoads.forEach((load) => {
+        const key = `${load.startX ?? load.x}:${load.endX ?? load.x}`;
+        grouped.set(key, [...(grouped.get(key) ?? []), load]);
+      });
+      Array.from(grouped.values()).forEach((group, index) => {
+        const sortedGroup = group.slice().sort((a, b) => a.x - b.x);
+        const first = sortedGroup[0];
+        const last = sortedGroup[sortedGroup.length - 1] ?? first;
+        const startX = mapX(first?.startX ?? first?.x ?? 0);
+        const endX = mapX(first?.endX ?? last?.x ?? totalLength);
+        const averageIntensity = sortedGroup.reduce((sum, load) => sum + (load.intensityKnPerM ?? 0), 0) / Math.max(1, sortedGroup.length);
+        const downward = averageIntensity >= 0;
+        const guideY = downward ? BEAM_Y - (uniformLoads.length ? 52 : 70) : BEAM_Y + (uniformLoads.length ? 52 : 70);
+        bands.push({
+          key: `linear-${index}`,
+          type: "linear",
+          startX,
+          endX,
+          labelX: (startX + endX) / 2,
+          guideY,
+          labelY: downward ? guideY - 10 : guideY + 18,
+          arrowStartY: downward ? guideY + 5 : guideY - 5,
+          arrowEndY: downward ? BEAM_Y - 8 : BEAM_Y + 8,
+          arrowXs: distributedArrowXs(startX, endX),
+          label: `q = ${Math.abs(first?.intensityKnPerM ?? 0).toFixed(1)} → ${Math.abs(last?.intensityKnPerM ?? 0).toFixed(1)} 千牛/米`,
+        });
       });
     }
 
-    return labels;
-  }, [beam, mapX]);
+    return bands;
+  }, [beam, mapX, totalLength]);
 
   const reactionBadges = (beam?.reactions || []).map((r, i) => ({
     label: `第 ${i + 1} 支座`,
@@ -206,7 +260,21 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
               fill={n.support ? "var(--structure-preview-node)" : "var(--structure-preview-guide)"} />
           ))}
 
-          {/* 荷载箭头 */}
+          {/* 分布荷载 */}
+          {distributedLoadBands.map((band) => (
+            <g key={band.key}>
+              <line x1={band.startX} y1={band.guideY} x2={band.endX} y2={band.guideY} stroke="var(--structure-preview-load)" strokeWidth="1.7" opacity="0.86" />
+              {band.arrowXs.map((x, index) => (
+                <line key={`${band.key}-${index}`} x1={x} y1={band.arrowStartY} x2={x} y2={band.arrowEndY} stroke="var(--structure-preview-load)" strokeWidth="1.8" markerEnd="url(#arrowLoad)" />
+              ))}
+              <text x={band.labelX} y={band.labelY} fill="var(--structure-preview-label)" textAnchor="middle" fontSize="11"
+                stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke" fontWeight="500" fontFamily={svgTextFont}>
+                {band.label}
+              </text>
+            </g>
+          ))}
+
+          {/* 集中荷载箭头 */}
           {loadArrows.map((load, i) => (
             <g key={i}>
               <line x1={load.svgX} y1={load.y1} x2={load.svgX} y2={load.y2}
@@ -218,13 +286,6 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
                 </text>
               ) : null}
             </g>
-          ))}
-
-          {distributedLoadLabels.map((distributedLoadLabel) => (
-            <text key={distributedLoadLabel.text} x={distributedLoadLabel.x} y={distributedLoadLabel.y} fill="var(--structure-preview-label)" textAnchor="middle" fontSize="11"
-              stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke" fontWeight="500" fontFamily={svgTextFont}>
-              {distributedLoadLabel.text}
-            </text>
           ))}
 
           {/* 变形曲线 */}

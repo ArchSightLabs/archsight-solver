@@ -198,11 +198,49 @@ def normalize_query_points(data: Dict[str, Any], total_length: float) -> List[fl
     return sorted({round(point, 9) for point in points})
 
 
+def normalize_load_range(
+    *,
+    start_value: Any,
+    end_value: Any,
+    start_ratio: Any,
+    end_ratio: Any,
+    total_length: float,
+    label: str,
+) -> Tuple[float, float, float, float]:
+    if start_value not in (None, ""):
+        start = to_float(start_value, 0.0)
+    else:
+        start = clamp_ratio(start_ratio, 0.0) * total_length
+    if end_value not in (None, ""):
+        end = to_float(end_value, total_length)
+    else:
+        end = clamp_ratio(end_ratio, 1.0) * total_length
+
+    if start < -1e-9 or start > total_length + 1e-9 or end < -1e-9 or end > total_length + 1e-9:
+        raise ValueError(f"梁{label}作用范围必须位于梁长范围内")
+    start = min(max(start, 0.0), total_length)
+    end = min(max(end, 0.0), total_length)
+    if end < start:
+        start, end = end, start
+    if abs(end - start) < 1e-9:
+        raise ValueError(f"梁{label}作用范围必须具有正长度")
+    return (
+        start,
+        end,
+        start / total_length if total_length else 0.0,
+        end / total_length if total_length else 1.0,
+    )
+
+
 def _legacy_load_values(base: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "load_type": base["load_type"],
         "q_kn": base["q_kn"],
         "uniform_q_npm": base["uniform_q_npm"],
+        "uniform_start_ratio": base["uniform_start_ratio"],
+        "uniform_end_ratio": base["uniform_end_ratio"],
+        "uniform_start": base["uniform_start"],
+        "uniform_end": base["uniform_end"],
         "point_load_kn": base["point_load_kn"],
         "point_load_n": base["point_load_n"],
         "point_position_ratio": base["point_position_ratio"],
@@ -225,6 +263,10 @@ def _compact_load(values: Dict[str, Any]) -> Dict[str, Any]:
             "type": "uniform",
             "q_kn": values["q_kn"],
             "uniform_q_npm": values["uniform_q_npm"],
+            "uniform_start_ratio": values["uniform_start_ratio"],
+            "uniform_end_ratio": values["uniform_end_ratio"],
+            "uniform_start": values["uniform_start"],
+            "uniform_end": values["uniform_end"],
         }
     if load_type == "point":
         return {
@@ -269,7 +311,9 @@ def reference_load_from_loads(loads: Sequence[Mapping[str, Any]], total_length: 
     for load in loads:
         load_type = load.get("type")
         if load_type == "uniform":
-            reference += float(load.get("q_kn", 0.0))
+            start = float(load.get("uniform_start", 0.0))
+            end = float(load.get("uniform_end", total_length))
+            reference += float(load.get("q_kn", 0.0)) * max(0.0, end - start) / length
         elif load_type == "point":
             reference += float(load.get("point_load_kn", 0.0)) / length
         elif load_type == "linear":
@@ -295,6 +339,10 @@ def _load_case_load_values(load: Mapping[str, Any], base: Dict[str, Any]) -> Dic
         "load_type_label": LOAD_TYPE_LABELS[load_type],
         "q_kn": base["q_kn"],
         "uniform_q_npm": base["uniform_q_npm"],
+        "uniform_start_ratio": base["uniform_start_ratio"],
+        "uniform_end_ratio": base["uniform_end_ratio"],
+        "uniform_start": base["uniform_start"],
+        "uniform_end": base["uniform_end"],
         "point_load_kn": base["point_load_kn"],
         "point_load_n": base["point_load_n"],
         "point_position_ratio": base["point_position_ratio"],
@@ -310,7 +358,24 @@ def _load_case_load_values(load: Mapping[str, Any], base: Dict[str, Any]) -> Dic
     }
     if load_type == "uniform":
         q_kn = to_float(load.get("qKnPerM", load.get("q", load.get("magnitudeKnPerM", base["q_kn"]))), base["q_kn"])
-        values.update({"q_kn": q_kn, "uniform_q_npm": to_si(q_kn, "distributed", "kN/m")})
+        start, end, start_ratio, end_ratio = normalize_load_range(
+            start_value=load.get("start", load.get("startM")),
+            end_value=load.get("end", load.get("endM")),
+            start_ratio=load.get("startRatio", load.get("uniformLoadStartRatio", base["uniform_start_ratio"])),
+            end_ratio=load.get("endRatio", load.get("uniformLoadEndRatio", base["uniform_end_ratio"])),
+            total_length=base["total_length"],
+            label="均布荷载",
+        )
+        values.update(
+            {
+                "q_kn": q_kn,
+                "uniform_q_npm": to_si(q_kn, "distributed", "kN/m"),
+                "uniform_start": start,
+                "uniform_end": end,
+                "uniform_start_ratio": start_ratio,
+                "uniform_end_ratio": end_ratio,
+            }
+        )
     elif load_type == "point":
         p_kn = to_float(load.get("pointLoadKn", load.get("magnitudeKn", load.get("P", base["point_load_kn"]))), base["point_load_kn"])
         x = to_float(load.get("x", load.get("xM", load.get("position", base["point_position"]))), base["point_position"])
@@ -423,6 +488,8 @@ def normalize_beam_request(data: Dict[str, Any]) -> Dict[str, Any]:
     point_load_kn = to_float(data.get("pointLoad", data.get("pointLoadKn", q_kn)), q_kn)
     raw_point_position_m = data.get("pointLoadPositionM", data.get("pointPositionM", data.get("loadPositionM")))
     point_position_ratio = clamp_ratio(data.get("pointLoadPositionRatio", data.get("pointPositionRatio", 0.5)), 0.5)
+    raw_uniform_start_m = data.get("uniformLoadStartM", data.get("uniformStartM"))
+    raw_uniform_end_m = data.get("uniformLoadEndM", data.get("uniformEndM"))
     distributed_start_ratio = clamp_ratio(data.get("distributedLoadStartRatio", 0.0), 0.0)
     distributed_end_ratio = clamp_ratio(data.get("distributedLoadEndRatio", 1.0), 1.0)
     distributed_start_kn = to_float(data.get("distributedLoadStart", q_kn), q_kn)
@@ -440,6 +507,14 @@ def normalize_beam_request(data: Dict[str, Any]) -> Dict[str, Any]:
     if not has_custom_supports and beam_type in {"simply_supported", "cantilever"} and len(spans) > 1:
         spans = spans[:1]
         total_length = float(sum(spans))
+    uniform_start, uniform_end, uniform_start_ratio, uniform_end_ratio = normalize_load_range(
+        start_value=raw_uniform_start_m,
+        end_value=raw_uniform_end_m,
+        start_ratio=data.get("uniformLoadStartRatio", 0.0),
+        end_ratio=data.get("uniformLoadEndRatio", 1.0),
+        total_length=total_length,
+        label="均布荷载",
+    )
 
     uniform_q_npm = to_si(q_kn, "distributed", "kN/m")
     point_load_n = to_si(point_load_kn, "force", "kN")
@@ -486,6 +561,10 @@ def normalize_beam_request(data: Dict[str, Any]) -> Dict[str, Any]:
         "point_load_n": point_load_n,
         "point_position_ratio": point_position_ratio,
         "point_position": point_position_ratio * total_length,
+        "uniform_start_ratio": uniform_start_ratio,
+        "uniform_end_ratio": uniform_end_ratio,
+        "uniform_start": uniform_start,
+        "uniform_end": uniform_end,
         "distributed_start_ratio": distributed_start_ratio,
         "distributed_end_ratio": distributed_end_ratio,
         "distributed_start": distributed_start,

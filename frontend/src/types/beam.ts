@@ -53,7 +53,7 @@ export interface BeamLinearLoadConfig {
 }
 
 export type BeamLoadInput =
-  | { type: 'uniform'; qKnPerM: number; enabled?: boolean }
+  | { type: 'uniform'; qKnPerM: number; start?: number; end?: number; enabled?: boolean }
   | { type: 'point'; pointLoadKn: number; x: number; enabled?: boolean }
   | { type: 'linear'; qStartKnPerM: number; qEndKnPerM: number; start: number; end: number; enabled?: boolean };
 
@@ -68,6 +68,8 @@ export interface BeamWorkspaceState {
   linearLoads: BeamLinearLoadConfig[];
   pointLoads: BeamPointLoadConfig[];
   q: number;
+  uniformLoadStartRatio: number;
+  uniformLoadEndRatio: number;
   pointLoad: number;
   pointLoadPositionRatio: number;
   distributedLoadStart: number;
@@ -88,6 +90,8 @@ export interface BeamApiPayload extends BeamForm {
   pointLoadKn?: number;
   pointLoadPositionRatio?: number;
   pointPositionRatio?: number;
+  uniformLoadStartRatio?: number;
+  uniformLoadEndRatio?: number;
   distributedLoadStart?: number;
   distributedLoadEnd?: number;
   distributedLoadStartRatio?: number;
@@ -144,6 +148,8 @@ export interface BeamLoadMarker {
   x: number;
   intensityKnPerM?: number;
   intensityKn?: number;
+  startX?: number;
+  endX?: number;
   length?: number;
 }
 

@@ -113,6 +113,57 @@ def test_beam_query_point_ratios_and_symbolic_check(client):
     assert data["summary"]["maxPositiveMomentKnM"] >= data["summary"]["maxNegativeMomentKnM"]
 
 
+def test_uniform_load_moment_diagram_uses_smooth_samples(client):
+    payload = beam_payload()
+    payload.update(
+        {
+            "spans": [10.0],
+            "beamType": "simply_supported",
+            "loadType": "uniform",
+            "q": 10.0,
+        }
+    )
+
+    response = client.post("/api/calculate", json=payload)
+
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["x_data"][1] > 0.0
+    assert data["moment_data"][1] > 0.0
+    assert data["summary"]["maxPositiveMomentKnM"] == pytest.approx(125.0, rel=1e-3)
+
+
+def test_partial_uniform_load_preview_respects_range(client):
+    payload = beam_payload()
+    payload.update(
+        {
+            "spans": [8.0],
+            "beamType": "simply_supported",
+            "loadType": "uniform",
+            "loads": [{"type": "uniform", "qKnPerM": 5.0, "start": 2.0, "end": 6.0}],
+        }
+    )
+
+    response = client.post("/api/calculate", json=payload)
+
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["normalizedRequest"]["loads"][0]["uniform_start"] == 2.0
+    assert data["normalizedRequest"]["loads"][0]["uniform_end"] == 6.0
+    assert data["diagram"]["loadItems"][0]["start"] == 2.0
+    assert data["diagram"]["loadItems"][0]["end"] == 6.0
+    assert data["beam"]["loads"] == [
+        {
+            "type": "uniform",
+            "x": 4.0,
+            "intensityKnPerM": 5.0,
+            "startX": 2.0,
+            "endX": 6.0,
+            "length": 4.0,
+        }
+    ]
+
+
 def test_linear_load_preview_respects_range_ratios(client):
     payload = beam_payload()
     payload.update(

@@ -62,6 +62,22 @@ test("buildBeamPayload serializes superposed distributed and point loads", () =>
   ]);
 });
 
+test("buildBeamPayload serializes partial uniform beam load range", () => {
+  const workspace = createDefaultBeamWorkspaceState();
+  workspace.spans = [{ length: 8, E: 210, I: 4500 }];
+  workspace.uniformLoadEnabled = true;
+  workspace.linearLoadEnabled = false;
+  workspace.pointLoads = [];
+  workspace.q = 5;
+  workspace.uniformLoadStartRatio = 0.25;
+  workspace.uniformLoadEndRatio = 0.75;
+
+  const payload = buildBeamPayload(workspace);
+
+  assert.equal(payload.loadType, "uniform");
+  assert.deepEqual(payload.loads, [{ type: "uniform", qKnPerM: 5, start: 2, end: 6 }]);
+});
+
 test("buildBeamPayload serializes multiple linear beam loads", () => {
   const workspace = createDefaultBeamWorkspaceState();
   workspace.spans = [{ length: 4, E: 210, I: 4500 }, { length: 5, E: 210, I: 4500 }, { length: 4, E: 210, I: 4500 }];
