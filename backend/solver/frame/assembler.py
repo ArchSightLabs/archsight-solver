@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 import numpy as np
 
 from backend.common.numbers import to_float
-from backend.solver.frame.elements import apply_rotational_releases, distributed_load_local_vector, member_stiffness_local, member_transform
+from backend.solver.frame.elements import apply_rotational_releases, distributed_load_local_vector, member_stiffness_local, member_transform, point_load_local_vector
 
 
 DOF_INDEX = {"ux": 0, "uy": 1, "rz": 2}
@@ -79,10 +79,10 @@ def assemble_global_system(structure: Dict[str, Any]) -> Dict[str, Any]:
         ]
 
         f_base_local = np.zeros(6, dtype=float)
-        load_components: List[Dict[str, float]] = []
+        load_components: List[Dict[str, Any]] = []
         for load in loads:
             if load["type"] == "distributed" and load["member"] == member["id"]:
-                q_start_kn, q_end_kn, direction = _distributed_load_contract(load)
+                q_start_kn, q_end_kn, direction, start_ratio, end_ratio = _distributed_load_contract(load)
                 qx_start, qy_start = _load_components_to_local(direction, q_start_kn * 1000.0, cosine, sine)
                 qx_end, qy_end = _load_components_to_local(direction, q_end_kn * 1000.0, cosine, sine)
                 f_base_local += distributed_load_local_vector(
@@ -91,14 +91,40 @@ def assemble_global_system(structure: Dict[str, Any]) -> Dict[str, Any]:
                     wx_npm=qx_start,
                     wx_end_npm=qx_end,
                     wy_end_npm=qy_end,
+                    start_ratio=start_ratio,
+                    end_ratio=end_ratio,
                 )
                 load_components.append(
                     {
+                        "type": "distributed",
                         "direction": direction,
                         "qxStartNPerM": qx_start,
                         "qxEndNPerM": qx_end,
                         "qyStartNPerM": qy_start,
                         "qyEndNPerM": qy_end,
+                        "startRatio": start_ratio,
+                        "endRatio": end_ratio,
+                        "xStartM": start_ratio * length,
+                        "xEndM": end_ratio * length,
+                    }
+                )
+            elif load["type"] == "member_point" and load["member"] == member["id"]:
+                force_kn, position_ratio, direction = _member_point_load_contract(load)
+                px, py = _load_components_to_local(direction, force_kn * 1000.0, cosine, sine)
+                f_base_local += point_load_local_vector(
+                    py,
+                    length,
+                    px_n=px,
+                    position_ratio=position_ratio,
+                )
+                load_components.append(
+                    {
+                        "type": "member_point",
+                        "direction": direction,
+                        "pxN": px,
+                        "pyN": py,
+                        "positionRatio": position_ratio,
+                        "xM": position_ratio * length,
                     }
                 )
 
@@ -153,14 +179,31 @@ def _release_dofs(end_releases: Dict[str, Any]) -> List[int]:
     return release_dofs
 
 
-def _distributed_load_contract(load: Dict[str, Any]) -> tuple[float, float, str]:
+def _distributed_load_contract(load: Dict[str, Any]) -> tuple[float, float, str, float, float]:
     if "qStartKnPerM" in load or "qEndKnPerM" in load:
         q_start = to_float(load.get("qStartKnPerM", load.get("wyKnPerM", 0.0)), 0.0)
         q_end = to_float(load.get("qEndKnPerM", load.get("wyKnPerM", q_start)), q_start)
         direction = str(load.get("direction") or "local_y").lower()
-        return q_start, q_end, direction
-    wy = to_float(load.get("wyKnPerM"), 0.0)
-    return wy, wy, "local_y"
+    else:
+        q_start = q_end = to_float(load.get("wyKnPerM"), 0.0)
+        direction = str(load.get("direction") or "local_y").lower()
+    start_ratio = min(1.0, max(0.0, to_float(load.get("startRatio", load.get("loadStartRatio", 0.0)), 0.0)))
+    end_ratio = min(1.0, max(0.0, to_float(load.get("endRatio", load.get("loadEndRatio", 1.0)), 1.0)))
+    if end_ratio < start_ratio:
+        start_ratio, end_ratio = end_ratio, start_ratio
+        q_start, q_end = q_end, q_start
+    if end_ratio - start_ratio <= 1e-12:
+        end_ratio = min(1.0, start_ratio + 1e-6)
+        if end_ratio - start_ratio <= 1e-12:
+            start_ratio = max(0.0, end_ratio - 1e-6)
+    return q_start, q_end, direction, start_ratio, end_ratio
+
+
+def _member_point_load_contract(load: Dict[str, Any]) -> tuple[float, float, str]:
+    force = to_float(load.get("forceKn", load.get("magnitudeKn", load.get("pKn", 0.0))), 0.0)
+    position_ratio = min(1.0, max(0.0, to_float(load.get("positionRatio", load.get("ratio", 0.5)), 0.5)))
+    direction = str(load.get("direction") or "local_y").lower()
+    return force, position_ratio, direction
 
 
 def _load_components_to_local(direction: str, q_kn_per_m: float, cosine: float, sine: float) -> tuple[float, float]:

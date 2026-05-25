@@ -375,6 +375,35 @@ function normalizeFrameLoads(rawLoads: unknown, nodes: StructureNode[], members:
     const fallback = fallbackLoads[index] ?? fallbackLoads[fallbackLoads.length - 1];
     const candidate = load && typeof load === "object" ? (load as FrameLoad) : fallback;
     if (candidate?.type === "distributed") {
+      let qStartKnPerM = Number.isFinite(candidate.qStartKnPerM)
+        ? Number(candidate.qStartKnPerM)
+        : Number.isFinite(candidate.wyKnPerM)
+          ? Number(candidate.wyKnPerM)
+          : fallback && fallback.type === "distributed"
+            ? Number(fallback.qStartKnPerM ?? fallback.wyKnPerM ?? 0)
+            : 0;
+      let qEndKnPerM = Number.isFinite(candidate.qEndKnPerM)
+        ? Number(candidate.qEndKnPerM)
+        : Number.isFinite(candidate.wyKnPerM)
+          ? Number(candidate.wyKnPerM)
+          : fallback && fallback.type === "distributed"
+            ? Number(fallback.qEndKnPerM ?? fallback.wyKnPerM ?? 0)
+            : 0;
+      let startRatio = Number(candidate.startRatio ?? (fallback && fallback.type === "distributed" ? fallback.startRatio : 0));
+      let endRatio = Number(candidate.endRatio ?? (fallback && fallback.type === "distributed" ? fallback.endRatio : 1));
+      startRatio = Number.isFinite(startRatio) ? Math.min(Math.max(startRatio, 0), 1) : 0;
+      endRatio = Number.isFinite(endRatio) ? Math.min(Math.max(endRatio, 0), 1) : 1;
+      if (endRatio < startRatio) {
+        [startRatio, endRatio] = [endRatio, startRatio];
+        [qStartKnPerM, qEndKnPerM] = [qEndKnPerM, qStartKnPerM];
+      }
+      if (Math.abs(endRatio - startRatio) < 1e-9) {
+        if (endRatio < 1) {
+          endRatio = Math.min(1, endRatio + 0.01);
+        } else {
+          startRatio = Math.max(0, startRatio - 0.01);
+        }
+      }
       return {
         type: "distributed" as const,
         member: pickExistingId(candidate.member, memberIds, fallback && fallback.type === "distributed" ? fallback.member : memberIds[0] ?? "M1"),
@@ -384,29 +413,34 @@ function normalizeFrameLoads(rawLoads: unknown, nodes: StructureNode[], members:
             ? Number(fallback.wyKnPerM)
             : undefined,
         direction: normalizeLoadDirection(candidate.direction, fallback && fallback.type === "distributed" ? fallback.direction : "local_y"),
-        qStartKnPerM: Number.isFinite(candidate.qStartKnPerM)
-          ? Number(candidate.qStartKnPerM)
-          : Number.isFinite(candidate.wyKnPerM)
-            ? Number(candidate.wyKnPerM)
-            : fallback && fallback.type === "distributed"
-              ? Number(fallback.qStartKnPerM ?? fallback.wyKnPerM ?? 0)
-              : 0,
-        qEndKnPerM: Number.isFinite(candidate.qEndKnPerM)
-          ? Number(candidate.qEndKnPerM)
-          : Number.isFinite(candidate.wyKnPerM)
-            ? Number(candidate.wyKnPerM)
-            : fallback && fallback.type === "distributed"
-              ? Number(fallback.qEndKnPerM ?? fallback.wyKnPerM ?? 0)
-              : 0,
+        qStartKnPerM,
+        qEndKnPerM,
+        startRatio,
+        endRatio,
       };
     }
+    if (candidate?.type === "member_point") {
+      const memberFallback = fallback && fallback.type === "member_point" ? fallback : fallbackLoads.find((item) => item.type === "member_point") ?? null;
+      const ratio = Number(candidate.positionRatio ?? memberFallback?.positionRatio ?? 0.5);
+      return {
+        type: "member_point" as const,
+        member: pickExistingId(candidate.member, memberIds, memberFallback?.member ?? memberIds[0] ?? "M1"),
+        direction: normalizeLoadDirection(candidate.direction, memberFallback?.direction ?? "local_y"),
+        forceKn: Number.isFinite(candidate.forceKn) ? Number(candidate.forceKn) : memberFallback?.forceKn ?? -10,
+        positionRatio: Number.isFinite(ratio) ? Math.min(Math.max(ratio, 0), 1) : 0.5,
+      };
+    }
+    const nodalCandidate = candidate?.type === "nodal" ? candidate : null;
     const nodalFallback = fallback && fallback.type === "nodal" ? fallback : fallbackLoads[0] && fallbackLoads[0].type === "nodal" ? fallbackLoads[0] : null;
+    const fxKn = nodalCandidate?.fxKn;
+    const fyKn = nodalCandidate?.fyKn;
+    const mzKnM = nodalCandidate?.mzKnM;
     return {
       type: "nodal" as const,
-      node: pickExistingId(candidate?.node, nodeIds, nodalFallback?.node ?? nodeIds[0] ?? "N1"),
-      fxKn: Number.isFinite(candidate?.fxKn) ? Number(candidate.fxKn) : nodalFallback?.fxKn ?? 0,
-      fyKn: Number.isFinite(candidate?.fyKn) ? Number(candidate.fyKn) : nodalFallback?.fyKn ?? 0,
-      mzKnM: Number.isFinite(candidate?.mzKnM) ? Number(candidate.mzKnM) : nodalFallback?.mzKnM ?? 0,
+      node: pickExistingId(nodalCandidate?.node, nodeIds, nodalFallback?.node ?? nodeIds[0] ?? "N1"),
+      fxKn: Number.isFinite(fxKn) ? Number(fxKn) : nodalFallback?.fxKn ?? 0,
+      fyKn: Number.isFinite(fyKn) ? Number(fyKn) : nodalFallback?.fyKn ?? 0,
+      mzKnM: Number.isFinite(mzKnM) ? Number(mzKnM) : nodalFallback?.mzKnM ?? 0,
     };
   });
 }

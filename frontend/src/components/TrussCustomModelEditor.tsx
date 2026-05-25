@@ -93,12 +93,23 @@ function createMemberDraft(index: number, nodes: TrussNode[], existingIds: strin
   };
 }
 
-function createLoadDraft(nodes: TrussNode[]): TrussLoad {
+function createNodalLoadDraft(nodes: TrussNode[]): TrussLoad {
   return {
     type: "nodal",
     node: nodes[0]?.id ?? "N1",
     fxKn: 0,
     fyKn: -10,
+  };
+}
+
+function createMemberLoadDraft(members: TrussMember[], preferredMemberId?: string): TrussLoad {
+  const memberIds = new Set(members.map((member) => member.id));
+  return {
+    type: "distributed",
+    member: preferredMemberId && memberIds.has(preferredMemberId) ? preferredMemberId : members[0]?.id ?? "M1",
+    direction: "global_y",
+    qStartKnPerM: -1,
+    qEndKnPerM: -1,
   };
 }
 
@@ -293,9 +304,20 @@ export function TrussCustomModelEditor({ value, onChange, onResetToBenchmark, ac
     });
   };
 
-  const addLoad = () => {
-    const nextLoads = [...value.loads, createLoadDraft(value.nodes)];
+  const addNodalLoad = () => {
+    const nextLoads = [...value.loads, createNodalLoadDraft(value.nodes)];
     commit({ nodes: value.nodes, members: value.members, loads: nextLoads });
+    selectObject({ type: "load", id: `load-${nextLoads.length - 1}` });
+  };
+
+  const addMemberLoad = () => {
+    if (value.members.length === 0) {
+      return;
+    }
+    const preferredMemberId = resolvedSelectedObject.type === "member" ? resolvedSelectedObject.id : undefined;
+    const nextLoads = [...value.loads, createMemberLoadDraft(value.members, preferredMemberId)];
+    commit({ nodes: value.nodes, members: value.members, loads: nextLoads });
+    selectObject({ type: "load", id: `load-${nextLoads.length - 1}` });
   };
 
   const updateLoad = (index: number, patch: Partial<TrussLoad>) => {
@@ -416,10 +438,10 @@ export function TrussCustomModelEditor({ value, onChange, onResetToBenchmark, ac
               value={isMemberLoad ? "distributed" : "nodal"}
               onChange={(nextValue) => {
                 if (nextValue === "distributed") {
-                  updateLoad(index, { type: "distributed", member: value.members[0]?.id ?? "M1", direction: "global_y", qStartKnPerM: -1, qEndKnPerM: -1 } as TrussLoad);
+                  updateLoad(index, createMemberLoadDraft(value.members, isMemberLoad ? load.member : undefined));
                   return;
                 }
-                updateLoad(index, { type: "nodal", node: value.nodes[0]?.id ?? "N1", fxKn: 0, fyKn: -10 } as TrussLoad);
+                updateLoad(index, createNodalLoadDraft(value.nodes));
               }}
               options={LOAD_TYPE_OPTIONS}
               className="text-xs font-mono"
@@ -445,16 +467,16 @@ export function TrussCustomModelEditor({ value, onChange, onResetToBenchmark, ac
               <DropdownSelect value={load.direction ?? "global_y"} onChange={(nextValue) => updateLoad(index, { direction: nextValue as "global_x" | "global_y" } as Partial<TrussLoad>)} options={MEMBER_LOAD_DIRECTION_OPTIONS} className="text-xs font-mono" menuClassName="text-xs font-mono" />
             </div>
             <div className="space-y-1">
-              <div className={fieldLabelClass}>自重强度（kN/m）</div>
-              <Input type="number" step="0.1" value={load.selfWeightKnPerM ?? ""} onChange={(e) => updateLoad(index, { selfWeightKnPerM: e.target.value === "" ? undefined : Number(e.target.value) || 0 } as Partial<TrussLoad>)} className="h-10 min-w-0 font-mono text-xs" />
-            </div>
-            <div className="space-y-1">
               <div className={fieldLabelClass}>起点线荷载（kN/m）</div>
               <Input type="number" step="0.1" value={load.qStartKnPerM ?? load.wyKnPerM ?? 0} onChange={(e) => updateLoad(index, { qStartKnPerM: Number(e.target.value) || 0 } as Partial<TrussLoad>)} className="h-10 min-w-0 font-mono text-xs" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>终点线荷载（kN/m）</div>
               <Input type="number" step="0.1" value={load.qEndKnPerM ?? load.wyKnPerM ?? 0} onChange={(e) => updateLoad(index, { qEndKnPerM: Number(e.target.value) || 0 } as Partial<TrussLoad>)} className="h-10 min-w-0 font-mono text-xs" />
+            </div>
+            <div className="space-y-1">
+              <div className={fieldLabelClass}>自重强度（可选，kN/m）</div>
+              <Input type="number" step="0.1" value={load.selfWeightKnPerM ?? ""} onChange={(e) => updateLoad(index, { selfWeightKnPerM: e.target.value === "" ? undefined : Number(e.target.value) || 0 } as Partial<TrussLoad>)} className="h-10 min-w-0 font-mono text-xs" placeholder="留空则按起终点线荷载" />
             </div>
           </div>
         ) : (
@@ -635,9 +657,13 @@ export function TrussCustomModelEditor({ value, onChange, onResetToBenchmark, ac
                   {option.label}
                 </button>
               ))}
-              <Button variant="outline" size="sm" onClick={addLoad} className="h-8 rounded-lg px-2 text-[10px]">
+              <Button variant="outline" size="sm" onClick={addNodalLoad} className="h-8 rounded-lg px-2 text-[10px]">
                 <Plus className="mr-1 h-3 w-3" />
-                新增荷载
+                新增节点荷载
+              </Button>
+              <Button variant="outline" size="sm" onClick={addMemberLoad} disabled={value.members.length === 0} className="h-8 rounded-lg px-2 text-[10px]">
+                <Plus className="mr-1 h-3 w-3" />
+                新增杆件荷载
               </Button>
             </div>
           </div>
@@ -817,10 +843,16 @@ export function TrussCustomModelEditor({ value, onChange, onResetToBenchmark, ac
             <Link2 className="h-3.5 w-3.5 text-primary" />
             荷载
           </div>
-          <Button variant="outline" size="sm" onClick={addLoad} className="h-8 rounded-xl">
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
-            新增荷载
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={addNodalLoad} className="h-8 rounded-xl">
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              新增节点荷载
+            </Button>
+            <Button variant="outline" size="sm" onClick={addMemberLoad} disabled={value.members.length === 0} className="h-8 rounded-xl">
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              新增杆件荷载
+            </Button>
+          </div>
         </div>
         <div className="space-y-3">
           {value.loads.map((load, index) => {
@@ -834,21 +866,10 @@ export function TrussCustomModelEditor({ value, onChange, onResetToBenchmark, ac
                       value={isMemberLoad ? "distributed" : "nodal"}
                       onChange={(nextValue) => {
                         if (nextValue === "distributed") {
-                          updateLoad(index, {
-                            type: "distributed",
-                            member: value.members[0]?.id ?? "M1",
-                            direction: "global_y",
-                            qStartKnPerM: -1,
-                            qEndKnPerM: -1,
-                          } as TrussLoad);
+                          updateLoad(index, createMemberLoadDraft(value.members, isMemberLoad ? load.member : undefined));
                           return;
                         }
-                        updateLoad(index, {
-                          type: "nodal",
-                          node: value.nodes[0]?.id ?? "N1",
-                          fxKn: 0,
-                          fyKn: -10,
-                        } as TrussLoad);
+                        updateLoad(index, createNodalLoadDraft(value.nodes));
                       }}
                       options={LOAD_TYPE_OPTIONS}
                       className="text-xs font-mono"
@@ -890,7 +911,7 @@ export function TrussCustomModelEditor({ value, onChange, onResetToBenchmark, ac
                       <Input type="number" step="0.1" value={load.qEndKnPerM ?? load.wyKnPerM ?? 0} onChange={(e) => updateLoad(index, { qEndKnPerM: Number(e.target.value) || 0 } as Partial<TrussLoad>)} className="h-10 min-w-0 font-mono text-xs" />
                     </div>
                     <div className="space-y-1">
-                      <div className={fieldLabelClass}>自重强度（kN/m）</div>
+                      <div className={fieldLabelClass}>自重强度（可选，kN/m）</div>
                       <Input type="number" step="0.1" value={load.selfWeightKnPerM ?? ""} onChange={(e) => updateLoad(index, { selfWeightKnPerM: e.target.value === "" ? undefined : Number(e.target.value) || 0 } as Partial<TrussLoad>)} className="h-10 min-w-0 font-mono text-xs" placeholder="优先按向下自重换算" />
                     </div>
                   </div>

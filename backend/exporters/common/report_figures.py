@@ -289,6 +289,7 @@ def structure_preview_png(
         canvas.circle(x, y, 6, INK, True)
     for node in deformed_nodes or []:
         canvas.circle(sx(float(node.get("x", 0.0))), sy(float(node.get("y", 0.0))), 5, BLUE, True)
+    member_by_id = {member.get("id"): member for member in members}
     for load in loads or []:
         if load.get("type") == "nodal":
             node = node_by_id.get(load.get("node"))
@@ -301,6 +302,72 @@ def structure_preview_png(
             if mag > 1e-9:
                 x, y = sx(float(node["x"])), sy(float(node["y"]))
                 _arrow(canvas, x - fx / mag * length, y + fy / mag * length, x, y, RED)
+        elif load.get("type") == "member_point":
+            member = member_by_id.get(load.get("member"))
+            if not member:
+                continue
+            start = node_by_id.get(member.get("start"))
+            end = node_by_id.get(member.get("end"))
+            if not start or not end:
+                continue
+            ratio = min(1.0, max(0.0, float(load.get("positionRatio", 0.5) or 0.5)))
+            force = float(load.get("forceKn", 0.0) or 0.0)
+            if abs(force) <= 1e-9:
+                continue
+            x0, y0 = sx(float(start["x"])), sy(float(start["y"]))
+            x1, y1 = sx(float(end["x"])), sy(float(end["y"]))
+            x = x0 + (x1 - x0) * ratio
+            y = y0 + (y1 - y0) * ratio
+            dx, dy = x1 - x0, y1 - y0
+            length = math.hypot(dx, dy) or 1.0
+            local_y = (dy / length, -dx / length)
+            direction = (0.0, -1.0) if load.get("direction") == "global_y" else local_y
+            sign = 1.0 if force >= 0 else -1.0
+            _arrow(canvas, x - direction[0] * sign * 58, y - direction[1] * sign * 58, x, y, RED)
+        elif load.get("type") == "distributed":
+            member = member_by_id.get(load.get("member"))
+            if not member:
+                continue
+            start = node_by_id.get(member.get("start"))
+            end = node_by_id.get(member.get("end"))
+            if not start or not end:
+                continue
+            q_start = float(load.get("qStartKnPerM", load.get("wyKnPerM", 0.0)) or 0.0)
+            q_end = float(load.get("qEndKnPerM", load.get("wyKnPerM", q_start)) or q_start)
+            representative = q_start if abs(q_start) >= abs(q_end) else q_end
+            if abs(representative) <= 1e-9:
+                continue
+            start_ratio = min(1.0, max(0.0, float(load.get("startRatio", 0.0) or 0.0)))
+            end_ratio = min(1.0, max(0.0, float(load.get("endRatio", 1.0) or 1.0)))
+            if end_ratio < start_ratio:
+                start_ratio, end_ratio = end_ratio, start_ratio
+                q_start, q_end = q_end, q_start
+            x0, y0 = sx(float(start["x"])), sy(float(start["y"]))
+            x1, y1 = sx(float(end["x"])), sy(float(end["y"]))
+            dx, dy = x1 - x0, y1 - y0
+            member_length = math.hypot(dx, dy) or 1.0
+            local_y = (dy / member_length, -dx / member_length)
+            sign = 1.0 if representative >= 0 else -1.0
+            direction = (0.0, -1.0) if load.get("direction") == "global_y" else local_y
+            guide_offset = 46
+            gx0 = x0 + dx * start_ratio - direction[0] * sign * guide_offset
+            gy0 = y0 + dy * start_ratio - direction[1] * sign * guide_offset
+            gx1 = x0 + dx * end_ratio - direction[0] * sign * guide_offset
+            gy1 = y0 + dy * end_ratio - direction[1] * sign * guide_offset
+            canvas.line(gx0, gy0, gx1, gy1, RED, 2)
+            arrow_count = 8
+            max_q = max(abs(q_start), abs(q_end), 1e-9)
+            for tick in range(arrow_count):
+                ratio = start_ratio + (end_ratio - start_ratio) * (tick + 0.5) / arrow_count
+                local_ratio = (ratio - start_ratio) / max(end_ratio - start_ratio, 1e-9)
+                q = q_start + (q_end - q_start) * local_ratio
+                if abs(q) <= 1e-9:
+                    continue
+                q_sign = 1.0 if q >= 0 else -1.0
+                arrow_length = 34 + 18 * abs(q) / max_q
+                x = x0 + dx * ratio
+                y = y0 + dy * ratio
+                _arrow(canvas, x - direction[0] * q_sign * arrow_length, y - direction[1] * q_sign * arrow_length, x, y, RED)
     return canvas.png()
 
 

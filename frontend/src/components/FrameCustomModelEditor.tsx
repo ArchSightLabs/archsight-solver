@@ -57,6 +57,7 @@ const MEMBER_KIND_OPTIONS = [
 const LOAD_TYPE_OPTIONS = [
   { value: "nodal", label: "节点荷载" },
   { value: "distributed", label: "构件分布荷载" },
+  { value: "member_point", label: "构件集中荷载" },
 ];
 
 const LOAD_DIRECTION_OPTIONS: Array<{ value: FrameLoadDirection; label: string }> = [
@@ -183,13 +184,25 @@ function createLoadDraft(index: number, nodes: StructureNode[], members: Structu
   const fallbackNodeId = nodes[0]?.id ?? "N1";
   const fallbackMemberId = members[0]?.id ?? "M1";
 
-  if (index % 2 === 1 && members.length > 0) {
+  if (index % 3 === 1 && members.length > 0) {
     return {
       type: "distributed",
       member: members[index % members.length]?.id ?? fallbackMemberId,
       direction: "local_y",
       qStartKnPerM: -10,
       qEndKnPerM: -10,
+      startRatio: 0,
+      endRatio: 1,
+    };
+  }
+
+  if (index % 3 === 2 && members.length > 0) {
+    return {
+      type: "member_point",
+      member: members[index % members.length]?.id ?? fallbackMemberId,
+      direction: "local_y",
+      forceKn: -10,
+      positionRatio: 0.5,
     };
   }
 
@@ -258,7 +271,11 @@ export function FrameCustomModelEditor({ value, onChange, onResetToPortal, activ
   const loadOptions = useMemo(
     () => value.loads.map((load, index) => ({
       value: `load-${index}`,
-      label: load.type === "nodal" ? `节点荷载 ${index + 1}（${load.node}）` : `构件荷载 ${index + 1}（${load.member}）`,
+      label: load.type === "nodal"
+        ? `节点荷载 ${index + 1}（${load.node}）`
+        : load.type === "member_point"
+          ? `构件集中荷载 ${index + 1}（${load.member}）`
+          : `构件分布荷载 ${index + 1}（${load.member}）`,
     })),
     [value.loads]
   );
@@ -453,7 +470,7 @@ export function FrameCustomModelEditor({ value, onChange, onResetToPortal, activ
     if (!current) return;
     const nextMembers = value.members.map((member, memberIndex) => (memberIndex === index ? { ...member, ...patch } : member));
     const nextLoads = value.loads.map((load) => {
-      if (load.type === "distributed" && load.member === current.id && patch.id && patch.id.trim()) {
+      if ((load.type === "distributed" || load.type === "member_point") && load.member === current.id && patch.id && patch.id.trim()) {
         return { ...load, member: patch.id.trim() };
       }
       return load;
@@ -461,7 +478,7 @@ export function FrameCustomModelEditor({ value, onChange, onResetToPortal, activ
     const nextLoadCases = value.loadCases.map((loadCase) => ({
       ...loadCase,
       loads: loadCase.loads.map((load) => {
-        if (load.type === "distributed" && load.member === current.id && patch.id && patch.id.trim()) {
+        if ((load.type === "distributed" || load.type === "member_point") && load.member === current.id && patch.id && patch.id.trim()) {
           return { ...load, member: patch.id.trim() };
         }
         return load;
@@ -474,10 +491,10 @@ export function FrameCustomModelEditor({ value, onChange, onResetToPortal, activ
     const removed = value.members[index];
     if (!removed) return;
     const nextMembers = value.members.filter((_, memberIndex) => memberIndex !== index);
-    const nextLoads = value.loads.filter((load) => load.type !== "distributed" || load.member !== removed.id);
+    const nextLoads = value.loads.filter((load) => load.type === "nodal" || load.member !== removed.id);
     const nextLoadCases = value.loadCases.map((loadCase) => ({
       ...loadCase,
-      loads: loadCase.loads.filter((load) => load.type !== "distributed" || load.member !== removed.id),
+      loads: loadCase.loads.filter((load) => load.type === "nodal" || load.member !== removed.id),
     }));
     commit(keep({ members: nextMembers, loads: nextLoads, loadCases: nextLoadCases }));
   };
@@ -677,6 +694,18 @@ export function FrameCustomModelEditor({ value, onChange, onResetToPortal, activ
                   direction: "local_y",
                   qStartKnPerM: "qStartKnPerM" in load ? load.qStartKnPerM ?? 0 : -10,
                   qEndKnPerM: "qEndKnPerM" in load ? load.qEndKnPerM ?? 0 : -10,
+                  startRatio: "startRatio" in load ? load.startRatio ?? 0 : 0,
+                  endRatio: "endRatio" in load ? load.endRatio ?? 1 : 1,
+                } as FrameLoad);
+                return;
+              }
+              if (nextValue === "member_point") {
+                onUpdate({
+                  type: "member_point",
+                  member: "member" in load ? load.member : value.members[0]?.id ?? "M1",
+                  direction: "direction" in load ? load.direction ?? "local_y" : "local_y",
+                  forceKn: "forceKn" in load ? load.forceKn ?? -10 : -10,
+                  positionRatio: "positionRatio" in load ? load.positionRatio ?? 0.5 : 0.5,
                 } as FrameLoad);
                 return;
               }
@@ -725,8 +754,8 @@ export function FrameCustomModelEditor({ value, onChange, onResetToPortal, activ
             <Input type="number" step="0.1" value={load.mzKnM ?? 0} onChange={(e) => onUpdate({ mzKnM: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
           </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      ) : load.type === "distributed" ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="space-y-1">
             <div className={fieldLabelClass}>荷载方向</div>
             <DropdownSelect
@@ -744,6 +773,59 @@ export function FrameCustomModelEditor({ value, onChange, onResetToPortal, activ
           <div className="space-y-1">
             <div className={fieldLabelClass}>终点强度（kN/m）</div>
             <Input type="number" step="0.1" value={load.qEndKnPerM ?? load.wyKnPerM ?? 0} onChange={(e) => onUpdate({ qEndKnPerM: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+          </div>
+          <div className="space-y-1">
+            <div className={fieldLabelClass}>起点位置 x/L</div>
+            <Input
+              type="number"
+              step="0.05"
+              min="0"
+              max="1"
+              value={load.startRatio ?? 0}
+              onChange={(e) => onUpdate({ startRatio: Math.min(1, Math.max(0, Number(e.target.value) || 0)) })}
+              className="h-10 min-w-0 font-mono text-xs"
+            />
+          </div>
+          <div className="space-y-1">
+            <div className={fieldLabelClass}>终点位置 x/L</div>
+            <Input
+              type="number"
+              step="0.05"
+              min="0"
+              max="1"
+              value={load.endRatio ?? 1}
+              onChange={(e) => onUpdate({ endRatio: Math.min(1, Math.max(0, Number(e.target.value) || 0)) })}
+              className="h-10 min-w-0 font-mono text-xs"
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="space-y-1">
+            <div className={fieldLabelClass}>荷载方向</div>
+            <DropdownSelect
+              value={load.direction ?? "local_y"}
+              onChange={(nextValue) => onUpdate({ direction: nextValue as FrameLoadDirection })}
+              options={LOAD_DIRECTION_OPTIONS}
+              className="text-xs font-mono"
+              menuClassName="text-xs font-mono"
+            />
+          </div>
+          <div className="space-y-1">
+            <div className={fieldLabelClass}>位置比 x/L</div>
+            <Input
+              type="number"
+              step="0.05"
+              min="0"
+              max="1"
+              value={load.positionRatio ?? 0.5}
+              onChange={(e) => onUpdate({ positionRatio: Math.min(1, Math.max(0, Number(e.target.value) || 0)) })}
+              className="h-10 min-w-0 font-mono text-xs"
+            />
+          </div>
+          <div className="space-y-1">
+            <div className={fieldLabelClass}>集中力（kN）</div>
+            <Input type="number" step="0.1" value={load.forceKn ?? 0} onChange={(e) => onUpdate({ forceKn: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
           </div>
         </div>
       )}
@@ -947,7 +1029,7 @@ export function FrameCustomModelEditor({ value, onChange, onResetToPortal, activ
           spellCheck={false}
           wrap="off"
           className="min-h-[32rem] w-full resize-y rounded-xl border border-slate-200 bg-white p-3 font-mono text-[11px] leading-5 text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary/60 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-100 dark:placeholder:text-slate-500"
-          placeholder={"N,1,0,0\nN,2,6,0\nN,3,0,4\nN,4,6,4\nNSUPT,1,6,0\nNSUPT,2,6,0\nE,1,3,1,1,1,1,1,1\nE,3,4,1,1,1,1,1,1\nE,2,4,1,1,1,1,1,1\nDLOAD,2,-18,-18,global_y\nNLOAD,4,-1,24,90"}
+          placeholder={"N,1,0,0\nN,2,6,0\nN,3,0,4\nN,4,6,4\nNSUPT,1,6,0\nNSUPT,2,6,0\nE,1,3,1,1,1,1,1,1\nE,3,4,1,1,1,1,1,1\nE,2,4,1,1,1,1,1,1\nDLOAD,2,-18,-18,global_y,0.15,0.85\nPLOAD,2,-12,0.5,global_y\nNLOAD,4,-1,24,90"}
         />
         <TextModelCheckPanel
           message={textModelMessage}

@@ -248,7 +248,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
                     <circle cx={sx + 9} cy={BEAM_Y + 36} r="3" fill="none" stroke="var(--structure-preview-support-stroke)" strokeWidth="1" />
                   </>
                 ) : null}
-                <text x={sx} y={BEAM_Y + 44} fill="var(--structure-preview-label)" textAnchor="middle" fontSize="11"
+                <text x={sx} y={BEAM_Y + (s.type === "roller" ? 58 : 44)} fill="var(--structure-preview-label)" textAnchor="middle" fontSize="11"
                   fontFamily={svgTextFont}>{label}</text>
               </g>
             );

@@ -125,7 +125,14 @@ def _scale_frame_payload(data, target, factor):
         structure["beam_load_kn_per_m"] = _safe_float(structure.get("beam_load_kn_per_m"), 0.0) * factor
         for load in loads:
             if load.get("type") == "distributed":
-                load["wyKnPerM"] = _safe_float(load.get("wyKnPerM"), 0.0) * factor
+                wy = _safe_float(load.get("wyKnPerM"), 0.0)
+                q_start = _safe_float(load.get("qStartKnPerM", wy), wy)
+                q_end = _safe_float(load.get("qEndKnPerM", wy), q_start)
+                load["wyKnPerM"] = wy * factor
+                load["qStartKnPerM"] = q_start * factor
+                load["qEndKnPerM"] = q_end * factor
+            elif load.get("type") == "member_point":
+                load["forceKn"] = _safe_float(load.get("forceKn"), 0.0) * factor
     elif target == "lateralLoad":
         structure["lateral_load_kn"] = _safe_float(structure.get("lateral_load_kn"), 0.0) * factor
         for load in loads:

@@ -145,6 +145,12 @@ function scaleFrameLoad(load: FrameLoad, factor: number): FrameLoad {
       mzKnM: (load.mzKnM ?? 0) * factor,
     };
   }
+  if (load.type === "member_point") {
+    return {
+      ...load,
+      forceKn: (load.forceKn ?? 0) * factor,
+    };
+  }
   return {
     ...load,
     wyKnPerM: load.wyKnPerM === undefined ? undefined : load.wyKnPerM * factor,

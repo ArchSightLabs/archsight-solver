@@ -50,13 +50,32 @@ test("buildFrameLoadMarkers builds distributed load guide and arrows from the me
     }
   );
 
-  assert.equal(markers.length, 5);
+  assert.equal(markers.length, 13);
   assert.equal(markers[0].type, "distributed-guide");
   assert.equal(markers[0].label, "向下均布荷载 18.0 千牛/米");
   assert.equal(markers[1].type, "force");
-  assert.equal(markers[1].x1, 130);
-  assert.equal(markers[1].x2, 130);
-  assert.equal(markers[1].y1, 278);
+  assert.equal(markers[1].x1, 110);
+  assert.equal(markers[1].x2, 110);
+  assert.equal(markers[1].y1, 276);
   assert.equal(markers[1].y2, 320);
   assert.equal(markers[1].label, undefined);
+});
+
+test("buildFrameLoadMarkers respects partial distributed load range", () => {
+  const markers = buildFrameLoadMarkers(
+    { type: "distributed", member: "M1", qStartKnPerM: -8, qEndKnPerM: -12, startRatio: 0.25, endRatio: 0.75 },
+    0,
+    {
+      nodeMap: new Map([
+        ["N1", { x: 100, y: 320 }],
+        ["N2", { x: 340, y: 320 }],
+      ]),
+      memberMap: new Map([["M1", { start: "N1", end: "N2" }]]),
+    }
+  );
+
+  assert.equal(markers[0].type, "distributed-guide");
+  assert.equal(markers[0].x1, 160);
+  assert.equal(markers[0].x2, 280);
+  assert.match(markers[0].label, /区间 0\.25-0\.75/u);
 });

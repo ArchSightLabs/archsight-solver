@@ -156,6 +156,83 @@ def test_frame_distributed_load_direction_is_explicit_for_inclined_member(client
     assert max(abs(value) for value in diagram["axialKn"]) > 1.0
 
 
+def test_frame_member_point_load_acts_inside_member_and_uses_sagging_positive_moment(client):
+    payload = {
+        "analysisType": "frame",
+        "projectName": "构件集中荷载回归",
+        "materialId": "q345",
+        "structure": {
+            "template": "explicit",
+            "nodes": [
+                {"id": "N1", "x": 0.0, "y": 0.0, "supportType": "pinned"},
+                {"id": "N2", "x": 4.0, "y": 0.0, "supportType": "roller"},
+            ],
+            "members": [
+                {"id": "B1", "start": "N1", "end": "N2", "E_GPa": 210, "A_cm2": 220, "I_cm4": 15000, "kind": "beam"},
+            ],
+            "loads": [
+                {"type": "member_point", "member": "B1", "direction": "local_y", "forceKn": -10.0, "positionRatio": 0.5},
+            ],
+        },
+    }
+
+    response = client.post("/api/calculate", json=payload)
+
+    assert response.status_code == 200
+    data = response.get_json()
+    node_results = {item["nodeId"]: item for item in data["nodeResults"]}
+    diagram = data["memberDiagrams"][0]
+    assert node_results["N1"]["reactionFyKn"] == pytest.approx(5.0, abs=1e-6)
+    assert node_results["N2"]["reactionFyKn"] == pytest.approx(5.0, abs=1e-6)
+    assert max(diagram["momentKnM"]) == pytest.approx(10.0, abs=1e-6)
+    assert diagram["momentKnM"][diagram["stationsM"].index(2.0)] == pytest.approx(10.0, abs=1e-6)
+    assert data["preview"]["loads"][0]["type"] == "member_point"
+
+
+def test_frame_partial_distributed_load_uses_member_range_and_sagging_moment(client):
+    payload = {
+        "analysisType": "frame",
+        "projectName": "局部分布荷载回归",
+        "materialId": "q345",
+        "structure": {
+            "template": "explicit",
+            "nodes": [
+                {"id": "N1", "x": 0.0, "y": 0.0, "supportType": "pinned"},
+                {"id": "N2", "x": 10.0, "y": 0.0, "supportType": "roller"},
+            ],
+            "members": [
+                {"id": "B1", "start": "N1", "end": "N2", "E_GPa": 210, "A_cm2": 220, "I_cm4": 15000, "kind": "beam"},
+            ],
+            "loads": [
+                {
+                    "type": "distributed",
+                    "member": "B1",
+                    "direction": "local_y",
+                    "qStartKnPerM": -10.0,
+                    "qEndKnPerM": -10.0,
+                    "startRatio": 0.3,
+                    "endRatio": 0.7,
+                },
+            ],
+        },
+    }
+
+    response = client.post("/api/calculate", json=payload)
+
+    assert response.status_code == 200
+    data = response.get_json()
+    node_results = {item["nodeId"]: item for item in data["nodeResults"]}
+    diagram = data["memberDiagrams"][0]
+    assert node_results["N1"]["reactionFyKn"] == pytest.approx(20.0, abs=1e-6)
+    assert node_results["N2"]["reactionFyKn"] == pytest.approx(20.0, abs=1e-6)
+    assert 3.0 in diagram["stationsM"]
+    assert 7.0 in diagram["stationsM"]
+    assert max(diagram["momentKnM"]) == pytest.approx(80.0, abs=1e-6)
+    assert diagram["momentKnM"][diagram["stationsM"].index(5.0)] == pytest.approx(80.0, abs=1e-6)
+    assert data["preview"]["loads"][0]["startRatio"] == pytest.approx(0.3)
+    assert data["preview"]["loads"][0]["endRatio"] == pytest.approx(0.7)
+
+
 def test_frame_inclined_roller_support_uses_linear_constraint(client):
     payload = _cantilever_payload()
     payload["structure"]["nodes"][1] = {"id": "N2", "x": 4.0, "y": 0.0, "supportType": "roller", "supportAngleDeg": 45.0}

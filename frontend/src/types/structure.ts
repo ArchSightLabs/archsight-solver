@@ -54,9 +54,19 @@ export interface FrameDistributedLoad {
   direction?: FrameLoadDirection;
   qStartKnPerM?: number;
   qEndKnPerM?: number;
+  startRatio?: number;
+  endRatio?: number;
 }
 
-export type FrameLoad = FrameNodalLoad | FrameDistributedLoad;
+export interface FrameMemberPointLoad {
+  type: "member_point";
+  member: string;
+  direction?: FrameLoadDirection;
+  forceKn?: number;
+  positionRatio?: number;
+}
+
+export type FrameLoad = FrameNodalLoad | FrameDistributedLoad | FrameMemberPointLoad;
 
 export interface FrameLoadCase {
   id: string;

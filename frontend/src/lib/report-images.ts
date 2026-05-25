@@ -561,7 +561,7 @@ async function renderStructurePreview(
   members: Array<{ start: string; end: string }>,
   deformedNodes: Array<{ id: string; x: number; y: number }>,
 ) {
-  const all = [...nodes, ...deformedNodes];
+  const all = nodes;
   const xs = all.map((node) => node.x);
   const ys = all.map((node) => node.y);
   const [minX, maxX] = paddedDomain(xs);

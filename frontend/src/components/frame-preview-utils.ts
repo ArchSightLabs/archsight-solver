@@ -1,4 +1,4 @@
-import type { FrameLoad } from "../types/structure";
+import type { FrameLoad, FrameLoadDirection } from "../types/structure";
 
 export interface FramePreviewPoint {
   x: number;
@@ -61,6 +61,44 @@ function distributedDirectionLabel(loadSign: number, start: FramePreviewPoint, e
     return loadSign >= 0 ? "向上" : "向下";
   }
   return loadSign >= 0 ? "局部 +y" : "局部 -y";
+}
+
+function memberLoadDirection(
+  direction: FrameLoadDirection | undefined,
+  loadSign: number,
+  start: FramePreviewPoint,
+  end: FramePreviewPoint
+) {
+  const worldDx = end.x - start.x;
+  const worldDy = -(end.y - start.y);
+  const length = Math.hypot(worldDx, worldDy) || 1;
+  const localYWorldX = -worldDy / length;
+  const localYWorldY = worldDx / length;
+  const base = direction === "global_y"
+    ? { x: 0, y: -1 }
+    : { x: localYWorldX, y: -localYWorldY };
+  return {
+    x: loadSign * base.x,
+    y: loadSign * base.y,
+  };
+}
+
+function distributedRange(load: Extract<FrameLoad, { type: "distributed" }>) {
+  let startRatio = Math.min(1, Math.max(0, load.startRatio ?? 0));
+  let endRatio = Math.min(1, Math.max(0, load.endRatio ?? 1));
+  let qStart = Number.isFinite(load.qStartKnPerM) ? Number(load.qStartKnPerM) : Number(load.wyKnPerM ?? 0);
+  let qEnd = Number.isFinite(load.qEndKnPerM) ? Number(load.qEndKnPerM) : qStart;
+  if (endRatio < startRatio) {
+    [startRatio, endRatio] = [endRatio, startRatio];
+    [qStart, qEnd] = [qEnd, qStart];
+  }
+  if (Math.abs(endRatio - startRatio) < 1e-9) {
+    endRatio = Math.min(1, startRatio + 0.01);
+    if (Math.abs(endRatio - startRatio) < 1e-9) {
+      startRatio = Math.max(0, endRatio - 0.01);
+    }
+  }
+  return { startRatio, endRatio, qStart, qEnd };
 }
 
 export function buildFrameLoadMarkers(load: FrameLoad, index: number, context: FrameLoadMarkerContext): FrameLoadMarker[] {
@@ -133,23 +171,45 @@ export function buildFrameLoadMarkers(load: FrameLoad, index: number, context: F
   const end = context.nodeMap.get(member.end);
   if (!start || !end) return [];
 
-  const worldDx = end.x - start.x;
-  const worldDy = -(end.y - start.y);
-  const length = Math.hypot(worldDx, worldDy) || 1;
-  const localYWorldX = -worldDy / length;
-  const localYWorldY = worldDx / length;
-  const loadSign = Math.sign(load.wyKnPerM ?? 0) || -1;
-  const screenDirectionX = loadSign * localYWorldX;
-  const screenDirectionY = -loadSign * localYWorldY;
-  const arrowLength = 42;
+  if (load.type === "member_point") {
+    const forceKn = load.forceKn ?? 0;
+    if (Math.abs(forceKn) <= 1e-9) return [];
+    const ratio = Math.min(1, Math.max(0, load.positionRatio ?? 0.5));
+    const headX = start.x + (end.x - start.x) * ratio;
+    const headY = start.y + (end.y - start.y) * ratio;
+    const screenDirection = memberLoadDirection(load.direction, Math.sign(forceKn), start, end);
+    const arrowLength = 56;
+    return [
+      {
+        type: "force",
+        x1: headX - screenDirection.x * arrowLength,
+        y1: headY - screenDirection.y * arrowLength,
+        x2: headX,
+        y2: headY,
+        label: `构件集中荷载 ${Math.abs(forceKn).toFixed(1)} 千牛`,
+        labelX: headX - screenDirection.x * (arrowLength + 10),
+        labelY: headY - screenDirection.y * (arrowLength + 10),
+        textAnchor: "middle",
+        key: `${index}-member-point`,
+      },
+    ];
+  }
+
+  const { startRatio, endRatio, qStart, qEnd } = distributedRange(load);
+  const distributedValue = (qStart + qEnd) / 2;
+  const representative = Math.abs(qStart) >= Math.abs(qEnd) ? qStart : qEnd;
+  const loadSign = Math.sign(representative || distributedValue) || -1;
+  const screenDirection = memberLoadDirection(load.direction, loadSign, start, end);
   const markers: FrameLoadMarker[] = [];
   const guideOffset = 42;
-  const guideStartT = 0.08;
-  const guideEndT = 0.92;
-  const guideStartX = start.x + (end.x - start.x) * guideStartT - screenDirectionX * guideOffset;
-  const guideStartY = start.y + (end.y - start.y) * guideStartT - screenDirectionY * guideOffset;
-  const guideEndX = start.x + (end.x - start.x) * guideEndT - screenDirectionX * guideOffset;
-  const guideEndY = start.y + (end.y - start.y) * guideEndT - screenDirectionY * guideOffset;
+  const guideStartT = startRatio;
+  const guideEndT = endRatio;
+  const guideStartX = start.x + (end.x - start.x) * guideStartT - screenDirection.x * guideOffset;
+  const guideStartY = start.y + (end.y - start.y) * guideStartT - screenDirection.y * guideOffset;
+  const guideEndX = start.x + (end.x - start.x) * guideEndT - screenDirection.x * guideOffset;
+  const guideEndY = start.y + (end.y - start.y) * guideEndT - screenDirection.y * guideOffset;
+  const labelKind = Math.abs(qStart - qEnd) < 1e-9 ? "均布荷载" : "线性分布荷载";
+  const rangeLabel = startRatio <= 1e-9 && endRatio >= 1 - 1e-9 ? "" : ` · 区间 ${startRatio.toFixed(2)}-${endRatio.toFixed(2)}`;
 
   markers.push({
     type: "distributed-guide",
@@ -157,19 +217,26 @@ export function buildFrameLoadMarkers(load: FrameLoad, index: number, context: F
     y1: guideStartY,
     x2: guideEndX,
     y2: guideEndY,
-    label: `${distributedDirectionLabel(loadSign, start, end)}均布荷载 ${Math.abs(load.wyKnPerM ?? 0).toFixed(1)} 千牛/米`,
+    label: `${distributedDirectionLabel(loadSign, start, end)}${labelKind} ${Math.abs(distributedValue).toFixed(1)} 千牛/米${rangeLabel}`,
     labelX: (guideStartX + guideEndX) / 2,
     labelY: (guideStartY + guideEndY) / 2 - 8,
     textAnchor: "middle",
     key: `${index}-distributed-guide`,
   });
 
-  for (let step = 0; step < 4; step += 1) {
-    const t = (step + 0.5) / 4;
+  const arrowCount = Math.max(5, Math.min(12, Math.round((endRatio - startRatio) * 12)));
+  const maxQ = Math.max(Math.abs(qStart), Math.abs(qEnd), 1e-9);
+  for (let step = 0; step < arrowCount; step += 1) {
+    const t = startRatio + (endRatio - startRatio) * (step + 0.5) / arrowCount;
+    const localRatio = (t - startRatio) / Math.max(endRatio - startRatio, 1e-9);
+    const qAt = qStart + (qEnd - qStart) * localRatio;
+    if (Math.abs(qAt) <= 1e-9) continue;
+    const arrowDirection = memberLoadDirection(load.direction, Math.sign(qAt), start, end);
+    const currentArrowLength = 30 + 14 * Math.abs(qAt) / maxQ;
     const headX = start.x + (end.x - start.x) * t;
     const headY = start.y + (end.y - start.y) * t;
-    const tailX = headX - screenDirectionX * arrowLength;
-    const tailY = headY - screenDirectionY * arrowLength;
+    const tailX = headX - arrowDirection.x * currentArrowLength;
+    const tailY = headY - arrowDirection.y * currentArrowLength;
     markers.push({
       type: "force",
       x1: tailX,

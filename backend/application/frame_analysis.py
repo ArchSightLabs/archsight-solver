@@ -177,6 +177,10 @@ def _scale_load(load: Dict[str, Any], factor: float) -> Dict[str, Any]:
             if key in scaled:
                 scaled[key] = float(scaled[key]) * factor
         return scaled
+    if load["type"] == "member_point":
+        if "forceKn" in scaled:
+            scaled["forceKn"] = float(scaled["forceKn"]) * factor
+        return scaled
     for key in ("wyKnPerM", "qStartKnPerM", "qEndKnPerM"):
         if key in scaled:
             scaled[key] = float(scaled[key]) * factor

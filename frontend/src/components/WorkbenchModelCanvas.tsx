@@ -1,6 +1,6 @@
 import { GlassCard } from "./ui/GlassCard";
 import { createPortalFrameModelFromState, type WorkspaceState } from "../lib/workspace-state";
-import type { AnalysisMode, FrameLoad, StructureNode } from "../types/structure";
+import type { AnalysisMode, FrameLoad, FrameLoadDirection, StructureNode, TrussLoad } from "../types/structure";
 import type { WorkbenchSelection } from "../types/workbench-selection";
 
 interface WorkbenchModelCanvasProps {
@@ -44,6 +44,9 @@ function formatMagnitude(value: number) {
 }
 
 const svgTextFont = "Inter, Microsoft YaHei, system-ui, sans-serif";
+const BEAM_SKETCH_AXIS_Y = 150;
+const BEAM_DISTRIBUTED_LOAD_TIP_Y = BEAM_SKETCH_AXIS_Y - 18;
+const BEAM_POINT_LOAD_TIP_Y = BEAM_SKETCH_AXIS_Y - 6;
 
 function clampRatio(value: number, fallback: number) {
   return Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : fallback;
@@ -189,25 +192,25 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
   const linearGuideBaseY = beam.uniformLoadEnabled ? 118 : 90;
   const linearGuideGap = hasMultipleLinearLoads ? 18 : 0;
   const linearLegendY = beam.uniformLoadEnabled ? 108 : 60;
-  const pointLabelBaseY = beam.uniformLoadEnabled || linearRanges.length ? 116 : 74;
+  const pointLabelBaseY = beam.uniformLoadEnabled && linearRanges.length ? 42 : beam.uniformLoadEnabled || linearRanges.length ? 104 : 74;
 
   return (
     <svg viewBox="0 0 900 300" className="h-full w-full">
-      <line x1={beamStart} y1="150" x2={beamEnd} y2="150" stroke="var(--model-member)" strokeWidth="4.5" strokeLinecap="round" />
+      <line x1={beamStart} y1={BEAM_SKETCH_AXIS_Y} x2={beamEnd} y2={BEAM_SKETCH_AXIS_Y} stroke="var(--model-member)" strokeWidth="4.5" strokeLinecap="round" />
       {segments.map((segment) => {
         const selected = selection?.mode === "beam" && selection.type === "span" && selection.id === `span-${segment.index}`;
         return (
           <g key={segment.index} className="cursor-pointer" onClick={() => onSelect?.({ mode: "beam", type: "span", id: `span-${segment.index}` })}>
-            <line x1={segment.start} y1="150" x2={segment.end} y2="150" stroke="transparent" strokeWidth="20" strokeLinecap="round" />
-            {selected ? <line x1={segment.start} y1="150" x2={segment.end} y2="150" stroke="var(--model-load)" strokeWidth="7" strokeLinecap="round" opacity="0.55" /> : null}
+            <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="transparent" strokeWidth="20" strokeLinecap="round" />
+            {selected ? <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="var(--model-load)" strokeWidth="7" strokeLinecap="round" opacity="0.55" /> : null}
             <line x1={segment.start} y1="184" x2={segment.end} y2="184" stroke="var(--model-guide)" strokeWidth="1.5" />
             <text x={(segment.start + segment.end) / 2} y="210" textAnchor="middle" fontSize="14" fill="var(--model-label)">
               第 {segment.index + 1} 跨 · {segment.length}m
             </text>
-            <circle cx={segment.start} cy="150" r="5" fill="var(--model-node)" />
+            <circle cx={segment.start} cy={BEAM_SKETCH_AXIS_Y} r="5" fill="var(--model-node)" />
             {segment.index === segments.length - 1 ? (
               <>
-                <circle cx={segment.end} cy="150" r="5" fill="var(--model-node)" />
+                <circle cx={segment.end} cy={BEAM_SKETCH_AXIS_Y} r="5" fill="var(--model-node)" />
               </>
             ) : null}
           </g>
@@ -220,9 +223,9 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
           <g key={support.id} className="cursor-pointer" onClick={() => onSelect?.({ mode: "beam", type: "support", id: `support-${index}` })}>
             <rect x={x - 24} y="148" width="48" height="58" rx="12" fill={selected ? "var(--model-load)" : "transparent"} opacity={selected ? "0.1" : "0"} />
             {support.type === "fixed" ? (
-              <rect x={x - 12} y="150" width="24" height="36" rx="2" fill="var(--model-support-fill)" stroke="var(--model-support-stroke)" strokeWidth="1.4" />
+              <rect x={x - 12} y={BEAM_SKETCH_AXIS_Y} width="24" height="36" rx="2" fill="var(--model-support-fill)" stroke="var(--model-support-stroke)" strokeWidth="1.4" />
             ) : support.type === "free" ? (
-              <circle cx={x} cy="150" r="9" fill="none" stroke="var(--model-support-stroke)" strokeWidth="1.6" strokeDasharray="3 3" />
+              <circle cx={x} cy={BEAM_SKETCH_AXIS_Y} r="9" fill="none" stroke="var(--model-support-stroke)" strokeWidth="1.6" strokeDasharray="3 3" />
             ) : (
               <>
                 <polygon points={`${x - 15},180 ${x + 15},180 ${x},154`} fill="var(--model-support-fill)" stroke="var(--model-support-stroke)" strokeWidth="1.4" />
@@ -296,11 +299,11 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
       </g>
       <g stroke="var(--model-load)" strokeWidth={selection?.mode === "beam" && selection.type === "load" ? "3" : "2.1"} className="cursor-pointer" onClick={() => onSelect?.({ mode: "beam", type: "load", id: "primary" })}>
         {beam.uniformLoadEnabled ? visibleUniformArrows.map((x, index) => (
-          <path key={`uniform-${index}`} d={`M${x.toFixed(1)} ${(uniformGuideY + 4).toFixed(1)} L${x.toFixed(1)} 132`} markerEnd="url(#modelArrow)" />
+          <path key={`uniform-${index}`} d={`M${x.toFixed(1)} ${(uniformGuideY + 4).toFixed(1)} L${x.toFixed(1)} ${BEAM_DISTRIBUTED_LOAD_TIP_Y}`} markerEnd="url(#modelArrow)" />
         )) : null}
         {visibleLinearArrows.flatMap((arrows, loadIndex) => {
           const guideY = linearGuideBaseY + loadIndex * linearGuideGap;
-          const arrowEndY = 132;
+          const arrowEndY = BEAM_DISTRIBUTED_LOAD_TIP_Y;
           return arrows.map((x, arrowIndex) => {
             const top = guideY - 8 + (linearRanges.length === 1 ? arrowIndex * 4 : 0);
             return <path key={`linear-${loadIndex}-${arrowIndex}`} d={`M${x.toFixed(1)} ${top} L${x.toFixed(1)} ${arrowEndY}`} markerEnd="url(#modelArrow)" />;
@@ -310,9 +313,10 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
           const x = beamStart + (beamEnd - beamStart) * clampRatio(load.positionRatio, 0.5);
           const labelY = pointLabelBaseY + (index % 2) * 16;
           const labelX = Math.min(beamEnd - 64, Math.max(beamStart + 64, x));
+          const arrowStartY = Math.min(labelY + 12, BEAM_POINT_LOAD_TIP_Y - 20);
           return (
             <g key={load.id}>
-              <path d={`M${x.toFixed(1)} ${labelY + 10} L${x.toFixed(1)} 132`} markerEnd="url(#modelArrow)" />
+              <path d={`M${x.toFixed(1)} ${arrowStartY} L${x.toFixed(1)} ${BEAM_POINT_LOAD_TIP_Y}`} markerEnd="url(#modelArrow)" />
               <text
                 x={labelX}
                 y={labelY}
@@ -351,6 +355,50 @@ function getFrameLoadValue(load: Extract<FrameLoad, { type: "distributed" }>) {
   const start = Number.isFinite(load.qStartKnPerM) ? Number(load.qStartKnPerM) : Number(load.wyKnPerM ?? 0);
   const end = Number.isFinite(load.qEndKnPerM) ? Number(load.qEndKnPerM) : start;
   return (start + end) / 2;
+}
+
+function getFrameDistributedLoadRange(load: Extract<FrameLoad, { type: "distributed" }>) {
+  let startRatio = clampRatio(load.startRatio ?? 0, 0);
+  let endRatio = clampRatio(load.endRatio ?? 1, 1);
+  let qStart = Number.isFinite(load.qStartKnPerM) ? Number(load.qStartKnPerM) : Number(load.wyKnPerM ?? 0);
+  let qEnd = Number.isFinite(load.qEndKnPerM) ? Number(load.qEndKnPerM) : qStart;
+  if (endRatio < startRatio) {
+    [startRatio, endRatio] = [endRatio, startRatio];
+    [qStart, qEnd] = [qEnd, qStart];
+  }
+  if (Math.abs(endRatio - startRatio) < 1e-9) {
+    endRatio = Math.min(1, startRatio + 0.01);
+    if (Math.abs(endRatio - startRatio) < 1e-9) {
+      startRatio = Math.max(0, endRatio - 0.01);
+    }
+  }
+  return { startRatio, endRatio, qStart, qEnd };
+}
+
+function frameMemberPoint(
+  startNode: { x: number; y: number },
+  endNode: { x: number; y: number },
+  ratio: number,
+) {
+  const positionRatio = clampRatio(ratio, 0.5);
+  return {
+    x: startNode.x + (endNode.x - startNode.x) * positionRatio,
+    y: startNode.y + (endNode.y - startNode.y) * positionRatio,
+  };
+}
+
+function frameMemberLoadDirection(
+  startNode: { x: number; y: number },
+  endNode: { x: number; y: number },
+  direction: FrameLoadDirection | undefined,
+  value: number,
+) {
+  const dx = endNode.x - startNode.x;
+  const dy = endNode.y - startNode.y;
+  const length = Math.hypot(dx, dy) || 1;
+  const localY = { x: dy / length, y: -dx / length };
+  const positiveDirection = direction === "global_y" ? { x: 0, y: -1 } : localY;
+  return value >= 0 ? positiveDirection : { x: -positiveDirection.x, y: -positiveDirection.y };
 }
 
 function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceState; selection?: WorkbenchSelection | null; onSelect?: (next: WorkbenchSelection) => void }) {
@@ -448,28 +496,68 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
           const startNode = member ? nodeMap.get(member.start) : null;
           const endNode = member ? nodeMap.get(member.end) : null;
           if (!startNode || !endNode) return [];
+          if (load.type === "member_point") {
+            const force = load.forceKn ?? 0;
+            if (!force) return [];
+            const point = frameMemberPoint(startNode, endNode, load.positionRatio ?? 0.5);
+            const direction = frameMemberLoadDirection(startNode, endNode, load.direction, force);
+            return [
+              <path
+                key={`${index}-member-point`}
+                className="cursor-pointer"
+                onClick={() => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` })}
+                d={`M${point.x - direction.x * 54} ${point.y - direction.y * 54} L${point.x - direction.x * 10} ${point.y - direction.y * 10}`}
+                markerEnd="url(#frameArrow)"
+                strokeWidth={selection?.mode === "frame" && selection.type === "load" && selection.id === `load-${index}` ? "3.2" : "2"}
+              />,
+            ];
+          }
           const q = getFrameLoadValue(load);
           if (!q) return [];
-          const dx = endNode.x - startNode.x;
-          const dy = endNode.y - startNode.y;
-          const length = Math.hypot(dx, dy) || 1;
-          const localY = { x: dy / length, y: -dx / length };
-          const positiveDirection = load.direction === "global_y" ? { x: 0, y: -1 } : localY;
-          const direction = q >= 0 ? positiveDirection : { x: -positiveDirection.x, y: -positiveDirection.y };
-          return [0.22, 0.5, 0.78].map((ratio, arrowIndex) => {
+          const { startRatio, endRatio, qStart, qEnd } = getFrameDistributedLoadRange(load);
+          const representative = Math.abs(qStart) >= Math.abs(qEnd) ? qStart : qEnd;
+          const guideDirection = frameMemberLoadDirection(startNode, endNode, load.direction, representative || q);
+          const selectedStroke = selection?.mode === "frame" && selection.type === "load" && selection.id === `load-${index}` ? "3.2" : "2";
+          const guideOffset = 45;
+          const guideStart = frameMemberPoint(startNode, endNode, startRatio);
+          const guideEnd = frameMemberPoint(startNode, endNode, endRatio);
+          const maxQ = Math.max(Math.abs(qStart), Math.abs(qEnd), 1e-9);
+          const arrowCount = Math.max(5, Math.min(12, Math.round((endRatio - startRatio) * 12)));
+          const items = [
+            <line
+              key={`${index}-dist-guide`}
+              className="cursor-pointer"
+              onClick={() => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` })}
+              x1={guideStart.x - guideDirection.x * guideOffset}
+              y1={guideStart.y - guideDirection.y * guideOffset}
+              x2={guideEnd.x - guideDirection.x * guideOffset}
+              y2={guideEnd.y - guideDirection.y * guideOffset}
+              strokeWidth="1.5"
+              strokeDasharray="5 4"
+              opacity="0.85"
+            />,
+          ];
+          for (let arrowIndex = 0; arrowIndex < arrowCount; arrowIndex += 1) {
+            const ratio = startRatio + (endRatio - startRatio) * (arrowIndex + 0.5) / arrowCount;
+            const loadRatio = (ratio - startRatio) / Math.max(endRatio - startRatio, 1e-9);
+            const qAtRatio = qStart + (qEnd - qStart) * loadRatio;
+            if (Math.abs(qAtRatio) <= 1e-9) continue;
+            const direction = frameMemberLoadDirection(startNode, endNode, load.direction, qAtRatio);
             const x = startNode.x + (endNode.x - startNode.x) * ratio;
             const y = startNode.y + (endNode.y - startNode.y) * ratio;
-            return (
+            const arrowLength = 30 + 14 * Math.abs(qAtRatio) / maxQ;
+            items.push(
               <path
                 key={`${index}-dist-${arrowIndex}`}
                 className="cursor-pointer"
                 onClick={() => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` })}
-                d={`M${x - direction.x * 42} ${y - direction.y * 42} L${x - direction.x * 9} ${y - direction.y * 9}`}
+                d={`M${x - direction.x * arrowLength} ${y - direction.y * arrowLength} L${x - direction.x * 9} ${y - direction.y * 9}`}
                 markerEnd="url(#frameArrow)"
-                strokeWidth={selection?.mode === "frame" && selection.type === "load" && selection.id === `load-${index}` ? "3.2" : "2"}
+                strokeWidth={selectedStroke}
               />
             );
-          });
+          }
+          return items;
         })}
       </g>
       <g fill="var(--model-label)" fontSize="13" fontWeight="400">
@@ -515,18 +603,27 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
           const startNode = member ? nodeMap.get(member.start) : null;
           const endNode = member ? nodeMap.get(member.end) : null;
           if (!startNode || !endNode) return null;
+          if (load.type === "member_point") {
+            const force = load.forceKn ?? 0;
+            if (!force) return null;
+            const point = frameMemberPoint(startNode, endNode, load.positionRatio ?? 0.5);
+            const direction = frameMemberLoadDirection(startNode, endNode, load.direction, force);
+            const label = {
+              x: point.x - direction.x * 70,
+              y: point.y - direction.y * 70,
+            };
+            return (
+              <text key={`${index}-member-point-label`} x={label.x} y={label.y} textAnchor="middle">
+                构件集中荷载 {formatMagnitude(force)} 千牛
+              </text>
+            );
+          }
           const q = getFrameLoadValue(load);
           if (!q) return null;
-          const dx = endNode.x - startNode.x;
-          const dy = endNode.y - startNode.y;
-          const length = Math.hypot(dx, dy) || 1;
-          const localY = { x: dy / length, y: -dx / length };
-          const positiveDirection = load.direction === "global_y" ? { x: 0, y: -1 } : localY;
-          const direction = q >= 0 ? positiveDirection : { x: -positiveDirection.x, y: -positiveDirection.y };
-          const memberMid = {
-            x: (startNode.x + endNode.x) / 2,
-            y: (startNode.y + endNode.y) / 2,
-          };
+          const { startRatio, endRatio, qStart, qEnd } = getFrameDistributedLoadRange(load);
+          const representative = Math.abs(qStart) >= Math.abs(qEnd) ? qStart : qEnd;
+          const direction = frameMemberLoadDirection(startNode, endNode, load.direction, representative || q);
+          const memberMid = frameMemberPoint(startNode, endNode, (startRatio + endRatio) / 2);
           const arrowTail = {
             x: memberMid.x - direction.x * 42,
             y: memberMid.y - direction.y * 42,
@@ -537,7 +634,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
           };
           return (
             <text key={`${index}-dist-label`} x={label.x} y={label.y} textAnchor="middle">
-              梁面均布荷载 {formatMagnitude(q)} 千牛/米
+              {Math.abs(qStart - qEnd) < 1e-9 ? "梁面均布荷载" : "梁面线性分布荷载"} {formatMagnitude(q)} 千牛/米
             </text>
           );
         })}
@@ -549,6 +646,60 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
       </defs>
     </svg>
   );
+}
+
+type TrussMemberLoad = Extract<TrussLoad, { type: "distributed" | "member_load" | "member" }>;
+
+function formatSignedMagnitude(value: number) {
+  const magnitude = formatMagnitude(value);
+  if (Math.abs(value) < 1e-9) return magnitude;
+  return value < 0 ? `-${magnitude}` : magnitude;
+}
+
+function trussMemberLabelPlacement(start: { x: number; y: number }, end: { x: number; y: number }, center: { x: number; y: number }) {
+  const midX = (start.x + end.x) / 2;
+  const midY = (start.y + end.y) / 2;
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const length = Math.hypot(dx, dy) || 1;
+  const normal = { x: -dy / length, y: dx / length };
+  const outward = (midX - center.x) * normal.x + (midY - center.y) * normal.y >= 0 ? 1 : -1;
+  let angle = Math.atan2(dy, dx) * 180 / Math.PI;
+  if (angle > 90 || angle < -90) angle += 180;
+  return {
+    x: midX + normal.x * outward * 16,
+    y: midY + normal.y * outward * 16,
+    angle,
+  };
+}
+
+function trussMemberLoadValues(load: TrussMemberLoad) {
+  const selfWeight = Number(load.selfWeightKnPerM);
+  if (Number.isFinite(selfWeight)) {
+    const q = -Math.abs(selfWeight);
+    return { qStart: q, qEnd: q };
+  }
+  const fallback = Number(load.wyKnPerM);
+  const qStart = Number(load.qStartKnPerM);
+  const qEnd = Number(load.qEndKnPerM);
+  return {
+    qStart: Number.isFinite(qStart) ? qStart : Number.isFinite(fallback) ? fallback : 0,
+    qEnd: Number.isFinite(qEnd) ? qEnd : Number.isFinite(qStart) ? qStart : Number.isFinite(fallback) ? fallback : 0,
+  };
+}
+
+function trussLoadDirection(direction: TrussMemberLoad["direction"], value: number) {
+  if (direction === "global_x") {
+    return value >= 0 ? { x: 1, y: 0 } : { x: -1, y: 0 };
+  }
+  return value >= 0 ? { x: 0, y: -1 } : { x: 0, y: 1 };
+}
+
+function pointOnSegment(start: { x: number; y: number }, end: { x: number; y: number }, ratio: number) {
+  return {
+    x: start.x + (end.x - start.x) * ratio,
+    y: start.y + (end.y - start.y) * ratio,
+  };
 }
 
 function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceState; selection?: WorkbenchSelection | null; onSelect?: (next: WorkbenchSelection) => void }) {
@@ -566,6 +717,7 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
     y: 280 - ((point.y - minY) / Math.max(1, maxY - minY)) * 190,
   });
   const nodeMap = new Map(nodes.map((node) => [node.id, map(node)]));
+  const memberMap = new Map(members.map((member) => [member.id, member]));
   const trussCenterX = 110 + 680 / 2;
   const trussMidY = 280 - 190 / 2;
 
@@ -594,10 +746,27 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
         const end = nodeMap.get(member.end);
         if (!start || !end) return null;
         const selected = selection?.mode === "truss" && selection.type === "member" && selection.id === member.id;
+        const label = trussMemberLabelPlacement(start, end, { x: trussCenterX, y: trussMidY });
         return (
           <g key={member.id} className="cursor-pointer" onClick={() => onSelect?.({ mode: "truss", type: "member", id: member.id })}>
             <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="transparent" strokeWidth="18" strokeLinecap="round" />
             <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke={selected ? "var(--model-load)" : "var(--model-member)"} strokeWidth={selected ? "7" : "4.5"} strokeLinecap="round" opacity={selected ? "0.85" : "1"} />
+            <text
+              x={label.x}
+              y={label.y}
+              transform={`rotate(${label.angle} ${label.x} ${label.y})`}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fill={selected ? "var(--model-load)" : "var(--model-label)"}
+              stroke="var(--model-label-halo)"
+              strokeWidth="4"
+              paintOrder="stroke"
+              fontSize="10.5"
+              fontWeight="700"
+              fontFamily={svgTextFont}
+            >
+              {member.id}
+            </text>
           </g>
         );
       })}
@@ -616,7 +785,63 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
       })}
       <g stroke="var(--model-load)" strokeWidth="1.9">
         {loads.flatMap((load, index) => {
-          if (load.type !== "nodal") return [];
+          if (load.type !== "nodal") {
+            const member = memberMap.get(load.member);
+            const start = member ? nodeMap.get(member.start) : null;
+            const end = member ? nodeMap.get(member.end) : null;
+            if (!start || !end) return [];
+            const { qStart, qEnd } = trussMemberLoadValues(load);
+            const maxQ = Math.max(Math.abs(qStart), Math.abs(qEnd));
+            if (maxQ <= 1e-9) return [];
+            const representative = Math.abs(qStart) >= Math.abs(qEnd) ? qStart : qEnd;
+            const guideDirection = trussLoadDirection(load.direction, representative);
+            const guideOffset = 42;
+            const guideStart = {
+              x: start.x - guideDirection.x * guideOffset,
+              y: start.y - guideDirection.y * guideOffset,
+            };
+            const guideEnd = {
+              x: end.x - guideDirection.x * guideOffset,
+              y: end.y - guideDirection.y * guideOffset,
+            };
+            const selected = selection?.mode === "truss" && selection.type === "load" && selection.id === `load-${index}`;
+            const labelMid = pointOnSegment(guideStart, guideEnd, 0.5);
+            const items = [
+              <g key={`${index}-member-load`} className="cursor-pointer" onClick={() => onSelect?.({ mode: "truss", type: "load", id: `load-${index}` })}>
+                <line x1={guideStart.x} y1={guideStart.y} x2={guideEnd.x} y2={guideEnd.y} strokeWidth={selected ? "2.8" : "1.6"} strokeDasharray="5 4" opacity="0.85" />
+                {[0.2, 0.5, 0.8].map((ratio) => {
+                  const qAtRatio = qStart + (qEnd - qStart) * ratio;
+                  if (Math.abs(qAtRatio) <= 1e-9) return null;
+                  const point = pointOnSegment(start, end, ratio);
+                  const direction = trussLoadDirection(load.direction, qAtRatio);
+                  const arrowLength = 30 + 16 * Math.abs(qAtRatio) / maxQ;
+                  return (
+                    <path
+                      key={ratio}
+                      d={`M${point.x - direction.x * arrowLength} ${point.y - direction.y * arrowLength} L${point.x - direction.x * 8} ${point.y - direction.y * 8}`}
+                      markerEnd="url(#trussArrow)"
+                      strokeWidth={selected ? "3.2" : "1.9"}
+                    />
+                  );
+                })}
+                <text
+                  x={labelMid.x}
+                  y={labelMid.y - 8}
+                  textAnchor="middle"
+                  fill="var(--model-load)"
+                  stroke="var(--model-load-halo)"
+                  strokeWidth="3"
+                  paintOrder="stroke"
+                  fontSize="11"
+                  fontWeight="700"
+                  fontFamily={svgTextFont}
+                >
+                  杆件荷载 {formatSignedMagnitude(qStart)}{Math.abs(qStart - qEnd) > 1e-9 ? `→${formatSignedMagnitude(qEnd)}` : ""} kN/m
+                </text>
+              </g>,
+            ];
+            return items;
+          }
           const point = nodeMap.get(load.node);
           if (!point) return [];
           const items = [];

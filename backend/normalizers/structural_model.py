@@ -110,6 +110,8 @@ class StructuralLoad:
     def to_contract(self) -> Dict[str, Any]:
         if self.type == "nodal":
             return {"type": "nodal", "node": self.target, **self.values}
+        if self.type == "member_point":
+            return {"type": "member_point", "member": self.target, **self.values}
         return {"type": "distributed", "member": self.target, **self.values}
 
 
@@ -466,22 +468,52 @@ def expand_loads_for_split_members(raw_loads: Sequence[Dict[str, Any]], split_ma
     expanded_loads: List[Dict[str, Any]] = []
     for raw_load in raw_loads:
         load = dict(raw_load)
-        if load.get("type") != "distributed" or str(load.get("member") or "") not in split_map:
+        load_type = str(load.get("type") or "").strip().lower()
+        member_id = str(load.get("member") or "")
+        if load_type not in {"distributed", "member_point"} or member_id not in split_map:
             expanded_loads.append(load)
             continue
-        member_id = str(load.get("member"))
-        direction = load.get("direction", "local_y")
-        q_start = to_float(load.get("qStartKnPerM", load.get("wyKnPerM", 0.0)), 0.0)
-        q_end = to_float(load.get("qEndKnPerM", load.get("wyKnPerM", q_start)), q_start)
+        if load_type == "distributed":
+            direction = load.get("direction", "local_y")
+            q_start = to_float(load.get("qStartKnPerM", load.get("wyKnPerM", 0.0)), 0.0)
+            q_end = to_float(load.get("qEndKnPerM", load.get("wyKnPerM", q_start)), q_start)
+            load_start, load_end = parse_ratio_range(
+                load.get("startRatio", load.get("loadStartRatio", 0.0)),
+                load.get("endRatio", load.get("loadEndRatio", 1.0)),
+                "构件分布荷载作用范围比例",
+            )
+            for segment_id, start_ratio, end_ratio in split_map[member_id]:
+                overlap_start = max(load_start, start_ratio)
+                overlap_end = min(load_end, end_ratio)
+                if overlap_end <= overlap_start + 1e-12:
+                    continue
+                load_span = max(load_end - load_start, 1e-12)
+                segment_span = max(end_ratio - start_ratio, 1e-12)
+                segment_load = {
+                    "type": "distributed",
+                    "member": segment_id,
+                    "direction": direction,
+                    "qStartKnPerM": interpolate(q_start, q_end, (overlap_start - load_start) / load_span),
+                    "qEndKnPerM": interpolate(q_start, q_end, (overlap_end - load_start) / load_span),
+                    "startRatio": (overlap_start - start_ratio) / segment_span,
+                    "endRatio": (overlap_end - start_ratio) / segment_span,
+                }
+                expanded_loads.append(segment_load)
+            continue
+        point_ratio = to_float(load.get("positionRatio", load.get("ratio", 0.5)), 0.5)
         for segment_id, start_ratio, end_ratio in split_map[member_id]:
+            if point_ratio < start_ratio - 1e-9 or point_ratio > end_ratio + 1e-9:
+                continue
+            segment_span = max(end_ratio - start_ratio, 1e-9)
             segment_load = {
-                "type": "distributed",
+                **load,
                 "member": segment_id,
-                "direction": direction,
-                "qStartKnPerM": interpolate(q_start, q_end, start_ratio),
-                "qEndKnPerM": interpolate(q_start, q_end, end_ratio),
+                "positionRatio": min(1.0, max(0.0, (point_ratio - start_ratio) / segment_span)),
             }
             expanded_loads.append(segment_load)
+            break
+        else:
+            expanded_loads.append(load)
     return expanded_loads
 
 
@@ -608,10 +640,23 @@ def parse_loads(
                     values=values,
                 )
             )
+        elif load_type == "member_point":
+            if not allow_distributed:
+                raise ValueError("桁架当前仅支持节点荷载")
+            member_id = str(load.get("member") or "")
+            if member_id not in member_ids:
+                raise ValueError("构件荷载引用了不存在的构件")
+            loads.append(
+                StructuralLoad(
+                    type="member_point",
+                    target=member_id,
+                    values=parse_member_point_load_values(load),
+                )
+            )
         elif not allow_distributed:
             raise ValueError("桁架当前仅支持节点荷载")
         else:
-            raise ValueError("荷载类型必须为 nodal 或 distributed")
+            raise ValueError("荷载类型必须为 nodal、distributed 或 member_point")
     return loads
 
 
@@ -705,15 +750,42 @@ def parse_distributed_load_values(load: Mapping[str, Any]) -> Dict[str, Any]:
     direction = str(load.get("direction") or "local_y").strip().lower()
     if direction not in {"local_y", "global_y"}:
         raise ValueError("构件分布荷载方向必须为 local_y 或 global_y")
-    if "qStartKnPerM" in load or "qEndKnPerM" in load:
-        q_start = to_float(load.get("qStartKnPerM", load.get("wyKnPerM", 0.0)), 0.0)
-        q_end = to_float(load.get("qEndKnPerM", load.get("wyKnPerM", q_start)), q_start)
-        return {
-            "direction": direction,
-            "qStartKnPerM": q_start,
-            "qEndKnPerM": q_end,
-        }
-    return {"wyKnPerM": to_float(load.get("wyKnPerM", 0.0), 0.0)}
+    q_start = to_float(load.get("qStartKnPerM", load.get("wyKnPerM", 0.0)), 0.0)
+    q_end = to_float(load.get("qEndKnPerM", load.get("wyKnPerM", q_start)), q_start)
+    start_ratio, end_ratio = parse_ratio_range(
+        load.get("startRatio", load.get("loadStartRatio", 0.0)),
+        load.get("endRatio", load.get("loadEndRatio", 1.0)),
+        "构件分布荷载作用范围比例",
+    )
+    return {
+        "direction": direction,
+        "qStartKnPerM": q_start,
+        "qEndKnPerM": q_end,
+        "startRatio": start_ratio,
+        "endRatio": end_ratio,
+    }
+
+
+def parse_ratio_range(raw_start: Any, raw_end: Any, label: str) -> tuple[float, float]:
+    start_ratio = to_float(raw_start, 0.0)
+    end_ratio = to_float(raw_end, 1.0)
+    if start_ratio < 0.0 or start_ratio > 1.0 or end_ratio < 0.0 or end_ratio > 1.0 or start_ratio >= end_ratio:
+        raise ValueError(f"{label}必须满足 0 <= startRatio < endRatio <= 1")
+    return start_ratio, end_ratio
+
+
+def parse_member_point_load_values(load: Mapping[str, Any]) -> Dict[str, Any]:
+    direction = str(load.get("direction") or "local_y").strip().lower()
+    if direction not in {"local_y", "global_y"}:
+        raise ValueError("构件集中荷载方向必须为 local_y 或 global_y")
+    position_ratio = to_float(load.get("positionRatio", load.get("ratio", 0.5)), 0.5)
+    if position_ratio < 0.0 or position_ratio > 1.0:
+        raise ValueError("构件集中荷载位置比例必须在 0 到 1 之间")
+    return {
+        "direction": direction,
+        "forceKn": to_float(load.get("forceKn", load.get("magnitudeKn", load.get("pKn", 0.0))), 0.0),
+        "positionRatio": position_ratio,
+    }
 
 
 def build_structural_model(

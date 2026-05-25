@@ -14,7 +14,8 @@ E,1,3,1,1,1,1,1,1
 E,3,4,1,1,1,1,1,1
 E,2,4,1,1,1,1,1,1
 PROP,2,2,210,220,15000,beam
-DLOAD,2,-18,-18,global_y
+DLOAD,2,-18,-12,global_y,0.2,0.8
+PLOAD,2,-12,0.5,global_y
 NLOAD,4,1,24,0
 NLOAD,4,2,5
 `);
@@ -22,7 +23,7 @@ NLOAD,4,2,5
   assert.ok(result.collections);
   assert.equal(result.collections.nodes.length, 4);
   assert.equal(result.collections.members.length, 3);
-  assert.equal(result.collections.loads.length, 3);
+  assert.equal(result.collections.loads.length, 4);
   assert.equal(result.collections.nodes[0]?.supportType, "fixed");
   assert.equal(result.collections.nodes[1]?.supportType, "pinned");
   assert.equal(result.collections.nodes[2]?.supportType, "free");
@@ -32,17 +33,26 @@ NLOAD,4,2,5
     type: "distributed",
     member: "M2",
     qStartKnPerM: -18,
-    qEndKnPerM: -18,
+    qEndKnPerM: -12,
     direction: "global_y",
+    startRatio: 0.2,
+    endRatio: 0.8,
   });
   assert.deepEqual(result.collections.loads[1], {
+    type: "member_point",
+    member: "M2",
+    forceKn: -12,
+    positionRatio: 0.5,
+    direction: "global_y",
+  });
+  assert.deepEqual(result.collections.loads[2], {
     type: "nodal",
     node: "N4",
     fxKn: 24,
     fyKn: 0,
     mzKnM: 0,
   });
-  assert.deepEqual(result.collections.loads[2], {
+  assert.deepEqual(result.collections.loads[3], {
     type: "nodal",
     node: "N4",
     fxKn: 0,
@@ -82,12 +92,16 @@ test("serializeFrameTextModel uses sequential SM element numbers for named membe
       { id: "C1", start: "N1", end: "N2", elementType: "frame", E_GPa: 210, A_cm2: 240, I_cm4: 12000, kind: "column" },
       { id: "B1", start: "N2", end: "N3", elementType: "frame", E_GPa: 210, A_cm2: 220, I_cm4: 15000, kind: "beam" },
     ],
-    loads: [{ type: "distributed", member: "B1", qStartKnPerM: -18, qEndKnPerM: -18, direction: "global_y" }],
+    loads: [
+      { type: "distributed", member: "B1", qStartKnPerM: -18, qEndKnPerM: -18, direction: "global_y", startRatio: 0.15, endRatio: 0.85 },
+      { type: "member_point", member: "B1", forceKn: -12, positionRatio: 0.5, direction: "global_y" },
+    ],
   });
 
   assert.match(text, /PROP,1,1,210,240,12000,column/u);
   assert.match(text, /PROP,2,2,210,220,15000,beam/u);
-  assert.match(text, /DLOAD,2,-18,-18,global_y/u);
+  assert.match(text, /DLOAD,2,-18,-18,global_y,0.15,0.85/u);
+  assert.match(text, /PLOAD,2,-12,0.5,global_y/u);
 });
 
 test("parseFrameTextModel reports ignored invalid references for preview blocking", () => {

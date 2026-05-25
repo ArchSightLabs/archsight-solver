@@ -154,22 +154,46 @@ export function createPortalFramePayload(value: FrameWorkspaceState, projectName
 
 function normalizeFrameLoad(load: FrameLoad): FrameLoad {
   if (load.type === "distributed") {
-    const qStart = Number.isFinite(load.qStartKnPerM)
+    let qStart = Number.isFinite(load.qStartKnPerM)
       ? Number(load.qStartKnPerM)
       : Number.isFinite(load.wyKnPerM)
         ? Number(load.wyKnPerM)
         : 0;
-    const qEnd = Number.isFinite(load.qEndKnPerM)
+    let qEnd = Number.isFinite(load.qEndKnPerM)
       ? Number(load.qEndKnPerM)
       : Number.isFinite(load.wyKnPerM)
         ? Number(load.wyKnPerM)
         : qStart;
+    let startRatio = normalizeFrameLoadPositionRatio(load.startRatio ?? 0);
+    let endRatio = normalizeFrameLoadPositionRatio(load.endRatio ?? 1);
+    if (endRatio < startRatio) {
+      [startRatio, endRatio] = [endRatio, startRatio];
+      [qStart, qEnd] = [qEnd, qStart];
+    }
+    if (Math.abs(endRatio - startRatio) < 1e-9) {
+      endRatio = Math.min(1, startRatio + 0.01);
+      if (Math.abs(endRatio - startRatio) < 1e-9) {
+        startRatio = Math.max(0, endRatio - 0.01);
+      }
+    }
     return {
       type: "distributed",
       member: String(load.member ?? "M1").trim() || "M1",
       direction: load.direction === "global_y" ? "global_y" : "local_y",
       qStartKnPerM: qStart,
       qEndKnPerM: qEnd,
+      startRatio,
+      endRatio,
+    };
+  }
+
+  if (load.type === "member_point") {
+    return {
+      type: "member_point",
+      member: String(load.member ?? "M1").trim() || "M1",
+      direction: load.direction === "global_y" ? "global_y" : "local_y",
+      forceKn: Number.isFinite(load.forceKn) ? Number(load.forceKn) : 0,
+      positionRatio: normalizeFrameLoadPositionRatio(load.positionRatio),
     };
   }
 
@@ -180,6 +204,11 @@ function normalizeFrameLoad(load: FrameLoad): FrameLoad {
     fyKn: Number.isFinite(load.fyKn) ? Number(load.fyKn) : 0,
     mzKnM: Number.isFinite(load.mzKnM) ? Number(load.mzKnM) : 0,
   };
+}
+
+function normalizeFrameLoadPositionRatio(value: unknown): number {
+  const ratio = Number(value);
+  return Number.isFinite(ratio) ? Math.min(Math.max(ratio, 0), 1) : 0.5;
 }
 
 function normalizeFrameLoadCases(loadCases: FrameLoadCase[]): FrameLoadCase[] {
@@ -318,11 +347,9 @@ export function validateCustomFrameWorkspace(value: FrameWorkspaceState): string
 
   const availableMemberIds = new Set(memberIds);
   if (
-    loads.some((load) => load.type === "nodal" && !nodeIds.includes(load.node)) ||
-    loads.some((load) => load.type === "distributed" && !availableMemberIds.has(load.member)) ||
+    loads.some((load) => frameLoadReferenceMissing(load, nodeIds, availableMemberIds)) ||
     (value.customLoadCases ?? []).some((loadCase) =>
-      loadCase.loads.some((load) => load.type === "nodal" && !nodeIds.includes(load.node)) ||
-      loadCase.loads.some((load) => load.type === "distributed" && !availableMemberIds.has(load.member))
+      loadCase.loads.some((load) => frameLoadReferenceMissing(load, nodeIds, availableMemberIds))
     )
   ) {
     return "荷载引用了不存在的节点或构件。";
@@ -348,6 +375,13 @@ export function validateCustomFrameWorkspace(value: FrameWorkspaceState): string
   }
 
   return null;
+}
+
+function frameLoadReferenceMissing(load: FrameLoad, nodeIds: string[], memberIds: Set<string>): boolean {
+  if (load.type === "nodal") {
+    return !nodeIds.includes(load.node);
+  }
+  return !memberIds.has(load.member);
 }
 
 export function buildFramePayload(value: FrameWorkspaceState, projectName = value.projectName): FrameFormPayload | null {

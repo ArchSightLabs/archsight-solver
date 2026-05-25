@@ -201,12 +201,16 @@ function parseNodalLoad(tokens: string[]): FrameLoad | null {
 
 function parseDistributedLoad(tokens: string[]): FrameLoad | null {
   if (tokens[0].toUpperCase() === "DLOAD") {
+    const startRatio = toNumber(tokens[5]) ?? 0;
+    const endRatio = toNumber(tokens[6]) ?? 1;
     return {
       type: "distributed",
       member: memberId(tokens[1], "M1"),
       qStartKnPerM: toNumber(tokens[2]) ?? 0,
       qEndKnPerM: toNumber(tokens[3]) ?? toNumber(tokens[2]) ?? 0,
       direction: tokens[4] === "global_y" ? "global_y" : "local_y",
+      startRatio: Math.min(1, Math.max(0, startRatio)),
+      endRatio: Math.min(1, Math.max(0, endRatio)),
     };
   }
 
@@ -222,6 +226,18 @@ function parseDistributedLoad(tokens: string[]): FrameLoad | null {
     qStartKnPerM: loadType >= 0 ? size : -size,
     qEndKnPerM: loadType >= 0 ? size : -size,
     direction: directionDeg !== null && Math.abs(Math.abs(directionDeg) - 90) < 1e-9 ? "global_y" : "local_y",
+    startRatio: 0,
+    endRatio: 1,
+  };
+}
+
+function parseMemberPointLoad(tokens: string[]): FrameLoad {
+  return {
+    type: "member_point",
+    member: memberId(tokens[1], "M1"),
+    forceKn: toNumber(tokens[2]) ?? 0,
+    positionRatio: Math.min(1, Math.max(0, toNumber(tokens[3]) ?? 0.5)),
+    direction: tokens[4] === "global_y" ? "global_y" : "local_y",
   };
 }
 
@@ -396,6 +412,11 @@ export function parseFrameTextModel(text: string): FrameTextParseResult {
       continue;
     }
 
+    if (command === "PLOAD" || command === "MLOAD") {
+      loads.push(parseMemberPointLoad(tokens));
+      continue;
+    }
+
     diagnostics.push(`第 ${lineIndex + 1} 行：未识别的文本命令 ${tokens[0]}。`);
   }
 
@@ -467,7 +488,7 @@ export function serializeFrameTextModel(collections: FrameTextCollections): stri
   const memberNumbers = new Map(collections.members.map((member, index) => [member.id, memberNumber(member.id, index)]));
   const lines = [
     "# ArchSight 平面框架文本模型",
-    "# 兼容 SM 常用子集：N / E / NSUPT / NLOAD / ELOAD；扩展支持 PROP 与 DLOAD。",
+    "# 兼容 SM 常用子集：N / E / NSUPT / NLOAD / ELOAD；扩展支持 PROP / DLOAD / PLOAD。",
     "",
     "# 节点：N,节点号,x,y",
     ...collections.nodes.map((node, index) => `N,${nodeNumber(node.id, index)},${node.x},${node.y}`),
@@ -492,7 +513,10 @@ export function serializeFrameTextModel(collections: FrameTextCollections): stri
       if (load.type === "nodal") {
         return nodalLoadLines(load, nodeNumbers);
       }
-      return [`DLOAD,${memberNumbers.get(load.member) ?? 1},${load.qStartKnPerM ?? load.wyKnPerM ?? 0},${load.qEndKnPerM ?? load.wyKnPerM ?? 0},${load.direction ?? "local_y"}`];
+      if (load.type === "member_point") {
+        return [`PLOAD,${memberNumbers.get(load.member) ?? 1},${load.forceKn ?? 0},${load.positionRatio ?? 0.5},${load.direction ?? "local_y"}`];
+      }
+      return [`DLOAD,${memberNumbers.get(load.member) ?? 1},${load.qStartKnPerM ?? load.wyKnPerM ?? 0},${load.qEndKnPerM ?? load.wyKnPerM ?? 0},${load.direction ?? "local_y"},${load.startRatio ?? 0},${load.endRatio ?? 1}`];
     }),
   ];
 

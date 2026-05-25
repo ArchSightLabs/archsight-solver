@@ -256,7 +256,7 @@ def test_persistence_mode_error_contract(client, monkeypatch):
                     "loads": [{"type": "thermal", "member": "B1"}],
                 },
             },
-            "荷载类型必须为 nodal 或 distributed",
+            "荷载类型必须为 nodal、distributed 或 member_point",
         ),
     ],
 )

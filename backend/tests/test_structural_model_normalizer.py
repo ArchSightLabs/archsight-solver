@@ -52,7 +52,7 @@ def test_shared_structural_model_preserves_frame_contract_shape():
             },
         ],
         "loads": [
-            {"type": "distributed", "member": "B1", "wyKnPerM": -12.0},
+            {"type": "distributed", "member": "B1", "direction": "local_y", "qStartKnPerM": -12.0, "qEndKnPerM": -12.0, "startRatio": 0.0, "endRatio": 1.0},
             {"type": "nodal", "node": "N2", "fxKn": 3.0, "fyKn": -4.0, "mzKnM": 5.0},
         ],
     }
@@ -79,6 +79,7 @@ def test_shared_structural_model_preserves_springs_releases_and_load_direction()
         ],
         raw_loads=[
             {"type": "distributed", "member": "B1", "direction": "global_y", "qStartKnPerM": -8, "qEndKnPerM": -12},
+            {"type": "member_point", "member": "B1", "direction": "local_y", "forceKn": -10, "positionRatio": 0.5},
         ],
         labels=FRAME_SUPPORT_LABELS,
         include_bending=True,
@@ -92,7 +93,59 @@ def test_shared_structural_model_preserves_springs_releases_and_load_direction()
     assert structure["members"][0]["elementType"] == "frame"
     assert structure["members"][0]["endReleases"] == {"end": ["rz"]}
     assert structure["loads"] == [
-        {"type": "distributed", "member": "B1", "direction": "global_y", "qStartKnPerM": -8.0, "qEndKnPerM": -12.0},
+        {"type": "distributed", "member": "B1", "direction": "global_y", "qStartKnPerM": -8.0, "qEndKnPerM": -12.0, "startRatio": 0.0, "endRatio": 1.0},
+        {"type": "member_point", "member": "B1", "direction": "local_y", "forceKn": -10.0, "positionRatio": 0.5},
+    ]
+
+
+def test_frame_member_point_load_is_mapped_to_split_member_segment():
+    request = normalize_frame_request(
+        {
+            "analysisType": "frame",
+            "structure": {
+                "template": "explicit",
+                "nodes": [
+                    {"id": "N1", "x": 0, "y": 0, "supportType": "fixed"},
+                    {"id": "N2", "x": 4, "y": 0, "supportType": "roller"},
+                ],
+                "members": [
+                    {"id": "B1", "start": "N1", "end": "N2", "E_GPa": 210, "A_cm2": 120, "I_cm4": 8000, "internalHinges": [{"ratio": 0.5}]},
+                ],
+                "loads": [
+                    {"type": "member_point", "member": "B1", "direction": "local_y", "forceKn": -6, "positionRatio": 0.75},
+                ],
+            },
+        }
+    )
+
+    assert request["structure"]["loads"] == [
+        {"type": "member_point", "member": "B1_2", "direction": "local_y", "forceKn": -6.0, "positionRatio": 0.5},
+    ]
+
+
+def test_frame_partial_distributed_load_is_mapped_to_split_member_segments():
+    request = normalize_frame_request(
+        {
+            "analysisType": "frame",
+            "structure": {
+                "template": "explicit",
+                "nodes": [
+                    {"id": "N1", "x": 0, "y": 0, "supportType": "fixed"},
+                    {"id": "N2", "x": 4, "y": 0, "supportType": "roller"},
+                ],
+                "members": [
+                    {"id": "B1", "start": "N1", "end": "N2", "E_GPa": 210, "A_cm2": 120, "I_cm4": 8000, "internalHinges": [{"ratio": 0.5}]},
+                ],
+                "loads": [
+                    {"type": "distributed", "member": "B1", "direction": "local_y", "qStartKnPerM": -6, "qEndKnPerM": -10, "startRatio": 0.25, "endRatio": 0.75},
+                ],
+            },
+        }
+    )
+
+    assert request["structure"]["loads"] == [
+        {"type": "distributed", "member": "B1_1", "direction": "local_y", "qStartKnPerM": -6.0, "qEndKnPerM": -8.0, "startRatio": 0.5, "endRatio": 1.0},
+        {"type": "distributed", "member": "B1_2", "direction": "local_y", "qStartKnPerM": -8.0, "qEndKnPerM": -10.0, "startRatio": 0.0, "endRatio": 0.5},
     ]
 
 
@@ -139,6 +192,10 @@ def test_shared_structural_model_preserves_load_combination_tags():
         (
             {"loads": [{"type": "distributed", "member": "M1", "direction": "wind", "wyKnPerM": -1}]},
             "构件分布荷载方向必须为 local_y 或 global_y",
+        ),
+        (
+            {"loads": [{"type": "distributed", "member": "M1", "direction": "local_y", "wyKnPerM": -1, "startRatio": 0.8, "endRatio": 0.2}]},
+            "构件分布荷载作用范围比例必须满足",
         ),
     ],
 )

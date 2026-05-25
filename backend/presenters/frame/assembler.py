@@ -61,12 +61,18 @@ def build_frame_solution_response(
     preview_loads = []
     for load in structure.get("loads", []):
         if load["type"] == "distributed":
+            q_start = float(load.get("qStartKnPerM", load.get("wyKnPerM", 0.0)))
+            q_end = float(load.get("qEndKnPerM", load.get("wyKnPerM", q_start)))
             preview_loads.append(
                 {
                     "type": "distributed",
                     "member": load["member"],
-                    "wyKnPerM": float(load.get("wyKnPerM", load.get("qStartKnPerM", 0.0))),
+                    "wyKnPerM": q_start,
+                    "qStartKnPerM": q_start,
+                    "qEndKnPerM": q_end,
                     "direction": load.get("direction", "local_y"),
+                    "startRatio": float(load.get("startRatio", 0.0)),
+                    "endRatio": float(load.get("endRatio", 1.0)),
                 }
             )
         elif load["type"] == "nodal":
@@ -77,6 +83,16 @@ def build_frame_solution_response(
                     "fxKn": float(load.get("fxKn", 0.0)),
                     "fyKn": float(load.get("fyKn", 0.0)),
                     "mzKnM": float(load.get("mzKnM", 0.0)),
+                }
+            )
+        elif load["type"] == "member_point":
+            preview_loads.append(
+                {
+                    "type": "member_point",
+                    "member": load["member"],
+                    "direction": load.get("direction", "local_y"),
+                    "forceKn": float(load.get("forceKn", 0.0)),
+                    "positionRatio": float(load.get("positionRatio", 0.5)),
                 }
             )
 

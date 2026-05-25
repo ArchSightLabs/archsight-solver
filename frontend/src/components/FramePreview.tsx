@@ -77,7 +77,7 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
   const layout = useMemo(() => {
     if (!frame) return null;
 
-    const allPoints = [...frame.nodes, ...frame.deformedNodes];
+    const allPoints = frame.nodes;
     const xs = allPoints.map((item) => item.x);
     const ys = allPoints.map((item) => item.y);
     const minX = Math.min(...xs, 0);
