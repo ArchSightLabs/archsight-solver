@@ -1,0 +1,251 @@
+import type { AnalysisResults } from "../hooks/useWorkbenchActions.ts";
+import type { BeamWorkspaceState, SensitivityResults } from "../types/beam.ts";
+import type { AnalysisMode, FrameWorkspaceState, TrussWorkspaceState } from "../types/structure.ts";
+import { normalizeReportExportOptions, type ReportExportOptions } from "./report-options.ts";
+import {
+  createDefaultBeamWorkspaceState,
+  createDefaultFrameWorkspaceState,
+  createDefaultTrussWorkspaceState,
+  normalizeBeamWorkspaceState,
+  normalizeFrameWorkspaceState,
+  normalizeTrussWorkspaceState,
+  normalizeWorkspaceState,
+  type WorkspaceState,
+} from "./workspace-state.ts";
+
+export type AnalysisObjectType = AnalysisMode;
+export type WorkbenchView = "model" | "results" | "sensitivity";
+export type AnalysisObjectState = BeamWorkspaceState | FrameWorkspaceState | TrussWorkspaceState;
+
+export interface ProjectInfo {
+  name: string;
+  address: string;
+  projectType: string;
+  scale: string;
+  projectManager: string;
+  constructionUnit: string;
+  developerUnit: string;
+  supervisionUnit: string;
+}
+
+export interface AnalysisObject {
+  id: string;
+  name: string;
+  type: AnalysisObjectType;
+  state: AnalysisObjectState;
+  results: AnalysisResults;
+  sensitivityResults: SensitivityResults | null;
+  workbenchView: WorkbenchView;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProjectSettings {
+  activeModuleSection: string;
+  reportExportOptions: ReportExportOptions;
+  projectInfo: ProjectInfo;
+}
+
+export interface SolverProject {
+  id: string;
+  name: string;
+  activeObjectId: string;
+  objects: AnalysisObject[];
+  settings: ProjectSettings;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function createId(prefix: string) {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
+  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+export function normalizeProjectInfo(raw: Partial<ProjectInfo> | null | undefined, fallbackName = "新建结构分析项目"): ProjectInfo {
+  return {
+    name: String(raw?.name ?? fallbackName).trim() || fallbackName,
+    address: String(raw?.address ?? ""),
+    projectType: String(raw?.projectType ?? ""),
+    scale: String(raw?.scale ?? ""),
+    projectManager: String(raw?.projectManager ?? ""),
+    constructionUnit: String(raw?.constructionUnit ?? ""),
+    developerUnit: String(raw?.developerUnit ?? ""),
+    supervisionUnit: String(raw?.supervisionUnit ?? ""),
+  };
+}
+
+export function defaultAnalysisObjectName(type: AnalysisObjectType, index = 1): string {
+  if (type === "frame") return `平面框架-${index}`;
+  if (type === "truss") return `平面桁架-${index}`;
+  return `连续梁-${index}`;
+}
+
+function defaultStateForType(type: AnalysisObjectType): AnalysisObjectState {
+  if (type === "frame") return createDefaultFrameWorkspaceState();
+  if (type === "truss") return createDefaultTrussWorkspaceState();
+  return createDefaultBeamWorkspaceState();
+}
+
+function normalizeStateForType(type: AnalysisObjectType, state: unknown): AnalysisObjectState {
+  if (type === "frame") return normalizeFrameWorkspaceState(state as Partial<FrameWorkspaceState> | null | undefined);
+  if (type === "truss") return normalizeTrussWorkspaceState(state as Partial<TrussWorkspaceState> | null | undefined);
+  return normalizeBeamWorkspaceState(state as Partial<BeamWorkspaceState> | null | undefined);
+}
+
+export function createAnalysisObject(type: AnalysisObjectType, name?: string, now = new Date()): AnalysisObject {
+  const timestamp = now.toISOString();
+  return {
+    id: createId(type),
+    name: name?.trim() || defaultAnalysisObjectName(type),
+    type,
+    state: defaultStateForType(type),
+    results: null,
+    sensitivityResults: null,
+    workbenchView: "model",
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  };
+}
+
+export function createDefaultSolverProject(
+  nowOrProjectInfo: Date | Partial<ProjectInfo> | null = new Date(),
+  rawProjectInfo?: Partial<ProjectInfo> | null
+): SolverProject {
+  const now = nowOrProjectInfo instanceof Date ? nowOrProjectInfo : new Date();
+  const projectInfoSource = nowOrProjectInfo instanceof Date ? rawProjectInfo : nowOrProjectInfo;
+  const timestamp = now.toISOString();
+  const object = createAnalysisObject("beam", "连续梁-1", now);
+  const projectInfo = normalizeProjectInfo(projectInfoSource);
+  return {
+    id: createId("project"),
+    name: projectInfo.name,
+    activeObjectId: object.id,
+    objects: [object],
+    settings: {
+      activeModuleSection: "",
+      reportExportOptions: normalizeReportExportOptions(null),
+      projectInfo,
+    },
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  };
+}
+
+function normalizeObjectType(value: unknown): AnalysisObjectType {
+  return value === "frame" || value === "truss" || value === "beam" ? value : "beam";
+}
+
+function normalizeAnalysisObject(rawObject: unknown, index: number): AnalysisObject {
+  const raw = rawObject && typeof rawObject === "object" ? (rawObject as Partial<AnalysisObject>) : {};
+  const type = normalizeObjectType(raw.type);
+  const now = new Date().toISOString();
+  return {
+    id: String(raw.id ?? createId(type)),
+    name: String(raw.name ?? defaultAnalysisObjectName(type, index + 1)).trim() || defaultAnalysisObjectName(type, index + 1),
+    type,
+    state: normalizeStateForType(type, raw.state),
+    results: raw.results ?? null,
+    sensitivityResults: raw.sensitivityResults ?? null,
+    workbenchView: raw.workbenchView === "results" || raw.workbenchView === "sensitivity" || raw.workbenchView === "model" ? raw.workbenchView : "model",
+    createdAt: String(raw.createdAt ?? now),
+    updatedAt: String(raw.updatedAt ?? now),
+  };
+}
+
+export function normalizeSolverProject(rawProject: unknown): SolverProject {
+  const raw = rawProject && typeof rawProject === "object" ? (rawProject as Partial<SolverProject>) : {};
+  const now = new Date().toISOString();
+  const projectInfo = normalizeProjectInfo(raw.settings?.projectInfo, String(raw.name ?? "新建结构分析项目"));
+  const normalizedObjects = Array.isArray(raw.objects) && raw.objects.length > 0
+    ? raw.objects.map(normalizeAnalysisObject)
+    : [createAnalysisObject("beam", "连续梁-1")];
+  const activeObjectId = normalizedObjects.some((object) => object.id === raw.activeObjectId)
+    ? String(raw.activeObjectId)
+    : normalizedObjects[0].id;
+  return {
+    id: String(raw.id ?? createId("project")),
+    name: projectInfo.name,
+    activeObjectId,
+    objects: normalizedObjects,
+    settings: {
+      activeModuleSection: String(raw.settings?.activeModuleSection ?? ""),
+      reportExportOptions: normalizeReportExportOptions(raw.settings?.reportExportOptions),
+      projectInfo,
+    },
+    createdAt: String(raw.createdAt ?? now),
+    updatedAt: String(raw.updatedAt ?? now),
+  };
+}
+
+export function getActiveAnalysisObject(project: SolverProject): AnalysisObject {
+  return project.objects.find((object) => object.id === project.activeObjectId) ?? project.objects[0];
+}
+
+export function createWorkspaceFromAnalysisObject(object: AnalysisObject): WorkspaceState {
+  return normalizeWorkspaceState({
+    analysisMode: object.type,
+    beam: object.type === "beam" ? object.state as BeamWorkspaceState : createDefaultBeamWorkspaceState(),
+    frame: object.type === "frame" ? object.state as FrameWorkspaceState : createDefaultFrameWorkspaceState(),
+    truss: object.type === "truss" ? object.state as TrussWorkspaceState : createDefaultTrussWorkspaceState(),
+  });
+}
+
+export function createWorkspaceFromProject(project: SolverProject): WorkspaceState {
+  return createWorkspaceFromAnalysisObject(getActiveAnalysisObject(project));
+}
+
+function stateFromWorkspaceForType(type: AnalysisObjectType, workspace: WorkspaceState): AnalysisObjectState {
+  if (type === "frame") return normalizeFrameWorkspaceState(workspace.frame);
+  if (type === "truss") return normalizeTrussWorkspaceState(workspace.truss);
+  return normalizeBeamWorkspaceState(workspace.beam);
+}
+
+export function updateActiveAnalysisObject(
+  project: SolverProject,
+  updater: (object: AnalysisObject) => AnalysisObject,
+  now = new Date()
+): SolverProject {
+  const timestamp = now.toISOString();
+  return normalizeSolverProject({
+    ...project,
+    updatedAt: timestamp,
+    objects: project.objects.map((object) => object.id === project.activeObjectId ? updater(object) : object),
+  });
+}
+
+export function updateActiveAnalysisObjectWorkspace(project: SolverProject, workspace: WorkspaceState): SolverProject {
+  return updateActiveAnalysisObject(project, (object) => ({
+    ...object,
+    state: stateFromWorkspaceForType(object.type, workspace),
+    updatedAt: new Date().toISOString(),
+  }));
+}
+
+export function setActiveAnalysisObject(project: SolverProject, objectId: string): SolverProject {
+  if (!project.objects.some((object) => object.id === objectId)) return project;
+  return normalizeSolverProject({ ...project, activeObjectId: objectId });
+}
+
+export function addAnalysisObjectToProject(project: SolverProject, type: AnalysisObjectType, name?: string): SolverProject {
+  const object = createAnalysisObject(type, name || defaultAnalysisObjectName(type, project.objects.filter((item) => item.type === type).length + 1));
+  return normalizeSolverProject({
+    ...project,
+    activeObjectId: object.id,
+    objects: [...project.objects, object],
+    updatedAt: object.createdAt,
+  });
+}
+
+export function removeAnalysisObjectFromProject(project: SolverProject, objectId: string): SolverProject {
+  if (project.objects.length <= 1) return project;
+  const remaining = project.objects.filter((object) => object.id !== objectId);
+  if (remaining.length === project.objects.length) return project;
+  return normalizeSolverProject({
+    ...project,
+    objects: remaining,
+    activeObjectId: project.activeObjectId === objectId ? remaining[0].id : project.activeObjectId,
+    updatedAt: new Date().toISOString(),
+  });
+}

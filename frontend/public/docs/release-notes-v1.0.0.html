@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ArchSight 结构力学求解器更新说明 v1.0.0</title>
+  <script>
+    (() => {
+      const storedTheme = window.localStorage.getItem("archsight:theme");
+      const theme = storedTheme === "light" ? "light" : "dark";
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.style.colorScheme = theme;
+    })();
+  </script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07111f;
+      --body-bg: radial-gradient(circle at 16% 0%, rgba(19, 191, 242, 0.16), transparent 34%), var(--bg);
+      --panel-bg: rgba(13, 26, 45, 0.78);
+      --card-bg: rgba(13, 26, 45, 0.72);
+      --text: #e6edf7;
+      --muted: #9fb0c7;
+      --line: #24344c;
+      --accent: #13bff2;
+      --accent-soft: rgba(19, 191, 242, 0.14);
+      --accent-text: #9eeaff;
+      --button-bg: rgba(13, 26, 45, 0.78);
+      --button-hover: rgba(19, 191, 242, 0.14);
+    }
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg: #eef3f8;
+      --body-bg: radial-gradient(circle at 16% 0%, rgba(14, 165, 233, 0.13), transparent 34%), var(--bg);
+      --panel-bg: rgba(255, 255, 255, 0.86);
+      --card-bg: rgba(255, 255, 255, 0.78);
+      --text: #0f172a;
+      --muted: #475569;
+      --line: #cbd5e1;
+      --accent: #0369a1;
+      --accent-soft: rgba(14, 165, 233, 0.1);
+      --accent-text: #075985;
+      --button-bg: rgba(255, 255, 255, 0.88);
+      --button-hover: rgba(14, 165, 233, 0.1);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--body-bg);
+      color: var(--text);
+      font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+      line-height: 1.75;
+      transition: background 0.25s ease, color 0.25s ease;
+    }
+    main { width: min(980px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0 72px; }
+    header { border-bottom: 1px solid var(--line); margin-bottom: 28px; padding-bottom: 24px; }
+    h1 { margin: 0 0 10px; font-size: clamp(2rem, 5vw, 3.6rem); line-height: 1.12; }
+    h2 { margin: 34px 0 12px; font-size: 1.45rem; border-left: 4px solid var(--accent); padding-left: 12px; }
+    h3 { margin: 24px 0 8px; font-size: 1.08rem; }
+    p, li { color: var(--muted); }
+    ul { padding-left: 1.3rem; }
+    a { color: var(--accent); }
+    .meta, .notice {
+      border: 1px solid var(--line);
+      background: var(--panel-bg);
+      border-radius: 10px;
+      padding: 16px 18px;
+    }
+    .meta { display: grid; gap: 6px; margin-top: 18px; }
+    .notice { margin: 22px 0; }
+    .tag { display: inline-flex; width: fit-content; border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent); background: var(--accent-soft); color: var(--accent-text); border-radius: 999px; padding: 4px 10px; font-size: 0.82rem; font-weight: 700; }
+    .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .card { border: 1px solid var(--line); background: var(--card-bg); border-radius: 10px; padding: 16px; }
+    .doc-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
+    .back { display: inline-flex; margin-bottom: 22px; text-decoration: none; font-weight: 700; }
+    .doc-actions .back { margin-bottom: 0; }
+    .theme-toggle {
+      border: 1px solid var(--line);
+      background: var(--button-bg);
+      color: var(--text);
+      border-radius: 10px;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.88rem;
+      font-weight: 700;
+      padding: 8px 12px;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+    .theme-toggle:hover { background: var(--button-hover); border-color: var(--accent); }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="doc-actions">
+      <a class="back" href="/">返回工作台</a>
+      <button class="theme-toggle" type="button" data-theme-toggle>
+        切换为<span data-theme-label>浅色阅读</span>
+      </button>
+    </div>
+    <header>
+      <span class="tag">版本 v1.0.0</span>
+      <h1>ArchSight 结构力学求解器更新说明</h1>
+      <div class="meta">
+        <div>版本类型：首个公开版本</div>
+        <div>适用对象：结构工程师、土木/结构方向教师、高校学生、结构工程工具开发者</div>
+      </div>
+    </header>
+
+    <section class="notice">
+      v1.0.0 是 ArchSight 结构力学求解器的第一个完整版本。本版本以 Web 工作台形式交付梁系、平面框架、平面桁架三类典型结构分析能力，重点解决“快速建模、即时计算、结果复核、计算书导出”的闭环问题。
+    </section>
+
+    <h2>一、工作台基础能力</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>三类分析对象</h3>
+        <ul>
+          <li>梁系：连续梁、简支梁、悬臂梁。</li>
+          <li>平面框架：门式刚架、显式节点-构件建模。</li>
+          <li>平面桁架：典型屋架、悬臂桁架、自定义桁架。</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>三阶段主工作区</h3>
+        <ul>
+          <li>参数建模：录入材料、几何、支座、荷载、截面。</li>
+          <li>结构计算：运行求解并查看结果。</li>
+          <li>敏感性分析：观察参数扰动对响应指标的影响。</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>专业结果总览</h3>
+        <ul>
+          <li>结构计算页默认进入“全部结果”。</li>
+          <li>一次查看摘要、结构预览、位移与内力结果。</li>
+          <li>保留单项页签，便于局部复核。</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>二、梁系分析能力</h2>
+    <ul>
+      <li>支持连续梁、简支梁、悬臂梁等常见梁系模型。</li>
+      <li>支持跨段长度、弹性模量、截面惯性矩、均布荷载、集中荷载、线性分布荷载等输入。</li>
+      <li>执行 GPa 到 Pa、kN/m 到 N/m、cm^4 到 m^4 等单位换算。</li>
+      <li>输出允许挠度、最大挠度、最大挠度位置、支座反力、挠度曲线、弯矩图、剪力图。</li>
+    </ul>
+
+    <h2>三、平面框架分析能力</h2>
+    <ul>
+      <li>支持门式刚架快捷建模和显式节点-构件建模。</li>
+      <li>支持节点荷载、构件荷载、支座约束、荷载工况与荷载组合。</li>
+      <li>输出节点水平位移、节点竖向位移、转角、支座反力、杆端轴力、剪力、弯矩。</li>
+      <li>输出构件测站曲线，包括轴力、剪力、弯矩与位移。</li>
+    </ul>
+
+    <h2>四、平面桁架分析能力</h2>
+    <ul>
+      <li>支持典型屋架、自定义桁架、节点坐标、杆件连接、截面面积、材料与支座约束。</li>
+      <li>输出节点水平位移、节点竖向位移、合位移、支座反力、杆件轴力、轴应力。</li>
+      <li>桁架模块以节点位移、杆件轴力、杆件轴应力、支座反力为主指标，不把弯矩作为桁架主结果。</li>
+    </ul>
+
+    <h2>五、敏感性分析能力</h2>
+    <ul>
+      <li>支持对梁系、平面框架、平面桁架执行参数扰动分析。</li>
+      <li>支持最大挠度、最大弯矩、最大剪力、最大节点位移、最大杆件轴力等响应指标。</li>
+      <li>支持多步扰动计算，返回扰动曲线与响应变化，并可纳入计算书。</li>
+    </ul>
+
+    <h2>六、模板库与导出</h2>
+    <ul>
+      <li>支持保存、恢复、复制、删除项目模板，并设置基准模板。</li>
+      <li>内置梁系、平面框架、平面桁架典型案例。</li>
+      <li>支持 Word 与 Excel 计算书导出，包含输入参数、结果摘要、结构图、曲线图、表格结果与敏感性分析结果。</li>
+    </ul>
+
+    <h2>七、接口与工程化</h2>
+    <ul>
+      <li>提供 /api/calculate 计算接口。</li>
+      <li>提供 /api/sensitivity 敏感性分析接口。</li>
+      <li>提供 /api/export Word / Excel 导出接口。</li>
+      <li>统一返回 version: v1 的 API 包络，包含 request、model、results、diagnostics、errors、meta 等字段。</li>
+    </ul>
+
+    <h2>八、已知限制</h2>
+    <ul>
+      <li>当前聚焦线弹性静力分析，不提供规范配筋、构件承载力设计或施工安全验算。</li>
+      <li>当前不包含影响线、动力分析、稳定分析、三维杆系求解和外部引擎接入。</li>
+      <li>计算结果应由具备结构工程背景的使用者复核后再用于工程决策。</li>
+    </ul>
+    <script>
+      (() => {
+        const applyTheme = (theme, persist = false) => {
+          const normalized = theme === "light" ? "light" : "dark";
+          document.documentElement.dataset.theme = normalized;
+          document.documentElement.style.colorScheme = normalized;
+          document.querySelectorAll("[data-theme-label]").forEach((item) => {
+            item.textContent = normalized === "dark" ? "浅色阅读" : "深色阅读";
+          });
+          if (persist) window.localStorage.setItem("archsight:theme", normalized);
+        };
+        applyTheme(window.localStorage.getItem("archsight:theme"));
+        document.querySelector("[data-theme-toggle]")?.addEventListener("click", () => {
+          applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark", true);
+        });
+        window.addEventListener("storage", (event) => {
+          if (event.key === "archsight:theme") applyTheme(event.newValue);
+        });
+      })();
+    </script>
+  </main>
+</body>
+</html>

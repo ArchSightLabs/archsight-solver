@@ -1,0 +1,11 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">ArchSight 结构力学求解器</title>
+  <desc id="desc">结构梁、支座与挠度曲线组成的 ArchSight 图标。</desc>
+  <rect width="64" height="64" rx="14" fill="#06131f"/>
+  <path d="M12 39h40" stroke="#38bdf8" stroke-width="4" stroke-linecap="round"/>
+  <path d="M14 39c8 9 28 9 36 0" stroke="#10b981" stroke-width="3" stroke-linecap="round"/>
+  <path d="M18 43l-5 9h10l-5-9Z" fill="#e2e8f0"/>
+  <path d="M46 43l-5 9h10l-5-9Z" fill="#e2e8f0"/>
+  <path d="M32 13v18" stroke="#fbbf24" stroke-width="4" stroke-linecap="round"/>
+  <path d="M25 25l7 7 7-7" stroke="#fbbf24" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

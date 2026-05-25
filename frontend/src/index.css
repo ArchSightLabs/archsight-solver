@@ -1,0 +1,355 @@
+@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500;600&family=Outfit:wght@600;700;800&display=swap");
+@import "tailwindcss";
+
+/* Tailwind v4 主题变量注入 */
+@theme {
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-heading: 'Outfit', sans-serif;
+  --font-mono: 'Fira Code', monospace;
+}
+
+/* 深色模式变体 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ===== CSS 变量层 ===== */
+:root {
+  color-scheme: light;
+
+  /* 背景层次 */
+  --bg-main: #f0f4f8;
+  --bg-card: #ffffff;
+
+  /* 文字 */
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+
+  /* 品牌色 (浅色模式 - 蓝色调) */
+  --primary: 221.2 83.2% 53.3%;
+  --primary-hex: #3b82f6;
+
+  /* 边框 */
+  --border-card: rgba(0, 0, 0, 0.07);
+
+  /* 玻璃效果变量 */
+  --glass-bg: rgba(255, 255, 255, 0.86);
+  --glass-border: rgba(100, 116, 139, 0.22);
+  --glass-blur: 20px;
+  --glass-glow-color: rgba(59, 130, 246, 0.08);
+
+  --frame-diagram-surface: #f8fafc;
+  --frame-diagram-axis: rgba(71, 85, 105, 0.48);
+  --frame-diagram-grid: rgba(100, 116, 139, 0.24);
+  --frame-diagram-zero: rgba(15, 23, 42, 0.28);
+  --frame-diagram-label: #334155;
+
+  /* shadcn 兼容变量 */
+  --background: 210 40% 96%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --muted: 210 40% 93%;
+  --muted-foreground: 215 16% 47%;
+  --border: 214 32% 88%;
+  --input: 214 32% 88%;
+  --accent: 210 40% 93%;
+  --accent-foreground: 222 47% 11%;
+  --radius: 0.75rem;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --bg-main: #060d16;
+  --bg-card: #0c1827;
+  --text-main: #e2e8f0;
+  --text-muted: #64748b;
+  --primary-hex: #38bdf8;
+
+  --glass-bg: rgba(8, 20, 40, 0.6);
+  --glass-border: rgba(148, 163, 184, 0.1);
+  --glass-glow-color: rgba(56, 189, 248, 0.12);
+
+  --frame-diagram-surface: rgba(2, 6, 23, 0.34);
+  --frame-diagram-axis: rgba(148, 163, 184, 0.32);
+  --frame-diagram-grid: rgba(148, 163, 184, 0.12);
+  --frame-diagram-zero: rgba(226, 232, 240, 0.24);
+  --frame-diagram-label: #94a3b8;
+
+  --background: 222 47% 7%;
+  --foreground: 210 40% 95%;
+  --card: 217 35% 12%;
+  --card-foreground: 210 40% 95%;
+  --muted: 217 33% 15%;
+  --muted-foreground: 215 20% 55%;
+  --border: 217 33% 15%;
+  --input: 217 33% 15%;
+  --accent: 217 33% 15%;
+  --accent-foreground: 210 40% 95%;
+}
+
+/* ===== 全局基础样式 ===== */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  transition: background-color 0.4s ease, color 0.3s ease;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: 0;
+}
+
+/* ===== 工程核心工具类 ===== */
+
+/* 玻璃面板 */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  transition: background 0.3s ease, border-color 0.3s ease;
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.04);
+}
+
+.dark .glass-panel {
+  box-shadow: none;
+}
+
+.inspector-panel label,
+.inspector-panel h3,
+.inspector-panel .eyebrow {
+  opacity: 1 !important;
+}
+
+.inspector-panel label {
+  color: rgb(71 85 105);
+}
+
+.dark .inspector-panel label {
+  color: rgb(203 213 225);
+}
+
+.inspector-panel h3,
+.inspector-panel .eyebrow {
+  color: rgb(51 65 85);
+}
+
+.dark .inspector-panel h3,
+.dark .inspector-panel .eyebrow {
+  color: rgb(226 232 240);
+}
+
+.inspector-panel .text-muted-foreground {
+  color: rgb(100 116 139);
+}
+
+.dark .inspector-panel .text-muted-foreground {
+  color: rgb(148 163 184);
+}
+
+html:not(.dark) .inspector-panel [class*="bg-slate-950"],
+html:not(.dark) .inspector-panel [class*="bg-white/5"],
+html:not(.dark) .inspector-panel [class*="bg-white/[0.03]"],
+html:not(.dark) .inspector-panel [class*="bg-white/[0.02]"] {
+  background: rgba(248, 250, 252, 0.92) !important;
+}
+
+html:not(.dark) .inspector-panel [class*="border-white/"],
+html:not(.dark) .inspector-panel [class*="ring-white/"] {
+  border-color: rgb(226 232 240) !important;
+  --tw-ring-color: rgb(226 232 240) !important;
+}
+
+html:not(.dark) .inspector-panel input,
+html:not(.dark) .inspector-panel button[role="option"],
+html:not(.dark) .inspector-panel button:not([aria-selected="true"]) {
+  color: rgb(15 23 42);
+}
+
+html:not(.dark) .inspector-panel input {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgb(203 213 225) !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+html:not(.dark) .inspector-panel button:not([aria-selected="true"]):not(:disabled):hover {
+  background: rgb(241 245 249) !important;
+}
+
+html:not(.dark) .inspector-panel .bg-primary\/10,
+html:not(.dark) .inspector-panel [class*="bg-primary/10"] {
+  background: rgba(14, 165, 233, 0.12) !important;
+}
+
+/* 发光效果 */
+.glass-glow {
+  box-shadow:
+    0 0 40px -12px var(--glass-glow-color),
+    0 20px 60px -20px rgba(0, 0, 0, 0.25);
+}
+
+/* 工程字段标签 */
+.eyebrow {
+  font-family: 'Outfit', sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/*
+  工作台是高密度工程工具，避免标题负字距、超大圆角和装饰性悬浮动效
+  造成中文标签拥挤、按钮抖动或卡片层级过重。
+*/
+[class*="tracking-"] {
+  letter-spacing: 0 !important;
+}
+
+.rounded-xl,
+.rounded-2xl,
+.rounded-3xl,
+.rounded-\[1\.4rem\] {
+  border-radius: 0.5rem !important;
+}
+
+.hover\:-translate-y-0\.5:hover {
+  transform: none !important;
+}
+
+label[class*="text-[9px]"],
+label[class*="text-[10px]"],
+div[class*="text-[8px]"],
+div[class*="text-[9px]"] {
+  font-size: 0.6875rem !important;
+  line-height: 1rem;
+}
+
+/* 数字等宽字体 */
+.font-mono {
+  font-family: 'Fira Code', monospace;
+}
+
+/* 工程网格背景 */
+.dashboard-grid {
+  background-image:
+    linear-gradient(to right, rgba(148,163,184,0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148,163,184,0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.model-canvas-surface {
+  --model-member: #2563eb;
+  --model-node: #2f5f8f;
+  --model-support-fill: #d6dee8;
+  --model-support-stroke: #718096;
+  --model-support-line: #64748b;
+  --model-load: #b45309;
+  --model-load-halo: rgba(248, 250, 252, 0.92);
+  --model-guide: #94a3b8;
+  --model-label: #52657a;
+  --model-label-halo: rgba(248, 250, 252, 0.92);
+  background:
+    linear-gradient(180deg, rgba(248, 250, 252, 0.72), rgba(241, 245, 249, 0.9)),
+    radial-gradient(circle at 50% 10%, rgba(148, 163, 184, 0.12), transparent 52%);
+}
+
+.dark .model-canvas-surface {
+  --model-member: #38bdf8;
+  --model-node: #e2e8f0;
+  --model-support-fill: #94a3b8;
+  --model-support-stroke: #e2e8f0;
+  --model-support-line: #64748b;
+  --model-load: #fbbf24;
+  --model-load-halo: rgba(2, 8, 23, 0.92);
+  --model-guide: #94a3b8;
+  --model-label: #cbd5e1;
+  --model-label-halo: rgba(2, 8, 23, 0.92);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.68), rgba(8, 20, 36, 0.86));
+}
+
+.model-canvas-board {
+  border: 1px solid rgba(100, 116, 139, 0.35);
+  background: rgba(248, 250, 252, 0.58);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 10px 28px rgba(15, 23, 42, 0.05);
+}
+
+.dark .model-canvas-board {
+  border-color: rgba(148, 163, 184, 0.24);
+  background: rgba(2, 8, 23, 0.28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.structure-preview-surface {
+  --structure-preview-support-fill: #d6dee8;
+  --structure-preview-support-stroke: #718096;
+  --structure-preview-support-line: #64748b;
+  --structure-preview-label: #475569;
+  --structure-preview-node-label: #334155;
+  --structure-preview-load: #334155;
+  --structure-preview-guide: #64748b;
+  --structure-preview-hinge-fill: #ffffff;
+  --structure-preview-base-start: #2f5f8f;
+  --structure-preview-base-end: #285778;
+  --structure-preview-deformed-start: #0f766e;
+  --structure-preview-deformed-end: #0d9488;
+  --structure-preview-node: #2f5f8f;
+  --structure-preview-deformed-node: #0f766e;
+  --structure-preview-deformed-node-stroke: #ccfbf1;
+  --structure-preview-peak-label: #92400e;
+  --structure-preview-text-halo: rgba(248, 250, 252, 0.92);
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border-top: 1px solid rgba(100, 116, 139, 0.18);
+  border-bottom: 1px solid rgba(100, 116, 139, 0.18);
+}
+
+.dark .structure-preview-surface {
+  --structure-preview-support-fill: #94a3b8;
+  --structure-preview-support-stroke: #e2e8f0;
+  --structure-preview-support-line: #64748b;
+  --structure-preview-label: #94a3b8;
+  --structure-preview-node-label: #cbd5e1;
+  --structure-preview-load: #e2e8f0;
+  --structure-preview-guide: #38bdf8;
+  --structure-preview-hinge-fill: #020617;
+  --structure-preview-base-start: #38bdf8;
+  --structure-preview-base-end: #818cf8;
+  --structure-preview-deformed-start: #22c55e;
+  --structure-preview-deformed-end: #10b981;
+  --structure-preview-node: #38bdf8;
+  --structure-preview-deformed-node: #22c55e;
+  --structure-preview-deformed-node-stroke: #dcfce7;
+  --structure-preview-peak-label: #fde68a;
+  --structure-preview-text-halo: rgba(2, 8, 23, 0.92);
+  background: linear-gradient(180deg, #060d18 0%, #0b1628 100%);
+  border-top-color: rgba(255, 255, 255, 0.05);
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+.structure-preview-summary-cell {
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.dark .structure-preview-summary-cell {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* 自定义滚动条 */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--glass-border);
+  border-radius: 2px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-hex);
+}

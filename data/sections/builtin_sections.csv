@@ -1,0 +1,4 @@
+sectionId,name,A_cm2,I_cm4,source
+rect_300x500,矩形截面 300x500 mm,1500.0,312500.0,builtin_csv
+circle_d300,圆形截面 D300 mm,706.8583,39760.782,builtin_csv
+csv_rect_200x300,CSV 矩形截面 200x300 mm,600.0,45000.0,builtin_csv

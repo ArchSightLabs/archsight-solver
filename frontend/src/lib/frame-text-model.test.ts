@@ -1,0 +1,105 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { parseFrameTextModel, serializeFrameTextModel } from "./frame-text-model.ts";
+
+test("parseFrameTextModel imports SM-style nodes, members, supports and loads", () => {
+  const result = parseFrameTextModel(`
+N,1,0,0
+N,2,6,0
+N,3,0,4
+N,4,6,4
+NSUPT,1,6,0
+NSUPT,2,4,0
+E,1,3,1,1,1,1,1,1
+E,3,4,1,1,1,1,1,1
+E,2,4,1,1,1,1,1,1
+PROP,2,2,210,220,15000,beam
+DLOAD,2,-18,-18,global_y
+NLOAD,4,1,24,0
+NLOAD,4,2,5
+`);
+
+  assert.ok(result.collections);
+  assert.equal(result.collections.nodes.length, 4);
+  assert.equal(result.collections.members.length, 3);
+  assert.equal(result.collections.loads.length, 3);
+  assert.equal(result.collections.nodes[0]?.supportType, "fixed");
+  assert.equal(result.collections.nodes[1]?.supportType, "pinned");
+  assert.equal(result.collections.nodes[2]?.supportType, "free");
+  assert.equal(result.collections.members[1]?.kind, "beam");
+  assert.equal(result.collections.members[1]?.I_cm4, 15000);
+  assert.deepEqual(result.collections.loads[0], {
+    type: "distributed",
+    member: "M2",
+    qStartKnPerM: -18,
+    qEndKnPerM: -18,
+    direction: "global_y",
+  });
+  assert.deepEqual(result.collections.loads[1], {
+    type: "nodal",
+    node: "N4",
+    fxKn: 24,
+    fyKn: 0,
+    mzKnM: 0,
+  });
+  assert.deepEqual(result.collections.loads[2], {
+    type: "nodal",
+    node: "N4",
+    fxKn: 0,
+    fyKn: 0,
+    mzKnM: 5,
+  });
+});
+
+test("serializeFrameTextModel emits importable text", () => {
+  const source = parseFrameTextModel(`
+N,1,0,0
+N,2,4,0
+NSUPT,1,6,0
+E,1,2,1,1,0,1,1,1
+LOAD,2,0,-10,0
+`);
+
+  assert.ok(source.collections);
+  const text = serializeFrameTextModel(source.collections);
+  const restored = parseFrameTextModel(text);
+
+  assert.ok(restored.collections);
+  assert.equal(restored.collections.nodes.length, 2);
+  assert.equal(restored.collections.members.length, 1);
+  assert.equal(restored.collections.loads.length, 1);
+  assert.deepEqual(restored.collections.members[0]?.endReleases?.start, ["rz"]);
+});
+
+test("serializeFrameTextModel uses sequential SM element numbers for named members", () => {
+  const text = serializeFrameTextModel({
+    nodes: [
+      { id: "N1", x: 0, y: 0, supportType: "fixed" },
+      { id: "N2", x: 0, y: 4, supportType: "free" },
+      { id: "N3", x: 6, y: 4, supportType: "free" },
+    ],
+    members: [
+      { id: "C1", start: "N1", end: "N2", elementType: "frame", E_GPa: 210, A_cm2: 240, I_cm4: 12000, kind: "column" },
+      { id: "B1", start: "N2", end: "N3", elementType: "frame", E_GPa: 210, A_cm2: 220, I_cm4: 15000, kind: "beam" },
+    ],
+    loads: [{ type: "distributed", member: "B1", qStartKnPerM: -18, qEndKnPerM: -18, direction: "global_y" }],
+  });
+
+  assert.match(text, /PROP,1,1,210,240,12000,column/u);
+  assert.match(text, /PROP,2,2,210,220,15000,beam/u);
+  assert.match(text, /DLOAD,2,-18,-18,global_y/u);
+});
+
+test("parseFrameTextModel reports ignored invalid references for preview blocking", () => {
+  const result = parseFrameTextModel(`
+N,1,0,0
+N,2,4,0
+MEMBER,M1,N1,N3
+LOAD,N3,0,-10,0
+`);
+
+  assert.ok(result.collections);
+  assert.equal(result.collections.members.length, 0);
+  assert.equal(result.collections.loads.length, 0);
+  assert.match(result.diagnostics.join("\n"), /已忽略/u);
+});

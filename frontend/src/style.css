@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-outfit: 'Outfit', sans-serif;
+  --transition-theme: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── Theme Variables ─────────────────────────────────────── */
+:root {
+  --bg-app: #06131f;
+  --bg-card: rgba(15, 23, 42, 0.8);
+  --border-card: rgba(148, 163, 184, 0.16);
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --primary: #2dd4bf;
+  --accent: #fbbf24;
+  --grid-opacity: 0.05;
+}
+
+[data-theme='light'] {
+  --bg-app: #f1f5f9;
+  --bg-card: #ffffff;
+  --border-card: rgba(148, 163, 184, 0.4);
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --primary: #0d9488;
+  --accent: #b45309;
+  --grid-opacity: 0.1;
+}
+
+[data-theme='cyber'] {
+  --bg-app: #020617;
+  --bg-card: rgba(6, 18, 30, 0.95);
+  --border-card: rgba(34, 197, 94, 0.4);
+  --text-main: #f0fdf4;
+  --text-muted: #22c55e;
+  --primary: #22c55e;
+  --accent: #fbbf24;
+  --grid-opacity: 0.3;
+}
+
+[data-theme='industrial'] {
+  --bg-app: #e7e5e4;
+  --bg-card: #f5f5f4;
+  --border-card: #78716c;
+  --text-main: #292524;
+  --text-muted: #57534e;
+  --primary: #c2410c;
+  --accent: #1e40af;
+  --grid-opacity: 0.2;
+}
+
+[data-theme='aurora'] {
+  --bg-app: #0f172a;
+  --bg-card: rgba(30, 41, 59, 0.6);
+  --border-card: rgba(129, 140, 248, 0.2);
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --primary: #818cf8;
+  --accent: #f472b6;
+  --grid-opacity: 0.1;
+}
+
+/* ─── Base ────────────────────────────────────────────────── */
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  transition: var(--transition-theme);
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+}
+
+[data-theme='light'], [data-theme='industrial'] {
+  color: var(--text-main);
+}
+
+[data-theme='light'] .glow-blob,
+[data-theme='industrial'] .glow-blob {
+  opacity: 0 !important;
+}
+
+.glow-blob { transition: opacity 0.5s ease-in-out; }
+
+/* ─── Glass Panel ─────────────────────────────────────────── */
+.glass-container {
+  border: 1px solid var(--border-card);
+  background: var(--bg-card);
+  backdrop-filter: blur(18px);
+  transition: var(--transition-theme);
+}
+
+/* ─── Typography ──────────────────────────────────────────── */
+.font-outfit { font-family: var(--font-outfit); }
+.font-inter  { font-family: var(--font-sans); }
+
+/* ─── Background Grid ─────────────────────────────────────── */
+.dashboard-grid {
+  background-image:
+    linear-gradient(rgba(148, 163, 184, var(--grid-opacity)) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, var(--grid-opacity)) 1px, transparent 1px);
+  background-size: 28px 28px;
+  transition: var(--transition-theme);
+}
+
+/* ─── Scrollbar ───────────────────────────────────────────── */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ─── Select ──────────────────────────────────────────────── */
+select { color-scheme: dark; }
+[data-theme='light'] select { color-scheme: light; }

@@ -1,0 +1,26 @@
+{
+  "server": {
+    "backendHost": "127.0.0.1",
+    "backendPort": 6240,
+    "frontendHost": "127.0.0.1",
+    "frontendPort": 6241,
+    "backendTarget": "http://127.0.0.1:6240",
+    "deploymentHostPort": 6280
+  },
+  "persistence": {
+    "mode": "stateless",
+    "decision": "当前求解器保持无状态计算 API；项目归档、自定义截面/材料库、云端模板与协作需求出现时再引入数据库。"
+  },
+  "engineeringUnits": {
+    "length": "m",
+    "force": "kN",
+    "moment": "kN.m",
+    "distributed": "kN/m",
+    "stiffness": "kN/m",
+    "rotationalStiffness": "kN.m/rad",
+    "area": "cm2",
+    "elasticModulus": "GPa",
+    "momentOfInertia": "cm4",
+    "deflection": "mm"
+  }
+}

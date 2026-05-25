@@ -1,0 +1,94 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+/lib/
+/lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Environment
+.venv/
+venv/
+ENV/
+env.bak/
+venv.bak/
+/package.json
+/package-lock.json
+.env
+.env.*
+!.env.example
+!deploy/.env.example
+
+# Project specifics
+*.xlsx
+.DS_Store
+.playwright-mcp/
+.idea/
+*.log
+*-start.ps1
+review.md
+userData.json
+
+# Local agent/editor scaffolding
+.agent/
+.agents/
+.claude/
+.gemini/
+.cursorrules
+AGENTS.md
+AI_CODING_RULES.md
+CLAUDE.md
+GEMINI.md
+
+# Frontend
+node_modules/
+frontend/dist/
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/next-env.d.ts
+*.tsbuildinfo
+.vite/
+*.log
+*.out.log
+*.err.log
+
+# Playwright artifacts
+test-results/
+playwright-report/
+blob-report/
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+frontend/tmp/playwright-results/
+frontend/tmp/playwright-report/
+# Local agent/runtime state
+.ai/
+.vscode/
+.omx/
+.gstack/
+.local-docs/
+logs/
+deploy/
+scripts/
+specs/
+
+# External reference source trees are intentionally excluded from the public repo.
+external/
