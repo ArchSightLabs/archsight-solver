@@ -63,7 +63,6 @@ export interface BeamWorkspaceState {
   projectName: string;
   materialId: string;
   materials: Material[];
-  previewStyle: BeamPreviewStyle;
   beamType: BeamForm['beamType'];
   loadType: BeamForm['loadType'];
   uniformLoadEnabled: boolean;

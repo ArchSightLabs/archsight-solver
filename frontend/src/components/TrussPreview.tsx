@@ -140,7 +140,7 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
             杆件 {truss.members.length}
           </span>
           <span className="rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-[10px] font-bold text-teal-700 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-300">
-            允许位移 {truss.summary.allowableMm.toFixed(3)} 毫米
+            允许位移 {truss.summary.allowableMm.toFixed(3)} mm
           </span>
           <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${statusToneClass}`}>
             校核 {truss.summary.status}
@@ -265,12 +265,12 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
           },
           {
             label: "位移控制",
-            main: `${truss.summary.maxDisplacementMm.toFixed(4)} 毫米`,
-            sub: `节点 ${truss.summary.maxDisplacementNodeId ?? "—"} · 允许 ${truss.summary.allowableMm.toFixed(3)} 毫米 · 比值 ${truss.summary.allowableRatio.toFixed(2)} ×`,
+            main: `${truss.summary.maxDisplacementMm.toFixed(3)} mm`,
+            sub: `节点 ${truss.summary.maxDisplacementNodeId ?? "—"} · 允许 ${truss.summary.allowableMm.toFixed(3)} mm · 比值 ${truss.summary.allowableRatio.toFixed(2)} ×`,
           },
           {
             label: "轴力控制",
-            main: `${truss.summary.maxAxialForceKn.toFixed(4)} 千牛`,
+            main: `${truss.summary.maxAxialForceKn.toFixed(3)} kN`,
             sub: `杆件 ${truss.summary.maxAxialForceMemberId ?? "—"} · 状态：${truss.summary.status}`,
             highlight: true,
           },

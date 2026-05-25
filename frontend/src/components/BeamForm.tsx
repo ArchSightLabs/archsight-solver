@@ -4,7 +4,7 @@ import { Input } from "./ui/input";
 import { DropdownSelect } from "./ui/DropdownSelect";
 import { Plus, Minus, Layers, RotateCcw, SlidersHorizontal, FileText, CheckCircle2 } from "lucide-react";
 import { TextModelCheckPanel, type TextModelPreviewMetric } from "./TextModelCheckPanel";
-import { PREDEFINED_MATERIALS, type BeamPreviewStyle, type BeamSpanConfig, type BeamSupportConfig, type BeamSupportDof, type BeamSupportSpring, type BeamSupportType, type BeamWorkspaceState } from "../types/beam.ts";
+import { PREDEFINED_MATERIALS, type BeamSpanConfig, type BeamSupportConfig, type BeamSupportDof, type BeamSupportSpring, type BeamSupportType, type BeamWorkspaceState } from "../types/beam.ts";
 import type { BeamWorkbenchSelection, WorkbenchSelectionOptions } from "../types/workbench-selection.ts";
 import { createDefaultBeamSupports, createDefaultBeamWorkspaceState } from "../lib/workspace-state.ts";
 import { BEAM_MODEL_TEMPLATES, applyBeamModelTemplate } from "../lib/workbench-model-templates.ts";
@@ -46,11 +46,6 @@ const SUPPORT_DOF_MODE_OPTIONS: Array<{ label: string; value: SupportDofMode }> 
   { label: "弹簧", value: "spring" },
   { label: "释放", value: "free" },
 ];
-const BEAM_PREVIEW_STYLE_OPTIONS: Array<{ label: string; value: BeamPreviewStyle; description: string }> = [
-  { label: "工程简图", value: "simple", description: "低饱和黑白表达，适合快速读图" },
-  { label: "彩色高亮", value: "color", description: "蓝色构件、橙色荷载，适合演示和选中辨识" },
-];
-
 function LoadStatusBadge({ enabled }: { enabled: boolean }) {
   return (
     <span
@@ -948,34 +943,6 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
               <span className="text-muted-foreground">主要结果</span>
               <span className="font-semibold">挠度、弯矩、剪力、支座反力</span>
             </div>
-          </div>
-        </div>
-
-        <div className="space-y-3 rounded-lg border border-white/8 bg-white/[0.04] p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="eyebrow">图形表达</div>
-              <div className="mt-1 text-[11px] font-medium text-muted-foreground">控制中间连续梁建模图的颜色风格。</div>
-            </div>
-            <div className="rounded-full border border-white/10 px-2.5 py-1 text-[10px] font-bold text-muted-foreground">
-              {(value.previewStyle ?? "simple") === "simple" ? "简图" : "彩色"}
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            {BEAM_PREVIEW_STYLE_OPTIONS.map((option) => {
-              const active = (value.previewStyle ?? "simple") === option.value;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => updateWorkspace("previewStyle", option.value)}
-                  className={`rounded-lg border px-3 py-2 text-left transition-colors ${active ? SEGMENTED_OPTION_ACTIVE_CLASS : SEGMENTED_OPTION_IDLE_CLASS}`}
-                >
-                  <span className="block text-xs font-black">{option.label}</span>
-                  <span className="mt-1 block text-[10px] font-semibold leading-4 opacity-80">{option.description}</span>
-                </button>
-              );
-            })}
           </div>
         </div>
 

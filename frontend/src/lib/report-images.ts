@@ -56,22 +56,22 @@ export async function buildReportImages(input: ReportInput): Promise<ReportImage
       if (includeAll) {
         images["beam.deflection"] = await renderLineChart({
           xLabels: beam.x_data.map((value) => value.toFixed(2)),
-          yLabel: "挠度（毫米）",
-          unit: "毫米",
+          yLabel: "挠度（mm）",
+          unit: "mm",
           series: [{ name: "挠度", data: beam.v_data.map((value) => value * 1000), color: "#0ea5e9" }],
         });
       }
       images["beam.moment"] = await renderLineChart({
         xLabels: beam.x_data.map((value) => value.toFixed(2)),
-        yLabel: "弯矩（千牛·米）",
-        unit: "千牛·米",
+        yLabel: "弯矩（kN·m）",
+        unit: "kN·m",
         series: [{ name: "弯矩", data: beam.moment_data, color: "#16a34a" }],
       });
       if (includeAll) {
         images["beam.shear"] = await renderLineChart({
           xLabels: beam.x_data.map((value) => value.toFixed(2)),
-          yLabel: "剪力（千牛）",
-          unit: "千牛",
+          yLabel: "剪力（kN）",
+          unit: "kN",
           series: [{ name: "剪力", data: beam.shear_data, color: "#f59e0b" }],
         });
       }
@@ -96,14 +96,14 @@ export async function buildReportImages(input: ReportInput): Promise<ReportImage
       if (includeAll) {
         images["frame.ux"] = await renderLineChart({
           xLabels: nodeLabels,
-          yLabel: "水平位移（毫米）",
-          unit: "毫米",
+          yLabel: "水平位移（mm）",
+          unit: "mm",
           series: [{ name: "节点 X 向水平位移", data: frame.ux_data, color: "#22c55e" }],
         });
         images["frame.uy"] = await renderLineChart({
           xLabels: nodeLabels,
-          yLabel: "竖向位移（毫米）",
-          unit: "毫米",
+          yLabel: "竖向位移（mm）",
+          unit: "mm",
           series: [{ name: "节点 Y 向竖向位移", data: frame.uy_data, color: "#0ea5e9" }],
         });
       }
@@ -126,21 +126,21 @@ export async function buildReportImages(input: ReportInput): Promise<ReportImage
       if (includeAll) {
         images["truss.ux"] = await renderLineChart({
           xLabels: truss.nodeIds,
-          yLabel: "水平位移（毫米）",
-          unit: "毫米",
+          yLabel: "水平位移（mm）",
+          unit: "mm",
           series: [{ name: "节点 X 向水平位移", data: truss.ux_data, color: "#22c55e" }],
         });
         images["truss.uy"] = await renderLineChart({
           xLabels: truss.nodeIds,
-          yLabel: "竖向位移（毫米）",
-          unit: "毫米",
+          yLabel: "竖向位移（mm）",
+          unit: "mm",
           series: [{ name: "节点 Y 向竖向位移", data: truss.uy_data, color: "#0ea5e9" }],
         });
       }
       images["truss.axial"] = await renderLineChart({
         xLabels: truss.memberIds,
-        yLabel: "杆件轴力（千牛）",
-        unit: "千牛",
+        yLabel: "杆件轴力（kN）",
+        unit: "kN",
         series: [{ name: "杆件轴力", data: truss.member_axial_data.map((item) => item.axialForceKn), color: "#f59e0b" }],
       });
     }

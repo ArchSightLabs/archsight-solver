@@ -41,7 +41,12 @@ const BEAM_Y = 150;
 const BEAM_LEFT = 80;
 const BEAM_RIGHT = 920;
 const BEAM_LEN = BEAM_RIGHT - BEAM_LEFT;
+const PEAK_LABEL_Y = 46;
 const svgTextFont = "Inter, Microsoft YaHei, system-ui, sans-serif";
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
 
 function supportTypeLabel(type: string) {
   if (type === "fixed") return "固结";
@@ -111,7 +116,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
         arrowStartY: downward ? guideY + 5 : guideY - 5,
         arrowEndY: downward ? BEAM_Y - 8 : BEAM_Y + 8,
         arrowXs: distributedArrowXs(startX, endX),
-        label: `q = ${Math.abs(intensity).toFixed(1)} 千牛/米`,
+        label: `q = ${Math.abs(intensity).toFixed(1)} kN/m`,
       });
     });
 
@@ -141,7 +146,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
           arrowStartY: downward ? guideY + 5 : guideY - 5,
           arrowEndY: downward ? BEAM_Y - 8 : BEAM_Y + 8,
           arrowXs: distributedArrowXs(startX, endX),
-          label: `q = ${Math.abs(first?.intensityKnPerM ?? 0).toFixed(1)} → ${Math.abs(last?.intensityKnPerM ?? 0).toFixed(1)} 千牛/米`,
+          label: `q = ${Math.abs(first?.intensityKnPerM ?? 0).toFixed(1)} → ${Math.abs(last?.intensityKnPerM ?? 0).toFixed(1)} kN/m`,
         });
       });
     }
@@ -151,7 +156,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
 
   const reactionBadges = (beam?.reactions || []).map((r, i) => ({
     label: `第 ${i + 1} 支座`,
-    val: `${Math.abs(r.valueKn ?? 0).toFixed(2)} 千牛`,
+    val: `${Math.abs(r.valueKn ?? 0).toFixed(2)} kN`,
   }));
   const peakPoint = beam?.maxDeflection
     ? {
@@ -161,9 +166,9 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
     : null;
   const peakLabel = peakPoint
     ? {
-        x: peakPoint.x < SVG_W / 2 ? peakPoint.x + 34 : peakPoint.x - 34,
-        y: peakPoint.y < BEAM_Y ? peakPoint.y + 32 : peakPoint.y - 26,
-        anchor: peakPoint.x < SVG_W / 2 ? ("start" as const) : ("end" as const),
+        x: clamp(peakPoint.x, BEAM_LEFT + 92, BEAM_RIGHT - 92),
+        y: PEAK_LABEL_Y,
+        anchor: peakPoint.x < BEAM_LEFT + 120 ? ("start" as const) : peakPoint.x > BEAM_RIGHT - 120 ? ("end" as const) : ("middle" as const),
       }
     : null;
 
@@ -212,7 +217,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
 
           {/* 梁长标注 */}
           <text x="32" y="28" fill="var(--structure-preview-label)" fontSize={compact ? "10" : "12"} fontFamily="Fira Code">
-            梁长 = {totalLength.toFixed(2)} 米
+            梁长 = {totalLength.toFixed(2)} m
           </text>
 
           {/* 主梁线 */}
@@ -282,7 +287,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
               {load.type === "point" ? (
                 <text x={load.svgX + (i % 2 === 0 ? -8 : 8)} y={load.labelY} fill="var(--structure-preview-label)" textAnchor={i % 2 === 0 ? "end" : "start"} fontSize="11"
                   stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke" fontFamily={svgTextFont}>
-                  {`P = ${Math.abs(load.intensityKn || 0).toFixed(1)} 千牛`}
+                  {`P = ${Math.abs(load.intensityKn || 0).toFixed(1)} kN`}
                 </text>
               ) : null}
             </g>
@@ -302,7 +307,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
                 x1={peakPoint.x}
                 y1={peakPoint.y}
                 x2={peakLabel.x}
-                y2={peakLabel.y - 8}
+                y2={peakLabel.y + 22}
                 stroke="var(--structure-preview-peak-label)"
                 strokeOpacity="0.55"
                 strokeWidth="1"
@@ -325,8 +330,8 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
                 fontWeight="600"
                 fontFamily={svgTextFont}
               >
-                <tspan x={peakLabel.x} dy="0">最大挠度 {Math.abs(beam.maxDeflection.valueMm).toFixed(3)} 毫米</tspan>
-                <tspan x={peakLabel.x} dy="15">距左端 {beam.maxDeflection.xM.toFixed(2)} 米</tspan>
+                <tspan x={peakLabel.x} dy="0">最大挠度 {Math.abs(beam.maxDeflection.valueMm).toFixed(3)} mm</tspan>
+                <tspan x={peakLabel.x} dy="15">距左端 {beam.maxDeflection.xM.toFixed(2)} m</tspan>
               </text>
             </g>
           )}
@@ -361,12 +366,12 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
             ) : (
               "—"
             ),
-            sub: "竖向反力（千牛）",
+            sub: "竖向反力（kN）",
           },
           {
             label: "挠度峰值",
-            main: `${Math.abs(beam.maxDeflection?.valueMm ?? 0).toFixed(4)} 毫米`,
-            sub: `距左端 ${(beam.maxDeflection?.xM ?? 0).toFixed(2)} 米`,
+            main: `${Math.abs(beam.maxDeflection?.valueMm ?? 0).toFixed(3)} mm`,
+            sub: `距左端 ${(beam.maxDeflection?.xM ?? 0).toFixed(2)} m`,
             highlight: true,
           },
         ] satisfies BeamSummaryItem[]).map((item, i) => (

@@ -66,12 +66,13 @@ import {
   supportsNativeProjectFiles,
   type ProjectFileHandle,
 } from "./lib/project-file";
-import type { ProjectTemplate, SensitivityResults } from "./types/beam";
+import type { BeamPreviewStyle, ProjectTemplate, SensitivityResults } from "./types/beam";
 import type { BeamWorkbenchSelection, FrameWorkbenchSelection, TrussWorkbenchSelection, WorkbenchSelection, WorkbenchSelectionOptions } from "./types/workbench-selection";
 import type { TemplateActionResult } from "./lib/template-library";
 import { useWorkbenchSession } from "./hooks/useWorkbenchSession";
 import { useWorkbenchActions, type AnalysisResults } from "./hooks/useWorkbenchActions";
 import { beamResultForView, frameResultForView, trussResultForView } from "./lib/api-envelope";
+import { APP_VERSION, BUSUANZI_VISIT_STATS_ENABLED, loadBusuanziVisitStats } from "./lib/app-metadata";
 
 const INSPECTOR_WIDTH_STORAGE_KEY = "archsight.inspectorWidth";
 const INSPECTOR_COLLAPSED_STORAGE_KEY = "archsight.inspectorCollapsed";
@@ -188,6 +189,18 @@ function App() {
       updatedAt: new Date().toISOString(),
     }));
   }, []);
+  const setBeamPreviewStyle = useCallback((style: BeamPreviewStyle) => {
+    setLastSavedAt(null);
+    setIsProjectDirty(true);
+    setProject((current) => normalizeSolverProject({
+      ...current,
+      settings: {
+        ...current.settings,
+        beamPreviewStyle: style,
+      },
+      updatedAt: new Date().toISOString(),
+    }));
+  }, []);
 
   const {
     analysisData,
@@ -273,6 +286,12 @@ function App() {
   useEffect(() => {
     window.localStorage.setItem(MODULE_NAV_COLLAPSED_STORAGE_KEY, String(isModuleNavCollapsed));
   }, [isModuleNavCollapsed]);
+
+  useEffect(() => {
+    if (BUSUANZI_VISIT_STATS_ENABLED) {
+      loadBusuanziVisitStats();
+    }
+  }, []);
 
   const handleModuleNavResizeStart = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (isCompactWorkbench || isModuleNavCollapsed) return;
@@ -624,9 +643,12 @@ function App() {
           <div className={`grid xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center ${isCompactWorkbench ? "gap-3" : "gap-4"}`}>
             <div>
               <div className="flex flex-wrap items-end">
-                <h1 className={`font-heading font-extrabold leading-tight tracking-tight ${isCompactWorkbench ? "text-[1.45rem]" : "text-xl sm:text-2xl md:text-3xl"}`}>
+                <h1 className={`font-heading font-extrabold leading-tight tracking-tight ${isCompactWorkbench ? "text-[1.25rem]" : "text-lg sm:text-xl md:text-2xl"}`}>
                   ArchSight 结构力学求解器
                 </h1>
+                <span className="ml-2 mb-1 rounded-full border border-sky-400/30 bg-sky-400/10 px-2.5 py-1 font-mono text-[11px] font-black text-sky-700 dark:text-sky-200">
+                  v{APP_VERSION}
+                </span>
               </div>
               <div
                 className="mt-2 flex max-w-full flex-wrap items-center gap-2 text-xs font-bold text-muted-foreground"
@@ -638,6 +660,16 @@ function App() {
                 <span className={`rounded-lg border px-2.5 py-1 ${isProjectDirty ? "border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-300" : "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"}`}>
                   {fileStateLabel}
                 </span>
+                {BUSUANZI_VISIT_STATS_ENABLED ? (
+                  <>
+                    <span id="busuanzi_container_site_pv" className="rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1" style={{ display: "none" }}>
+                      总访问量 <span id="busuanzi_value_site_pv" /> 次
+                    </span>
+                    <span id="busuanzi_container_site_uv" className="rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1" style={{ display: "none" }}>
+                      访客数 <span id="busuanzi_value_site_uv" /> 人
+                    </span>
+                  </>
+                ) : null}
                 {fileStatusMessage ? <span className="truncate opacity-75">{fileStatusMessage}</span> : null}
               </div>
             </div>
@@ -841,6 +873,7 @@ function App() {
                 workspace={workspace}
                 mode={analysisMode}
                 compact={isCompactWorkbench}
+                beamPreviewStyle={project.settings.beamPreviewStyle}
                 selection={workbenchSelection?.mode === analysisMode ? workbenchSelection : null}
                 onSelect={handleWorkbenchSelectionChange}
               />
@@ -942,6 +975,8 @@ function App() {
           compact={isCompactWorkbench}
           releaseNotesHref={RELEASE_NOTES_HREF}
           userManualHref={USER_MANUAL_HREF}
+          beamPreviewStyle={project.settings.beamPreviewStyle}
+          onBeamPreviewStyleChange={setBeamPreviewStyle}
           onOpenTemplateLibrary={() => setIsTemplateLibraryOpen(true)}
           onClose={() => setIsSystemSettingsOpen(false)}
         />

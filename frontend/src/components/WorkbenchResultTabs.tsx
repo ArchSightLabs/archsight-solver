@@ -407,37 +407,37 @@ function beamDataCurveOptions(results: BeamCalculationResults): DataCurveOption[
     {
       id: "deflection",
       title: "挠度曲线",
-      unit: "毫米",
-      yLabel: "挠度（毫米）",
+      unit: "mm",
+      yLabel: "挠度（mm）",
       color: "#0ea5e9",
       xData: results.x_data,
       yData: results.v_data,
       tooltipXLabel: "位置",
-      xAxisLabel: "米",
+      xAxisLabel: "m",
       valueScale: 1000,
     },
     {
       id: "moment",
       title: "弯矩曲线",
-      unit: "千牛·米",
-      yLabel: "弯矩（千牛·米）",
+      unit: "kN·m",
+      yLabel: "弯矩（kN·m）",
       color: "#16a34a",
       xData: results.x_data,
       yData: results.moment_data,
       tooltipXLabel: "位置",
-      xAxisLabel: "米",
+      xAxisLabel: "m",
       valueScale: 1,
     },
     {
       id: "shear",
       title: "剪力曲线",
-      unit: "千牛",
-      yLabel: "剪力（千牛）",
+      unit: "kN",
+      yLabel: "剪力（kN）",
       color: "#f59e0b",
       xData: results.x_data,
       yData: results.shear_data,
       tooltipXLabel: "位置",
-      xAxisLabel: "米",
+      xAxisLabel: "m",
       valueScale: 1,
     },
   ];
@@ -450,8 +450,8 @@ function trussDataCurveOptions(results: TrussCalculationResults): DataCurveOptio
     {
       id: "ux",
       title: "节点 X 向位移曲线",
-      unit: "毫米",
-      yLabel: "X 向位移（毫米）",
+      unit: "mm",
+      yLabel: "X 向位移（mm）",
       color: "#22c55e",
       xData: nodeX,
       xLabels: results.nodeIds,
@@ -463,8 +463,8 @@ function trussDataCurveOptions(results: TrussCalculationResults): DataCurveOptio
     {
       id: "uy",
       title: "节点 Y 向位移曲线",
-      unit: "毫米",
-      yLabel: "Y 向位移（毫米）",
+      unit: "mm",
+      yLabel: "Y 向位移（mm）",
       color: "#0ea5e9",
       xData: nodeX,
       xLabels: results.nodeIds,
@@ -476,8 +476,8 @@ function trussDataCurveOptions(results: TrussCalculationResults): DataCurveOptio
     {
       id: "axial",
       title: "杆件轴力曲线",
-      unit: "千牛",
-      yLabel: "杆件轴力（千牛）",
+      unit: "kN",
+      yLabel: "杆件轴力（kN）",
       color: "#f59e0b",
       xData: memberX,
       xLabels: results.memberIds,
@@ -495,8 +495,8 @@ function frameDataCurveOptions(results: FrameCalculationResults): DataCurveOptio
     {
       id: "ux",
       title: "节点 X 向位移曲线",
-      unit: "毫米",
-      yLabel: "X 向位移（毫米）",
+      unit: "mm",
+      yLabel: "X 向位移（mm）",
       color: "#22c55e",
       xData: nodeX,
       xLabels: results.nodeIds,
@@ -508,8 +508,8 @@ function frameDataCurveOptions(results: FrameCalculationResults): DataCurveOptio
     {
       id: "uy",
       title: "节点 Y 向位移曲线",
-      unit: "毫米",
-      yLabel: "Y 向位移（毫米）",
+      unit: "mm",
+      yLabel: "Y 向位移（mm）",
       color: "#0ea5e9",
       xData: nodeX,
       xLabels: results.nodeIds,
@@ -525,13 +525,13 @@ function beamSummaryRows(results: BeamCalculationResults): SummaryRow[] {
   return [
     {
       label: "允许挠度",
-      value: `${results.summary?.allowableMm.toFixed(3) ?? "0.000"} 毫米`,
+      value: `${results.summary?.allowableMm.toFixed(3) ?? "0.000"} mm`,
       detail: `控制比 ${results.summary?.allowableRatio ?? 250} × · ${results.summary?.statusCode ?? "PENDING"}`,
     },
     {
       label: "最大挠度",
-      value: `${results.summary?.maxDeflectionMm.toFixed(3) ?? "0.000"} 毫米`,
-      detail: `控制位置 ${results.summary?.maxDeflectionPositionM.toFixed(3) ?? "0.000"} 米 · 挠度校核`,
+      value: `${results.summary?.maxDeflectionMm.toFixed(3) ?? "0.000"} mm`,
+      detail: `控制位置 ${results.summary?.maxDeflectionPositionM.toFixed(3) ?? "0.000"} m · 挠度校核`,
     },
     {
       label: "跨段数量",
@@ -548,9 +548,9 @@ function beamSummaryRows(results: BeamCalculationResults): SummaryRow[] {
 
 function trussSummaryRows(results: TrussCalculationResults): SummaryRow[] {
   return [
-    { label: "允许位移", value: `${results.summary.allowableMm.toFixed(3)} 毫米`, detail: `控制比 ${results.summary.allowableRatio.toFixed(2)} × · ${results.summary.statusCode}` },
-    { label: "最大位移", value: `${results.summary.maxDisplacementMm.toFixed(3)} 毫米`, detail: `控制节点 ${results.summary.maxDisplacementNodeId ?? "—"} · 位移校核` },
-    { label: "最大轴力", value: `${results.summary.maxAxialForceKn.toFixed(3)} 千牛`, detail: `控制杆件 ${results.summary.maxAxialForceMemberId ?? "—"} · 轴力校核` },
+    { label: "允许位移", value: `${results.summary.allowableMm.toFixed(3)} mm`, detail: `控制比 ${results.summary.allowableRatio.toFixed(2)} × · ${results.summary.statusCode}` },
+    { label: "最大位移", value: `${results.summary.maxDisplacementMm.toFixed(3)} mm`, detail: `控制节点 ${results.summary.maxDisplacementNodeId ?? "—"} · 位移校核` },
+    { label: "最大轴力", value: `${results.summary.maxAxialForceKn.toFixed(3)} kN`, detail: `控制杆件 ${results.summary.maxAxialForceMemberId ?? "—"} · 轴力校核` },
     { label: "计算结论", value: results.summary.status, detail: results.summary.method },
   ];
 }
@@ -559,17 +559,17 @@ function frameSummaryRows(results: FrameCalculationResults): SummaryRow[] {
   return [
     {
       label: "允许位移",
-      value: `${results.summary.allowableMm.toFixed(3)} 毫米`,
+      value: `${results.summary.allowableMm.toFixed(3)} mm`,
       detail: `控制节点 ${results.summary.maxDisplacementNodeId ?? "—"} · ${results.summary.statusCode}`,
     },
     {
       label: "最大位移",
-      value: `${results.summary.maxDisplacementMm.toFixed(3)} 毫米`,
-      detail: `最大竖向位移 ${results.summary.maxVerticalMm.toFixed(3)} 毫米 · 位移校核`,
+      value: `${results.summary.maxDisplacementMm.toFixed(3)} mm`,
+      detail: `最大竖向位移 ${results.summary.maxVerticalMm.toFixed(3)} mm · 位移校核`,
     },
     {
       label: "最大弯矩",
-      value: `${results.summary.maxMomentKnM.toFixed(3)} 千牛·米`,
+      value: `${results.summary.maxMomentKnM.toFixed(3)} kN·m`,
       detail: `节点 ${results.nodeIds.length} 个 · 构件 ${results.memberIds.length} 个`,
     },
     {
@@ -586,7 +586,7 @@ function AssumptionsPanel({ mode, compact = false }: { mode: AnalysisMode; compa
       ? [
           ["计算模型", "Euler-Bernoulli / Timoshenko 梁单元，节点自由度为竖向位移 v 与转角 θz。"],
           ["支座约束", "铰支座/滚动支座在梁弯曲模型中均约束 v；固结端约束 v 与 θz；弹簧支座以刚度项进入整体刚度矩阵。"],
-          ["符号约定", "挠度按竖向位移输出；弯矩、剪力采用求解器统一内力正负号，结果图以单位千牛、千牛·米和毫米展示。"],
+          ["符号约定", "挠度按竖向位移输出；弯矩、剪力采用求解器统一内力正负号，结果图以单位 kN、kN·m 和 mm 展示。"],
           ["单位换算", "E: GPa -> Pa，I: cm4 -> m4，q: kN/m -> N/m，P: kN -> N。"],
         ]
       : mode === "frame"
@@ -654,8 +654,8 @@ function BeamBenchmarkPanel({ results, compact = false }: { results: BeamCalcula
       <div className={`grid gap-2 ${compact ? "grid-cols-2" : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-4"}`}>
         {[
           { label: "对照算例", value: item.title, detail: item.equation },
-          { label: "解析最大挠度", value: `${item.expectedDeflectionMm.toFixed(4)} 毫米`, detail: `理论位置 ${item.expectedXM.toFixed(3)} m` },
-          { label: "求解器最大挠度", value: `${actual.toFixed(4)} 毫米`, detail: `求解位置 ${results.summary.maxDeflectionPositionM.toFixed(3)} m` },
+          { label: "解析最大挠度", value: `${item.expectedDeflectionMm.toFixed(3)} mm`, detail: `理论位置 ${item.expectedXM.toFixed(3)} m` },
+          { label: "求解器最大挠度", value: `${actual.toFixed(3)} mm`, detail: `求解位置 ${results.summary.maxDeflectionPositionM.toFixed(3)} m` },
           { label: "相对误差", value: `${errorPercent.toFixed(3)} %`, detail: errorPercent <= 1 ? "解析对照通过" : "建议复核输入单位与边界" },
         ].map((row) => (
           <div key={row.label} className="rounded-lg border border-white/10 bg-white/[0.03] p-3">

@@ -1,5 +1,5 @@
 import type { AnalysisResults } from "../hooks/useWorkbenchActions.ts";
-import type { BeamWorkspaceState, SensitivityResults } from "../types/beam.ts";
+import type { BeamPreviewStyle, BeamWorkspaceState, SensitivityResults } from "../types/beam.ts";
 import type { AnalysisMode, FrameWorkspaceState, TrussWorkspaceState } from "../types/structure.ts";
 import { normalizeReportExportOptions, type ReportExportOptions } from "./report-options.ts";
 import {
@@ -42,6 +42,7 @@ export interface AnalysisObject {
 
 export interface ProjectSettings {
   activeModuleSection: string;
+  beamPreviewStyle: BeamPreviewStyle;
   reportExportOptions: ReportExportOptions;
   projectInfo: ProjectInfo;
 }
@@ -88,6 +89,21 @@ function defaultStateForType(type: AnalysisObjectType): AnalysisObjectState {
   return createDefaultBeamWorkspaceState();
 }
 
+function normalizeBeamPreviewStyle(value: unknown): BeamPreviewStyle {
+  return value === "simple" ? "simple" : "color";
+}
+
+function legacyBeamPreviewStyleFromObjects(objects: AnalysisObject[]): BeamPreviewStyle | undefined {
+  for (const object of objects) {
+    if (object.type !== "beam") continue;
+    const state = object.state as unknown as Record<string, unknown>;
+    if (state.previewStyle === "simple" || state.previewStyle === "color") {
+      return state.previewStyle;
+    }
+  }
+  return undefined;
+}
+
 function normalizeStateForType(type: AnalysisObjectType, state: unknown): AnalysisObjectState {
   if (type === "frame") return normalizeFrameWorkspaceState(state as Partial<FrameWorkspaceState> | null | undefined);
   if (type === "truss") return normalizeTrussWorkspaceState(state as Partial<TrussWorkspaceState> | null | undefined);
@@ -125,6 +141,7 @@ export function createDefaultSolverProject(
     objects: [object],
     settings: {
       activeModuleSection: "",
+      beamPreviewStyle: "color",
       reportExportOptions: normalizeReportExportOptions(null),
       projectInfo,
     },
@@ -164,6 +181,7 @@ export function normalizeSolverProject(rawProject: unknown): SolverProject {
   const activeObjectId = normalizedObjects.some((object) => object.id === raw.activeObjectId)
     ? String(raw.activeObjectId)
     : normalizedObjects[0].id;
+  const legacyBeamPreviewStyle = legacyBeamPreviewStyleFromObjects(normalizedObjects);
   return {
     id: String(raw.id ?? createId("project")),
     name: projectInfo.name,
@@ -171,6 +189,7 @@ export function normalizeSolverProject(rawProject: unknown): SolverProject {
     objects: normalizedObjects,
     settings: {
       activeModuleSection: String(raw.settings?.activeModuleSection ?? ""),
+      beamPreviewStyle: normalizeBeamPreviewStyle(raw.settings?.beamPreviewStyle ?? legacyBeamPreviewStyle),
       reportExportOptions: normalizeReportExportOptions(raw.settings?.reportExportOptions),
       projectInfo,
     },

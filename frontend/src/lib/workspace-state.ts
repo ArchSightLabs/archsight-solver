@@ -733,7 +733,6 @@ export function createDefaultBeamWorkspaceState(): BeamWorkspaceState {
     projectName: "新建梁系项目",
     materialId: "q345",
     materials: DEFAULT_BEAM_MATERIALS.map((material) => ({ ...material })),
-    previewStyle: "simple",
     beamType: "continuous",
     loadType: "uniform",
     uniformLoadEnabled: true,
@@ -875,7 +874,6 @@ export function normalizeBeamWorkspaceState(value: Partial<BeamWorkspaceState> |
     };
   });
   const beamType = value?.beamType === "simply_supported" || value?.beamType === "cantilever" || value?.beamType === "continuous" ? value.beamType : base.beamType;
-  const previewStyle = value?.previewStyle === "color" ? "color" : "simple";
   const totalLength = beamSpanBoundaries(normalizedSpans).at(-1) ?? DEFAULT_BEAM_SPAN.length;
   const fallbackSupports = defaultBeamSupports(beamType, normalizedSpans);
   const hasModernLoadFields =
@@ -924,7 +922,6 @@ export function normalizeBeamWorkspaceState(value: Partial<BeamWorkspaceState> |
     ...value,
     materials,
     materialId,
-    previewStyle,
     beamType,
     loadType,
     uniformLoadEnabled,

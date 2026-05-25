@@ -38,7 +38,7 @@ function chartColorForTheme(color: string, isDark: boolean) {
   return isDark ? color : LIGHT_CHART_COLORS[color.toLowerCase()] ?? color;
 }
 
-export function BeamChart({ xData, yData, xLabels, title, yLabel, unit, color, xAxisLabel = "米", tooltipXLabel = "位置", valueScale = 1000, compact = false }: BeamChartProps) {
+export function BeamChart({ xData, yData, xLabels, title, yLabel, unit, color, xAxisLabel = "m", tooltipXLabel = "位置", valueScale = 1000, compact = false }: BeamChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<ECharts | null>(null);
 

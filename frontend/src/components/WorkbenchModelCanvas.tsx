@@ -3,11 +3,13 @@ import { GlassCard } from "./ui/GlassCard";
 import { createPortalFrameModelFromState, type WorkspaceState } from "../lib/workspace-state";
 import type { AnalysisMode, FrameLoad, FrameLoadDirection, StructureNode, TrussLoad } from "../types/structure";
 import type { WorkbenchSelection } from "../types/workbench-selection";
+import type { BeamPreviewStyle } from "../types/beam";
 
 interface WorkbenchModelCanvasProps {
   workspace: WorkspaceState;
   mode: AnalysisMode;
   compact?: boolean;
+  beamPreviewStyle?: BeamPreviewStyle;
   selection?: WorkbenchSelection | null;
   onSelect?: (next: WorkbenchSelection) => void;
 }
@@ -17,7 +19,7 @@ function buildMetrics(workspace: WorkspaceState, mode: AnalysisMode) {
     const length = workspace.beam.spans.reduce((sum, span) => sum + span.length, 0);
     return [
       { label: "跨段数量", value: `${workspace.beam.spans.length} 跨` },
-      { label: "总长度", value: `${length.toFixed(2)} 米` },
+      { label: "总长度", value: `${length.toFixed(2)} m` },
       { label: "支座数量", value: `${workspace.beam.supports.length} 个` },
     ];
   }
@@ -172,7 +174,17 @@ function shiftLoadLabelAwayFromPointLoads(labelX: number, pointLoadXs: number[],
   return Math.min(maxX, Math.max(minX, clampedX - preferredDirection * 132));
 }
 
-function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"]; selection?: WorkbenchSelection | null; onSelect?: (next: WorkbenchSelection) => void }) {
+function BeamSketch({
+  beam,
+  beamPreviewStyle = "simple",
+  selection,
+  onSelect,
+}: {
+  beam: WorkspaceState["beam"];
+  beamPreviewStyle?: BeamPreviewStyle;
+  selection?: WorkbenchSelection | null;
+  onSelect?: (next: WorkbenchSelection) => void;
+}) {
   const total = Math.max(1, beam.spans.reduce((sum, span) => sum + span.length, 0));
   const segments = beam.spans.reduce<Array<{ index: number; length: number; start: number; end: number }>>((items, span, index) => {
     const start = items[index - 1]?.end ?? 96;
@@ -220,7 +232,7 @@ function BeamSketch({ beam, selection, onSelect }: { beam: WorkspaceState["beam"
   const uniformLabelX = uniformRange
     ? shiftLoadLabelAwayFromPointLoads((uniformRange.startX + uniformRange.endX) / 2, pointLoadXs, beamStart + 118, beamEnd - 118, -1)
     : beamStart;
-  const beamSketchStyle: CSSProperties | undefined = (beam.previewStyle ?? "simple") === "color"
+  const beamSketchStyle: CSSProperties | undefined = beamPreviewStyle === "color"
     ? ({
         "--beam-sketch-member": "var(--model-member)",
         "--beam-sketch-node": "var(--model-node)",
@@ -613,8 +625,8 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
         })}
       </g>
       <g fill="var(--model-label)" fontSize="13" fontWeight="400">
-        {span > 0 ? <text x={(leftX + rightX) / 2} y={topY + 36} textAnchor="middle">跨长 {span} 米</text> : null}
-        {height > 0 ? <text x={leftX - 36} y={(topY + bottomY) / 2} textAnchor="middle">层高 {height} 米</text> : null}
+        {span > 0 ? <text x={(leftX + rightX) / 2} y={topY + 36} textAnchor="middle">跨长 {span} m</text> : null}
+        {height > 0 ? <text x={leftX - 36} y={(topY + bottomY) / 2} textAnchor="middle">层高 {height} m</text> : null}
       </g>
       <g fill="var(--model-label)" fontSize="11.5" fontWeight="600" fontFamily={svgTextFont}>
         {nodes.map((node) => {
@@ -636,7 +648,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
               const sign = load.fxKn >= 0 ? 1 : -1;
               labels.push(
                 <text key={`${index}-fx-label`} x={point.x + sign * 18} y={point.y - 14} textAnchor={sign > 0 ? "start" : "end"}>
-                  X向力 {formatMagnitude(load.fxKn)} 千牛
+                  X向力 {formatMagnitude(load.fxKn)} kN
                 </text>
               );
             }
@@ -645,7 +657,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
               const labelY = point.y - sign * 70;
               labels.push(
                 <text key={`${index}-fy-label`} x={point.x} y={labelY} textAnchor="middle">
-                  Y向力 {formatMagnitude(load.fyKn)} 千牛
+                  Y向力 {formatMagnitude(load.fyKn)} kN
                 </text>
               );
             }
@@ -666,7 +678,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
             };
             return (
               <text key={`${index}-member-point-label`} x={label.x} y={label.y} textAnchor="middle">
-                构件集中荷载 {formatMagnitude(force)} 千牛
+                构件集中荷载 {formatMagnitude(force)} kN
               </text>
             );
           }
@@ -686,7 +698,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
           };
           return (
             <text key={`${index}-dist-label`} x={label.x} y={label.y} textAnchor="middle">
-              {Math.abs(qStart - qEnd) < 1e-9 ? "梁面均布荷载" : "梁面线性分布荷载"} {formatMagnitude(q)} 千牛/米
+              {Math.abs(qStart - qEnd) < 1e-9 ? "梁面均布荷载" : "梁面线性分布荷载"} {formatMagnitude(q)} kN/m
             </text>
           );
         })}
@@ -937,7 +949,7 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
                   fontWeight="600"
                   fontFamily={svgTextFont}
                 >
-                  水平荷载 {formatMagnitude(load.fxKn)} 千牛
+                  水平荷载 {formatMagnitude(load.fxKn)} kN
                 </text>
               </g>
             );
@@ -961,7 +973,7 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
                   fontWeight="600"
                   fontFamily={svgTextFont}
                 >
-                  竖向荷载 {formatMagnitude(load.fyKn)} 千牛
+                  竖向荷载 {formatMagnitude(load.fyKn)} kN
                 </text>
               </g>
             );
@@ -978,14 +990,14 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
   );
 }
 
-export function WorkbenchModelCanvas({ workspace, mode, compact = false, selection, onSelect }: WorkbenchModelCanvasProps) {
+export function WorkbenchModelCanvas({ workspace, mode, compact = false, beamPreviewStyle = "simple", selection, onSelect }: WorkbenchModelCanvasProps) {
   const metrics = buildMetrics(workspace, mode);
   return (
     <GlassCard className="overflow-hidden">
       <div className={`model-canvas-surface relative flex items-center justify-center px-4 py-5 ${compact ? "h-[260px]" : "h-[360px]"}`}>
         <div className="model-canvas-board h-full w-full">
           {mode === "beam" ? (
-            <BeamSketch beam={workspace.beam} selection={selection} onSelect={onSelect} />
+            <BeamSketch beam={workspace.beam} beamPreviewStyle={beamPreviewStyle} selection={selection} onSelect={onSelect} />
           ) : mode === "frame" ? (
             <FrameSketch workspace={workspace} selection={selection} onSelect={onSelect} />
           ) : (

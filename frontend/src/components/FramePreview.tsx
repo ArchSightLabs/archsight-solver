@@ -156,7 +156,7 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
             节点 {frame.nodes.length}
           </span>
           <span className="rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-[10px] font-bold text-teal-700 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-300">
-            最大位移 = {peakBadge.maxDisplacementMm.toFixed(3)} 毫米
+            最大位移 = {peakBadge.maxDisplacementMm.toFixed(3)} mm
           </span>
         </div>
       </div>
@@ -291,12 +291,12 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
           },
           {
             label: "位移峰值",
-            main: `${peakBadge.maxDisplacementMm.toFixed(4)} 毫米`,
+            main: `${peakBadge.maxDisplacementMm.toFixed(3)} mm`,
             sub: `节点 ${maxNodeLabel || "—"}`,
           },
           {
             label: "弯矩峰值",
-            main: `${maxMomentKnM.toFixed(4)} 千牛·米`,
+            main: `${maxMomentKnM.toFixed(3)} kN·m`,
             sub: `状态：${peakBadge.status}`,
             highlight: true,
           },
