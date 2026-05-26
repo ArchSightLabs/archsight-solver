@@ -94,7 +94,7 @@ const HIDDEN_VISIT_STATS_STYLE = {
   clipPath: "inset(50%)",
   whiteSpace: "nowrap",
 } satisfies CSSProperties;
-const RELEASE_NOTES_HREF = "/docs/release-notes-v1.0.0.html";
+const RELEASE_NOTES_HREF = "/docs/release-notes.html";
 const USER_MANUAL_HREF = "/docs/user-manual.html";
 const LEGACY_REPORT_EXPORT_OPTIONS_STORAGE_KEY = "archsight-solver.report-export-options";
 
@@ -680,9 +680,15 @@ function App() {
                 <h1 className={`font-heading font-extrabold leading-tight tracking-tight ${isCompactWorkbench ? "text-[1.25rem]" : "text-lg sm:text-xl md:text-2xl"}`}>
                   ArchSight 结构力学求解器
                 </h1>
-                <span className="ml-2 mb-1 rounded-full border border-sky-400/30 bg-sky-400/10 px-2.5 py-1 font-mono text-[11px] font-black text-sky-700 dark:text-sky-200">
+                <a
+                  className="ml-2 mb-1 rounded-full border border-sky-400/30 bg-sky-400/10 px-2.5 py-1 font-mono text-[11px] font-black text-sky-700 transition-colors hover:border-sky-400/60 hover:bg-sky-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70 dark:text-sky-200"
+                  href={RELEASE_NOTES_HREF}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="查看版本发布记录"
+                >
                   v{APP_VERSION}
-                </span>
+                </a>
               </div>
               <div
                 className="mt-2 flex max-w-full flex-wrap items-center gap-2 text-xs font-bold text-muted-foreground"

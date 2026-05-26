@@ -192,7 +192,10 @@ export function SystemSettingsPanel({
                     <ClipboardList className="h-4 w-4" />
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate font-bold">更新说明</span>
+                    <span className="block truncate font-bold">版本发布记录</span>
+                    <span className="mt-0.5 block truncate text-[11px] font-semibold text-muted-foreground">
+                      v1.0.0 / v1.1.0
+                    </span>
                   </span>
                 </span>
                 <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" />
@@ -242,9 +245,15 @@ export function SystemSettingsPanel({
                       面向梁系、平面框架、平面桁架线弹性静力分析的开源 Web 工作台。
                     </div>
                   </div>
-                  <span className="rounded-full border border-sky-400/30 bg-sky-400/10 px-2.5 py-1 font-mono text-[11px] font-black text-sky-700 dark:text-sky-200">
+                  <a
+                    className="rounded-full border border-sky-400/30 bg-sky-400/10 px-2.5 py-1 font-mono text-[11px] font-black text-sky-700 transition-colors hover:border-sky-400/60 hover:bg-sky-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70 dark:text-sky-200"
+                    href={releaseNotesHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    title="查看版本发布记录"
+                  >
                     v{APP_VERSION}
-                  </span>
+                  </a>
                 </div>
               </div>
               <div className="rounded-lg border border-white/8 bg-white/[0.04] p-3 text-[11px] font-semibold leading-5 text-muted-foreground">
