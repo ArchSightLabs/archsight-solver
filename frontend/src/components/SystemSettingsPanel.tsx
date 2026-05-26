@@ -11,6 +11,7 @@ interface VisitStats {
 
 interface SystemSettingsPanelProps {
   compact: boolean;
+  docked?: boolean;
   releaseNotesHref: string;
   userManualHref: string;
   beamPreviewStyle: BeamPreviewStyle;
@@ -24,9 +25,10 @@ const BEAM_PREVIEW_STYLE_OPTIONS: Array<{ label: string; value: BeamPreviewStyle
   { label: "彩色高亮", value: "color", description: "蓝色构件、橙色荷载，适合演示和选中辨识" },
   { label: "工程简图", value: "simple", description: "低饱和黑白表达，适合快速读图" },
 ];
+const STATUS_LINE_CLASS = "rounded-lg border border-slate-200/80 bg-slate-50 px-3 py-2 text-[11px] font-semibold leading-5 text-slate-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300";
 
 function settingButtonClass(compact: boolean) {
-  return `flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200/80 bg-white/70 px-3 py-2.5 text-left transition-colors hover:border-sky-300/70 hover:bg-slate-50 dark:border-slate-700/80 dark:bg-slate-900/55 dark:hover:border-sky-400/45 dark:hover:bg-sky-400/10 ${compact ? "text-xs" : "text-sm"}`;
+  return `flex min-h-12 w-full items-center justify-between gap-3 rounded-lg border border-slate-200/80 bg-white px-3 py-2.5 text-left text-slate-950 shadow-sm transition-colors hover:border-sky-300/70 hover:bg-sky-50 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100 dark:hover:border-sky-400/45 dark:hover:bg-sky-400/10 ${compact ? "text-xs" : "text-sm"}`;
 }
 
 function iconBoxClass() {
@@ -37,7 +39,7 @@ function VisitStatsBlock({ stats, visible }: { stats: VisitStats; visible: boole
   const [statsVisible, setStatsVisible] = useState(visible);
 
   return (
-    <div className="rounded-lg border border-white/8 bg-white/[0.04] p-3">
+    <div className="rounded-lg border border-slate-200/80 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
       <div className="mb-2 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-xs font-black">
           <BarChart3 className="h-4 w-4 text-sky-500" />
@@ -48,7 +50,7 @@ function VisitStatsBlock({ stats, visible }: { stats: VisitStats; visible: boole
             type="button"
             variant="outline"
             onClick={() => setStatsVisible((current) => !current)}
-            className="h-7 rounded-lg border-white/10 bg-white/[0.04] px-2.5 text-[11px] font-bold"
+            className="h-7 rounded-lg border-slate-200 bg-white px-2.5 text-[11px] font-bold text-slate-700 hover:border-sky-300 hover:bg-sky-50 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100 dark:hover:bg-sky-400/10"
           >
             {statsVisible ? "隐藏" : "查看"}
           </Button>
@@ -58,26 +60,26 @@ function VisitStatsBlock({ stats, visible }: { stats: VisitStats; visible: boole
         statsVisible ? (
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2">
+              <div className="rounded-lg border border-slate-200/80 bg-slate-50 px-3 py-2 dark:border-white/10 dark:bg-white/[0.035]">
                 <div className="text-[10px] font-bold text-muted-foreground">总访问量</div>
                 <div className="mt-1 text-lg font-black text-foreground">{stats.pageViews || "加载中"}</div>
               </div>
-              <div className="rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2">
+              <div className="rounded-lg border border-slate-200/80 bg-slate-50 px-3 py-2 dark:border-white/10 dark:bg-white/[0.035]">
                 <div className="text-[10px] font-bold text-muted-foreground">访客数</div>
                 <div className="mt-1 text-lg font-black text-foreground">{stats.uniqueVisitors || "加载中"}</div>
               </div>
             </div>
-            <div className="text-[11px] font-semibold leading-5 text-muted-foreground">
+            <div className={STATUS_LINE_CLASS}>
               已启用 PV/UV 统计。
             </div>
           </div>
         ) : (
-          <div className="text-[11px] font-semibold leading-5 text-muted-foreground">
+          <div className={STATUS_LINE_CLASS}>
             已启用，默认隐藏。
           </div>
         )
       ) : (
-        <div className="text-[11px] font-semibold leading-5 text-muted-foreground">
+        <div className={STATUS_LINE_CLASS}>
           未启用。
         </div>
       )}
@@ -87,6 +89,7 @@ function VisitStatsBlock({ stats, visible }: { stats: VisitStats; visible: boole
 
 export function SystemSettingsPanel({
   compact,
+  docked = false,
   releaseNotesHref,
   userManualHref,
   beamPreviewStyle,
@@ -95,19 +98,16 @@ export function SystemSettingsPanel({
   onOpenTemplateLibrary,
   onClose,
 }: SystemSettingsPanelProps) {
-  return (
+  const panel = (
     <div
-      className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-      aria-label="系统设置"
-      onClick={onClose}
+      className={`flex w-full flex-col bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-slate-100 ${
+        docked
+          ? "h-[calc(100vh-7rem)] rounded-lg border border-slate-200 shadow-lg dark:border-white/10"
+          : "relative ml-auto h-[100dvh] max-w-[24rem] border-l border-slate-200 shadow-2xl sm:max-w-[26rem] dark:border-white/10"
+      }`}
+      onClick={(event) => event.stopPropagation()}
     >
-      <div
-        className="ml-auto flex h-[100dvh] w-full max-w-[24rem] flex-col border-l border-white/10 bg-background/95 shadow-2xl sm:max-w-[26rem]"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className={`sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-white/10 bg-background/95 backdrop-blur-md ${compact ? "px-4 py-3" : "px-4 py-3.5"}`}>
+        <div className={`sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-slate-950 ${compact ? "px-4 py-3" : "px-4 py-3.5"}`}>
           <div className="flex min-w-0 items-center gap-3">
             <span className={iconBoxClass()}>
               <Settings className="h-4 w-4" />
@@ -122,26 +122,26 @@ export function SystemSettingsPanel({
             size="icon"
             onClick={onClose}
             aria-label="关闭系统设置"
-            className="h-10 w-10 rounded-lg border-white/10 bg-white/[0.03]"
+            className="h-10 w-10 rounded-lg border-slate-200 bg-white text-slate-900 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100 dark:hover:bg-white/[0.08]"
           >
             <X className="h-4 w-4" />
           </Button>
         </div>
 
         <div className={`flex-1 space-y-4 overflow-y-auto custom-scrollbar ${compact ? "p-3" : "p-4"}`}>
-          <section className="rounded-lg border border-white/10 bg-white/[0.03] p-3 sm:p-4">
+          <section className="rounded-lg border border-slate-200/80 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-white/[0.03] sm:p-4">
             <h3 className="mb-3 flex items-center gap-2 text-sm font-black tracking-tight">
               <Palette className="h-4 w-4 text-sky-500" />
               显示偏好
             </h3>
-            <div className="space-y-3 rounded-lg border border-white/8 bg-white/[0.04] p-3">
+            <div className="space-y-3 rounded-lg border border-slate-200/80 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/[0.04]">
               <div className="flex items-center justify-between gap-3">
                 <div className="text-xs font-black">连续梁建模图</div>
-                <span className="rounded-full border border-white/10 px-2.5 py-1 text-[10px] font-bold text-muted-foreground">
+                <span className="rounded-full border border-sky-200 bg-white px-2.5 py-1 text-[10px] font-bold text-sky-700 shadow-sm dark:border-sky-400/30 dark:bg-sky-400/10 dark:text-sky-200">
                   {beamPreviewStyle === "simple" ? "简图" : "彩色"}
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2 rounded-lg border border-slate-200/80 bg-slate-100/80 p-1 dark:border-white/10 dark:bg-slate-900/60">
                 {BEAM_PREVIEW_STYLE_OPTIONS.map((option) => {
                   const active = beamPreviewStyle === option.value;
                   return (
@@ -151,8 +151,8 @@ export function SystemSettingsPanel({
                       onClick={() => onBeamPreviewStyleChange(option.value)}
                       className={`rounded-lg border px-3 py-2 text-left transition-colors ${
                         active
-                          ? "border-transparent bg-sky-400 text-slate-950 shadow-[0_10px_24px_rgba(56,189,248,0.22)] hover:bg-sky-300 focus-visible:ring-sky-300/70 dark:bg-sky-400 dark:text-slate-950 dark:hover:bg-sky-300"
-                          : "border-white/10 bg-white/[0.03] text-foreground/70 hover:border-sky-300/35 hover:bg-sky-400/10 hover:text-foreground dark:hover:bg-sky-400/10"
+                          ? "border-sky-300 bg-sky-400 text-slate-950 shadow-[0_10px_24px_rgba(56,189,248,0.22)] hover:bg-sky-300 focus-visible:ring-sky-300/70 dark:border-sky-300/70 dark:bg-sky-400 dark:text-slate-950 dark:hover:bg-sky-300"
+                          : "border-slate-200 bg-white text-slate-700 shadow-sm hover:border-sky-300/70 hover:bg-sky-50 hover:text-slate-950 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-200 dark:hover:border-sky-400/45 dark:hover:bg-sky-400/10 dark:hover:text-white"
                       }`}
                     >
                       <span className="block text-xs font-black">{option.label}</span>
@@ -164,7 +164,7 @@ export function SystemSettingsPanel({
             </div>
           </section>
 
-          <section className="rounded-lg border border-white/10 bg-white/[0.03] p-3 sm:p-4">
+          <section className="rounded-lg border border-slate-200/80 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-white/[0.03] sm:p-4">
             <h3 className="mb-3 text-sm font-black tracking-tight">资源与模板</h3>
             <div className="grid gap-2">
               <a className={settingButtonClass(compact)} href={GITHUB_REPOSITORY_URL} target="_blank" rel="noreferrer">
@@ -173,7 +173,7 @@ export function SystemSettingsPanel({
                     <Github className="h-4 w-4" />
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate font-bold">GitHub 开源仓库</span>
+                    <span className="block truncate font-bold">GitHub 仓库</span>
                   </span>
                 </span>
                 <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" />
@@ -220,13 +220,13 @@ export function SystemSettingsPanel({
             </div>
           </section>
 
-          <section className="rounded-lg border border-white/10 bg-white/[0.03] p-3 sm:p-4">
+          <section className="rounded-lg border border-slate-200/80 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-white/[0.03] sm:p-4">
             <h3 className="mb-3 flex items-center gap-2 text-sm font-black tracking-tight">
               <Info className="h-4 w-4 text-sky-500" />
               关于
             </h3>
             <div className="space-y-3">
-              <div className="rounded-lg border border-white/8 bg-white/[0.04] p-3">
+              <div className="rounded-lg border border-slate-200/80 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="text-sm font-black">ArchSight Solver</div>
                   <a
@@ -244,7 +244,31 @@ export function SystemSettingsPanel({
             </div>
           </section>
         </div>
-      </div>
+    </div>
+  );
+
+  if (docked) {
+    return (
+      <aside className="relative min-w-0 xl:sticky xl:top-24" aria-label="系统设置">
+        {panel}
+      </aside>
+    );
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-40"
+      role="dialog"
+      aria-modal="true"
+      aria-label="系统设置"
+    >
+      <button
+        type="button"
+        className="absolute inset-0 bg-slate-950/45 backdrop-blur-[1px]"
+        aria-label="关闭系统设置"
+        onClick={onClose}
+      />
+      {panel}
     </div>
   );
 }

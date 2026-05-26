@@ -86,6 +86,7 @@ const MIN_MODULE_NAV_WIDTH = 232;
 const MAX_MODULE_NAV_WIDTH = 288;
 const COLLAPSED_MODULE_NAV_WIDTH = 76;
 const COLLAPSED_INSPECTOR_WIDTH = 68;
+const SETTINGS_PANEL_WIDTH = 360;
 const HIDDEN_VISIT_STATS_STYLE = {
   position: "absolute",
   width: "1px",
@@ -174,8 +175,12 @@ function App() {
   const [isModuleNavCollapsed, setIsModuleNavCollapsed] = useState(
     () => window.localStorage.getItem(MODULE_NAV_COLLAPSED_STORAGE_KEY) === "true"
   );
+  const [isSystemSettingsOpen, setIsSystemSettingsOpen] = useState(false);
   const isCompactWorkbench = useMediaQuery("(max-width: 1023px)");
-  const showInspectorCollapsed = !isCompactWorkbench && isInspectorCollapsed;
+  const isWideWorkbench = useMediaQuery("(min-width: 1280px)");
+  const showInspectorCollapsed = isWideWorkbench && isInspectorCollapsed;
+  const isSystemSettingsDocked = isSystemSettingsOpen && isWideWorkbench;
+  const effectiveInspectorWidth = isSystemSettingsDocked ? Math.min(inspectorWidth, DEFAULT_INSPECTOR_WIDTH) : inspectorWidth;
   const workspace = useMemo(() => createWorkspaceFromProject(project), [project]);
   const setCompactWorkbenchView = (view: "parameters" | "results") => {
     setWorkbenchView(view === "results" ? "results" : "model");
@@ -271,7 +276,6 @@ function App() {
   })), [analysisData, sensitivityData, workbenchView]);
 
   const [isTemplateLibraryOpen, setIsTemplateLibraryOpen] = useState(false);
-  const [isSystemSettingsOpen, setIsSystemSettingsOpen] = useState(false);
   const [isFileMenuOpen, setIsFileMenuOpen] = useState(false);
   const [visitStats, setVisitStats] = useState<VisitStats>({ pageViews: "", uniqueVisitors: "" });
   
@@ -381,6 +385,11 @@ function App() {
     if (!isTemplateLibraryOpen && !isSystemSettingsOpen && !isNewAnalysisObjectDialogOpen && projectInfoDialogMode === null) {
       return;
     }
+    const shouldLockScroll =
+      isTemplateLibraryOpen ||
+      (isSystemSettingsOpen && !isSystemSettingsDocked) ||
+      isNewAnalysisObjectDialogOpen ||
+      projectInfoDialogMode !== null;
 
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -392,14 +401,18 @@ function App() {
     };
 
     const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    if (shouldLockScroll) {
+      document.body.style.overflow = "hidden";
+    }
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.body.style.overflow = previousOverflow;
+      if (shouldLockScroll) {
+        document.body.style.overflow = previousOverflow;
+      }
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isTemplateLibraryOpen, isSystemSettingsOpen, isNewAnalysisObjectDialogOpen, projectInfoDialogMode]);
+  }, [isSystemSettingsDocked, isTemplateLibraryOpen, isSystemSettingsOpen, isNewAnalysisObjectDialogOpen, projectInfoDialogMode]);
 
   useEffect(() => {
     if (!isFileMenuOpen) {
@@ -798,10 +811,14 @@ function App() {
           style={
             isCompactWorkbench
               ? undefined
+              : !isWideWorkbench
+                ? undefined
               : {
                   gridTemplateColumns: `${
                     isModuleNavCollapsed ? COLLAPSED_MODULE_NAV_WIDTH : moduleNavWidth
-                  }px minmax(0,1fr) ${showInspectorCollapsed ? COLLAPSED_INSPECTOR_WIDTH : inspectorWidth}px`,
+                  }px minmax(0,1fr) ${showInspectorCollapsed ? COLLAPSED_INSPECTOR_WIDTH : effectiveInspectorWidth}px${
+                    isSystemSettingsDocked ? ` ${SETTINGS_PANEL_WIDTH}px` : ""
+                  }`,
                 }
           }
         >
@@ -997,6 +1014,19 @@ function App() {
               </>
             )}
           </aside>
+          {isSystemSettingsDocked ? (
+            <SystemSettingsPanel
+              compact={false}
+              docked
+              releaseNotesHref={RELEASE_NOTES_HREF}
+              userManualHref={USER_MANUAL_HREF}
+              beamPreviewStyle={project.settings.beamPreviewStyle}
+              visitStats={visitStats}
+              onBeamPreviewStyleChange={setBeamPreviewStyle}
+              onOpenTemplateLibrary={() => setIsTemplateLibraryOpen(true)}
+              onClose={() => setIsSystemSettingsOpen(false)}
+            />
+          ) : null}
         </div>
       </main>
 
@@ -1011,7 +1041,7 @@ function App() {
         </div>
       ) : null}
 
-      {isSystemSettingsOpen && (
+      {isSystemSettingsOpen && !isSystemSettingsDocked && (
         <SystemSettingsPanel
           compact={isCompactWorkbench}
           releaseNotesHref={RELEASE_NOTES_HREF}
