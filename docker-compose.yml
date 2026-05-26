@@ -1,6 +1,9 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        VITE_ENABLE_BUSUANZI: ${VITE_ENABLE_BUSUANZI:-false}
     container_name: archsight-solver-app
     restart: always
     environment:

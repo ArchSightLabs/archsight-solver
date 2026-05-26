@@ -3,6 +3,9 @@ ARG PYTHON_IMAGE=python:3.13-slim
 
 FROM ${NODE_IMAGE} AS frontend-builder
 
+ARG VITE_ENABLE_BUSUANZI=false
+ENV VITE_ENABLE_BUSUANZI=${VITE_ENABLE_BUSUANZI}
+
 WORKDIR /app/frontend
 
 # 先安装前端依赖，再复制源码，便于利用分层缓存。
