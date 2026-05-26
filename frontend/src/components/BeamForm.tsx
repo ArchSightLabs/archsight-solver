@@ -9,6 +9,7 @@ import type { BeamWorkbenchSelection, WorkbenchSelectionOptions } from "../types
 import { createDefaultBeamSupports, createDefaultBeamWorkspaceState } from "../lib/workspace-state.ts";
 import { BEAM_MODEL_TEMPLATES, applyBeamModelTemplate } from "../lib/workbench-model-templates.ts";
 import { parseBeamTextModel, serializeBeamTextModel } from "../lib/beam-text-model.ts";
+import { MAX_BEAM_SPANS } from "../lib/solver-limits.ts";
 
 interface BeamFormProps {
   value: BeamWorkspaceState;
@@ -391,6 +392,7 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
   }, [selectedObject, selection, value.spans, value.supports]);
 
   const addSpan = () => {
+    if (value.spans.length >= MAX_BEAM_SPANS) return;
     const nextIndex = value.spans.length;
     const nextSpans = [
       ...value.spans,
@@ -995,9 +997,9 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
                     S{index + 1} · {span.length}m
                   </button>
                 ))}
-                <Button variant="outline" size="sm" onClick={addSpan} className="h-8 rounded-lg px-2 text-[10px]">
+                <Button variant="outline" size="sm" onClick={addSpan} disabled={value.spans.length >= MAX_BEAM_SPANS} className="h-8 rounded-lg px-2 text-[10px]">
                   <Plus className="mr-1 h-3 w-3" />
-                  新增跨段
+                  {value.spans.length >= MAX_BEAM_SPANS ? `已达 ${MAX_BEAM_SPANS} 跨` : "新增跨段"}
                 </Button>
               </div>
             </div>

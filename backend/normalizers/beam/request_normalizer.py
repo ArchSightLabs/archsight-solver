@@ -5,7 +5,9 @@ from typing import Any, Dict, List, Mapping, Sequence, Tuple
 
 from backend.common.numbers import clamp_ratio, sanitize_label, to_float
 from backend.common.units import to_si
+from backend.config import get_max_beam_spans, resolve_output_precision
 from backend.normalizers.structural_model import parse_combination_tags
+from backend.solver.linear_system import normalize_solver_backend
 
 
 BEAM_TYPE_LABELS = {
@@ -38,6 +40,7 @@ BEAM_SUPPORT_LABELS = {
 DEFAULT_PROJECT_NAME = "默认结构工程项目"
 DEFAULT_MATERIAL_NAME = "自定义材料"
 DEFLECTION_LIMIT_RATIO = 250.0
+DEFAULT_BEAM_SPAN_LIMIT_MESSAGE = "跨度数量超出系统限制 (最大 64 跨)"
 
 
 def normalize_span_properties(
@@ -469,8 +472,10 @@ def normalize_beam_request(data: Dict[str, Any]) -> Dict[str, Any]:
     spans = [float(x) for x in data.get("spans", [])]
     if not spans or any(span <= 0 for span in spans):
         raise ValueError("跨度必须大于 0")
-    if len(spans) > 64:
-        raise ValueError("跨度数量超出系统限制 (最大 64 跨)")
+    max_spans = get_max_beam_spans()
+    if len(spans) > max_spans:
+        message = DEFAULT_BEAM_SPAN_LIMIT_MESSAGE if max_spans == 64 else f"跨度数量超出系统限制 (最大 {max_spans} 跨)"
+        raise ValueError(message)
 
     beam_type = sanitize_label(data.get("beamType", "continuous"), BEAM_TYPE_LABELS, "continuous")
     raw_load_type = str(data.get("loadType", "uniform") or "uniform").strip()
@@ -577,6 +582,8 @@ def normalize_beam_request(data: Dict[str, Any]) -> Dict[str, Any]:
         "material_id": data.get("materialId", "custom"),
         "project_name": data.get("projectName", DEFAULT_PROJECT_NAME),
         "format": data.get("format", "xlsx"),
+        "solver_backend": normalize_solver_backend(data.get("solverBackend", data.get("solver_backend"))),
+        "output_precision": resolve_output_precision(data),
     }
     loads = normalize_beam_loads(data.get("loads"), request)
     request["loads"] = loads

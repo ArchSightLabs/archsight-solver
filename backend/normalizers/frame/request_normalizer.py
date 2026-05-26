@@ -9,6 +9,7 @@ from backend.normalizers.structural_model import (
     parse_support_type as parse_structural_support_type,
     support_dof_indexes,
 )
+from backend.solver.linear_system import normalize_solver_backend
 
 
 DEFAULT_PROJECT_NAME = "默认二维框架项目"
@@ -64,6 +65,7 @@ def normalize_frame_request(data: Dict[str, Any]) -> Dict[str, Any]:
             "material_id": material_id,
             "structure": model.to_structure_contract(include_bending=True),
             "analysisOptions": analysis_options,
+            "solver_backend": normalize_solver_backend(data.get("solverBackend", data.get("solver_backend"))),
         }
 
     span = max(0.1, to_float(structure_source.get("span", data.get("span", 6.0)), 6.0))
@@ -166,4 +168,5 @@ def normalize_frame_request(data: Dict[str, Any]) -> Dict[str, Any]:
             "loads": loads,
         },
         "analysisOptions": analysis_options,
+        "solver_backend": normalize_solver_backend(data.get("solverBackend", data.get("solver_backend"))),
     }

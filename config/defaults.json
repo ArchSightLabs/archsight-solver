@@ -22,5 +22,17 @@
     "elasticModulus": "GPa",
     "momentOfInertia": "cm4",
     "deflection": "mm"
+  },
+  "analysisLimits": {
+    "beamMaxSpans": 64
+  },
+  "outputPrecision": {
+    "displayDecimals": 3,
+    "summaryDecimals": 4,
+    "seriesDecimals": 6
+  },
+  "solver": {
+    "backend": "auto",
+    "sparseDofThreshold": 512
   }
 }

@@ -15,6 +15,13 @@ from backend.solver.beam.elements import (
     shape_functions,
     timoshenko_beam_element_stiffness,
 )
+from backend.solver.linear_system import (
+    add_diagonal_stiffness,
+    add_local_stiffness,
+    create_stiffness_matrix,
+    select_solver_backend,
+    solve_free_dofs,
+)
 
 
 def build_mesh(
@@ -179,6 +186,8 @@ def finite_element_solution(
     G: float | None = None,
     A: float | None = None,
     shear_correction_factor: float = 5.0 / 6.0,
+    solver_backend: str = "auto",
+    output_precision: Dict[str, int] | None = None,
 ) -> Dict[str, Any]:
     total_length = float(sum(spans))
     extra_node_positions: List[float] = []
@@ -234,7 +243,11 @@ def finite_element_solution(
     constrained_dofs = constrained_dofs_from_supports(support_records)
 
     ndof = node_count * 2
-    stiffness = np.zeros((ndof, ndof), dtype=float)
+    resolved_solver_backend = select_solver_backend(solver_backend, ndof)
+    precision = output_precision or {}
+    summary_decimals = int(precision.get("summaryDecimals", 4))
+    series_decimals = int(precision.get("seriesDecimals", 6))
+    stiffness = create_stiffness_matrix(ndof, resolved_solver_backend)
     load_vector = np.zeros(ndof, dtype=float)
     element_data: List[Dict[str, Any]] = []
 
@@ -288,7 +301,7 @@ def finite_element_solution(
                 local_x = min(max(point_position - x1, 0.0), length)
                 f_local += beam_point_equivalent_load(local_x, length, point_load_n)
 
-        stiffness[np.ix_(dofs, dofs)] += k_local
+        add_local_stiffness(stiffness, dofs, k_local)
         load_vector[dofs] += f_local
         element_data.append(
             {
@@ -312,7 +325,7 @@ def finite_element_solution(
                 stiffness_value = to_si(float(spring.get("stiffnessKnMPerRad", 0.0)), "rotational_stiffness", "kN.m/rad")
             else:
                 stiffness_value = to_si(float(spring.get("stiffnessKnPerM", 0.0)), "stiffness", "kN/m")
-            stiffness[matrix_index, matrix_index] += stiffness_value
+            add_diagonal_stiffness(stiffness, matrix_index, stiffness_value)
             spring_reactions[matrix_index] = stiffness_value
 
     free_dofs = [i for i in range(ndof) if i not in constrained_dofs]
@@ -320,13 +333,16 @@ def finite_element_solution(
         raise ValueError("约束条件过多，系统无自由度可求解")
 
     displacement = np.zeros(ndof, dtype=float)
-    k_ff = stiffness[np.ix_(free_dofs, free_dofs)]
-    f_f = load_vector[free_dofs]
-    if np.linalg.matrix_rank(k_ff) < len(free_dofs):
-        raise ValueError("梁模型刚度矩阵奇异，请检查支座与跨度设置")
-
-    displacement[free_dofs] = np.linalg.solve(k_ff, f_f)
-    reactions = stiffness @ displacement - load_vector
+    solved = solve_free_dofs(
+        stiffness=stiffness,
+        load_vector=load_vector,
+        free_dofs=free_dofs,
+        singular_message="梁模型刚度矩阵奇异，请检查支座与跨度设置",
+        backend=resolved_solver_backend,
+    )
+    displacement = solved["displacements"]
+    reactions = solved["reactions"]
+    solver_diagnostics = solved["diagnostics"]
 
     x_values: List[float] = []
     v_values: List[float] = []
@@ -460,13 +476,13 @@ def finite_element_solution(
         )
 
     return {
-        "x_data": round_list(x_values, 6),
-        "v_data": round_list([-v for v in v_values], 8),
+        "x_data": round_list(x_values, series_decimals),
+        "v_data": round_list([-v for v in v_values], max(series_decimals, 8)),
         "support_positions": round_list([float(record["x"]) for record in support_records], 6),
         "support_specs": list(support_specs),
         "span_boundaries": round_list(cumulative(spans), 6),
-        "element_end_moments": round_list(moment_values, 6),
-        "element_end_shears": round_list(shear_values, 6),
+        "element_end_moments": round_list(moment_values, series_decimals),
+        "element_end_shears": round_list(shear_values, series_decimals),
         "reactions": reaction_summary,
         "queryResults": query_results,
         "load_items": load_items,
@@ -474,6 +490,13 @@ def finite_element_solution(
         "beamTheory": beam_theory,
         "beamTheoryLabel": "Timoshenko 梁理论" if beam_theory == "timoshenko" else "Euler-Bernoulli 梁理论",
         "warnings": ["Timoshenko 选项采用一阶剪切变形梁单元近似，适用于短深梁趋势校核。"] if beam_theory == "timoshenko" else [],
+        "diagnostics": {
+            "solver": solver_diagnostics,
+            "outputPrecision": {
+                "summaryDecimals": summary_decimals,
+                "seriesDecimals": series_decimals,
+            },
+        },
         "teachingNotes": {
             "theory": "Euler-Bernoulli 梁理论忽略剪切变形；Timoshenko 梁理论近似考虑剪切变形。",
             "resultMetrics": "梁系主控指标为挠度、弯矩、剪力和支座反力。",
@@ -490,9 +513,9 @@ def finite_element_solution(
             E=E,
             I=I,
         ),
-        "max_deflection_mm": round(max_deflection_mm, 4),
+        "max_deflection_mm": round(max_deflection_mm, summary_decimals),
         "max_deflection_position_m": round(max_deflection_position_m, 6),
-        "allowable_mm": round(allowable_mm, 4),
+        "allowable_mm": round(allowable_mm, summary_decimals),
         "status": status,
     }
 

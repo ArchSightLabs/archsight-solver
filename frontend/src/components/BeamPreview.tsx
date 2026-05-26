@@ -1,6 +1,7 @@
 import { useCallback, useMemo, type ReactNode } from "react";
 import { GlassCard } from "./ui/GlassCard";
 import type { BeamLoadMarker, BeamPreviewData, BeamSupport } from "../types/beam";
+import { formatEngineeringValue } from "../lib/engineering-format";
 
 interface BeamPreviewProps {
   beam?: BeamPreviewData | null;
@@ -330,7 +331,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
                 fontWeight="600"
                 fontFamily={svgTextFont}
               >
-                <tspan x={peakLabel.x} dy="0">最大挠度 {Math.abs(beam.maxDeflection.valueMm).toFixed(3)} mm</tspan>
+                <tspan x={peakLabel.x} dy="0">最大挠度 {formatEngineeringValue(Math.abs(beam.maxDeflection.valueMm), "mm")}</tspan>
                 <tspan x={peakLabel.x} dy="15">距左端 {beam.maxDeflection.xM.toFixed(2)} m</tspan>
               </text>
             </g>
@@ -370,7 +371,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
           },
           {
             label: "挠度峰值",
-            main: `${Math.abs(beam.maxDeflection?.valueMm ?? 0).toFixed(3)} mm`,
+            main: formatEngineeringValue(Math.abs(beam.maxDeflection?.valueMm ?? 0), "mm"),
             sub: `距左端 ${(beam.maxDeflection?.xM ?? 0).toFixed(2)} m`,
             highlight: true,
           },

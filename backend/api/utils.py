@@ -210,6 +210,7 @@ def build_calculation_response(data, operation='calculate'):
         'controlValues': solution.get('controlValues', {}),
         'teachingNotes': solution.get('teachingNotes', {}),
         'symbolicCheck': solution.get('symbolicCheck', {}),
+        'diagnostics': solution.get('diagnostics', {}),
         'summary': {
             'allowableMm': float(solution['allowable_mm']),
             'allowableRatio': 250,
@@ -243,6 +244,8 @@ def build_calculation_response(data, operation='calculate'):
             'I': request_data['I_cm4'],
             'beamTheory': request_data.get('beam_theory', 'euler_bernoulli'),
             'supports': request_data.get('supports', []),
+            'solverBackend': request_data.get('solver_backend', 'auto'),
+            'outputPrecision': request_data.get('output_precision', {}),
         },
         'request': request_data,
         'solution': solution,

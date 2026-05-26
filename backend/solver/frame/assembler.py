@@ -7,18 +7,20 @@ import numpy as np
 
 from backend.common.numbers import to_float
 from backend.solver.frame.elements import apply_rotational_releases, distributed_load_local_vector, member_stiffness_local, member_transform, point_load_local_vector
+from backend.solver.linear_system import add_diagonal_stiffness, add_local_stiffness, create_stiffness_matrix, select_solver_backend
 
 
 DOF_INDEX = {"ux": 0, "uy": 1, "rz": 2}
 
 
-def assemble_global_system(structure: Dict[str, Any]) -> Dict[str, Any]:
+def assemble_global_system(structure: Dict[str, Any], solver_backend: str = "auto") -> Dict[str, Any]:
     nodes = structure["nodes"]
     members = structure["members"]
     loads = structure.get("loads", [])
     node_index = {node["id"]: idx for idx, node in enumerate(nodes)}
     ndof = len(nodes) * 3
-    stiffness = np.zeros((ndof, ndof), dtype=float)
+    resolved_solver_backend = select_solver_backend(solver_backend, ndof)
+    stiffness = create_stiffness_matrix(ndof, resolved_solver_backend)
     load_vector = np.zeros(ndof, dtype=float)
     spring_records: List[Dict[str, Any]] = []
 
@@ -38,7 +40,7 @@ def assemble_global_system(structure: Dict[str, Any]) -> Dict[str, Any]:
                 stiffness_value = to_float(spring.get("stiffnessKnMPerRad"), 0.0) * 1000.0
             else:
                 stiffness_value = to_float(spring.get("stiffnessKnPerM"), 0.0) * 1000.0
-            stiffness[matrix_index, matrix_index] += stiffness_value
+            add_diagonal_stiffness(stiffness, matrix_index, stiffness_value)
             spring_records.append(
                 {
                     "node": node["id"],
@@ -132,7 +134,7 @@ def assemble_global_system(structure: Dict[str, Any]) -> Dict[str, Any]:
         k_local, f_local = apply_rotational_releases(k_base_local, f_base_local, release_dofs)
         k_global = transform.T @ k_local @ transform
         load_vector[dofs] += transform.T @ f_local
-        stiffness[np.ix_(dofs, dofs)] += k_global
+        add_local_stiffness(stiffness, dofs, k_global)
         member_records.append(
             {
                 "index": index,
@@ -167,6 +169,7 @@ def assemble_global_system(structure: Dict[str, Any]) -> Dict[str, Any]:
         "member_records": member_records,
         "node_index": node_index,
         "spring_records": spring_records,
+        "solver_backend": resolved_solver_backend,
     }
 
 

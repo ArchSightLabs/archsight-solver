@@ -136,12 +136,14 @@ def build_frame_solution_response(
             },
             "constraintRank": diagnostics.get("constraintRank"),
             "freeDofCount": diagnostics.get("freeDofCount"),
+            "solver": diagnostics.get("solver", {}),
         },
         "payload": {
             "analysisType": "frame",
             "projectName": request["project_name"],
             "materialId": request["material_id"],
             "structure": structure,
+            "solverBackend": request.get("solver_backend", "auto"),
         },
         "preview": {
             "analysisType": "frame",

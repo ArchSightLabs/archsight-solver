@@ -28,6 +28,8 @@ def _solve_beam_request(request_data: Dict[str, Any], material_name: str) -> Dic
         G=to_si(request_data.get("G_gpa", 1.0), "elastic_modulus", "GPa"),
         A=to_si(request_data.get("A_cm2", 120.0), "area", "cm2"),
         shear_correction_factor=request_data.get("shear_correction_factor", 5.0 / 6.0),
+        solver_backend=request_data.get("solver_backend", "auto"),
+        output_precision=request_data.get("output_precision"),
     )
     t_data, q_t_data = build_time_history(
         request_data["reference_load_kn_per_m"],

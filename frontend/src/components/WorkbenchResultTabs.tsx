@@ -24,6 +24,7 @@ import {
   type ReportFigureScope,
   type ReportTemplate,
 } from "../lib/report-options";
+import { formatEngineeringValue } from "../lib/engineering-format";
 
 const BeamPreview = lazy(() => import("./BeamPreview").then((module) => ({ default: module.BeamPreview })));
 const BeamResultDiagrams = lazy(() => import("./BeamResultDiagrams").then((module) => ({ default: module.BeamResultDiagrams })));
@@ -525,13 +526,13 @@ function beamSummaryRows(results: BeamCalculationResults): SummaryRow[] {
   return [
     {
       label: "允许挠度",
-      value: `${results.summary?.allowableMm.toFixed(3) ?? "0.000"} mm`,
+      value: formatEngineeringValue(results.summary?.allowableMm, "mm"),
       detail: `控制比 ${results.summary?.allowableRatio ?? 250} × · ${results.summary?.statusCode ?? "PENDING"}`,
     },
     {
       label: "最大挠度",
-      value: `${results.summary?.maxDeflectionMm.toFixed(3) ?? "0.000"} mm`,
-      detail: `控制位置 ${results.summary?.maxDeflectionPositionM.toFixed(3) ?? "0.000"} m · 挠度校核`,
+      value: formatEngineeringValue(results.summary?.maxDeflectionMm, "mm"),
+      detail: `控制位置 ${formatEngineeringValue(results.summary?.maxDeflectionPositionM, "m")} · 挠度校核`,
     },
     {
       label: "跨段数量",
@@ -654,8 +655,8 @@ function BeamBenchmarkPanel({ results, compact = false }: { results: BeamCalcula
       <div className={`grid gap-2 ${compact ? "grid-cols-2" : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-4"}`}>
         {[
           { label: "对照算例", value: item.title, detail: item.equation },
-          { label: "解析最大挠度", value: `${item.expectedDeflectionMm.toFixed(3)} mm`, detail: `理论位置 ${item.expectedXM.toFixed(3)} m` },
-          { label: "求解器最大挠度", value: `${actual.toFixed(3)} mm`, detail: `求解位置 ${results.summary.maxDeflectionPositionM.toFixed(3)} m` },
+          { label: "解析最大挠度", value: formatEngineeringValue(item.expectedDeflectionMm, "mm"), detail: `理论位置 ${formatEngineeringValue(item.expectedXM, "m")}` },
+          { label: "求解器最大挠度", value: formatEngineeringValue(actual, "mm"), detail: `求解位置 ${formatEngineeringValue(results.summary.maxDeflectionPositionM, "m")}` },
           { label: "相对误差", value: `${errorPercent.toFixed(3)} %`, detail: errorPercent <= 1 ? "解析对照通过" : "建议复核输入单位与边界" },
         ].map((row) => (
           <div key={row.label} className="rounded-lg border border-white/10 bg-white/[0.03] p-3">

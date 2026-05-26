@@ -7,6 +7,7 @@ import numpy as np
 from backend.common.numbers import to_float
 from backend.normalizers.truss.request_normalizer import node_dofs, node_support_dofs
 from backend.solver.truss.elements import member_geometry, truss_member_stiffness
+from backend.solver.linear_system import add_local_stiffness, create_stiffness_matrix, select_solver_backend
 
 
 def assemble_system(request: Dict[str, Any]) -> Dict[str, Any]:
@@ -16,7 +17,8 @@ def assemble_system(request: Dict[str, Any]) -> Dict[str, Any]:
 
     node_index = {node["id"]: idx for idx, node in enumerate(nodes)}
     ndof = len(nodes) * 2
-    stiffness = np.zeros((ndof, ndof), dtype=float)
+    solver_backend = select_solver_backend(request.get("solver_backend", "auto"), ndof)
+    stiffness = create_stiffness_matrix(ndof, solver_backend)
     forces = np.zeros(ndof, dtype=float)
 
     member_geometries: List[Dict[str, Any]] = []
@@ -34,9 +36,7 @@ def assemble_system(request: Dict[str, Any]) -> Dict[str, Any]:
         s_i, s_j = node_dofs(node_index[member["start"]])
         e_i, e_j = node_dofs(node_index[member["end"]])
         dofs = [s_i, s_j, e_i, e_j]
-        for i in range(4):
-            for j in range(4):
-                stiffness[dofs[i], dofs[j]] += ke[i, j]
+        add_local_stiffness(stiffness, dofs, ke)
         member_geometries.append(
             {
                 "memberId": member["id"],
@@ -80,4 +80,5 @@ def assemble_system(request: Dict[str, Any]) -> Dict[str, Any]:
         "fixed_dofs": fixed_dofs,
         "free_dofs": free_dofs,
         "support_dofs_by_node": support_dofs_by_node,
+        "solver_backend": solver_backend,
     }

@@ -14,6 +14,7 @@ import type {
   TrussMember,
   TrussWorkspaceState,
 } from "../types/structure.ts";
+import { MAX_BEAM_SPANS } from "./solver-limits.ts";
 
 export interface WorkspaceState {
   analysisMode: AnalysisMode;
@@ -863,7 +864,7 @@ export function normalizeBeamWorkspaceState(value: Partial<BeamWorkspaceState> |
   const materials = normalizeBeamMaterials(value?.materials);
   const materialId = pickBeamMaterialId(value?.materialId, materials, base.materialId);
   const spans = Array.isArray(value?.spans) && value.spans.length > 0 ? value.spans : base.spans;
-  const normalizedSpans = spans.slice(0, 50).map((span) => {
+  const normalizedSpans = spans.slice(0, MAX_BEAM_SPANS).map((span) => {
     const spanMaterialId = inferBeamSpanMaterialId(span, materials, materialId);
     const material = materialById(materials, spanMaterialId);
     return {

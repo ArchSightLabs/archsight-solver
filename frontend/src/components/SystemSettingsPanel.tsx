@@ -1,13 +1,20 @@
+import { useState } from "react";
 import { BarChart3, BookOpen, ClipboardList, ExternalLink, Github, Info, Library, Palette, Settings, X } from "lucide-react";
 import { Button } from "./ui/button";
 import type { BeamPreviewStyle } from "../types/beam";
 import { APP_VERSION, BUSUANZI_VISIT_STATS_ENABLED, GITHUB_REPOSITORY_URL } from "../lib/app-metadata";
+
+interface VisitStats {
+  pageViews: string;
+  uniqueVisitors: string;
+}
 
 interface SystemSettingsPanelProps {
   compact: boolean;
   releaseNotesHref: string;
   userManualHref: string;
   beamPreviewStyle: BeamPreviewStyle;
+  visitStats: VisitStats;
   onBeamPreviewStyleChange: (style: BeamPreviewStyle) => void;
   onOpenTemplateLibrary: () => void;
   onClose: () => void;
@@ -26,17 +33,49 @@ function iconBoxClass() {
   return "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200/80 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200";
 }
 
-function VisitStatsBlock() {
+function VisitStatsBlock({ stats, visible }: { stats: VisitStats; visible: boolean }) {
+  const [statsVisible, setStatsVisible] = useState(visible);
+
   return (
     <div className="rounded-lg border border-white/8 bg-white/[0.04] p-3">
-      <div className="mb-2 flex items-center gap-2 text-xs font-black">
-        <BarChart3 className="h-4 w-4 text-sky-500" />
-        访问统计
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-xs font-black">
+          <BarChart3 className="h-4 w-4 text-sky-500" />
+          访问统计
+        </div>
+        {BUSUANZI_VISIT_STATS_ENABLED ? (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setStatsVisible((current) => !current)}
+            className="h-7 rounded-lg border-white/10 bg-white/[0.04] px-2.5 text-[11px] font-bold"
+          >
+            {statsVisible ? "隐藏" : "查看"}
+          </Button>
+        ) : null}
       </div>
       {BUSUANZI_VISIT_STATS_ENABLED ? (
-        <div className="text-[11px] font-semibold leading-5 text-muted-foreground">
-          当前构建已启用不蒜子 PV/UV 统计，统计结果在页眉项目状态行展示；脚本加载失败不会影响本地建模、求解和导出。
-        </div>
+        statsVisible ? (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2">
+                <div className="text-[10px] font-bold text-muted-foreground">总访问量</div>
+                <div className="mt-1 text-lg font-black text-foreground">{stats.pageViews || "加载中"}</div>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2">
+                <div className="text-[10px] font-bold text-muted-foreground">访客数</div>
+                <div className="mt-1 text-lg font-black text-foreground">{stats.uniqueVisitors || "加载中"}</div>
+              </div>
+            </div>
+            <div className="text-[11px] font-semibold leading-5 text-muted-foreground">
+              当前构建已启用不蒜子 PV/UV 统计；脚本加载失败不会影响本地建模、求解和导出。
+            </div>
+          </div>
+        ) : (
+          <div className="text-[11px] font-semibold leading-5 text-muted-foreground">
+            当前构建已启用不蒜子 PV/UV 统计，统计结果默认隐藏。
+          </div>
+        )
       ) : (
         <div className="text-[11px] font-semibold leading-5 text-muted-foreground">
           当前构建未启用第三方访问统计。公开部署需要统计 PV/UV 时，可设置 VITE_ENABLE_BUSUANZI=true。
@@ -51,6 +90,7 @@ export function SystemSettingsPanel({
   releaseNotesHref,
   userManualHref,
   beamPreviewStyle,
+  visitStats,
   onBeamPreviewStyleChange,
   onOpenTemplateLibrary,
   onClose,
@@ -210,7 +250,7 @@ export function SystemSettingsPanel({
               <div className="rounded-lg border border-white/8 bg-white/[0.04] p-3 text-[11px] font-semibold leading-5 text-muted-foreground">
                 ArchSightLabs 聚焦结构工程计算、工程图形表达与 AI 辅助工程工具链。该求解器用于教学演示、方案阶段复核和工程软件原型验证，不替代规范设计与注册工程师审查。
               </div>
-              <VisitStatsBlock />
+              <VisitStatsBlock stats={visitStats} visible={false} />
             </div>
           </section>
         </div>

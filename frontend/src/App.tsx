@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ChangeEvent as ReactChangeEvent, Dispatch, PointerEvent as ReactPointerEvent, SetStateAction } from "react";
+import type { ChangeEvent as ReactChangeEvent, CSSProperties, Dispatch, PointerEvent as ReactPointerEvent, SetStateAction } from "react";
 import {
   Activity,
   FileText,
@@ -86,9 +86,22 @@ const MIN_MODULE_NAV_WIDTH = 232;
 const MAX_MODULE_NAV_WIDTH = 288;
 const COLLAPSED_MODULE_NAV_WIDTH = 76;
 const COLLAPSED_INSPECTOR_WIDTH = 68;
+const HIDDEN_VISIT_STATS_STYLE = {
+  position: "absolute",
+  width: "1px",
+  height: "1px",
+  overflow: "hidden",
+  clipPath: "inset(50%)",
+  whiteSpace: "nowrap",
+} satisfies CSSProperties;
 const RELEASE_NOTES_HREF = "/docs/release-notes-v1.0.0.html";
 const USER_MANUAL_HREF = "/docs/user-manual.html";
 const LEGACY_REPORT_EXPORT_OPTIONS_STORAGE_KEY = "archsight-solver.report-export-options";
+
+interface VisitStats {
+  pageViews: string;
+  uniqueVisitors: string;
+}
 
 function clampInspectorWidth(value: number) {
   return Math.min(MAX_INSPECTOR_WIDTH, Math.max(MIN_INSPECTOR_WIDTH, value));
@@ -260,6 +273,7 @@ function App() {
   const [isTemplateLibraryOpen, setIsTemplateLibraryOpen] = useState(false);
   const [isSystemSettingsOpen, setIsSystemSettingsOpen] = useState(false);
   const [isFileMenuOpen, setIsFileMenuOpen] = useState(false);
+  const [visitStats, setVisitStats] = useState<VisitStats>({ pageViews: "", uniqueVisitors: "" });
   
   const {
     templates,
@@ -288,9 +302,29 @@ function App() {
   }, [isModuleNavCollapsed]);
 
   useEffect(() => {
-    if (BUSUANZI_VISIT_STATS_ENABLED) {
-      loadBusuanziVisitStats();
-    }
+    if (!BUSUANZI_VISIT_STATS_ENABLED) return;
+
+    const syncVisitStats = () => {
+      const pageViews = document.getElementById("busuanzi_value_site_pv")?.textContent?.trim() || "";
+      const uniqueVisitors = document.getElementById("busuanzi_value_site_uv")?.textContent?.trim() || "";
+      setVisitStats({ pageViews, uniqueVisitors });
+    };
+
+    const observer = new window.MutationObserver(syncVisitStats);
+    const observedNodes = [
+      document.getElementById("busuanzi_value_site_pv"),
+      document.getElementById("busuanzi_value_site_uv"),
+    ].filter((node): node is HTMLElement => Boolean(node));
+
+    observedNodes.forEach((node) => observer.observe(node, { childList: true, characterData: true, subtree: true }));
+    syncVisitStats();
+    loadBusuanziVisitStats();
+
+    const fallbackTimer = window.setTimeout(syncVisitStats, 2500);
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(fallbackTimer);
+    };
   }, []);
 
   const handleModuleNavResizeStart = (event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -660,16 +694,6 @@ function App() {
                 <span className={`rounded-lg border px-2.5 py-1 ${isProjectDirty ? "border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-300" : "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"}`}>
                   {fileStateLabel}
                 </span>
-                {BUSUANZI_VISIT_STATS_ENABLED ? (
-                  <>
-                    <span id="busuanzi_container_site_pv" className="rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1" style={{ display: "none" }}>
-                      总访问量 <span id="busuanzi_value_site_pv" /> 次
-                    </span>
-                    <span id="busuanzi_container_site_uv" className="rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1" style={{ display: "none" }}>
-                      访客数 <span id="busuanzi_value_site_uv" /> 人
-                    </span>
-                  </>
-                ) : null}
                 {fileStatusMessage ? <span className="truncate opacity-75">{fileStatusMessage}</span> : null}
               </div>
             </div>
@@ -970,12 +994,24 @@ function App() {
         </div>
       </main>
 
+      {BUSUANZI_VISIT_STATS_ENABLED ? (
+        <div aria-hidden="true" style={HIDDEN_VISIT_STATS_STYLE}>
+          <span id="busuanzi_container_site_pv" style={{ display: "none" }}>
+            <span id="busuanzi_value_site_pv" />
+          </span>
+          <span id="busuanzi_container_site_uv" style={{ display: "none" }}>
+            <span id="busuanzi_value_site_uv" />
+          </span>
+        </div>
+      ) : null}
+
       {isSystemSettingsOpen && (
         <SystemSettingsPanel
           compact={isCompactWorkbench}
           releaseNotesHref={RELEASE_NOTES_HREF}
           userManualHref={USER_MANUAL_HREF}
           beamPreviewStyle={project.settings.beamPreviewStyle}
+          visitStats={visitStats}
           onBeamPreviewStyleChange={setBeamPreviewStyle}
           onOpenTemplateLibrary={() => setIsTemplateLibraryOpen(true)}
           onClose={() => setIsSystemSettingsOpen(false)}

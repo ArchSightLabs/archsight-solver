@@ -29,7 +29,7 @@ def build_frame_solution(data: Dict[str, Any], material_name: str) -> Dict[str, 
 
 
 def _solve_frame_structure(request: Dict[str, Any], structure: Dict[str, Any]) -> Dict[str, Any]:
-    assembly = assemble_global_system(structure)
+    assembly = assemble_global_system(structure, solver_backend=request.get("solver_backend", "auto"))
     solved = solve_frame_system(structure, assembly)
     node_results = recover_node_results(
         structure["nodes"],
