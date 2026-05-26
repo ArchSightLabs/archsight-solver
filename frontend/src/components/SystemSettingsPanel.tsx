@@ -26,11 +26,11 @@ const BEAM_PREVIEW_STYLE_OPTIONS: Array<{ label: string; value: BeamPreviewStyle
 ];
 
 function settingButtonClass(compact: boolean) {
-  return `flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200/80 bg-white/70 px-3 py-3 text-left transition-colors hover:border-sky-300/70 hover:bg-slate-50 dark:border-slate-700/80 dark:bg-slate-900/55 dark:hover:border-sky-400/45 dark:hover:bg-sky-400/10 ${compact ? "text-xs" : "text-sm"}`;
+  return `flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200/80 bg-white/70 px-3 py-2.5 text-left transition-colors hover:border-sky-300/70 hover:bg-slate-50 dark:border-slate-700/80 dark:bg-slate-900/55 dark:hover:border-sky-400/45 dark:hover:bg-sky-400/10 ${compact ? "text-xs" : "text-sm"}`;
 }
 
 function iconBoxClass() {
-  return "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200/80 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200";
+  return "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200/80 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200";
 }
 
 function VisitStatsBlock({ stats, visible }: { stats: VisitStats; visible: boolean }) {
@@ -68,17 +68,17 @@ function VisitStatsBlock({ stats, visible }: { stats: VisitStats; visible: boole
               </div>
             </div>
             <div className="text-[11px] font-semibold leading-5 text-muted-foreground">
-              当前构建已启用不蒜子 PV/UV 统计；脚本加载失败不会影响本地建模、求解和导出。
+              已启用 PV/UV 统计。
             </div>
           </div>
         ) : (
           <div className="text-[11px] font-semibold leading-5 text-muted-foreground">
-            当前构建已启用不蒜子 PV/UV 统计，统计结果默认隐藏。
+            已启用，默认隐藏。
           </div>
         )
       ) : (
         <div className="text-[11px] font-semibold leading-5 text-muted-foreground">
-          当前构建未启用第三方访问统计。公开部署需要统计 PV/UV 时，可设置 VITE_ENABLE_BUSUANZI=true。
+          未启用。
         </div>
       )}
     </div>
@@ -104,12 +104,10 @@ export function SystemSettingsPanel({
       onClick={onClose}
     >
       <div
-        className={`ml-auto flex h-[100dvh] w-full flex-col bg-background/95 shadow-2xl ${
-          compact ? "rounded-none border-0" : "max-w-[32rem] border-l border-white/10"
-        }`}
+        className="ml-auto flex h-[100dvh] w-full max-w-[24rem] flex-col border-l border-white/10 bg-background/95 shadow-2xl sm:max-w-[26rem]"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className={`sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-white/10 bg-background/95 backdrop-blur-md ${compact ? "px-4 py-3" : "px-5 py-4"}`}>
+        <div className={`sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-white/10 bg-background/95 backdrop-blur-md ${compact ? "px-4 py-3" : "px-4 py-3.5"}`}>
           <div className="flex min-w-0 items-center gap-3">
             <span className={iconBoxClass()}>
               <Settings className="h-4 w-4" />
@@ -138,10 +136,7 @@ export function SystemSettingsPanel({
             </h3>
             <div className="space-y-3 rounded-lg border border-white/8 bg-white/[0.04] p-3">
               <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-xs font-black">连续梁建模图</div>
-                  <div className="mt-1 text-[11px] font-medium text-muted-foreground">控制中间连续梁建模图的颜色风格。</div>
-                </div>
+                <div className="text-xs font-black">连续梁建模图</div>
                 <span className="rounded-full border border-white/10 px-2.5 py-1 text-[10px] font-bold text-muted-foreground">
                   {beamPreviewStyle === "simple" ? "简图" : "彩色"}
                 </span>
@@ -161,7 +156,7 @@ export function SystemSettingsPanel({
                       }`}
                     >
                       <span className="block text-xs font-black">{option.label}</span>
-                      <span className="mt-1 block text-[10px] font-semibold leading-4 opacity-80">{option.description}</span>
+                      <span className="sr-only">{option.description}</span>
                     </button>
                   );
                 })}
@@ -179,9 +174,6 @@ export function SystemSettingsPanel({
                   </span>
                   <span className="min-w-0">
                     <span className="block truncate font-bold">GitHub 开源仓库</span>
-                    <span className="mt-0.5 block truncate text-[11px] font-semibold text-muted-foreground">
-                      ArchSightLabs/archsight-solver
-                    </span>
                   </span>
                 </span>
                 <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" />
@@ -193,9 +185,6 @@ export function SystemSettingsPanel({
                   </span>
                   <span className="min-w-0">
                     <span className="block truncate font-bold">版本发布记录</span>
-                    <span className="mt-0.5 block truncate text-[11px] font-semibold text-muted-foreground">
-                      v1.0.0 / v1.1.0
-                    </span>
                   </span>
                 </span>
                 <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" />
@@ -239,12 +228,7 @@ export function SystemSettingsPanel({
             <div className="space-y-3">
               <div className="rounded-lg border border-white/8 bg-white/[0.04] p-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <div className="text-sm font-black">ArchSight 结构力学求解器</div>
-                    <div className="mt-1 text-[11px] font-semibold text-muted-foreground">
-                      面向梁系、平面框架、平面桁架线弹性静力分析的开源 Web 工作台。
-                    </div>
-                  </div>
+                  <div className="text-sm font-black">ArchSight Solver</div>
                   <a
                     className="rounded-full border border-sky-400/30 bg-sky-400/10 px-2.5 py-1 font-mono text-[11px] font-black text-sky-700 transition-colors hover:border-sky-400/60 hover:bg-sky-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70 dark:text-sky-200"
                     href={releaseNotesHref}
@@ -255,9 +239,6 @@ export function SystemSettingsPanel({
                     v{APP_VERSION}
                   </a>
                 </div>
-              </div>
-              <div className="rounded-lg border border-white/8 bg-white/[0.04] p-3 text-[11px] font-semibold leading-5 text-muted-foreground">
-                ArchSightLabs 聚焦结构工程计算、工程图形表达与 AI 辅助工程工具链。该求解器用于教学演示、方案阶段复核和工程软件原型验证，不替代规范设计与注册工程师审查。
               </div>
               <VisitStatsBlock stats={visitStats} visible={false} />
             </div>
