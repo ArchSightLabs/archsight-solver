@@ -4,6 +4,10 @@ import json
 from typing import Any, Callable, Dict, Mapping
 
 from backend.capabilities.beam_deflection import _build_solver_payload, _formula_ref, solve_beam_deflection_capability
+from backend.api.sensitivity import build_sensitivity_response
+from backend.api.utils import build_calculation_response
+from backend.benchmarks.catalog import iter_benchmark_cases
+from backend.benchmarks.runner import BenchmarkCaseError, evaluate_benchmark_case_by_id
 from backend.services.beam_workbench import build_solution as build_beam_solution
 from backend.services.frame_workbench import build_solution as build_frame_solution
 from backend.services.truss_workbench import build_solution as build_truss_solution
@@ -197,6 +201,110 @@ def solve_truss_member_force(arguments: Mapping[str, Any]) -> Dict[str, Any]:
         return _error_result(capability_id, f"桁架杆力求解失败: {exc}")
 
 
+def solve_calculate(arguments: Mapping[str, Any]) -> Dict[str, Any]:
+    capability_id = "solver.calculate"
+    try:
+        payload = arguments.get("payload")
+        if not isinstance(payload, Mapping):
+            raise ToolInputError("payload 必须是结构求解输入对象")
+        result = build_calculation_response(dict(payload), operation="calculate")
+        summary = result.get("summary", {})
+        return {
+            "capabilityId": capability_id,
+            "capabilityVersion": CAPABILITY_VERSION,
+            "status": "pass" if summary.get("statusCode") in {None, "PASS"} else "fail",
+            "inputValidated": True,
+            "analysisType": result.get("analysisType"),
+            "summary": summary,
+            "diagnostics": result.get("diagnostics", {}),
+            "results": result.get("results", {}),
+            "warnings": [
+                "通用求解工具返回完整结构分析结果摘要；工程签审仍需人工复核。"
+            ],
+        }
+    except ToolInputError as exc:
+        return _invalid_result(capability_id, str(exc))
+    except Exception as exc:
+        return _error_result(capability_id, f"通用求解失败: {exc}")
+
+
+def solve_sensitivity_analysis(arguments: Mapping[str, Any]) -> Dict[str, Any]:
+    capability_id = "solver.sensitivity_analysis"
+    try:
+        payload = arguments.get("payload")
+        if not isinstance(payload, Mapping):
+            raise ToolInputError("payload 必须是结构求解输入对象")
+        result = build_sensitivity_response(dict(payload))
+        return {
+            "capabilityId": capability_id,
+            "capabilityVersion": CAPABILITY_VERSION,
+            "status": "pass",
+            "inputValidated": True,
+            "responseMetric": result.get("responseMetric"),
+            "responseLabel": result.get("responseLabel"),
+            "responseUnit": result.get("responseUnit"),
+            "variations": result.get("variations", []),
+            "series": result.get("series", []),
+            "warnings": [
+                "敏感性分析仅说明扰动参数对所选响应指标的数值影响，不构成规范设计结论。"
+            ],
+        }
+    except ToolInputError as exc:
+        return _invalid_result(capability_id, str(exc))
+    except Exception as exc:
+        return _error_result(capability_id, f"敏感性分析失败: {exc}")
+
+
+def list_benchmark_cases(arguments: Mapping[str, Any]) -> Dict[str, Any]:
+    capability_id = "solver.benchmark_case_list"
+    category = str(arguments.get("category") or "").strip() or None
+    cases = [
+        {
+            "id": case["id"],
+            "category": case["category"],
+            "title": case["title"],
+            "purpose": case["purpose"],
+            "sourceType": case.get("verification", {}).get("sourceType"),
+            "checkedMetrics": case.get("verification", {}).get("checkedMetrics", []),
+        }
+        for case in iter_benchmark_cases(category)
+    ]
+    return {
+        "capabilityId": capability_id,
+        "capabilityVersion": CAPABILITY_VERSION,
+        "status": "pass",
+        "inputValidated": True,
+        "caseCount": len(cases),
+        "cases": cases,
+        "warnings": [],
+    }
+
+
+def run_benchmark_case(arguments: Mapping[str, Any]) -> Dict[str, Any]:
+    capability_id = "solver.benchmark_case_run"
+    case_id = str(arguments.get("caseId") or "").strip()
+    if not case_id:
+        return _invalid_result(capability_id, "caseId 不能为空")
+    try:
+        result = evaluate_benchmark_case_by_id(case_id)
+        return {
+            "capabilityId": capability_id,
+            "capabilityVersion": CAPABILITY_VERSION,
+            "status": result["status"],
+            "inputValidated": True,
+            "caseId": result["caseId"],
+            "category": result["category"],
+            "title": result["title"],
+            "checks": result["checks"],
+            "verification": result["verification"],
+            "warnings": [],
+        }
+    except BenchmarkCaseError as exc:
+        return _invalid_result(capability_id, str(exc))
+    except Exception as exc:
+        return _error_result(capability_id, f"基准算例执行失败: {exc}")
+
+
 ToolHandler = Callable[[Mapping[str, Any]], Dict[str, Any]]
 
 TOOL_HANDLERS: Dict[str, ToolHandler] = {
@@ -204,6 +312,10 @@ TOOL_HANDLERS: Dict[str, ToolHandler] = {
     "beam_deflection_serviceability_check": solve_beam_deflection_serviceability_check,
     "frame_displacement": solve_frame_displacement,
     "truss_member_force": solve_truss_member_force,
+    "calculate": solve_calculate,
+    "sensitivity_analysis": solve_sensitivity_analysis,
+    "benchmark_case_list": list_benchmark_cases,
+    "benchmark_case_run": run_benchmark_case,
 }
 
 

@@ -221,94 +221,92 @@ def _truss_metric_value(payload, response_metric):
 def sensitivity():
     data = request.json or {}
     try:
-        analysis_type = get_analysis_type(data)
-        config = data.get("config", {})
-        range_percent = float(config.get("range", 20))
-        steps = int(config.get("steps", 10))
-        if range_percent < 0 or range_percent > MAX_VARIATION_RANGE_PERCENT:
-            raise ApiError(
-                f"敏感性分析扰动范围必须位于 0 到 {int(MAX_VARIATION_RANGE_PERCENT)}% 之间",
-                code="COMMON_INVALID_SENSITIVITY_CONFIG",
-            )
-        if steps < 1 or steps > MAX_VARIATION_STEPS:
-            raise ApiError(
-                f"敏感性分析步数必须位于 1 到 {MAX_VARIATION_STEPS} 之间",
-                code="COMMON_INVALID_SENSITIVITY_CONFIG",
-            )
-        range_val = range_percent / 100.0
-        requested_metric = str(config.get("responseMetric") or "").strip().lower()
-        variations = np.linspace(-range_val, range_val, steps + 1).tolist()
-
-        if analysis_type == "frame":
-            response_metric, response_label, response_unit = _resolve_response_meta(
-                metric=requested_metric,
-                mapping=FRAME_RESPONSE_META,
-                default_metric="max_ux",
-            )
-            values_by_key = {key: [] for key, _, _ in FRAME_SERIES_META}
-            for v in variations:
-                factor = 1 + v
-                for key, _, _ in FRAME_SERIES_META:
-                    values_by_key[key].append(_frame_metric_value(_scale_frame_payload(data, key, factor), response_metric))
-
-            return jsonify(
-                _build_response(
-                    variations=variations,
-                    response_metric=response_metric,
-                    response_label=response_label,
-                    response_unit=response_unit,
-                    meta=FRAME_SERIES_META,
-                    values_by_key=values_by_key,
-                )
-            )
-
-        if analysis_type == "truss":
-            response_metric, response_label, response_unit = _resolve_response_meta(
-                metric=requested_metric,
-                mapping=TRUSS_RESPONSE_META,
-                default_metric="max_node_displacement",
-            )
-            values_by_key = {key: [] for key, _, _ in TRUSS_SERIES_META}
-            for v in variations:
-                factor = 1 + v
-                for key, _, _ in TRUSS_SERIES_META:
-                    values_by_key[key].append(_truss_metric_value(_scale_truss_payload(data, key, factor), response_metric))
-
-            return jsonify(
-                _build_response(
-                    variations=variations,
-                    response_metric=response_metric,
-                    response_label=response_label,
-                    response_unit=response_unit,
-                    meta=TRUSS_SERIES_META,
-                    values_by_key=values_by_key,
-                )
-            )
-
-        target_span_index = int(data.get("targetSpanIndex", 0))
-        response_metric, response_label, response_unit = _resolve_response_meta(
-            metric=requested_metric,
-            mapping=BEAM_RESPONSE_META,
-            default_metric="max_deflection",
-        )
-        values_by_key = {key: [] for key, _, _ in BEAM_SERIES_META}
-        for v in variations:
-            factor = 1 + v
-            for key, _, _ in BEAM_SERIES_META:
-                values_by_key[key].append(_beam_metric_value(_scale_beam_payload(data, key, factor), target_span_index, response_metric))
-
-        return jsonify(
-            _build_response(
-                variations=variations,
-                response_metric=response_metric,
-                response_label=response_label,
-                response_unit=response_unit,
-                meta=BEAM_SERIES_META,
-                values_by_key=values_by_key,
-            )
-        )
+        return jsonify(build_sensitivity_response(data))
     except ApiError as exc:
         return jsonify(error_payload(exc, operation="sensitivity", data=data)), exc.status_code
     except Exception as exc:
         traceback.print_exc()
         return jsonify(error_payload(f"敏感性分析失败: {str(exc)}", operation="sensitivity", data=data)), 400
+
+
+def build_sensitivity_response(data):
+    analysis_type = get_analysis_type(data)
+    config = data.get("config", {})
+    range_percent = float(config.get("range", 20))
+    steps = int(config.get("steps", 10))
+    if range_percent < 0 or range_percent > MAX_VARIATION_RANGE_PERCENT:
+        raise ApiError(
+            f"敏感性分析扰动范围必须位于 0 到 {int(MAX_VARIATION_RANGE_PERCENT)}% 之间",
+            code="COMMON_INVALID_SENSITIVITY_CONFIG",
+        )
+    if steps < 1 or steps > MAX_VARIATION_STEPS:
+        raise ApiError(
+            f"敏感性分析步数必须位于 1 到 {MAX_VARIATION_STEPS} 之间",
+            code="COMMON_INVALID_SENSITIVITY_CONFIG",
+        )
+    range_val = range_percent / 100.0
+    requested_metric = str(config.get("responseMetric") or "").strip().lower()
+    variations = np.linspace(-range_val, range_val, steps + 1).tolist()
+
+    if analysis_type == "frame":
+        response_metric, response_label, response_unit = _resolve_response_meta(
+            metric=requested_metric,
+            mapping=FRAME_RESPONSE_META,
+            default_metric="max_ux",
+        )
+        values_by_key = {key: [] for key, _, _ in FRAME_SERIES_META}
+        for v in variations:
+            factor = 1 + v
+            for key, _, _ in FRAME_SERIES_META:
+                values_by_key[key].append(_frame_metric_value(_scale_frame_payload(data, key, factor), response_metric))
+
+        return _build_response(
+            variations=variations,
+            response_metric=response_metric,
+            response_label=response_label,
+            response_unit=response_unit,
+            meta=FRAME_SERIES_META,
+            values_by_key=values_by_key,
+        )
+
+    if analysis_type == "truss":
+        response_metric, response_label, response_unit = _resolve_response_meta(
+            metric=requested_metric,
+            mapping=TRUSS_RESPONSE_META,
+            default_metric="max_node_displacement",
+        )
+        values_by_key = {key: [] for key, _, _ in TRUSS_SERIES_META}
+        for v in variations:
+            factor = 1 + v
+            for key, _, _ in TRUSS_SERIES_META:
+                values_by_key[key].append(_truss_metric_value(_scale_truss_payload(data, key, factor), response_metric))
+
+        return _build_response(
+            variations=variations,
+            response_metric=response_metric,
+            response_label=response_label,
+            response_unit=response_unit,
+            meta=TRUSS_SERIES_META,
+            values_by_key=values_by_key,
+        )
+
+    target_span_index = int(data.get("targetSpanIndex", 0))
+    response_metric, response_label, response_unit = _resolve_response_meta(
+        metric=requested_metric,
+        mapping=BEAM_RESPONSE_META,
+        default_metric="max_deflection",
+    )
+    values_by_key = {key: [] for key, _, _ in BEAM_SERIES_META}
+    for v in variations:
+        factor = 1 + v
+        for key, _, _ in BEAM_SERIES_META:
+            values_by_key[key].append(_beam_metric_value(_scale_beam_payload(data, key, factor), target_span_index, response_metric))
+
+    return _build_response(
+        variations=variations,
+        response_metric=response_metric,
+        response_label=response_label,
+        response_unit=response_unit,
+        meta=BEAM_SERIES_META,
+        values_by_key=values_by_key,
+    )

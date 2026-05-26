@@ -16,6 +16,7 @@ dependencies = [
 
 [project.scripts]
 archsight-solver-beam-deflection = "backend.capabilities.beam_deflection:main"
+archsight-solver-tool = "backend.capabilities.solver_cli:main"
 archsight-solver-mcp = "backend.capabilities.mcp_server:main"
 
 [dependency-groups]

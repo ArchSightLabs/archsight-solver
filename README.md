@@ -97,6 +97,16 @@ python -m pytest backend/tests -q
 npm --prefix frontend run test:unit
 ```
 
+### 异步 API 与契约
+
+长计算或 Agent 批量调用可使用异步作业入口：
+
+```powershell
+Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:6240/api/jobs" -ContentType "application/json" -Body '{"operation":"calculate","payload":{"beamType":"simply_supported","loadType":"uniform","q":12,"E":206,"I":85000,"spans":[6]}}'
+```
+
+机器可读 JSON Schema 可通过 `/api/contracts/schemas` 获取，覆盖同步求解、异步作业、CLI 与 MCP 工具输入输出契约。
+
 ### 本地工具调用
 
 梁挠度求解可作为本地命令行工具调用：
@@ -125,6 +135,22 @@ python -m backend.capabilities.mcp_server
 - `beam_deflection_serviceability_check`：梁挠度正常使用限值校核，当前不做强度、稳定或规范承载力设计。
 - `frame_displacement`：二维平面框架位移求解。
 - `truss_member_force`：二维平面桁架杆件轴力求解。
+- `calculate`：通用结构求解，复用 `/api/calculate` 链路。
+- `sensitivity_analysis`：参数敏感性分析。
+- `benchmark_case_list`：列出公开验证集算例。
+- `benchmark_case_run`：执行公开验证集算例并返回误差结论。
+
+通用 CLI 入口：
+
+```powershell
+'{"caseId":"BM-001"}' | python -m backend.capabilities.solver_cli benchmark_case_run --pretty
+```
+
+公开验证集报告：
+
+```powershell
+python -m backend.benchmarks.report --output docs/verification/benchmark-validation-report.md
+```
 
 ### Docker 镜像打包
 
@@ -256,6 +282,8 @@ Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:6240/api/calculate" -Conte
 
 更完整的阶段说明见：
 
+- [ArchSight Structural Solver API Reference](docs/api-reference.md)
+- [ASMS-JSON 结构力学数据协议](docs/structural-model-protocol.md)
 - [开源结构力学求解器路线图与对标计划](docs/open-source-structure-solver-roadmap.md)
 - [架构收口状态](docs/architecture-maintenance-status.md)
 - [项目定位与开源价值总结](docs/project-positioning-summary.md)

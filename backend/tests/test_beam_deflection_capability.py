@@ -73,3 +73,19 @@ def test_beam_deflection_cli_returns_json_for_invalid_json():
 
     assert result["status"] == "invalid_input"
     assert result["inputValidated"] is False
+
+
+def test_general_solver_cli_runs_benchmark_tool():
+    completed = subprocess.run(
+        [sys.executable, "-m", "backend.capabilities.solver_cli", "benchmark_case_run"],
+        input=json.dumps({"caseId": "BM-001"}, ensure_ascii=False),
+        text=True,
+        encoding="utf-8",
+        capture_output=True,
+        check=True,
+    )
+
+    result = json.loads(completed.stdout)
+
+    assert result["status"] == "pass"
+    assert result["caseId"] == "BM-001"

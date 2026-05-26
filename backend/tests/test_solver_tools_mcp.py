@@ -6,8 +6,12 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from backend.capabilities.solver_tools import (
+    list_benchmark_cases,
+    run_benchmark_case,
+    solve_calculate,
     solve_beam_deflection_serviceability_check,
     solve_frame_displacement,
+    solve_sensitivity_analysis,
     solve_truss_member_force,
 )
 from backend.tests.test_frame_workbench import frame_payload
@@ -55,6 +59,36 @@ def test_truss_member_force_returns_control_and_target_member():
     assert abs(result["targetMember"]["axialForceKn"]) > 0
 
 
+def test_calculate_tool_returns_unified_summary():
+    result = solve_calculate({"payload": {"beamType": "simply_supported", "loadType": "uniform", "q": 12, "E": 206, "I": 85000, "spans": [6]}})
+
+    assert result["capabilityId"] == "solver.calculate"
+    assert result["status"] == "pass"
+    assert result["analysisType"] == "beam"
+    assert result["summary"]["statusCode"] == "PASS"
+
+
+def test_sensitivity_tool_returns_response_metric():
+    payload = {"beamType": "simply_supported", "loadType": "uniform", "q": 12, "E": 206, "I": 85000, "spans": [6], "config": {"steps": 2}}
+    result = solve_sensitivity_analysis({"payload": payload})
+
+    assert result["capabilityId"] == "solver.sensitivity_analysis"
+    assert result["status"] == "pass"
+    assert result["responseLabel"] == "最大挠度"
+    assert len(result["variations"]) == 3
+
+
+def test_benchmark_tools_list_and_run_cases():
+    listed = list_benchmark_cases({"category": "frame-beam-verify"})
+    assert listed["status"] == "pass"
+    assert any(case["id"] == "BM-001" for case in listed["cases"])
+
+    result = run_benchmark_case({"caseId": "BM-001"})
+    assert result["capabilityId"] == "solver.benchmark_case_run"
+    assert result["status"] == "pass"
+    assert any(check["metric"] == "跨中挠度(mm)" for check in result["checks"])
+
+
 def test_mcp_server_lists_and_calls_tools_over_stdio():
     messages = [
         {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18"}},
@@ -84,7 +118,14 @@ def test_mcp_server_lists_and_calls_tools_over_stdio():
         "beam_deflection_serviceability_check",
         "frame_displacement",
         "truss_member_force",
+        "calculate",
+        "sensitivity_analysis",
+        "benchmark_case_list",
+        "benchmark_case_run",
     } <= tool_names
+    tool_defs = {tool["name"]: tool for tool in responses[1]["result"]["tools"]}
+    assert tool_defs["calculate"]["annotations"]["readOnlyHint"] is True
+    assert tool_defs["benchmark_case_run"]["outputSchema"]["title"] == "确定性求解能力输出"
     call_result = responses[2]["result"]
     assert call_result["isError"] is False
     assert call_result["structuredContent"]["capabilityId"] == "solver.beam_deflection_serviceability_check"
@@ -115,3 +156,31 @@ def test_mcp_server_rejects_arguments_before_tool_call_when_schema_fails():
     assert call_result["isError"] is True
     assert call_result["structuredContent"]["status"] == "invalid_input"
     assert "arguments.deflectionLimitRatio 必须是 number" in call_result["content"][0]["text"]
+
+
+def test_mcp_server_exposes_resources_and_prompts_over_stdio():
+    messages = [
+        {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18"}},
+        {"jsonrpc": "2.0", "id": 2, "method": "resources/list"},
+        {"jsonrpc": "2.0", "id": 3, "method": "resources/read", "params": {"uri": "archsight://benchmark/catalog"}},
+        {"jsonrpc": "2.0", "id": 4, "method": "prompts/list"},
+        {"jsonrpc": "2.0", "id": 5, "method": "prompts/get", "params": {"name": "benchmark-validation-review", "arguments": {"caseId": "BM-001"}}},
+    ]
+    completed = subprocess.run(
+        [sys.executable, "-m", "backend.capabilities.mcp_server"],
+        input="\n".join(json.dumps(message, ensure_ascii=False) for message in messages) + "\n",
+        text=True,
+        encoding="utf-8",
+        capture_output=True,
+        check=True,
+    )
+
+    responses = [json.loads(line) for line in completed.stdout.splitlines()]
+
+    assert responses[0]["result"]["capabilities"]["resources"]["listChanged"] is False
+    resource_uris = {resource["uri"] for resource in responses[1]["result"]["resources"]}
+    assert "archsight://benchmark/catalog" in resource_uris
+    assert "BM-001" in responses[2]["result"]["contents"][0]["text"]
+    prompt_names = {prompt["name"] for prompt in responses[3]["result"]["prompts"]}
+    assert "benchmark-validation-review" in prompt_names
+    assert "benchmark_case_run" in responses[4]["result"]["messages"][0]["content"]["text"]

@@ -1,0 +1,41 @@
+# ArchSight Solver 公开验证集报告
+
+- 算例目录版本：2026-05-26
+- 算例数量：12
+- 通过数量：12
+- 未通过数量：0
+- 来源类型：independent-fea, textbook-analytical
+
+## 结论
+
+当前公开验证集覆盖梁系、二维平面框架、二维平面桁架和框架梁等基础力学场景。每个算例均保留标准值、容许误差和验证来源元数据，可作为 CI 回归门禁与对外专业可信度材料。
+
+## 算例明细
+
+| 算例 | 类型 | 状态 | 关键校核 |
+|---|---|---|---|
+| `beam-simply-supported-uniform` | beam | 通过 | 支座数量=2（标准 2）；最大挠度(mm)=1.1565（标准 1.1565）；最大挠度位置(m)=3.0（标准 3） |
+| `beam-cantilever-uniform` | beam | 通过 | 支座数量=1（标准 1）；最大挠度(mm)=7.3403（标准 7.3403）；最大挠度位置(m)=5.0（标准 5） |
+| `beam-simply-supported-center-point` | beam | 通过 | 支座数量=2（标准 2）；最大挠度(mm)=11.25（标准 11.25）；最大挠度位置(m)=3.0（标准 3） |
+| `beam-cantilever-end-point` | beam | 通过 | 支座数量=1（标准 1）；最大挠度(mm)=26.6667（标准 26.6667）；最大挠度位置(m)=4.0（标准 4） |
+| `frame-portal-benchmark` | frame | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；构件数量=3（标准 3） |
+| `frame-portal-rotational-spring` | frame | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；构件数量=3（标准 3） |
+| `truss-simple-roof` | truss | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；杆件数量=5（标准 5） |
+| `frame-explicit-two-bay` | frame | 通过 | 状态码=PASS（标准 PASS）；节点数量=6（标准 6）；构件数量=5（标准 5） |
+| `truss-pratt-roof` | truss | 通过 | 状态码=PASS（标准 PASS）；节点数量=7（标准 7）；杆件数量=11（标准 11） |
+| `BM-001` | frame-beam-verify | 通过 | 节点数量=3（标准 3）；构件数量=2（标准 2）；最大构件弯矩(kN·m)=150.0（标准 150） |
+| `BM-003` | frame-beam-verify | 通过 | 节点数量=2（标准 2）；构件数量=1（标准 1）；最大构件弯矩(kN·m)=40.0（标准 40） |
+| `BM-002` | truss-verify | 通过 | 状态码=PASS（标准 PASS）；节点数量=3（标准 3）；杆件数量=3（标准 3） |
+
+## 使用方式
+
+```powershell
+python -m pytest backend/tests/test_benchmark_cases.py backend/tests/test_benchmark_runner.py -q
+python -m backend.benchmarks.report --output docs/verification/benchmark-validation-report.md
+```
+
+## 专业边界
+
+- 本报告证明当前求解器在公开验证集覆盖范围内满足数值回归阈值，不等同于所有结构设计场景的规范合规结论。
+- 工程签审、施工安全专项方案和地区规范适用性仍需注册结构工程师或企业技术负责人复核。
+- 后续新增商业软件对标算例时，应记录软件名称、版本、单元类型、单位制和模型文件来源。

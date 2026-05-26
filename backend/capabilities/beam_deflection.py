@@ -178,6 +178,11 @@ def solve_beam_deflection_capability(payload: Mapping[str, Any]) -> Dict[str, An
 
 
 def main(argv: list[str] | None = None) -> int:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", newline="\n")
+    if hasattr(sys.stdin, "reconfigure"):
+        sys.stdin.reconfigure(encoding="utf-8")
+
     parser = argparse.ArgumentParser(description="Run solver.beam_deflection capability locally.")
     parser.add_argument("--input", "-i", help="输入 JSON 文件路径；省略或使用 - 时从 stdin 读取。")
     parser.add_argument("--pretty", action="store_true", help="格式化输出 JSON，便于人工查看。")

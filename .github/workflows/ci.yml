@@ -27,6 +27,9 @@ jobs:
       - name: Run backend tests
         run: uv run python -m pytest backend/tests -q
 
+      - name: Generate benchmark validation report
+        run: uv run python -m backend.benchmarks.report --output /tmp/benchmark-validation-report.md
+
   frontend:
     name: Frontend Checks
     runs-on: ubuntu-latest

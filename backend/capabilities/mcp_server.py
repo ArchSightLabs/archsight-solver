@@ -2,75 +2,37 @@ from __future__ import annotations
 
 import json
 import sys
+from pathlib import Path
 from typing import Any, Dict, Mapping
 
+from backend.benchmarks.catalog import load_benchmark_catalog
 from backend.capabilities.solver_tools import TOOL_HANDLERS, tool_result_text
+from backend.contracts.json_schemas import (
+    BEAM_DEFLECTION_INPUT_SCHEMA,
+    BEAM_SERVICEABILITY_INPUT_SCHEMA,
+    BENCHMARK_CASE_LIST_INPUT_SCHEMA,
+    BENCHMARK_CASE_RUN_INPUT_SCHEMA,
+    CALCULATE_TOOL_INPUT_SCHEMA,
+    CAPABILITY_RESULT_SCHEMA,
+    FRAME_TOOL_INPUT_SCHEMA,
+    SENSITIVITY_TOOL_INPUT_SCHEMA,
+    TRUSS_TOOL_INPUT_SCHEMA,
+    schema_registry,
+)
 
 PROTOCOL_VERSION = "2025-06-18"
 SERVER_NAME = "archsight-solver-mcp"
 SERVER_VERSION = "0.1.0"
 
-QUANTITY_SCHEMA = {
-    "type": "object",
-    "required": ["value", "unit"],
-    "properties": {
-        "value": {"type": "number"},
-        "unit": {"type": "string"},
-    },
-}
+ROOT = Path(__file__).resolve().parents[2]
+BENCHMARK_DOC_PATH = ROOT / "docs" / "verification" / "benchmark-validation-suite.md"
+RUNTIME_DOC_PATH = ROOT / "docs" / "aios-runtime-integration.md"
 
-LOAD_SCHEMA = {
-    "type": "object",
-    "required": ["value", "unit", "case"],
-    "properties": {
-        "value": {"type": "number"},
-        "unit": {"type": "string"},
-        "case": {"type": "string", "enum": ["uniform", "udl"]},
-    },
-}
-
-BEAM_DEFLECTION_SCHEMA = {
-    "type": "object",
-    "required": ["span", "elasticModulus", "secondMomentOfArea", "load"],
-    "properties": {
-        "span": {**QUANTITY_SCHEMA, "description": "跨度，例如 {value: 6, unit: 'm'}"},
-        "elasticModulus": {**QUANTITY_SCHEMA, "description": "弹性模量，例如 {value: 210, unit: 'GPa'}"},
-        "secondMomentOfArea": {**QUANTITY_SCHEMA, "description": "截面惯性矩，例如 {value: 4500, unit: 'cm4'}"},
-        "load": {**LOAD_SCHEMA, "description": "均布荷载，例如 {value: 10, unit: 'kN/m', case: 'uniform'}"},
-        "boundaryCondition": {"type": "string", "enum": ["simply_supported", "cantilever", "continuous"]},
-    },
-}
-
-BEAM_SERVICEABILITY_SCHEMA = {
-    **BEAM_DEFLECTION_SCHEMA,
-    "properties": {
-        **BEAM_DEFLECTION_SCHEMA["properties"],
-        "deflectionLimitRatio": {"type": "number", "default": 250},
-    },
-}
-
-FRAME_TOOL_SCHEMA = {
-    "type": "object",
-    "anyOf": [{"required": ["payload"]}, {"required": ["structure"]}],
-    "properties": {
-        "payload": {"type": "object", "description": "完整 frame API payload。"},
-        "structure": {"type": "object", "description": "frame payload 中的 structure 对象。"},
-        "targetNodeId": {"type": "string", "description": "可选，返回指定节点位移结果。"},
-        "materialId": {"type": "string"},
-        "projectName": {"type": "string"},
-    },
-}
-
-TRUSS_TOOL_SCHEMA = {
-    "type": "object",
-    "anyOf": [{"required": ["payload"]}, {"required": ["structure"]}],
-    "properties": {
-        "payload": {"type": "object", "description": "完整 truss API payload。"},
-        "structure": {"type": "object", "description": "truss payload 中的 structure 对象。"},
-        "targetMemberId": {"type": "string", "description": "可选，返回指定杆件轴力结果。"},
-        "materialId": {"type": "string"},
-        "projectName": {"type": "string"},
-    },
+READ_ONLY_ANNOTATIONS = {
+    "readOnlyHint": True,
+    "destructiveHint": False,
+    "idempotentHint": True,
+    "openWorldHint": False,
 }
 
 
@@ -79,29 +41,115 @@ TOOL_DEFINITIONS = [
         "name": "beam_deflection",
         "title": "梁挠度计算",
         "description": "计算单跨梁在均布荷载下的最大绝对挠度，返回本地工具结果。",
-        "inputSchema": BEAM_DEFLECTION_SCHEMA,
+        "inputSchema": BEAM_DEFLECTION_INPUT_SCHEMA,
+        "outputSchema": CAPABILITY_RESULT_SCHEMA,
+        "annotations": {**READ_ONLY_ANNOTATIONS, "title": "梁挠度计算"},
     },
     {
         "name": "beam_deflection_serviceability_check",
         "title": "梁挠度限值校核",
         "description": "按挠度限值比执行梁正常使用校核，当前不执行强度或稳定设计。",
-        "inputSchema": BEAM_SERVICEABILITY_SCHEMA,
+        "inputSchema": BEAM_SERVICEABILITY_INPUT_SCHEMA,
+        "outputSchema": CAPABILITY_RESULT_SCHEMA,
+        "annotations": {**READ_ONLY_ANNOTATIONS, "title": "梁挠度限值校核"},
     },
     {
         "name": "frame_displacement",
         "title": "平面框架位移求解",
         "description": "调用现有二维平面框架刚度法求解，返回最大位移、控制节点和内力控制摘要。",
-        "inputSchema": FRAME_TOOL_SCHEMA,
+        "inputSchema": FRAME_TOOL_INPUT_SCHEMA,
+        "outputSchema": CAPABILITY_RESULT_SCHEMA,
+        "annotations": {**READ_ONLY_ANNOTATIONS, "title": "平面框架位移求解"},
     },
     {
         "name": "truss_member_force",
         "title": "平面桁架杆件轴力求解",
         "description": "调用现有二维平面桁架杆单元法求解，返回最大轴力、控制杆件和指定杆件结果。",
-        "inputSchema": TRUSS_TOOL_SCHEMA,
+        "inputSchema": TRUSS_TOOL_INPUT_SCHEMA,
+        "outputSchema": CAPABILITY_RESULT_SCHEMA,
+        "annotations": {**READ_ONLY_ANNOTATIONS, "title": "平面桁架杆件轴力求解"},
+    },
+    {
+        "name": "calculate",
+        "title": "通用结构求解",
+        "description": "调用 /api/calculate 同源计算链路，支持梁系、平面框架和平面桁架 payload。",
+        "inputSchema": CALCULATE_TOOL_INPUT_SCHEMA,
+        "outputSchema": CAPABILITY_RESULT_SCHEMA,
+        "annotations": {**READ_ONLY_ANNOTATIONS, "title": "通用结构求解"},
+    },
+    {
+        "name": "sensitivity_analysis",
+        "title": "参数敏感性分析",
+        "description": "调用敏感性分析链路，返回扰动参数、响应指标和曲线数据。",
+        "inputSchema": SENSITIVITY_TOOL_INPUT_SCHEMA,
+        "outputSchema": CAPABILITY_RESULT_SCHEMA,
+        "annotations": {**READ_ONLY_ANNOTATIONS, "title": "参数敏感性分析"},
+    },
+    {
+        "name": "benchmark_case_list",
+        "title": "基准算例列表",
+        "description": "列出公开验证集中的基准算例及其来源类型、校核指标。",
+        "inputSchema": BENCHMARK_CASE_LIST_INPUT_SCHEMA,
+        "outputSchema": CAPABILITY_RESULT_SCHEMA,
+        "annotations": {**READ_ONLY_ANNOTATIONS, "title": "基准算例列表"},
+    },
+    {
+        "name": "benchmark_case_run",
+        "title": "执行基准算例",
+        "description": "按 caseId 执行公开验证集算例，并返回实际值、标准值、容许误差和通过状态。",
+        "inputSchema": BENCHMARK_CASE_RUN_INPUT_SCHEMA,
+        "outputSchema": CAPABILITY_RESULT_SCHEMA,
+        "annotations": {**READ_ONLY_ANNOTATIONS, "title": "执行基准算例"},
     },
 ]
 
 TOOL_SCHEMAS = {tool["name"]: tool["inputSchema"] for tool in TOOL_DEFINITIONS}
+
+RESOURCE_DEFINITIONS = [
+    {
+        "uri": "archsight://schemas",
+        "name": "json-schemas",
+        "title": "ArchSight Solver JSON Schema Registry",
+        "description": "结构求解 API、异步作业和 MCP 能力输入输出契约。",
+        "mimeType": "application/json",
+    },
+    {
+        "uri": "archsight://benchmark/catalog",
+        "name": "benchmark-catalog",
+        "title": "公开验证集算例目录",
+        "description": "梁系、平面框架、平面桁架基准算例及验证元数据。",
+        "mimeType": "application/json",
+    },
+    {
+        "uri": "archsight://docs/benchmark-validation",
+        "name": "benchmark-validation-doc",
+        "title": "公开验证集说明",
+        "description": "面向工程可信度和销售材料的验证集说明。",
+        "mimeType": "text/markdown",
+    },
+    {
+        "uri": "archsight://docs/aios-runtime-integration",
+        "name": "aios-runtime-integration",
+        "title": "AIOS 调用层设计",
+        "description": "API、CLI、MCP 三种调用路径与风险取舍。",
+        "mimeType": "text/markdown",
+    },
+]
+
+PROMPT_DEFINITIONS = [
+    {
+        "name": "solver-capability-call",
+        "title": "结构求解 Capability 调用",
+        "description": "把自然语言工况整理成确定性求解器输入，并保留缺失条件。",
+        "arguments": [{"name": "task", "description": "结构计算任务或工况描述。", "required": True}],
+    },
+    {
+        "name": "benchmark-validation-review",
+        "title": "验证集复核报告",
+        "description": "基于 benchmark_case_run 结果生成专业复核摘要。",
+        "arguments": [{"name": "caseId", "description": "基准算例 ID。", "required": True}],
+    },
+]
 
 
 class SchemaValidationError(ValueError):
@@ -181,6 +229,10 @@ def _validate_schema(value: Any, schema: Mapping[str, Any], path: str = "argumen
         for key, property_schema in properties.items():
             if key in value and isinstance(property_schema, Mapping):
                 _validate_schema(value[key], property_schema, f"{path}.{key}")
+    if schema.get("additionalProperties") is False and isinstance(properties, Mapping):
+        extra_keys = sorted(set(value) - set(properties))
+        if extra_keys:
+            raise SchemaValidationError(f"{path} 包含未声明字段: {', '.join(extra_keys)}")
 
 
 def _invalid_tool_call(name: str, message: str) -> Dict[str, Any]:
@@ -224,6 +276,73 @@ def _call_tool(params: Mapping[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _read_text_or_placeholder(path: Path, placeholder: str) -> str:
+    if path.exists():
+        return path.read_text(encoding="utf-8")
+    return placeholder
+
+
+def _read_resource(uri: str) -> Dict[str, Any]:
+    if uri == "archsight://schemas":
+        text = json.dumps(schema_registry(), ensure_ascii=False, indent=2, sort_keys=True)
+        mime_type = "application/json"
+    elif uri == "archsight://benchmark/catalog":
+        text = json.dumps(load_benchmark_catalog(), ensure_ascii=False, indent=2, sort_keys=True)
+        mime_type = "application/json"
+    elif uri == "archsight://docs/benchmark-validation":
+        text = _read_text_or_placeholder(BENCHMARK_DOC_PATH, "公开验证集说明文档尚未生成。")
+        mime_type = "text/markdown"
+    elif uri == "archsight://docs/aios-runtime-integration":
+        text = _read_text_or_placeholder(RUNTIME_DOC_PATH, "AIOS 调用层设计文档尚未生成。")
+        mime_type = "text/markdown"
+    else:
+        raise SchemaValidationError(f"未知资源: {uri}")
+    return {"contents": [{"uri": uri, "mimeType": mime_type, "text": text}]}
+
+
+def _get_prompt(params: Mapping[str, Any]) -> Dict[str, Any]:
+    name = str(params.get("name") or "")
+    arguments = params.get("arguments") or {}
+    if not isinstance(arguments, Mapping):
+        arguments = {}
+    if name == "solver-capability-call":
+        task = str(arguments.get("task") or "").strip() or "请整理结构计算任务。"
+        return {
+            "description": "结构求解 Capability 调用提示词",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": {
+                        "type": "text",
+                        "text": (
+                            "请将以下结构计算任务转换为 ArchSight Solver 的确定性工具调用输入。"
+                            "必须保留单位、荷载、边界条件和缺失项，不得由大模型自行口算关键数值。\n\n"
+                            f"任务：{task}"
+                        ),
+                    },
+                }
+            ],
+        }
+    if name == "benchmark-validation-review":
+        case_id = str(arguments.get("caseId") or "").strip() or "<caseId>"
+        return {
+            "description": "验证集复核报告提示词",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": {
+                        "type": "text",
+                        "text": (
+                            f"请调用 benchmark_case_run，caseId={case_id}，并用专业简体中文输出："
+                            "算例来源、校核指标、误差结论、风险边界和是否可作为公开背书材料。"
+                        ),
+                    },
+                }
+            ],
+        }
+    raise SchemaValidationError(f"未知 prompt: {name}")
+
+
 def handle_message(message: Mapping[str, Any]) -> Dict[str, Any] | None:
     request_id = message.get("id")
     method = message.get("method")
@@ -235,7 +354,11 @@ def handle_message(message: Mapping[str, Any]) -> Dict[str, Any] | None:
             request_id,
             {
                 "protocolVersion": PROTOCOL_VERSION,
-                "capabilities": {"tools": {"listChanged": False}},
+                "capabilities": {
+                    "tools": {"listChanged": False},
+                    "resources": {"listChanged": False},
+                    "prompts": {"listChanged": False},
+                },
                 "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION},
             },
         )
@@ -247,6 +370,24 @@ def handle_message(message: Mapping[str, Any]) -> Dict[str, Any] | None:
         if not isinstance(params, Mapping):
             return _error(request_id, -32602, "tools/call params 必须是 object")
         return _response(request_id, _call_tool(params))
+    if method == "resources/list":
+        return _response(request_id, {"resources": RESOURCE_DEFINITIONS})
+    if method == "resources/read":
+        if not isinstance(params, Mapping):
+            return _error(request_id, -32602, "resources/read params 必须是 object")
+        try:
+            return _response(request_id, _read_resource(str(params.get("uri") or "")))
+        except SchemaValidationError as exc:
+            return _error(request_id, -32602, str(exc))
+    if method == "prompts/list":
+        return _response(request_id, {"prompts": PROMPT_DEFINITIONS})
+    if method == "prompts/get":
+        if not isinstance(params, Mapping):
+            return _error(request_id, -32602, "prompts/get params 必须是 object")
+        try:
+            return _response(request_id, _get_prompt(params))
+        except SchemaValidationError as exc:
+            return _error(request_id, -32602, str(exc))
     return _error(request_id, -32601, f"Method not found: {method}")
 
 
