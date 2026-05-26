@@ -11,7 +11,6 @@
 - 新增公开 benchmark catalog、runner、report，并在 CI 中生成验证报告。
 - 新增 API Reference、ASMS-JSON 结构力学数据协议、AIOS 集成文档和 benchmark 验证报告。
 - 引入 SciPy sparse 求解后端、跨数上限配置、输出精度控制和求解器诊断，增强大跨数与大自由度模型支撑。
-- 修复公开部署构建参数传递，前端版本号更新为 v1.1.0。
 
 ## v1.0.0
 
