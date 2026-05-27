@@ -20,6 +20,10 @@ LIGHT: Color = (226, 232, 240)
 GRID: Color = (203, 213, 225)
 INK: Color = (15, 23, 42)
 WHITE: Color = (255, 255, 255)
+TEAL: Color = (15, 118, 110)
+BEAM_DARK: Color = (47, 95, 143)
+SUPPORT_FILL: Color = (214, 222, 232)
+LOAD_INK: Color = (51, 65, 85)
 
 
 @dataclass
@@ -204,46 +208,65 @@ def bar_chart_png(values: Sequence[Any], colors: Optional[Sequence[Color]] = Non
 
 
 def beam_preview_png(beam: Dict[str, Any]) -> bytes:
-    canvas = Canvas(900, 360)
-    left, right, y0 = 70, 840, 150
+    canvas = Canvas(1000, 300)
+    left, right, y0 = 80, 920, 150
     total = float(beam.get("totalLength") or sum(beam.get("spans", []) or [1.0]) or 1.0)
 
     def sx(x: float) -> float:
         return left + x / max(total, 1e-9) * (right - left)
 
-    canvas.line(left, y0, right, y0, INK, 4)
+    canvas.line(left, y0, right, y0, BEAM_DARK, 6)
     for support in beam.get("supports", []):
         x = sx(float(support.get("x", 0.0)))
         if support.get("type") == "fixed":
-            canvas.rect(x - 7, y0 - 34, x + 7, y0 + 34, SLATE, True)
+            canvas.rect(x - 14, y0 - 5, x + 14, y0 + 39, SUPPORT_FILL, True)
+        elif support.get("type") == "free":
+            canvas.circle(x, y0, 7, SLATE, False)
         else:
-            canvas.line(x - 16, y0 + 28, x + 16, y0 + 28, GREEN, 3)
-            canvas.line(x, y0, x - 16, y0 + 28, GREEN, 3)
-            canvas.line(x, y0, x + 16, y0 + 28, GREEN, 3)
+            canvas.line(x - 18, y0 + 30, x + 18, y0 + 30, SLATE, 2)
+            canvas.line(x - 16, y0 + 26, x + 16, y0 + 26, SLATE, 2)
+            canvas.line(x, y0 + 2, x - 16, y0 + 26, SLATE, 2)
+            canvas.line(x, y0 + 2, x + 16, y0 + 26, SLATE, 2)
+            if support.get("type") == "roller":
+                canvas.circle(x - 9, y0 + 36, 3, SLATE, False)
+                canvas.circle(x + 9, y0 + 36, 3, SLATE, False)
     for load in beam.get("loads", []):
-        x = sx(float(load.get("x", 0.0)))
-        length = float(load.get("length", 0.0))
         if load.get("type") == "point":
-            _arrow(canvas, x, y0 - 78, x, y0 - 14, RED)
+            x = sx(float(load.get("x", 0.0)))
+            magnitude = float(load.get("intensityKn", load.get("intensityKnPerM", 1.0)) or 1.0)
+            arrow_len = 30 + min(44, abs(magnitude) * 1.5)
+            if magnitude < 0:
+                _arrow(canvas, x, y0 + arrow_len, x, y0, LOAD_INK)
+            else:
+                _arrow(canvas, x, y0 - arrow_len, x, y0, LOAD_INK)
         else:
+            length = float(load.get("length", 0.0))
             x = sx(float(load.get("startX", load.get("x", 0.0))))
             x2 = sx(float(load.get("endX", min(total, float(load.get("x", 0.0)) + max(length, total * 0.15)))))
-            for tick in range(8):
-                xt = x + (x2 - x) * tick / 7
-                _arrow(canvas, xt, y0 - 72, xt, y0 - 16, RED)
-            canvas.line(x, y0 - 76, x2, y0 - 76, RED, 2)
+            intensity = float(load.get("intensityKnPerM", 0.0) or 0.0)
+            downward = intensity >= 0
+            guide_y = y0 - 70 if downward else y0 + 70
+            start_y = guide_y + 5 if downward else guide_y - 5
+            end_y = y0 - 8 if downward else y0 + 8
+            arrow_count = max(3, min(30, int((x2 - x) / 28)))
+            for tick in range(arrow_count):
+                xt = x + (x2 - x) * (tick + 0.5) / arrow_count
+                _arrow(canvas, xt, start_y, xt, end_y, LOAD_INK)
+            canvas.line(x, guide_y, x2, guide_y, LOAD_INK, 2)
     curve = beam.get("curve", [])
     if curve:
         values = _as_float_list([item.get("vMm", item.get("v", 0.0)) for item in curve])
-        max_abs = max((abs(value) for value in values), default=1.0)
+        max_abs = max(1.0, max((abs(value) for value in values), default=1.0))
         last = None
         for item in curve:
             x = sx(float(item.get("x", 0.0)))
             v = float(item.get("vMm", item.get("v", 0.0)))
-            y = y0 + (v / max(max_abs, 1e-9)) * 78
+            y = y0 - (v / max(max_abs, 1e-9)) * 80
             if last is not None:
-                canvas.line(last[0], last[1], x, y, BLUE, 3)
+                canvas.line(last[0], last[1], x, y, TEAL, 3)
             last = (x, y)
+    for index in range(0, int(right - left), 18):
+        canvas.line(left + index, y0 + 80, min(left + index + 8, right), y0 + 80, SLATE, 1)
     return canvas.png()
 
 

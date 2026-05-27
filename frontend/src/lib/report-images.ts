@@ -5,6 +5,7 @@ import { GraphicComponent, GridComponent, TooltipComponent } from "echarts/compo
 import { CanvasRenderer } from "echarts/renderers";
 import type { BeamCalculationResults, SensitivityResults } from "../types/beam";
 import type { AnalysisMode, FrameCalculationResults, FrameMemberDiagram, TrussCalculationResults } from "../types/structure";
+import { BEAM_PREVIEW_SVG_HEIGHT, BEAM_PREVIEW_SVG_WIDTH, buildBeamPreviewSvg } from "./beam-preview-svg";
 import { DEFAULT_REPORT_EXPORT_OPTIONS, type ReportExportOptions } from "./report-options";
 
 echarts.use([LineChart, GridComponent, TooltipComponent, GraphicComponent, CanvasRenderer]);
@@ -256,41 +257,7 @@ async function renderLineChart({
 async function renderBeamPreview(results: BeamCalculationResults) {
   const beam = results.beam;
   if (!beam) return "";
-  const total = Math.max(beam.totalLength || 1, 1e-9);
-  const mapX = (x: number) => 60 + (x / total) * 780;
-  const y0 = 205;
-  const graphics: Array<Record<string, unknown>> = [
-    { type: "rect", shape: { x: 0, y: 0, width: 900, height: 420 }, style: { fill: REPORT_BG } },
-    { type: "line", shape: { x1: 60, y1: y0, x2: 840, y2: y0 }, style: { stroke: "#0f172a", lineWidth: 4 } },
-  ];
-  for (const support of beam.supports) {
-    const x = mapX(support.x);
-    graphics.push({ type: "polygon", shape: { points: [[x, y0 + 4], [x - 18, y0 + 34], [x + 18, y0 + 34]] }, style: { fill: "#22c55e" } });
-  }
-  for (const load of beam.loads) {
-    if (load.type === "point") {
-      const x = mapX(load.x);
-      graphics.push({ type: "line", shape: { x1: x, y1: y0 - 90, x2: x, y2: y0 - 16 }, style: { stroke: "#ef4444", lineWidth: 3 } });
-      continue;
-    }
-    const startX = mapX(load.startX ?? Math.max(0, load.x - (load.length ?? total) / 2));
-    const endX = mapX(load.endX ?? Math.min(total, load.x + (load.length ?? total) / 2));
-    graphics.push({ type: "line", shape: { x1: startX, y1: y0 - 88, x2: endX, y2: y0 - 88 }, style: { stroke: "#ef4444", lineWidth: 2 } });
-    const arrowCount = Math.max(4, Math.min(24, Math.floor((endX - startX) / 30)));
-    for (let index = 0; index < arrowCount; index += 1) {
-      const x = startX + (endX - startX) * ((index + 0.5) / arrowCount);
-      graphics.push({ type: "line", shape: { x1: x, y1: y0 - 84, x2: x, y2: y0 - 16 }, style: { stroke: "#ef4444", lineWidth: 2 } });
-    }
-  }
-  if (beam.curve?.length) {
-    const maxAbs = Math.max(...beam.curve.map((point) => Math.abs(point.vMm)), 1e-9);
-    graphics.push({
-      type: "polyline",
-      shape: { points: beam.curve.map((point) => [mapX(point.x), y0 + (point.vMm / maxAbs) * 92]) },
-      style: { stroke: "#38bdf8", lineWidth: 3, fill: "none" },
-    });
-  }
-  return renderOption({ backgroundColor: REPORT_BG, animation: false, xAxis: { show: false }, yAxis: { show: false }, graphic: graphics }, 900, 420);
+  return renderSvgToPng(buildBeamPreviewSvg(beam), BEAM_PREVIEW_SVG_WIDTH, BEAM_PREVIEW_SVG_HEIGHT);
 }
 
 async function renderBeamOverlay(results: BeamCalculationResults, metric: "moment" | "shear" | "deflection") {
@@ -646,5 +613,34 @@ async function renderOption(option: EChartsCoreOption, width = 900, height = 480
     return dataUrl;
   } finally {
     host.remove();
+  }
+}
+
+async function renderSvgToPng(svg: string, width: number, height: number): Promise<string> {
+  const blob = new globalThis.Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  try {
+    const image = new globalThis.Image();
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error("计算书结构预览图渲染失败"));
+      image.src = url;
+    });
+
+    const pixelRatio = 2;
+    const canvas = document.createElement("canvas");
+    canvas.width = width * pixelRatio;
+    canvas.height = height * pixelRatio;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error("浏览器不支持计算书图片渲染");
+    }
+    context.scale(pixelRatio, pixelRatio);
+    context.fillStyle = REPORT_BG;
+    context.fillRect(0, 0, width, height);
+    context.drawImage(image, 0, 0, width, height);
+    return canvas.toDataURL("image/png");
+  } finally {
+    URL.revokeObjectURL(url);
   }
 }
