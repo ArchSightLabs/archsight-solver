@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { GlassCard } from "./ui/GlassCard";
 import { createPortalFrameModelFromState, type WorkspaceState } from "../lib/workspace-state";
+import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments } from "../lib/beam-span-dimensions";
 import type { AnalysisMode, FrameLoad, FrameLoadDirection, StructureNode, TrussLoad } from "../types/structure";
 import type { WorkbenchSelection } from "../types/workbench-selection";
 import type { BeamPreviewStyle } from "../types/beam";
@@ -47,6 +48,7 @@ function formatMagnitude(value: number) {
 }
 
 const svgTextFont = "Inter, Microsoft YaHei, system-ui, sans-serif";
+const MODEL_DIMENSION_TEXT_WEIGHT = 600;
 const BEAM_SKETCH_AXIS_Y = 150;
 const BEAM_LOAD_BOTTOM_GUIDE_Y = BEAM_SKETCH_AXIS_Y - 38;
 const BEAM_LOAD_LANE_GAP_Y = 34;
@@ -193,6 +195,8 @@ function BeamSketch({
   }, []);
   const beamStart = segments[0]?.start ?? 96;
   const beamEnd = segments[segments.length - 1]?.end ?? 804;
+  const spanDimensions = buildBeamSpanDimensionSegments(beam.spans.map((span) => span.length), total, beamStart, beamEnd);
+  const spanDimensionLegendRows = buildBeamSpanDimensionLegendRows(spanDimensions, 440, 12);
   const uniformRange = beam.uniformLoadEnabled ? buildUniformLoadRange(beam, beamStart, beamEnd) : null;
   const linearRanges = activeBeamLinearLoads(beam).map((load) => ({
     load,
@@ -250,17 +254,28 @@ function BeamSketch({
 
   return (
     <svg viewBox="0 0 900 300" className="h-full w-full" style={beamSketchStyle}>
+      <g fontFamily={svgTextFont} fill="var(--beam-sketch-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
+        {spanDimensionLegendRows.map((row, index) => (
+          <text key={`span-dimension-legend-${index}`} x={beamStart} y={34 + index * 16} fontSize="12" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT}>
+            {row}
+          </text>
+        ))}
+      </g>
       <line x1={beamStart} y1={BEAM_SKETCH_AXIS_Y} x2={beamEnd} y2={BEAM_SKETCH_AXIS_Y} stroke="var(--beam-sketch-member)" strokeWidth="3.2" strokeLinecap="square" />
       {segments.map((segment) => {
         const selected = selection?.mode === "beam" && selection.type === "span" && selection.id === `span-${segment.index}`;
+        const dimension = spanDimensions[segment.index];
         return (
           <g key={segment.index} className="cursor-pointer" onClick={() => onSelect?.({ mode: "beam", type: "span", id: `span-${segment.index}` })}>
+            {dimension ? <title>{dimension.title}</title> : null}
             <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="transparent" strokeWidth="20" strokeLinecap="round" />
             {selected ? <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="var(--beam-sketch-selected)" strokeWidth="7" strokeLinecap="round" opacity="0.45" /> : null}
             <line x1={segment.start} y1="184" x2={segment.end} y2="184" stroke="var(--model-guide)" strokeWidth="1.5" />
-            <text x={(segment.start + segment.end) / 2} y="176" textAnchor="middle" fontSize="13" fontWeight="700" fill="var(--beam-sketch-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
-              ({segment.index + 1})
-            </text>
+            {dimension?.label ? (
+              <text x={(segment.start + segment.end) / 2} y="176" textAnchor="middle" fontSize="13" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT} fill="var(--beam-sketch-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
+                {dimension.label}
+              </text>
+            ) : null}
             <circle cx={segment.start} cy={BEAM_SKETCH_AXIS_Y} r="4.5" fill="var(--beam-sketch-node)" />
             {segment.index === segments.length - 1 ? (
               <>
@@ -465,6 +480,37 @@ function frameMemberLoadDirection(
   return value >= 0 ? positiveDirection : { x: -positiveDirection.x, y: -positiveDirection.y };
 }
 
+type FrameGeometryDimension = {
+  marker: string;
+  valueLabel: string;
+  x: number;
+  y: number;
+};
+
+function buildFrameDimensionLegendRows(dimensions: FrameGeometryDimension[], maxWidthPx: number, fontSize = 12) {
+  const rows: string[] = [];
+  let current = "";
+
+  for (const dimension of dimensions) {
+    const item = `${dimension.marker} ${dimension.valueLabel}`;
+    const next = current ? `${current}    ${item}` : item;
+    if (current && next.length * fontSize * 0.62 > maxWidthPx) {
+      rows.push(current);
+      current = item;
+    } else {
+      current = next;
+    }
+  }
+
+  if (current) rows.push(current);
+  return rows;
+}
+
+function uniqueSortedFrameCoordinates(values: number[]) {
+  const sorted = values.filter(Number.isFinite).slice().sort((a, b) => a - b);
+  return sorted.filter((value, index) => index === 0 || Math.abs(value - sorted[index - 1]) > 1e-6);
+}
+
 function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceState; selection?: WorkbenchSelection | null; onSelect?: (next: WorkbenchSelection) => void }) {
   const model =
     workspace.frame.frameMode === "custom"
@@ -489,12 +535,36 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
   });
   const nodeMap = new Map(nodes.map((node) => [node.id, map(node)]));
   const memberMap = new Map(members.map((member) => [member.id, member]));
-  const span = maxX - minX;
-  const height = maxY - minY;
   const topY = Math.min(...nodes.map((node) => map(node).y), 90);
   const bottomY = Math.max(...nodes.map((node) => map(node).y), 285);
   const leftX = Math.min(...nodes.map((node) => map(node).x), 165);
   const rightX = Math.max(...nodes.map((node) => map(node).x), 735);
+  const frameXCoordinates = uniqueSortedFrameCoordinates(xs);
+  const frameYCoordinates = uniqueSortedFrameCoordinates(ys);
+  const horizontalDimensions: FrameGeometryDimension[] = frameXCoordinates.slice(0, -1).map((startX, index) => {
+    const endX = frameXCoordinates[index + 1];
+    const start = map({ x: startX, y: maxY });
+    const end = map({ x: endX, y: maxY });
+    return {
+      marker: `(${index + 1})`,
+      valueLabel: `l = ${(endX - startX).toFixed(2)} m`,
+      x: (start.x + end.x) / 2,
+      y: topY + 36,
+    };
+  });
+  const verticalDimensions: FrameGeometryDimension[] = frameYCoordinates.slice(0, -1).map((startY, index) => {
+    const endY = frameYCoordinates[index + 1];
+    const start = map({ x: minX, y: startY });
+    const end = map({ x: minX, y: endY });
+    return {
+      marker: `(${horizontalDimensions.length + index + 1})`,
+      valueLabel: `h = ${(endY - startY).toFixed(2)} m`,
+      x: leftX - 36,
+      y: (start.y + end.y) / 2,
+    };
+  });
+  const frameDimensions = [...horizontalDimensions, ...verticalDimensions];
+  const frameDimensionLegendRows = buildFrameDimensionLegendRows(frameDimensions, 430, 12);
   const nodeLabel = (node: StructureNode) => {
     const point = nodeMap.get(node.id);
     if (!point) return null;
@@ -509,6 +579,13 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
 
   return (
     <svg viewBox="0 0 900 360" className="h-full w-full">
+      <g fontFamily={svgTextFont} fill="var(--model-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
+        {frameDimensionLegendRows.map((row, index) => (
+          <text key={`frame-dimension-legend-${index}`} x="96" y={34 + index * 16} fontSize="12" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT}>
+            {row}
+          </text>
+        ))}
+      </g>
       <g stroke="var(--model-member)" strokeLinecap="round" strokeLinejoin="round">
         {members.map((member) => {
           const start = nodeMap.get(member.start);
@@ -624,9 +701,12 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
           return items;
         })}
       </g>
-      <g fill="var(--model-label)" fontSize="13" fontWeight="400">
-        {span > 0 ? <text x={(leftX + rightX) / 2} y={topY + 36} textAnchor="middle">跨长 {span} m</text> : null}
-        {height > 0 ? <text x={leftX - 36} y={(topY + bottomY) / 2} textAnchor="middle">层高 {height} m</text> : null}
+      <g fill="var(--model-label)" fontSize="13" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT} fontFamily={svgTextFont} stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
+        {frameDimensions.map((dimension) => (
+          <text key={`frame-dimension-marker-${dimension.marker}`} x={dimension.x} y={dimension.y} textAnchor="middle">
+            {dimension.marker}
+          </text>
+        ))}
       </g>
       <g fill="var(--model-label)" fontSize="11.5" fontWeight="600" fontFamily={svgTextFont}>
         {nodes.map((node) => {

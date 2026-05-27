@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { GlassCard } from "./ui/GlassCard";
 import type { BeamCalculationResults, BeamPreviewData, BeamSupportType } from "../types/beam";
-
-type BeamDiagramMetricKey = "momentKnM" | "shearKn" | "deflectionMm";
+import { findBeamDiagramKeyPoints, type BeamDiagramKeyPointKind, type BeamDiagramMetricKey } from "../lib/beam-diagram-key-points";
+import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments, type BeamSpanDimension } from "../lib/beam-span-dimensions";
 
 interface BeamDiagramMetric {
   key: BeamDiagramMetricKey;
@@ -22,6 +22,12 @@ interface BeamResultDiagramsProps {
 }
 
 type SvgPoint = { x: number; y: number };
+type BeamResultSvgPoint = SvgPoint & { value: number; stationM: number };
+type BeamAnnotationPoint = BeamResultSvgPoint & {
+  key: string;
+  kind: BeamDiagramKeyPointKind;
+  priority: number;
+};
 type BeamDiagramSelectionKey = BeamDiagramMetricKey | "all";
 type LabelRect = { left: number; top: number; right: number; bottom: number };
 type WeightedLabelBlocker = LabelRect & { weight: number };
@@ -31,6 +37,13 @@ type LabelLayout = {
   stationY: number;
   connectorX: number;
   connectorY: number;
+  rect: LabelRect;
+};
+type KeyPointAnnotation = {
+  point: BeamAnnotationPoint;
+  valueLabel: string;
+  stationLabel: string;
+  layout: LabelLayout;
 };
 
 const SVG_W = 1000;
@@ -47,9 +60,17 @@ const RESULT_LINE_STROKE_WIDTH = 2;
 const SUPPORT_BASE_STROKE_WIDTH = 1.25;
 const NODE_RADIUS = 3;
 const EXTREME_RADIUS = 4;
+const SPAN_DIMENSION_Y = SVG_H - 52;
+const SPAN_DIMENSION_TICK = 7;
+const SPAN_DIMENSION_LEGEND_X = 32;
+const SPAN_DIMENSION_LEGEND_Y = 50;
+const SPAN_DIMENSION_LEGEND_GAP = 15;
 const CALLOUT_STROKE_WIDTH = 1;
 const VALUE_TEXT_HALO_WIDTH = 3.25;
 const STATION_TEXT_HALO_WIDTH = 2.5;
+const DIAGRAM_LABEL_FONT = "Inter, Microsoft YaHei, system-ui, sans-serif";
+const DIAGRAM_NUMERIC_FONT = "Fira Code, ui-monospace, SFMono-Regular, Consolas, monospace";
+const DIAGRAM_LABEL_WEIGHT = 600;
 
 const BEAM_DIAGRAM_METRICS: BeamDiagramMetric[] = [
   { key: "momentKnM", title: "弯矩图", unit: "kN·m", color: "#ef4444", fillColor: "rgba(239, 68, 68, 0.1)", diagramType: "area" },
@@ -151,6 +172,48 @@ function resultPointBlockers(points: SvgPoint[]): WeightedLabelBlocker[] {
   }));
 }
 
+function spanDimensionBlockers(dimensions: BeamSpanDimension[], compact: boolean): WeightedLabelBlocker[] {
+  const fontSize = compact ? 9 : 11;
+  const labelY = SPAN_DIMENSION_Y - 9;
+  return dimensions.flatMap((dimension) => {
+    const lineBlocker = {
+      left: dimension.start,
+      right: dimension.end,
+      top: SPAN_DIMENSION_Y - SPAN_DIMENSION_TICK - 2,
+      bottom: SPAN_DIMENSION_Y + SPAN_DIMENSION_TICK + 2,
+      weight: 1.6,
+    };
+    if (!dimension.label) return [lineBlocker];
+
+    const midX = (dimension.start + dimension.end) / 2;
+    const labelWidth = estimateTextWidth(dimension.label, fontSize) + 10;
+    return [
+      lineBlocker,
+      {
+        left: midX - labelWidth / 2,
+        right: midX + labelWidth / 2,
+        top: labelY - fontSize - 4,
+        bottom: labelY + 4,
+        weight: 14,
+      },
+    ];
+  });
+}
+
+function spanDimensionLegendBlockers(rows: string[], compact: boolean): WeightedLabelBlocker[] {
+  const fontSize = compact ? 10 : 11;
+  return rows.map((row, index) => {
+    const top = SPAN_DIMENSION_LEGEND_Y + index * SPAN_DIMENSION_LEGEND_GAP - fontSize - 4;
+    return {
+      left: SPAN_DIMENSION_LEGEND_X,
+      right: SPAN_DIMENSION_LEGEND_X + estimateTextWidth(row, fontSize) + 8,
+      top,
+      bottom: top + fontSize + 8,
+      weight: 9,
+    };
+  });
+}
+
 function buildLabelLayout(params: {
   extreme: SvgPoint;
   valueLabel: string;
@@ -159,6 +222,7 @@ function buildLabelLayout(params: {
   beam: BeamPreviewData;
   resultPoints: SvgPoint[];
   mapX: (x: number) => number;
+  extraBlockers?: WeightedLabelBlocker[];
 }): LabelLayout {
   const valueFontSize = params.compact ? 11 : 13;
   const stationFontSize = params.compact ? 9 : 11;
@@ -171,6 +235,7 @@ function buildLabelLayout(params: {
     { left: BEAM_LEFT - 8, right: BEAM_RIGHT + 8, top: BEAM_Y - 8, bottom: BEAM_Y + 8, weight: 7 },
     ...supportBlockers(params.beam, params.mapX),
     ...resultPointBlockers(params.resultPoints),
+    ...(params.extraBlockers ?? []),
   ];
   const candidateAnchors = [
     { dx: gap, dy: -gap },
@@ -211,6 +276,7 @@ function buildLabelLayout(params: {
     stationY: best.valueY + lineGap,
     connectorX,
     connectorY: (best.rect.top + best.rect.bottom) / 2,
+    rect: best.rect,
   };
 }
 
@@ -240,20 +306,65 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
     const valueToSvgOffset = selectedMetric.key === "momentKnM" ? 1 : -1;
     const mapX = (x: number) => BEAM_LEFT + (clamp(x, 0, totalLength) / totalLength) * BEAM_LEN;
     const basePoints = samples.map((point) => ({ x: mapX(point.x), y: BEAM_Y }));
-    const resultPoints = samples.map((point) => ({ x: mapX(point.x), y: BEAM_Y + valueToSvgOffset * point.value * offsetScale, value: point.value, stationM: point.x }));
+    const resultPoints: BeamResultSvgPoint[] = samples.map((point) => ({ x: mapX(point.x), y: BEAM_Y + valueToSvgOffset * point.value * offsetScale, value: point.value, stationM: point.x }));
+    const spanDimensions = buildBeamSpanDimensionSegments(beam.spans, totalLength, BEAM_LEFT, BEAM_RIGHT);
+    const spanDimensionLegendRows = buildBeamSpanDimensionLegendRows(spanDimensions, compact ? 310 : 420, compact ? 10 : 11);
     const extreme = resultPoints.reduce<{ x: number; y: number; value: number; stationM: number } | null>((current, point) => {
       if (!current || Math.abs(point.value) > Math.abs(current.value)) return point;
       return current;
     }, null);
+    const keyPoints: BeamAnnotationPoint[] = findBeamDiagramKeyPoints(samples, selectedMetric.key)
+      .map((point) => {
+        const svgPoint = resultPoints[point.index];
+        if (!svgPoint) return null;
+        return {
+          ...svgPoint,
+          key: `${point.kind}-${point.index}-${point.x.toFixed(4)}`,
+          kind: point.kind,
+          priority: point.priority,
+        };
+      })
+      .filter((point): point is BeamAnnotationPoint => Boolean(point));
     return {
       totalLength,
       mapX,
       resultPath: pathFromPoints(resultPoints),
       areaPath: areaPath(basePoints, resultPoints),
       resultPoints,
+      spanDimensions,
+      spanDimensionLegendRows,
       extreme,
+      keyPoints,
     };
   }, [beam, compact, results, selectedMetric]);
+
+  const keyPointAnnotations = useMemo<KeyPointAnnotation[]>(() => {
+    if (!diagram || !beam) return [];
+    const occupied: WeightedLabelBlocker[] = [
+      ...spanDimensionBlockers(diagram.spanDimensions, compact),
+      ...spanDimensionLegendBlockers(diagram.spanDimensionLegendRows, compact),
+    ];
+    return diagram.keyPoints
+      .slice()
+      .sort((a, b) => b.priority - a.priority || Math.abs(b.value) - Math.abs(a.value))
+      .map((point) => {
+        const valueLabel = valueText(point.value, selectedMetric.unit);
+        const stationLabel = `x = ${point.stationM.toFixed(2)} m`;
+        const layout = buildLabelLayout({
+          extreme: point,
+          valueLabel,
+          stationLabel,
+          compact,
+          beam,
+          resultPoints: diagram.resultPoints,
+          mapX: diagram.mapX,
+          extraBlockers: occupied,
+        });
+        occupied.push({ ...layout.rect, weight: point.kind === "global-extreme" ? 14 : 11 });
+        return { point, valueLabel, stationLabel, layout };
+      })
+      .sort((a, b) => a.point.x - b.point.x || a.point.y - b.point.y);
+  }, [beam, compact, diagram, selectedMetric.unit]);
 
   if (!results || !beam || !diagram) {
     return (
@@ -264,19 +375,6 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
   }
 
   const extreme = diagram.extreme;
-  const extremeValueLabel = extreme ? valueText(extreme.value, selectedMetric.unit) : "";
-  const extremeStationLabel = extreme ? `x = ${extreme.stationM.toFixed(2)} m` : "";
-  const labelLayout = extreme
-    ? buildLabelLayout({
-        extreme,
-        valueLabel: extremeValueLabel,
-        stationLabel: extremeStationLabel,
-        compact,
-        beam,
-        resultPoints: diagram.resultPoints,
-        mapX: diagram.mapX,
-      })
-    : null;
 
   if (showMetricTabs) {
     const visibleMetrics = selectedMetricKey === "all" ? BEAM_DIAGRAM_METRICS : [selectedMetric];
@@ -347,9 +445,16 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
           {[0.25, 0.5, 0.75].map((ratio) => (
             <line key={ratio} x1="42" y1={SVG_H * ratio} x2={SVG_W - 42} y2={SVG_H * ratio} stroke="var(--frame-diagram-grid)" strokeWidth={GRID_STROKE_WIDTH} strokeDasharray="6 8" />
           ))}
-          <text x="32" y="30" fill="var(--structure-preview-label)" fontSize={compact ? "10" : "12"} fontFamily="Fira Code">
+          <text x="32" y="30" fill="var(--structure-preview-label)" fontSize={compact ? "10" : "12"} fontFamily={DIAGRAM_LABEL_FONT} fontWeight={DIAGRAM_LABEL_WEIGHT}>
             梁长 = {diagram.totalLength.toFixed(2)} m
           </text>
+          <g fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth={STATION_TEXT_HALO_WIDTH} paintOrder="stroke" fontFamily={DIAGRAM_LABEL_FONT}>
+            {diagram.spanDimensionLegendRows.map((row, index) => (
+              <text key={`span-dimension-legend-${index}`} x={SPAN_DIMENSION_LEGEND_X} y={SPAN_DIMENSION_LEGEND_Y + index * SPAN_DIMENSION_LEGEND_GAP} fontSize={compact ? "10" : "12"} fontWeight={DIAGRAM_LABEL_WEIGHT}>
+                {row}
+              </text>
+            ))}
+          </g>
           <line x1={BEAM_LEFT} y1={BEAM_Y} x2={BEAM_RIGHT} y2={BEAM_Y} stroke="var(--structure-preview-base-start)" strokeOpacity="0.82" strokeWidth={BEAM_STROKE_WIDTH} strokeLinecap="butt" />
 
           {selectedMetric.diagramType === "area" && diagram.areaPath ? <path d={diagram.areaPath} fill={selectedMetric.fillColor} stroke="none" /> : null}
@@ -368,7 +473,7 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
             return (
               <g key={`${support.label}-${index}`}>
                 {supportMarker(support.type, x)}
-                <text x={x} y={BEAM_Y + 58} fill="var(--structure-preview-label)" textAnchor="middle" fontSize={compact ? "9" : "11"} fontFamily="Fira Code">
+                <text x={x} y={BEAM_Y + 58} fill="var(--structure-preview-label)" textAnchor="middle" fontSize={compact ? "9" : "11"} fontFamily={DIAGRAM_LABEL_FONT} fontWeight={DIAGRAM_LABEL_WEIGHT}>
                   {support.label ?? `S${index + 1}`}
                 </text>
               </g>
@@ -379,18 +484,85 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
             <circle key={node.index} cx={diagram.mapX(node.x)} cy={BEAM_Y} r={NODE_RADIUS} fill={node.support ? "var(--structure-preview-node)" : "var(--structure-preview-guide)"} />
           ))}
 
-          {extreme ? (
-            <g>
-              <circle cx={extreme.x} cy={extreme.y} r={EXTREME_RADIUS} fill={selectedMetric.color} stroke="var(--structure-preview-text-halo)" strokeWidth="1.25" />
-              <line x1={extreme.x} y1={extreme.y} x2={labelLayout?.connectorX ?? extreme.x} y2={labelLayout?.connectorY ?? extreme.y} stroke={selectedMetric.color} strokeWidth={CALLOUT_STROKE_WIDTH} strokeDasharray="4 4" />
-              <text x={labelLayout?.textX ?? extreme.x} y={labelLayout?.valueY ?? extreme.y} fill={selectedMetric.color} stroke="var(--structure-preview-text-halo)" strokeWidth={VALUE_TEXT_HALO_WIDTH} paintOrder="stroke" fontSize={compact ? "11" : "13"} fontFamily="Fira Code" fontWeight="700">
-                {extremeValueLabel}
-              </text>
-              <text x={labelLayout?.textX ?? extreme.x} y={labelLayout?.stationY ?? extreme.y} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth={STATION_TEXT_HALO_WIDTH} paintOrder="stroke" fontSize={compact ? "9" : "11"} fontFamily="Fira Code">
-                {extremeStationLabel}
-              </text>
-            </g>
-          ) : null}
+          <g stroke="var(--structure-preview-guide)" strokeWidth="1.1" fill="var(--structure-preview-label)" fontFamily={DIAGRAM_LABEL_FONT}>
+            {diagram.spanDimensions.map((dimension) => {
+              const midX = (dimension.start + dimension.end) / 2;
+              return (
+                <g key={`span-dimension-${dimension.index}`}>
+                  <title>{dimension.title}</title>
+                  <line x1={dimension.start} y1={SPAN_DIMENSION_Y} x2={dimension.end} y2={SPAN_DIMENSION_Y} />
+                  <line x1={dimension.start} y1={SPAN_DIMENSION_Y - SPAN_DIMENSION_TICK} x2={dimension.start} y2={SPAN_DIMENSION_Y + SPAN_DIMENSION_TICK} />
+                  <line x1={dimension.end} y1={SPAN_DIMENSION_Y - SPAN_DIMENSION_TICK} x2={dimension.end} y2={SPAN_DIMENSION_Y + SPAN_DIMENSION_TICK} />
+                  {dimension.label ? (
+                    <text
+                      x={midX}
+                      y={SPAN_DIMENSION_Y - 9}
+                      textAnchor="middle"
+                      fontSize={compact ? "9" : "11"}
+                      fontWeight={DIAGRAM_LABEL_WEIGHT}
+                      stroke="var(--structure-preview-text-halo)"
+                      strokeWidth={STATION_TEXT_HALO_WIDTH}
+                      paintOrder="stroke"
+                    >
+                      {dimension.label}
+                    </text>
+                  ) : null}
+                </g>
+              );
+            })}
+          </g>
+
+          {keyPointAnnotations.map(({ point, valueLabel, stationLabel, layout }) => {
+            const isGlobalExtreme = point.kind === "global-extreme";
+            return (
+              <g key={point.key}>
+                <circle
+                  cx={point.x}
+                  cy={point.y}
+                  r={isGlobalExtreme ? EXTREME_RADIUS : EXTREME_RADIUS - 0.75}
+                  fill={selectedMetric.color}
+                  fillOpacity={isGlobalExtreme ? 1 : 0.88}
+                  stroke="var(--structure-preview-text-halo)"
+                  strokeWidth={isGlobalExtreme ? "1.25" : "1"}
+                />
+                <line
+                  x1={point.x}
+                  y1={point.y}
+                  x2={layout.connectorX}
+                  y2={layout.connectorY}
+                  stroke={selectedMetric.color}
+                  strokeOpacity={isGlobalExtreme ? 0.9 : 0.68}
+                  strokeWidth={CALLOUT_STROKE_WIDTH}
+                  strokeDasharray="4 4"
+                />
+                <text
+                  x={layout.textX}
+                  y={layout.valueY}
+                  fill={selectedMetric.color}
+                  stroke="var(--structure-preview-text-halo)"
+                  strokeWidth={VALUE_TEXT_HALO_WIDTH}
+                  paintOrder="stroke"
+                  fontSize={compact ? "11" : "13"}
+                  fontFamily={DIAGRAM_NUMERIC_FONT}
+                  fontWeight={isGlobalExtreme ? "700" : "650"}
+                >
+                  {valueLabel}
+                </text>
+                <text
+                  x={layout.textX}
+                  y={layout.stationY}
+                  fill="var(--structure-preview-label)"
+                  stroke="var(--structure-preview-text-halo)"
+                  strokeWidth={STATION_TEXT_HALO_WIDTH}
+                  paintOrder="stroke"
+                  fontSize={compact ? "9" : "11"}
+                  fontFamily={DIAGRAM_NUMERIC_FONT}
+                >
+                  {stationLabel}
+                </text>
+              </g>
+            );
+          })}
         </svg>
       </div>
     </GlassCard>
