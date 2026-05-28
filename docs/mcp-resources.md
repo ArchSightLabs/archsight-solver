@@ -19,7 +19,7 @@
 - `archsight://benchmark/catalog` 不落静态导出文件，由 benchmark catalog 运行时读取，避免算例目录副本漂移。
 - 文档类资源必须对应仓库内真实 Markdown 文件，不允许返回“尚未生成”类占位内容。
 - few-shot 资源必须对应仓库内真实 JSON 文件，并保持 `schemaVersion`、`examples`、`cliCall`、`mcpCall`、`benchmarkCaseId` 和 `acceptanceChecks` 可测试。
-- 新增 MCP Resource 时，应同步更新本文档、`docs/README.md`、`docs/quickstart.md` 和 `backend/tests/test_solver_tools_mcp.py`。
+- 新增 MCP Resource 时，应同步更新本文档、根目录 `README.md`、`docs/quickstart.md` 和 `backend/tests/test_solver_tools_mcp.py`。
 
 ## Agent Host 推荐读取顺序
 

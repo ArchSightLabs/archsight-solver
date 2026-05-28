@@ -69,23 +69,20 @@ python -m backend.benchmarks.report --output docs/verification/benchmark-validat
 
 ## 文档入口
 
-- [文档索引](docs/README.md)
-- [快速开始与本地工具](docs/quickstart.md)
-- [功能与适用边界](docs/capabilities.md)
-- [部署说明](docs/deployment.md)
-- [路线图](docs/roadmap.md)
-- [工程文本模型规范](docs/text-model-spec.md)
-- [跨浏览器视觉回归](docs/verification/visual-regression.md)
-
-## 目录结构
-
-```text
-app.py                         # Flask 入口
-backend/                       # 后端计算、导出、API 与测试
-frontend/                      # React + Vite 前端工作台
-docs/                          # 公开文档
-data/                          # 公开样例与 Agent workflow 数据
-```
+| 文档 | 用途 | 状态 |
+|---|---|---|
+| [快速开始与本地工具](docs/quickstart.md) | 本地启动、测试、CLI、MCP 与公开案例接口 | 当前快速开始 |
+| [功能与适用边界](docs/capabilities.md) | 功能范围、适用人群、身份边界与非目标 | 当前能力说明 |
+| [源码目录说明](docs/source-layout.md) | 后端、前端、数据、测试和本地忽略目录说明 | 当前源码导航 |
+| [部署说明](docs/deployment.md) | Docker 单镜像、远程镜像标签与 Compose 部署 | 当前部署说明 |
+| [路线图](docs/roadmap.md) | 开源路线、三模块边界、近期重点 | 当前主路线 |
+| [ArchSight Structural Solver API Reference](docs/api-reference.md) | REST API、CLI、MCP 与错误码 | 当前 API 参考 |
+| [MCP Resources 清单与生成口径](docs/mcp-resources.md) | MCP Resources URI、仓库事实源、更新责任和验收检查 | 当前 MCP 资源清单 |
+| [Agent 工程流样例](docs/agent-engineering-workflow.md) | 自然语言工况到 ASMS-JSON、REST/CLI/MCP、benchmark 与计算书的 Agent 调用闭环 | 当前集成样例 |
+| [ASMS-JSON / Model Schema](docs/asms-json-schema.md) | Web/API/CLI/MCP/benchmark 的共同模型入口 | 当前数据协议 |
+| [工程文本模型规范](docs/text-model-spec.md) | 梁、框架、桁架文本模型导入导出口径 | 当前工程契约 |
+| [公开验证集报告](docs/verification/benchmark-validation-report.md) | 当前公开验证集自动生成报告 | 当前验证报告 |
+| [跨浏览器视觉回归](docs/verification/visual-regression.md) | 前端工作台视觉回归说明 | 当前验证说明 |
 
 ## 贡献方式
 
