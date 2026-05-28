@@ -14,6 +14,15 @@
 
 每个样例都包含自然语言工况、缺失输入处理规则、ASMS-JSON、CLI 调用模板、MCP 调用模板、benchmark caseId、导出配置和验收检查。
 
+本文是 ASMS-JSON 的调用流程说明，不重复定义字段全集。字段语义、单位、梁系/二维平面框架/二维平面桁架差异、版本策略和协议级错误，以 `docs/structural-model-protocol.md` 为准。
+
+在 Agent 语境中，应把 ASMS-JSON 视为第一层稳定输出，而不是某个接口的临时请求体：
+
+- ASMS-JSON 是入口：Agent 必须先生成结构化模型，不能把自然语言解释直接包装成求解结果。
+- Schema 是契约：Agent Host 可读取 `/api/contracts/schemas/asms-model` 或 MCP `archsight://schemas` 做输入约束。
+- benchmark 是证据：自动化结果应至少关联同类公开验证集 caseId 和执行状态。
+- REST / CLI / MCP 是同源执行面：三条入口复用同一计算链路，差异只在传输包络。
+
 ## 标准流程
 
 1. **抽取工程输入**
@@ -94,6 +103,12 @@ python -m backend.capabilities.solver_cli calculate --input payload.json --prett
 ```powershell
 python -m backend.capabilities.mcp_server
 ```
+
+推荐 Agent Host 先读取以下资源，再生成或校验 payload：
+
+- `archsight://schemas`：机器可读 JSON Schema Registry。
+- `archsight://docs/asms-json`：ASMS-JSON 字段语义、单位和协议边界。
+- `archsight://examples/asms-few-shots`：自然语言工况到 ASMS-JSON、CLI/MCP 调用和 benchmark 复核的可测试样例。
 
 Agent Host 调用 `calculate` tool：
 

@@ -66,9 +66,13 @@ python -m backend.capabilities.mcp_server
 已暴露 Resources：
 
 - `archsight://schemas`
+- `archsight://docs/asms-json`
+- `archsight://examples/asms-few-shots`
 - `archsight://benchmark/catalog`
 - `archsight://docs/benchmark-validation`
 - `archsight://docs/aios-runtime-integration`
+
+其中 `archsight://docs/asms-json` 是协议语义入口，`archsight://examples/asms-few-shots` 是 Agent few-shot 与回归样例入口。Agent Host 应先读取协议和 schema，再构造 ASMS-JSON，不应只根据自然语言描述猜测 payload。
 
 已暴露 Prompts：
 
@@ -105,6 +109,7 @@ Instance：本地 stdio MCP、私有 REST API、CI CLI
 - MCP 只做 Adapter：暴露只读/确定性工具，使用 `readOnlyHint=true`、`destructiveHint=false`，并限制工具白名单。
 - CLI 做可复现执行：所有 benchmark 和专家复核都能脱离 Agent 运行。
 - JSON Schema 做单一契约：REST、CLI、MCP、前端表单和 Agent prompt 共同引用同一批 schema。
+- ASMS-JSON 做结构模型入口：协议文档、few-shot 样例、Schema Registry、benchmark 和计算书导出必须指向同一模型口径。
 - 对敏感动作保留人工确认：工程签审、规范结论、商业软件对标导入不允许由 Agent 静默完成。
 
 ## 下一阶段短板

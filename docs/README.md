@@ -10,8 +10,8 @@
 | [api-reference.md](api-reference.md) | ArchSight Structural Solver API Reference | 当前 API 参考 |
 | [api-contracts.md](api-contracts.md) | 异步 API、JSON Schema 与作业契约 | 当前工程契约 |
 | [aios-runtime-integration.md](aios-runtime-integration.md) | API / CLI / MCP 三层调用设计 | 当前 AIOS 调用层方案 |
-| [agent-engineering-workflow.md](agent-engineering-workflow.md) | 自然语言工况到 ASMS-JSON、REST/CLI/MCP、benchmark 与计算书的 Agent 工程流样例 | 当前集成样例 |
-| [structural-model-protocol.md](structural-model-protocol.md) | ASMS-JSON 结构力学数据协议 | 当前数据协议 |
+| [agent-engineering-workflow.md](agent-engineering-workflow.md) | 自然语言工况到 ASMS-JSON、REST/CLI/MCP、benchmark 与计算书的 Agent 调用闭环 | 当前集成样例 |
+| [structural-model-protocol.md](structural-model-protocol.md) | ASMS-JSON 结构力学数据协议，作为 Web/API/CLI/MCP/benchmark 的共同模型入口 | 当前数据协议 |
 | [text-model-spec.md](text-model-spec.md) | 梁、框架、桁架文本模型导入导出口径 | 当前工程契约 |
 | [verification/benchmark-validation-suite.md](verification/benchmark-validation-suite.md) | 公开验证集建设说明与对外背书口径 | 当前验证说明 |
 | [verification/benchmark-validation-report.md](verification/benchmark-validation-report.md) | 当前公开验证集自动生成报告 | 当前验证报告 |

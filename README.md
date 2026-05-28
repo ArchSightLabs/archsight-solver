@@ -108,6 +108,21 @@ Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:6240/api/jobs" -ContentTyp
 
 机器可读 JSON Schema 可通过 `/api/contracts/schemas` 获取，覆盖同步求解、异步作业、CLI 与 MCP 工具输入输出契约。
 OpenAPI 3.1 契约可通过 `/api/contracts/openapi` 获取，用于系统集成、SDK 生成和接口审阅。
+公开验证工程可通过 `/api/examples/projects` 获取，前端顶部“公开案例”入口也会使用同一接口，把 33 个 benchmark 算例按梁系、平面框架、平面桁架组合成可直接打开和计算的工程。
+
+### ASMS-JSON 协议层
+
+ArchSight Solver 不只是提供一个求解 API，而是提供一套可验证的结构力学数据协议：**ASMS-JSON**。它是本项目的结构模型入口标准，让梁系、二维平面框架和二维平面桁架模型在 Web、REST API、CLI、MCP、benchmark 和计算书之间保持同源、可复现、可审计。
+
+核心关系：
+
+- ASMS-JSON 是入口：描述结构类型、几何、材料截面、支座、荷载和输出指标。
+- JSON Schema 是契约：`/api/contracts/schemas/asms-model` 及子 schema 约束字段和单位口径。
+- benchmark 是证据：公开验证集使用同一套 ASMS-JSON payload 做回归复核。
+- 公开案例是展示入口：工作台可直接打开由 benchmark 生成的验证工程，无需重复输入参数建模。
+- REST / CLI / MCP 是同源执行面：`/api/calculate` 直接接收 ASMS-JSON，CLI 与 MCP 使用 `{ "payload": <ASMS-JSON> }` 包装调用。
+
+协议说明见 [ASMS-JSON 结构力学数据协议](docs/structural-model-protocol.md)，Agent 调用闭环见 [Agent 工程流样例](docs/agent-engineering-workflow.md)，可测试 few-shot 样例见 `data/agent_workflows/asms_few_shots.json`。
 
 ### 本地工具调用
 
@@ -141,6 +156,13 @@ python -m backend.capabilities.mcp_server
 - `sensitivity_analysis`：参数敏感性分析。
 - `benchmark_case_list`：列出公开验证集算例。
 - `benchmark_case_run`：执行公开验证集算例并返回误差结论。
+
+关键 MCP Resources：
+
+- `archsight://schemas`：机器可读契约。
+- `archsight://docs/asms-json`：ASMS-JSON 协议说明。
+- `archsight://examples/asms-few-shots`：Agent 可测试 few-shot 样例库。
+- `archsight://benchmark/catalog`：公开验证集算例目录。
 
 通用 CLI 入口：
 

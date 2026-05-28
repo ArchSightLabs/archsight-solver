@@ -10,6 +10,7 @@ from logging.handlers import TimedRotatingFileHandler
 from backend.config import get_backend_host, get_backend_port
 from backend.api.calculate import calculate_bp
 from backend.api.contracts import contracts_bp
+from backend.api.examples import examples_bp
 from backend.api.jobs import jobs_bp
 from backend.api.preview import preview_bp
 from backend.api.sensitivity import sensitivity_bp
@@ -59,6 +60,7 @@ def log_telemetry():
 # 注册蓝图
 app.register_blueprint(calculate_bp, url_prefix='/api')
 app.register_blueprint(contracts_bp, url_prefix='/api')
+app.register_blueprint(examples_bp, url_prefix='/api')
 app.register_blueprint(jobs_bp, url_prefix='/api')
 app.register_blueprint(preview_bp, url_prefix='/api')
 app.register_blueprint(sensitivity_bp, url_prefix='/api')

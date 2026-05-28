@@ -1,4 +1,4 @@
-import { Building2, Network, Plus, Ruler, Trash2, Triangle } from "lucide-react";
+import { Building2, ExternalLink, Network, Plus, Ruler, ShieldCheck, Trash2, Triangle } from "lucide-react";
 import type { AnalysisObject, SolverProject } from "../lib/solver-project";
 import { Button } from "./ui/button";
 
@@ -25,6 +25,7 @@ function ObjectIcon({ object }: { object: AnalysisObject }) {
 }
 
 export function ProjectTreePanel({ project, collapsed = false, compact = false, onSelectObject, onCreateObject, onRemoveObject, onEditProjectInfo }: ProjectTreePanelProps) {
+  const activeObject = project.objects.find((object) => object.id === project.activeObjectId) ?? project.objects[0];
   if (collapsed) {
     return (
       <div className="space-y-2">
@@ -77,6 +78,36 @@ export function ProjectTreePanel({ project, collapsed = false, compact = false, 
         </div>
         <div className="truncate text-sm font-black" title={project.name}>{project.name}</div>
       </div>
+      {activeObject?.benchmark ? (
+        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs text-foreground">
+          <div className="mb-2 flex items-center gap-2 font-black text-emerald-700 dark:text-emerald-200">
+            <ShieldCheck className="h-4 w-4" />
+            公开验证算例
+          </div>
+          <div className="space-y-1.5 text-muted-foreground">
+            <div className="font-mono text-[11px] text-foreground">{activeObject.benchmark.caseId}</div>
+            <div>{activeObject.benchmark.sourceLabel}</div>
+            {activeObject.benchmark.metricSummary ? <div>{activeObject.benchmark.metricSummary}</div> : null}
+            {activeObject.benchmark.reference ? <div className="max-h-16 overflow-hidden">{activeObject.benchmark.reference}</div> : null}
+            {activeObject.benchmark.sourceLinks.length ? (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {activeObject.benchmark.sourceLinks.slice(0, 3).map((link, index) => (
+                  <a
+                    key={link}
+                    href={link}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 font-bold text-sky-700 hover:bg-sky-400/10 dark:text-sky-200"
+                  >
+                    出处 {index + 1}
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">
           <div className="text-xs font-black text-muted-foreground">分析对象</div>

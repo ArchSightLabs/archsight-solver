@@ -6,6 +6,7 @@ import {
   createDefaultSolverProject,
   createWorkspaceFromProject,
   getActiveAnalysisObject,
+  normalizeSolverProject,
   removeAnalysisObjectFromProject,
   updateActiveAnalysisObjectWorkspace,
 } from "./solver-project.ts";
@@ -66,4 +67,35 @@ test("删除活动对象后切换到剩余对象，单对象项目不删除", ()
   const unchanged = removeAnalysisObjectFromProject(removed, removed.activeObjectId);
   assert.equal(unchanged.objects.length, 1);
   assert.equal(unchanged.activeObjectId, removed.activeObjectId);
+});
+
+test("规范化项目时保留公开验证算例元数据", () => {
+  const project = createDefaultSolverProject(new Date("2026-05-21T12:00:00.000Z"));
+  const normalized = normalizeSolverProject({
+    ...project,
+    objects: [
+      {
+        ...project.objects[0],
+        benchmark: {
+          caseId: "beam-simply-supported-uniform",
+          category: "beam",
+          title: "简支梁均布荷载",
+          purpose: "验证基础梁系求解。",
+          sourceType: "textbook-analytical",
+          sourceLabel: "教材解析解",
+          reference: "delta_max = 5qL^4/(384EI)",
+          method: "按最大挠度校核",
+          sourceLinks: ["https://example.com/reference"],
+          checkedMetrics: ["最大挠度"],
+          metricSummary: "最大挠度 1.1565 mm",
+          expected: { maxDeflectionMm: 1.1565 },
+          tolerances: { maxDeflectionMm: 0.01 },
+        },
+      },
+    ],
+  });
+
+  assert.equal(normalized.objects[0].benchmark?.caseId, "beam-simply-supported-uniform");
+  assert.equal(normalized.objects[0].benchmark?.sourceLabel, "教材解析解");
+  assert.deepEqual(normalized.objects[0].benchmark?.checkedMetrics, ["最大挠度"]);
 });

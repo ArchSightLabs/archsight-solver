@@ -25,6 +25,8 @@ SERVER_NAME = "archsight-solver-mcp"
 SERVER_VERSION = "0.1.0"
 
 ROOT = Path(__file__).resolve().parents[2]
+ASMS_PROTOCOL_DOC_PATH = ROOT / "docs" / "structural-model-protocol.md"
+AGENT_FEW_SHOT_PATH = ROOT / "data" / "agent_workflows" / "asms_few_shots.json"
 BENCHMARK_DOC_PATH = ROOT / "docs" / "verification" / "benchmark-validation-suite.md"
 RUNTIME_DOC_PATH = ROOT / "docs" / "aios-runtime-integration.md"
 
@@ -111,6 +113,20 @@ RESOURCE_DEFINITIONS = [
         "name": "json-schemas",
         "title": "ArchSight Solver JSON Schema Registry",
         "description": "结构求解 API、异步作业和 MCP 能力输入输出契约。",
+        "mimeType": "application/json",
+    },
+    {
+        "uri": "archsight://docs/asms-json",
+        "name": "asms-json-protocol",
+        "title": "ASMS-JSON 结构力学数据协议",
+        "description": "梁系、二维平面框架和二维平面桁架的公开结构模型协议说明。",
+        "mimeType": "text/markdown",
+    },
+    {
+        "uri": "archsight://examples/asms-few-shots",
+        "name": "asms-few-shot-examples",
+        "title": "ASMS-JSON Agent few-shot 样例库",
+        "description": "自然语言工况、ASMS-JSON、CLI/MCP 调用、benchmark 复核和计算书导出的可测试样例。",
         "mimeType": "application/json",
     },
     {
@@ -285,6 +301,12 @@ def _read_text_or_placeholder(path: Path, placeholder: str) -> str:
 def _read_resource(uri: str) -> Dict[str, Any]:
     if uri == "archsight://schemas":
         text = json.dumps(schema_registry(), ensure_ascii=False, indent=2, sort_keys=True)
+        mime_type = "application/json"
+    elif uri == "archsight://docs/asms-json":
+        text = _read_text_or_placeholder(ASMS_PROTOCOL_DOC_PATH, "ASMS-JSON 协议文档尚未生成。")
+        mime_type = "text/markdown"
+    elif uri == "archsight://examples/asms-few-shots":
+        text = _read_text_or_placeholder(AGENT_FEW_SHOT_PATH, "{}")
         mime_type = "application/json"
     elif uri == "archsight://benchmark/catalog":
         text = json.dumps(load_benchmark_catalog(), ensure_ascii=False, indent=2, sort_keys=True)

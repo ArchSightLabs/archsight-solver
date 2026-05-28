@@ -10,6 +10,20 @@
 
 本 API Reference 面向二次开发者、AI Agent Runtime、企业内网系统和教学验证场景。所有结构安全结论仍需工程师复核。
 
+## ASMS-JSON 契约入口
+
+ASMS-JSON 是 ArchSight Solver 的结构力学数据入口标准，用同一份 JSON 描述梁系、二维平面框架和二维平面桁架模型。API、CLI、MCP、benchmark 与计算书导出围绕同一模型工作，避免出现“前端一套、Agent 一套、测试一套”的契约漂移。
+
+对集成方而言，核心关系如下：
+
+- **ASMS-JSON 是入口**：`POST /api/calculate`、`POST /api/preview`、`POST /api/export` 接收 ASMS-JSON 及端点附加字段。
+- **JSON Schema 是契约**：`GET /api/contracts/schemas/asms-model` 是总入口，`asms-beam-model`、`asms-frame-model`、`asms-truss-model` 是结构体系子契约。
+- **benchmark 是证据**：公开验证集使用同源 ASMS-JSON payload，Agent 或 CI 可通过 `benchmark_case_run` 记录复核证据。
+- **公开案例是可见入口**：`GET /api/examples/projects` 将公开验证集组合成可直接导入工作台的工程案例，适合第三方平台复核和演示。
+- **REST / CLI / MCP 是同源执行面**：REST 直接提交 ASMS-JSON；CLI 与 MCP 使用 `{ "payload": <ASMS-JSON> }` 包装，计算链路仍与 `/api/calculate` 同源。
+
+协议字段说明见 `docs/structural-model-protocol.md`，Agent 从自然语言到 ASMS-JSON 的调用闭环见 `docs/agent-engineering-workflow.md`，可测试样例库见 `data/agent_workflows/asms_few_shots.json`。
+
 ## 响应信封
 
 同步求解类接口统一返回：
@@ -301,6 +315,27 @@ GET /api/contracts/schemas/asms-frame-model
 
 返回由当前 JSON Schema Registry 组装的 OpenAPI 3.1 文档，覆盖同步求解、预览、敏感性分析、异步作业、计算书导出和契约端点。敏感性分析、计算书导出和 Schema Registry 使用端点专属 schema，避免把附加字段折叠成通用求解 payload。该文档用于系统集成、SDK 生成和接口审阅；字段语义仍以 ASMS-JSON 和对应 schema 为准。
 
+## GET /api/examples/projects
+
+返回由公开验证集生成的可导入工程案例。每个工程按分析对象类型组织，内部对象与 `backend/benchmarks/benchmark_cases.json` 的 `caseId` 一一对应。
+
+当前返回三个工程：
+
+- `beam-public-validation`：梁系公开验证工程，12 个梁系算例。
+- `frame-public-validation`：二维平面框架公开验证工程，13 个框架与框架梁退化算例。
+- `truss-public-validation`：二维平面桁架公开验证工程，8 个桁架算例。
+
+```http
+GET /api/examples/projects
+```
+
+关键字段：
+
+- `caseCount`：公开验证集总算例数量。
+- `projects[].project`：可直接被前端工作台导入的工程对象。
+- `projects[].project.objects[].benchmark`：该分析对象对应的验证元数据，包含 `caseId`、来源类型、参考说明、校核指标、标准值和容许误差。
+- `sourceLinks`：可用公开出处链接；内部回归算例可能没有外部链接，应按来源类型如实展示。
+
 ## Capability CLI
 
 通用本地工具入口：
@@ -338,6 +373,8 @@ Tools：
 Resources：
 
 - `archsight://schemas`
+- `archsight://docs/asms-json`
+- `archsight://examples/asms-few-shots`
 - `archsight://benchmark/catalog`
 - `archsight://docs/benchmark-validation`
 - `archsight://docs/aios-runtime-integration`

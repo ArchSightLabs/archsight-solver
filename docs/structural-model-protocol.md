@@ -13,6 +13,29 @@ ASMS-JSON 是 ArchSight Solver 对外开放的结构力学数据协议，用 JSO
 
 战略上，ASMS-JSON 应成为本项目的“力学数据入口标准”：前端、API、CLI、MCP、benchmark 和导出计算书都围绕同一套结构化模型工作。
 
+## 协议入口与同源执行面
+
+ASMS-JSON 的公开价值在于把“模型是什么”和“从哪里调用”分离。结构模型由 ASMS-JSON 表达，调用入口可以是 Web 前端、REST API、CLI、MCP、benchmark 或计算书导出，但它们不应各自发明一套 payload。
+
+最小闭环：
+
+```text
+自然语言工况
+  -> ASMS-JSON 结构模型
+  -> REST / CLI / MCP 同源求解
+  -> benchmark 回归复核
+  -> WORD / XLSX 计算书归档
+```
+
+核心分工：
+
+- **ASMS-JSON 是入口**：描述结构类型、几何、材料截面、支座、荷载和输出指标。
+- **JSON Schema 是契约**：通过 `/api/contracts/schemas/asms-model` 及子 schema 约束字段、单位和基础类型。
+- **benchmark 是证据**：公开验证集使用同源 payload 复核求解链路，不把示例和测试割裂。
+- **REST / CLI / MCP 是执行面**：`POST /api/calculate` 直接接收 ASMS-JSON；CLI 和 MCP 为工具调用稳定性使用 `{ "payload": <ASMS-JSON> }` 包装。
+
+因此，本文件是 ASMS-JSON 的权威协议说明，负责字段语义、单位、结构体系差异、版本策略和协议级错误；Agent 如何从自然语言生成 payload、如何调用工具和如何归档结果，放在 `docs/agent-engineering-workflow.md` 中说明。
+
 ## 版本策略
 
 - 当前协议名：`ASMS-JSON`
@@ -181,6 +204,7 @@ Agent 工程流样例同样使用 ASMS-JSON：
 
 - 文档：`docs/agent-engineering-workflow.md`
 - 数据：`data/agent_workflows/asms_few_shots.json`
+- MCP 资源：`archsight://examples/asms-few-shots`
 - 回归：`backend/tests/test_agent_workflow_examples.py`
 
 这些样例把自然语言工况、ASMS-JSON、CLI/MCP 调用、公开验证集复核和计算书导出放在同一个可测试闭环中。它们是 Agent 生成模型输入的 few-shot 资料，不是规范设计书，也不替代工程师签审。

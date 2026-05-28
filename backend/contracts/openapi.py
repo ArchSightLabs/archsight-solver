@@ -62,6 +62,7 @@ def build_openapi_document() -> Dict[str, Any]:
             "sensitivity-response": _sensitivity_response_schema(),
             "export-payload": _export_payload_schema(),
             "schema-registry-response": _schema_registry_response_schema(),
+            "public-example-projects-response": _public_example_projects_response_schema(),
         }
     }
 
@@ -83,6 +84,7 @@ def build_openapi_document() -> Dict[str, Any]:
             {"name": "jobs", "description": "异步作业"},
             {"name": "contracts", "description": "Schema 与 OpenAPI 契约"},
             {"name": "export", "description": "计算书导出"},
+            {"name": "examples", "description": "公开工程案例与验证集工程入口"},
         ],
     }
 
@@ -238,6 +240,13 @@ def _paths() -> Dict[str, Any]:
                 "responses": _json_response({"type": "object", "additionalProperties": True}),
             }
         },
+        "/api/examples/projects": {
+            "get": {
+                "tags": ["examples"],
+                "summary": "列出可直接导入工作台的公开验证工程",
+                "responses": _json_response("public-example-projects-response"),
+            }
+        },
     }
 
 
@@ -376,6 +385,81 @@ def _schema_registry_response_schema() -> Dict[str, Any]:
             "schemaVersion": {"type": "string"},
             "schemas": {"type": "object", "additionalProperties": {"type": "object"}},
             "schemaIds": {"type": "array", "items": {"type": "string"}},
+        },
+        "additionalProperties": True,
+    }
+
+
+def _public_example_projects_response_schema() -> Dict[str, Any]:
+    benchmark_meta = {
+        "type": "object",
+        "required": ["caseId", "sourceType", "sourceLabel"],
+        "properties": {
+            "caseId": {"type": "string"},
+            "category": {"type": "string"},
+            "title": {"type": "string"},
+            "purpose": {"type": "string"},
+            "sourceType": {"type": "string"},
+            "sourceLabel": {"type": "string"},
+            "reference": {"type": "string"},
+            "method": {"type": "string"},
+            "sourceLinks": {"type": "array", "items": {"type": "string", "format": "uri"}},
+            "checkedMetrics": {"type": "array", "items": {"type": "string"}},
+            "metricSummary": {"type": "string"},
+            "expected": {"type": "object", "additionalProperties": True},
+            "tolerances": {"type": "object", "additionalProperties": True},
+        },
+        "additionalProperties": True,
+    }
+    analysis_object = {
+        "type": "object",
+        "required": ["id", "name", "type", "state", "benchmark"],
+        "properties": {
+            "id": {"type": "string"},
+            "name": {"type": "string"},
+            "type": {"type": "string", "enum": ["beam", "frame", "truss"]},
+            "state": {"type": "object", "additionalProperties": True},
+            "benchmark": benchmark_meta,
+        },
+        "additionalProperties": True,
+    }
+    solver_project = {
+        "type": "object",
+        "required": ["id", "name", "activeObjectId", "objects", "settings"],
+        "properties": {
+            "id": {"type": "string"},
+            "name": {"type": "string"},
+            "activeObjectId": {"type": "string"},
+            "objects": {"type": "array", "items": analysis_object},
+            "settings": {"type": "object", "additionalProperties": True},
+        },
+        "additionalProperties": True,
+    }
+    return {
+        "type": "object",
+        "required": ["schemaVersion", "catalogUpdatedAt", "caseCount", "projects"],
+        "properties": {
+            "schemaVersion": {"type": "integer", "const": 1},
+            "catalogUpdatedAt": {"type": "string"},
+            "caseCount": {"type": "integer"},
+            "projects": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "required": ["id", "title", "caseCount", "project"],
+                    "properties": {
+                        "id": {"type": "string"},
+                        "title": {"type": "string"},
+                        "description": {"type": "string"},
+                        "analysisTypes": {"type": "array", "items": {"type": "string"}},
+                        "caseCategories": {"type": "array", "items": {"type": "string"}},
+                        "caseCount": {"type": "integer"},
+                        "sourceTypes": {"type": "array", "items": {"type": "string"}},
+                        "project": solver_project,
+                    },
+                    "additionalProperties": True,
+                },
+            },
         },
         "additionalProperties": True,
     }

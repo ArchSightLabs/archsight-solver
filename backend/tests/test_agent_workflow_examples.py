@@ -35,6 +35,8 @@ def test_agent_workflow_catalog_documents_scope_and_boundary(workflow_catalog):
     assert workflow_catalog["schemaVersion"] == 1
     assert "不替代工程签审" in workflow_catalog["boundary"]
     assert "ASMS-JSON" in workflow_catalog["scope"]
+    assert "可测试样例库" in workflow_catalog["positioning"]
+    assert "REST/CLI/MCP 是同源执行面" in workflow_catalog["contractMessage"]
     assert len(workflow_catalog["examples"]) >= 3
     assert {example["analysisType"] for example in workflow_catalog["examples"]} == {"beam", "frame", "truss"}
 

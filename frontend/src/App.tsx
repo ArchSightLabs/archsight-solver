@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent as ReactChangeEvent, CSSProperties, Dispatch, PointerEvent as ReactPointerEvent, SetStateAction } from "react";
 import {
   Activity,
+  BookOpenCheck,
   FileText,
   FileDown,
   FilePlus,
@@ -28,6 +29,7 @@ import { SystemSettingsPanel } from "./components/SystemSettingsPanel";
 import { NewAnalysisObjectDialog } from "./components/NewAnalysisObjectDialog";
 import { ProjectTreePanel } from "./components/ProjectTreePanel";
 import { ProjectInfoDialog } from "./components/ProjectInfoDialog";
+import { PublicExamplesDialog } from "./components/PublicExamplesDialog";
 import { WorkbenchModelCanvas } from "./components/WorkbenchModelCanvas";
 import { WorkbenchResultTabs } from "./components/WorkbenchResultTabs";
 import { WorkbenchSensitivityPanel } from "./components/WorkbenchSensitivityPanel";
@@ -276,6 +278,7 @@ function App() {
   })), [analysisData, sensitivityData, workbenchView]);
 
   const [isTemplateLibraryOpen, setIsTemplateLibraryOpen] = useState(false);
+  const [isPublicExamplesOpen, setIsPublicExamplesOpen] = useState(false);
   const [isFileMenuOpen, setIsFileMenuOpen] = useState(false);
   const [visitStats, setVisitStats] = useState<VisitStats>({ pageViews: "", uniqueVisitors: "" });
   
@@ -382,11 +385,12 @@ function App() {
   };
 
   useEffect(() => {
-    if (!isTemplateLibraryOpen && !isSystemSettingsOpen && !isNewAnalysisObjectDialogOpen && projectInfoDialogMode === null) {
+    if (!isTemplateLibraryOpen && !isSystemSettingsOpen && !isNewAnalysisObjectDialogOpen && !isPublicExamplesOpen && projectInfoDialogMode === null) {
       return;
     }
     const shouldLockScroll =
       isTemplateLibraryOpen ||
+      isPublicExamplesOpen ||
       (isSystemSettingsOpen && !isSystemSettingsDocked) ||
       isNewAnalysisObjectDialogOpen ||
       projectInfoDialogMode !== null;
@@ -394,6 +398,7 @@ function App() {
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape") {
         setIsTemplateLibraryOpen(false);
+        setIsPublicExamplesOpen(false);
         setIsSystemSettingsOpen(false);
         setIsNewAnalysisObjectDialogOpen(false);
         setProjectInfoDialogMode(null);
@@ -412,7 +417,7 @@ function App() {
       }
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isSystemSettingsDocked, isTemplateLibraryOpen, isSystemSettingsOpen, isNewAnalysisObjectDialogOpen, projectInfoDialogMode]);
+  }, [isSystemSettingsDocked, isTemplateLibraryOpen, isPublicExamplesOpen, isSystemSettingsOpen, isNewAnalysisObjectDialogOpen, projectInfoDialogMode]);
 
   useEffect(() => {
     if (!isFileMenuOpen) {
@@ -544,6 +549,14 @@ function App() {
         alert(`项目文件读取失败：${error instanceof Error ? error.message : "未知错误"}`);
       }
     })();
+  };
+  const handleOpenPublicExampleProject = (nextProject: SolverProject, title: string) => {
+    if (!confirmDiscardUnsavedChanges()) return;
+    const normalizedProject = normalizeSolverProject(nextProject);
+    replaceProject(normalizedProject, null, null, normalizedProject.updatedAt, `已打开公开验证工程：${title}`);
+    setIsPublicExamplesOpen(false);
+    setWorkbenchSelection(null);
+    setActiveModuleSection("");
   };
 
   const handleProjectFileChange = async (event: ReactChangeEvent<HTMLInputElement>) => {
@@ -734,6 +747,14 @@ function App() {
                 >
                   <FileUp className={`mr-2 ${isCompactWorkbench ? "h-3.5 w-3.5" : "h-4 w-4"}`} />
                   打开
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setIsPublicExamplesOpen(true)}
+                  className={`rounded-lg font-bold text-foreground hover:bg-primary/10 ${isCompactWorkbench ? "h-9 px-3 text-xs" : "h-10 px-3.5"}`}
+                >
+                  <BookOpenCheck className={`mr-2 ${isCompactWorkbench ? "h-3.5 w-3.5" : "h-4 w-4"}`} />
+                  公开案例
                 </Button>
                 <Button
                   variant="ghost"
@@ -1069,6 +1090,13 @@ function App() {
           confirmLabel={projectInfoDialogMode === "edit" ? "保存工程信息" : "创建项目"}
           onSubmit={projectInfoDialogMode === "edit" ? handleUpdateProjectInfo : handleCreateProjectWithInfo}
           onClose={() => setProjectInfoDialogMode(null)}
+        />
+      )}
+
+      {isPublicExamplesOpen && (
+        <PublicExamplesDialog
+          onClose={() => setIsPublicExamplesOpen(false)}
+          onOpenProject={handleOpenPublicExampleProject}
         />
       )}
 

@@ -28,6 +28,22 @@ export interface ProjectInfo {
   supervisionUnit: string;
 }
 
+export interface BenchmarkCaseSource {
+  caseId: string;
+  category: string;
+  title: string;
+  purpose: string;
+  sourceType: string;
+  sourceLabel: string;
+  reference: string;
+  method: string;
+  sourceLinks: string[];
+  checkedMetrics: string[];
+  metricSummary: string;
+  expected: Record<string, unknown>;
+  tolerances: Record<string, unknown>;
+}
+
 export interface AnalysisObject {
   id: string;
   name: string;
@@ -36,6 +52,7 @@ export interface AnalysisObject {
   results: AnalysisResults;
   sensitivityResults: SensitivityResults | null;
   workbenchView: WorkbenchView;
+  benchmark?: BenchmarkCaseSource;
   createdAt: string;
   updatedAt: string;
 }
@@ -166,8 +183,35 @@ function normalizeAnalysisObject(rawObject: unknown, index: number): AnalysisObj
     results: raw.results ?? null,
     sensitivityResults: raw.sensitivityResults ?? null,
     workbenchView: raw.workbenchView === "results" || raw.workbenchView === "sensitivity" || raw.workbenchView === "model" ? raw.workbenchView : "model",
+    benchmark: normalizeBenchmarkCaseSource(raw.benchmark),
     createdAt: String(raw.createdAt ?? now),
     updatedAt: String(raw.updatedAt ?? now),
+  };
+}
+
+function normalizeBenchmarkCaseSource(rawSource: unknown): BenchmarkCaseSource | undefined {
+  if (!rawSource || typeof rawSource !== "object") {
+    return undefined;
+  }
+  const source = rawSource as Partial<BenchmarkCaseSource>;
+  const caseId = String(source.caseId ?? "").trim();
+  if (!caseId) {
+    return undefined;
+  }
+  return {
+    caseId,
+    category: String(source.category ?? ""),
+    title: String(source.title ?? caseId),
+    purpose: String(source.purpose ?? ""),
+    sourceType: String(source.sourceType ?? "internal-regression"),
+    sourceLabel: String(source.sourceLabel ?? source.sourceType ?? "验证来源"),
+    reference: String(source.reference ?? ""),
+    method: String(source.method ?? ""),
+    sourceLinks: Array.isArray(source.sourceLinks) ? source.sourceLinks.map((link) => String(link)).filter(Boolean) : [],
+    checkedMetrics: Array.isArray(source.checkedMetrics) ? source.checkedMetrics.map((metric) => String(metric)).filter(Boolean) : [],
+    metricSummary: String(source.metricSummary ?? ""),
+    expected: source.expected && typeof source.expected === "object" ? source.expected : {},
+    tolerances: source.tolerances && typeof source.tolerances === "object" ? source.tolerances : {},
   };
 }
 

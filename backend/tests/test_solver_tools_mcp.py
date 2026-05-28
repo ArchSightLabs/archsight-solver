@@ -162,9 +162,11 @@ def test_mcp_server_exposes_resources_and_prompts_over_stdio():
     messages = [
         {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18"}},
         {"jsonrpc": "2.0", "id": 2, "method": "resources/list"},
-        {"jsonrpc": "2.0", "id": 3, "method": "resources/read", "params": {"uri": "archsight://benchmark/catalog"}},
-        {"jsonrpc": "2.0", "id": 4, "method": "prompts/list"},
-        {"jsonrpc": "2.0", "id": 5, "method": "prompts/get", "params": {"name": "benchmark-validation-review", "arguments": {"caseId": "BM-001"}}},
+        {"jsonrpc": "2.0", "id": 3, "method": "resources/read", "params": {"uri": "archsight://docs/asms-json"}},
+        {"jsonrpc": "2.0", "id": 4, "method": "resources/read", "params": {"uri": "archsight://examples/asms-few-shots"}},
+        {"jsonrpc": "2.0", "id": 5, "method": "resources/read", "params": {"uri": "archsight://benchmark/catalog"}},
+        {"jsonrpc": "2.0", "id": 6, "method": "prompts/list"},
+        {"jsonrpc": "2.0", "id": 7, "method": "prompts/get", "params": {"name": "benchmark-validation-review", "arguments": {"caseId": "BM-001"}}},
     ]
     completed = subprocess.run(
         [sys.executable, "-m", "backend.capabilities.mcp_server"],
@@ -179,8 +181,12 @@ def test_mcp_server_exposes_resources_and_prompts_over_stdio():
 
     assert responses[0]["result"]["capabilities"]["resources"]["listChanged"] is False
     resource_uris = {resource["uri"] for resource in responses[1]["result"]["resources"]}
+    assert "archsight://docs/asms-json" in resource_uris
+    assert "archsight://examples/asms-few-shots" in resource_uris
     assert "archsight://benchmark/catalog" in resource_uris
-    assert "BM-001" in responses[2]["result"]["contents"][0]["text"]
-    prompt_names = {prompt["name"] for prompt in responses[3]["result"]["prompts"]}
+    assert "ArchSight Structural Model Schema" in responses[2]["result"]["contents"][0]["text"]
+    assert "ASMS-JSON" in responses[3]["result"]["contents"][0]["text"]
+    assert "BM-001" in responses[4]["result"]["contents"][0]["text"]
+    prompt_names = {prompt["name"] for prompt in responses[5]["result"]["prompts"]}
     assert "benchmark-validation-review" in prompt_names
-    assert "benchmark_case_run" in responses[4]["result"]["messages"][0]["content"]["text"]
+    assert "benchmark_case_run" in responses[6]["result"]["messages"][0]["content"]["text"]
