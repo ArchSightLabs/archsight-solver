@@ -103,7 +103,7 @@ python -m backend.benchmarks.catalog_summary --output docs/verification/benchmar
 
 接口会立即执行求解并对比 `expected` / `tolerances`。响应中的 `persisted` 当前固定为 `false`，表示该接口只做投稿前自动校验，不替代 PR / Issue 的人工复核。桁架投稿会拒绝把弯矩或剪力作为主校核指标。
 
-面向非 GitHub 用户的默认路径是离线投稿包：前端顶部“验证投稿”表单会调用 `POST /api/benchmark-submission-packages`，下载单个 `benchmark-submission-*.json`。该 JSON 包含完整算例、贡献者信息和自动预检结果，但仍不会写入服务器。
+面向非 GitHub 用户的默认路径是离线投稿包：前端顶部“验证投稿”表单会调用 `POST /api/benchmark-submission-packages`，下载单个短文件名 JSON，例如 `beam-20260528-7390b0c8.json`。该 JSON 包含完整算例、贡献者信息和自动预检结果，但仍不会写入服务器。
 
 维护者收到 JSON 后先查看：
 

@@ -115,9 +115,10 @@ def benchmark_submission_filename(package: Mapping[str, Any]) -> str:
     precheck = package.get("precheck", {})
     case = package.get("case", {})
     submission_id = str(precheck.get("submissionId") or _submission_id(case if isinstance(case, Mapping) else {}))
-    case_id = str(case.get("id", "benchmark-submission") if isinstance(case, Mapping) else "benchmark-submission")
-    prefix = _filename_token(case_id) or "benchmark-submission"
-    return f"{prefix}-{_filename_token(submission_id)}.json"
+    category = str(case.get("category", "case") if isinstance(case, Mapping) else "case")
+    category_token = _filename_token(category) or "case"
+    digest_token = _filename_token(submission_id.rsplit("-", 1)[-1])[:8] or "00000000"
+    return f"{category_token}-{_date_token(precheck.get('generatedAt'))}-{digest_token}.json"
 
 
 def extract_submission_package(data: Mapping[str, Any]) -> Dict[str, Any]:
@@ -234,6 +235,15 @@ def _filename_token(value: str) -> str:
     token = "".join(char.lower() if char.isalnum() else "-" for char in value.strip())
     parts = [part for part in token.split("-") if part]
     return "-".join(parts)[:96]
+
+
+def _date_token(value: Any) -> str:
+    if isinstance(value, str) and value.strip():
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00")).strftime("%Y%m%d")
+        except ValueError:
+            pass
+    return datetime.now(timezone.utc).strftime("%Y%m%d")
 
 
 def _next_steps(review_status: str) -> list[str]:

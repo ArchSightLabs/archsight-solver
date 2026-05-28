@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from copy import deepcopy
 
 import pytest
@@ -50,7 +51,7 @@ def test_benchmark_submission_package_endpoint_generates_single_json_package(cli
     package = data["package"]
     assert data["operation"] == "generate_benchmark_submission_package"
     assert data["persisted"] is False
-    assert data["filename"].endswith(".json")
+    assert re.fullmatch(r"beam-\d{8}-[0-9a-f]{8}\.json", data["filename"])
     assert package["format"] == "archsight-benchmark-submission"
     assert package["case"]["id"] == "beam-contributor-package"
     assert package["contributor"]["name"] == "测试贡献者"

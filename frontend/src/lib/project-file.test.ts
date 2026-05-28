@@ -1,17 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  ARCHSIGHT_SOLVER_LEGACY_PROJECT_EXTENSIONS,
   ARCHSIGHT_SOLVER_PROJECT_EXTENSION,
   ARCHSIGHT_SOLVER_PROJECT_SCHEMA,
   createArchSightSolverProjectFile,
   getArchSightSolverProjectFileName,
+  normalizeArchSightSolverProjectFileName,
   parseArchSightSolverProjectFile,
   serializeArchSightSolverProjectFile,
 } from "./project-file.ts";
 import { addAnalysisObjectToProject, createDefaultSolverProject } from "./solver-project.ts";
 import type { FrameWorkspaceState } from "../types/structure.ts";
 
-test("创建 ArchSight Solver 项目文件时写入专属 schema 和 .aslv.json 文件名", () => {
+test("创建 ArchSight Solver 项目文件时写入专属 schema 和 .slv 文件名", () => {
   const project = createDefaultSolverProject(new Date("2026-05-21T12:00:00.000Z"));
   project.name = "门式刚架: 方案 A";
   project.settings.projectInfo.name = "门式刚架: 方案 A";
@@ -23,7 +25,16 @@ test("创建 ArchSight Solver 项目文件时写入专属 schema 和 .aslv.json 
   assert.equal(projectFile.schemaVersion, "2.0.0");
   assert.equal(projectFile.project.name, "门式刚架: 方案 A");
   assert.equal(projectFile.project.objects.length, 1);
+  assert.equal(ARCHSIGHT_SOLVER_PROJECT_EXTENSION, ".slv");
+  assert.deepEqual([...ARCHSIGHT_SOLVER_LEGACY_PROJECT_EXTENSIONS], [".aslv.json", ".json"]);
   assert.equal(getArchSightSolverProjectFileName(project), `门式刚架- 方案 A${ARCHSIGHT_SOLVER_PROJECT_EXTENSION}`);
+});
+
+test("规范化工程文件名时保留新版和旧版兼容后缀", () => {
+  assert.equal(normalizeArchSightSolverProjectFileName("门式刚架"), "门式刚架.slv");
+  assert.equal(normalizeArchSightSolverProjectFileName("门式刚架.slv"), "门式刚架.slv");
+  assert.equal(normalizeArchSightSolverProjectFileName("门式刚架.aslv.json"), "门式刚架.aslv.json");
+  assert.equal(normalizeArchSightSolverProjectFileName("门式刚架.json"), "门式刚架.json");
 });
 
 test("序列化后的项目文件可以恢复为规范化工作台状态", () => {

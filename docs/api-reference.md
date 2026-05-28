@@ -400,7 +400,7 @@ GET /api/examples/projects
 
 ## POST /api/benchmark-submission-packages
 
-生成离线 `benchmark-submission-*.json` 投稿包。请求体与 `POST /api/benchmark-submissions` 相同；接口会先执行自动预检，再把完整算例、贡献者信息和预检结果封装为单文件 JSON。该接口仍不做服务端持久化；前端会在下载后提供 GitHub Issue 与官方邮箱 `archsight-labs@qq.com` 两种正式提交通道。
+生成离线短文件名 JSON 投稿包，例如 `beam-20260528-7390b0c8.json`。请求体与 `POST /api/benchmark-submissions` 相同；接口会先执行自动预检，再把完整算例、贡献者信息和预检结果封装为单文件 JSON。该接口仍不做服务端持久化；前端会在下载后提供 GitHub Issue 与官方邮箱 `archsight-labs@qq.com` 两种正式提交通道。
 
 成功响应关键字段：
 

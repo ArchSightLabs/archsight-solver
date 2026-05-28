@@ -116,7 +116,7 @@ def format_review_report(result: Mapping[str, Any]) -> str:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="复核并可选合并 ArchSight benchmark 投稿包。")
-    parser.add_argument("submission", help="benchmark-submission-*.json 投稿包路径")
+    parser.add_argument("submission", help="验证算例投稿包 JSON 路径，例如 beam-20260528-7390b0c8.json")
     parser.add_argument("--append", action="store_true", help="自动复核通过后写入 benchmark_cases.json")
     parser.add_argument("--catalog", default=str(BENCHMARK_CATALOG_PATH), help="benchmark_cases.json 路径")
     args = parser.parse_args(argv)

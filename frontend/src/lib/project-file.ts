@@ -3,8 +3,13 @@ import { normalizeSolverProject, type SolverProject } from "./solver-project.ts"
 export const ARCHSIGHT_SOLVER_PROJECT_SCHEMA = "archsight-solver.project";
 export const ARCHSIGHT_SOLVER_PRODUCT_ID = "archsight-solver";
 export const ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION = "2.0.0";
-export const ARCHSIGHT_SOLVER_PROJECT_EXTENSION = ".aslv.json";
-export const ARCHSIGHT_SOLVER_PROJECT_ACCEPT = `${ARCHSIGHT_SOLVER_PROJECT_EXTENSION},.json,application/json`;
+export const ARCHSIGHT_SOLVER_PROJECT_EXTENSION = ".slv";
+export const ARCHSIGHT_SOLVER_LEGACY_PROJECT_EXTENSIONS = [".aslv.json", ".json"] as const;
+export const ARCHSIGHT_SOLVER_PROJECT_ACCEPT = [
+  ARCHSIGHT_SOLVER_PROJECT_EXTENSION,
+  ...ARCHSIGHT_SOLVER_LEGACY_PROJECT_EXTENSIONS,
+  "application/json",
+].join(",");
 
 export interface ArchSightSolverProjectFile {
   schema: typeof ARCHSIGHT_SOLVER_PROJECT_SCHEMA;
@@ -77,9 +82,9 @@ const PROJECT_FILE_INDENT = 2;
 const PROJECT_PICKER_ID = "archsight-solver-project-file";
 const PROJECT_PICKER_TYPES = [
   {
-    description: "ArchSight Solver 项目文件",
+    description: "ArchSight Solver 工程文件",
     accept: {
-      "application/json": [ARCHSIGHT_SOLVER_PROJECT_EXTENSION, ".json"],
+      "application/json": [ARCHSIGHT_SOLVER_PROJECT_EXTENSION, ...ARCHSIGHT_SOLVER_LEGACY_PROJECT_EXTENSIONS],
     },
   },
 ];
@@ -131,9 +136,16 @@ export function getArchSightSolverProjectFileName(project: SolverProject): strin
 
 export function normalizeArchSightSolverProjectFileName(name: string): string {
   const sanitizedName = sanitizeFileNameSegment(name) || "未命名结构项目";
-  return sanitizedName.toLowerCase().endsWith(ARCHSIGHT_SOLVER_PROJECT_EXTENSION)
+  return hasKnownProjectFileExtension(sanitizedName)
     ? sanitizedName
     : `${sanitizedName}${ARCHSIGHT_SOLVER_PROJECT_EXTENSION}`;
+}
+
+function hasKnownProjectFileExtension(name: string): boolean {
+  const normalizedName = name.toLowerCase();
+  return [ARCHSIGHT_SOLVER_PROJECT_EXTENSION, ...ARCHSIGHT_SOLVER_LEGACY_PROJECT_EXTENSIONS].some((extension) =>
+    normalizedName.endsWith(extension)
+  );
 }
 
 export function createArchSightSolverProjectFileBlob(projectFile: ArchSightSolverProjectFile): globalThis.Blob {
