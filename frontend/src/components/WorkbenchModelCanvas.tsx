@@ -1,5 +1,7 @@
-import type { CSSProperties } from "react";
+import { useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { Minus, Plus, RotateCcw, ZoomIn } from "lucide-react";
 import { GlassCard } from "./ui/GlassCard";
+import { Button } from "./ui/button";
 import { createPortalFrameModelFromState, type WorkspaceState } from "../lib/workspace-state";
 import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments } from "../lib/beam-span-dimensions";
 import type { AnalysisMode, FrameLoad, FrameLoadDirection, StructureNode, TrussLoad } from "../types/structure";
@@ -49,6 +51,12 @@ function formatMagnitude(value: number) {
 
 const svgTextFont = "Inter, Microsoft YaHei, system-ui, sans-serif";
 const MODEL_DIMENSION_TEXT_WEIGHT = 600;
+const MODEL_CANVAS_MIN_ZOOM_PERCENT = 70;
+const MODEL_CANVAS_MAX_ZOOM_PERCENT = 400;
+const MODEL_CANVAS_BUTTON_ZOOM_STEP_PERCENT = 10;
+const MODEL_CANVAS_INPUT_ZOOM_STEP_PERCENT = 5;
+const MODEL_CANVAS_DEFAULT_ZOOM_PERCENT = 100;
+const MODEL_CANVAS_DRAG_THRESHOLD_PX = 8;
 const BEAM_SKETCH_AXIS_Y = 150;
 const BEAM_LOAD_BOTTOM_GUIDE_Y = BEAM_SKETCH_AXIS_Y - 38;
 const BEAM_LOAD_LANE_GAP_Y = 34;
@@ -1071,18 +1079,185 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
 }
 
 export function WorkbenchModelCanvas({ workspace, mode, compact = false, beamPreviewStyle = "simple", selection, onSelect }: WorkbenchModelCanvasProps) {
+  const [zoomPercent, setZoomPercent] = useState(MODEL_CANVAS_DEFAULT_ZOOM_PERCENT);
+  const [zoomDraft, setZoomDraft] = useState(String(MODEL_CANVAS_DEFAULT_ZOOM_PERCENT));
+  const [showZoomControls, setShowZoomControls] = useState(false);
+  const [isCanvasDragging, setIsCanvasDragging] = useState(false);
+  const canvasScrollRef = useRef<HTMLDivElement | null>(null);
+  const canvasDragRef = useRef<{ pointerId: number; startX: number; startY: number; lastX: number; lastY: number; active: boolean } | null>(null);
+  const suppressCanvasClickRef = useRef(false);
   const metrics = buildMetrics(workspace, mode);
+  const zoomedBoardStyle: CSSProperties = {
+    width: `${zoomPercent}%`,
+    height: `${zoomPercent}%`,
+    minWidth: zoomPercent >= MODEL_CANVAS_DEFAULT_ZOOM_PERCENT ? "100%" : undefined,
+    minHeight: zoomPercent >= MODEL_CANVAS_DEFAULT_ZOOM_PERCENT ? "100%" : undefined,
+  };
+  const commitZoomPercent = (nextPercent: number) => {
+    if (!Number.isFinite(nextPercent)) {
+      setZoomDraft(String(zoomPercent));
+      return;
+    }
+    const clamped = Math.min(MODEL_CANVAS_MAX_ZOOM_PERCENT, Math.max(MODEL_CANVAS_MIN_ZOOM_PERCENT, Math.round(nextPercent)));
+    setZoomPercent(clamped);
+    setZoomDraft(String(clamped));
+  };
+  const commitZoomDraft = (rawValue: string) => {
+    if (!rawValue.trim()) {
+      setZoomDraft(String(zoomPercent));
+      return;
+    }
+    commitZoomPercent(Number(rawValue));
+  };
+  const handleCanvasPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0 || zoomPercent <= MODEL_CANVAS_DEFAULT_ZOOM_PERCENT) return;
+    canvasDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      lastX: event.clientX,
+      lastY: event.clientY,
+      active: false,
+    };
+  };
+  const handleCanvasPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = canvasDragRef.current;
+    const scrollArea = canvasScrollRef.current;
+    if (!drag || !scrollArea || drag.pointerId !== event.pointerId) return;
+    const dx = event.clientX - drag.lastX;
+    const dy = event.clientY - drag.lastY;
+    if (!drag.active && Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < MODEL_CANVAS_DRAG_THRESHOLD_PX) {
+      return;
+    }
+    if (!drag.active) {
+      drag.active = true;
+      event.currentTarget.setPointerCapture(event.pointerId);
+      setIsCanvasDragging(true);
+    }
+    scrollArea.scrollLeft -= dx;
+    scrollArea.scrollTop -= dy;
+    drag.lastX = event.clientX;
+    drag.lastY = event.clientY;
+    event.preventDefault();
+  };
+  const finishCanvasDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = canvasDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    suppressCanvasClickRef.current = drag.active;
+    canvasDragRef.current = null;
+    setIsCanvasDragging(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
   return (
     <GlassCard className="overflow-hidden">
-      <div className={`model-canvas-surface relative flex items-center justify-center px-4 py-5 ${compact ? "h-[260px]" : "h-[360px]"}`}>
-        <div className="model-canvas-board h-full w-full">
-          {mode === "beam" ? (
-            <BeamSketch beam={workspace.beam} beamPreviewStyle={beamPreviewStyle} selection={selection} onSelect={onSelect} />
-          ) : mode === "frame" ? (
-            <FrameSketch workspace={workspace} selection={selection} onSelect={onSelect} />
-          ) : (
-            <TrussSketch workspace={workspace} selection={selection} onSelect={onSelect} />
-          )}
+      <div className={`model-canvas-surface relative flex flex-col gap-3 px-4 py-4 ${compact ? "h-[260px]" : "h-[360px]"}`}>
+        <div className="flex h-8 items-center justify-end">
+          <div className="flex items-center gap-1 rounded-xl border border-slate-200/80 bg-white/[0.88] p-1 shadow-sm backdrop-blur dark:border-slate-700/80 dark:bg-slate-950/[0.82]">
+            {showZoomControls ? (
+              <>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 rounded-lg"
+                  aria-label="缩小工作台"
+                  title="缩小工作台"
+                  onClick={() => commitZoomPercent(zoomPercent - MODEL_CANVAS_BUTTON_ZOOM_STEP_PERCENT)}
+                  disabled={zoomPercent <= MODEL_CANVAS_MIN_ZOOM_PERCENT}
+                >
+                  <Minus className="h-3.5 w-3.5" />
+                </Button>
+                <div className="flex items-center">
+                  <input
+                    aria-label="工作台缩放百分比"
+                    type="number"
+                    min={MODEL_CANVAS_MIN_ZOOM_PERCENT}
+                    max={MODEL_CANVAS_MAX_ZOOM_PERCENT}
+                    step={MODEL_CANVAS_INPUT_ZOOM_STEP_PERCENT}
+                    value={zoomDraft}
+                    onChange={(event) => setZoomDraft(event.target.value)}
+                    onFocus={(event) => event.currentTarget.select()}
+                    onBlur={(event) => commitZoomDraft(event.currentTarget.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        commitZoomDraft(event.currentTarget.value);
+                        event.currentTarget.blur();
+                      }
+                      if (event.key === "Escape") {
+                        setZoomDraft(String(zoomPercent));
+                        event.currentTarget.blur();
+                      }
+                    }}
+                    className="h-7 w-12 rounded-md border border-transparent bg-transparent px-1 text-center font-mono text-[11px] font-bold text-slate-700 outline-none focus:border-sky-400/50 focus:bg-white/80 dark:text-slate-200 dark:focus:bg-slate-900/80"
+                  />
+                  <span className="pr-1 font-mono text-[11px] font-bold text-slate-700 dark:text-slate-200">%</span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 rounded-lg"
+                  aria-label="放大工作台"
+                  title="放大工作台"
+                  onClick={() => commitZoomPercent(zoomPercent + MODEL_CANVAS_BUTTON_ZOOM_STEP_PERCENT)}
+                  disabled={zoomPercent >= MODEL_CANVAS_MAX_ZOOM_PERCENT}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 rounded-lg"
+                  aria-label="重置工作台缩放"
+                  title="重置工作台缩放"
+                  onClick={() => commitZoomPercent(MODEL_CANVAS_DEFAULT_ZOOM_PERCENT)}
+                  disabled={zoomPercent === MODEL_CANVAS_DEFAULT_ZOOM_PERCENT}
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </Button>
+              </>
+            ) : null}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className={`h-7 w-7 rounded-lg ${showZoomControls ? "bg-sky-100 text-sky-700 dark:bg-sky-400/15 dark:text-sky-100" : ""}`}
+              aria-label={showZoomControls ? "隐藏工作台缩放" : "显示工作台缩放"}
+              aria-pressed={showZoomControls}
+              title={`${showZoomControls ? "隐藏" : "显示"}工作台缩放（${zoomPercent}%）`}
+              onClick={() => setShowZoomControls((current) => !current)}
+            >
+              <ZoomIn className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+        <div
+          ref={canvasScrollRef}
+          className={`min-h-0 flex-1 overflow-auto ${zoomPercent > MODEL_CANVAS_DEFAULT_ZOOM_PERCENT ? (isCanvasDragging ? "cursor-grabbing" : "cursor-grab") : ""}`}
+          onPointerDown={handleCanvasPointerDown}
+          onPointerMove={handleCanvasPointerMove}
+          onPointerUp={finishCanvasDrag}
+          onPointerCancel={finishCanvasDrag}
+          onClickCapture={(event) => {
+            if (!suppressCanvasClickRef.current) return;
+            suppressCanvasClickRef.current = false;
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+        >
+          <div className="model-canvas-board" style={zoomedBoardStyle}>
+            {mode === "beam" ? (
+              <BeamSketch beam={workspace.beam} beamPreviewStyle={beamPreviewStyle} selection={selection} onSelect={onSelect} />
+            ) : mode === "frame" ? (
+              <FrameSketch workspace={workspace} selection={selection} onSelect={onSelect} />
+            ) : (
+              <TrussSketch workspace={workspace} selection={selection} onSelect={onSelect} />
+            )}
+          </div>
         </div>
       </div>
       <div className="grid gap-px border-t border-slate-200/70 bg-slate-200/70 dark:border-slate-700/70 dark:bg-slate-700/70 sm:grid-cols-3">

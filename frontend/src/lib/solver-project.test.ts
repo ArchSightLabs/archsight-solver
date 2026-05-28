@@ -11,6 +11,8 @@ import {
   removeAnalysisObjectFromProject,
   updateActiveAnalysisObjectWorkspace,
 } from "./solver-project.ts";
+import { MAX_FRAME_MEMBERS, MAX_FRAME_NODES, MAX_TRUSS_MEMBERS, MAX_TRUSS_NODES } from "./solver-limits.ts";
+import { normalizeFrameWorkspaceState, normalizeTrussWorkspaceState } from "./workspace-state.ts";
 
 test("默认求解器项目包含一个梁系分析对象", () => {
   const project = createDefaultSolverProject(new Date("2026-05-21T12:00:00.000Z"));
@@ -125,4 +127,126 @@ test("公开验证算例展示名自动补两位连续编号", () => {
 
   assert.equal(getAnalysisObjectDisplayName(object, 3), "04 Warren 型屋架");
   assert.equal(getAnalysisObjectDisplayName({ ...object, name: "04 Warren 型屋架" }, 3), "04 Warren 型屋架");
+});
+
+test("规范化框架工作台时保留超过 60 根自定义构件", () => {
+  const customNodes = Array.from({ length: 72 }, (_, index) => ({
+    id: `N${index + 1}`,
+    x: index,
+    y: index % 2 === 0 ? 0 : 3,
+    supportType: index < 2 ? "fixed" as const : "free" as const,
+  }));
+  const customMembers = Array.from({ length: 72 }, (_, index) => ({
+    id: `M${index + 1}`,
+    start: `N${index + 1}`,
+    end: `N${index + 2 > customNodes.length ? customNodes.length : index + 2}`,
+    E_GPa: 210,
+    A_cm2: 120,
+    I_cm4: 8000,
+    kind: "generic",
+  }));
+
+  const normalized = normalizeFrameWorkspaceState({
+    frameMode: "custom",
+    customNodes,
+    customMembers,
+    customLoads: [],
+  });
+
+  assert.equal(normalized.customNodes.length, 72);
+  assert.equal(normalized.customMembers.length, 72);
+  assert.equal(normalized.customMembers[71].id, "M72");
+});
+
+test("规范化桁架工作台时保留超过 60 根自定义杆件", () => {
+  const customNodes = Array.from({ length: 72 }, (_, index) => ({
+    id: `N${index + 1}`,
+    x: index,
+    y: index % 2 === 0 ? 0 : 3,
+    supportType: index === 0 ? "pinned" as const : index === 1 ? "roller" as const : "free" as const,
+  }));
+  const customMembers = Array.from({ length: 72 }, (_, index) => ({
+    id: `M${index + 1}`,
+    start: `N${index + 1}`,
+    end: `N${index + 2 > customNodes.length ? customNodes.length : index + 2}`,
+    E_GPa: 210,
+    A_cm2: 24,
+    kind: "generic",
+  }));
+
+  const normalized = normalizeTrussWorkspaceState({
+    customNodes,
+    customMembers,
+    customLoads: [],
+  });
+
+  assert.equal(normalized.customNodes.length, 72);
+  assert.equal(normalized.customMembers.length, 72);
+  assert.equal(normalized.customMembers[71].id, "M72");
+});
+
+test("规范化框架工作台时按显式上限截断超大模型", () => {
+  const customNodes = Array.from({ length: MAX_FRAME_NODES + 12 }, (_, index) => ({
+    id: `N${index + 1}`,
+    x: index,
+    y: index % 2 === 0 ? 0 : 3,
+    supportType: index < 2 ? "fixed" as const : "free" as const,
+  }));
+  const customMembers = Array.from({ length: MAX_FRAME_MEMBERS + 12 }, (_, index) => {
+    const startIndex = (index % MAX_FRAME_NODES) + 1;
+    const endIndex = (startIndex % MAX_FRAME_NODES) + 1;
+    return {
+      id: `M${index + 1}`,
+      start: `N${startIndex}`,
+      end: `N${endIndex}`,
+      E_GPa: 210,
+      A_cm2: 120,
+      I_cm4: 8000,
+      kind: "generic",
+    };
+  });
+
+  const normalized = normalizeFrameWorkspaceState({
+    frameMode: "custom",
+    customNodes,
+    customMembers,
+    customLoads: [],
+  });
+
+  assert.equal(normalized.customNodes.length, MAX_FRAME_NODES);
+  assert.equal(normalized.customMembers.length, MAX_FRAME_MEMBERS);
+  assert.equal(normalized.customNodes.at(-1)?.id, `N${MAX_FRAME_NODES}`);
+  assert.equal(normalized.customMembers.at(-1)?.id, `M${MAX_FRAME_MEMBERS}`);
+});
+
+test("规范化桁架工作台时按显式上限截断超大模型", () => {
+  const customNodes = Array.from({ length: MAX_TRUSS_NODES + 12 }, (_, index) => ({
+    id: `N${index + 1}`,
+    x: index,
+    y: index % 2 === 0 ? 0 : 3,
+    supportType: index === 0 ? "pinned" as const : index === 1 ? "roller" as const : "free" as const,
+  }));
+  const customMembers = Array.from({ length: MAX_TRUSS_MEMBERS + 12 }, (_, index) => {
+    const startIndex = (index % MAX_TRUSS_NODES) + 1;
+    const endIndex = (startIndex % MAX_TRUSS_NODES) + 1;
+    return {
+      id: `M${index + 1}`,
+      start: `N${startIndex}`,
+      end: `N${endIndex}`,
+      E_GPa: 210,
+      A_cm2: 24,
+      kind: "generic",
+    };
+  });
+
+  const normalized = normalizeTrussWorkspaceState({
+    customNodes,
+    customMembers,
+    customLoads: [],
+  });
+
+  assert.equal(normalized.customNodes.length, MAX_TRUSS_NODES);
+  assert.equal(normalized.customMembers.length, MAX_TRUSS_MEMBERS);
+  assert.equal(normalized.customNodes.at(-1)?.id, `N${MAX_TRUSS_NODES}`);
+  assert.equal(normalized.customMembers.at(-1)?.id, `M${MAX_TRUSS_MEMBERS}`);
 });

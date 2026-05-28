@@ -1,4 +1,5 @@
 import { createPortalFrameModelFromState } from "./lib/workspace-state.ts";
+import { MAX_FRAME_MEMBERS, MAX_FRAME_NODES, MAX_TRUSS_MEMBERS, MAX_TRUSS_NODES } from "./lib/solver-limits.ts";
 import type { BeamApiPayload, BeamLinearLoadConfig, BeamSpanConfig, BeamWorkspaceState } from "./types/beam.ts";
 import type {
   FrameFormPayload,
@@ -330,6 +331,9 @@ export function validateCustomFrameWorkspace(value: FrameWorkspaceState): string
   if (nodes.length < 2) {
     return "自定义二维框架至少需要 2 个节点。";
   }
+  if (nodes.length > MAX_FRAME_NODES) {
+    return `框架节点数量超出系统限制（最大 ${MAX_FRAME_NODES} 个）。`;
+  }
 
   const nodeIds = nodes.map((node) => node.id);
   if (new Set(nodeIds).size !== nodeIds.length) {
@@ -339,6 +343,9 @@ export function validateCustomFrameWorkspace(value: FrameWorkspaceState): string
   const memberIds = members.map((member) => member.id);
   if (members.length > 0 && new Set(memberIds).size !== memberIds.length) {
     return "构件 ID 不能重复。";
+  }
+  if (members.length > MAX_FRAME_MEMBERS) {
+    return `框架构件数量超出系统限制（最大 ${MAX_FRAME_MEMBERS} 个）。`;
   }
 
   if (members.some((member) => !nodeIds.includes(member.start) || !nodeIds.includes(member.end))) {
@@ -421,6 +428,9 @@ export function validateCustomTrussWorkspace(value: TrussWorkspaceState): string
   if (nodes.length < 2) {
     return "自定义二维平面桁架至少需要 2 个节点。";
   }
+  if (nodes.length > MAX_TRUSS_NODES) {
+    return `桁架节点数量超出系统限制（最大 ${MAX_TRUSS_NODES} 个）。`;
+  }
 
   const nodeIds = nodes.map((node) => node.id);
   if (new Set(nodeIds).size !== nodeIds.length) {
@@ -430,6 +440,9 @@ export function validateCustomTrussWorkspace(value: TrussWorkspaceState): string
   const memberIds = members.map((member) => member.id);
   if (members.length > 0 && new Set(memberIds).size !== memberIds.length) {
     return "杆件 ID 不能重复。";
+  }
+  if (members.length > MAX_TRUSS_MEMBERS) {
+    return `桁架杆件数量超出系统限制（最大 ${MAX_TRUSS_MEMBERS} 根）。`;
   }
 
   if (members.some((member) => !nodeIds.includes(member.start) || !nodeIds.includes(member.end))) {

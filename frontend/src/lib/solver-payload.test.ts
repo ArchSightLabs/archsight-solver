@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildBeamPayload, buildFramePayload, buildTrussPayload, validateCustomFrameWorkspace, validateCustomTrussWorkspace } from "../solver-payload.ts";
+import { MAX_FRAME_MEMBERS, MAX_FRAME_NODES, MAX_TRUSS_MEMBERS, MAX_TRUSS_NODES } from "./solver-limits.ts";
 import { cloneFrameWorkspaceState, createDefaultBeamWorkspaceState, createDefaultFrameWorkspaceState, createDefaultTrussWorkspaceState, normalizeFrameWorkspaceState } from "./workspace-state.ts";
 import type { FrameWorkspaceState, TrussWorkspaceState } from "../types/structure.ts";
 
@@ -176,6 +177,32 @@ test("validateCustomFrameWorkspace rejects invalid load combination factors", ()
   assert.equal(validateCustomFrameWorkspace(workspace), "荷载组合 factors 不能为空。");
 });
 
+test("validateCustomFrameWorkspace rejects configured model size limits", () => {
+  const tooManyNodes = createDefaultFrameWorkspaceState();
+  tooManyNodes.frameMode = "custom";
+  tooManyNodes.customNodes = Array.from({ length: MAX_FRAME_NODES + 1 }, (_, index) => ({
+    id: `N${index + 1}`,
+    x: index,
+    y: 0,
+    supportType: index < 2 ? "fixed" : "free",
+  }));
+  tooManyNodes.customMembers = [{ id: "M1", start: "N1", end: "N2", E_GPa: 210, A_cm2: 120, I_cm4: 8000, kind: "generic" }];
+  assert.equal(validateCustomFrameWorkspace(tooManyNodes), `框架节点数量超出系统限制（最大 ${MAX_FRAME_NODES} 个）。`);
+
+  const tooManyMembers = createDefaultFrameWorkspaceState();
+  tooManyMembers.frameMode = "custom";
+  tooManyMembers.customMembers = Array.from({ length: MAX_FRAME_MEMBERS + 1 }, (_, index) => ({
+    id: `M${index + 1}`,
+    start: "N1",
+    end: "N2",
+    E_GPa: 210,
+    A_cm2: 120,
+    I_cm4: 8000,
+    kind: "generic",
+  }));
+  assert.equal(validateCustomFrameWorkspace(tooManyMembers), `框架构件数量超出系统限制（最大 ${MAX_FRAME_MEMBERS} 个）。`);
+});
+
 test("normalizeFrameWorkspaceState preserves invalid combinations for validation", () => {
   const workspace = normalizeFrameWorkspaceState({
     ...createDefaultFrameWorkspaceState(),
@@ -251,4 +278,27 @@ test("validateCustomTrussWorkspace rejects invalid references", () => {
   const missingMemberWorkspace = createDefaultTrussWorkspaceState();
   missingMemberWorkspace.customLoads = [{ type: "distributed", member: "MX", direction: "global_y", selfWeightKnPerM: 1.0 }];
   assert.equal(validateCustomTrussWorkspace(missingMemberWorkspace), "荷载引用了不存在的节点或杆件。");
+});
+
+test("validateCustomTrussWorkspace rejects configured model size limits", () => {
+  const tooManyNodes = createDefaultTrussWorkspaceState();
+  tooManyNodes.customNodes = Array.from({ length: MAX_TRUSS_NODES + 1 }, (_, index) => ({
+    id: `N${index + 1}`,
+    x: index,
+    y: 0,
+    supportType: index === 0 ? "pinned" : index === 1 ? "roller" : "free",
+  }));
+  tooManyNodes.customMembers = [{ id: "M1", start: "N1", end: "N2", E_GPa: 210, A_cm2: 24, kind: "generic" }];
+  assert.equal(validateCustomTrussWorkspace(tooManyNodes), `桁架节点数量超出系统限制（最大 ${MAX_TRUSS_NODES} 个）。`);
+
+  const tooManyMembers = createDefaultTrussWorkspaceState();
+  tooManyMembers.customMembers = Array.from({ length: MAX_TRUSS_MEMBERS + 1 }, (_, index) => ({
+    id: `M${index + 1}`,
+    start: "N1",
+    end: "N2",
+    E_GPa: 210,
+    A_cm2: 24,
+    kind: "generic",
+  }));
+  assert.equal(validateCustomTrussWorkspace(tooManyMembers), `桁架杆件数量超出系统限制（最大 ${MAX_TRUSS_MEMBERS} 根）。`);
 });

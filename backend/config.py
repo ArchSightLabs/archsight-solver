@@ -79,6 +79,26 @@ def get_max_beam_spans() -> int:
     return _env_int("ARCHSIGHT_MAX_BEAM_SPANS", int(limits.get("beamMaxSpans", 64)))
 
 
+def get_max_frame_nodes() -> int:
+    limits = load_defaults().get("analysisLimits", {})
+    return _env_int("ARCHSIGHT_MAX_FRAME_NODES", int(limits.get("frameMaxNodes", 300)))
+
+
+def get_max_frame_members() -> int:
+    limits = load_defaults().get("analysisLimits", {})
+    return _env_int("ARCHSIGHT_MAX_FRAME_MEMBERS", int(limits.get("frameMaxMembers", 900)))
+
+
+def get_max_truss_nodes() -> int:
+    limits = load_defaults().get("analysisLimits", {})
+    return _env_int("ARCHSIGHT_MAX_TRUSS_NODES", int(limits.get("trussMaxNodes", 300)))
+
+
+def get_max_truss_members() -> int:
+    limits = load_defaults().get("analysisLimits", {})
+    return _env_int("ARCHSIGHT_MAX_TRUSS_MEMBERS", int(limits.get("trussMaxMembers", 900)))
+
+
 def get_solver_backend() -> str:
     solver = load_defaults().get("solver", {})
     default = str(solver.get("backend", "auto")).strip().lower()

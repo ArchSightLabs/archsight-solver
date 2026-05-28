@@ -14,7 +14,7 @@ import type {
   TrussMember,
   TrussWorkspaceState,
 } from "../types/structure.ts";
-import { MAX_BEAM_SPANS } from "./solver-limits.ts";
+import { MAX_BEAM_SPANS, MAX_FRAME_MEMBERS, MAX_FRAME_NODES, MAX_TRUSS_MEMBERS, MAX_TRUSS_NODES } from "./solver-limits.ts";
 
 export interface WorkspaceState {
   analysisMode: AnalysisMode;
@@ -272,7 +272,7 @@ function pickExistingId(candidate: unknown, available: string[], fallback: strin
 function normalizeStructureNodes(rawNodes: unknown, fallbackNodes: StructureNode[]): StructureNode[] {
   const source = Array.isArray(rawNodes) ? rawNodes : fallbackNodes;
   const seen = new Set<string>();
-  return source.slice(0, 40).map((node, index) => {
+  return source.slice(0, MAX_FRAME_NODES).map((node, index) => {
     const fallback = fallbackNodes[index] ?? fallbackNodes[fallbackNodes.length - 1] ?? { id: `N${index + 1}`, x: 0, y: 0, supportType: "free" };
     const candidate = node && typeof node === "object" ? (node as Partial<StructureNode>) : {};
     const id = normalizeTextId(candidate.id, fallback.id || `N${index + 1}`, seen, "N", index);
@@ -293,7 +293,7 @@ function normalizeStructureNodes(rawNodes: unknown, fallbackNodes: StructureNode
 function normalizeTrussNodes(rawNodes: unknown, fallbackNodes: TrussWorkspaceState["customNodes"]): TrussWorkspaceState["customNodes"] {
   const source = Array.isArray(rawNodes) ? rawNodes : fallbackNodes;
   const seen = new Set<string>();
-  return source.slice(0, 40).map((node, index) => {
+  return source.slice(0, MAX_TRUSS_NODES).map((node, index) => {
     const fallback = fallbackNodes[index] ?? fallbackNodes[fallbackNodes.length - 1] ?? { id: `N${index + 1}`, x: 0, y: 0, supportType: "free" };
     const candidate = node && typeof node === "object" ? (node as Partial<TrussWorkspaceState["customNodes"][number]>) : {};
     const id = normalizeTextId(candidate.id, fallback.id || `N${index + 1}`, seen, "N", index);
@@ -310,7 +310,7 @@ function normalizeStructureMembers(rawMembers: unknown, nodes: StructureNode[], 
   const source = Array.isArray(rawMembers) ? rawMembers : fallbackMembers;
   const nodeIds = nodes.map((node) => node.id);
   const seen = new Set<string>();
-  return source.slice(0, 60).map((member, index) => {
+  return source.slice(0, MAX_FRAME_MEMBERS).map((member, index) => {
     const fallback = fallbackMembers[index] ?? fallbackMembers[fallbackMembers.length - 1] ?? {
       id: `M${index + 1}`,
       start: nodeIds[0] ?? "N1",
@@ -343,7 +343,7 @@ function normalizeTrussMembers(rawMembers: unknown, nodes: TrussWorkspaceState["
   const source = Array.isArray(rawMembers) ? rawMembers : fallbackMembers;
   const nodeIds = nodes.map((node) => node.id);
   const seen = new Set<string>();
-  return source.slice(0, 60).map((member, index) => {
+  return source.slice(0, MAX_TRUSS_MEMBERS).map((member, index) => {
     const fallback = fallbackMembers[index] ?? fallbackMembers[fallbackMembers.length - 1] ?? {
       id: `M${index + 1}`,
       start: nodeIds[0] ?? "N1",

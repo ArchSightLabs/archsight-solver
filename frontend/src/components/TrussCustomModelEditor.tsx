@@ -113,6 +113,10 @@ function createMemberLoadDraft(members: TrussMember[], preferredMemberId?: strin
   };
 }
 
+function canonicalId(value: string | undefined, fallback: string): string {
+  return value?.trim() || fallback;
+}
+
 export function TrussCustomModelEditor({
   value,
   onChange,
@@ -251,18 +255,24 @@ export function TrussCustomModelEditor({
   const updateNode = (index: number, patch: Partial<TrussNode>) => {
     const current = value.nodes[index];
     if (!current) return;
-    const nextNodes = value.nodes.map((node, nodeIndex) => (nodeIndex === index ? { ...node, ...patch } : node));
+    const nextId = patch.id !== undefined ? canonicalId(patch.id, current.id) : current.id;
+    const nextPatch = patch.id !== undefined ? { ...patch, id: nextId } : patch;
+    const isRenaming = nextId !== current.id;
+    const nextNodes = value.nodes.map((node, nodeIndex) => (nodeIndex === index ? { ...node, ...nextPatch } : node));
     const nextMembers = value.members.map((member) => {
-      if (current.id === member.start && patch.id && patch.id.trim()) {
-        return { ...member, start: patch.id.trim() };
+      if (isRenaming && current.id === member.start) {
+        return { ...member, start: nextId };
       }
-      if (current.id === member.end && patch.id && patch.id.trim()) {
-        return { ...member, end: patch.id.trim() };
+      if (isRenaming && current.id === member.end) {
+        return { ...member, end: nextId };
       }
       return member;
     });
-    const nextLoads = value.loads.map((load) => (load.type === "nodal" && load.node === current.id && patch.id && patch.id.trim() ? { ...load, node: patch.id.trim() } : load));
+    const nextLoads = value.loads.map((load) => (isRenaming && load.type === "nodal" && load.node === current.id ? { ...load, node: nextId } : load));
     commit({ nodes: nextNodes, members: nextMembers, loads: nextLoads });
+    if (isRenaming && resolvedSelectedObject.type === "node" && resolvedSelectedObject.id === current.id) {
+      selectObject({ type: "node", id: nextId }, { openEditor: false });
+    }
   };
 
   const addNode = () => {
@@ -291,14 +301,20 @@ export function TrussCustomModelEditor({
   const updateMember = (index: number, patch: Partial<TrussMember>) => {
     const current = value.members[index];
     if (!current) return;
-    const nextMembers = value.members.map((member, memberIndex) => (memberIndex === index ? { ...member, ...patch } : member));
+    const nextId = patch.id !== undefined ? canonicalId(patch.id, current.id) : current.id;
+    const nextPatch = patch.id !== undefined ? { ...patch, id: nextId } : patch;
+    const isRenaming = nextId !== current.id;
+    const nextMembers = value.members.map((member, memberIndex) => (memberIndex === index ? { ...member, ...nextPatch } : member));
     const nextLoads = value.loads.map((load) => {
-      if (load.type !== "nodal" && load.member === current.id && patch.id && patch.id.trim()) {
-        return { ...load, member: patch.id.trim() } as TrussLoad;
+      if (isRenaming && load.type !== "nodal" && load.member === current.id) {
+        return { ...load, member: nextId } as TrussLoad;
       }
       return load;
     });
     commit({ nodes: value.nodes, members: nextMembers, loads: nextLoads });
+    if (isRenaming && resolvedSelectedObject.type === "member" && resolvedSelectedObject.id === current.id) {
+      selectObject({ type: "member", id: nextId }, { openEditor: false });
+    }
   };
 
   const removeMember = (index: number) => {
@@ -732,7 +748,7 @@ export function TrussCustomModelEditor({
         <div className="space-y-3">
           {value.nodes.map((node, index) => (
             <div
-              key={node.id}
+              key={`truss-node-${index}`}
               className="grid grid-cols-1 gap-3 rounded-2xl border border-white/8 bg-slate-950/20 p-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1fr)_auto]"
             >
               <div className="space-y-1">
@@ -783,7 +799,7 @@ export function TrussCustomModelEditor({
         <div className="space-y-3">
           {value.members.map((member, index) => (
             <div
-              key={member.id}
+              key={`truss-member-${index}`}
               className="space-y-3 rounded-2xl border border-white/8 bg-slate-950/20 p-3"
             >
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Tuple
 
+from backend.config import get_max_truss_members, get_max_truss_nodes
 from backend.normalizers.structural_model import (
     TRUSS_SUPPORT_LABELS,
     build_structural_model,
@@ -42,6 +43,8 @@ def normalize_truss_request(data: Dict[str, Any]) -> Dict[str, Any]:
     raw_members = structure_source.get("members", [])
     raw_loads = structure_source.get("loads", [])
 
+    max_nodes = get_max_truss_nodes()
+    max_members = get_max_truss_members()
     model = build_structural_model(
         analysis_type="truss",
         template=structure_source.get("template", "explicit"),
@@ -55,6 +58,10 @@ def normalize_truss_request(data: Dict[str, Any]) -> Dict[str, Any]:
         allow_distributed=False,
         min_nodes_error="桁架至少需要 2 个节点",
         min_members_error="桁架至少需要 1 个杆件",
+        max_nodes=max_nodes,
+        max_members=max_members,
+        max_nodes_error=f"桁架节点数量超出系统限制 (最大 {max_nodes} 个)",
+        max_members_error=f"桁架杆件数量超出系统限制 (最大 {max_members} 根)",
     )
 
     return {

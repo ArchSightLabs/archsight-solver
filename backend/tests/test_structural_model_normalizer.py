@@ -149,6 +149,54 @@ def test_frame_partial_distributed_load_is_mapped_to_split_member_segments():
     ]
 
 
+def test_frame_explicit_model_rejects_configured_member_limit(monkeypatch):
+    monkeypatch.setenv("ARCHSIGHT_MAX_FRAME_MEMBERS", "1")
+
+    with pytest.raises(ValueError, match="框架构件数量超出系统限制"):
+        normalize_frame_request(
+            {
+                "analysisType": "frame",
+                "structure": {
+                    "template": "explicit",
+                    "nodes": [
+                        {"id": "N1", "x": 0, "y": 0, "supportType": "fixed"},
+                        {"id": "N2", "x": 4, "y": 0, "supportType": "roller"},
+                        {"id": "N3", "x": 8, "y": 0, "supportType": "free"},
+                    ],
+                    "members": [
+                        {"id": "B1", "start": "N1", "end": "N2", "E_GPa": 210, "A_cm2": 120, "I_cm4": 8000},
+                        {"id": "B2", "start": "N2", "end": "N3", "E_GPa": 210, "A_cm2": 120, "I_cm4": 8000},
+                    ],
+                    "loads": [],
+                },
+            }
+        )
+
+
+def test_truss_explicit_model_rejects_configured_node_limit(monkeypatch):
+    monkeypatch.setenv("ARCHSIGHT_MAX_TRUSS_NODES", "2")
+
+    with pytest.raises(ValueError, match="桁架节点数量超出系统限制"):
+        normalize_truss_request(
+            {
+                "analysisType": "truss",
+                "structure": {
+                    "template": "explicit",
+                    "nodes": [
+                        {"id": "N1", "x": 0, "y": 0, "supportType": "pinned"},
+                        {"id": "N2", "x": 4, "y": 0, "supportType": "roller"},
+                        {"id": "N3", "x": 2, "y": 2, "supportType": "free"},
+                    ],
+                    "members": [
+                        {"id": "M1", "start": "N1", "end": "N3", "E_GPa": 210, "A_cm2": 24},
+                        {"id": "M2", "start": "N2", "end": "N3", "E_GPa": 210, "A_cm2": 24},
+                    ],
+                    "loads": [],
+                },
+            }
+        )
+
+
 def test_shared_structural_model_preserves_load_combination_tags():
     model = build_structural_model(
         analysis_type="frame",

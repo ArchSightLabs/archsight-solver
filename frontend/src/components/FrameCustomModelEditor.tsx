@@ -362,32 +362,38 @@ export function FrameCustomModelEditor({
   const updateNode = (index: number, patch: Partial<StructureNode>) => {
     const current = value.nodes[index];
     if (!current) return;
-    const nextNodes = value.nodes.map((node, nodeIndex) => (nodeIndex === index ? { ...node, ...patch } : node));
+    const nextId = patch.id !== undefined ? canonicalId(patch.id, current.id) : current.id;
+    const nextPatch = patch.id !== undefined ? { ...patch, id: nextId } : patch;
+    const isRenaming = nextId !== current.id;
+    const nextNodes = value.nodes.map((node, nodeIndex) => (nodeIndex === index ? { ...node, ...nextPatch } : node));
     const nextMembers = value.members.map((member) => {
-      if (current.id === member.start) {
-        return { ...member, start: patch.id && patch.id.trim() ? patch.id.trim() : member.start };
+      if (isRenaming && current.id === member.start) {
+        return { ...member, start: nextId };
       }
-      if (current.id === member.end) {
-        return { ...member, end: patch.id && patch.id.trim() ? patch.id.trim() : member.end };
+      if (isRenaming && current.id === member.end) {
+        return { ...member, end: nextId };
       }
       return member;
     });
     const nextLoads = value.loads.map((load) => {
-      if (load.type === "nodal" && load.node === current.id && patch.id && patch.id.trim()) {
-        return { ...load, node: patch.id.trim() };
+      if (isRenaming && load.type === "nodal" && load.node === current.id) {
+        return { ...load, node: nextId };
       }
       return load;
     });
     const nextLoadCases = value.loadCases.map((loadCase) => ({
       ...loadCase,
       loads: loadCase.loads.map((load) => {
-        if (load.type === "nodal" && load.node === current.id && patch.id && patch.id.trim()) {
-          return { ...load, node: patch.id.trim() };
+        if (isRenaming && load.type === "nodal" && load.node === current.id) {
+          return { ...load, node: nextId };
         }
         return load;
       }),
     }));
     commit(keep({ nodes: nextNodes, members: nextMembers, loads: nextLoads, loadCases: nextLoadCases }));
+    if (isRenaming && resolvedSelectedObject.type === "node" && resolvedSelectedObject.id === current.id) {
+      selectObject({ type: "node", id: nextId }, { openEditor: false });
+    }
   };
 
   const addNodeSpring = (nodeIndex: number) => {
@@ -475,23 +481,29 @@ export function FrameCustomModelEditor({
   const updateMember = (index: number, patch: Partial<StructureMember>) => {
     const current = value.members[index];
     if (!current) return;
-    const nextMembers = value.members.map((member, memberIndex) => (memberIndex === index ? { ...member, ...patch } : member));
+    const nextId = patch.id !== undefined ? canonicalId(patch.id, current.id) : current.id;
+    const nextPatch = patch.id !== undefined ? { ...patch, id: nextId } : patch;
+    const isRenaming = nextId !== current.id;
+    const nextMembers = value.members.map((member, memberIndex) => (memberIndex === index ? { ...member, ...nextPatch } : member));
     const nextLoads = value.loads.map((load) => {
-      if ((load.type === "distributed" || load.type === "member_point") && load.member === current.id && patch.id && patch.id.trim()) {
-        return { ...load, member: patch.id.trim() };
+      if (isRenaming && (load.type === "distributed" || load.type === "member_point") && load.member === current.id) {
+        return { ...load, member: nextId };
       }
       return load;
     });
     const nextLoadCases = value.loadCases.map((loadCase) => ({
       ...loadCase,
       loads: loadCase.loads.map((load) => {
-        if ((load.type === "distributed" || load.type === "member_point") && load.member === current.id && patch.id && patch.id.trim()) {
-          return { ...load, member: patch.id.trim() };
+        if (isRenaming && (load.type === "distributed" || load.type === "member_point") && load.member === current.id) {
+          return { ...load, member: nextId };
         }
         return load;
       }),
     }));
     commit(keep({ members: nextMembers, loads: nextLoads, loadCases: nextLoadCases }));
+    if (isRenaming && resolvedSelectedObject.type === "member" && resolvedSelectedObject.id === current.id) {
+      selectObject({ type: "member", id: nextId }, { openEditor: false });
+    }
   };
 
   const removeMember = (index: number) => {
@@ -1180,7 +1192,7 @@ export function FrameCustomModelEditor({
         </div>
         <div className="space-y-3">
           {value.nodes.map((node, index) => (
-            <div key={node.id} className="space-y-3 rounded-2xl border border-white/8 bg-slate-950/20 p-3">
+            <div key={`frame-node-${index}`} className="space-y-3 rounded-2xl border border-white/8 bg-slate-950/20 p-3">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <div className={fieldLabelClass}>节点编号</div>
@@ -1234,7 +1246,7 @@ export function FrameCustomModelEditor({
                 ) : (
                   <div className="space-y-2">
                     {(node.springs ?? []).map((spring, springIndex) => (
-                      <div key={`${node.id}-spring-${springIndex}`} className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+                      <div key={`frame-node-${index}-spring-${springIndex}`} className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
                         <DropdownSelect
                           value={spring.dof}
                           onChange={(nextValue) => updateNodeSpring(index, springIndex, { dof: nextValue as FrameSpring["dof"] })}
@@ -1285,7 +1297,7 @@ export function FrameCustomModelEditor({
         </div>
         <div className="space-y-3">
           {value.members.map((member, index) => (
-            <div key={member.id} className="space-y-3 rounded-2xl border border-white/8 bg-slate-950/20 p-3">
+            <div key={`frame-member-${index}`} className="space-y-3 rounded-2xl border border-white/8 bg-slate-950/20 p-3">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
                 <div className="space-y-1">
                   <div className={fieldLabelClass}>构件编号</div>
@@ -1383,7 +1395,7 @@ export function FrameCustomModelEditor({
                   ) : (
                     <div className="space-y-2">
                       {(member.internalHinges ?? []).map((hinge, hingeIndex) => (
-                        <div key={`${member.id}-hinge-${hingeIndex}`} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                        <div key={`frame-member-${index}-hinge-${hingeIndex}`} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
                           <Input
                             type="number"
                             step="0.05"

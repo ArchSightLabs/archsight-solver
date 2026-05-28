@@ -200,6 +200,8 @@ def parse_nodes(
     *,
     labels: Mapping[str, str],
     min_count_error: str,
+    max_count: int | None = None,
+    max_count_error: str | None = None,
 ) -> List[StructuralNode]:
     nodes: List[StructuralNode] = []
     seen_ids: set[str] = set()
@@ -223,6 +225,8 @@ def parse_nodes(
         )
     if len(nodes) < 2:
         raise ValueError(min_count_error)
+    if max_count is not None and len(nodes) > max_count:
+        raise ValueError(max_count_error or f"节点数量超出系统限制 (最大 {max_count} 个)")
     return nodes
 
 
@@ -322,6 +326,8 @@ def parse_members(
     include_bending: bool,
     expected_element_type: str,
     min_count_error: str,
+    max_count: int | None = None,
+    max_count_error: str | None = None,
 ) -> List[StructuralMember]:
     node_ids = {node.id for node in nodes}
     members: List[StructuralMember] = []
@@ -361,6 +367,8 @@ def parse_members(
         )
     if not members:
         raise ValueError(min_count_error)
+    if max_count is not None and len(members) > max_count:
+        raise ValueError(max_count_error or f"构件数量超出系统限制 (最大 {max_count} 个)")
     return members
 
 
@@ -800,19 +808,31 @@ def build_structural_model(
     allow_distributed: bool,
     min_nodes_error: str,
     min_members_error: str,
+    max_nodes: int | None = None,
+    max_members: int | None = None,
+    max_nodes_error: str | None = None,
+    max_members_error: str | None = None,
     raw_load_cases: Any = None,
     raw_load_combinations: Any = None,
 ) -> StructuralModel:
     if include_bending:
         raw_nodes, raw_members, raw_loads, split_map = expand_member_internal_hinges(raw_nodes, raw_members, raw_loads)
         raw_load_cases = expand_load_cases_for_split_members(raw_load_cases, split_map)
-    nodes = parse_nodes(raw_nodes, labels=labels, min_count_error=min_nodes_error)
+    nodes = parse_nodes(
+        raw_nodes,
+        labels=labels,
+        min_count_error=min_nodes_error,
+        max_count=max_nodes,
+        max_count_error=max_nodes_error,
+    )
     members = parse_members(
         raw_members,
         nodes,
         include_bending=include_bending,
         expected_element_type=analysis_type,
         min_count_error=min_members_error,
+        max_count=max_members,
+        max_count_error=max_members_error,
     )
     if not allow_distributed:
         raw_loads = preprocess_truss_member_loads(raw_loads, nodes, members)

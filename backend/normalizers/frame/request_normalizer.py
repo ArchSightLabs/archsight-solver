@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
+from backend.config import get_max_frame_members, get_max_frame_nodes
 from backend.common.numbers import to_float
 from backend.normalizers.structural_model import (
     FRAME_SUPPORT_LABELS,
@@ -45,6 +46,8 @@ def normalize_frame_request(data: Dict[str, Any]) -> Dict[str, Any]:
         analysis_options = {}
 
     if structure_source.get("nodes") and structure_source.get("members"):
+        max_nodes = get_max_frame_nodes()
+        max_members = get_max_frame_members()
         model = build_structural_model(
             analysis_type="frame",
             template=structure_source.get("template", "explicit"),
@@ -58,6 +61,10 @@ def normalize_frame_request(data: Dict[str, Any]) -> Dict[str, Any]:
             allow_distributed=True,
             min_nodes_error="框架至少需要 2 个节点",
             min_members_error="框架至少需要 1 个构件",
+            max_nodes=max_nodes,
+            max_members=max_members,
+            max_nodes_error=f"框架节点数量超出系统限制 (最大 {max_nodes} 个)",
+            max_members_error=f"框架构件数量超出系统限制 (最大 {max_members} 个)",
         )
         return {
             "analysis_type": "frame",
