@@ -14,7 +14,7 @@
 
 每个样例都包含自然语言工况、缺失输入处理规则、ASMS-JSON、CLI 调用模板、MCP 调用模板、benchmark caseId、导出配置和验收检查。
 
-本文是 ASMS-JSON 的调用流程说明，不重复定义字段全集。字段语义、单位、梁系/二维平面框架/二维平面桁架差异、版本策略和协议级错误，以 `docs/structural-model-protocol.md` 为准。
+本文是 ASMS-JSON 的调用流程说明，不重复定义字段全集。字段语义、单位、梁系/二维平面框架/二维平面桁架差异、版本策略和协议级错误，以 `docs/asms-json-schema.md` 为准。
 
 在 Agent 语境中，应把 ASMS-JSON 视为第一层稳定输出，而不是某个接口的临时请求体：
 

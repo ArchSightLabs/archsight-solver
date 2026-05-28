@@ -51,7 +51,7 @@ npm --prefix frontend run test:unit
 
 ArchSight Solver 使用 **ASMS-JSON** 作为结构模型入口标准，让 Web、REST API、CLI、MCP、benchmark 和计算书导出围绕同一份结构模型工作。
 
-- 协议说明：[ASMS-JSON 结构力学数据协议](docs/structural-model-protocol.md)
+- 协议说明：[ASMS-JSON / Model Schema](docs/asms-json-schema.md)
 - API 文档：[ArchSight Structural Solver API Reference](docs/api-reference.md)
 - Agent 调用闭环：[Agent 工程流样例](docs/agent-engineering-workflow.md)
 - MCP 资源清单：[MCP Resources 清单与生成口径](docs/mcp-resources.md)
@@ -73,7 +73,7 @@ python -m backend.benchmarks.report --output docs/verification/benchmark-validat
 - [快速开始与本地工具](docs/quickstart.md)
 - [功能与适用边界](docs/capabilities.md)
 - [部署说明](docs/deployment.md)
-- [开源结构力学求解器路线图与定位计划](docs/open-source-structure-solver-roadmap.md)
+- [路线图](docs/roadmap.md)
 - [工程文本模型规范](docs/text-model-spec.md)
 - [跨浏览器视觉回归](docs/verification/visual-regression.md)
 

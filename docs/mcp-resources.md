@@ -7,7 +7,7 @@
 | URI | MIME | 仓库事实源 | 用途 |
 |---|---|---|---|
 | `archsight://schemas` | `application/json` | `backend/contracts/json_schemas.py` 运行时生成 | 公开 JSON Schema Registry，约束 REST、CLI、MCP 与 Agent payload。 |
-| `archsight://docs/asms-json` | `text/markdown` | `docs/structural-model-protocol.md` | ASMS-JSON 字段语义、单位口径、结构体系差异和协议边界。 |
+| `archsight://docs/asms-json` | `text/markdown` | `docs/asms-json-schema.md` | ASMS-JSON 字段语义、单位口径、结构体系差异和协议边界。 |
 | `archsight://examples/asms-few-shots` | `application/json` | `data/agent_workflows/asms_few_shots.json` | 自然语言工况到 ASMS-JSON、CLI/MCP 调用、benchmark 复核和计算书导出的可测试 few-shot 样例。 |
 | `archsight://benchmark/catalog` | `application/json` | `backend/benchmarks/benchmark_cases.json` 经 `load_benchmark_catalog()` 读取 | 公开验证集算例目录、标准值、容许误差和来源元数据。 |
 | `archsight://docs/benchmark-validation` | `text/markdown` | `docs/verification/benchmark-validation-report.md` | 公开验证集算例、通过状态、关键校核和专业边界。 |

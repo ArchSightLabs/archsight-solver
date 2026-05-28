@@ -25,7 +25,7 @@ SERVER_NAME = "archsight-solver-mcp"
 SERVER_VERSION = "0.1.0"
 
 ROOT = Path(__file__).resolve().parents[2]
-ASMS_PROTOCOL_DOC_PATH = ROOT / "docs" / "structural-model-protocol.md"
+ASMS_PROTOCOL_DOC_PATH = ROOT / "docs" / "asms-json-schema.md"
 AGENT_FEW_SHOT_PATH = ROOT / "data" / "agent_workflows" / "asms_few_shots.json"
 BENCHMARK_DOC_PATH = ROOT / "docs" / "verification" / "benchmark-validation-report.md"
 MCP_RESOURCES_DOC_PATH = ROOT / "docs" / "mcp-resources.md"

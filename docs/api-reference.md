@@ -22,7 +22,7 @@ ASMS-JSON 是 ArchSight Solver 的结构力学数据入口标准，用同一份 
 - **公开案例是可见入口**：`GET /api/examples/projects` 将公开验证集组合成可直接导入工作台的工程案例，适合第三方平台复核和演示。
 - **REST / CLI / MCP 是同源执行面**：REST 直接提交 ASMS-JSON；CLI 与 MCP 使用 `{ "payload": <ASMS-JSON> }` 包装，计算链路仍与 `/api/calculate` 同源。
 
-协议字段说明见 `docs/structural-model-protocol.md`，Agent 从自然语言到 ASMS-JSON 的调用闭环见 `docs/agent-engineering-workflow.md`，可测试样例库见 `data/agent_workflows/asms_few_shots.json`。
+协议字段说明见 `docs/asms-json-schema.md`，Agent 从自然语言到 ASMS-JSON 的调用闭环见 `docs/agent-engineering-workflow.md`，可测试样例库见 `data/agent_workflows/asms_few_shots.json`。
 
 ## 响应信封
 

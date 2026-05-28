@@ -3,7 +3,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 README_PATH = ROOT / "README.md"
-ROADMAP_PATH = ROOT / "docs" / "open-source-structure-solver-roadmap.md"
+ROADMAP_PATH = ROOT / "docs" / "roadmap.md"
 
 from backend.tests.benchmark_catalog import load_benchmark_catalog
 
