@@ -79,3 +79,23 @@ test("移动端结构体系入口与建模主场视觉基线", async ({ page }) 
   await expect(page.getByRole("tab", { name: /参数建模/ })).toBeVisible();
   await expect(page).toHaveScreenshot("mobile-beam-model.png", screenshotOptions);
 });
+
+test("模板库名称输入框支持回车保存并关闭面板", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 960 });
+
+  await page.getByRole("button", { name: "系统设置" }).click();
+  await page.getByRole("button", { name: "模板库" }).click();
+
+  const templateDialog = page.getByRole("dialog", { name: "模板库" });
+  await expect(templateDialog).toBeVisible();
+  await templateDialog.getByLabel("模板名称").fill("标准方案A");
+  await templateDialog.getByLabel("模板名称").press("Enter");
+
+  await expect(templateDialog).toBeHidden();
+
+  await page.getByRole("button", { name: "系统设置" }).click();
+  await page.getByRole("button", { name: "模板库" }).click();
+
+  const reopenedTemplateDialog = page.getByRole("dialog", { name: "模板库" });
+  await expect(reopenedTemplateDialog.getByText("标准方案A", { exact: true })).toBeVisible();
+});

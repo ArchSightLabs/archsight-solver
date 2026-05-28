@@ -1,6 +1,6 @@
 # 版本发布记录
 
-<!-- 本文件由根目录 CHANGELOG.md 生成，请勿直接编辑；运行 npm --prefix frontend run sync:release-notes 更新。 -->
+<!-- 本文件是仓库级发布记录事实源；前端 /docs/release-notes.html 由 npm --prefix frontend run sync:release-notes 从本文件生成。 -->
 
 ## v1.2.0
 

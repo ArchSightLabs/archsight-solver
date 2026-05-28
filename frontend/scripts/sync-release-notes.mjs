@@ -1,9 +1,144 @@
-<!doctype html>
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const repoRoot = path.resolve(__dirname, '../..')
+const changelogPath = path.join(repoRoot, 'CHANGELOG.md')
+const publicDocsDir = path.join(repoRoot, 'frontend', 'public', 'docs')
+const releaseNotesMarkdownPath = path.join(publicDocsDir, 'release-notes.md')
+const releaseNotesHtmlPath = path.join(publicDocsDir, 'release-notes.html')
+
+function normalizeMarkdown(markdown) {
+  return markdown.replace(/\r\n/g, '\n').trimEnd() + '\n'
+}
+
+function stripHtmlComments(markdown) {
+  return markdown.replace(/<!--[\s\S]*?-->/g, '').trim()
+}
+
+function escapeHtml(value) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function renderInlineMarkdown(value) {
+  return escapeHtml(value)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2">$1</a>')
+}
+
+function parseReleaseNotes(markdown) {
+  const lines = stripHtmlComments(markdown).split('\n')
+  const result = {
+    title: '版本发布记录',
+    releases: [],
+  }
+  let currentRelease = null
+  let currentGroup = null
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim()
+    if (!line) {
+      continue
+    }
+
+    if (line.startsWith('# ')) {
+      result.title = line.replace(/^#\s+/, '').trim() || result.title
+      continue
+    }
+
+    if (line.startsWith('## ')) {
+      currentRelease = {
+        version: line.replace(/^##\s+/, '').trim(),
+        date: '',
+        groups: [],
+      }
+      result.releases.push(currentRelease)
+      currentGroup = null
+      continue
+    }
+
+    if (!currentRelease) {
+      continue
+    }
+
+    if (line.startsWith('发布时间：')) {
+      currentRelease.date = line
+      continue
+    }
+
+    if (line.endsWith('：') && !line.startsWith('- ')) {
+      currentGroup = {
+        title: line.slice(0, -1),
+        items: [],
+      }
+      currentRelease.groups.push(currentGroup)
+      continue
+    }
+
+    if (line.startsWith('- ')) {
+      if (!currentGroup) {
+        currentGroup = {
+          title: '主要变化',
+          items: [],
+        }
+        currentRelease.groups.push(currentGroup)
+      }
+      currentGroup.items.push(line.replace(/^-\s+/, '').trim())
+    }
+  }
+
+  return result
+}
+
+function renderPublicMarkdown(markdown) {
+  const markdownWithoutComments = stripHtmlComments(markdown).replace(/\n{3,}/g, '\n\n')
+  return normalizeMarkdown(
+    markdownWithoutComments.replace(
+      /^(# .+)\n+/,
+      '$1\n\n<!-- 本文件由根目录 CHANGELOG.md 生成，请勿直接编辑；运行 npm --prefix frontend run sync:release-notes 更新。 -->\n\n'
+    )
+  )
+}
+
+function renderReleaseNotesHtml(parsed) {
+  const latestVersion = parsed.releases[0]?.version ?? '当前版本'
+  const title = renderInlineMarkdown(parsed.title)
+  const releaseArticles = parsed.releases
+    .map((release) => {
+      const groups = release.groups
+        .map((group) => {
+          const items = group.items
+            .map((item) => `            <li>${renderInlineMarkdown(item)}</li>`)
+            .join('\n')
+          return `          <p class="section-label">${renderInlineMarkdown(group.title)}</p>
+          <ul>
+${items}
+          </ul>`
+        })
+        .join('\n')
+
+      return `      <article class="release">
+        <div class="release-head">
+          <h2>${renderInlineMarkdown(release.version)}</h2>
+          <span class="date">${renderInlineMarkdown(release.date)}</span>
+        </div>
+${groups}
+      </article>`
+    })
+    .join('\n\n')
+
+  return `<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ArchSight 结构力学求解器版本发布记录</title>
+  <title>ArchSight 结构力学求解器${escapeHtml(parsed.title)}</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <script>
     (() => {
@@ -116,55 +251,12 @@
       </button>
     </div>
     <header>
-      <span class="tag">当前版本 v1.2.0</span>
-      <h1>版本发布记录</h1>
+      <span class="tag">当前版本 ${renderInlineMarkdown(latestVersion)}</span>
+      <h1>${title}</h1>
     </header>
 
-    <section class="release-list" aria-label="版本发布记录">
-      <article class="release">
-        <div class="release-head">
-          <h2>v1.2.0</h2>
-          <span class="date">发布时间：2026-05-28</span>
-        </div>
-          <p class="section-label">主要变化</p>
-          <ul>
-            <li>新增公开验证工程入口与验证投稿闭环，覆盖公开案例浏览、投稿包生成、Issue 模板和后端投稿预审。</li>
-            <li>增强工作台工程图可读性，补充梁系、平面框架、平面桁架的尺寸标注、关键结果图和视觉基线。</li>
-            <li>统一计算书图形契约，导出报告优先使用前端同源工程图，并增加导出图形前置校验。</li>
-            <li>扩展公开 benchmark 数据、验证目录摘要、OpenAPI / JSON Schema 契约和 MCP 能力文档。</li>
-            <li>优化大模型编辑、工程树信息密度、公开案例可读性和桁架支座/杆件长度建模表达。</li>
-            <li>修复图表 tooltip HTML 注入风险，补充 HTML 转义、图形契约、投稿包和大模型限制相关测试。</li>
-          </ul>
-      </article>
-
-      <article class="release">
-        <div class="release-head">
-          <h2>v1.1.0</h2>
-          <span class="date">发布时间：2026-05-26</span>
-        </div>
-          <p class="section-label">主要变化</p>
-          <ul>
-            <li>新增 <code>/api/jobs</code> 异步作业接口与 <code>/api/contracts/schemas</code> JSON Schema 契约入口。</li>
-            <li>新增 <code>archsight-solver-tool</code> CLI 通用入口，扩展 MCP 计算、敏感性分析和 benchmark 工具。</li>
-            <li>新增公开 benchmark catalog、runner、report，并在 CI 中生成验证报告。</li>
-            <li>新增 API Reference、ASMS-JSON 结构力学数据协议、AIOS 集成文档和 benchmark 验证报告。</li>
-            <li>引入 SciPy sparse 求解后端、跨数上限配置、输出精度控制和求解器诊断，增强大跨数与大自由度模型支撑。</li>
-          </ul>
-      </article>
-
-      <article class="release">
-        <div class="release-head">
-          <h2>v1.0.0</h2>
-          <span class="date">发布时间：2026-05-25</span>
-        </div>
-          <p class="section-label">主要功能</p>
-          <ul>
-            <li>首个公开版本，交付梁系、平面框架、平面桁架三类线弹性静力分析工作台。</li>
-            <li>支持参数建模、结构计算、敏感性分析、结果图表、模板库和 Word / Excel 计算书导出。</li>
-            <li>提供 <code>/api/calculate</code>、<code>/api/sensitivity</code>、<code>/api/export</code> 等基础接口。</li>
-            <li>结果口径覆盖挠度、弯矩、剪力、节点位移、杆件轴力、轴应力和支座反力。</li>
-          </ul>
-      </article>
+    <section class="release-list" aria-label="${title}">
+${releaseArticles}
     </section>
     <script>
       (() => {
@@ -189,3 +281,14 @@
   </main>
 </body>
 </html>
+`
+}
+
+const changelogMarkdown = normalizeMarkdown(readFileSync(changelogPath, 'utf-8'))
+const releaseNotesHtml = renderReleaseNotesHtml(parseReleaseNotes(changelogMarkdown))
+
+mkdirSync(publicDocsDir, { recursive: true })
+writeFileSync(releaseNotesMarkdownPath, renderPublicMarkdown(changelogMarkdown), 'utf-8')
+writeFileSync(releaseNotesHtmlPath, releaseNotesHtml, 'utf-8')
+
+console.log(`已同步 ${path.relative(repoRoot, releaseNotesMarkdownPath)} 和 ${path.relative(repoRoot, releaseNotesHtmlPath)}`)

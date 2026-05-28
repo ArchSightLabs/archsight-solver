@@ -88,6 +88,8 @@ frontend/tmp/playwright-report/
 logs/
 deploy/
 scripts/
+!frontend/scripts/
+!frontend/scripts/**
 specs/
 
 # External reference source trees are intentionally excluded from the public repo.

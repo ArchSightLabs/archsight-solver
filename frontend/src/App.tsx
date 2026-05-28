@@ -1259,6 +1259,7 @@ function App() {
                 isAtCapacity={isAtCapacity}
                 compact={isCompactWorkbench}
                 onSaveTemplate={(name) => saveTemplate(name, createWorkspaceSnapshot(workspace))}
+                onSaveComplete={() => setIsTemplateLibraryOpen(false)}
                 onRestoreTemplate={handleRestoreTemplate}
                 onDuplicateTemplate={duplicateTemplate}
                 onDeleteTemplate={deleteTemplate}

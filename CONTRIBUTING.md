@@ -20,6 +20,8 @@
 
 如果改动涉及计算结果，请补充或更新对应的回归用例。
 
+如果改动涉及版本发布记录，请只维护根目录 `CHANGELOG.md`；前端静态发布记录通过 `npm --prefix frontend run sync:release-notes` 生成，`npm --prefix frontend run build` 会在构建前自动同步。
+
 如果改动涉及私有部署、高级分析、三维求解、规范校核或客户场景，请先开 issue 讨论边界。
 
 ## 新增算例或回归基线

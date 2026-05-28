@@ -75,6 +75,7 @@ python -m backend.benchmarks.catalog_summary --output docs/verification/benchmar
 | [快速开始与本地工具](docs/quickstart.md) | 本地启动、测试、CLI、MCP 与公开案例接口 | 当前快速开始 |
 | [功能与适用边界](docs/capabilities.md) | 功能范围、适用人群、身份边界与非目标 | 当前能力说明 |
 | [源码目录说明](docs/source-layout.md) | 后端、前端、数据、测试和本地忽略目录说明 | 当前源码导航 |
+| [版本发布记录](CHANGELOG.md) | 仓库级发布记录；前端发布记录页面由该文件同步生成 | 当前发布记录 |
 | [部署说明](docs/deployment.md) | Docker 单镜像、远程镜像标签与 Compose 部署 | 当前部署说明 |
 | [路线图](docs/roadmap.md) | 开源路线、三模块边界、近期重点 | 当前主路线 |
 | [ArchSight Structural Solver API Reference](docs/api-reference.md) | REST API、CLI、MCP 与错误码 | 当前 API 参考 |

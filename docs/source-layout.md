@@ -11,6 +11,7 @@
 | `frontend/` | React + Vite + TypeScript 前端工作台。 |
 | `data/` | 公开样例数据，例如 Agent workflow few-shot 与模板验证映射。 |
 | `docs/` | 公开文档，面向用户、贡献者和第三方集成方。 |
+| `CHANGELOG.md` | 仓库级版本发布记录事实源，前端发布记录页面从此文件同步生成。 |
 | `.github/` | GitHub Actions、Issue 模板和 PR 模板。 |
 | `Dockerfile`、`docker-compose.yml` | 单镜像构建和本地容器运行入口。 |
 
@@ -39,6 +40,7 @@
 | `frontend/src/components/` | 工作台组件、预览组件、结果面板、对话框和 UI 控件。 |
 | `frontend/src/hooks/` | 计算、导出、敏感性分析等前端业务动作封装。 |
 | `frontend/src/lib/` | 项目文件、payload 构造、模板库、文本模型、图表数据等纯逻辑。 |
+| `frontend/scripts/sync-release-notes.mjs` | 将根目录 `CHANGELOG.md` 同步为前端静态发布记录 Markdown 与 HTML。 |
 | `frontend/src/types/` | 前端共享类型定义。 |
 
 ## 公开数据与文档

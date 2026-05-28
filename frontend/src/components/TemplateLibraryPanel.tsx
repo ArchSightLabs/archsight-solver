@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { BookOpen, CheckCircle2, Copy, RefreshCw, Save, ShieldCheck, Trash2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { GlassCard, GlassHeader } from "./ui/GlassCard";
@@ -13,6 +13,7 @@ interface TemplateLibraryPanelProps {
   isAtCapacity: boolean;
   compact?: boolean;
   onSaveTemplate: (name: string) => TemplateActionResult<ProjectTemplate>;
+  onSaveComplete?: () => void;
   onRestoreTemplate: (template: ProjectTemplate) => TemplateActionResult<void>;
   onDuplicateTemplate: (templateId: string) => TemplateActionResult<ProjectTemplate>;
   onDeleteTemplate: (templateId: string) => TemplateActionResult<void>;
@@ -57,6 +58,7 @@ export function TemplateLibraryPanel({
   isAtCapacity,
   compact = false,
   onSaveTemplate,
+  onSaveComplete,
   onRestoreTemplate,
   onDuplicateTemplate,
   onDeleteTemplate,
@@ -93,10 +95,19 @@ export function TemplateLibraryPanel({
       setTemplateName("");
       setErrorMessage(null);
       setStatusMessage(`已保存模板「${result.value?.name ?? templateName.trim()}」。`);
+      onSaveComplete?.();
       return;
     }
     setStatusMessage(null);
     setErrorMessage(result.error ?? "保存失败");
+  };
+
+  const handleSaveSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    if (isAtCapacity) {
+      return;
+    }
+    handleSave();
   };
 
   const handleRestore = (template: ProjectTemplate) => {
@@ -155,7 +166,7 @@ export function TemplateLibraryPanel({
       />
 
       <div className="space-y-3">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+        <form className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto]" onSubmit={handleSaveSubmit}>
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest opacity-40">模板名称</label>
             <input
@@ -169,7 +180,7 @@ export function TemplateLibraryPanel({
           </div>
           <div className="flex items-end sm:justify-end">
             <Button
-              onClick={handleSave}
+              type="submit"
               disabled={isAtCapacity}
               className={`${panelPrimaryButton} ${compact ? "w-full px-4" : "px-5"}`}
             >
@@ -177,7 +188,7 @@ export function TemplateLibraryPanel({
               保存
             </Button>
           </div>
-        </div>
+        </form>
 
         <div className="flex items-center justify-between gap-2 text-xs">
           <span className="text-muted-foreground">
