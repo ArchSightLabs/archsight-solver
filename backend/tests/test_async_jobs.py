@@ -7,10 +7,12 @@ import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from app import app
+from backend.api.jobs import _futures, _load_job
 
 
 @pytest.fixture
-def client():
+def client(monkeypatch, tmp_path):
+    monkeypatch.setenv("ARCHSIGHT_SOLVER_JOB_DB_PATH", str(tmp_path / "solver-jobs.sqlite3"))
     app.config["TESTING"] = True
     return app.test_client()
 
@@ -59,9 +61,26 @@ def test_async_calculate_job_returns_pollable_result(client):
     assert result_response.get_json()["analysisType"] == "beam"
 
 
+def test_async_job_result_is_read_from_shared_store_not_future_memory(client):
+    response = client.post("/api/jobs", json={"operation": "calculate", "payload": _beam_payload()})
+    submitted = response.get_json()
+    job = _wait_for_job(client, submitted["jobId"])
+
+    assert job["status"] == "succeeded"
+    assert _load_job(submitted["jobId"])["result"]["analysisType"] == "beam"
+
+    _futures.clear()
+    status_response = client.get(f"/api/jobs/{submitted['jobId']}")
+    result_response = client.get(f"/api/jobs/{submitted['jobId']}/result")
+
+    assert status_response.status_code == 200
+    assert status_response.get_json()["result"]["analysisType"] == "beam"
+    assert result_response.status_code == 200
+    assert result_response.get_json()["summary"]["statusCode"] == "PASS"
+
+
 def test_async_job_rejects_unsupported_operation(client):
     response = client.post("/api/jobs", json={"operation": "unknown", "payload": _beam_payload()})
 
     assert response.status_code == 400
     assert response.get_json()["error"]["code"] == "COMMON_UNSUPPORTED_ASYNC_OPERATION"
-
