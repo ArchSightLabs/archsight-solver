@@ -10,6 +10,7 @@ from backend.exporters.common.artifact import ExportArtifact
 from backend.exporters.common.docx_utils import HAS_DOCX, add_df_table, add_heading, add_png_figure, add_report_title, create_document, png_from_report_images, style_table_header_row
 from backend.exporters.common.evidence import build_evidence_tables
 from backend.exporters.common.load_tables import build_load_combination_rows
+from backend.exporters.common.report_figure_catalog import BEAM_REPORT_OVERLAY_FIGURES, BEAM_REPORT_TRADITIONAL_FIGURES, report_figures_for_scope
 from backend.exporters.common.report_options import include_all_result_figures, include_figures, include_overlay_figures, include_traditional_figures, normalize_report_options
 from backend.exporters.common.report_figures import (
     AMBER,
@@ -225,37 +226,32 @@ def _add_result_figures(doc, solution: Dict[str, Any], report_images: Optional[D
         return
     section_index = 1
     figure_index = 1
+    include_all = include_all_result_figures(options)
     if include_overlay_figures(options):
-        overlay_items = [("beam.overlay.moment", "控制弯矩叠加图", "弯矩", GREEN)]
-        if include_all_result_figures(options):
-            overlay_items.extend(
-                [
-                    ("beam.overlay.shear", "剪力叠加图", "剪力", AMBER),
-                    ("beam.overlay.deflection", "挠度叠加图", "挠度", BLUE),
-                ]
-            )
-        for image_key, title, series_label, color in overlay_items:
-            add_heading(doc, f"4.{section_index} {title}")
+        for figure in report_figures_for_scope(BEAM_REPORT_OVERLAY_FIGURES, include_all):
+            add_heading(doc, f"4.{section_index} {figure.title}")
             add_png_figure(
                 doc,
-                _report_or_fallback(report_images, image_key, line_chart_png(solution.get("x_data", []), [ChartSeries(series_label, _beam_series(solution, series_label), color)])),
-                f"图 4-{figure_index} 梁系{title}（计算简图与结果同图显示）",
+                _report_or_fallback(
+                    report_images,
+                    figure.image_key,
+                    line_chart_png(solution.get("x_data", []), [ChartSeries(figure.series_label, _beam_series(solution, figure.series_label), _beam_figure_color(figure.series_label))]),
+                ),
+                f"图 4-{figure_index} 梁系{figure.title}（计算简图与结果同图显示）",
             )
             section_index += 1
             figure_index += 1
     if include_traditional_figures(options):
-        traditional_items = []
-        if include_all_result_figures(options):
-            traditional_items.append(("beam.deflection", "挠度曲线", "挠度", [float(value) * 1000.0 for value in solution.get("v_data", [])], BLUE, "mm"))
-        traditional_items.append(("beam.moment", "弯矩图", "弯矩", solution.get("moment_data", solution.get("element_end_moments", [])), GREEN, "kN·m"))
-        if include_all_result_figures(options):
-            traditional_items.append(("beam.shear", "剪力图", "剪力", solution.get("shear_data", solution.get("element_end_shears", [])), AMBER, "kN"))
-        for image_key, title, series_label, values, color, unit in traditional_items:
-            add_heading(doc, f"4.{section_index} {title}")
+        for figure in report_figures_for_scope(BEAM_REPORT_TRADITIONAL_FIGURES, include_all):
+            add_heading(doc, f"4.{section_index} {figure.title}")
             add_png_figure(
                 doc,
-                _report_or_fallback(report_images, image_key, line_chart_png(solution.get("x_data", []), [ChartSeries(series_label, values, color)])),
-                f"图 4-{figure_index} {title}（{unit}）",
+                _report_or_fallback(
+                    report_images,
+                    figure.image_key,
+                    line_chart_png(solution.get("x_data", []), [ChartSeries(figure.series_label, _beam_series(solution, figure.series_label), _beam_figure_color(figure.series_label))]),
+                ),
+                f"图 4-{figure_index} {figure.title}（{figure.unit}）",
             )
             section_index += 1
             figure_index += 1
@@ -267,6 +263,14 @@ def _beam_series(solution: Dict[str, Any], label: str) -> list[float]:
     if label == "挠度":
         return [float(value) * 1000.0 for value in solution.get("v_data", [])]
     return solution.get("moment_data", solution.get("element_end_moments", []))
+
+
+def _beam_figure_color(label: str) -> str:
+    if label == "剪力":
+        return AMBER
+    if label == "挠度":
+        return BLUE
+    return GREEN
 
 
 def _report_or_fallback(report_images: Optional[Dict[str, str]], key: str, fallback: bytes) -> bytes:

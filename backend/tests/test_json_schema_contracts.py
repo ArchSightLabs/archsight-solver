@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 
 from app import app
 from backend.contracts.openapi import build_openapi_document
-from backend.contracts.json_schemas import schema_by_id, schema_registry
+from backend.contracts.json_schemas import SCHEMA_ID_BASE_URI, schema_by_id, schema_registry
 
 
 @pytest.fixture
@@ -32,6 +32,13 @@ def test_schema_registry_contains_api_and_tool_contracts():
     assert registry["asms-truss-model"]["properties"]["structure"]["properties"]["loads"]["items"]["required"] == ["type", "node"]
     assert registry["job-request"]["required"] == ["payload"]
     assert registry["beam-deflection-input"]["properties"]["span"]["required"] == ["value", "unit"]
+
+
+def test_schema_id_uri_uses_solver_public_domain():
+    registry = schema_registry()
+
+    assert registry["benchmark-submission-package"]["$id"] == f"{SCHEMA_ID_BASE_URI}/benchmark-submission-package.schema.json"
+    assert all(schema.get("$id", "").startswith(f"{SCHEMA_ID_BASE_URI}/") for schema in registry.values())
 
 
 def test_schema_endpoint_exposes_registry(client):

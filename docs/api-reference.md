@@ -312,6 +312,10 @@ Content-Type: application/json
 - `benchmark-case-run-input`
 - `benchmark-submission-input`
 - `benchmark-submission-response`
+- `benchmark-submission-package`
+- `benchmark-submission-package-response`
+
+Schema 内的 `$id` 采用 `https://solver.archsight.cn/schemas/*.schema.json` 作为稳定标识 URI。它首先用于声明契约来源、版本化缓存和外部校验器识别；当前后端运行时按本地 Registry 返回 schema，不会因为 `$id` 自动请求该公网地址。若后续上线静态 schema 文档，可让这些 URI 真实可访问，但不应频繁更换。
 
 ## GET /api/contracts/schemas/{schemaId}
 
@@ -323,7 +327,7 @@ GET /api/contracts/schemas/asms-frame-model
 
 ## GET /api/contracts/openapi
 
-返回由当前 JSON Schema Registry 组装的 OpenAPI 3.1 文档，覆盖同步求解、预览、敏感性分析、异步作业、计算书导出、公开案例、benchmark 投稿校验和契约端点。敏感性分析、计算书导出、benchmark 投稿和 Schema Registry 使用端点专属 schema，避免把附加字段折叠成通用求解 payload。该文档用于系统集成、SDK 生成和接口审阅；字段语义仍以 ASMS-JSON 和对应 schema 为准。
+返回由当前 JSON Schema Registry 组装的 OpenAPI 3.1 文档，覆盖同步求解、预览、敏感性分析、异步作业、计算书导出、公开案例、benchmark 投稿校验、投稿包生成和契约端点。敏感性分析、计算书导出、benchmark 投稿和 Schema Registry 使用端点专属 schema，避免把附加字段折叠成通用求解 payload。该文档用于系统集成、SDK 生成和接口审阅；字段语义仍以 ASMS-JSON 和对应 schema 为准。
 
 ## GET /api/examples/projects
 
@@ -393,6 +397,24 @@ GET /api/examples/projects
 - `caseDraft`：可用于 PR / Issue 附件的标准化算例草案。
 
 桁架投稿的主校核指标必须保持桁架口径：节点位移、杆件轴力、杆件轴应力和支座反力。接口会拒绝把弯矩或剪力作为桁架 benchmark 主指标。
+
+## POST /api/benchmark-submission-packages
+
+生成离线 `benchmark-submission-*.json` 投稿包。请求体与 `POST /api/benchmark-submissions` 相同；接口会先执行自动预检，再把完整算例、贡献者信息和预检结果封装为单文件 JSON。该接口仍不做服务端持久化。
+
+成功响应关键字段：
+
+- `filename`：建议下载文件名。
+- `package.format`：固定为 `archsight-benchmark-submission`。
+- `package.case`：可由维护者复核并合并的标准化算例。
+- `package.precheck`：自动预检结果，包含 `submissionId`、`reviewStatus`、`checks` 和 `persisted=false`。
+
+维护者收到 JSON 后可本地查看或合并：
+
+```powershell
+python -m backend.benchmarks.review_submission path/to/benchmark-submission.json
+python -m backend.benchmarks.review_submission path/to/benchmark-submission.json --append
+```
 
 ## Capability CLI
 

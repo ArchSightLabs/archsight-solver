@@ -9,6 +9,7 @@ from backend.exporters.common.artifact import ExportArtifact
 from backend.exporters.common.docx_utils import HAS_DOCX, add_df_table, add_heading, add_png_figure, add_report_title, create_document, png_from_report_images
 from backend.exporters.common.evidence import build_evidence_tables
 from backend.exporters.common.load_tables import build_load_combination_rows
+from backend.exporters.common.report_figure_catalog import FRAME_REPORT_MEMBER_FIGURES, report_figures_for_scope
 from backend.exporters.common.report_options import include_all_result_figures, include_figures, include_overlay_figures, include_traditional_figures, normalize_report_options
 from backend.exporters.common.report_figures import (
     AMBER,
@@ -131,39 +132,29 @@ def _add_member_diagram_figures(doc, solution: Dict[str, Any], report_images: Op
     if not diagrams or not include_figures(options):
         return
     index = 1
+    include_all = include_all_result_figures(options)
     if include_overlay_figures(options):
-        overlay_metrics = [("momentKnM", "弯矩", "kN·m", AMBER, "frame.overlay.moment")]
-        if include_all_result_figures(options):
-            overlay_metrics.extend(
-                [
-                    ("shearKn", "剪力", "kN", GREEN, "frame.overlay.shear"),
-                    ("axialKn", "轴力", "kN", CYAN, "frame.overlay.axial"),
-                    ("deflectionMm", "局部 y 向位移", "mm", PURPLE, "frame.overlay.memberDeflection"),
-                ]
-            )
-        for key, label, unit, color, image_key in overlay_metrics:
+        for figure in report_figures_for_scope(FRAME_REPORT_MEMBER_FIGURES, include_all):
             x_values = diagrams[0].get("stations", [])
-            series = [ChartSeries(str(diagram.get("memberId", "")), diagram.get(key, []), color) for diagram in diagrams]
-            add_heading(doc, f"4.{index} 构件{label}叠加图")
-            add_png_figure(doc, _report_or_fallback(report_images, image_key, line_chart_png(x_values, series)), f"图 4-{index} 构件{label}图（{unit}，计算简图与结果同图显示）")
+            series = [ChartSeries(str(diagram.get("memberId", "")), diagram.get(figure.metric_key, []), _frame_figure_color(figure.metric_key)) for diagram in diagrams]
+            add_heading(doc, f"4.{index} 构件{figure.label}叠加图")
+            add_png_figure(
+                doc,
+                _report_or_fallback(report_images, figure.overlay_image_key, line_chart_png(x_values, series)),
+                f"图 4-{index} 构件{figure.label}图（{figure.unit}，计算简图与结果同图显示）",
+            )
             index += 1
     if not include_traditional_figures(options):
         return
-    metrics = (
-        [
-            ("axialKn", "轴力", "kN", CYAN, "frame.axial"),
-            ("shearKn", "剪力", "kN", GREEN, "frame.shear"),
-            ("momentKnM", "弯矩", "kN·m", AMBER, "frame.moment"),
-            ("deflectionMm", "局部 y 向位移", "mm", PURPLE, "frame.memberDeflection"),
-        ]
-        if include_all_result_figures(options)
-        else [("momentKnM", "弯矩", "kN·m", AMBER, "frame.moment")]
-    )
-    for key, label, unit, color, image_key in metrics:
+    for figure in report_figures_for_scope(FRAME_REPORT_MEMBER_FIGURES, include_all):
         x_values = diagrams[0].get("stations", [])
-        series = [ChartSeries(str(diagram.get("memberId", "")), diagram.get(key, []), color) for diagram in diagrams]
-        add_heading(doc, f"4.{index} 构件{label}图")
-        add_png_figure(doc, _report_or_fallback(report_images, image_key, line_chart_png(x_values, series)), f"图 4-{index} 构件{label}曲线（{unit}）")
+        series = [ChartSeries(str(diagram.get("memberId", "")), diagram.get(figure.metric_key, []), _frame_figure_color(figure.metric_key)) for diagram in diagrams]
+        add_heading(doc, f"4.{index} 构件{figure.label}图")
+        add_png_figure(
+            doc,
+            _report_or_fallback(report_images, figure.traditional_image_key, line_chart_png(x_values, series)),
+            f"图 4-{index} 构件{figure.label}曲线（{figure.unit}）",
+        )
         index += 1
 
 
@@ -183,6 +174,16 @@ def _add_load_combination_table(doc, solution: Dict[str, Any], title: str) -> No
 
 def _ordinal_x(items: Any) -> list[int]:
     return list(range(1, len(items) + 1))
+
+
+def _frame_figure_color(metric_key: str) -> str:
+    if metric_key == "shearKn":
+        return GREEN
+    if metric_key == "deflectionMm":
+        return PURPLE
+    if metric_key == "axialKn":
+        return CYAN
+    return AMBER
 
 
 def _report_or_fallback(report_images: Optional[Dict[str, str]], key: str, fallback: bytes) -> bytes:

@@ -4,6 +4,11 @@ from copy import deepcopy
 from typing import Any, Dict
 
 API_SCHEMA_VERSION = "2026-05-28"
+SCHEMA_ID_BASE_URI = "https://solver.archsight.cn/schemas"
+
+
+def _schema_id(name: str) -> str:
+    return f"{SCHEMA_ID_BASE_URI}/{name}.schema.json"
 
 
 QUANTITY_SCHEMA: Dict[str, Any] = {
@@ -138,7 +143,7 @@ STRUCTURAL_LOAD_SCHEMA: Dict[str, Any] = {
 }
 
 ASMS_BEAM_MODEL_SCHEMA: Dict[str, Any] = {
-    "$id": "https://archsight.cn/schemas/solver/asms-beam-model.schema.json",
+    "$id": _schema_id("asms-beam-model"),
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "ASMS-JSON 梁系模型",
     "type": "object",
@@ -175,7 +180,7 @@ ASMS_BEAM_MODEL_SCHEMA: Dict[str, Any] = {
 }
 
 ASMS_FRAME_MODEL_SCHEMA: Dict[str, Any] = {
-    "$id": "https://archsight.cn/schemas/solver/asms-frame-model.schema.json",
+    "$id": _schema_id("asms-frame-model"),
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "ASMS-JSON 二维平面框架模型",
     "type": "object",
@@ -202,7 +207,7 @@ ASMS_FRAME_MODEL_SCHEMA: Dict[str, Any] = {
 }
 
 ASMS_TRUSS_MODEL_SCHEMA: Dict[str, Any] = {
-    "$id": "https://archsight.cn/schemas/solver/asms-truss-model.schema.json",
+    "$id": _schema_id("asms-truss-model"),
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "ASMS-JSON 二维平面桁架模型",
     "type": "object",
@@ -229,7 +234,7 @@ ASMS_TRUSS_MODEL_SCHEMA: Dict[str, Any] = {
 }
 
 ASMS_MODEL_SCHEMA: Dict[str, Any] = {
-    "$id": "https://archsight.cn/schemas/solver/asms-model.schema.json",
+    "$id": _schema_id("asms-model"),
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "ArchSight Structural Model Schema (ASMS-JSON)",
     "description": "用于描述梁系、二维平面框架和二维平面桁架的开放 JSON 力学数据协议。",
@@ -237,7 +242,7 @@ ASMS_MODEL_SCHEMA: Dict[str, Any] = {
 }
 
 BEAM_DEFLECTION_INPUT_SCHEMA: Dict[str, Any] = {
-    "$id": "https://archsight.cn/schemas/solver/beam-deflection-input.schema.json",
+    "$id": _schema_id("beam-deflection-input"),
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "梁挠度能力输入",
     "type": "object",
@@ -259,7 +264,7 @@ BEAM_DEFLECTION_INPUT_SCHEMA: Dict[str, Any] = {
 
 BEAM_SERVICEABILITY_INPUT_SCHEMA: Dict[str, Any] = {
     **BEAM_DEFLECTION_INPUT_SCHEMA,
-    "$id": "https://archsight.cn/schemas/solver/beam-serviceability-input.schema.json",
+    "$id": _schema_id("beam-serviceability-input"),
     "title": "梁挠度正常使用校核输入",
     "properties": {
         **BEAM_DEFLECTION_INPUT_SCHEMA["properties"],
@@ -268,7 +273,7 @@ BEAM_SERVICEABILITY_INPUT_SCHEMA: Dict[str, Any] = {
 }
 
 SOLVER_PAYLOAD_SCHEMA: Dict[str, Any] = {
-    "$id": "https://archsight.cn/schemas/solver/calculate-payload.schema.json",
+    "$id": _schema_id("calculate-payload"),
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "结构求解 API 输入",
     "type": "object",
@@ -290,7 +295,7 @@ SOLVER_PAYLOAD_SCHEMA: Dict[str, Any] = {
 }
 
 SOLVER_JOB_REQUEST_SCHEMA: Dict[str, Any] = {
-    "$id": "https://archsight.cn/schemas/solver/job-request.schema.json",
+    "$id": _schema_id("job-request"),
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "异步求解作业提交输入",
     "type": "object",
@@ -312,7 +317,7 @@ SOLVER_JOB_REQUEST_SCHEMA: Dict[str, Any] = {
 }
 
 CAPABILITY_RESULT_SCHEMA: Dict[str, Any] = {
-    "$id": "https://archsight.cn/schemas/solver/capability-result.schema.json",
+    "$id": _schema_id("capability-result"),
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "确定性求解能力输出",
     "type": "object",
@@ -328,7 +333,7 @@ CAPABILITY_RESULT_SCHEMA: Dict[str, Any] = {
 }
 
 FRAME_TOOL_INPUT_SCHEMA: Dict[str, Any] = {
-    "$id": "https://archsight.cn/schemas/solver/frame-tool-input.schema.json",
+    "$id": _schema_id("frame-tool-input"),
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "平面框架能力输入",
     "type": "object",
@@ -345,7 +350,7 @@ FRAME_TOOL_INPUT_SCHEMA: Dict[str, Any] = {
 }
 
 TRUSS_TOOL_INPUT_SCHEMA: Dict[str, Any] = {
-    "$id": "https://archsight.cn/schemas/solver/truss-tool-input.schema.json",
+    "$id": _schema_id("truss-tool-input"),
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "平面桁架能力输入",
     "type": "object",
@@ -362,7 +367,7 @@ TRUSS_TOOL_INPUT_SCHEMA: Dict[str, Any] = {
 }
 
 CALCULATE_TOOL_INPUT_SCHEMA: Dict[str, Any] = {
-    "$id": "https://archsight.cn/schemas/solver/calculate-tool-input.schema.json",
+    "$id": _schema_id("calculate-tool-input"),
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "通用求解工具输入",
     "type": "object",
@@ -374,7 +379,7 @@ CALCULATE_TOOL_INPUT_SCHEMA: Dict[str, Any] = {
 }
 
 SENSITIVITY_TOOL_INPUT_SCHEMA: Dict[str, Any] = {
-    "$id": "https://archsight.cn/schemas/solver/sensitivity-tool-input.schema.json",
+    "$id": _schema_id("sensitivity-tool-input"),
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "敏感性分析工具输入",
     "type": "object",
@@ -386,7 +391,7 @@ SENSITIVITY_TOOL_INPUT_SCHEMA: Dict[str, Any] = {
 }
 
 BENCHMARK_CASE_LIST_INPUT_SCHEMA: Dict[str, Any] = {
-    "$id": "https://archsight.cn/schemas/solver/benchmark-case-list-input.schema.json",
+    "$id": _schema_id("benchmark-case-list-input"),
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "基准算例列表工具输入",
     "type": "object",
@@ -400,7 +405,7 @@ BENCHMARK_CASE_LIST_INPUT_SCHEMA: Dict[str, Any] = {
 }
 
 BENCHMARK_CASE_RUN_INPUT_SCHEMA: Dict[str, Any] = {
-    "$id": "https://archsight.cn/schemas/solver/benchmark-case-run-input.schema.json",
+    "$id": _schema_id("benchmark-case-run-input"),
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "基准算例执行工具输入",
     "type": "object",
@@ -460,7 +465,7 @@ BENCHMARK_SUBMISSION_CASE_SCHEMA: Dict[str, Any] = {
 }
 
 BENCHMARK_SUBMISSION_INPUT_SCHEMA: Dict[str, Any] = {
-    "$id": "https://archsight.cn/schemas/solver/benchmark-submission-input.schema.json",
+    "$id": _schema_id("benchmark-submission-input"),
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "公开验证算例投稿输入",
     "description": "用于云端服务执行投稿前自动校验；请求必须包含完整结构模型、标准值、容许误差和验证来源。",
@@ -483,7 +488,7 @@ BENCHMARK_SUBMISSION_INPUT_SCHEMA: Dict[str, Any] = {
 }
 
 BENCHMARK_SUBMISSION_RESPONSE_SCHEMA: Dict[str, Any] = {
-    "$id": "https://archsight.cn/schemas/solver/benchmark-submission-response.schema.json",
+    "$id": _schema_id("benchmark-submission-response"),
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "公开验证算例投稿校验响应",
     "type": "object",
@@ -498,6 +503,69 @@ BENCHMARK_SUBMISSION_RESPONSE_SCHEMA: Dict[str, Any] = {
         "persisted": {"type": "boolean", "const": False},
         "caseDraft": BENCHMARK_SUBMISSION_CASE_SCHEMA,
         "evaluation": {"type": "object", "additionalProperties": True},
+        "diagnostics": {"type": "object", "additionalProperties": True},
+        "nextSteps": {"type": "array", "items": {"type": "string"}},
+        "meta": {"type": "object", "additionalProperties": True},
+    },
+    "additionalProperties": True,
+}
+
+BENCHMARK_SUBMISSION_PACKAGE_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("benchmark-submission-package"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "公开验证算例离线投稿包",
+    "description": "用户下载并发送给维护者的单文件 JSON，包含算例草案、贡献者信息和投稿前预检结果。",
+    "type": "object",
+    "required": ["format", "formatVersion", "case", "contributor", "precheck"],
+    "properties": {
+        "format": {"type": "string", "const": "archsight-benchmark-submission"},
+        "formatVersion": {"type": "string", "const": "1.0"},
+        "case": BENCHMARK_SUBMISSION_CASE_SCHEMA,
+        "contributor": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "organization": {"type": "string"},
+                "contact": {"type": "string"},
+                "note": {"type": "string"},
+            },
+            "additionalProperties": True,
+        },
+        "notes": {"type": "string"},
+        "precheck": {
+            "type": "object",
+            "required": ["passed", "reviewStatus", "submissionId", "persisted", "generatedAt", "checks"],
+            "properties": {
+                "passed": {"type": "boolean"},
+                "reviewStatus": {"type": "string", "enum": ["ready_for_review", "needs_correction"]},
+                "submissionId": {"type": "string"},
+                "schemaVersion": {"type": "string"},
+                "persisted": {"type": "boolean", "const": False},
+                "generatedAt": {"type": "string"},
+                "checks": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+                "diagnostics": {"type": "object", "additionalProperties": True},
+            },
+            "additionalProperties": True,
+        },
+    },
+    "additionalProperties": True,
+}
+
+BENCHMARK_SUBMISSION_PACKAGE_RESPONSE_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("benchmark-submission-package-response"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "公开验证算例投稿包生成响应",
+    "type": "object",
+    "required": ["success", "operation", "submissionId", "filename", "persisted", "package"],
+    "properties": {
+        "success": {"type": "boolean", "const": True},
+        "operation": {"type": "string", "const": "generate_benchmark_submission_package"},
+        "version": {"type": "string"},
+        "schemaVersion": {"type": "string"},
+        "submissionId": {"type": "string"},
+        "filename": {"type": "string"},
+        "persisted": {"type": "boolean", "const": False},
+        "package": BENCHMARK_SUBMISSION_PACKAGE_SCHEMA,
         "diagnostics": {"type": "object", "additionalProperties": True},
         "nextSteps": {"type": "array", "items": {"type": "string"}},
         "meta": {"type": "object", "additionalProperties": True},
@@ -523,6 +591,8 @@ SCHEMA_REGISTRY: Dict[str, Dict[str, Any]] = {
     "benchmark-case-run-input": BENCHMARK_CASE_RUN_INPUT_SCHEMA,
     "benchmark-submission-input": BENCHMARK_SUBMISSION_INPUT_SCHEMA,
     "benchmark-submission-response": BENCHMARK_SUBMISSION_RESPONSE_SCHEMA,
+    "benchmark-submission-package": BENCHMARK_SUBMISSION_PACKAGE_SCHEMA,
+    "benchmark-submission-package-response": BENCHMARK_SUBMISSION_PACKAGE_RESPONSE_SCHEMA,
 }
 
 

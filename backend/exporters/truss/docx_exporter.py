@@ -10,6 +10,7 @@ from backend.exporters.common.artifact import ExportArtifact
 from backend.exporters.common.docx_utils import HAS_DOCX, add_df_table, add_heading, add_png_figure, add_report_title, create_document, png_from_report_images
 from backend.exporters.common.evidence import build_evidence_tables
 from backend.exporters.common.load_tables import build_load_combination_rows
+from backend.exporters.common.report_figure_catalog import TRUSS_REPORT_OVERLAY_FIGURES, TRUSS_REPORT_TRADITIONAL_FIGURES, report_figures_for_scope
 from backend.exporters.common.report_options import include_all_result_figures, include_figures, include_overlay_figures, include_traditional_figures, normalize_report_options
 from backend.exporters.common.report_figures import (
     AMBER,
@@ -145,31 +146,43 @@ def _add_member_figures(doc, solution: Dict[str, Any], report_images: Optional[D
     if not include_figures(options):
         return
     index = 1
+    include_all = include_all_result_figures(options)
     if include_overlay_figures(options):
-        overlay_items = [("truss.overlay.axial", "杆件轴力叠加图", "杆件轴力", AMBER)]
-        if include_all_result_figures(options):
-            overlay_items.append(("truss.overlay.displacement", "节点位移叠加图", "节点位移", BLUE))
-        for image_key, title, series_label, color in overlay_items:
-            fallback_values = [item["axialForceKn"] for item in solution["memberResults"]] if series_label == "杆件轴力" else [item["displacementMm"] for item in solution["nodeResults"]]
-            fallback_x = _ordinal_x(solution["memberResults"] if series_label == "杆件轴力" else solution["nodeResults"])
-            add_heading(doc, f"4.{index} {title}")
+        for figure in report_figures_for_scope(TRUSS_REPORT_OVERLAY_FIGURES, include_all):
+            fallback_values = _truss_series(solution, figure.metric)
+            fallback_x = _ordinal_x(solution["memberResults"] if figure.metric == "axial" else solution["nodeResults"])
+            add_heading(doc, f"4.{index} {figure.title}")
             add_png_figure(
                 doc,
-                _report_or_fallback(report_images, image_key, line_chart_png(fallback_x, [ChartSeries(series_label, fallback_values, color)])),
-                f"图 4-{index} {title}（计算简图与结果同图显示）",
+                _report_or_fallback(report_images, figure.image_key, line_chart_png(fallback_x, [ChartSeries(figure.series_label, fallback_values, _truss_figure_color(figure.metric))])),
+                f"图 4-{index} {figure.title}（计算简图与结果同图显示）",
             )
             index += 1
     if include_traditional_figures(options):
-        add_heading(doc, f"4.{index} 杆件轴力图")
-        add_png_figure(
-            doc,
-            _report_or_fallback(report_images, "truss.axial", line_chart_png(_ordinal_x(solution["memberResults"]), [ChartSeries("杆件轴力", [item["axialForceKn"] for item in solution["memberResults"]], AMBER)])),
-            f"图 4-{index} 杆件轴力分布（kN，拉力为正、压力为负）",
-        )
+        for figure in report_figures_for_scope(TRUSS_REPORT_TRADITIONAL_FIGURES, include_all):
+            add_heading(doc, f"4.{index} {figure.title}")
+            add_png_figure(
+                doc,
+                _report_or_fallback(report_images, figure.image_key, line_chart_png(_ordinal_x(solution["memberResults"]), [ChartSeries(figure.series_label, _truss_series(solution, figure.metric), _truss_figure_color(figure.metric))])),
+                f"图 4-{index} 杆件轴力分布（kN，拉力为正、压力为负）",
+            )
+            index += 1
 
 
 def _ordinal_x(items: Any) -> list[int]:
     return list(range(1, len(items) + 1))
+
+
+def _truss_series(solution: Dict[str, Any], metric: str) -> list[float]:
+    if metric == "displacement":
+        return [item["displacementMm"] for item in solution["nodeResults"]]
+    return [item["axialForceKn"] for item in solution["memberResults"]]
+
+
+def _truss_figure_color(metric: str) -> str:
+    if metric == "displacement":
+        return BLUE
+    return AMBER
 
 
 def _report_or_fallback(report_images: Optional[Dict[str, str]], key: str, fallback: bytes) -> bytes:

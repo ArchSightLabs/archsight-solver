@@ -251,7 +251,10 @@ def test_frame_docx_export_smoke(client):
     assert "校核证据" in full_text
     assert "3.1 节点水平位移图" in full_text
     assert "3.2 节点竖向位移图" in full_text
-    assert "4.3 构件弯矩图" in full_text
+    assert "4.1 构件弯矩图" in full_text
+    assert "4.2 构件剪力图" in full_text
+    assert "4.3 构件局部 y 向挠度图" in full_text
+    assert "4.4 构件轴力图" in full_text
     assert "5. 校核结论" in full_text
     assert "7. 附录数据" in full_text
     assert len(doc.inline_shapes) >= 7

@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildFrameDiagramSeries, findFrameDiagramExtreme, getFrameDiagramMetric, numericDomain } from "./frame-member-diagrams.ts";
+import { buildFrameDiagramSeries, findFrameDiagramExtreme, FRAME_DIAGRAM_METRICS, getFrameDiagramMetric, numericDomain } from "./frame-member-diagrams.ts";
+import { FRAME_REPORT_MEMBER_FIGURES, reportFiguresForScope } from "./report-figure-catalog.ts";
 
 test("buildFrameDiagramSeries flattens member station values by metric", () => {
   const series = buildFrameDiagramSeries(
@@ -56,4 +57,15 @@ test("findFrameDiagramExtreme reports the controlling member station", () => {
     value: -12,
     absValue: 12,
   });
+});
+
+test("框架计算书插图顺序与界面工程图顺序一致", () => {
+  assert.deepEqual(
+    FRAME_REPORT_MEMBER_FIGURES.map((figure) => figure.metric),
+    FRAME_DIAGRAM_METRICS.map((metric) => metric.key),
+  );
+  assert.deepEqual(
+    reportFiguresForScope(FRAME_REPORT_MEMBER_FIGURES, false).map((figure) => figure.metric),
+    ["momentKnM"],
+  );
 });

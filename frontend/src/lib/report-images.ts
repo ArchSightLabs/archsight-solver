@@ -6,6 +6,15 @@ import { CanvasRenderer } from "echarts/renderers";
 import type { BeamCalculationResults, SensitivityResults } from "../types/beam";
 import type { AnalysisMode, FrameCalculationResults, FrameMemberDiagram, TrussCalculationResults } from "../types/structure";
 import { BEAM_PREVIEW_SVG_HEIGHT, BEAM_PREVIEW_SVG_WIDTH, buildBeamPreviewSvg } from "./beam-preview-svg";
+import {
+  BEAM_REPORT_OVERLAY_FIGURES,
+  BEAM_REPORT_TRADITIONAL_FIGURES,
+  FRAME_REPORT_MEMBER_FIGURES,
+  TRUSS_REPORT_OVERLAY_FIGURES,
+  TRUSS_REPORT_TRADITIONAL_FIGURES,
+  reportFiguresForScope,
+  type BeamReportFigure,
+} from "./report-figure-catalog";
 import { DEFAULT_REPORT_EXPORT_OPTIONS, type ReportExportOptions } from "./report-options";
 
 echarts.use([LineChart, GridComponent, TooltipComponent, GraphicComponent, CanvasRenderer]);
@@ -47,33 +56,18 @@ export async function buildReportImages(input: ReportInput): Promise<ReportImage
       images["beam.preview"] = await renderBeamPreview(beam);
     }
     if (includeOverlay) {
-      images["beam.overlay.moment"] = await renderBeamOverlay(beam, "moment");
-      if (includeAll) {
-        images["beam.overlay.shear"] = await renderBeamOverlay(beam, "shear");
-        images["beam.overlay.deflection"] = await renderBeamOverlay(beam, "deflection");
+      for (const figure of reportFiguresForScope(BEAM_REPORT_OVERLAY_FIGURES, includeAll)) {
+        images[figure.imageKey] = await renderBeamOverlay(beam, figure.metric);
       }
     }
     if (includeTraditional) {
-      if (includeAll) {
-        images["beam.deflection"] = await renderLineChart({
+      for (const figure of reportFiguresForScope(BEAM_REPORT_TRADITIONAL_FIGURES, includeAll)) {
+        const series = beamTraditionalSeries(beam, figure);
+        images[figure.imageKey] = await renderLineChart({
           xLabels: beam.x_data.map((value) => value.toFixed(2)),
-          yLabel: "挠度（mm）",
-          unit: "mm",
-          series: [{ name: "挠度", data: beam.v_data.map((value) => value * 1000), color: "#0ea5e9" }],
-        });
-      }
-      images["beam.moment"] = await renderLineChart({
-        xLabels: beam.x_data.map((value) => value.toFixed(2)),
-        yLabel: "弯矩（kN·m）",
-        unit: "kN·m",
-        series: [{ name: "弯矩", data: beam.moment_data, color: "#16a34a" }],
-      });
-      if (includeAll) {
-        images["beam.shear"] = await renderLineChart({
-          xLabels: beam.x_data.map((value) => value.toFixed(2)),
-          yLabel: "剪力（kN）",
-          unit: "kN",
-          series: [{ name: "剪力", data: beam.shear_data, color: "#f59e0b" }],
+          yLabel: `${series.name}（${figure.unit}）`,
+          unit: figure.unit,
+          series: [series],
         });
       }
     }
@@ -86,11 +80,8 @@ export async function buildReportImages(input: ReportInput): Promise<ReportImage
     }
     const nodeLabels = frame.nodeIds;
     if (includeOverlay) {
-      images["frame.overlay.moment"] = await renderFrameOverlay(frame, "momentKnM");
-      if (includeAll) {
-        images["frame.overlay.shear"] = await renderFrameOverlay(frame, "shearKn");
-        images["frame.overlay.axial"] = await renderFrameOverlay(frame, "axialKn");
-        images["frame.overlay.memberDeflection"] = await renderFrameOverlay(frame, "deflectionMm");
+      for (const figure of reportFiguresForScope(FRAME_REPORT_MEMBER_FIGURES, includeAll)) {
+        images[figure.overlayImageKey] = await renderFrameOverlay(frame, figure.metric);
       }
     }
     if (includeTraditional) {
@@ -118,9 +109,8 @@ export async function buildReportImages(input: ReportInput): Promise<ReportImage
       images["truss.preview"] = await renderTrussPreview(truss);
     }
     if (includeOverlay) {
-      images["truss.overlay.axial"] = await renderTrussOverlay(truss, "axial");
-      if (includeAll) {
-        images["truss.overlay.displacement"] = await renderTrussOverlay(truss, "displacement");
+      for (const figure of reportFiguresForScope(TRUSS_REPORT_OVERLAY_FIGURES, includeAll)) {
+        images[figure.imageKey] = await renderTrussOverlay(truss, figure.metric);
       }
     }
     if (includeTraditional) {
@@ -138,12 +128,14 @@ export async function buildReportImages(input: ReportInput): Promise<ReportImage
           series: [{ name: "节点 Y 向竖向位移", data: truss.uy_data, color: "#0ea5e9" }],
         });
       }
-      images["truss.axial"] = await renderLineChart({
-        xLabels: truss.memberIds,
-        yLabel: "杆件轴力（kN）",
-        unit: "kN",
-        series: [{ name: "杆件轴力", data: truss.member_axial_data.map((item) => item.axialForceKn), color: "#f59e0b" }],
-      });
+      for (const figure of reportFiguresForScope(TRUSS_REPORT_TRADITIONAL_FIGURES, includeAll)) {
+        images[figure.imageKey] = await renderLineChart({
+          xLabels: truss.memberIds,
+          yLabel: `${figure.title.replace("曲线", "")}（${figure.unit}）`,
+          unit: figure.unit,
+          series: [{ name: "杆件轴力", data: truss.member_axial_data.map((item) => item.axialForceKn), color: "#f59e0b" }],
+        });
+      }
     }
   }
 
@@ -165,27 +157,29 @@ export async function buildReportImages(input: ReportInput): Promise<ReportImage
 }
 
 async function addFrameMemberDiagramImages(images: ReportImages, diagrams: FrameMemberDiagram[], includeAll: boolean) {
-  const metrics = includeAll
-    ? [
-        { key: "axialKn" as const, label: "轴力", unit: "kN", imageKey: "frame.axial" },
-        { key: "shearKn" as const, label: "剪力", unit: "kN", imageKey: "frame.shear" },
-        { key: "momentKnM" as const, label: "弯矩", unit: "kN·m", imageKey: "frame.moment" },
-        { key: "deflectionMm" as const, label: "局部 y 向位移", unit: "mm", imageKey: "frame.memberDeflection" },
-      ]
-    : [{ key: "momentKnM" as const, label: "弯矩", unit: "kN·m", imageKey: "frame.moment" }];
-  for (const metric of metrics) {
-    images[metric.imageKey] = await renderLineChart({
+  for (const figure of reportFiguresForScope(FRAME_REPORT_MEMBER_FIGURES, includeAll)) {
+    images[figure.traditionalImageKey] = await renderLineChart({
       xLabels: diagrams[0]?.stationsM.map((value) => value.toFixed(2)) ?? [],
-      yLabel: `${metric.label}（${metric.unit}）`,
-      unit: metric.unit,
+      yLabel: `${figure.title.replace("图", "")}（${figure.unit}）`,
+      unit: figure.unit,
       series: diagrams.map((diagram, index) => ({
         name: diagram.memberId,
-        data: diagram[metric.key],
+        data: diagram[figure.metric],
         color: MEMBER_COLORS[index % MEMBER_COLORS.length],
       })),
       showLegend: true,
     });
   }
+}
+
+function beamTraditionalSeries(results: BeamCalculationResults, figure: BeamReportFigure): LineSeries {
+  if (figure.metric === "deflection") {
+    return { name: "挠度", data: results.v_data.map((value) => value * 1000), color: "#0ea5e9" };
+  }
+  if (figure.metric === "shear") {
+    return { name: "剪力", data: results.shear_data, color: "#f59e0b" };
+  }
+  return { name: "弯矩", data: results.moment_data, color: "#16a34a" };
 }
 
 async function renderLineChart({
