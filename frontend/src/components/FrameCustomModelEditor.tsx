@@ -56,14 +56,20 @@ const MEMBER_KIND_OPTIONS = [
 
 const LOAD_TYPE_OPTIONS = [
   { value: "nodal", label: "节点荷载" },
-  { value: "distributed", label: "构件分布荷载" },
-  { value: "member_point", label: "构件集中荷载" },
+  { value: "distributed", label: "分布荷载" },
+  { value: "member_point", label: "集中荷载" },
 ];
 
 const LOAD_DIRECTION_OPTIONS: Array<{ value: FrameLoadDirection; label: string }> = [
-  { value: "local_y", label: "构件局部 y" },
+  { value: "local_y", label: "局部 y" },
   { value: "global_y", label: "全局 Y" },
 ];
+
+function frameDistributedLoadKindLabel(load: Extract<FrameLoad, { type: "distributed" }>): string {
+  const qStart = Number(load.qStartKnPerM ?? load.wyKnPerM ?? 0);
+  const qEnd = Number(load.qEndKnPerM ?? load.qStartKnPerM ?? load.wyKnPerM ?? qStart);
+  return Math.abs(qStart - qEnd) < 1e-9 ? "均布荷载" : "线性分布荷载";
+}
 
 const SPRING_DOF_OPTIONS = [
   { value: "uy", label: "竖向平动 uy" },
@@ -263,16 +269,17 @@ export function FrameCustomModelEditor({
   const [textModelDiagnostics, setTextModelDiagnostics] = useState<string[]>([]);
   const [textModelPreviewMetrics, setTextModelPreviewMetrics] = useState<TextModelPreviewMetric[]>([]);
   const [selectedObject, setSelectedObject] = useState<FrameSelectedObject>({ type: "node", id: value.nodes[0]?.id ?? "" });
+  const [nodeConnectionTargetId, setNodeConnectionTargetId] = useState("");
   const [advancedSectionId, setAdvancedSectionId] = useState<FrameAdvancedSection>("nodes");
   const visibleSectionId = activeSectionId ?? "frame-custom-overview";
   const isSectionVisible = (sectionId: string) => visibleSectionId === sectionId;
 
   const nodeOptions = useMemo(
-    () => value.nodes.map((node, index) => ({ value: node.id, label: `节点 ${index + 1}（${node.id}）` })),
+    () => value.nodes.map((node) => ({ value: node.id, label: node.id })),
     [value.nodes]
   );
   const memberOptions = useMemo(
-    () => value.members.map((member, index) => ({ value: member.id, label: `构件 ${index + 1}（${member.id}）` })),
+    () => value.members.map((member) => ({ value: member.id, label: member.id })),
     [value.members]
   );
   const loadOptions = useMemo(
@@ -281,8 +288,8 @@ export function FrameCustomModelEditor({
       label: load.type === "nodal"
         ? `节点荷载 ${index + 1}（${load.node}）`
         : load.type === "member_point"
-          ? `构件集中荷载 ${index + 1}（${load.member}）`
-          : `构件分布荷载 ${index + 1}（${load.member}）`,
+          ? `集中荷载 ${index + 1}（${load.member}）`
+          : `${frameDistributedLoadKindLabel(load)} ${index + 1}（${load.member}）`,
     })),
     [value.loads]
   );
@@ -474,8 +481,24 @@ export function FrameCustomModelEditor({
     if (value.nodes.length < 2) {
       return;
     }
-    const nextMembers = [...value.members, createMemberDraft(value.members.length, value.nodes, value.members.map((member) => member.id))];
+    const nextMember = createMemberDraft(value.members.length, value.nodes, value.members.map((member) => member.id));
+    const nextMembers = [...value.members, nextMember];
     commit(keep({ members: nextMembers }));
+    selectObject({ type: "member", id: nextMember.id }, { openEditor: false });
+  };
+
+  const addMemberBetweenNodes = (startId: string, endId: string) => {
+    if (!startId || !endId || startId === endId || memberExists(value.members, startId, endId)) {
+      return;
+    }
+    const start = value.nodes.find((node) => node.id === startId);
+    const end = value.nodes.find((node) => node.id === endId);
+    if (!start || !end) {
+      return;
+    }
+    const nextMember = createConnectedMember(start, end, value.members, value.members.map((member) => member.id));
+    commit(keep({ members: [...value.members, nextMember] }));
+    selectObject({ type: "member", id: nextMember.id }, { openEditor: false });
   };
 
   const updateMember = (index: number, patch: Partial<StructureMember>) => {
@@ -736,7 +759,11 @@ export function FrameCustomModelEditor({
                 mzKnM: "mzKnM" in load ? load.mzKnM ?? 0 : 0,
               } as FrameLoad);
             }}
-            options={LOAD_TYPE_OPTIONS}
+            options={
+              load.type === "distributed"
+                ? LOAD_TYPE_OPTIONS.map((option) => option.value === "distributed" ? { ...option, label: frameDistributedLoadKindLabel(load) } : option)
+                : LOAD_TYPE_OPTIONS
+            }
             className="text-xs font-mono"
             menuClassName="text-xs font-mono"
           />
@@ -851,11 +878,54 @@ export function FrameCustomModelEditor({
     </div>
   );
 
+  const renderNodeSprings = (node: StructureNode, nodeIndex: number) => {
+    if ((node.springs ?? []).length === 0) {
+      return <div className="text-xs text-muted-foreground">未设置节点弹簧</div>;
+    }
+    return (
+      <div className="space-y-2">
+        {(node.springs ?? []).map((spring, springIndex) => (
+          <div key={`frame-node-${nodeIndex}-spring-${springIndex}`} className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+            <DropdownSelect
+              value={spring.dof}
+              onChange={(nextValue) => updateNodeSpring(nodeIndex, springIndex, { dof: nextValue as FrameSpring["dof"] })}
+              options={SPRING_DOF_OPTIONS}
+              className="text-xs font-mono"
+              menuClassName="text-xs font-mono"
+            />
+            <Input
+              type="number"
+              step="100"
+              value={spring.dof === "rz" ? spring.stiffnessKnMPerRad : spring.stiffnessKnPerM}
+              onChange={(e) =>
+                updateNodeSpring(
+                  nodeIndex,
+                  springIndex,
+                  spring.dof === "rz"
+                    ? { stiffnessKnMPerRad: Number(e.target.value) || 0 } as Partial<FrameSpring>
+                    : { stiffnessKnPerM: Number(e.target.value) || 0 } as Partial<FrameSpring>
+                )
+              }
+              className="h-10 min-w-0 font-mono text-xs"
+            />
+            <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => removeNodeSpring(nodeIndex, springIndex)}>
+              <Trash2 className="h-4 w-4 text-rose-300" />
+            </Button>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const renderSelectedEditor = () => {
     if (resolvedSelectedObject.type === "node") {
       const index = value.nodes.findIndex((node) => node.id === resolvedSelectedObject.id);
       const node = value.nodes[index];
       if (!node) return null;
+      const connectableNodeOptions = nodeOptions.filter((option) => option.value !== node.id && !memberExists(value.members, node.id, option.value));
+      const connectionTargetId = connectableNodeOptions.some((option) => option.value === nodeConnectionTargetId)
+        ? nodeConnectionTargetId
+        : connectableNodeOptions[0]?.value ?? "";
       return (
         <div className="space-y-3 rounded-xl border border-white/8 bg-slate-950/20 p-3">
           <div className="flex items-center justify-between gap-3">
@@ -890,6 +960,36 @@ export function FrameCustomModelEditor({
             </div>
           </div>
           <div className="rounded-lg border border-white/8 bg-white/[0.02] p-3">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+              <div className="space-y-1">
+                <div className={fieldLabelClass}>连接到节点</div>
+                {connectableNodeOptions.length > 0 ? (
+                  <DropdownSelect
+                    value={connectionTargetId}
+                    onChange={setNodeConnectionTargetId}
+                    options={connectableNodeOptions}
+                    className="text-xs font-mono"
+                    menuClassName="text-xs font-mono"
+                  />
+                ) : (
+                  <div className="flex h-10 items-center rounded-md border border-white/8 bg-slate-950/20 px-3 text-xs text-muted-foreground">无可连接节点</div>
+                )}
+              </div>
+              <div className="flex items-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addMemberBetweenNodes(node.id, connectionTargetId)}
+                  disabled={!connectionTargetId}
+                  className="h-10 rounded-lg px-3"
+                >
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />
+                  新增构件
+                </Button>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-lg border border-white/8 bg-white/[0.02] p-3">
             <div className="flex items-center justify-between gap-3">
               <div className={fieldLabelClass}>弹性支座</div>
               <Button variant="outline" size="sm" onClick={() => addNodeSpring(index)} className="h-7 rounded-lg px-2 text-[10px]">
@@ -897,7 +997,7 @@ export function FrameCustomModelEditor({
                 新增弹簧
               </Button>
             </div>
-            {(node.springs ?? []).length === 0 ? <div className="mt-2 text-xs text-muted-foreground">未设置节点弹簧</div> : null}
+            <div className="mt-2">{renderNodeSprings(node, index)}</div>
           </div>
         </div>
       );
@@ -1241,41 +1341,7 @@ export function FrameCustomModelEditor({
                     新增弹簧
                   </Button>
                 </div>
-                {(node.springs ?? []).length === 0 ? (
-                  <div className="text-xs text-muted-foreground">未设置节点弹簧</div>
-                ) : (
-                  <div className="space-y-2">
-                    {(node.springs ?? []).map((spring, springIndex) => (
-                      <div key={`frame-node-${index}-spring-${springIndex}`} className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-                        <DropdownSelect
-                          value={spring.dof}
-                          onChange={(nextValue) => updateNodeSpring(index, springIndex, { dof: nextValue as FrameSpring["dof"] })}
-                          options={SPRING_DOF_OPTIONS}
-                          className="text-xs font-mono"
-                          menuClassName="text-xs font-mono"
-                        />
-                        <Input
-                          type="number"
-                          step="100"
-                          value={spring.dof === "rz" ? spring.stiffnessKnMPerRad : spring.stiffnessKnPerM}
-                          onChange={(e) =>
-                            updateNodeSpring(
-                              index,
-                              springIndex,
-                              spring.dof === "rz"
-                                ? { stiffnessKnMPerRad: Number(e.target.value) || 0 } as Partial<FrameSpring>
-                                : { stiffnessKnPerM: Number(e.target.value) || 0 } as Partial<FrameSpring>
-                            )
-                          }
-                          className="h-10 min-w-0 font-mono text-xs"
-                        />
-                        <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => removeNodeSpring(index, springIndex)}>
-                          <Trash2 className="h-4 w-4 text-rose-300" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {renderNodeSprings(node, index)}
               </div>
             </div>
           ))}

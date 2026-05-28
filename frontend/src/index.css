@@ -267,9 +267,9 @@ div[class*="text-[9px]"] {
   --beam-sketch-load: #1f2937;
   --beam-sketch-label: #334155;
   --beam-sketch-muted: #64748b;
-  --beam-sketch-badge-fill: #fff7ed;
-  --beam-sketch-badge-stroke: #f97316;
-  --beam-sketch-badge-text: #7c2d12;
+  --beam-sketch-badge-fill: #f8fafc;
+  --beam-sketch-badge-stroke: #111827;
+  --beam-sketch-badge-text: #111827;
   --beam-sketch-selected: #0284c7;
   background:
     linear-gradient(180deg, rgba(248, 250, 252, 0.72), rgba(241, 245, 249, 0.9)),
@@ -298,9 +298,9 @@ div[class*="text-[9px]"] {
   --beam-sketch-load: #e2e8f0;
   --beam-sketch-label: #cbd5e1;
   --beam-sketch-muted: #94a3b8;
-  --beam-sketch-badge-fill: rgba(251, 146, 60, 0.16);
-  --beam-sketch-badge-stroke: #fb923c;
-  --beam-sketch-badge-text: #fed7aa;
+  --beam-sketch-badge-fill: rgba(226, 232, 240, 0.12);
+  --beam-sketch-badge-stroke: #e2e8f0;
+  --beam-sketch-badge-text: #f8fafc;
   --beam-sketch-selected: #38bdf8;
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.68), rgba(8, 20, 36, 0.86));
 }

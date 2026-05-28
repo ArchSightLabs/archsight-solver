@@ -601,10 +601,26 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
           const end = nodeMap.get(member.end);
           if (!start || !end) return null;
           const selected = selection?.mode === "frame" && selection.type === "member" && selection.id === member.id;
+          const label = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
           return (
             <g key={member.id} className="cursor-pointer" onClick={() => onSelect?.({ mode: "frame", type: "member", id: member.id })}>
               <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="transparent" strokeWidth="18" />
               <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} strokeWidth={selected ? "7" : "4.5"} stroke={selected ? "var(--model-load)" : "var(--model-member)"} opacity={selected ? "0.85" : "1"} />
+              <text
+                x={label.x}
+                y={label.y}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fill={selected ? "var(--model-load)" : "var(--model-label)"}
+                stroke="var(--model-label-halo)"
+                strokeWidth="4"
+                paintOrder="stroke"
+                fontSize="11"
+                fontWeight="800"
+                fontFamily={svgTextFont}
+              >
+                {member.id}
+              </text>
             </g>
           );
         })}
@@ -722,7 +738,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
           const label = nodeLabel(node);
           return label ? (
             <text key={node.id} x={label.x} y={label.y} textAnchor={label.anchor}>
-              节点 {node.id}
+              {node.id}
             </text>
           ) : null;
         })}
@@ -767,7 +783,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
             };
             return (
               <text key={`${index}-member-point-label`} x={label.x} y={label.y} textAnchor="middle">
-                构件集中荷载 {formatMagnitude(force)} kN
+                集中荷载 {formatMagnitude(force)} kN
               </text>
             );
           }
@@ -787,7 +803,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
           };
           return (
             <text key={`${index}-dist-label`} x={label.x} y={label.y} textAnchor="middle">
-              {Math.abs(qStart - qEnd) < 1e-9 ? "梁面均布荷载" : "梁面线性分布荷载"} {formatMagnitude(q)} kN/m
+              {Math.abs(qStart - qEnd) < 1e-9 ? "均布荷载" : "线性分布荷载"} {formatMagnitude(q)} kN/m
             </text>
           );
         })}
@@ -817,13 +833,17 @@ function trussMemberLabelPlacement(start: { x: number; y: number }, end: { x: nu
   const length = Math.hypot(dx, dy) || 1;
   const normal = { x: -dy / length, y: dx / length };
   const outward = (midX - center.x) * normal.x + (midY - center.y) * normal.y >= 0 ? 1 : -1;
-  let angle = Math.atan2(dy, dx) * 180 / Math.PI;
-  if (angle > 90 || angle < -90) angle += 180;
   return {
     x: midX + normal.x * outward * 16,
     y: midY + normal.y * outward * 16,
-    angle,
+    angle: readableSegmentAngle(start, end),
   };
+}
+
+function readableSegmentAngle(start: { x: number; y: number }, end: { x: number; y: number }) {
+  let angle = Math.atan2(end.y - start.y, end.x - start.x) * 180 / Math.PI;
+  if (angle > 90 || angle < -90) angle += 180;
+  return angle;
 }
 
 function trussMemberLoadValues(load: TrussMemberLoad) {
@@ -977,7 +997,9 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
             const maxForce = Math.max(Math.abs(startForce), Math.abs(endForce), 1e-9);
             const guide = trussOffsetSegment(start, end, { x: trussCenterX, y: trussMidY }, 18);
             const selected = selection?.mode === "truss" && selection.type === "load" && selection.id === `load-${index}`;
-            const labelMid = pointOnSegment(guide.start, guide.end, 0.5);
+            const labelGuide = trussOffsetSegment(start, end, { x: trussCenterX, y: trussMidY }, 32);
+            const labelMid = pointOnSegment(labelGuide.start, labelGuide.end, 0.5);
+            const labelAngle = readableSegmentAngle(guide.start, guide.end);
             const equivalentArrows = [
               { key: "start", force: startForce, anchor: pointOnSegment(start, end, 0.08) },
               { key: "end", force: endForce, anchor: pointOnSegment(start, end, 0.92) },
@@ -1000,8 +1022,10 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
                 })}
                 <text
                   x={labelMid.x}
-                  y={labelMid.y - 8}
+                  y={labelMid.y}
+                  transform={`rotate(${labelAngle} ${labelMid.x} ${labelMid.y})`}
                   textAnchor="middle"
+                  dominantBaseline="middle"
                   fill="var(--model-load)"
                   stroke="var(--model-load-halo)"
                   strokeWidth="3"
@@ -1010,7 +1034,7 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
                   fontWeight="700"
                   fontFamily={svgTextFont}
                 >
-                  杆件等效荷载 {formatSignedMagnitude(qStart)}{Math.abs(qStart - qEnd) > 1e-9 ? `→${formatSignedMagnitude(qEnd)}` : ""} kN/m
+                  杆件荷载 {formatSignedMagnitude(qStart)}{Math.abs(qStart - qEnd) > 1e-9 ? `→${formatSignedMagnitude(qEnd)}` : ""} kN/m
                 </text>
               </g>,
             ];
