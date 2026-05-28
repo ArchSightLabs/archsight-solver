@@ -11,7 +11,7 @@ def build_preview_beam(solution: Dict[str, Any]) -> Dict[str, Any]:
     total_length = float(request["total_length"])
     support_positions = solution["support_positions"]
     support_specs = solution.get("support_specs", [])
-    labels = [chr(ord("A") + idx) if idx < 26 else f"N{idx + 1}" for idx in range(len(support_positions))]
+    labels = [f"S{idx + 1}" for idx in range(len(support_positions))]
 
     supports = []
     for idx, position in enumerate(support_positions):

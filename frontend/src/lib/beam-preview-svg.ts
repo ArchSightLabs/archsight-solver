@@ -66,13 +66,6 @@ function n(value: number) {
   return Number.isFinite(value) ? value.toFixed(1) : "0.0";
 }
 
-function supportTypeLabel(type: string) {
-  if (type === "fixed") return "固结";
-  if (type === "roller") return "滚动";
-  if (type === "free") return "自由端";
-  return "铰支";
-}
-
 function distributedArrowXs(startX: number, endX: number) {
   const width = Math.max(0, endX - startX);
   const arrowCount = Math.max(3, Math.min(30, Math.floor(width / 28)));
@@ -160,7 +153,7 @@ function buildPointLoadArrows(beam: BeamPreviewData, mapX: (x: number) => number
 }
 
 function supportSvg(support: BeamSupport, index: number, x: number) {
-  const label = `${support.label ?? `S${index + 1}`} ${supportTypeLabel(support.type)}`;
+  const label = `S${index + 1}`;
   if (support.type === "fixed") {
     return `
       <g>

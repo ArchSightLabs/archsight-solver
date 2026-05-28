@@ -256,6 +256,50 @@ function canonicalId(value: string | undefined, fallback: string): string {
   return value?.trim() || fallback;
 }
 
+function DeferredIdInput({
+  ariaLabel,
+  value,
+  onCommit,
+  className,
+}: {
+  ariaLabel: string;
+  value: string;
+  onCommit: (nextId: string) => void;
+  className?: string;
+}) {
+  const [draft, setDraft] = useState(value);
+
+  const commitDraft = () => {
+    const nextId = draft.trim();
+    if (!nextId) {
+      setDraft(value);
+      return;
+    }
+    if (nextId !== value) {
+      onCommit(nextId);
+    }
+  };
+
+  return (
+    <Input
+      aria-label={ariaLabel}
+      value={draft}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={commitDraft}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          event.currentTarget.blur();
+        }
+        if (event.key === "Escape") {
+          setDraft(value);
+          event.currentTarget.blur();
+        }
+      }}
+      className={className}
+    />
+  );
+}
+
 export function FrameCustomModelEditor({
   value,
   onChange,
@@ -948,7 +992,7 @@ export function FrameCustomModelEditor({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <div className={fieldLabelClass}>节点编号</div>
-              <Input aria-label="节点编号" value={node.id} onChange={(e) => updateNode(index, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
+              <DeferredIdInput key={`selected-node-id-${node.id}`} ariaLabel="节点编号" value={node.id} onCommit={(nextId) => updateNode(index, { id: nextId })} className="h-10 min-w-0 font-mono text-xs" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>支座约束</div>
@@ -1030,7 +1074,7 @@ export function FrameCustomModelEditor({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1">
               <div className={fieldLabelClass}>构件编号</div>
-              <Input aria-label="构件编号" value={member.id} onChange={(e) => updateMember(index, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
+              <DeferredIdInput key={`selected-member-id-${member.id}`} ariaLabel="构件编号" value={member.id} onCommit={(nextId) => updateMember(index, { id: nextId })} className="h-10 min-w-0 font-mono text-xs" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>构件类型</div>
@@ -1305,7 +1349,7 @@ export function FrameCustomModelEditor({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <div className={fieldLabelClass}>节点编号</div>
-                  <Input aria-label={`第 ${index + 1} 个节点编号`} value={node.id} onChange={(e) => updateNode(index, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
+                  <DeferredIdInput ariaLabel={`第 ${index + 1} 个节点编号`} value={node.id} onCommit={(nextId) => updateNode(index, { id: nextId })} className="h-10 min-w-0 font-mono text-xs" />
                 </div>
                 <div className="space-y-1">
                   <div className={fieldLabelClass}>横坐标</div>
@@ -1378,7 +1422,7 @@ export function FrameCustomModelEditor({
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
                 <div className="space-y-1">
                   <div className={fieldLabelClass}>构件编号</div>
-                  <Input aria-label={`第 ${index + 1} 个构件编号`} value={member.id} onChange={(e) => updateMember(index, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
+                  <DeferredIdInput ariaLabel={`第 ${index + 1} 个构件编号`} value={member.id} onCommit={(nextId) => updateMember(index, { id: nextId })} className="h-10 min-w-0 font-mono text-xs" />
                 </div>
                 <div className="space-y-1">
                   <div className={fieldLabelClass}>起点节点</div>

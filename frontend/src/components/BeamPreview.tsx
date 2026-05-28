@@ -49,13 +49,6 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
-function supportTypeLabel(type: string) {
-  if (type === "fixed") return "固结";
-  if (type === "roller") return "滚动";
-  if (type === "free") return "自由端";
-  return "铰支";
-}
-
 function distributedArrowXs(startX: number, endX: number) {
   const width = Math.max(0, endX - startX);
   const arrowCount = Math.max(3, Math.min(30, Math.floor(width / 28)));
@@ -228,7 +221,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
           {/* 支座 */}
           {(beam.supports || []).map((s: BeamSupport, i) => {
             const sx = mapX(s.x);
-            const label = `${s.label ?? `S${i + 1}`} ${supportTypeLabel(s.type)}`;
+            const label = `S${i + 1}`;
             return s.type === "fixed" ? (
               <g key={i}>
                 <rect x={sx - 14} y={BEAM_Y - 5} width="28" height="44" rx="3"

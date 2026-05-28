@@ -12,26 +12,44 @@ function formatFullSpanLength(value: number) {
   return `${Math.abs(value).toFixed(2)} m`;
 }
 
+function beamSpanMemberId(index: number) {
+  return `B${index + 1}`;
+}
+
+function beamSpanNodeRange(index: number) {
+  return `N${index + 1}-N${index + 2}`;
+}
+
 function estimateLegendTextWidth(text: string, fontSize: number) {
   return text.length * fontSize * 0.62;
 }
 
 export function beamSpanLengthLabel(length: number) {
-  return formatFullSpanLength(length);
+  return `L = ${formatFullSpanLength(length)}`;
 }
 
 export function beamSpanDimensionLabel(index: number, _length: number, widthPx: number) {
-  if (widthPx >= 44) return `跨${index + 1}`;
-  if (widthPx >= 26) return `${index + 1}`;
+  if (widthPx >= 34) return beamSpanMemberId(index);
   return null;
 }
 
 export function buildBeamSpanDimensionLegendRows(dimensions: BeamSpanDimension[], maxWidthPx: number, fontSize = 12) {
   const rows: string[] = [];
   let current = "";
+  const groups = dimensions.reduce<Array<{ startIndex: number; endIndex: number; lengthLabel: string }>>((items, dimension) => {
+    const previous = items[items.length - 1];
+    if (previous && previous.lengthLabel === dimension.lengthLabel && previous.endIndex + 1 === dimension.index) {
+      previous.endIndex = dimension.index;
+      return items;
+    }
+    return [...items, { startIndex: dimension.index, endIndex: dimension.index, lengthLabel: dimension.lengthLabel }];
+  }, []);
 
-  for (const dimension of dimensions) {
-    const item = `跨${dimension.index + 1} ${dimension.lengthLabel}`;
+  for (const group of groups) {
+    const memberLabel = group.startIndex === group.endIndex
+      ? beamSpanMemberId(group.startIndex)
+      : `${beamSpanMemberId(group.startIndex)}-${beamSpanMemberId(group.endIndex)}`;
+    const item = `${memberLabel} ${group.lengthLabel}`;
     const next = current ? `${current}    ${item}` : item;
     if (current && estimateLegendTextWidth(next, fontSize) > maxWidthPx) {
       rows.push(current);
@@ -62,7 +80,7 @@ export function buildBeamSpanDimensionSegments(spans: number[], totalLength: num
       end,
       label: beamSpanDimensionLabel(index, length, Math.max(0, end - start)),
       lengthLabel: beamSpanLengthLabel(length),
-      title: `第 ${index + 1} 跨，跨长 ${formatFullSpanLength(length)}`,
+      title: `${beamSpanMemberId(index)}：第 ${index + 1} 跨，${beamSpanNodeRange(index)}，L = ${formatFullSpanLength(length)}`,
     };
   });
 }

@@ -48,21 +48,6 @@ interface FrameLoadMarkerContext {
   memberMap: Map<string, { start: string; end: string }>;
 }
 
-function horizontalDirectionLabel(value: number): string {
-  return value >= 0 ? "向右" : "向左";
-}
-
-function verticalDirectionLabel(value: number): string {
-  return value >= 0 ? "向上" : "向下";
-}
-
-function distributedDirectionLabel(loadSign: number, start: FramePreviewPoint, end: FramePreviewPoint): string {
-  if (Math.abs(end.y - start.y) <= Math.abs(end.x - start.x) * 0.2) {
-    return loadSign >= 0 ? "向上" : "向下";
-  }
-  return loadSign >= 0 ? "局部 +y" : "局部 -y";
-}
-
 function memberLoadDirection(
   direction: FrameLoadDirection | undefined,
   loadSign: number,
@@ -101,6 +86,60 @@ function distributedRange(load: Extract<FrameLoad, { type: "distributed" }>) {
   return { startRatio, endRatio, qStart, qEnd };
 }
 
+function frameLoadMagnitude(value: number) {
+  return Math.abs(value).toFixed(1);
+}
+
+function frameDistributedLoadLabel(
+  memberId: string,
+  qStart: number,
+  qEnd: number,
+  startRatio: number,
+  endRatio: number,
+) {
+  const valueLabel = Math.abs(qStart - qEnd) < 1e-9
+    ? frameLoadMagnitude(qStart)
+    : `${frameLoadMagnitude(qStart)}-${frameLoadMagnitude(qEnd)}`;
+  const rangeLabel = startRatio <= 1e-9 && endRatio >= 1 - 1e-9
+    ? ""
+    : ` · ${startRatio.toFixed(2)}-${endRatio.toFixed(2)}L`;
+  return `${memberId} q = ${valueLabel} kN/m${rangeLabel}`;
+}
+
+export function frameMemberLabelPlacement(
+  start: FramePreviewPoint,
+  end: FramePreviewPoint,
+  center: FramePreviewPoint,
+  offset = 18,
+) {
+  const midX = (start.x + end.x) / 2;
+  const midY = (start.y + end.y) / 2;
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const length = Math.hypot(dx, dy) || 1;
+
+  if (Math.abs(dy) < 1e-6) {
+    return { x: midX, y: midY + offset, textAnchor: "middle" as const };
+  }
+
+  if (Math.abs(dx) < 1e-6) {
+    const side = midX < center.x ? -1 : 1;
+    return {
+      x: midX + side * offset,
+      y: midY,
+      textAnchor: side < 0 ? ("end" as const) : ("start" as const),
+    };
+  }
+
+  const normal = { x: -dy / length, y: dx / length };
+  const outward = (midX - center.x) * normal.x + (midY - center.y) * normal.y >= 0 ? 1 : -1;
+  return {
+    x: midX + normal.x * outward * offset,
+    y: midY + normal.y * outward * offset,
+    textAnchor: "middle" as const,
+  };
+}
+
 export function buildFrameLoadMarkers(load: FrameLoad, index: number, context: FrameLoadMarkerContext): FrameLoadMarker[] {
   if (load.type === "nodal") {
     const node = context.nodeMap.get(load.node);
@@ -121,7 +160,7 @@ export function buildFrameLoadMarkers(load: FrameLoad, index: number, context: F
         y1: node.y,
         x2: headX,
         y2: node.y,
-        label: `水平荷载 ${Math.abs(fxKn).toFixed(1)} kN（${horizontalDirectionLabel(fxKn)}）`,
+        label: `${load.node} Fx = ${frameLoadMagnitude(fxKn)} kN`,
         labelX: direction >= 0 ? tailX - 8 : tailX + 8,
         labelY: node.y - 12,
         textAnchor: direction >= 0 ? "end" : "start",
@@ -140,7 +179,7 @@ export function buildFrameLoadMarkers(load: FrameLoad, index: number, context: F
         y1: tailY,
         x2: node.x,
         y2: headY,
-        label: `竖向荷载 ${Math.abs(fyKn).toFixed(1)} kN（${verticalDirectionLabel(fyKn)}）`,
+        label: `${load.node} Fy = ${frameLoadMagnitude(fyKn)} kN`,
         labelX: node.x + 14,
         labelY: (tailY + headY) / 2,
         key: `${index}-fy`,
@@ -153,7 +192,7 @@ export function buildFrameLoadMarkers(load: FrameLoad, index: number, context: F
         cx: node.x + 34,
         cy: node.y - 10,
         radius: 18,
-        label: `弯矩 ${Math.abs(mzKnM).toFixed(1)} kN·m`,
+        label: `${load.node} Mz = ${frameLoadMagnitude(mzKnM)} kN·m`,
         labelX: node.x + 56,
         labelY: node.y - 18,
         clockwise: mzKnM < 0,
@@ -186,7 +225,7 @@ export function buildFrameLoadMarkers(load: FrameLoad, index: number, context: F
         y1: headY - screenDirection.y * arrowLength,
         x2: headX,
         y2: headY,
-        label: `构件集中荷载 ${Math.abs(forceKn).toFixed(1)} kN`,
+        label: `${load.member} P = ${frameLoadMagnitude(forceKn)} kN`,
         labelX: headX - screenDirection.x * (arrowLength + 10),
         labelY: headY - screenDirection.y * (arrowLength + 10),
         textAnchor: "middle",
@@ -208,8 +247,6 @@ export function buildFrameLoadMarkers(load: FrameLoad, index: number, context: F
   const guideStartY = start.y + (end.y - start.y) * guideStartT - screenDirection.y * guideOffset;
   const guideEndX = start.x + (end.x - start.x) * guideEndT - screenDirection.x * guideOffset;
   const guideEndY = start.y + (end.y - start.y) * guideEndT - screenDirection.y * guideOffset;
-  const labelKind = Math.abs(qStart - qEnd) < 1e-9 ? "均布荷载" : "线性分布荷载";
-  const rangeLabel = startRatio <= 1e-9 && endRatio >= 1 - 1e-9 ? "" : ` · 区间 ${startRatio.toFixed(2)}-${endRatio.toFixed(2)}`;
 
   markers.push({
     type: "distributed-guide",
@@ -217,7 +254,7 @@ export function buildFrameLoadMarkers(load: FrameLoad, index: number, context: F
     y1: guideStartY,
     x2: guideEndX,
     y2: guideEndY,
-    label: `${distributedDirectionLabel(loadSign, start, end)}${labelKind} ${Math.abs(distributedValue).toFixed(1)} kN/m${rangeLabel}`,
+    label: frameDistributedLoadLabel(load.member, qStart, qEnd, startRatio, endRatio),
     labelX: (guideStartX + guideEndX) / 2,
     labelY: (guideStartY + guideEndY) / 2 - 8,
     textAnchor: "middle",

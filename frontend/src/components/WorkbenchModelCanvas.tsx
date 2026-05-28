@@ -5,7 +5,7 @@ import { Button } from "./ui/button";
 import { createPortalFrameModelFromState, type WorkspaceState } from "../lib/workspace-state";
 import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments } from "../lib/beam-span-dimensions";
 import { buildTrussMemberLengthDimension, buildTrussMemberLengthLegendRows, buildTrussSupportMarkerGeometry } from "./truss-preview-utils";
-import type { AnalysisMode, FrameLoad, FrameLoadDirection, StructureNode, TrussLoad } from "../types/structure";
+import type { AnalysisMode, FrameLoad, FrameLoadDirection, StructureNode, SupportType, TrussLoad } from "../types/structure";
 import type { WorkbenchSelection } from "../types/workbench-selection";
 import type { BeamPreviewStyle } from "../types/beam";
 
@@ -130,13 +130,6 @@ function buildUniformLoadRange(beam: WorkspaceState["beam"], beamStart: number, 
   const startX = beamStart + (beamEnd - beamStart) * startRatio;
   const endX = beamStart + (beamEnd - beamStart) * endRatio;
   return { startRatio, endRatio, startX, endX, load: beam.q };
-}
-
-function beamSupportLabel(type: string) {
-  if (type === "fixed") return "固结";
-  if (type === "roller") return "滚动";
-  if (type === "free") return "自由";
-  return "铰";
 }
 
 function buildLoadArrowXs(start: number, end: number, minSpacing = 30) {
@@ -293,7 +286,7 @@ function BeamSketch({
         const selected = selection?.mode === "beam" && selection.type === "span" && selection.id === `span-${segment.index}`;
         const dimension = spanDimensions[segment.index];
         return (
-          <g key={segment.index} {...svgInteractiveProps(`选择梁系第 ${segment.index + 1} 跨`, () => onSelect?.({ mode: "beam", type: "span", id: `span-${segment.index}` }))}>
+          <g key={segment.index} {...svgInteractiveProps(`选择梁段 B${segment.index + 1}`, () => onSelect?.({ mode: "beam", type: "span", id: `span-${segment.index}` }))}>
             {dimension ? <title>{dimension.title}</title> : null}
             <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="transparent" strokeWidth="20" strokeLinecap="round" />
             {selected ? <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="var(--beam-sketch-selected)" strokeWidth="7" strokeLinecap="round" opacity="0.45" /> : null}
@@ -335,7 +328,7 @@ function BeamSketch({
               </>
             )}
             <text x={x} y="224" textAnchor="middle" fontSize="11" fontWeight="700" fill={selected ? "var(--beam-sketch-selected)" : "var(--beam-sketch-label)"}>
-              {support.id} {beamSupportLabel(support.type)}
+              {support.id}
             </text>
           </g>
         );
@@ -438,9 +431,8 @@ function BeamSketch({
       <g fontFamily={svgTextFont}>
         {nodeLabels.map((label) => (
           <g key={`node-label-${label.index}`}>
-            <circle cx={label.labelX} cy="132" r="8" fill="var(--beam-sketch-badge-fill)" stroke="var(--beam-sketch-badge-stroke)" strokeWidth="1.4" />
-            <text x={label.labelX} y="136" textAnchor="middle" fontSize="10.5" fontWeight="700" fill="var(--beam-sketch-badge-text)">
-              {label.index + 1}
+            <text x={label.labelX} y="136" textAnchor="middle" fontSize="11" fontWeight="800" fill="var(--beam-sketch-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
+              N{label.index + 1}
             </text>
           </g>
         ))}
@@ -512,12 +504,47 @@ type FrameGeometryDimension = {
   valueLabel: string;
 };
 
+function compactFrameMemberIds(ids: string[]) {
+  if (ids.length <= 1) {
+    return ids[0] ?? "";
+  }
+
+  const parsed = ids.map((id) => {
+    const match = /^([A-Za-z]+)(\d+)$/.exec(id);
+    return match ? { id, prefix: match[1], index: Number(match[2]) } : null;
+  });
+  const firstPrefix = parsed[0]?.prefix;
+  const samePrefix = Boolean(firstPrefix) && parsed.every((item) => item !== null && item.prefix === firstPrefix);
+  if (!samePrefix) {
+    return ids.join("/");
+  }
+
+  const sorted = [...parsed.filter((item): item is NonNullable<typeof item> => Boolean(item))].sort((a, b) => a.index - b.index);
+  const consecutive = sorted.every((item, index) => index === 0 || item.index === sorted[index - 1].index + 1);
+  if (!consecutive) {
+    return ids.join("/");
+  }
+
+  return `${sorted[0].id}-${sorted[sorted.length - 1].id}`;
+}
+
 function buildFrameDimensionLegendRows(dimensions: FrameGeometryDimension[], maxWidthPx: number, fontSize = 12) {
   const rows: string[] = [];
   let current = "";
+  const groupedDimensions = Array.from(
+    dimensions.reduce((groups, dimension) => {
+      const prefix = /^([A-Za-z]+)/.exec(dimension.memberId)?.[1] ?? dimension.memberId;
+      const key = `${prefix}|${dimension.valueLabel}`;
+      const group = groups.get(key) ?? { memberIds: [] as string[], valueLabel: dimension.valueLabel };
+      group.memberIds.push(dimension.memberId);
+      groups.set(key, group);
+      return groups;
+    }, new Map<string, { memberIds: string[]; valueLabel: string }>())
+      .values(),
+  );
 
-  for (const dimension of dimensions) {
-    const item = `${dimension.memberId} ${dimension.valueLabel}`;
+  for (const dimension of groupedDimensions) {
+    const item = `${compactFrameMemberIds(dimension.memberIds)} ${dimension.valueLabel}`;
     const next = current ? `${current}    ${item}` : item;
     if (current && next.length * fontSize * 0.62 > maxWidthPx) {
       rows.push(current);
@@ -539,6 +566,73 @@ function frameMemberDimensionValueLabel(start: Pick<StructureNode, "x" | "y">, e
     return `h = ${Math.abs(dy).toFixed(2)} m`;
   }
   return `l = ${length.toFixed(2)} m`;
+}
+
+function frameMemberLabelPlacement(
+  start: { x: number; y: number },
+  end: { x: number; y: number },
+  center: { x: number; y: number },
+) {
+  const midX = (start.x + end.x) / 2;
+  const midY = (start.y + end.y) / 2;
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const length = Math.hypot(dx, dy) || 1;
+
+  if (Math.abs(dy) < 1e-6) {
+    return { x: midX, y: midY + 14, anchor: "middle" as const };
+  }
+
+  if (Math.abs(dx) < 1e-6) {
+    const side = midX < center.x ? -1 : 1;
+    return { x: midX + side * 14, y: midY, anchor: side < 0 ? ("end" as const) : ("start" as const) };
+  }
+
+  const normal = { x: -dy / length, y: dx / length };
+  const outward = (midX - center.x) * normal.x + (midY - center.y) * normal.y >= 0 ? 1 : -1;
+  return { x: midX + normal.x * outward * 16, y: midY + normal.y * outward * 16, anchor: "middle" as const };
+}
+
+function frameDistributedLoadLabel(memberId: string, q: number, qStart: number, qEnd: number) {
+  if (Math.abs(qStart - qEnd) < 1e-9) {
+    return `${memberId} q = ${formatMagnitude(q)} kN/m`;
+  }
+  return `${memberId} q = ${formatMagnitude(qStart)}-${formatMagnitude(qEnd)} kN/m`;
+}
+
+function FrameSupportMarker({ type, x, y, selected, angleDeg }: { type?: SupportType; x: number; y: number; selected: boolean; angleDeg?: number }) {
+  if (!type || type === "free") return null;
+
+  const stroke = selected ? "var(--model-load)" : "var(--model-support-stroke)";
+  const line = selected ? "var(--model-load)" : "var(--model-support-line)";
+  const fill = selected ? "var(--model-badge-fill)" : "var(--model-support-fill)";
+  const label = type === "fixed" ? "固结支座" : type === "roller" ? "滚动支座" : "铰支座";
+
+  if (type === "fixed") {
+    return (
+      <g aria-label={label}>
+        <title>{label}</title>
+        <rect x={x - 16} y={y + 7} width="32" height="8" rx="2" fill={fill} stroke={stroke} strokeWidth="1.4" />
+        {[-12, -4, 4, 12].map((offset) => (
+          <line key={offset} x1={x + offset - 5} y1={y + 24} x2={x + offset + 5} y2={y + 14} stroke={line} strokeWidth="1.8" />
+        ))}
+      </g>
+    );
+  }
+
+  return (
+    <g aria-label={label} transform={angleDeg === undefined ? undefined : `rotate(${90 - angleDeg} ${x} ${y})`}>
+      <title>{label}</title>
+      <polygon points={`${x - 16},${y + 24} ${x + 16},${y + 24} ${x},${y + 2}`} fill={fill} stroke={stroke} strokeWidth="1.4" />
+      <line x1={x - 18} y1={y + 28} x2={x + 18} y2={y + 28} stroke={line} strokeWidth="2.2" />
+      {type === "roller" ? (
+        <>
+          <circle cx={x - 8} cy={y + 33} r="3" fill="none" stroke={line} strokeWidth="1.5" />
+          <circle cx={x + 8} cy={y + 33} r="3" fill="none" stroke={line} strokeWidth="1.5" />
+        </>
+      ) : null}
+    </g>
+  );
 }
 
 function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceState; selection?: WorkbenchSelection | null; onSelect?: (next: WorkbenchSelection) => void }) {
@@ -570,6 +664,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
   const bottomY = Math.max(...nodes.map((node) => map(node).y), 285);
   const leftX = Math.min(...nodes.map((node) => map(node).x), 165);
   const rightX = Math.max(...nodes.map((node) => map(node).x), 735);
+  const frameCenter = { x: (leftX + rightX) / 2, y: (topY + bottomY) / 2 };
   const frameDimensions: FrameGeometryDimension[] = members.flatMap((member) => {
     const start = rawNodeMap.get(member.start);
     const end = rawNodeMap.get(member.end);
@@ -579,7 +674,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
       valueLabel: frameMemberDimensionValueLabel(start, end),
     }];
   });
-  const frameDimensionLegendRows = buildFrameDimensionLegendRows(frameDimensions, 430, 12);
+  const frameDimensionLegendRows = buildFrameDimensionLegendRows(frameDimensions, 330, 12);
   const nodeLabel = (node: StructureNode) => {
     const point = nodeMap.get(node.id);
     if (!point) return null;
@@ -596,7 +691,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
     <svg viewBox="0 0 900 360" className="h-full w-full">
       <g fontFamily={svgTextFont} fill="var(--model-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
         {frameDimensionLegendRows.map((row, index) => (
-          <text key={`frame-dimension-legend-${index}`} x="96" y={34 + index * 16} fontSize="12" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT}>
+          <text key={`frame-dimension-legend-${index}`} x="96" y={22 + index * 16} fontSize="12" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT}>
             {row}
           </text>
         ))}
@@ -607,7 +702,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
           const end = nodeMap.get(member.end);
           if (!start || !end) return null;
           const selected = selection?.mode === "frame" && selection.type === "member" && selection.id === member.id;
-          const label = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
+          const label = frameMemberLabelPlacement(start, end, frameCenter);
           return (
             <g key={member.id} {...svgInteractiveProps(`选择框架构件 ${member.id}`, () => onSelect?.({ mode: "frame", type: "member", id: member.id }))}>
               <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="transparent" strokeWidth="18" />
@@ -615,7 +710,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
               <text
                 x={label.x}
                 y={label.y}
-                textAnchor="middle"
+                textAnchor={label.anchor}
                 dominantBaseline="middle"
                 fill={selected ? "var(--model-load)" : "var(--model-label)"}
                 stroke="var(--model-label-halo)"
@@ -637,6 +732,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
           const selected = selection?.mode === "frame" && selection.type === "node" && selection.id === node.id;
           return point ? (
             <g key={node.id} {...svgInteractiveProps(`选择框架节点 ${node.id}`, () => onSelect?.({ mode: "frame", type: "node", id: node.id }))}>
+              <FrameSupportMarker type={node.supportType} x={point.x} y={point.y} selected={Boolean(selected)} angleDeg={node.supportAngleDeg} />
               <circle cx={point.x} cy={point.y} r={selected ? "11" : "8"} fill="transparent" />
               <circle cx={point.x} cy={point.y} r={selected ? "7.5" : "5.5"} fill={selected ? "var(--model-load)" : "var(--model-node)"} />
             </g>
@@ -749,7 +845,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
               const sign = load.fxKn >= 0 ? 1 : -1;
               labels.push(
                 <text key={`${index}-fx-label`} x={point.x + sign * 18} y={point.y - 14} textAnchor={sign > 0 ? "start" : "end"}>
-                  X向力 {formatMagnitude(load.fxKn)} kN
+                  {load.node} Fx = {formatMagnitude(load.fxKn)} kN
                 </text>
               );
             }
@@ -758,7 +854,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
               const labelY = point.y - sign * 70;
               labels.push(
                 <text key={`${index}-fy-label`} x={point.x} y={labelY} textAnchor="middle">
-                  Y向力 {formatMagnitude(load.fyKn)} kN
+                  {load.node} Fy = {formatMagnitude(load.fyKn)} kN
                 </text>
               );
             }
@@ -779,7 +875,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
             };
             return (
               <text key={`${index}-member-point-label`} x={label.x} y={label.y} textAnchor="middle">
-                集中荷载 {formatMagnitude(force)} kN
+                {load.member} P = {formatMagnitude(force)} kN
               </text>
             );
           }
@@ -799,7 +895,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
           };
           return (
             <text key={`${index}-dist-label`} x={label.x} y={label.y} textAnchor="middle">
-              {Math.abs(qStart - qEnd) < 1e-9 ? "均布荷载" : "线性分布荷载"} {formatMagnitude(q)} kN/m
+              {frameDistributedLoadLabel(load.member, q, qStart, qEnd)}
             </text>
           );
         })}

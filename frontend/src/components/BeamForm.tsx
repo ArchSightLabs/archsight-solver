@@ -82,8 +82,16 @@ function supportShortLabel(type: BeamSupportType) {
   return "自由";
 }
 
-function beamSpanChipLabel(index: number, span: Pick<BeamSpanConfig, "length">) {
-  return `跨 ${index + 1} · ${span.length.toFixed(2)} m`;
+function beamSpanMemberId(index: number) {
+  return `B${index + 1}`;
+}
+
+function beamSpanSemanticLabel(index: number) {
+  return `第 ${index + 1} 跨 · N${index + 1}-N${index + 2}`;
+}
+
+function beamSpanChipLabel(index: number) {
+  return `${beamSpanMemberId(index)} · 第 ${index + 1} 跨`;
 }
 
 function beamSupportChipLabel(support: BeamSupportConfig) {
@@ -880,12 +888,12 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className={FIELD_LABEL_CLASS}>当前跨段</div>
-            <div className="mt-1 text-sm font-bold">跨 {index + 1}</div>
+            <div className="mt-1 text-sm font-bold">{beamSpanMemberId(index)}</div>
             <div className="mt-1 font-mono text-[10px] text-muted-foreground">
-              材料 {spanMaterial?.id ?? "手动 E"} · E = {span.E} GPa
+              {beamSpanSemanticLabel(index)} · 材料 {spanMaterial?.id ?? "手动 E"} · E = {span.E} GPa
             </div>
           </div>
-          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => removeSpan(index)} disabled={value.spans.length <= 1} aria-label="删除当前跨段">
+          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => removeSpan(index)} disabled={value.spans.length <= 1} aria-label={`删除 ${beamSpanMemberId(index)}`}>
             <Minus className="h-4 w-4 text-rose-300" />
           </Button>
         </div>
@@ -1011,9 +1019,9 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
           <div className="space-y-2">
             <div className={FIELD_LABEL_CLASS}>跨段</div>
             <div className="flex flex-wrap gap-2">
-              {value.spans.map((span, index) => (
+              {value.spans.map((_, index) => (
                 <button key={spanId(index)} type="button" onClick={() => selectObject({ type: "span", id: spanId(index) })} className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold ${resolvedSelectedObject.type === "span" && resolvedSelectedObject.id === spanId(index) ? "border-sky-300 bg-sky-400 text-slate-950 shadow-sm shadow-sky-500/15" : "border-white/8 bg-slate-950/20 text-muted-foreground hover:text-foreground"}`}>
-                    {beamSpanChipLabel(index, span)}
+                    {beamSpanChipLabel(index)}
                   </button>
                 ))}
                 <Button variant="outline" size="sm" onClick={addSpan} disabled={value.spans.length >= MAX_BEAM_SPANS} className="h-8 rounded-lg px-2 text-[10px]">
@@ -1055,7 +1063,7 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
                   ? loadSummary
                   : resolvedSelectedObject.type === "support"
                     ? beamSupportChipLabel(value.supports[supportIndexFromId(resolvedSelectedObject.id)] ?? { id: "S?", x: 0, type: "pinned" })
-                    : beamSpanChipLabel(spanIndexFromId(resolvedSelectedObject.id), value.spans[spanIndexFromId(resolvedSelectedObject.id)] ?? DEFAULT_SPAN)}
+                    : beamSpanChipLabel(spanIndexFromId(resolvedSelectedObject.id))}
               </span>
             </div>
             {renderSelectedEditor()}
@@ -1125,10 +1133,10 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
             <div className="space-y-2">
               {value.spans.map((span, index) => (
                 <div key={spanId(index)} className="grid grid-cols-4 gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 text-xs">
-                  <span className="font-bold">第 {index + 1} 跨</span>
-                  <span className="font-mono">{span.length} m</span>
-                  <span className="font-mono">{findMaterial(span.materialId)?.id ?? "手动 E"}</span>
-                  <span className="font-mono">E {span.E} GPa / I {span.I} cm4</span>
+                  <span className="font-bold">{beamSpanMemberId(index)}</span>
+                  <span>{beamSpanSemanticLabel(index)}</span>
+                  <span className="font-mono">L = {span.length.toFixed(2)} m</span>
+                  <span className="font-mono">{findMaterial(span.materialId)?.id ?? "手动 E"} · E {span.E} GPa / I {span.I} cm4</span>
                 </div>
               ))}
             </div>

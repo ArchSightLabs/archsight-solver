@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { GlassCard } from "./ui/GlassCard";
 import type { FramePreviewData, SupportType } from "../types/structure";
-import { buildFrameLoadMarkers, type FrameLoadMarker } from "./frame-preview-utils";
+import { buildFrameLoadMarkers, frameMemberLabelPlacement, type FrameLoadMarker } from "./frame-preview-utils";
 import { formatEngineeringValue } from "../lib/engineering-format";
 
 interface FramePreviewProps {
@@ -15,7 +15,14 @@ const PADDING = 70;
 
 function supportMarker(type: SupportType, x: number, y: number, angleDeg?: number) {
   if (type === "fixed") {
-    return <rect x={x - 14} y={y - 2} width="28" height="40" rx="3" fill="var(--structure-preview-support-fill)" stroke="var(--structure-preview-support-stroke)" strokeWidth="1" />;
+    return (
+      <g>
+        <rect x={x - 16} y={y + 7} width="32" height="8" rx="2" fill="var(--structure-preview-support-fill)" stroke="var(--structure-preview-support-stroke)" strokeWidth="1" />
+        {[-12, -4, 4, 12].map((offset) => (
+          <line key={offset} x1={x + offset - 5} y1={y + 24} x2={x + offset + 5} y2={y + 14} stroke="var(--structure-preview-support-line)" strokeWidth="1.6" />
+        ))}
+      </g>
+    );
   }
   if (type === "roller") {
     return (
@@ -94,8 +101,15 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
       y: SVG_H - padding - (point.y - minY) * scale,
     });
 
-    const nodeMap = new Map(frame.nodes.map((node) => [node.id, map(node)]));
-    return { map, nodeMap, scale };
+    const mappedNodes = frame.nodes.map((node) => map(node));
+    const mappedXs = mappedNodes.map((point) => point.x);
+    const mappedYs = mappedNodes.map((point) => point.y);
+    const center = {
+      x: (Math.min(...mappedXs) + Math.max(...mappedXs)) / 2,
+      y: (Math.min(...mappedYs) + Math.max(...mappedYs)) / 2,
+    };
+    const nodeMap = new Map(frame.nodes.map((node, index) => [node.id, mappedNodes[index]]));
+    return { map, nodeMap, scale, center };
   }, [frame, padding]);
 
   const deformationDrawScale = frame ? Math.min(frame.deformationScale, 60) : 0;
@@ -162,7 +176,7 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
         </div>
       </div>
 
-      <div className="structure-preview-surface relative">
+      <div className="structure-preview-surface frame-structure-preview-surface relative">
         <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} className={`block w-full ${compact ? "h-[200px] sm:h-[280px]" : "h-[240px] sm:h-[340px]"}`}>
           <defs>
             <linearGradient id="frameBaseGrad" x1="0%" x2="100%">
@@ -182,11 +196,12 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
             const start = layout.nodeMap.get(member.start);
             const end = layout.nodeMap.get(member.end);
             if (!start || !end) return null;
+            const label = frameMemberLabelPlacement(start, end, layout.center, compact ? 14 : 18);
             return (
               <g key={member.id}>
                 <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="url(#frameBaseGrad)" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />
-                <text x={(start.x + end.x) / 2} y={(start.y + end.y) / 2 - 10} fill="var(--structure-preview-label)" textAnchor="middle" fontSize={compact ? "9" : "11"} fontFamily="Fira Code">
-                  构件 {frame.members.findIndex((item) => item.id === member.id) + 1}
+                <text x={label.x} y={label.y} fill="var(--structure-preview-label)" textAnchor={label.textAnchor} dominantBaseline="middle" fontSize={compact ? "9" : "11"} fontFamily="Fira Code" fontWeight="700">
+                  {member.id}
                 </text>
                 {member.endReleases?.start?.includes("rz") ? hingeMarker(start.x, start.y, `${member.id}-start-release`) : null}
                 {member.endReleases?.end?.includes("rz") ? hingeMarker(end.x, end.y, `${member.id}-end-release`) : null}
@@ -220,11 +235,11 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
             if (!point) return null;
             return (
               <g key={node.id}>
+                {supportMarker((node.supportType ?? "free") as SupportType, point.x, point.y, node.supportAngleDeg)}
                 <circle cx={point.x} cy={point.y} r="4.5" fill="var(--structure-preview-node)" />
                 <text x={point.x + 8} y={point.y - 8} fill="var(--structure-preview-node-label)" fontSize={compact ? "9" : "11"} fontFamily="Fira Code">
-                  节点 {frame.nodes.findIndex((item) => item.id === node.id) + 1}
+                  {node.id}
                 </text>
-                {supportMarker((node.supportType ?? "free") as SupportType, point.x, point.y, node.supportAngleDeg)}
                 {springMarkers(node, point.x, point.y)}
                 {node.condensedDofs?.includes("rz") ? hingeMarker(point.x, point.y, `${node.id}-condensed-rz`) : null}
               </g>

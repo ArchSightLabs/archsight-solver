@@ -16,7 +16,7 @@ test("buildFrameLoadMarkers anchors vertical nodal loads on the node x-coordinat
   assert.equal(markers[0].type, "force");
   assert.equal(markers[0].x1, 480);
   assert.equal(markers[0].x2, 480);
-  assert.equal(markers[0].label, "竖向荷载 42.0 kN（向下）");
+  assert.equal(markers[0].label, "N2 Fy = 42.0 kN");
   assert.equal(markers[0].labelX, 494);
 });
 
@@ -32,27 +32,27 @@ test("buildFrameLoadMarkers places horizontal nodal load labels outside the arro
 
   assert.equal(markers.length, 1);
   assert.equal(markers[0].type, "force");
-  assert.equal(markers[0].label, "水平荷载 24.0 kN（向右）");
+  assert.equal(markers[0].label, "N4 Fx = 24.0 kN");
   assert.equal(markers[0].labelX, 656);
   assert.equal(markers[0].textAnchor, "end");
 });
 
 test("buildFrameLoadMarkers builds distributed load guide and arrows from the member axis", () => {
   const markers = buildFrameLoadMarkers(
-    { type: "distributed", member: "M1", wyKnPerM: -18 },
+    { type: "distributed", member: "B1", wyKnPerM: -18 },
     0,
     {
       nodeMap: new Map([
         ["N1", { x: 100, y: 320 }],
         ["N2", { x: 340, y: 320 }],
       ]),
-      memberMap: new Map([["M1", { start: "N1", end: "N2" }]]),
+      memberMap: new Map([["B1", { start: "N1", end: "N2" }]]),
     }
   );
 
   assert.equal(markers.length, 13);
   assert.equal(markers[0].type, "distributed-guide");
-  assert.equal(markers[0].label, "向下均布荷载 18.0 kN/m");
+  assert.equal(markers[0].label, "B1 q = 18.0 kN/m");
   assert.equal(markers[1].type, "force");
   assert.equal(markers[1].x1, 110);
   assert.equal(markers[1].x2, 110);
@@ -77,5 +77,5 @@ test("buildFrameLoadMarkers respects partial distributed load range", () => {
   assert.equal(markers[0].type, "distributed-guide");
   assert.equal(markers[0].x1, 160);
   assert.equal(markers[0].x2, 280);
-  assert.match(markers[0].label, /区间 0\.25-0\.75/u);
+  assert.match(markers[0].label, /0\.25-0\.75L/u);
 });

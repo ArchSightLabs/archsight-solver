@@ -10,6 +10,7 @@ import {
   type FrameDiagramMetricKey,
 } from "../lib/frame-member-diagrams";
 import { formatEngineeringValue } from "../lib/engineering-format";
+import { frameMemberLabelPlacement } from "./frame-preview-utils";
 
 interface FrameMemberDiagramsProps {
   frame: FramePreviewData | null;
@@ -47,7 +48,14 @@ function areaPath(basePoints: SvgPoint[], resultPoints: SvgPoint[]) {
 
 function supportMarker(type: SupportType, x: number, y: number, angleDeg?: number) {
   if (type === "fixed") {
-    return <rect x={x - 14} y={y - 2} width="28" height="40" rx="3" fill="var(--structure-preview-support-fill)" stroke="var(--structure-preview-support-stroke)" strokeWidth="1" />;
+    return (
+      <g>
+        <rect x={x - 16} y={y + 7} width="32" height="8" rx="2" fill="var(--structure-preview-support-fill)" stroke="var(--structure-preview-support-stroke)" strokeWidth="1" />
+        {[-12, -4, 4, 12].map((offset) => (
+          <line key={offset} x1={x + offset - 5} y1={y + 24} x2={x + offset + 5} y2={y + 14} stroke="var(--structure-preview-support-line)" strokeWidth="1.6" />
+        ))}
+      </g>
+    );
   }
   if (type === "roller") {
     return (
@@ -125,7 +133,15 @@ function FrameStructureDiagram({
   }, [diagrams, metric]);
   const extreme = useMemo(() => findFrameDiagramExtreme(diagrams, metric), [diagrams, metric]);
   const offsetScale = rawMaxAbs > 1e-9 ? (compact ? 42 : 58) / rawMaxAbs : 0;
-  const memberIndexById = useMemo(() => new Map(frame.members.map((member, index) => [member.id, index + 1])), [frame.members]);
+  const frameCenter = useMemo(() => {
+    const points = Array.from(layout.nodeMap.values());
+    const xs = points.map((point) => point.x);
+    const ys = points.map((point) => point.y);
+    return {
+      x: (Math.min(...xs) + Math.max(...xs)) / 2,
+      y: (Math.min(...ys) + Math.max(...ys)) / 2,
+    };
+  }, [layout.nodeMap]);
 
   const renderedMembers = useMemo(() => {
     return frame.members.flatMap((member) => {
@@ -228,20 +244,23 @@ function FrameStructureDiagram({
           const start = layout.nodeMap.get(member.start);
           const end = layout.nodeMap.get(member.end);
           if (!start || !end) return null;
+          const label = frameMemberLabelPlacement(start, end, frameCenter, compact ? 14 : 18);
           return (
             <text
               key={`${member.id}-label`}
-              x={(start.x + end.x) / 2}
-              y={(start.y + end.y) / 2 - 10}
+              x={label.x}
+              y={label.y}
               fill="var(--structure-preview-label)"
               stroke="var(--structure-preview-text-halo)"
               strokeWidth="4"
               paintOrder="stroke"
-              textAnchor="middle"
+              textAnchor={label.textAnchor}
+              dominantBaseline="middle"
               fontSize={compact ? "9" : "11"}
               fontFamily="Fira Code"
+              fontWeight="700"
             >
-              构件 {memberIndexById.get(member.id) ?? member.id}
+              {member.id}
             </text>
           );
         })}
@@ -251,8 +270,8 @@ function FrameStructureDiagram({
           if (!point) return null;
           return (
             <g key={node.id}>
-              <circle cx={point.x} cy={point.y} r="4.5" fill="var(--structure-preview-node)" />
               {supportMarker((node.supportType ?? "free") as SupportType, point.x, point.y, node.supportAngleDeg)}
+              <circle cx={point.x} cy={point.y} r="4.5" fill="var(--structure-preview-node)" />
             </g>
           );
         })}

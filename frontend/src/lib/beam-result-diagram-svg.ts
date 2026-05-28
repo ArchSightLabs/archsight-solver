@@ -406,7 +406,7 @@ export function buildBeamResultDiagramSvg(results: BeamCalculationResults, metri
       return `
       <g>
         ${supportMarkerSvg(support.type, x)}
-        <text x="${n(x)}" y="${BEAM_Y + 58}" fill="${COLORS.label}" text-anchor="middle" font-size="${compact ? 9 : 11}" font-family="${DIAGRAM_LABEL_FONT}" font-weight="${DIAGRAM_LABEL_WEIGHT}">${escapeSvg(support.label ?? `S${index + 1}`)}</text>
+        <text x="${n(x)}" y="${BEAM_Y + 58}" fill="${COLORS.label}" text-anchor="middle" font-size="${compact ? 9 : 11}" font-family="${DIAGRAM_LABEL_FONT}" font-weight="${DIAGRAM_LABEL_WEIGHT}">${escapeSvg(`S${index + 1}`)}</text>
       </g>`;
     })
     .join("")}
