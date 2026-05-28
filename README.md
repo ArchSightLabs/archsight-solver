@@ -163,6 +163,9 @@ python -m backend.capabilities.mcp_server
 - `archsight://docs/asms-json`：ASMS-JSON 协议说明。
 - `archsight://examples/asms-few-shots`：Agent 可测试 few-shot 样例库。
 - `archsight://benchmark/catalog`：公开验证集算例目录。
+- `archsight://docs/benchmark-validation`：公开验证集说明。
+- `archsight://docs/aios-runtime-integration`：AIOS 调用层设计。
+- `archsight://docs/mcp-resources`：MCP 资源清单、仓库事实源与验收检查。
 
 通用 CLI 入口：
 

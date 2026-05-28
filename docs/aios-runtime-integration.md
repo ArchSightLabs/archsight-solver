@@ -71,8 +71,10 @@ python -m backend.capabilities.mcp_server
 - `archsight://benchmark/catalog`
 - `archsight://docs/benchmark-validation`
 - `archsight://docs/aios-runtime-integration`
+- `archsight://docs/mcp-resources`
 
 其中 `archsight://docs/asms-json` 是协议语义入口，`archsight://examples/asms-few-shots` 是 Agent few-shot 与回归样例入口。Agent Host 应先读取协议和 schema，再构造 ASMS-JSON，不应只根据自然语言描述猜测 payload。
+资源 URI、仓库路径、更新责任和验收检查见 `docs/mcp-resources.md`；文件型资源缺失时 MCP server 会返回明确错误，不再返回“尚未生成”的占位文案。
 
 已暴露 Prompts：
 

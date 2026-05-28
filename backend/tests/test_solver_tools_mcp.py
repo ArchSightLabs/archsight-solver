@@ -5,6 +5,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
+from backend.capabilities import mcp_server
 from backend.capabilities.solver_tools import (
     list_benchmark_cases,
     run_benchmark_case,
@@ -184,9 +185,35 @@ def test_mcp_server_exposes_resources_and_prompts_over_stdio():
     assert "archsight://docs/asms-json" in resource_uris
     assert "archsight://examples/asms-few-shots" in resource_uris
     assert "archsight://benchmark/catalog" in resource_uris
+    assert "archsight://docs/mcp-resources" in resource_uris
     assert "ArchSight Structural Model Schema" in responses[2]["result"]["contents"][0]["text"]
     assert "ASMS-JSON" in responses[3]["result"]["contents"][0]["text"]
     assert "BM-001" in responses[4]["result"]["contents"][0]["text"]
     prompt_names = {prompt["name"] for prompt in responses[5]["result"]["prompts"]}
     assert "benchmark-validation-review" in prompt_names
     assert "benchmark_case_run" in responses[6]["result"]["messages"][0]["content"]["text"]
+
+
+def test_mcp_file_resources_are_generated_and_non_placeholder():
+    declared_uris = {resource["uri"] for resource in mcp_server.RESOURCE_DEFINITIONS}
+    placeholder_texts = {
+        "ASMS-JSON 协议文档尚未生成。",
+        "{}",
+        "公开验证集说明文档尚未生成。",
+        "AIOS 调用层设计文档尚未生成。",
+    }
+
+    for uri, path in mcp_server.FILE_RESOURCE_PATHS.items():
+        assert uri in declared_uris
+        assert path.exists(), f"{uri} 缺少仓库事实源: {path}"
+        text = path.read_text(encoding="utf-8")
+        assert text.strip(), f"{uri} 指向空文件: {path}"
+
+        resource = mcp_server._read_resource(uri)
+        content = resource["contents"][0]
+        assert content["uri"] == uri
+        assert content["text"].strip()
+        assert content["text"].strip() not in placeholder_texts
+
+        if content["mimeType"] == "application/json":
+            json.loads(content["text"])

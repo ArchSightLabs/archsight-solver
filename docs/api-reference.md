@@ -378,6 +378,7 @@ Resources：
 - `archsight://benchmark/catalog`
 - `archsight://docs/benchmark-validation`
 - `archsight://docs/aios-runtime-integration`
+- `archsight://docs/mcp-resources`
 
 Prompts：
 

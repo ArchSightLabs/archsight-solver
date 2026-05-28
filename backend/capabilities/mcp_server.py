@@ -29,6 +29,15 @@ ASMS_PROTOCOL_DOC_PATH = ROOT / "docs" / "structural-model-protocol.md"
 AGENT_FEW_SHOT_PATH = ROOT / "data" / "agent_workflows" / "asms_few_shots.json"
 BENCHMARK_DOC_PATH = ROOT / "docs" / "verification" / "benchmark-validation-suite.md"
 RUNTIME_DOC_PATH = ROOT / "docs" / "aios-runtime-integration.md"
+MCP_RESOURCES_DOC_PATH = ROOT / "docs" / "mcp-resources.md"
+
+FILE_RESOURCE_PATHS = {
+    "archsight://docs/asms-json": ASMS_PROTOCOL_DOC_PATH,
+    "archsight://examples/asms-few-shots": AGENT_FEW_SHOT_PATH,
+    "archsight://docs/benchmark-validation": BENCHMARK_DOC_PATH,
+    "archsight://docs/aios-runtime-integration": RUNTIME_DOC_PATH,
+    "archsight://docs/mcp-resources": MCP_RESOURCES_DOC_PATH,
+}
 
 READ_ONLY_ANNOTATIONS = {
     "readOnlyHint": True,
@@ -148,6 +157,13 @@ RESOURCE_DEFINITIONS = [
         "name": "aios-runtime-integration",
         "title": "AIOS 调用层设计",
         "description": "API、CLI、MCP 三种调用路径与风险取舍。",
+        "mimeType": "text/markdown",
+    },
+    {
+        "uri": "archsight://docs/mcp-resources",
+        "name": "mcp-resource-index",
+        "title": "MCP 资源清单与生成口径",
+        "description": "MCP Resources 的 URI、仓库路径、更新责任和验收检查。",
         "mimeType": "text/markdown",
     },
 ]
@@ -292,10 +308,15 @@ def _call_tool(params: Mapping[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _read_text_or_placeholder(path: Path, placeholder: str) -> str:
-    if path.exists():
-        return path.read_text(encoding="utf-8")
-    return placeholder
+def _read_required_resource_text(uri: str, path: Path) -> str:
+    if not path.exists():
+        relative_path = path.relative_to(ROOT)
+        raise SchemaValidationError(f"资源 {uri} 指向的文件不存在: {relative_path}")
+    text = path.read_text(encoding="utf-8")
+    if not text.strip():
+        relative_path = path.relative_to(ROOT)
+        raise SchemaValidationError(f"资源 {uri} 指向的文件为空: {relative_path}")
+    return text
 
 
 def _read_resource(uri: str) -> Dict[str, Any]:
@@ -303,19 +324,22 @@ def _read_resource(uri: str) -> Dict[str, Any]:
         text = json.dumps(schema_registry(), ensure_ascii=False, indent=2, sort_keys=True)
         mime_type = "application/json"
     elif uri == "archsight://docs/asms-json":
-        text = _read_text_or_placeholder(ASMS_PROTOCOL_DOC_PATH, "ASMS-JSON 协议文档尚未生成。")
+        text = _read_required_resource_text(uri, FILE_RESOURCE_PATHS[uri])
         mime_type = "text/markdown"
     elif uri == "archsight://examples/asms-few-shots":
-        text = _read_text_or_placeholder(AGENT_FEW_SHOT_PATH, "{}")
+        text = _read_required_resource_text(uri, FILE_RESOURCE_PATHS[uri])
         mime_type = "application/json"
     elif uri == "archsight://benchmark/catalog":
         text = json.dumps(load_benchmark_catalog(), ensure_ascii=False, indent=2, sort_keys=True)
         mime_type = "application/json"
     elif uri == "archsight://docs/benchmark-validation":
-        text = _read_text_or_placeholder(BENCHMARK_DOC_PATH, "公开验证集说明文档尚未生成。")
+        text = _read_required_resource_text(uri, FILE_RESOURCE_PATHS[uri])
         mime_type = "text/markdown"
     elif uri == "archsight://docs/aios-runtime-integration":
-        text = _read_text_or_placeholder(RUNTIME_DOC_PATH, "AIOS 调用层设计文档尚未生成。")
+        text = _read_required_resource_text(uri, FILE_RESOURCE_PATHS[uri])
+        mime_type = "text/markdown"
+    elif uri == "archsight://docs/mcp-resources":
+        text = _read_required_resource_text(uri, FILE_RESOURCE_PATHS[uri])
         mime_type = "text/markdown"
     else:
         raise SchemaValidationError(f"未知资源: {uri}")
