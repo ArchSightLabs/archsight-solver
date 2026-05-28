@@ -167,7 +167,9 @@ Content-Type: application/json
 
 ## POST /api/sensitivity
 
-执行参数敏感性分析。输入为任一求解 payload，附加：
+执行单因素参数敏感性分析。该接口已覆盖梁系、二维平面框架和二维平面桁架，用于教学演示、趋势解释和方案比选；不用于基础求解以外的校核、设计或工程签审。
+
+输入为任一求解 payload，附加：
 
 ```json
 {
@@ -196,6 +198,13 @@ Content-Type: application/json
 - `max_node_displacement`：最大节点位移。
 - `max_member_axial`：最大杆件轴力。
 - `max_member_stress`：最大杆件轴应力。
+
+边界：
+
+- 仅执行单因素扰动，不做多参数联合扰动。
+- 框架不做逐构件、逐楼层或逐组合复杂敏感性分析。
+- 桁架不做拓扑变化、构件增删或可靠度分析。
+- `0%` 扰动点应与基础求解链路一致。
 
 ## POST /api/jobs
 
@@ -329,4 +338,3 @@ Prompts：
 - 当前异步作业为进程内队列；企业 SaaS 应替换为持久化队列和结果存储。
 - 当前开源核心不内置认证；私有部署应由网关或宿主平台提供身份、权限和审计。
 - Agent 调用必须保留输入、Schema 版本、工具版本和 benchmark 证据，不得把 LLM 估算值包装成求解器结果。
-

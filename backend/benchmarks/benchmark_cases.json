@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-05-26",
+  "updatedAt": "2026-05-28",
   "cases": [
     {
       "id": "beam-simply-supported-uniform",
@@ -256,7 +256,7 @@
         "maxMomentKnM": 0.01
       },
       "verification": {
-        "sourceType": "independent-fea",
+        "sourceType": "independent-stiffness-baseline",
         "reference": "二维平面框架杆单元独立刚度法工作表基线，门式刚架水平荷载与梁均布荷载组合工况",
         "method": "用独立矩阵装配基线校验最大节点位移、构件弯矩和模型规模",
         "checkedMetrics": [
@@ -378,7 +378,7 @@
         "maxMomentKnM": 0.01
       },
       "verification": {
-        "sourceType": "independent-fea",
+        "sourceType": "independent-stiffness-baseline",
         "reference": "二维平面框架杆单元独立刚度法工作表基线，柱脚转动弹簧门式刚架工况",
         "method": "校验转动弹簧进入整体刚度矩阵后的最大位移和最大弯矩",
         "checkedMetrics": [
@@ -493,7 +493,7 @@
         "maxAxialForceKn": 0.01
       },
       "verification": {
-        "sourceType": "independent-fea",
+        "sourceType": "independent-stiffness-baseline",
         "reference": "二维平面桁架杆单元独立刚度法工作表基线，四节点简单屋架竖向节点荷载工况",
         "method": "校验节点位移、杆件轴力和模型规模",
         "checkedMetrics": [
@@ -637,7 +637,7 @@
         "maxMomentKnM": 0.01
       },
       "verification": {
-        "sourceType": "independent-fea",
+        "sourceType": "independent-stiffness-baseline",
         "reference": "二维平面框架杆单元独立刚度法工作表基线，显式双跨单层框架工况",
         "method": "校验多跨梁分布荷载、混合支座和侧向节点荷载下的最大位移与弯矩",
         "checkedMetrics": [
@@ -829,7 +829,7 @@
         "maxAxialForceKn": 0.01
       },
       "verification": {
-        "sourceType": "independent-fea",
+        "sourceType": "independent-stiffness-baseline",
         "reference": "二维平面桁架杆单元独立刚度法工作表基线，Pratt 型屋架多节点竖向荷载工况",
         "method": "校验节点位移、杆件轴力和控制杆件编号",
         "checkedMetrics": [
@@ -1175,6 +1175,1923 @@
           "节点位移",
           "杆件轴力",
           "支座反力"
+        ]
+      }
+    },
+    {
+      "id": "beam-simply-supported-uniform-8m",
+      "category": "beam",
+      "title": "简支梁均布荷载 8m",
+      "purpose": "扩展简支梁均布荷载解析回归，覆盖较大跨度与较小截面惯性矩。",
+      "payload": {
+        "beamType": "simply_supported",
+        "loadType": "uniform",
+        "q": 8,
+        "E": 200,
+        "I": 50000,
+        "spans": [
+          8
+        ],
+        "projectName": "Benchmark Simply Uniform 8m"
+      },
+      "expected": {
+        "maxDeflectionMm": 4.2667,
+        "maxDeflectionXM": 4.0,
+        "supportCount": 2
+      },
+      "tolerances": {
+        "maxDeflectionMm": 0.01,
+        "maxDeflectionXM": 0.02
+      },
+      "verification": {
+        "sourceType": "textbook-analytical",
+        "reference": "材料力学简支梁全跨均布荷载经典解析解，delta_max = 5qL^4/(384EI)",
+        "method": "校验最大挠度、峰值位置和支座数量。",
+        "checkedMetrics": [
+          "最大挠度",
+          "峰值位置",
+          "支座数量"
+        ]
+      }
+    },
+    {
+      "id": "beam-simply-supported-uniform-4m",
+      "category": "beam",
+      "title": "简支梁均布荷载 4m",
+      "purpose": "扩展短跨简支梁均布荷载解析回归，约束单位换算与峰值位置。",
+      "payload": {
+        "beamType": "simply_supported",
+        "loadType": "uniform",
+        "q": 15,
+        "E": 210,
+        "I": 30000,
+        "spans": [
+          4
+        ],
+        "projectName": "Benchmark Simply Uniform 4m"
+      },
+      "expected": {
+        "maxDeflectionMm": 0.7937,
+        "maxDeflectionXM": 2.0,
+        "supportCount": 2
+      },
+      "tolerances": {
+        "maxDeflectionMm": 0.01,
+        "maxDeflectionXM": 0.02
+      },
+      "verification": {
+        "sourceType": "textbook-analytical",
+        "reference": "材料力学简支梁全跨均布荷载经典解析解，delta_max = 5qL^4/(384EI)",
+        "method": "校验最大挠度、峰值位置和支座数量。",
+        "checkedMetrics": [
+          "最大挠度",
+          "峰值位置",
+          "支座数量"
+        ]
+      }
+    },
+    {
+      "id": "beam-cantilever-uniform-6m",
+      "category": "beam",
+      "title": "悬臂梁均布荷载 6m",
+      "purpose": "扩展悬臂梁均布荷载解析回归，覆盖自由端控制挠度。",
+      "payload": {
+        "beamType": "cantilever",
+        "loadType": "uniform",
+        "q": 6,
+        "E": 200,
+        "I": 90000,
+        "spans": [
+          6
+        ],
+        "projectName": "Benchmark Cantilever Uniform 6m"
+      },
+      "expected": {
+        "maxDeflectionMm": 5.4,
+        "maxDeflectionXM": 6.0,
+        "supportCount": 1
+      },
+      "tolerances": {
+        "maxDeflectionMm": 0.01,
+        "maxDeflectionXM": 0.02
+      },
+      "verification": {
+        "sourceType": "textbook-analytical",
+        "reference": "材料力学悬臂梁全跨均布荷载经典解析解，delta_free = qL^4/(8EI)",
+        "method": "校验最大挠度、峰值位置和支座数量。",
+        "checkedMetrics": [
+          "最大挠度",
+          "峰值位置",
+          "支座数量"
+        ]
+      }
+    },
+    {
+      "id": "beam-cantilever-end-point-3m",
+      "category": "beam",
+      "title": "悬臂梁自由端集中荷载 3m",
+      "purpose": "扩展悬臂梁端部集中荷载解析回归，覆盖小跨度高荷载工况。",
+      "payload": {
+        "beamType": "cantilever",
+        "loadType": "point",
+        "pointLoadKn": 30,
+        "pointLoadPositionM": 3,
+        "E": 205,
+        "I": 12000,
+        "spans": [
+          3
+        ],
+        "projectName": "Benchmark Cantilever End Point 3m"
+      },
+      "expected": {
+        "maxDeflectionMm": 10.9756,
+        "maxDeflectionXM": 3.0,
+        "supportCount": 1
+      },
+      "tolerances": {
+        "maxDeflectionMm": 0.01,
+        "maxDeflectionXM": 0.02
+      },
+      "verification": {
+        "sourceType": "textbook-analytical",
+        "reference": "材料力学悬臂梁自由端集中荷载经典解析解，delta_free = PL^3/(3EI)",
+        "method": "校验最大挠度、峰值位置和支座数量。",
+        "checkedMetrics": [
+          "最大挠度",
+          "峰值位置",
+          "支座数量"
+        ]
+      }
+    },
+    {
+      "id": "beam-simply-supported-center-point-9m",
+      "category": "beam",
+      "title": "简支梁跨中集中荷载 9m",
+      "purpose": "扩展简支梁跨中集中荷载解析回归，覆盖长跨集中力工况。",
+      "payload": {
+        "beamType": "simply_supported",
+        "loadType": "point",
+        "pointLoadKn": 80,
+        "pointLoadPositionM": 4.5,
+        "E": 200,
+        "I": 60000,
+        "spans": [
+          9
+        ],
+        "projectName": "Benchmark Simply Center Point 9m"
+      },
+      "expected": {
+        "maxDeflectionMm": 10.125,
+        "maxDeflectionXM": 4.5,
+        "supportCount": 2
+      },
+      "tolerances": {
+        "maxDeflectionMm": 0.01,
+        "maxDeflectionXM": 0.02
+      },
+      "verification": {
+        "sourceType": "textbook-analytical",
+        "reference": "材料力学简支梁跨中集中荷载经典解析解，delta_mid = PL^3/(48EI)",
+        "method": "校验最大挠度、峰值位置和支座数量。",
+        "checkedMetrics": [
+          "最大挠度",
+          "峰值位置",
+          "支座数量"
+        ]
+      }
+    },
+    {
+      "id": "beam-continuous-two-span-uniform",
+      "category": "beam",
+      "title": "两跨连续梁均布荷载",
+      "purpose": "补充多跨连续梁回归，覆盖中间支座与三弯矩方程链路。",
+      "payload": {
+        "beamType": "continuous",
+        "loadType": "uniform",
+        "q": 10,
+        "E": 206,
+        "I": 70000,
+        "spans": [
+          4,
+          4
+        ],
+        "projectName": "Benchmark Continuous Two Span Uniform"
+      },
+      "expected": {
+        "maxDeflectionMm": 0.0962,
+        "maxDeflectionXM": 6.3214,
+        "supportCount": 3
+      },
+      "tolerances": {
+        "maxDeflectionMm": 0.01,
+        "maxDeflectionXM": 0.02
+      },
+      "verification": {
+        "sourceType": "internal-regression",
+        "reference": "两跨连续梁刚度法/三弯矩方程内部回归基线",
+        "method": "按统一单位制计算最大挠度、峰值位置和支座数量，纳入公开回归门禁",
+        "checkedMetrics": [
+          "最大挠度",
+          "峰值位置",
+          "支座数量"
+        ]
+      }
+    },
+    {
+      "id": "beam-continuous-three-span-uniform",
+      "category": "beam",
+      "title": "三跨连续梁均布荷载",
+      "purpose": "补充三跨连续梁回归，覆盖多内支座与连续梁弯矩传递。",
+      "payload": {
+        "beamType": "continuous",
+        "loadType": "uniform",
+        "q": 9,
+        "E": 206,
+        "I": 85000,
+        "spans": [
+          3,
+          4,
+          3
+        ],
+        "projectName": "Benchmark Continuous Three Span Uniform"
+      },
+      "expected": {
+        "maxDeflectionMm": 0.0414,
+        "maxDeflectionXM": 5.0,
+        "supportCount": 4
+      },
+      "tolerances": {
+        "maxDeflectionMm": 0.01,
+        "maxDeflectionXM": 0.02
+      },
+      "verification": {
+        "sourceType": "internal-regression",
+        "reference": "三跨连续梁刚度法/三弯矩方程内部回归基线",
+        "method": "按统一单位制计算最大挠度、峰值位置和支座数量，纳入公开回归门禁",
+        "checkedMetrics": [
+          "最大挠度",
+          "峰值位置",
+          "支座数量"
+        ]
+      }
+    },
+    {
+      "id": "beam-continuous-unequal-span-point",
+      "category": "beam",
+      "title": "不等跨连续梁集中荷载",
+      "purpose": "补充不等跨连续梁集中荷载回归，覆盖非对称峰值位置。",
+      "payload": {
+        "beamType": "continuous",
+        "loadType": "point",
+        "pointLoadKn": 45,
+        "pointLoadPositionM": 5.5,
+        "E": 200,
+        "I": 65000,
+        "spans": [
+          3.5,
+          5.0,
+          4.0
+        ],
+        "projectName": "Benchmark Continuous Unequal Point"
+      },
+      "expected": {
+        "maxDeflectionMm": 0.4209,
+        "maxDeflectionXM": 5.8214,
+        "supportCount": 4
+      },
+      "tolerances": {
+        "maxDeflectionMm": 0.01,
+        "maxDeflectionXM": 0.02
+      },
+      "verification": {
+        "sourceType": "internal-regression",
+        "reference": "不等跨连续梁刚度法内部回归基线",
+        "method": "按统一单位制计算最大挠度、峰值位置和支座数量，纳入公开回归门禁",
+        "checkedMetrics": [
+          "最大挠度",
+          "峰值位置",
+          "支座数量"
+        ]
+      }
+    },
+    {
+      "id": "BM-004",
+      "category": "frame-beam-verify",
+      "title": "简支梁全跨均布荷载（框架梁退化验证）",
+      "purpose": "验证框架梁单元退化为简支梁时的支座反力与最大弯矩。",
+      "payload": {
+        "analysisType": "frame",
+        "projectName": "BM-004: Simply Supported Beam UDL",
+        "materialId": "steel-verify",
+        "structure": {
+          "template": "explicit",
+          "nodes": [
+            {
+              "id": "N1",
+              "x": 0,
+              "y": 0,
+              "supportType": "pinned"
+            },
+            {
+              "id": "N2",
+              "x": 4,
+              "y": 0,
+              "supportType": "free"
+            },
+            {
+              "id": "N3",
+              "x": 8,
+              "y": 0,
+              "supportType": "roller"
+            }
+          ],
+          "members": [
+            {
+              "id": "B1",
+              "start": "N1",
+              "end": "N2",
+              "E_GPa": 200,
+              "A_cm2": 10000,
+              "I_cm4": 30000,
+              "kind": "beam"
+            },
+            {
+              "id": "B2",
+              "start": "N2",
+              "end": "N3",
+              "E_GPa": 200,
+              "A_cm2": 10000,
+              "I_cm4": 30000,
+              "kind": "beam"
+            }
+          ],
+          "loads": [
+            {
+              "type": "distributed",
+              "member": "B1",
+              "wyKnPerM": -12
+            },
+            {
+              "type": "distributed",
+              "member": "B2",
+              "wyKnPerM": -12
+            }
+          ]
+        }
+      },
+      "expected": {
+        "nodeCount": 3,
+        "memberCount": 2,
+        "statusCode": "PASS",
+        "maxMomentKnM": 96.0,
+        "supportReactions": [
+          {
+            "nodeId": "N1",
+            "reactionFyKn": 48.0
+          },
+          {
+            "nodeId": "N3",
+            "reactionFyKn": 48.0
+          }
+        ]
+      },
+      "tolerances": {
+        "maxMomentKnM": 0.1,
+        "reactionFyKn": 0.1
+      },
+      "verification": {
+        "sourceType": "textbook-analytical",
+        "reference": "材料力学简支梁全跨均布荷载解析解：RA=RB=qL/2，Mmax=qL^2/8",
+        "method": "以框架杆单元退化梁模型对标教材解析反力和最大弯矩",
+        "checkedMetrics": [
+          "支座反力",
+          "构件弯矩"
+        ]
+      }
+    },
+    {
+      "id": "BM-005",
+      "category": "frame-beam-verify",
+      "title": "悬臂梁全跨均布荷载（框架梁退化验证）",
+      "purpose": "验证框架梁单元退化为悬臂梁时的固定端反力与最大弯矩。",
+      "payload": {
+        "analysisType": "frame",
+        "projectName": "BM-005: Cantilever Beam UDL",
+        "materialId": "steel-verify",
+        "structure": {
+          "template": "explicit",
+          "nodes": [
+            {
+              "id": "N1",
+              "x": 0,
+              "y": 0,
+              "supportType": "fixed"
+            },
+            {
+              "id": "N2",
+              "x": 3,
+              "y": 0,
+              "supportType": "free"
+            }
+          ],
+          "members": [
+            {
+              "id": "B1",
+              "start": "N1",
+              "end": "N2",
+              "E_GPa": 200,
+              "A_cm2": 10000,
+              "I_cm4": 18000,
+              "kind": "beam"
+            }
+          ],
+          "loads": [
+            {
+              "type": "distributed",
+              "member": "B1",
+              "wyKnPerM": -15
+            }
+          ]
+        }
+      },
+      "expected": {
+        "nodeCount": 2,
+        "memberCount": 1,
+        "statusCode": "PASS",
+        "maxMomentKnM": 67.5,
+        "supportReactions": [
+          {
+            "nodeId": "N1",
+            "reactionFyKn": 45.0
+          }
+        ]
+      },
+      "tolerances": {
+        "maxMomentKnM": 0.1,
+        "reactionFyKn": 0.1
+      },
+      "verification": {
+        "sourceType": "textbook-analytical",
+        "reference": "材料力学悬臂梁全跨均布荷载解析解：V=qL，Mmax=qL^2/2",
+        "method": "以框架杆单元退化梁模型对标教材解析反力和最大弯矩",
+        "checkedMetrics": [
+          "支座反力",
+          "构件弯矩"
+        ]
+      }
+    },
+    {
+      "id": "BM-006",
+      "category": "frame-beam-verify",
+      "title": "悬臂梁自由端集中荷载（框架梁退化验证）",
+      "purpose": "验证框架梁单元处理悬臂自由端集中力的固定端反力与最大弯矩。",
+      "payload": {
+        "analysisType": "frame",
+        "projectName": "BM-006: Cantilever End Point",
+        "materialId": "steel-verify",
+        "structure": {
+          "template": "explicit",
+          "nodes": [
+            {
+              "id": "N1",
+              "x": 0,
+              "y": 0,
+              "supportType": "fixed"
+            },
+            {
+              "id": "N2",
+              "x": 5,
+              "y": 0,
+              "supportType": "free"
+            }
+          ],
+          "members": [
+            {
+              "id": "B1",
+              "start": "N1",
+              "end": "N2",
+              "E_GPa": 200,
+              "A_cm2": 10000,
+              "I_cm4": 24000,
+              "kind": "beam"
+            }
+          ],
+          "loads": [
+            {
+              "type": "nodal",
+              "node": "N2",
+              "fxKn": 0,
+              "fyKn": -36,
+              "mzKnM": 0
+            }
+          ]
+        }
+      },
+      "expected": {
+        "nodeCount": 2,
+        "memberCount": 1,
+        "statusCode": "REVIEW",
+        "maxMomentKnM": 180.0,
+        "supportReactions": [
+          {
+            "nodeId": "N1",
+            "reactionFyKn": 36.0
+          }
+        ]
+      },
+      "tolerances": {
+        "maxMomentKnM": 0.1,
+        "reactionFyKn": 0.1
+      },
+      "verification": {
+        "sourceType": "textbook-analytical",
+        "reference": "材料力学悬臂梁自由端集中荷载解析解：V=P，Mmax=PL",
+        "method": "以框架杆单元退化梁模型对标教材解析反力和最大弯矩",
+        "checkedMetrics": [
+          "支座反力",
+          "构件弯矩"
+        ]
+      }
+    },
+    {
+      "id": "BM-007",
+      "category": "frame-beam-verify",
+      "title": "双跨简支退化梁分段均布荷载",
+      "purpose": "验证框架梁分段建模下不同均布荷载段的反力和最大弯矩回归。",
+      "payload": {
+        "analysisType": "frame",
+        "projectName": "BM-007: Segmented Beam UDL",
+        "materialId": "steel-verify",
+        "structure": {
+          "template": "explicit",
+          "nodes": [
+            {
+              "id": "N1",
+              "x": 0,
+              "y": 0,
+              "supportType": "pinned"
+            },
+            {
+              "id": "N2",
+              "x": 3,
+              "y": 0,
+              "supportType": "free"
+            },
+            {
+              "id": "N3",
+              "x": 6,
+              "y": 0,
+              "supportType": "roller"
+            }
+          ],
+          "members": [
+            {
+              "id": "B1",
+              "start": "N1",
+              "end": "N2",
+              "E_GPa": 200,
+              "A_cm2": 10000,
+              "I_cm4": 22000,
+              "kind": "beam"
+            },
+            {
+              "id": "B2",
+              "start": "N2",
+              "end": "N3",
+              "E_GPa": 200,
+              "A_cm2": 10000,
+              "I_cm4": 22000,
+              "kind": "beam"
+            }
+          ],
+          "loads": [
+            {
+              "type": "distributed",
+              "member": "B1",
+              "wyKnPerM": -8
+            },
+            {
+              "type": "distributed",
+              "member": "B2",
+              "wyKnPerM": -16
+            }
+          ]
+        }
+      },
+      "expected": {
+        "nodeCount": 3,
+        "memberCount": 2,
+        "statusCode": "PASS",
+        "maxMomentKnM": 55.125,
+        "supportReactions": [
+          {
+            "nodeId": "N1",
+            "reactionFyKn": 30.0
+          },
+          {
+            "nodeId": "N3",
+            "reactionFyKn": 42.0
+          }
+        ]
+      },
+      "tolerances": {
+        "maxMomentKnM": 0.1,
+        "reactionFyKn": 0.1
+      },
+      "verification": {
+        "sourceType": "textbook-analytical",
+        "reference": "分段均布荷载简支梁静力平衡解析基线，结合框架梁杆端力回归最大弯矩",
+        "method": "以框架杆单元退化梁模型对标教材解析反力和最大弯矩",
+        "checkedMetrics": [
+          "支座反力",
+          "构件弯矩"
+        ]
+      }
+    },
+    {
+      "id": "frame-portal-light-load",
+      "category": "frame",
+      "title": "轻载门式刚架",
+      "purpose": "扩展门式刚架低荷载回归，覆盖较小水平荷载下的最大位移与弯矩。",
+      "payload": {
+        "analysisType": "frame",
+        "projectName": "Benchmark Portal Light Load",
+        "materialId": "q345",
+        "structure": {
+          "template": "portal_frame",
+          "span": 5,
+          "height": 3.5,
+          "left_support": "fixed",
+          "right_support": "fixed",
+          "beam_load_kn_per_m": 10,
+          "lateral_load_kn": 12,
+          "top_vertical_load_kn": 0,
+          "nodes": [
+            {
+              "id": "N1",
+              "x": 0,
+              "y": 0,
+              "supportType": "fixed"
+            },
+            {
+              "id": "N2",
+              "x": 5,
+              "y": 0,
+              "supportType": "fixed"
+            },
+            {
+              "id": "N3",
+              "x": 0,
+              "y": 3.5,
+              "supportType": "free"
+            },
+            {
+              "id": "N4",
+              "x": 5,
+              "y": 3.5,
+              "supportType": "free"
+            }
+          ],
+          "members": [
+            {
+              "id": "C1",
+              "start": "N1",
+              "end": "N3",
+              "E_GPa": 210,
+              "A_cm2": 220,
+              "I_cm4": 10000,
+              "kind": "column"
+            },
+            {
+              "id": "B1",
+              "start": "N3",
+              "end": "N4",
+              "E_GPa": 210,
+              "A_cm2": 200,
+              "I_cm4": 12000,
+              "kind": "beam"
+            },
+            {
+              "id": "C2",
+              "start": "N2",
+              "end": "N4",
+              "E_GPa": 210,
+              "A_cm2": 220,
+              "I_cm4": 10000,
+              "kind": "column"
+            }
+          ],
+          "loads": [
+            {
+              "type": "distributed",
+              "member": "B1",
+              "wyKnPerM": -10
+            },
+            {
+              "type": "nodal",
+              "node": "N4",
+              "fxKn": 12,
+              "fyKn": 0,
+              "mzKnM": 0
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": "PASS",
+        "nodeCount": 4,
+        "memberCount": 3,
+        "maxDisplacementMm": 1.5297,
+        "maxMomentKnM": 23.4271
+      },
+      "tolerances": {
+        "maxDisplacementMm": 0.01,
+        "maxMomentKnM": 0.01
+      },
+      "verification": {
+        "sourceType": "internal-regression",
+        "reference": "二维平面框架内部回归基线",
+        "method": "校验节点数量、构件数量、最大位移和最大构件弯矩，用于防止框架装配与荷载转换回归",
+        "checkedMetrics": [
+          "最大位移",
+          "构件弯矩",
+          "节点数量",
+          "构件数量"
+        ]
+      }
+    },
+    {
+      "id": "frame-portal-top-vertical-load",
+      "category": "frame",
+      "title": "门式刚架顶部竖向节点荷载",
+      "purpose": "扩展门式刚架顶部节点荷载回归，覆盖节点竖向力与梁均布荷载组合。",
+      "payload": {
+        "analysisType": "frame",
+        "projectName": "Benchmark Portal Top Vertical",
+        "materialId": "q345",
+        "structure": {
+          "template": "portal_frame",
+          "span": 7,
+          "height": 4,
+          "left_support": "fixed",
+          "right_support": "fixed",
+          "beam_load_kn_per_m": 14,
+          "lateral_load_kn": 10,
+          "top_vertical_load_kn": 30,
+          "nodes": [
+            {
+              "id": "N1",
+              "x": 0,
+              "y": 0,
+              "supportType": "fixed"
+            },
+            {
+              "id": "N2",
+              "x": 7,
+              "y": 0,
+              "supportType": "fixed"
+            },
+            {
+              "id": "N3",
+              "x": 0,
+              "y": 4,
+              "supportType": "free"
+            },
+            {
+              "id": "N4",
+              "x": 7,
+              "y": 4,
+              "supportType": "free"
+            }
+          ],
+          "members": [
+            {
+              "id": "C1",
+              "start": "N1",
+              "end": "N3",
+              "E_GPa": 210,
+              "A_cm2": 260,
+              "I_cm4": 14000,
+              "kind": "column"
+            },
+            {
+              "id": "B1",
+              "start": "N3",
+              "end": "N4",
+              "E_GPa": 210,
+              "A_cm2": 230,
+              "I_cm4": 18000,
+              "kind": "beam"
+            },
+            {
+              "id": "C2",
+              "start": "N2",
+              "end": "N4",
+              "E_GPa": 210,
+              "A_cm2": 260,
+              "I_cm4": 14000,
+              "kind": "column"
+            }
+          ],
+          "loads": [
+            {
+              "type": "distributed",
+              "member": "B1",
+              "wyKnPerM": -14
+            },
+            {
+              "type": "nodal",
+              "node": "N4",
+              "fxKn": 10,
+              "fyKn": -30,
+              "mzKnM": 0
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": "PASS",
+        "nodeCount": 4,
+        "memberCount": 3,
+        "maxDisplacementMm": 1.4242,
+        "maxMomentKnM": 49.9148
+      },
+      "tolerances": {
+        "maxDisplacementMm": 0.01,
+        "maxMomentKnM": 0.01
+      },
+      "verification": {
+        "sourceType": "internal-regression",
+        "reference": "二维平面框架内部回归基线",
+        "method": "校验节点数量、构件数量、最大位移和最大构件弯矩，用于防止框架装配与荷载转换回归",
+        "checkedMetrics": [
+          "最大位移",
+          "构件弯矩",
+          "节点数量",
+          "构件数量"
+        ]
+      }
+    },
+    {
+      "id": "frame-inclined-member-load",
+      "category": "frame",
+      "title": "斜杆局部坐标分布荷载框架",
+      "purpose": "覆盖斜构件 local_y 分布荷载与坐标转换回归。",
+      "payload": {
+        "analysisType": "frame",
+        "projectName": "Benchmark Inclined Member Load",
+        "materialId": "q345",
+        "structure": {
+          "template": "explicit",
+          "nodes": [
+            {
+              "id": "N1",
+              "x": 0,
+              "y": 0,
+              "supportType": "fixed"
+            },
+            {
+              "id": "N2",
+              "x": 5,
+              "y": 0,
+              "supportType": "roller"
+            },
+            {
+              "id": "N3",
+              "x": 2.5,
+              "y": 3.5,
+              "supportType": "free"
+            }
+          ],
+          "members": [
+            {
+              "id": "C1",
+              "start": "N1",
+              "end": "N3",
+              "E_GPa": 210,
+              "A_cm2": 220,
+              "I_cm4": 11000,
+              "kind": "rafter"
+            },
+            {
+              "id": "C2",
+              "start": "N3",
+              "end": "N2",
+              "E_GPa": 210,
+              "A_cm2": 220,
+              "I_cm4": 11000,
+              "kind": "rafter"
+            }
+          ],
+          "loads": [
+            {
+              "type": "distributed",
+              "member": "C1",
+              "direction": "local_y",
+              "qStartKnPerM": -8,
+              "qEndKnPerM": -8
+            },
+            {
+              "type": "distributed",
+              "member": "C2",
+              "direction": "local_y",
+              "qStartKnPerM": -8,
+              "qEndKnPerM": -8
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": "PASS",
+        "nodeCount": 3,
+        "memberCount": 2,
+        "maxDisplacementMm": 2.57,
+        "maxMomentKnM": 24.2499
+      },
+      "tolerances": {
+        "maxDisplacementMm": 0.01,
+        "maxMomentKnM": 0.01
+      },
+      "verification": {
+        "sourceType": "internal-regression",
+        "reference": "二维平面框架内部回归基线",
+        "method": "校验节点数量、构件数量、最大位移和最大构件弯矩，用于防止框架装配与荷载转换回归",
+        "checkedMetrics": [
+          "最大位移",
+          "构件弯矩",
+          "节点数量",
+          "构件数量"
+        ]
+      }
+    },
+    {
+      "id": "frame-member-point-load",
+      "category": "frame",
+      "title": "构件内集中荷载框架梁",
+      "purpose": "覆盖 member_point 构件内集中荷载转换与杆端力回归。",
+      "payload": {
+        "analysisType": "frame",
+        "projectName": "Benchmark Member Point Load",
+        "materialId": "q345",
+        "structure": {
+          "template": "explicit",
+          "nodes": [
+            {
+              "id": "N1",
+              "x": 0,
+              "y": 0,
+              "supportType": "fixed"
+            },
+            {
+              "id": "N2",
+              "x": 6,
+              "y": 0,
+              "supportType": "fixed"
+            },
+            {
+              "id": "N3",
+              "x": 0,
+              "y": 4,
+              "supportType": "free"
+            },
+            {
+              "id": "N4",
+              "x": 6,
+              "y": 4,
+              "supportType": "free"
+            }
+          ],
+          "members": [
+            {
+              "id": "C1",
+              "start": "N1",
+              "end": "N3",
+              "E_GPa": 210,
+              "A_cm2": 240,
+              "I_cm4": 12000,
+              "kind": "column"
+            },
+            {
+              "id": "B1",
+              "start": "N3",
+              "end": "N4",
+              "E_GPa": 210,
+              "A_cm2": 220,
+              "I_cm4": 15000,
+              "kind": "beam"
+            },
+            {
+              "id": "C2",
+              "start": "N2",
+              "end": "N4",
+              "E_GPa": 210,
+              "A_cm2": 240,
+              "I_cm4": 12000,
+              "kind": "column"
+            }
+          ],
+          "loads": [
+            {
+              "type": "member_point",
+              "member": "B1",
+              "direction": "local_y",
+              "forceKn": -35,
+              "positionRatio": 0.4
+            },
+            {
+              "type": "nodal",
+              "node": "N4",
+              "fxKn": 16,
+              "fyKn": 0,
+              "mzKnM": 0
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": "PASS",
+        "nodeCount": 4,
+        "memberCount": 3,
+        "maxDisplacementMm": 2.8075,
+        "maxMomentKnM": 35.1079
+      },
+      "tolerances": {
+        "maxDisplacementMm": 0.01,
+        "maxMomentKnM": 0.01
+      },
+      "verification": {
+        "sourceType": "internal-regression",
+        "reference": "二维平面框架内部回归基线",
+        "method": "校验节点数量、构件数量、最大位移和最大构件弯矩，用于防止框架装配与荷载转换回归",
+        "checkedMetrics": [
+          "最大位移",
+          "构件弯矩",
+          "节点数量",
+          "构件数量"
+        ]
+      }
+    },
+    {
+      "id": "truss-warren-roof",
+      "category": "truss",
+      "title": "Warren 型屋架",
+      "purpose": "补充 Warren 桁架多斜腹杆回归，覆盖等距上下弦与多节点竖向荷载。",
+      "payload": {
+        "analysisType": "truss",
+        "projectName": "Benchmark Warren Roof",
+        "materialId": "q345",
+        "structure": {
+          "template": "explicit",
+          "nodes": [
+            {
+              "id": "N1",
+              "x": 0,
+              "y": 0,
+              "supportType": "pinned"
+            },
+            {
+              "id": "N2",
+              "x": 4,
+              "y": 0,
+              "supportType": "free"
+            },
+            {
+              "id": "N3",
+              "x": 8,
+              "y": 0,
+              "supportType": "free"
+            },
+            {
+              "id": "N4",
+              "x": 12,
+              "y": 0,
+              "supportType": "roller"
+            },
+            {
+              "id": "N5",
+              "x": 2,
+              "y": 3,
+              "supportType": "free"
+            },
+            {
+              "id": "N6",
+              "x": 6,
+              "y": 3,
+              "supportType": "free"
+            },
+            {
+              "id": "N7",
+              "x": 10,
+              "y": 3,
+              "supportType": "free"
+            }
+          ],
+          "members": [
+            {
+              "id": "L1",
+              "start": "N1",
+              "end": "N2",
+              "E_GPa": 210,
+              "A_cm2": 28,
+              "kind": "lower_chord"
+            },
+            {
+              "id": "L2",
+              "start": "N2",
+              "end": "N3",
+              "E_GPa": 210,
+              "A_cm2": 28,
+              "kind": "lower_chord"
+            },
+            {
+              "id": "L3",
+              "start": "N3",
+              "end": "N4",
+              "E_GPa": 210,
+              "A_cm2": 28,
+              "kind": "lower_chord"
+            },
+            {
+              "id": "U1",
+              "start": "N5",
+              "end": "N6",
+              "E_GPa": 210,
+              "A_cm2": 24,
+              "kind": "upper_chord"
+            },
+            {
+              "id": "U2",
+              "start": "N6",
+              "end": "N7",
+              "E_GPa": 210,
+              "A_cm2": 24,
+              "kind": "upper_chord"
+            },
+            {
+              "id": "D1",
+              "start": "N1",
+              "end": "N5",
+              "E_GPa": 210,
+              "A_cm2": 18,
+              "kind": "diagonal"
+            },
+            {
+              "id": "D2",
+              "start": "N5",
+              "end": "N2",
+              "E_GPa": 210,
+              "A_cm2": 18,
+              "kind": "diagonal"
+            },
+            {
+              "id": "D3",
+              "start": "N2",
+              "end": "N6",
+              "E_GPa": 210,
+              "A_cm2": 18,
+              "kind": "diagonal"
+            },
+            {
+              "id": "D4",
+              "start": "N6",
+              "end": "N3",
+              "E_GPa": 210,
+              "A_cm2": 18,
+              "kind": "diagonal"
+            },
+            {
+              "id": "D5",
+              "start": "N3",
+              "end": "N7",
+              "E_GPa": 210,
+              "A_cm2": 18,
+              "kind": "diagonal"
+            },
+            {
+              "id": "D6",
+              "start": "N7",
+              "end": "N4",
+              "E_GPa": 210,
+              "A_cm2": 18,
+              "kind": "diagonal"
+            }
+          ],
+          "loads": [
+            {
+              "type": "nodal",
+              "node": "N5",
+              "fxKn": 0,
+              "fyKn": -20
+            },
+            {
+              "type": "nodal",
+              "node": "N6",
+              "fxKn": 0,
+              "fyKn": -30
+            },
+            {
+              "type": "nodal",
+              "node": "N7",
+              "fxKn": 0,
+              "fyKn": -20
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": "PASS",
+        "nodeCount": 7,
+        "memberCount": 11,
+        "maxDisplacementMm": 1.6771,
+        "maxAxialForceKn": 43.3333,
+        "maxDisplacementNodeId": "N6",
+        "maxAxialForceMemberId": "L2"
+      },
+      "tolerances": {
+        "maxDisplacementMm": 0.01,
+        "maxAxialForceKn": 0.01
+      },
+      "verification": {
+        "sourceType": "internal-regression",
+        "reference": "二维平面桁架内部回归基线",
+        "method": "校验节点位移、杆件轴力、控制节点/杆件和模型规模",
+        "checkedMetrics": [
+          "节点位移",
+          "杆件轴力",
+          "节点数量",
+          "杆件数量"
+        ]
+      }
+    },
+    {
+      "id": "truss-pratt-bridge",
+      "category": "truss",
+      "title": "Pratt 桥式桁架",
+      "purpose": "补充 Pratt 桥式桁架回归，覆盖竖杆、斜杆和多节点荷载。",
+      "payload": {
+        "analysisType": "truss",
+        "projectName": "Benchmark Pratt Bridge",
+        "materialId": "q345",
+        "structure": {
+          "template": "explicit",
+          "nodes": [
+            {
+              "id": "N1",
+              "x": 0,
+              "y": 0,
+              "supportType": "pinned"
+            },
+            {
+              "id": "N2",
+              "x": 3,
+              "y": 0,
+              "supportType": "free"
+            },
+            {
+              "id": "N3",
+              "x": 6,
+              "y": 0,
+              "supportType": "free"
+            },
+            {
+              "id": "N4",
+              "x": 9,
+              "y": 0,
+              "supportType": "free"
+            },
+            {
+              "id": "N5",
+              "x": 12,
+              "y": 0,
+              "supportType": "roller"
+            },
+            {
+              "id": "N6",
+              "x": 3,
+              "y": 3,
+              "supportType": "free"
+            },
+            {
+              "id": "N7",
+              "x": 6,
+              "y": 3,
+              "supportType": "free"
+            },
+            {
+              "id": "N8",
+              "x": 9,
+              "y": 3,
+              "supportType": "free"
+            }
+          ],
+          "members": [
+            {
+              "id": "L1",
+              "start": "N1",
+              "end": "N2",
+              "E_GPa": 210,
+              "A_cm2": 30,
+              "kind": "lower_chord"
+            },
+            {
+              "id": "L2",
+              "start": "N2",
+              "end": "N3",
+              "E_GPa": 210,
+              "A_cm2": 30,
+              "kind": "lower_chord"
+            },
+            {
+              "id": "L3",
+              "start": "N3",
+              "end": "N4",
+              "E_GPa": 210,
+              "A_cm2": 30,
+              "kind": "lower_chord"
+            },
+            {
+              "id": "L4",
+              "start": "N4",
+              "end": "N5",
+              "E_GPa": 210,
+              "A_cm2": 30,
+              "kind": "lower_chord"
+            },
+            {
+              "id": "U1",
+              "start": "N6",
+              "end": "N7",
+              "E_GPa": 210,
+              "A_cm2": 26,
+              "kind": "upper_chord"
+            },
+            {
+              "id": "U2",
+              "start": "N7",
+              "end": "N8",
+              "E_GPa": 210,
+              "A_cm2": 26,
+              "kind": "upper_chord"
+            },
+            {
+              "id": "V1",
+              "start": "N2",
+              "end": "N6",
+              "E_GPa": 210,
+              "A_cm2": 20,
+              "kind": "vertical"
+            },
+            {
+              "id": "V2",
+              "start": "N3",
+              "end": "N7",
+              "E_GPa": 210,
+              "A_cm2": 20,
+              "kind": "vertical"
+            },
+            {
+              "id": "V3",
+              "start": "N4",
+              "end": "N8",
+              "E_GPa": 210,
+              "A_cm2": 20,
+              "kind": "vertical"
+            },
+            {
+              "id": "D1",
+              "start": "N1",
+              "end": "N6",
+              "E_GPa": 210,
+              "A_cm2": 18,
+              "kind": "diagonal"
+            },
+            {
+              "id": "D2",
+              "start": "N6",
+              "end": "N3",
+              "E_GPa": 210,
+              "A_cm2": 18,
+              "kind": "diagonal"
+            },
+            {
+              "id": "D3",
+              "start": "N3",
+              "end": "N8",
+              "E_GPa": 210,
+              "A_cm2": 18,
+              "kind": "diagonal"
+            },
+            {
+              "id": "D4",
+              "start": "N8",
+              "end": "N5",
+              "E_GPa": 210,
+              "A_cm2": 18,
+              "kind": "diagonal"
+            }
+          ],
+          "loads": [
+            {
+              "type": "nodal",
+              "node": "N6",
+              "fxKn": 0,
+              "fyKn": -22
+            },
+            {
+              "type": "nodal",
+              "node": "N7",
+              "fxKn": 0,
+              "fyKn": -28
+            },
+            {
+              "type": "nodal",
+              "node": "N8",
+              "fxKn": 0,
+              "fyKn": -22
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": "PASS",
+        "nodeCount": 8,
+        "memberCount": 13,
+        "maxDisplacementMm": 2.2411,
+        "maxAxialForceKn": 50.9117,
+        "maxDisplacementNodeId": "N7",
+        "maxAxialForceMemberId": "D1"
+      },
+      "tolerances": {
+        "maxDisplacementMm": 0.01,
+        "maxAxialForceKn": 0.01
+      },
+      "verification": {
+        "sourceType": "internal-regression",
+        "reference": "二维平面桁架内部回归基线",
+        "method": "校验节点位移、杆件轴力、控制节点/杆件和模型规模",
+        "checkedMetrics": [
+          "节点位移",
+          "杆件轴力",
+          "节点数量",
+          "杆件数量"
+        ]
+      }
+    },
+    {
+      "id": "truss-howe-roof",
+      "category": "truss",
+      "title": "Howe 型屋架",
+      "purpose": "补充 Howe 桁架回归，覆盖与 Pratt 相反方向的腹杆布置。",
+      "payload": {
+        "analysisType": "truss",
+        "projectName": "Benchmark Howe Roof",
+        "materialId": "q345",
+        "structure": {
+          "template": "explicit",
+          "nodes": [
+            {
+              "id": "N1",
+              "x": 0,
+              "y": 0,
+              "supportType": "pinned"
+            },
+            {
+              "id": "N2",
+              "x": 4,
+              "y": 0,
+              "supportType": "free"
+            },
+            {
+              "id": "N3",
+              "x": 8,
+              "y": 0,
+              "supportType": "free"
+            },
+            {
+              "id": "N4",
+              "x": 12,
+              "y": 0,
+              "supportType": "roller"
+            },
+            {
+              "id": "N5",
+              "x": 2,
+              "y": 3,
+              "supportType": "free"
+            },
+            {
+              "id": "N6",
+              "x": 6,
+              "y": 4,
+              "supportType": "free"
+            },
+            {
+              "id": "N7",
+              "x": 10,
+              "y": 3,
+              "supportType": "free"
+            }
+          ],
+          "members": [
+            {
+              "id": "B1",
+              "start": "N1",
+              "end": "N2",
+              "E_GPa": 210,
+              "A_cm2": 30,
+              "kind": "bottom_chord"
+            },
+            {
+              "id": "B2",
+              "start": "N2",
+              "end": "N3",
+              "E_GPa": 210,
+              "A_cm2": 30,
+              "kind": "bottom_chord"
+            },
+            {
+              "id": "B3",
+              "start": "N3",
+              "end": "N4",
+              "E_GPa": 210,
+              "A_cm2": 30,
+              "kind": "bottom_chord"
+            },
+            {
+              "id": "T1",
+              "start": "N1",
+              "end": "N5",
+              "E_GPa": 210,
+              "A_cm2": 24,
+              "kind": "top_chord"
+            },
+            {
+              "id": "T2",
+              "start": "N5",
+              "end": "N6",
+              "E_GPa": 210,
+              "A_cm2": 24,
+              "kind": "top_chord"
+            },
+            {
+              "id": "T3",
+              "start": "N6",
+              "end": "N7",
+              "E_GPa": 210,
+              "A_cm2": 24,
+              "kind": "top_chord"
+            },
+            {
+              "id": "T4",
+              "start": "N7",
+              "end": "N4",
+              "E_GPa": 210,
+              "A_cm2": 24,
+              "kind": "top_chord"
+            },
+            {
+              "id": "V1",
+              "start": "N2",
+              "end": "N5",
+              "E_GPa": 210,
+              "A_cm2": 20,
+              "kind": "vertical"
+            },
+            {
+              "id": "V2",
+              "start": "N3",
+              "end": "N7",
+              "E_GPa": 210,
+              "A_cm2": 20,
+              "kind": "vertical"
+            },
+            {
+              "id": "D1",
+              "start": "N5",
+              "end": "N3",
+              "E_GPa": 210,
+              "A_cm2": 20,
+              "kind": "diagonal"
+            },
+            {
+              "id": "D2",
+              "start": "N2",
+              "end": "N6",
+              "E_GPa": 210,
+              "A_cm2": 20,
+              "kind": "diagonal"
+            }
+          ],
+          "loads": [
+            {
+              "type": "nodal",
+              "node": "N5",
+              "fxKn": 0,
+              "fyKn": -25
+            },
+            {
+              "type": "nodal",
+              "node": "N6",
+              "fxKn": 0,
+              "fyKn": -35
+            },
+            {
+              "type": "nodal",
+              "node": "N7",
+              "fxKn": 0,
+              "fyKn": -25
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": "PASS",
+        "nodeCount": 7,
+        "memberCount": 11,
+        "maxDisplacementMm": 2.0265,
+        "maxAxialForceKn": 52.1429,
+        "maxDisplacementNodeId": "N6",
+        "maxAxialForceMemberId": "B2"
+      },
+      "tolerances": {
+        "maxDisplacementMm": 0.01,
+        "maxAxialForceKn": 0.01
+      },
+      "verification": {
+        "sourceType": "internal-regression",
+        "reference": "二维平面桁架内部回归基线",
+        "method": "校验节点位移、杆件轴力、控制节点/杆件和模型规模",
+        "checkedMetrics": [
+          "节点位移",
+          "杆件轴力",
+          "节点数量",
+          "杆件数量"
+        ]
+      }
+    },
+    {
+      "id": "truss-member-self-weight",
+      "category": "truss",
+      "title": "桁架杆件自重等效节点荷载",
+      "purpose": "覆盖桁架杆件自重荷载预处理为等效节点荷载的回归。",
+      "payload": {
+        "analysisType": "truss",
+        "projectName": "Benchmark Truss Self Weight",
+        "materialId": "q345",
+        "structure": {
+          "template": "explicit",
+          "nodes": [
+            {
+              "id": "N1",
+              "x": 0,
+              "y": 0,
+              "supportType": "pinned"
+            },
+            {
+              "id": "N2",
+              "x": 6,
+              "y": 0,
+              "supportType": "roller"
+            },
+            {
+              "id": "N3",
+              "x": 3,
+              "y": 3,
+              "supportType": "free"
+            }
+          ],
+          "members": [
+            {
+              "id": "M1",
+              "start": "N1",
+              "end": "N3",
+              "E_GPa": 210,
+              "A_cm2": 24,
+              "kind": "upper_chord"
+            },
+            {
+              "id": "M2",
+              "start": "N3",
+              "end": "N2",
+              "E_GPa": 210,
+              "A_cm2": 24,
+              "kind": "upper_chord"
+            },
+            {
+              "id": "M3",
+              "start": "N1",
+              "end": "N2",
+              "E_GPa": 210,
+              "A_cm2": 30,
+              "kind": "bottom_chord"
+            }
+          ],
+          "loads": [
+            {
+              "type": "distributed",
+              "member": "M1",
+              "selfWeightKnPerM": 1.2
+            },
+            {
+              "type": "distributed",
+              "member": "M2",
+              "selfWeightKnPerM": 1.2
+            },
+            {
+              "type": "nodal",
+              "node": "N3",
+              "fxKn": 0,
+              "fyKn": -20
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": "PASS",
+        "nodeCount": 3,
+        "memberCount": 3,
+        "maxDisplacementMm": 0.2775,
+        "maxAxialForceKn": 17.7421,
+        "maxDisplacementNodeId": "N3",
+        "maxAxialForceMemberId": "M1"
+      },
+      "tolerances": {
+        "maxDisplacementMm": 0.01,
+        "maxAxialForceKn": 0.01
+      },
+      "verification": {
+        "sourceType": "internal-regression",
+        "reference": "二维平面桁架内部回归基线",
+        "method": "校验节点位移、杆件轴力、控制节点/杆件和模型规模",
+        "checkedMetrics": [
+          "节点位移",
+          "杆件轴力",
+          "节点数量",
+          "杆件数量"
+        ]
+      }
+    },
+    {
+      "id": "truss-cantilever-panel",
+      "category": "truss",
+      "title": "悬挑平面桁架",
+      "purpose": "补充悬挑桁架回归，覆盖双支座固定边界和端部竖向荷载。",
+      "payload": {
+        "analysisType": "truss",
+        "projectName": "Benchmark Cantilever Truss",
+        "materialId": "q345",
+        "structure": {
+          "template": "explicit",
+          "nodes": [
+            {
+              "id": "N1",
+              "x": 0,
+              "y": 0,
+              "supportType": "pinned"
+            },
+            {
+              "id": "N2",
+              "x": 0,
+              "y": 3,
+              "supportType": "pinned"
+            },
+            {
+              "id": "N3",
+              "x": 4,
+              "y": 0,
+              "supportType": "free"
+            },
+            {
+              "id": "N4",
+              "x": 4,
+              "y": 3,
+              "supportType": "free"
+            },
+            {
+              "id": "N5",
+              "x": 8,
+              "y": 0,
+              "supportType": "free"
+            },
+            {
+              "id": "N6",
+              "x": 8,
+              "y": 3,
+              "supportType": "free"
+            }
+          ],
+          "members": [
+            {
+              "id": "L1",
+              "start": "N1",
+              "end": "N3",
+              "E_GPa": 210,
+              "A_cm2": 30,
+              "kind": "lower_chord"
+            },
+            {
+              "id": "L2",
+              "start": "N3",
+              "end": "N5",
+              "E_GPa": 210,
+              "A_cm2": 30,
+              "kind": "lower_chord"
+            },
+            {
+              "id": "U1",
+              "start": "N2",
+              "end": "N4",
+              "E_GPa": 210,
+              "A_cm2": 26,
+              "kind": "upper_chord"
+            },
+            {
+              "id": "U2",
+              "start": "N4",
+              "end": "N6",
+              "E_GPa": 210,
+              "A_cm2": 26,
+              "kind": "upper_chord"
+            },
+            {
+              "id": "V1",
+              "start": "N1",
+              "end": "N2",
+              "E_GPa": 210,
+              "A_cm2": 24,
+              "kind": "vertical"
+            },
+            {
+              "id": "V2",
+              "start": "N3",
+              "end": "N4",
+              "E_GPa": 210,
+              "A_cm2": 24,
+              "kind": "vertical"
+            },
+            {
+              "id": "V3",
+              "start": "N5",
+              "end": "N6",
+              "E_GPa": 210,
+              "A_cm2": 24,
+              "kind": "vertical"
+            },
+            {
+              "id": "D1",
+              "start": "N2",
+              "end": "N3",
+              "E_GPa": 210,
+              "A_cm2": 18,
+              "kind": "diagonal"
+            },
+            {
+              "id": "D2",
+              "start": "N3",
+              "end": "N6",
+              "E_GPa": 210,
+              "A_cm2": 18,
+              "kind": "diagonal"
+            }
+          ],
+          "loads": [
+            {
+              "type": "nodal",
+              "node": "N5",
+              "fxKn": 0,
+              "fyKn": -25
+            },
+            {
+              "type": "nodal",
+              "node": "N6",
+              "fxKn": 0,
+              "fyKn": -25
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": "PASS",
+        "nodeCount": 6,
+        "memberCount": 9,
+        "maxDisplacementMm": 7.4314,
+        "maxAxialForceKn": 133.3333,
+        "maxDisplacementNodeId": "N5",
+        "maxAxialForceMemberId": "L1"
+      },
+      "tolerances": {
+        "maxDisplacementMm": 0.01,
+        "maxAxialForceKn": 0.01
+      },
+      "verification": {
+        "sourceType": "internal-regression",
+        "reference": "二维平面桁架内部回归基线",
+        "method": "校验节点位移、杆件轴力、控制节点/杆件和模型规模",
+        "checkedMetrics": [
+          "节点位移",
+          "杆件轴力",
+          "节点数量",
+          "杆件数量"
         ]
       }
     }

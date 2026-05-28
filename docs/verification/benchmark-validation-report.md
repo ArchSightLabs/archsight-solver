@@ -1,10 +1,10 @@
 # ArchSight Solver 公开验证集报告
 
-- 算例目录版本：2026-05-26
-- 算例数量：12
-- 通过数量：12
+- 算例目录版本：2026-05-28
+- 算例数量：33
+- 通过数量：33
 - 未通过数量：0
-- 来源类型：independent-fea, textbook-analytical
+- 来源类型：independent-stiffness-baseline, internal-regression, textbook-analytical
 
 ## 结论
 
@@ -26,6 +26,27 @@
 | `BM-001` | frame-beam-verify | 通过 | 节点数量=3（标准 3）；构件数量=2（标准 2）；最大构件弯矩(kN·m)=150.0（标准 150） |
 | `BM-003` | frame-beam-verify | 通过 | 节点数量=2（标准 2）；构件数量=1（标准 1）；最大构件弯矩(kN·m)=40.0（标准 40） |
 | `BM-002` | truss-verify | 通过 | 状态码=PASS（标准 PASS）；节点数量=3（标准 3）；杆件数量=3（标准 3） |
+| `beam-simply-supported-uniform-8m` | beam | 通过 | 支座数量=2（标准 2）；最大挠度(mm)=4.2667（标准 4.2667）；最大挠度位置(m)=4.0（标准 4.0） |
+| `beam-simply-supported-uniform-4m` | beam | 通过 | 支座数量=2（标准 2）；最大挠度(mm)=0.7937（标准 0.7937）；最大挠度位置(m)=2.0（标准 2.0） |
+| `beam-cantilever-uniform-6m` | beam | 通过 | 支座数量=1（标准 1）；最大挠度(mm)=5.4（标准 5.4）；最大挠度位置(m)=6.0（标准 6.0） |
+| `beam-cantilever-end-point-3m` | beam | 通过 | 支座数量=1（标准 1）；最大挠度(mm)=10.9756（标准 10.9756）；最大挠度位置(m)=3.0（标准 3.0） |
+| `beam-simply-supported-center-point-9m` | beam | 通过 | 支座数量=2（标准 2）；最大挠度(mm)=10.125（标准 10.125）；最大挠度位置(m)=4.5（标准 4.5） |
+| `beam-continuous-two-span-uniform` | beam | 通过 | 支座数量=3（标准 3）；最大挠度(mm)=0.0962（标准 0.0962）；最大挠度位置(m)=6.321429（标准 6.3214） |
+| `beam-continuous-three-span-uniform` | beam | 通过 | 支座数量=4（标准 4）；最大挠度(mm)=0.0414（标准 0.0414）；最大挠度位置(m)=5.0（标准 5.0） |
+| `beam-continuous-unequal-span-point` | beam | 通过 | 支座数量=4（标准 4）；最大挠度(mm)=0.4209（标准 0.4209）；最大挠度位置(m)=5.821429（标准 5.8214） |
+| `BM-004` | frame-beam-verify | 通过 | 节点数量=3（标准 3）；构件数量=2（标准 2）；最大构件弯矩(kN·m)=96.0（标准 96.0） |
+| `BM-005` | frame-beam-verify | 通过 | 节点数量=2（标准 2）；构件数量=1（标准 1）；最大构件弯矩(kN·m)=67.5（标准 67.5） |
+| `BM-006` | frame-beam-verify | 通过 | 节点数量=2（标准 2）；构件数量=1（标准 1）；最大构件弯矩(kN·m)=180.0（标准 180.0） |
+| `BM-007` | frame-beam-verify | 通过 | 节点数量=3（标准 3）；构件数量=2（标准 2）；最大构件弯矩(kN·m)=55.125（标准 55.125） |
+| `frame-portal-light-load` | frame | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；构件数量=3（标准 3） |
+| `frame-portal-top-vertical-load` | frame | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；构件数量=3（标准 3） |
+| `frame-inclined-member-load` | frame | 通过 | 状态码=PASS（标准 PASS）；节点数量=3（标准 3）；构件数量=2（标准 2） |
+| `frame-member-point-load` | frame | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；构件数量=3（标准 3） |
+| `truss-warren-roof` | truss | 通过 | 状态码=PASS（标准 PASS）；节点数量=7（标准 7）；杆件数量=11（标准 11） |
+| `truss-pratt-bridge` | truss | 通过 | 状态码=PASS（标准 PASS）；节点数量=8（标准 8）；杆件数量=13（标准 13） |
+| `truss-howe-roof` | truss | 通过 | 状态码=PASS（标准 PASS）；节点数量=7（标准 7）；杆件数量=11（标准 11） |
+| `truss-member-self-weight` | truss | 通过 | 状态码=PASS（标准 PASS）；节点数量=3（标准 3）；杆件数量=3（标准 3） |
+| `truss-cantilever-panel` | truss | 通过 | 状态码=PASS（标准 PASS）；节点数量=6（标准 6）；杆件数量=9（标准 9） |
 
 ## 使用方式
 

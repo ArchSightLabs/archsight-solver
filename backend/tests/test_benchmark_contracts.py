@@ -15,7 +15,7 @@ BENCHMARK_CATALOG = load_benchmark_catalog()
 
 ALLOWED_VERIFICATION_SOURCE_TYPES = {
     "textbook-analytical",
-    "independent-fea",
+    "independent-stiffness-baseline",
     "engineering-software",
     "internal-regression",
 }
@@ -34,7 +34,7 @@ def test_benchmark_catalog_shape_is_stable():
     assert isinstance(BENCHMARK_CATALOG["updatedAt"], str)
     assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", BENCHMARK_CATALOG["updatedAt"])
     date.fromisoformat(BENCHMARK_CATALOG["updatedAt"])
-    assert len(BENCHMARK_CATALOG["cases"]) >= 3
+    assert len(BENCHMARK_CATALOG["cases"]) >= 30
 
     case_ids = [case["id"] for case in BENCHMARK_CATALOG["cases"]]
     assert len(case_ids) == len(set(case_ids))
@@ -64,7 +64,6 @@ def test_benchmark_cases_have_traceable_verification_metadata(case):
     verification = case["verification"]
 
     assert verification["sourceType"] in ALLOWED_VERIFICATION_SOURCE_TYPES
-    assert verification["sourceType"] != "internal-regression"
     assert verification["reference"].strip()
     assert verification["method"].strip()
     assert isinstance(verification["checkedMetrics"], list)
@@ -75,9 +74,14 @@ def test_benchmark_cases_have_traceable_verification_metadata(case):
     assert checked_metrics <= expected_metrics
     assert checked_metrics & expected_metrics
 
+    if verification["sourceType"] == "internal-regression":
+        assert "回归" in verification["reference"]
+        assert "独立" not in verification["reference"]
+
 
 def test_benchmark_catalog_contains_external_or_analytical_cross_checks():
     source_types = {case["verification"]["sourceType"] for case in BENCHMARK_CATALOG["cases"]}
 
     assert "textbook-analytical" in source_types
-    assert "independent-fea" in source_types
+    assert "independent-stiffness-baseline" in source_types
+    assert "internal-regression" in source_types
