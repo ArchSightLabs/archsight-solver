@@ -93,7 +93,7 @@ test("buildBeamResultDiagramSvg uses workbench-style span dimensions and key poi
   const svg = buildBeamResultDiagramSvg(results, "momentKnM");
 
   assert.match(svg, /梁长 = 8\.00 m/);
-  assert.match(svg, /\(1\) l = 4\.00 m\s+\(2\) l = 4\.00 m/);
+  assert.match(svg, /跨1 4\.00 m\s+跨2 4\.00 m/);
   assert.match(svg, />-20 kN·m</);
   assert.match(svg, />11\.25 kN·m</);
   assert.match(svg, />x = 4\.00 m</);

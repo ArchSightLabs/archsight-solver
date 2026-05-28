@@ -40,16 +40,9 @@ export interface TrussSupportMarkerGeometry {
 }
 
 export interface TrussMemberLengthDimension {
-  lineStart: TrussPreviewPoint;
-  lineEnd: TrussPreviewPoint;
-  startTickStart: TrussPreviewPoint;
-  startTickEnd: TrussPreviewPoint;
-  endTickStart: TrussPreviewPoint;
-  endTickEnd: TrussPreviewPoint;
-  label: string;
-  labelX: number;
-  labelY: number;
-  labelAngle: number;
+  memberId: string;
+  valueLabel: string;
+  title: string;
 }
 
 export function trussSupportTypeLabel(type: TrussSupportType) {
@@ -82,18 +75,34 @@ export function buildTrussSupportMarkerGeometry(type: string | undefined, x: num
   };
 }
 
-function readableSegmentAngle(start: TrussPreviewPoint, end: TrussPreviewPoint) {
-  let angle = Math.atan2(end.y - start.y, end.x - start.x) * 180 / Math.PI;
-  if (angle > 90 || angle < -90) angle += 180;
-  return angle;
+function estimateLegendTextWidth(text: string, fontSize: number) {
+  return text.length * fontSize * 0.62;
+}
+
+export function buildTrussMemberLengthLegendRows(dimensions: TrussMemberLengthDimension[], maxWidthPx: number, fontSize = 12) {
+  const rows: string[] = [];
+  let current = "";
+
+  for (const dimension of dimensions) {
+    const item = `${dimension.memberId} ${dimension.valueLabel}`;
+    const next = current ? `${current}    ${item}` : item;
+    if (current && estimateLegendTextWidth(next, fontSize) > maxWidthPx) {
+      rows.push(current);
+      current = item;
+    } else {
+      current = next;
+    }
+  }
+
+  if (current) rows.push(current);
+  return rows;
 }
 
 export function buildTrussMemberLengthDimension(
+  memberId: string,
   start: TrussPreviewPoint,
   end: TrussPreviewPoint,
-  center: TrussPreviewPoint,
   lengthM: number,
-  offset = 24,
 ): TrussMemberLengthDimension | null {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
@@ -102,27 +111,12 @@ export function buildTrussMemberLengthDimension(
     return null;
   }
 
-  const normal = { x: -dy / screenLength, y: dx / screenLength };
-  const mid = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
-  const outward = (mid.x - center.x) * normal.x + (mid.y - center.y) * normal.y >= 0 ? 1 : -1;
-  const inward = -outward;
-  const offsetVector = { x: normal.x * inward * offset, y: normal.y * inward * offset };
-  const tickHalfLength = 5;
-  const labelOffset = 10;
-  const lineStart = { x: start.x + offsetVector.x, y: start.y + offsetVector.y };
-  const lineEnd = { x: end.x + offsetVector.x, y: end.y + offsetVector.y };
+  const valueLabel = `l = ${lengthM.toFixed(2)} m`;
 
   return {
-    lineStart,
-    lineEnd,
-    startTickStart: { x: lineStart.x - normal.x * tickHalfLength, y: lineStart.y - normal.y * tickHalfLength },
-    startTickEnd: { x: lineStart.x + normal.x * tickHalfLength, y: lineStart.y + normal.y * tickHalfLength },
-    endTickStart: { x: lineEnd.x - normal.x * tickHalfLength, y: lineEnd.y - normal.y * tickHalfLength },
-    endTickEnd: { x: lineEnd.x + normal.x * tickHalfLength, y: lineEnd.y + normal.y * tickHalfLength },
-    label: `l = ${lengthM.toFixed(2)} m`,
-    labelX: mid.x + normal.x * inward * (offset + labelOffset),
-    labelY: mid.y + normal.y * inward * (offset + labelOffset),
-    labelAngle: readableSegmentAngle(start, end),
+    memberId,
+    valueLabel,
+    title: `杆件 ${memberId}，长度 ${lengthM.toFixed(2)} m`,
   };
 }
 

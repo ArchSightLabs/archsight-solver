@@ -17,11 +17,12 @@ function estimateLegendTextWidth(text: string, fontSize: number) {
 }
 
 export function beamSpanLengthLabel(length: number) {
-  return `l = ${formatFullSpanLength(length)}`;
+  return formatFullSpanLength(length);
 }
 
 export function beamSpanDimensionLabel(index: number, _length: number, widthPx: number) {
-  if (widthPx >= 34) return `(${index + 1})`;
+  if (widthPx >= 44) return `跨${index + 1}`;
+  if (widthPx >= 26) return `${index + 1}`;
   return null;
 }
 
@@ -30,7 +31,7 @@ export function buildBeamSpanDimensionLegendRows(dimensions: BeamSpanDimension[]
   let current = "";
 
   for (const dimension of dimensions) {
-    const item = `(${dimension.index + 1}) ${dimension.lengthLabel}`;
+    const item = `跨${dimension.index + 1} ${dimension.lengthLabel}`;
     const next = current ? `${current}    ${item}` : item;
     if (current && estimateLegendTextWidth(next, fontSize) > maxWidthPx) {
       rows.push(current);

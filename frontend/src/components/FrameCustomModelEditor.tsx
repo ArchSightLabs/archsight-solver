@@ -951,8 +951,8 @@ export function FrameCustomModelEditor({
               <Input aria-label="节点编号" value={node.id} onChange={(e) => updateNode(index, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
             </div>
             <div className="space-y-1">
-              <div className={fieldLabelClass}>支座类型</div>
-              <DropdownSelect value={node.supportType ?? "free"} onChange={(nextValue) => updateNode(index, { supportType: nextValue as StructureNode["supportType"] })} options={SUPPORT_OPTIONS} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel="支座类型" />
+              <div className={fieldLabelClass}>支座约束</div>
+              <DropdownSelect value={node.supportType ?? "free"} onChange={(nextValue) => updateNode(index, { supportType: nextValue as StructureNode["supportType"] })} options={SUPPORT_OPTIONS} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel="支座约束" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>横坐标（m）</div>
@@ -1116,7 +1116,7 @@ export function FrameCustomModelEditor({
         {modelWarnings.length === 0 ? (
           <div className="flex items-start gap-2 rounded-xl border border-emerald-400/15 bg-emerald-500/8 p-3 text-xs text-emerald-700 dark:text-emerald-200">
             <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            当前模型对象引用完整，可继续复核截面、支座与荷载参数。
+            当前模型对象引用完整，可继续复核截面、节点约束与荷载参数。
           </div>
         ) : (
           <div className="space-y-1 rounded-xl border border-amber-400/15 bg-amber-500/8 p-3 text-xs text-amber-700 dark:text-amber-200">
@@ -1297,7 +1297,7 @@ export function FrameCustomModelEditor({
             <MapPin className="h-3.5 w-3.5 text-primary" />
             节点
           </div>
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">支持编号 / 横坐标 / 纵坐标 / 支座类型</span>
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">节点编号 / 横坐标 / 纵坐标 / 支座约束</span>
         </div>
         <div className="space-y-3">
           {value.nodes.map((node, index) => (
@@ -1316,14 +1316,14 @@ export function FrameCustomModelEditor({
                   <Input aria-label={`第 ${index + 1} 个节点纵坐标`} type="number" step="0.1" value={node.y} onChange={(e) => updateNode(index, { y: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
                 </div>
                 <div className="space-y-1">
-                  <div className={fieldLabelClass}>支座类型</div>
+                  <div className={fieldLabelClass}>支座约束</div>
                   <DropdownSelect
                     value={node.supportType ?? "free"}
                     onChange={(nextValue) => updateNode(index, { supportType: nextValue as StructureNode["supportType"] })}
                     options={SUPPORT_OPTIONS}
                     className="text-xs font-mono"
                     menuClassName="text-xs font-mono"
-                    ariaLabel={`第 ${index + 1} 个节点支座类型`}
+                    ariaLabel={`第 ${index + 1} 个节点支座约束`}
                   />
                 </div>
                 <div className="space-y-1">

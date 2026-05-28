@@ -47,7 +47,7 @@ test("buildBenchmarkSubmissionPackageRequest creates complete package input", ()
   assert.equal(request.case.id, "beam-user-case");
   assert.equal(request.case.category, "beam");
   assert.equal(request.case.verification.method, "按简支梁解析公式独立复核。");
-  assert.deepEqual(request.case.verification.checkedMetrics, ["支座数量", "最大挠度", "最大挠度位置"]);
+  assert.deepEqual(request.case.verification.checkedMetrics, ["节点/支座数量", "最大挠度", "最大挠度位置"]);
   assert.equal(request.case.metricDefinitions.find((metric) => metric.key === "maxDeflectionMm")?.unit, "mm");
   assert.equal(request.contributor.name, "测试用户");
 });
@@ -120,7 +120,7 @@ test("buildMetricPayload converts display units to canonical benchmark units", (
 });
 
 test("splitMultivalueText accepts newline and comma separated values", () => {
-  assert.deepEqual(splitMultivalueText("最大挠度\n峰值位置，支座数量"), ["最大挠度", "峰值位置", "支座数量"]);
+  assert.deepEqual(splitMultivalueText("最大挠度\n峰值位置，节点/支座数量"), ["最大挠度", "峰值位置", "节点/支座数量"]);
 });
 
 test("buildBenchmarkSubmissionChannelDraft creates GitHub and email submission links", () => {

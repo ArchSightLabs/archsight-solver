@@ -387,8 +387,8 @@ export function TrussCustomModelEditor({
               <Input aria-label="节点编号" value={node.id} onChange={(e) => updateNode(index, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
             </div>
             <div className="space-y-1">
-              <div className={fieldLabelClass}>支座类型</div>
-              <DropdownSelect value={node.supportType ?? "free"} onChange={(nextValue) => updateNode(index, { supportType: nextValue as TrussNode["supportType"] })} options={SUPPORT_OPTIONS} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel="支座类型" />
+              <div className={fieldLabelClass}>支座约束</div>
+              <DropdownSelect value={node.supportType ?? "free"} onChange={(nextValue) => updateNode(index, { supportType: nextValue as TrussNode["supportType"] })} options={SUPPORT_OPTIONS} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel="支座约束" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>横坐标（m）</div>
@@ -744,7 +744,7 @@ export function TrussCustomModelEditor({
             <MapPin className="h-3.5 w-3.5 text-primary" />
             节点
           </div>
-          <span className="text-[10px] uppercase tracking-widest text-muted-foreground">节点编号 / 坐标 / 支座类型</span>
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground">节点编号 / 坐标 / 支座约束</span>
         </div>
         <div className="space-y-3">
           {value.nodes.map((node, index) => (
@@ -765,14 +765,14 @@ export function TrussCustomModelEditor({
                 <Input aria-label={`第 ${index + 1} 个节点纵坐标`} type="number" step="0.1" value={node.y} onChange={(e) => updateNode(index, { y: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
               </div>
               <div className="space-y-1 sm:col-span-2 xl:col-span-2">
-                <div className={fieldLabelClass}>支座类型</div>
+                <div className={fieldLabelClass}>支座约束</div>
                 <DropdownSelect
                   value={node.supportType ?? "free"}
                   onChange={(nextValue) => updateNode(index, { supportType: nextValue as TrussNode["supportType"] })}
                   options={SUPPORT_OPTIONS}
                   className="text-xs font-mono"
                   menuClassName="text-xs font-mono"
-                  ariaLabel={`第 ${index + 1} 个节点支座类型`}
+                  ariaLabel={`第 ${index + 1} 个节点支座约束`}
                 />
               </div>
               <div className="flex items-end sm:col-span-2 xl:col-span-1">

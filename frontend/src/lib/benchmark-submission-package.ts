@@ -375,7 +375,7 @@ function defaultMetricRows(category: BenchmarkSubmissionCategory, payload: unkno
   const beam = parsePayloadForDefaults(result.beam);
   const maxDeflection = parsePayloadForDefaults(beam.maxDeflection);
   return [
-    countMetric("supportCount", "支座数量", arrayLength(beam.supports, model.supports), "当前模型"),
+    countMetric("supportCount", "节点/支座数量", arrayLength(beam.supports, model.supports), "当前模型"),
     numericMetric("maxDeflectionMm", "最大挠度", numberValue(maxDeflection.valueMm, numberValue(summary.maxDeflectionMm)), "mm", "maxDeflectionMm", 0.01, "mm", ["mm", "m"]),
     numericMetric("maxDeflectionXM", "最大挠度位置", numberValue(maxDeflection.xM, numberValue(summary.maxDeflectionPositionM)), "m", "maxDeflectionXM", 0.01, "m", ["m", "mm"]),
   ];

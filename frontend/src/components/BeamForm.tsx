@@ -75,6 +75,21 @@ function supportLabel(type: BeamSupportType) {
   return SUPPORT_TYPE_OPTIONS.find((option) => option.value === type)?.label ?? "铰支座";
 }
 
+function supportShortLabel(type: BeamSupportType) {
+  if (type === "pinned") return "铰";
+  if (type === "roller") return "滚动";
+  if (type === "fixed") return "固结";
+  return "自由";
+}
+
+function beamSpanChipLabel(index: number, span: Pick<BeamSpanConfig, "length">) {
+  return `跨 ${index + 1} · ${span.length.toFixed(2)} m`;
+}
+
+function beamSupportChipLabel(support: BeamSupportConfig) {
+  return `${support.id} ${supportShortLabel(support.type)} · x=${support.x.toFixed(2)} m`;
+}
+
 function constraintsFromType(type: BeamSupportType): BeamSupportDof[] {
   if (type === "fixed") return ["v", "rz"];
   if (type === "pinned" || type === "roller") return ["v"];
@@ -117,12 +132,12 @@ function formatLoadSummary(value: BeamWorkspaceState) {
   const linearLoads = activeBeamLinearLoads(value);
   const uniformRange = normalizedBeamRatioRange(value.uniformLoadStartRatio, value.uniformLoadEndRatio);
   const uniformRangeLabel = uniformRange.startRatio <= 1e-9 && uniformRange.endRatio >= 1 - 1e-9
-    ? "全长"
+    ? "全跨"
     : `${uniformRange.startRatio.toFixed(2)}-${uniformRange.endRatio.toFixed(2)}`;
   const parts = [
-    value.uniformLoadEnabled ? `均布 ${value.q.toFixed(1)} kN/m · ${uniformRangeLabel}` : null,
-    linearLoads.length === 1 ? `线性 ${linearLoads[0].qStartKnPerM.toFixed(1)} → ${linearLoads[0].qEndKnPerM.toFixed(1)} kN/m` : null,
-    linearLoads.length > 1 ? `线性分布荷载 ${linearLoads.length} 条` : null,
+    value.uniformLoadEnabled ? `q=${value.q.toFixed(1)} kN/m · ${uniformRangeLabel}` : null,
+    linearLoads.length === 1 ? `线性 q=${linearLoads[0].qStartKnPerM.toFixed(1)}→${linearLoads[0].qEndKnPerM.toFixed(1)} kN/m` : null,
+    linearLoads.length > 1 ? `线性荷载 ${linearLoads.length} 条` : null,
     value.pointLoads.length ? `集中力 ${value.pointLoads.length} 个` : null,
   ].filter(Boolean);
   return parts.length ? parts.join(" + ") : "无荷载";
@@ -463,7 +478,7 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
     setTextModelDraft(serializeBeamTextModel(value));
     setTextModelDiagnostics([]);
     setTextModelPreviewMetrics([]);
-    setTextModelMessage("已按当前跨段、支座与荷载生成梁系文本模型，可编辑后先检查再应用。");
+    setTextModelMessage("已按当前跨段、节点/支座与荷载生成梁系文本模型，可编辑后先检查再应用。");
   };
 
   const previewTextModelDraft = (draft: string) => {
@@ -496,12 +511,12 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
       result.patch.materials ? `${result.patch.materials.length} 个材料编号` : null,
       result.patch.beamType ? "梁型" : null,
       result.patch.spans ? `${nextSpans.length} 个跨段` : null,
-      result.patch.supports ? `${nextSupports.length} 个支座` : null,
+      result.patch.supports ? `${nextSupports.length} 个节点/支座` : null,
       result.patch.loadType ? `荷载：${formatLoadSummary(previewState)}` : null,
     ].filter(Boolean);
     setTextModelPreviewMetrics([
       { label: "跨段", value: `${nextSpans.length}` },
-      { label: "支座", value: `${nextSupports.length}` },
+      { label: "节点/支座", value: `${nextSupports.length}` },
       { label: "总长", value: `${nextSpans.reduce((sum, span) => sum + span.length, 0).toFixed(2)} m` },
       { label: "默认材料", value: previewState.materialId },
       { label: "荷载", value: formatLoadSummary(previewState) },
@@ -542,12 +557,12 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
     });
     setTextModelPreviewMetrics([
       { label: "跨段", value: `${nextSpans.length}` },
-      { label: "支座", value: `${nextSupports.length}` },
+      { label: "节点/支座", value: `${nextSupports.length}` },
       { label: "总长", value: `${nextSpans.reduce((sum, span) => sum + span.length, 0).toFixed(2)} m` },
       { label: "默认材料", value: String(result.patch.materialId ?? value.materialId) },
       { label: "荷载", value: formatLoadSummary({ ...value, ...result.patch, spans: nextSpans, supports: nextSupports }) },
     ]);
-    setTextModelMessage(`已导入 ${nextSpans.length} 个跨段、${nextSupports.length} 个支座，默认材料 ${result.patch.materialId ?? value.materialId}。`);
+    setTextModelMessage(`已导入 ${nextSpans.length} 个跨段、${nextSupports.length} 个节点/支座，默认材料 ${result.patch.materialId ?? value.materialId}。`);
     selectObject({ type: "span", id: spanId(0) });
   };
 
@@ -746,15 +761,16 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
     <div className="space-y-3 rounded-xl border border-white/8 bg-slate-950/20 p-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <div className={FIELD_LABEL_CLASS}>当前支座</div>
-          <div className="mt-1 text-sm font-bold">{support.id} · {supportLabel(support.type)}</div>
+          <div className={FIELD_LABEL_CLASS}>当前节点</div>
+          <div className="mt-1 text-sm font-bold">{support.id}</div>
+          <div className="mt-1 text-[10px] font-semibold text-muted-foreground">支座约束：{supportLabel(support.type)}</div>
         </div>
         <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 font-mono text-[10px] text-muted-foreground">
           x = {support.x.toFixed(2)} m
         </span>
       </div>
       <div className="space-y-2">
-        <div className={FIELD_LABEL_CLASS}>支座类型</div>
+        <div className={FIELD_LABEL_CLASS}>支座约束</div>
         <div className="grid grid-cols-2 gap-2">
           {SUPPORT_TYPE_OPTIONS.map((option) => {
             const isActive = support.type === option.value;
@@ -821,9 +837,9 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1">
-          <div className={FIELD_LABEL_CLASS}>支座位置 x（m）</div>
+          <div className={FIELD_LABEL_CLASS}>节点位置 x（m）</div>
           <Input
-            aria-label="支座位置 x（m）"
+            aria-label="节点位置 x（m）"
             type="number"
             step="0.1"
             min="0"
@@ -834,12 +850,12 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
           />
         </div>
         <div className="space-y-1">
-          <div className={FIELD_LABEL_CLASS}>支座编号</div>
-          <Input aria-label="支座编号" value={support.id} readOnly className="h-10 min-w-0 font-mono text-xs opacity-70" />
+          <div className={FIELD_LABEL_CLASS}>节点编号</div>
+          <Input aria-label="节点编号" value={support.id} readOnly className="h-10 min-w-0 font-mono text-xs opacity-70" />
         </div>
       </div>
       <div className="rounded-xl border border-white/8 bg-background/20 px-4 py-3 text-xs leading-relaxed text-foreground/55">
-        梁单元自由度为竖向位移 v 与转角 θz。铰支座/滚动支座通常约束 v、释放 θz；固结支座同时约束 v 与 θz；弹簧支座按对应自由度刚度进入整体刚度矩阵。
+        梁节点自由度为竖向位移 v 与转角 θz。支座约束作为节点边界条件进入整体刚度矩阵：铰支座/滚动支座通常约束 v、释放 θz；固结支座同时约束 v 与 θz。
       </div>
     </div>
   );
@@ -864,7 +880,7 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className={FIELD_LABEL_CLASS}>当前跨段</div>
-            <div className="mt-1 text-sm font-bold">第 {index + 1} 跨</div>
+            <div className="mt-1 text-sm font-bold">跨 {index + 1}</div>
             <div className="mt-1 font-mono text-[10px] text-muted-foreground">
               材料 {spanMaterial?.id ?? "手动 E"} · E = {span.E} GPa
             </div>
@@ -926,7 +942,7 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
           <div className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-white/8 bg-white/8">
             {[
               ["节点", `${derivedNodeCount}`],
-              ["支座", `${supportCount}`],
+              ["节点/支座", `${supportCount}`],
               ["总长", `${totalLength.toFixed(2)} m`],
             ].map(([label, metric]) => (
               <div key={label} className="bg-background/35 px-3 py-2">
@@ -992,12 +1008,12 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
         <div className="space-y-4">
           <div className="space-y-3 rounded-lg border border-white/8 bg-slate-950/20 p-3">
             <div className="eyebrow">模型对象</div>
-            <div className="space-y-2">
-              <div className={FIELD_LABEL_CLASS}>跨段</div>
-              <div className="flex flex-wrap gap-2">
-                {value.spans.map((span, index) => (
-                  <button key={spanId(index)} type="button" onClick={() => selectObject({ type: "span", id: spanId(index) })} className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold ${resolvedSelectedObject.type === "span" && resolvedSelectedObject.id === spanId(index) ? "border-sky-300 bg-sky-400 text-slate-950 shadow-sm shadow-sky-500/15" : "border-white/8 bg-slate-950/20 text-muted-foreground hover:text-foreground"}`}>
-                    S{index + 1} · {span.length}m
+          <div className="space-y-2">
+            <div className={FIELD_LABEL_CLASS}>跨段</div>
+            <div className="flex flex-wrap gap-2">
+              {value.spans.map((span, index) => (
+                <button key={spanId(index)} type="button" onClick={() => selectObject({ type: "span", id: spanId(index) })} className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold ${resolvedSelectedObject.type === "span" && resolvedSelectedObject.id === spanId(index) ? "border-sky-300 bg-sky-400 text-slate-950 shadow-sm shadow-sky-500/15" : "border-white/8 bg-slate-950/20 text-muted-foreground hover:text-foreground"}`}>
+                    {beamSpanChipLabel(index, span)}
                   </button>
                 ))}
                 <Button variant="outline" size="sm" onClick={addSpan} disabled={value.spans.length >= MAX_BEAM_SPANS} className="h-8 rounded-lg px-2 text-[10px]">
@@ -1007,7 +1023,7 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
               </div>
             </div>
             <div className="space-y-2">
-              <div className={FIELD_LABEL_CLASS}>支座 / 节点约束</div>
+              <div className={FIELD_LABEL_CLASS}>节点/支座</div>
               <div className="flex flex-wrap gap-2">
                 {value.supports.map((support, index) => (
                   <button
@@ -1016,7 +1032,7 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
                     onClick={() => selectObject({ type: "support", id: supportId(index) })}
                     className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold ${resolvedSelectedObject.type === "support" && resolvedSelectedObject.id === supportId(index) ? "border-sky-300 bg-sky-400 text-slate-950 shadow-sm shadow-sky-500/15" : "border-white/8 bg-slate-950/20 text-muted-foreground hover:text-foreground"}`}
                   >
-                    {support.id} · {supportLabel(support.type)} · x={support.x.toFixed(2)}m
+                    {beamSupportChipLabel(support)}
                   </button>
                 ))}
               </div>
@@ -1024,7 +1040,7 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
             <div className="space-y-2">
               <div className={FIELD_LABEL_CLASS}>荷载</div>
               <button type="button" onClick={() => selectObject({ type: "load", id: "primary" })} className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold ${resolvedSelectedObject.type === "load" ? "border-sky-300 bg-sky-400 text-slate-950 shadow-sm shadow-sky-500/15" : "border-white/8 bg-slate-950/20 text-muted-foreground hover:text-foreground"}`}>
-                当前荷载 · {loadSummary}
+                {loadSummary}
               </button>
             </div>
           </div>
@@ -1038,8 +1054,8 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
                 {resolvedSelectedObject.type === "load"
                   ? loadSummary
                   : resolvedSelectedObject.type === "support"
-                    ? `${value.supports[supportIndexFromId(resolvedSelectedObject.id)]?.id ?? "支座"} · ${supportLabel(value.supports[supportIndexFromId(resolvedSelectedObject.id)]?.type ?? "pinned")}`
-                    : `第 ${spanIndexFromId(resolvedSelectedObject.id) + 1} 跨`}
+                    ? beamSupportChipLabel(value.supports[supportIndexFromId(resolvedSelectedObject.id)] ?? { id: "S?", x: 0, type: "pinned" })
+                    : beamSpanChipLabel(spanIndexFromId(resolvedSelectedObject.id), value.spans[spanIndexFromId(resolvedSelectedObject.id)] ?? DEFAULT_SPAN)}
               </span>
             </div>
             {renderSelectedEditor()}
@@ -1118,7 +1134,7 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
             </div>
           </div>
           <div className="space-y-2 rounded-lg border border-white/8 bg-slate-950/20 p-3">
-            <div className={FIELD_LABEL_CLASS}>支座</div>
+            <div className={FIELD_LABEL_CLASS}>节点/支座</div>
             <div className="space-y-2">
               {value.supports.map((support, index) => (
                 <div key={supportId(index)} className="grid grid-cols-3 gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 text-xs">

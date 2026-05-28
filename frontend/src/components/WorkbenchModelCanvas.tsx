@@ -4,7 +4,7 @@ import { GlassCard } from "./ui/GlassCard";
 import { Button } from "./ui/button";
 import { createPortalFrameModelFromState, type WorkspaceState } from "../lib/workspace-state";
 import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments } from "../lib/beam-span-dimensions";
-import { buildTrussMemberLengthDimension, buildTrussSupportMarkerGeometry } from "./truss-preview-utils";
+import { buildTrussMemberLengthDimension, buildTrussMemberLengthLegendRows, buildTrussSupportMarkerGeometry } from "./truss-preview-utils";
 import type { AnalysisMode, FrameLoad, FrameLoadDirection, StructureNode, TrussLoad } from "../types/structure";
 import type { WorkbenchSelection } from "../types/workbench-selection";
 import type { BeamPreviewStyle } from "../types/beam";
@@ -24,7 +24,7 @@ function buildMetrics(workspace: WorkspaceState, mode: AnalysisMode) {
     return [
       { label: "跨段数量", value: `${workspace.beam.spans.length} 跨` },
       { label: "总长度", value: `${length.toFixed(2)} m` },
-      { label: "支座数量", value: `${workspace.beam.supports.length} 个` },
+      { label: "节点/支座", value: `${workspace.beam.supports.length} 个` },
     ];
   }
 
@@ -136,7 +136,7 @@ function beamSupportLabel(type: string) {
   if (type === "fixed") return "固结";
   if (type === "roller") return "滚动";
   if (type === "free") return "自由";
-  return "铰支";
+  return "铰";
 }
 
 function buildLoadArrowXs(start: number, end: number, minSpacing = 30) {
@@ -316,7 +316,7 @@ function BeamSketch({
         const x = beamStart + (support.x / total) * (beamEnd - beamStart);
         const selected = selection?.mode === "beam" && selection.type === "support" && selection.id === `support-${index}`;
         return (
-          <g key={support.id} {...svgInteractiveProps(`选择梁系支座 ${support.id}`, () => onSelect?.({ mode: "beam", type: "support", id: `support-${index}` }))}>
+          <g key={support.id} {...svgInteractiveProps(`选择梁系节点/支座 ${support.id}`, () => onSelect?.({ mode: "beam", type: "support", id: `support-${index}` }))}>
             <rect x={x - 24} y="148" width="48" height="58" rx="12" fill={selected ? "var(--beam-sketch-selected)" : "transparent"} opacity={selected ? "0.1" : "0"} />
             {support.type === "fixed" ? (
               <rect x={x - 12} y={BEAM_SKETCH_AXIS_Y} width="24" height="36" rx="2" fill="var(--beam-sketch-support-fill)" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
@@ -335,7 +335,7 @@ function BeamSketch({
               </>
             )}
             <text x={x} y="224" textAnchor="middle" fontSize="11" fontWeight="700" fill={selected ? "var(--beam-sketch-selected)" : "var(--beam-sketch-label)"}>
-              {support.id} · {beamSupportLabel(support.type)}
+              {support.id} {beamSupportLabel(support.type)}
             </text>
           </g>
         );
@@ -368,7 +368,7 @@ function BeamSketch({
           </g>
         )}
         <g>
-          <g stroke="var(--beam-sketch-load)" strokeWidth={selection?.mode === "beam" && selection.type === "load" ? "1.55" : "1.15"}>
+        <g stroke="var(--beam-sketch-load)" strokeWidth={selection?.mode === "beam" && selection.type === "load" ? "1.55" : "1.15"}>
           {beam.uniformLoadEnabled ? visibleUniformArrows.map((x, index) => (
             <path key={`uniform-${index}`} d={`M${x.toFixed(1)} ${(uniformGuideY + 4).toFixed(1)} L${x.toFixed(1)} ${BEAM_DISTRIBUTED_LOAD_TIP_Y}`} markerEnd="url(#modelDistributedArrow)" />
           )) : null}
@@ -392,8 +392,8 @@ function BeamSketch({
               </g>
             );
           })}
-          </g>
         </g>
+      </g>
         <g fontFamily={svgTextFont}>
         {uniformRange ? (
           <g>
@@ -508,10 +508,8 @@ function frameMemberLoadDirection(
 }
 
 type FrameGeometryDimension = {
-  marker: string;
+  memberId: string;
   valueLabel: string;
-  x: number;
-  y: number;
 };
 
 function buildFrameDimensionLegendRows(dimensions: FrameGeometryDimension[], maxWidthPx: number, fontSize = 12) {
@@ -519,7 +517,7 @@ function buildFrameDimensionLegendRows(dimensions: FrameGeometryDimension[], max
   let current = "";
 
   for (const dimension of dimensions) {
-    const item = `${dimension.marker} ${dimension.valueLabel}`;
+    const item = `${dimension.memberId} ${dimension.valueLabel}`;
     const next = current ? `${current}    ${item}` : item;
     if (current && next.length * fontSize * 0.62 > maxWidthPx) {
       rows.push(current);
@@ -533,9 +531,14 @@ function buildFrameDimensionLegendRows(dimensions: FrameGeometryDimension[], max
   return rows;
 }
 
-function uniqueSortedFrameCoordinates(values: number[]) {
-  const sorted = values.filter(Number.isFinite).slice().sort((a, b) => a - b);
-  return sorted.filter((value, index) => index === 0 || Math.abs(value - sorted[index - 1]) > 1e-6);
+function frameMemberDimensionValueLabel(start: Pick<StructureNode, "x" | "y">, end: Pick<StructureNode, "x" | "y">) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const length = Math.hypot(dx, dy);
+  if (Math.abs(dx) <= 1e-6 && Math.abs(dy) > 1e-6) {
+    return `h = ${Math.abs(dy).toFixed(2)} m`;
+  }
+  return `l = ${length.toFixed(2)} m`;
 }
 
 function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceState; selection?: WorkbenchSelection | null; onSelect?: (next: WorkbenchSelection) => void }) {
@@ -561,36 +564,21 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
     y: 285 - ((point.y - minY) / Math.max(1, maxY - minY)) * 195,
   });
   const nodeMap = new Map(nodes.map((node) => [node.id, map(node)]));
+  const rawNodeMap = new Map(nodes.map((node) => [node.id, node]));
   const memberMap = new Map(members.map((member) => [member.id, member]));
   const topY = Math.min(...nodes.map((node) => map(node).y), 90);
   const bottomY = Math.max(...nodes.map((node) => map(node).y), 285);
   const leftX = Math.min(...nodes.map((node) => map(node).x), 165);
   const rightX = Math.max(...nodes.map((node) => map(node).x), 735);
-  const frameXCoordinates = uniqueSortedFrameCoordinates(xs);
-  const frameYCoordinates = uniqueSortedFrameCoordinates(ys);
-  const horizontalDimensions: FrameGeometryDimension[] = frameXCoordinates.slice(0, -1).map((startX, index) => {
-    const endX = frameXCoordinates[index + 1];
-    const start = map({ x: startX, y: maxY });
-    const end = map({ x: endX, y: maxY });
-    return {
-      marker: `(${index + 1})`,
-      valueLabel: `l = ${(endX - startX).toFixed(2)} m`,
-      x: (start.x + end.x) / 2,
-      y: topY + 36,
-    };
+  const frameDimensions: FrameGeometryDimension[] = members.flatMap((member) => {
+    const start = rawNodeMap.get(member.start);
+    const end = rawNodeMap.get(member.end);
+    if (!start || !end) return [];
+    return [{
+      memberId: member.id,
+      valueLabel: frameMemberDimensionValueLabel(start, end),
+    }];
   });
-  const verticalDimensions: FrameGeometryDimension[] = frameYCoordinates.slice(0, -1).map((startY, index) => {
-    const endY = frameYCoordinates[index + 1];
-    const start = map({ x: minX, y: startY });
-    const end = map({ x: minX, y: endY });
-    return {
-      marker: `(${horizontalDimensions.length + index + 1})`,
-      valueLabel: `h = ${(endY - startY).toFixed(2)} m`,
-      x: leftX - 36,
-      y: (start.y + end.y) / 2,
-    };
-  });
-  const frameDimensions = [...horizontalDimensions, ...verticalDimensions];
   const frameDimensionLegendRows = buildFrameDimensionLegendRows(frameDimensions, 430, 12);
   const nodeLabel = (node: StructureNode) => {
     const point = nodeMap.get(node.id);
@@ -740,13 +728,6 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
           }
           return items;
         })}
-      </g>
-      <g fill="var(--model-label)" fontSize="13" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT} fontFamily={svgTextFont} stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
-        {frameDimensions.map((dimension) => (
-          <text key={`frame-dimension-marker-${dimension.marker}`} x={dimension.x} y={dimension.y} textAnchor="middle">
-            {dimension.marker}
-          </text>
-        ))}
       </g>
       <g fill="var(--model-label)" fontSize="11.5" fontWeight="600" fontFamily={svgTextFont}>
         {nodes.map((node) => {
@@ -952,6 +933,19 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
   const memberMap = new Map(members.map((member) => [member.id, member]));
   const trussCenterX = 110 + 680 / 2;
   const trussMidY = 280 - 190 / 2;
+  const memberLengthDimensions = members.flatMap((member) => {
+    const start = nodeMap.get(member.start);
+    const end = nodeMap.get(member.end);
+    const rawStart = rawNodeMap.get(member.start);
+    const rawEnd = rawNodeMap.get(member.end);
+    if (!start || !end || !rawStart || !rawEnd) return [];
+
+    const lengthM = Math.hypot(rawEnd.x - rawStart.x, rawEnd.y - rawStart.y);
+    const dimension = buildTrussMemberLengthDimension(member.id, start, end, lengthM);
+    return dimension ? [dimension] : [];
+  });
+  const memberLengthDimensionById = new Map(memberLengthDimensions.map((dimension) => [dimension.memberId, dimension]));
+  const memberLengthLegendRows = buildTrussMemberLengthLegendRows(memberLengthDimensions, 340, 12);
 
   const getNodeLabel = (point: { x: number; y: number }) => {
     const isTopChord = point.y < trussMidY;
@@ -973,41 +967,23 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
 
   return (
     <svg viewBox="0 0 900 360" className="h-full w-full">
+      <g fontFamily={svgTextFont} fill="var(--model-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
+        {memberLengthLegendRows.map((row, index) => (
+          <text key={`truss-member-length-legend-${index}`} x="96" y={34 + index * 16} fontSize="12" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT}>
+            {row}
+          </text>
+        ))}
+      </g>
       {members.map((member) => {
         const start = nodeMap.get(member.start);
         const end = nodeMap.get(member.end);
-        const rawStart = rawNodeMap.get(member.start);
-        const rawEnd = rawNodeMap.get(member.end);
         if (!start || !end) return null;
         const selected = selection?.mode === "truss" && selection.type === "member" && selection.id === member.id;
         const label = trussMemberLabelPlacement(start, end, { x: trussCenterX, y: trussMidY });
-        const lengthM = rawStart && rawEnd ? Math.hypot(rawEnd.x - rawStart.x, rawEnd.y - rawStart.y) : null;
-        const dimension = lengthM === null ? null : buildTrussMemberLengthDimension(start, end, { x: trussCenterX, y: trussMidY }, lengthM);
+        const dimension = memberLengthDimensionById.get(member.id);
         return (
           <g key={member.id} {...svgInteractiveProps(`选择桁架杆件 ${member.id}`, () => onSelect?.({ mode: "truss", type: "member", id: member.id }))}>
-            {dimension ? (
-              <g pointerEvents="none" stroke={selected ? "var(--model-load)" : "var(--model-guide)"} opacity={selected ? "0.92" : "0.74"}>
-                <line x1={dimension.lineStart.x} y1={dimension.lineStart.y} x2={dimension.lineEnd.x} y2={dimension.lineEnd.y} strokeWidth="1.2" strokeDasharray="4 4" />
-                <line x1={dimension.startTickStart.x} y1={dimension.startTickStart.y} x2={dimension.startTickEnd.x} y2={dimension.startTickEnd.y} strokeWidth="1.2" />
-                <line x1={dimension.endTickStart.x} y1={dimension.endTickStart.y} x2={dimension.endTickEnd.x} y2={dimension.endTickEnd.y} strokeWidth="1.2" />
-                <text
-                  x={dimension.labelX}
-                  y={dimension.labelY}
-                  transform={`rotate(${dimension.labelAngle} ${dimension.labelX} ${dimension.labelY})`}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  fill={selected ? "var(--model-load)" : "var(--model-label)"}
-                  stroke="var(--model-label-halo)"
-                  strokeWidth="3"
-                  paintOrder="stroke"
-                  fontSize="10.5"
-                  fontWeight="700"
-                  fontFamily={svgTextFont}
-                >
-                  {dimension.label}
-                </text>
-              </g>
-            ) : null}
+            {dimension ? <title>{dimension.title}</title> : null}
             <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="transparent" strokeWidth="18" strokeLinecap="round" />
             <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke={selected ? "var(--model-load)" : "var(--model-member)"} strokeWidth={selected ? "7" : "4.5"} strokeLinecap="round" opacity={selected ? "0.85" : "1"} />
             <text
