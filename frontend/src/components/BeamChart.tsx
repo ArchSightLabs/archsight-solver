@@ -5,6 +5,7 @@ import { LineChart } from "echarts/charts";
 import { GraphicComponent, GridComponent, TooltipComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 import { GlassCard } from "./ui/GlassCard";
+import { escapeHtml, safeCssHexColor } from "../lib/html-escape";
 
 echarts.use([LineChart, GridComponent, TooltipComponent, GraphicComponent, CanvasRenderer]);
 
@@ -54,7 +55,7 @@ export function BeamChart({ xData, yData, xLabels, title, yLabel, unit, color, x
     const textColor = isDark ? "#94a3b8" : "#475569";
     const gridColor = isDark ? "rgba(255,255,255,0.05)" : "rgba(100,116,139,0.14)";
     const axisColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(100,116,139,0.22)";
-    const displayColor = chartColorForTheme(color, isDark);
+    const displayColor = safeCssHexColor(chartColorForTheme(color, isDark));
 
     // 没有数据时显示空状态
     if (!xData || !yData || xData.length === 0 || yData.length === 0) {
@@ -84,11 +85,16 @@ export function BeamChart({ xData, yData, xLabels, title, yLabel, unit, color, x
         borderColor: `${displayColor}55`,
         borderWidth: 1,
         textStyle: { color: isDark ? "#f1f5f9" : "#1e293b", fontSize: 12 },
-          formatter: (params: AxisTooltipParam | AxisTooltipParam[]) => {
-            const p = Array.isArray(params) ? params[0] : params;
-            return `<div style="padding:6px 10px">
-            <div style="font-size:10px;opacity:0.5;margin-bottom:4px">${tooltipXLabel} = ${p?.axisValue ?? ""}${xAxisLabel ? ` ${xAxisLabel}` : ""}</div>
-            <div style="font-weight:bold;color:${displayColor}">${p?.value ?? ""} ${unit}</div>
+        formatter: (params: AxisTooltipParam | AxisTooltipParam[]) => {
+          const p = Array.isArray(params) ? params[0] : params;
+          const safeTooltipXLabel = escapeHtml(tooltipXLabel);
+          const safeAxisValue = escapeHtml(p?.axisValue);
+          const safeXAxisLabel = xAxisLabel ? ` ${escapeHtml(xAxisLabel)}` : "";
+          const safeValue = escapeHtml(p?.value);
+          const safeUnit = escapeHtml(unit);
+          return `<div style="padding:6px 10px">
+            <div style="font-size:10px;opacity:0.5;margin-bottom:4px">${safeTooltipXLabel} = ${safeAxisValue}${safeXAxisLabel}</div>
+            <div style="font-weight:bold;color:${displayColor}">${safeValue} ${safeUnit}</div>
           </div>`;
         }
       },

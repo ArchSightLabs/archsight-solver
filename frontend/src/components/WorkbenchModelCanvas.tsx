@@ -254,8 +254,9 @@ function BeamSketch({
         "--beam-sketch-load": "var(--model-load)",
         "--beam-sketch-label": "var(--model-label)",
         "--beam-sketch-muted": "var(--model-label)",
-        "--beam-sketch-badge-fill": "#fff7ed",
-        "--beam-sketch-badge-stroke": "var(--model-load)",
+        "--beam-sketch-badge-fill": "var(--model-badge-fill)",
+        "--beam-sketch-badge-stroke": "var(--model-badge-stroke)",
+        "--beam-sketch-badge-text": "var(--model-badge-text)",
         "--beam-sketch-selected": "var(--model-load)",
       } as CSSProperties)
     : undefined;
@@ -420,7 +421,7 @@ function BeamSketch({
         {nodeLabels.map((label) => (
           <g key={`node-label-${label.index}`}>
             <circle cx={label.labelX} cy="132" r="8" fill="var(--beam-sketch-badge-fill)" stroke="var(--beam-sketch-badge-stroke)" strokeWidth="1.4" />
-            <text x={label.labelX} y="136" textAnchor="middle" fontSize="10.5" fontWeight="700" fill="var(--beam-sketch-label)">
+            <text x={label.labelX} y="136" textAnchor="middle" fontSize="10.5" fontWeight="700" fill="var(--beam-sketch-badge-text)">
               {label.index + 1}
             </text>
           </g>
