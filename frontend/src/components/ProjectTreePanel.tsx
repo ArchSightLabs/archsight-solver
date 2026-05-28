@@ -1,4 +1,4 @@
-import { Building2, ExternalLink, Network, Plus, Ruler, ShieldCheck, Trash2, Triangle } from "lucide-react";
+import { ExternalLink, Network, PencilLine, Plus, Ruler, ShieldCheck, Trash2, Triangle } from "lucide-react";
 import { getAnalysisObjectDisplayName, type AnalysisObject, type SolverProject } from "../lib/solver-project";
 import { Button } from "./ui/button";
 
@@ -62,15 +62,11 @@ export function ProjectTreePanel({ project, collapsed = false, compact = false, 
 
   return (
     <div className="space-y-3">
-      <div className="space-y-2 border-b border-white/10 pb-3">
-        <div className="flex items-start gap-2">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-muted-foreground">
-            <Building2 className="h-4 w-4" />
-          </div>
+      <div className="border-b border-white/10 pb-3">
+        <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <div className="eyebrow min-w-0 text-slate-500 dark:text-slate-300">当前项目</div>
-            <div className="mt-1 truncate text-sm font-black leading-5" title={project.name}>{project.name}</div>
-            <div className="mt-1 text-[10px] font-bold text-muted-foreground">{project.objects.length} 个分析对象</div>
+            <div className="truncate text-sm font-black leading-5" title={project.name}>{project.name}</div>
+            <div className="mt-1 text-[10px] font-bold text-muted-foreground">{project.objects.length} 个对象</div>
           </div>
           <Button
             type="button"
@@ -81,15 +77,9 @@ export function ProjectTreePanel({ project, collapsed = false, compact = false, 
             title="设置工程信息"
             className="h-8 w-8 shrink-0 rounded-lg border-white/10 bg-transparent"
           >
-            <Building2 className="h-4 w-4" />
+            <PencilLine className="h-4 w-4" />
           </Button>
         </div>
-        {activeObject ? (
-          <div className="flex min-w-0 items-center gap-2 rounded-md bg-white/[0.025] px-2 py-1.5 text-[11px] font-bold text-muted-foreground">
-            <span className="shrink-0 text-sky-700 dark:text-sky-200">当前对象</span>
-            <span className="truncate text-foreground">{getAnalysisObjectDisplayName(activeObject, project.objects.findIndex((object) => object.id === activeObject.id))}</span>
-          </div>
-        ) : null}
       </div>
       {activeObject?.benchmark ? (
         <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs text-foreground">
@@ -127,7 +117,6 @@ export function ProjectTreePanel({ project, collapsed = false, compact = false, 
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
             <div className="text-xs font-black text-foreground">分析对象</div>
-            <div className="text-[10px] font-bold text-muted-foreground">按结构体系切换输入与结果</div>
           </div>
           <Button type="button" variant="outline" size="icon" onClick={onCreateObject} aria-label="新建分析对象" title="新建分析对象" className="h-8 w-8 rounded-lg border-white/10 bg-white/[0.03]">
             <Plus className="h-4 w-4" />
