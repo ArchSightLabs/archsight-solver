@@ -2,11 +2,11 @@
 
 ## 当前结论
 
-ArchSight Solver 保留同步 API 作为工程计算主入口，同时新增异步作业 API 和机器可读 JSON Schema Registry：
+ArchSight Solver 保留同步 API 作为工程计算主入口，同时提供异步作业 API、机器可读 JSON Schema Registry 和 OpenAPI 3.1 契约：
 
 - 同步主入口：`POST /api/calculate`、`POST /api/preview`、`POST /api/sensitivity`
 - 异步主入口：`POST /api/jobs`、`GET /api/jobs/{jobId}`、`GET /api/jobs/{jobId}/result`
-- 契约主入口：`GET /api/contracts/schemas`、`GET /api/contracts/schemas/{schemaId}`
+- 契约主入口：`GET /api/contracts/schemas`、`GET /api/contracts/schemas/{schemaId}`、`GET /api/contracts/openapi`
 
 这套设计的目标不是把 Flask 改造成全异步框架，而是先补齐 SaaS 化最关键的工程边界：长计算不阻塞调用方、Agent 可发现输入契约、测试和销售材料可以复用同一组算例。
 
@@ -96,4 +96,4 @@ GET /api/jobs/{jobId}
 
 - 当前 schema 是轻量契约，尚未引入 `jsonschema` 运行时依赖；后端仍以现有 normalizer 和业务校验为最终裁决。
 - 当前异步队列是内存态；生产多实例必须外置队列、持久化作业和审计日志。
-- 当前没有 OpenAPI 文档生成器；下一步可从 `backend/contracts/json_schemas.py` 生成 `openapi.json`，避免人工维护分叉。
+- OpenAPI 3.1 已由 `backend/contracts/openapi.py` 基于当前 Schema Registry 组装；下一步应把契约生成纳入发布检查，避免 REST、CLI、MCP 与前端表单之间再次漂移。

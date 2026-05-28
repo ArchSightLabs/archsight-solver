@@ -23,10 +23,12 @@
 - `POST /api/calculate`
 - `POST /api/preview`
 - `POST /api/sensitivity`
+- `POST /api/export`
 - `POST /api/jobs`
 - `GET /api/jobs/{jobId}`
 - `GET /api/jobs/{jobId}/result`
 - `GET /api/contracts/schemas`
+- `GET /api/contracts/openapi`
 
 ### CLI
 
@@ -87,6 +89,16 @@ Instance：本地 stdio MCP、私有 REST API、CI CLI
 风险：Prompt injection、越权工具调用、未经签审的结构安全结论、租户数据污染
 ```
 
+## Agent 工程流样例
+
+当前已提供可执行样例：
+
+- `docs/agent-engineering-workflow.md`
+- `data/agent_workflows/asms_few_shots.json`
+- `backend/tests/test_agent_workflow_examples.py`
+
+样例覆盖梁系、二维平面框架和二维平面桁架。每条样例都给出自然语言工况、ASMS-JSON、CLI/MCP 调用模板、同类 benchmark caseId 和导出计算书配置。测试会验证样例 payload 可被 `/api/calculate` 同源链路求解、CLI `calculate` 可运行、benchmark 引用可通过、WORD 导出可生成。
+
 ## 生产化建议
 
 - REST API 做权威入口：认证、租户、限流、审计、异步队列、结果持久化都放在 API 层。
@@ -99,6 +111,4 @@ Instance：本地 stdio MCP、私有 REST API、CI CLI
 
 - MCP 目前只有 stdio transport；若要接 OpenAI remote MCP，需要补 Streamable HTTP endpoint、Origin 校验、鉴权和审计。
 - 作业队列目前为进程内线程池；企业 SaaS 应迁移到持久化队列。
-- 缺少 OpenAPI 3.1 文档；建议从 JSON Schema Registry 生成。
 - 缺少租户级 Capability Registry；私有部署需要按企业、项目和角色限制工具集合。
-

@@ -1,0 +1,268 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-05-28",
+  "title": "ArchSight Solver Agent 工程流 ASMS-JSON Few-shot 样例",
+  "scope": "自然语言工况到 ASMS-JSON、REST/CLI/MCP 调用、公开验证集复核和计算书导出的最小可执行样例。",
+  "boundary": "所有样例仅用于线弹性静力求解、教学演示、方案阶段复核和自动化集成验证，不替代工程签审、规范设计或施工安全判断。",
+  "sharedFlow": [
+    "从自然语言工况中抽取结构类型、几何、材料截面、支座、荷载和输出指标。",
+    "生成 ASMS-JSON，并在缺少关键工程输入时停止请求补充，不用经验默认值静默补齐。",
+    "通过 REST/CLI/MCP 的 calculate 工具执行确定性求解。",
+    "用 benchmark_case_run 对同类公开验证集做回归复核，并记录 caseId、状态、误差检查和工具版本；catalog 级 schemaVersion 来自 benchmark catalog 元数据。",
+    "需要归档时调用 /api/export 生成 WORD 或 XLSX 计算书，计算书结论仍需工程师复核。"
+  ],
+  "examples": [
+    {
+      "id": "agent-beam-simple-uniform",
+      "analysisType": "beam",
+      "naturalLanguage": "复核一根 6 m 简支钢梁，全跨向下均布荷载 12 kN/m，弹性模量 206 GPa，截面惯性矩 85000 cm^4，输出最大挠度、最大弯矩、最大剪力和支座反力，并生成可归档计算书。",
+      "missingInputPolicy": "若缺少跨度、边界、E、I 或荷载幅值，Agent 必须先要求补充，不得自行套用默认截面。",
+      "asmsJson": {
+        "analysisType": "beam",
+        "projectName": "Agent 简支梁均布荷载复核",
+        "beamType": "simply_supported",
+        "loadType": "uniform",
+        "spans": [
+          6
+        ],
+        "E": 206,
+        "I": 85000,
+        "q": 12
+      },
+      "cli": {
+        "tool": "calculate",
+        "inputWrapper": "将 asmsJson 包装为 {\"payload\": asmsJson}",
+        "command": "python -m backend.capabilities.solver_cli calculate --input agent-beam-simple-uniform.calculate.json --pretty"
+      },
+      "mcp": {
+        "tool": "calculate",
+        "argumentsWrapper": "将 asmsJson 作为 arguments.payload 传入"
+      },
+      "benchmark": {
+        "tool": "benchmark_case_run",
+        "caseId": "beam-simply-supported-uniform",
+        "purpose": "用同类简支梁均布荷载解析算例复核挠度峰值位置和支座数量。"
+      },
+      "export": {
+        "endpoint": "/api/export",
+        "format": "docx",
+        "payloadOverlay": {
+          "format": "docx"
+        }
+      },
+      "acceptanceChecks": [
+        "求解状态为 PASS。",
+        "summary.maxDeflectionMm 大于 0。",
+        "benchmark_case_run 返回 pass。",
+        "计算书包含输入参数、计算方法说明、校核证据和公开验证集覆盖说明。"
+      ]
+    },
+    {
+      "id": "agent-frame-portal-lateral-load",
+      "analysisType": "frame",
+      "naturalLanguage": "建立一个 6 m 跨、4 m 高的单跨门式刚架，两柱脚固结，梁柱采用 E=210 GPa、柱 A=240 cm^2、柱 I=12000 cm^4、梁 A=220 cm^2、梁 I=15000 cm^4。横梁局部 y 向均布荷载 -18 kN/m，右上节点向右水平力 24 kN，输出最大节点位移、杆端弯矩和支座反力。",
+      "missingInputPolicy": "若节点坐标、构件截面、支座或荷载方向缺失，Agent 必须输出缺失输入清单，不应推断刚架高度或截面。",
+      "asmsJson": {
+        "analysisType": "frame",
+        "projectName": "Agent 门式刚架水平荷载复核",
+        "materialId": "q345",
+        "structure": {
+          "template": "explicit",
+          "nodes": [
+            {
+              "id": "N1",
+              "x": 0,
+              "y": 0,
+              "supportType": "fixed"
+            },
+            {
+              "id": "N2",
+              "x": 6,
+              "y": 0,
+              "supportType": "fixed"
+            },
+            {
+              "id": "N3",
+              "x": 0,
+              "y": 4,
+              "supportType": "free"
+            },
+            {
+              "id": "N4",
+              "x": 6,
+              "y": 4,
+              "supportType": "free"
+            }
+          ],
+          "members": [
+            {
+              "id": "C1",
+              "start": "N1",
+              "end": "N3",
+              "E_GPa": 210,
+              "A_cm2": 240,
+              "I_cm4": 12000,
+              "kind": "column"
+            },
+            {
+              "id": "B1",
+              "start": "N3",
+              "end": "N4",
+              "E_GPa": 210,
+              "A_cm2": 220,
+              "I_cm4": 15000,
+              "kind": "beam"
+            },
+            {
+              "id": "C2",
+              "start": "N2",
+              "end": "N4",
+              "E_GPa": 210,
+              "A_cm2": 240,
+              "I_cm4": 12000,
+              "kind": "column"
+            }
+          ],
+          "loads": [
+            {
+              "type": "distributed",
+              "member": "B1",
+              "direction": "local_y",
+              "qStartKnPerM": -18,
+              "qEndKnPerM": -18
+            },
+            {
+              "type": "nodal",
+              "node": "N4",
+              "fxKn": 24,
+              "fyKn": 0,
+              "mzKnM": 0
+            }
+          ]
+        }
+      },
+      "cli": {
+        "tool": "calculate",
+        "inputWrapper": "将 asmsJson 包装为 {\"payload\": asmsJson}",
+        "command": "python -m backend.capabilities.solver_cli calculate --input agent-frame-portal-lateral-load.calculate.json --pretty"
+      },
+      "mcp": {
+        "tool": "calculate",
+        "argumentsWrapper": "将 asmsJson 作为 arguments.payload 传入"
+      },
+      "benchmark": {
+        "tool": "benchmark_case_run",
+        "caseId": "frame-portal-benchmark",
+        "purpose": "用同类门式刚架标准算例复核节点数量、构件数量和整体求解状态。"
+      },
+      "export": {
+        "endpoint": "/api/export",
+        "format": "docx",
+        "payloadOverlay": {
+          "format": "docx"
+        }
+      },
+      "acceptanceChecks": [
+        "求解状态为 PASS。",
+        "summary.maxDisplacementMm 大于 0。",
+        "memberResults 包含杆端轴力、剪力和弯矩。",
+        "benchmark_case_run 返回 pass。"
+      ]
+    },
+    {
+      "id": "agent-truss-roof-vertical-load",
+      "analysisType": "truss",
+      "naturalLanguage": "复核一个 8 m 跨、3 m 高三角屋架，左端铰支、右端滚动支座，顶点施加 60 kN 向下节点荷载。所有杆件 E=200 GPa、A=80 cm^2，输出最大节点位移、杆件轴力、杆件轴应力和支座反力。",
+      "missingInputPolicy": "若杆件连接、支座自由度或荷载节点不明确，Agent 必须先补问；不得把桁架杆件当成受弯构件输出弯矩主指标。",
+      "asmsJson": {
+        "analysisType": "truss",
+        "projectName": "Agent 三角屋架竖向荷载复核",
+        "materialId": "steel-verify",
+        "structure": {
+          "template": "explicit",
+          "nodes": [
+            {
+              "id": "N1",
+              "x": 0,
+              "y": 0,
+              "supportType": "pinned"
+            },
+            {
+              "id": "N2",
+              "x": 4,
+              "y": 3,
+              "supportType": "free"
+            },
+            {
+              "id": "N3",
+              "x": 8,
+              "y": 0,
+              "supportType": "roller"
+            }
+          ],
+          "members": [
+            {
+              "id": "M1",
+              "start": "N1",
+              "end": "N2",
+              "E_GPa": 200,
+              "A_cm2": 80,
+              "kind": "truss"
+            },
+            {
+              "id": "M2",
+              "start": "N2",
+              "end": "N3",
+              "E_GPa": 200,
+              "A_cm2": 80,
+              "kind": "truss"
+            },
+            {
+              "id": "M3",
+              "start": "N1",
+              "end": "N3",
+              "E_GPa": 200,
+              "A_cm2": 80,
+              "kind": "truss"
+            }
+          ],
+          "loads": [
+            {
+              "type": "nodal",
+              "node": "N2",
+              "fxKn": 0,
+              "fyKn": -60
+            }
+          ]
+        }
+      },
+      "cli": {
+        "tool": "calculate",
+        "inputWrapper": "将 asmsJson 包装为 {\"payload\": asmsJson}",
+        "command": "python -m backend.capabilities.solver_cli calculate --input agent-truss-roof-vertical-load.calculate.json --pretty"
+      },
+      "mcp": {
+        "tool": "calculate",
+        "argumentsWrapper": "将 asmsJson 作为 arguments.payload 传入"
+      },
+      "benchmark": {
+        "tool": "benchmark_case_run",
+        "caseId": "truss-simple-roof",
+        "purpose": "用同类三角屋架算例复核桁架自由度、轴力符号和整体求解状态。"
+      },
+      "export": {
+        "endpoint": "/api/export",
+        "format": "docx",
+        "payloadOverlay": {
+          "format": "docx"
+        }
+      },
+      "acceptanceChecks": [
+        "求解状态为 PASS。",
+        "summary.maxDisplacementMm 大于 0。",
+        "memberResults 只把轴力和轴应力作为主指标。",
+        "benchmark_case_run 返回 pass。"
+      ]
+    }
+  ]
+}

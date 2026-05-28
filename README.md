@@ -107,6 +107,7 @@ Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:6240/api/jobs" -ContentTyp
 ```
 
 机器可读 JSON Schema 可通过 `/api/contracts/schemas` 获取，覆盖同步求解、异步作业、CLI 与 MCP 工具输入输出契约。
+OpenAPI 3.1 契约可通过 `/api/contracts/openapi` 获取，用于系统集成、SDK 生成和接口审阅。
 
 ### 本地工具调用
 
@@ -152,6 +153,11 @@ python -m backend.capabilities.mcp_server
 ```powershell
 python -m backend.benchmarks.report --output docs/verification/benchmark-validation-report.md
 ```
+
+Agent 工程流样例：
+
+- [Agent 工程流样例](docs/agent-engineering-workflow.md)
+- `data/agent_workflows/asms_few_shots.json`
 
 ### Docker 镜像打包
 
@@ -268,6 +274,7 @@ Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:6240/api/calculate" -Conte
 - 改善 UI 交互，降低首次建模与结果复核门槛
 - 扩大基准算例覆盖面，收紧回归阈值和异常边界
 - 保持敏感性分析为辅助能力：只做单因素扰动趋势解释，不升级为优化器、可靠度分析或规范校核
+- 建设 Agent 工程流样例：自然语言工况、ASMS-JSON、CLI/MCP 调用、benchmark 复核和计算书导出
 - 把 CI 变成真正的门禁，不是摆设
 - 不在 Solver 内重建登录；私有部署或多用户场景作为独立集成议题评估
 
@@ -285,6 +292,7 @@ Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:6240/api/calculate" -Conte
 更完整的阶段说明见：
 
 - [ArchSight Structural Solver API Reference](docs/api-reference.md)
+- [Agent 工程流样例](docs/agent-engineering-workflow.md)
 - [ASMS-JSON 结构力学数据协议](docs/structural-model-protocol.md)
 - [开源结构力学求解器路线图与对标计划](docs/open-source-structure-solver-roadmap.md)
 - [架构收口状态](docs/architecture-maintenance-status.md)
