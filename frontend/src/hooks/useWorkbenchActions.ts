@@ -71,7 +71,7 @@ export function useWorkbenchActions(
     return buildBeamPayload(workspace.beam, projectName);
   };
 
-  const handleSolve = async (data: CalculationPayload) => {
+  const handleSolve = async (data: CalculationPayload): Promise<AnalysisResults> => {
     const analysisType: AnalysisMode = data.analysisType === "frame" ? "frame" : data.analysisType === "truss" ? "truss" : "beam";
     setWorkspace((current) => ({ ...current, analysisMode: analysisType }));
     setIsSolving(true);
@@ -93,9 +93,11 @@ export function useWorkbenchActions(
       setLatestPayload(data);
       setSensitivityData(null); // Reset sensitivity on new solve
       setCompactWorkbenchView("results");
+      return result;
     } catch (error) {
       console.error("求解失败：", error);
       alert(`力学引擎连接失败: ${error instanceof Error ? error.message : "未知错误"}`);
+      return null;
     } finally {
       setIsSolving(false);
     }
@@ -104,8 +106,9 @@ export function useWorkbenchActions(
   const handleRunCurrentModule = () => {
     const payload = buildCurrentPayload();
     if (payload) {
-      void handleSolve(payload);
+      return handleSolve(payload);
     }
+    return Promise.resolve(null);
   };
 
   const handleSensitivity = async (config: { range: number; steps: number; targetSpanIndex: number; responseMetric: string }) => {

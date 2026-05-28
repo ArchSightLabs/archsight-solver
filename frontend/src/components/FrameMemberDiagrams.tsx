@@ -9,6 +9,7 @@ import {
   type FrameDiagramMetric,
   type FrameDiagramMetricKey,
 } from "../lib/frame-member-diagrams";
+import { formatEngineeringValue } from "../lib/engineering-format";
 
 interface FrameMemberDiagramsProps {
   frame: FramePreviewData | null;
@@ -101,7 +102,7 @@ function metricValues(diagram: FrameMemberDiagram, metric: FrameDiagramMetric) {
 }
 
 function valueText(value: number, unit: string) {
-  return `${value.toFixed(Math.abs(value) >= 100 ? 1 : 2)} ${unit}`;
+  return formatEngineeringValue(value, unit);
 }
 
 function FrameStructureDiagram({

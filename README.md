@@ -66,7 +66,7 @@ python -m backend.benchmarks.report --output docs/verification/benchmark-validat
 python -m backend.benchmarks.catalog_summary --output docs/verification/benchmark-catalog-summary.md
 ```
 
-验证报告见 [公开验证集报告](docs/verification/benchmark-validation-report.md)，人工阅读用算例目录见 [Benchmark 算例目录摘要](docs/verification/benchmark-catalog-summary.md)。公开案例和计算书会显示对应 `caseId`、验证来源、标准值和容许误差；云端或私有部署可通过 `POST /api/benchmark-submissions` 提交完整算例草案并执行投稿前校验。
+验证报告见 [公开验证集报告](docs/verification/benchmark-validation-report.md)，人工阅读用算例目录见 [Benchmark 算例目录摘要](docs/verification/benchmark-catalog-summary.md)。公开案例和计算书会显示对应 `caseId`、验证来源、标准值和容许误差；云端或私有部署可通过 `POST /api/benchmark-submissions` 执行投稿前校验，也可在前端顶部“验证投稿”生成单文件 JSON，并通过 GitHub Issue 或官方邮箱 `archsight-labs@qq.com` 提交给维护者复核。
 
 ## 文档入口
 
@@ -91,7 +91,7 @@ python -m backend.benchmarks.catalog_summary --output docs/verification/benchmar
 - 优先补算例、补测试、补文档、补交互，再扩功能。
 - 新增能力必须补可验证的示例和回归用例。
 - 计算结果、图表、导出内容和 UI 文案应使用结构工程专业术语。
-- 典型回归算例以 `backend/tests` 和公开 benchmark 为准；新增公开算例必须提供模型输入、标准结果、容许误差和验证来源。
+- 典型回归算例以 `backend/tests` 和公开 benchmark 为准；新增公开算例必须提供模型输入、标准结果、容许误差和验证来源。推荐先在前端生成验证投稿包，再通过 GitHub “公开验证算例投稿” Issue 或官方邮箱 `archsight-labs@qq.com` 提交；维护者审核通过后可用 `python -m backend.benchmarks.review_submission <json> --append` 合并投稿包。
 
 贡献前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
 

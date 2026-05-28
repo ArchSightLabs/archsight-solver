@@ -5,6 +5,7 @@ import {
   createAnalysisObject,
   createDefaultSolverProject,
   createWorkspaceFromProject,
+  getAnalysisObjectDisplayName,
   getActiveAnalysisObject,
   normalizeSolverProject,
   removeAnalysisObjectFromProject,
@@ -98,4 +99,30 @@ test("规范化项目时保留公开验证算例元数据", () => {
   assert.equal(normalized.objects[0].benchmark?.caseId, "beam-simply-supported-uniform");
   assert.equal(normalized.objects[0].benchmark?.sourceLabel, "教材解析解");
   assert.deepEqual(normalized.objects[0].benchmark?.checkedMetrics, ["最大挠度"]);
+});
+
+test("公开验证算例展示名自动补两位连续编号", () => {
+  const object = {
+    ...createAnalysisObject("truss", "Warren 型屋架"),
+    benchmark: {
+      caseId: "truss-warren-roof",
+      category: "truss",
+      title: "Warren 型屋架",
+      purpose: "验证桁架杆件轴力。",
+      sourceType: "internal-regression",
+      sourceLabel: "内部回归算例",
+      reference: "",
+      method: "",
+      sourceLinks: [],
+      checkedMetrics: ["最大杆件轴力"],
+      metricSummary: "最大轴力 43.33 kN",
+      expectedSummary: "标准值：最大轴力 43.33 kN",
+      toleranceSummary: "容许误差：杆件轴力容差 0.02 kN",
+      expected: { maxAxialForceKn: 43.33 },
+      tolerances: { memberAxialForceKn: 0.02 },
+    },
+  };
+
+  assert.equal(getAnalysisObjectDisplayName(object, 3), "04 Warren 型屋架");
+  assert.equal(getAnalysisObjectDisplayName({ ...object, name: "04 Warren 型屋架" }, 3), "04 Warren 型屋架");
 });

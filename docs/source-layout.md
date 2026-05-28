@@ -18,9 +18,9 @@
 
 | 路径 | 用途 |
 |---|---|
-| `backend/api/` | Flask API 蓝图，包括求解、预览、导出、作业、契约、公开案例和 benchmark 投稿校验接口。 |
+| `backend/api/` | Flask API 蓝图，包括求解、预览、导出、作业、契约、公开案例和 benchmark 投稿校验 / 投稿包生成接口。 |
 | `backend/application/` | 应用层编排，承接结构求解前后的业务流程。 |
-| `backend/benchmarks/` | 公开验证集目录、字段说明、运行器和报告生成。 |
+| `backend/benchmarks/` | 公开验证集目录、字段说明、运行器、报告生成和投稿包维护工具。 |
 | `backend/capabilities/` | 本地 CLI、MCP server 和确定性工具封装。 |
 | `backend/contracts/` | JSON Schema Registry 与 OpenAPI 文档生成。 |
 | `backend/examples/` | 可导入工作台的公开工程案例生成逻辑。 |

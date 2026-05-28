@@ -400,7 +400,7 @@ GET /api/examples/projects
 
 ## POST /api/benchmark-submission-packages
 
-生成离线 `benchmark-submission-*.json` 投稿包。请求体与 `POST /api/benchmark-submissions` 相同；接口会先执行自动预检，再把完整算例、贡献者信息和预检结果封装为单文件 JSON。该接口仍不做服务端持久化。
+生成离线 `benchmark-submission-*.json` 投稿包。请求体与 `POST /api/benchmark-submissions` 相同；接口会先执行自动预检，再把完整算例、贡献者信息和预检结果封装为单文件 JSON。该接口仍不做服务端持久化；前端会在下载后提供 GitHub Issue 与官方邮箱 `archsight-labs@qq.com` 两种正式提交通道。
 
 成功响应关键字段：
 
@@ -415,6 +415,11 @@ GET /api/examples/projects
 python -m backend.benchmarks.review_submission path/to/benchmark-submission.json
 python -m backend.benchmarks.review_submission path/to/benchmark-submission.json --append
 ```
+
+投稿者推荐提交方式：
+
+- GitHub Issue：使用仓库的“公开验证算例投稿”模板，上传或粘贴前端生成的 JSON 投稿包，适合公开来源和公开追踪审核状态的算例。
+- 官方邮箱：发送至 `archsight-labs@qq.com`，邮件主题建议包含 `submissionId`，并手动附上 JSON 投稿包，适合不便公开验证来源或不熟悉 GitHub 的投稿者。
 
 ## Capability CLI
 

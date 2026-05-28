@@ -113,7 +113,14 @@ function createMemberLoadDraft(members: TrussMember[], preferredMemberId?: strin
   };
 }
 
-export function TrussCustomModelEditor({ value, onChange, onResetToBenchmark, activeSectionId, selection, onSelectionChange }: TrussCustomModelEditorProps) {
+export function TrussCustomModelEditor({
+  value,
+  onChange,
+  onResetToBenchmark,
+  activeSectionId,
+  selection,
+  onSelectionChange,
+}: TrussCustomModelEditorProps) {
   const [selectedObject, setSelectedObject] = useState<TrussSelectedObject>({ type: "node", id: value.nodes[0]?.id ?? "" });
   const [advancedSectionId, setAdvancedSectionId] = useState<TrussAdvancedSection>("nodes");
   const [textModelDraft, setTextModelDraft] = useState("");

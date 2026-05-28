@@ -25,7 +25,6 @@ export function FrameForm({ value, onChange, activeSectionId, selection, onSelec
   const visibleSectionId = FRAME_SECTION_IDS.includes(requestedSectionId)
     ? requestedSectionId
     : DEFAULT_SECTION_ID;
-
   const commitCollections = (next: {
     nodes: FrameWorkspaceState["customNodes"];
     members: FrameWorkspaceState["customMembers"];

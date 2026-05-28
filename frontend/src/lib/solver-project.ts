@@ -59,6 +59,12 @@ export interface AnalysisObject {
   updatedAt: string;
 }
 
+export function getAnalysisObjectDisplayName(object: Pick<AnalysisObject, "name" | "benchmark">, index: number): string {
+  const name = object.name.trim();
+  if (!object.benchmark || /^\d{2}\s/.test(name)) return name;
+  return `${String(index + 1).padStart(2, "0")} ${name}`;
+}
+
 export interface ProjectSettings {
   activeModuleSection: string;
   beamPreviewStyle: BeamPreviewStyle;

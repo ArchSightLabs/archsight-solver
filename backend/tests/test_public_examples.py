@@ -39,6 +39,30 @@ def test_public_validation_projects_group_by_analysis_object():
     assert {obj["type"] for obj in projects["truss-public-validation"]["project"]["objects"]} == {"truss"}
 
 
+def test_public_validation_project_objects_use_continuous_number_prefixes():
+    examples = build_public_validation_projects()
+
+    for example_project in examples["projects"]:
+        objects = example_project["project"]["objects"]
+        assert [obj["name"].split(" ", 1)[0] for obj in objects] == [
+            f"{index:02d}" for index in range(1, len(objects) + 1)
+        ]
+
+
+def test_public_validation_project_metric_summaries_use_trimmed_four_decimal_precision():
+    examples = build_public_validation_projects()
+    objects = {
+        obj["benchmark"]["caseId"]: obj
+        for project in examples["projects"]
+        for obj in project["project"]["objects"]
+    }
+
+    assert objects["frame-portal-benchmark"]["benchmark"]["metricSummary"] == "最大位移 3.8141 mm"
+    assert objects["truss-warren-roof"]["benchmark"]["metricSummary"] == "最大位移 1.6771 mm"
+    assert objects["beam-simply-supported-center-point"]["benchmark"]["metricSummary"] == "最大挠度 11.25 mm"
+    assert "最大挠度 11.25 mm" in objects["beam-simply-supported-center-point"]["benchmark"]["expectedSummary"]
+
+
 def test_public_examples_api_returns_importable_projects(client):
     response = client.get("/api/examples/projects")
     assert response.status_code == 200

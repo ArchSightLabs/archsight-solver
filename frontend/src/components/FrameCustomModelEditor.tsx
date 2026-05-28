@@ -250,7 +250,14 @@ function canonicalId(value: string | undefined, fallback: string): string {
   return value?.trim() || fallback;
 }
 
-export function FrameCustomModelEditor({ value, onChange, onResetToPortal, activeSectionId, selection, onSelectionChange }: FrameCustomModelEditorProps) {
+export function FrameCustomModelEditor({
+  value,
+  onChange,
+  onResetToPortal,
+  activeSectionId,
+  selection,
+  onSelectionChange,
+}: FrameCustomModelEditorProps) {
   const [textModelDraft, setTextModelDraft] = useState("");
   const [textModelMessage, setTextModelMessage] = useState<string | null>(null);
   const [textModelDiagnostics, setTextModelDiagnostics] = useState<string[]>([]);

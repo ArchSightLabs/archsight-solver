@@ -260,6 +260,18 @@ def _paths() -> Dict[str, Any]:
                 },
             }
         },
+        "/api/benchmark-submission-packages": {
+            "post": {
+                "tags": ["benchmark-submissions"],
+                "summary": "生成离线 benchmark 投稿包 JSON",
+                "description": "接收完整算例草案并执行自动校验，返回可下载并发送给维护者的单文件 JSON 投稿包；不做服务端持久化。",
+                "requestBody": _json_request("benchmark-submission-input"),
+                "responses": {
+                    **_json_response("benchmark-submission-package-response"),
+                    **_error_response(),
+                },
+            }
+        },
     }
 
 

@@ -3,12 +3,15 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, Iterable, Mapping
 
 from backend.benchmarks.runner import BenchmarkCaseError, evaluate_benchmark_case
 from backend.contracts.json_schemas import API_SCHEMA_VERSION
 
 
+SUBMISSION_PACKAGE_FORMAT = "archsight-benchmark-submission"
+SUBMISSION_PACKAGE_FORMAT_VERSION = "1.0"
 SUPPORTED_CATEGORIES = {"beam", "frame", "truss", "frame-beam-verify", "truss-verify"}
 REQUIRED_CASE_FIELDS = {"id", "category", "title", "purpose", "payload", "expected", "tolerances", "verification"}
 TRUSS_CATEGORIES = {"truss", "truss-verify"}
@@ -23,6 +26,53 @@ TRUSS_FORBIDDEN_PRIMARY_TOKENS = (
 
 class BenchmarkSubmissionError(ValueError):
     """Benchmark submission cannot be accepted for review."""
+
+
+def build_benchmark_submission_package_response(data: Mapping[str, Any]) -> Dict[str, Any]:
+    package = build_benchmark_submission_package(data)
+    return {
+        "success": True,
+        "operation": "generate_benchmark_submission_package",
+        "version": "v1",
+        "schemaVersion": API_SCHEMA_VERSION,
+        "submissionId": package["precheck"]["submissionId"],
+        "filename": benchmark_submission_filename(package),
+        "persisted": False,
+        "package": package,
+        "diagnostics": package["precheck"]["diagnostics"],
+        "nextSteps": [
+            "将下载得到的 JSON 投稿包通过 GitHub Issue 或官方邮箱 archsight-labs@qq.com 提交给项目维护者。",
+            "维护者使用 python -m backend.benchmarks.review_submission <json> 重新复核。",
+            "公开收录仍需人工确认验证来源、标准值和容许误差。",
+        ],
+        "meta": {
+            "generatedAt": package["precheck"]["generatedAt"],
+        },
+    }
+
+
+def build_benchmark_submission_package(data: Mapping[str, Any]) -> Dict[str, Any]:
+    response = build_benchmark_submission_response(data)
+    contributor = _normalize_contributor(data.get("contributor", {}))
+    notes = str(data.get("notes", "")).strip()
+    precheck = {
+        "passed": response["evaluation"]["passed"],
+        "reviewStatus": response["reviewStatus"],
+        "submissionId": response["submissionId"],
+        "schemaVersion": response["schemaVersion"],
+        "persisted": False,
+        "generatedAt": response["meta"]["generatedAt"],
+        "checks": response["evaluation"]["checks"],
+        "diagnostics": response["diagnostics"],
+    }
+    return {
+        "format": SUBMISSION_PACKAGE_FORMAT,
+        "formatVersion": SUBMISSION_PACKAGE_FORMAT_VERSION,
+        "case": response["caseDraft"],
+        "contributor": contributor,
+        "notes": notes,
+        "precheck": precheck,
+    }
 
 
 def build_benchmark_submission_response(data: Mapping[str, Any]) -> Dict[str, Any]:
@@ -51,7 +101,7 @@ def build_benchmark_submission_response(data: Mapping[str, Any]) -> Dict[str, An
             "warnings": warnings,
             "infos": [
                 "当前接口执行投稿前自动校验，不负责持久化存储。",
-                "通过后可将 caseDraft 作为 PR 或 Issue 附件提交人工复核。",
+                "通过后可将 caseDraft 作为 GitHub Issue 附件，或通过官方邮箱 archsight-labs@qq.com 提交人工复核。",
             ],
         },
         "nextSteps": _next_steps(review_status),
@@ -61,11 +111,46 @@ def build_benchmark_submission_response(data: Mapping[str, Any]) -> Dict[str, An
     }
 
 
+def benchmark_submission_filename(package: Mapping[str, Any]) -> str:
+    precheck = package.get("precheck", {})
+    case = package.get("case", {})
+    submission_id = str(precheck.get("submissionId") or _submission_id(case if isinstance(case, Mapping) else {}))
+    case_id = str(case.get("id", "benchmark-submission") if isinstance(case, Mapping) else "benchmark-submission")
+    prefix = _filename_token(case_id) or "benchmark-submission"
+    return f"{prefix}-{_filename_token(submission_id)}.json"
+
+
+def extract_submission_package(data: Mapping[str, Any]) -> Dict[str, Any]:
+    if data.get("format") == SUBMISSION_PACKAGE_FORMAT and isinstance(data.get("case"), Mapping):
+        return dict(data)
+    if isinstance(data.get("package"), Mapping):
+        return extract_submission_package(data["package"])
+    return build_benchmark_submission_package(data)
+
+
+def read_submission_package(path: str | Path) -> Dict[str, Any]:
+    with Path(path).open("r", encoding="utf-8") as handle:
+        data = json.load(handle)
+    if not isinstance(data, Mapping):
+        raise BenchmarkSubmissionError("投稿包 JSON 顶层必须是对象")
+    return extract_submission_package(data)
+
+
 def _extract_case(data: Mapping[str, Any]) -> Dict[str, Any]:
     raw_case = data.get("case", data)
     if not isinstance(raw_case, Mapping):
         raise BenchmarkSubmissionError("必须提供 case 对象")
     return dict(raw_case)
+
+
+def _normalize_contributor(raw: Any) -> Dict[str, str]:
+    contributor = raw if isinstance(raw, Mapping) else {}
+    return {
+        "name": str(contributor.get("name", "")).strip(),
+        "organization": str(contributor.get("organization", "")).strip(),
+        "contact": str(contributor.get("contact", "")).strip(),
+        "note": str(contributor.get("note", "")).strip(),
+    }
 
 
 def _validate_case_shape(case: Mapping[str, Any]) -> list[str]:
@@ -143,6 +228,12 @@ def _submission_id(case: Mapping[str, Any]) -> str:
     digest = hashlib.sha256(stable_text.encode("utf-8")).hexdigest()[:12]
     case_id = str(case.get("id", "case")).strip().lower().replace(" ", "-")[:48]
     return f"bench-{case_id}-{digest}"
+
+
+def _filename_token(value: str) -> str:
+    token = "".join(char.lower() if char.isalnum() else "-" for char in value.strip())
+    parts = [part for part in token.split("-") if part]
+    return "-".join(parts)[:96]
 
 
 def _next_steps(review_status: str) -> list[str]:

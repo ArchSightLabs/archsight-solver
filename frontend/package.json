@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src && tsc --noEmit",
-    "test:unit": "node --test --experimental-strip-types --experimental-specifier-resolution=node src/lib/solver-project.test.ts src/lib/project-file.test.ts src/lib/template-library.test.ts src/lib/solver-payload.test.ts src/lib/workbench-model-templates.test.ts src/lib/api-envelope.test.ts src/lib/frame-member-diagrams.test.ts src/lib/beam-diagram-key-points.test.ts src/lib/beam-span-dimensions.test.ts src/lib/beam-preview-svg.test.ts src/lib/frame-text-model.test.ts src/lib/beam-text-model.test.ts src/lib/truss-text-model.test.ts src/components/truss-preview-utils.test.ts src/components/frame-preview-utils.test.ts",
+    "test:unit": "node --test --experimental-strip-types --experimental-specifier-resolution=node src/lib/solver-project.test.ts src/lib/project-file.test.ts src/lib/template-library.test.ts src/lib/solver-payload.test.ts src/lib/workbench-model-templates.test.ts src/lib/api-envelope.test.ts src/lib/benchmark-submission-package.test.ts src/lib/frame-member-diagrams.test.ts src/lib/beam-diagram-key-points.test.ts src/lib/beam-span-dimensions.test.ts src/lib/beam-preview-svg.test.ts src/lib/frame-text-model.test.ts src/lib/beam-text-model.test.ts src/lib/truss-text-model.test.ts src/components/truss-preview-utils.test.ts src/components/frame-preview-utils.test.ts",
     "test:visual": "playwright test",
     "test:visual:update": "playwright test --update-snapshots"
   },

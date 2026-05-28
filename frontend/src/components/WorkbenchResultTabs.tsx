@@ -549,9 +549,9 @@ function beamSummaryRows(results: BeamCalculationResults): SummaryRow[] {
 
 function trussSummaryRows(results: TrussCalculationResults): SummaryRow[] {
   return [
-    { label: "允许位移", value: `${results.summary.allowableMm.toFixed(3)} mm`, detail: `控制比 ${results.summary.allowableRatio.toFixed(2)} × · ${results.summary.statusCode}` },
-    { label: "最大位移", value: `${results.summary.maxDisplacementMm.toFixed(3)} mm`, detail: `控制节点 ${results.summary.maxDisplacementNodeId ?? "—"} · 位移校核` },
-    { label: "最大轴力", value: `${results.summary.maxAxialForceKn.toFixed(3)} kN`, detail: `控制杆件 ${results.summary.maxAxialForceMemberId ?? "—"} · 轴力校核` },
+    { label: "允许位移", value: formatEngineeringValue(results.summary.allowableMm, "mm"), detail: `控制比 ${results.summary.allowableRatio.toFixed(2)} × · ${results.summary.statusCode}` },
+    { label: "最大位移", value: formatEngineeringValue(results.summary.maxDisplacementMm, "mm"), detail: `控制节点 ${results.summary.maxDisplacementNodeId ?? "—"} · 位移校核` },
+    { label: "最大轴力", value: formatEngineeringValue(results.summary.maxAxialForceKn, "kN"), detail: `控制杆件 ${results.summary.maxAxialForceMemberId ?? "—"} · 轴力校核` },
     { label: "计算结论", value: results.summary.status, detail: results.summary.method },
   ];
 }
@@ -560,17 +560,17 @@ function frameSummaryRows(results: FrameCalculationResults): SummaryRow[] {
   return [
     {
       label: "允许位移",
-      value: `${results.summary.allowableMm.toFixed(3)} mm`,
+      value: formatEngineeringValue(results.summary.allowableMm, "mm"),
       detail: `控制节点 ${results.summary.maxDisplacementNodeId ?? "—"} · ${results.summary.statusCode}`,
     },
     {
       label: "最大位移",
-      value: `${results.summary.maxDisplacementMm.toFixed(3)} mm`,
-      detail: `最大竖向位移 ${results.summary.maxVerticalMm.toFixed(3)} mm · 位移校核`,
+      value: formatEngineeringValue(results.summary.maxDisplacementMm, "mm"),
+      detail: `最大竖向位移 ${formatEngineeringValue(results.summary.maxVerticalMm, "mm")} · 位移校核`,
     },
     {
       label: "最大弯矩",
-      value: `${results.summary.maxMomentKnM.toFixed(3)} kN·m`,
+      value: formatEngineeringValue(results.summary.maxMomentKnM, "kN·m"),
       detail: `节点 ${results.nodeIds.length} 个 · 构件 ${results.memberIds.length} 个`,
     },
     {
@@ -688,6 +688,7 @@ export function WorkbenchResultTabs({
   const [activeTabState, setActiveTabState] = useState({ mode: analysisMode, tabId: tabs[0].id });
   const [frameDisplayState, setFrameDisplayState] = useState<FrameDisplayOption>({ source: "primary", id: "__primary__", label: "主结果", description: "基本荷载" });
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+  const [isExportSettingsOpen, setIsExportSettingsOpen] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement | null>(null);
   const activeTab = activeTabState.mode === analysisMode ? activeTabState.tabId : tabs[0].id;
   const hasResults = analysisMode === "frame" ? Boolean(frameResults) : analysisMode === "truss" ? Boolean(trussResults) : Boolean(beamResults);
@@ -706,6 +707,13 @@ export function WorkbenchResultTabs({
   const handleExportFormat = (format: ExportFormat) => {
     setIsExportMenuOpen(false);
     onExport(format);
+  };
+  const toggleExportMenu = () => {
+    const nextOpen = !isExportMenuOpen;
+    setIsExportMenuOpen(nextOpen);
+    if (nextOpen) {
+      setIsExportSettingsOpen(false);
+    }
   };
 
   useEffect(() => {
@@ -944,7 +952,7 @@ export function WorkbenchResultTabs({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setIsExportMenuOpen((current) => !current)}
+                onClick={toggleExportMenu}
                 disabled={!hasResults || isExportingAny}
                 aria-haspopup="menu"
                 aria-expanded={isExportMenuOpen}
@@ -959,49 +967,68 @@ export function WorkbenchResultTabs({
                   role="menu"
                   className={`absolute right-0 top-full z-50 mt-2 w-[20rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-950/10 dark:border-slate-700 dark:bg-slate-950 dark:shadow-black/30 ${compact ? "text-xs" : "text-sm"}`}
                 >
+                  <div className="px-2.5 pb-1 pt-1 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400">
+                    成果文件
+                  </div>
                   <button
                     type="button"
                     role="menuitem"
                     onClick={() => handleExportFormat("docx")}
-                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left font-bold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                    className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
                     <FileText className="h-4 w-4 shrink-0" />
-                    计算书（Word）
+                    <span className="min-w-0">
+                      <span className="block text-sm font-black">导出计算书</span>
+                      <span className="block truncate text-[11px] font-bold text-slate-500 dark:text-slate-400">Word · 模型、图形与校核摘要</span>
+                    </span>
                   </button>
                   <button
                     type="button"
                     role="menuitem"
                     onClick={() => handleExportFormat("xlsx")}
-                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left font-bold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                    className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
                     <Table2 className="h-4 w-4 shrink-0" />
-                    参数表（Excel）
+                    <span className="min-w-0">
+                      <span className="block text-sm font-black">导出参数表</span>
+                      <span className="block truncate text-[11px] font-bold text-slate-500 dark:text-slate-400">Excel · 输入参数与结果数据</span>
+                    </span>
                   </button>
-                  <div className="mt-1.5 border-t border-slate-200 p-2 dark:border-slate-800">
-                    <div className="mb-2 flex items-center gap-2 text-[11px] font-black text-slate-600 dark:text-slate-300">
-                      <Settings2 className="h-3.5 w-3.5" />
-                      导出设置
-                    </div>
-                    <div className="grid gap-2">
-                      <ReportOptionSelect
-                        label="计算书模板"
-                        value={reportExportOptions.template}
-                        options={REPORT_TEMPLATE_OPTIONS}
-                        onChange={(value) => updateReportExportOption("template", value as ReportTemplate)}
-                      />
-                      <ReportOptionSelect
-                        label="图形模式"
-                        value={reportExportOptions.figureMode}
-                        options={REPORT_FIGURE_MODE_OPTIONS}
-                        onChange={(value) => updateReportExportOption("figureMode", value as ReportFigureMode)}
-                      />
-                      <ReportOptionSelect
-                        label="插图范围"
-                        value={reportExportOptions.figureScope}
-                        options={REPORT_FIGURE_SCOPE_OPTIONS}
-                        onChange={(value) => updateReportExportOption("figureScope", value as ReportFigureScope)}
-                      />
-                    </div>
+                  <div className="mt-1.5 border-t border-slate-200 p-1.5 dark:border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => setIsExportSettingsOpen((current) => !current)}
+                      aria-expanded={isExportSettingsOpen}
+                      className="flex w-full items-center justify-between gap-3 rounded-md px-2.5 py-2 text-left text-[11px] font-black text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Settings2 className="h-3.5 w-3.5" />
+                        计算书设置
+                      </span>
+                      <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExportSettingsOpen ? "rotate-180" : ""}`} />
+                    </button>
+                    {isExportSettingsOpen ? (
+                      <div className="grid gap-2 px-1 pb-1 pt-2">
+                        <ReportOptionSelect
+                          label="计算书模板"
+                          value={reportExportOptions.template}
+                          options={REPORT_TEMPLATE_OPTIONS}
+                          onChange={(value) => updateReportExportOption("template", value as ReportTemplate)}
+                        />
+                        <ReportOptionSelect
+                          label="图形模式"
+                          value={reportExportOptions.figureMode}
+                          options={REPORT_FIGURE_MODE_OPTIONS}
+                          onChange={(value) => updateReportExportOption("figureMode", value as ReportFigureMode)}
+                        />
+                        <ReportOptionSelect
+                          label="插图范围"
+                          value={reportExportOptions.figureScope}
+                          options={REPORT_FIGURE_SCOPE_OPTIONS}
+                          onChange={(value) => updateReportExportOption("figureScope", value as ReportFigureScope)}
+                        />
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               ) : null}

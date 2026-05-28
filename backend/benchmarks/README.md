@@ -19,6 +19,7 @@
 | `runner.py` | 执行单个或全部 benchmark，并将实际结果与标准值比较。 |
 | `report.py` | 生成 `docs/verification/benchmark-validation-report.md`。 |
 | `submissions.py` | 校验外部投稿算例，确认模型、标准值、容许误差和验证来源齐全。 |
+| `review_submission.py` | 维护者离线查看投稿 JSON，并在复核通过后可选合并到 `benchmark_cases.json`。 |
 | `docs/verification/benchmark-validation-report.md` | 面向用户和贡献者的公开验证结果摘要。 |
 | `docs/verification/benchmark-catalog-summary.md` | 面向人工评审的算例目录摘要，包含模板到 benchmark 的对应关系。 |
 
@@ -101,6 +102,20 @@ python -m backend.benchmarks.catalog_summary --output docs/verification/benchmar
 - `case.verification`：验证来源、复核方法和校核指标。
 
 接口会立即执行求解并对比 `expected` / `tolerances`。响应中的 `persisted` 当前固定为 `false`，表示该接口只做投稿前自动校验，不替代 PR / Issue 的人工复核。桁架投稿会拒绝把弯矩或剪力作为主校核指标。
+
+面向非 GitHub 用户的默认路径是离线投稿包：前端顶部“验证投稿”表单会调用 `POST /api/benchmark-submission-packages`，下载单个 `benchmark-submission-*.json`。该 JSON 包含完整算例、贡献者信息和自动预检结果，但仍不会写入服务器。
+
+维护者收到 JSON 后先查看：
+
+```powershell
+python -m backend.benchmarks.review_submission path/to/benchmark-submission.json
+```
+
+确认来源、标准值和容许误差合适后，再显式合并：
+
+```powershell
+python -m backend.benchmarks.review_submission path/to/benchmark-submission.json --append
+```
 
 ## 常见误读
 

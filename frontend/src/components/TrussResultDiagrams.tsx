@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { GlassCard } from "./ui/GlassCard";
 import type { SupportType, TrussMemberResult, TrussNodeResult, TrussPreviewData } from "../types/structure";
+import { formatEngineeringValue } from "../lib/engineering-format";
 
 type TrussDiagramMetricKey = "axialForceKn" | "displacementMm";
 type TrussDiagramSelectionKey = TrussDiagramMetricKey | "all";
@@ -54,7 +55,7 @@ function supportMarker(type: SupportType, x: number, y: number) {
 }
 
 function valueText(value: number, unit: string) {
-  return `${value.toFixed(Math.abs(value) >= 100 ? 1 : 2)} ${unit}`;
+  return formatEngineeringValue(value, unit);
 }
 
 function memberLabelPlacement(start: { x: number; y: number }, end: { x: number; y: number }, offset: number) {

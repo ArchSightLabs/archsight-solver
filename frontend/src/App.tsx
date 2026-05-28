@@ -5,6 +5,7 @@ import {
   BookOpenCheck,
   FileText,
   FileDown,
+  FileJson,
   FilePlus,
   FileUp,
   GripVertical,
@@ -30,6 +31,7 @@ import { NewAnalysisObjectDialog } from "./components/NewAnalysisObjectDialog";
 import { ProjectTreePanel } from "./components/ProjectTreePanel";
 import { ProjectInfoDialog } from "./components/ProjectInfoDialog";
 import { PublicExamplesDialog } from "./components/PublicExamplesDialog";
+import { BenchmarkSubmissionPackagePanel } from "./components/BenchmarkSubmissionPackagePanel";
 import { WorkbenchModelCanvas } from "./components/WorkbenchModelCanvas";
 import { WorkbenchResultTabs } from "./components/WorkbenchResultTabs";
 import { WorkbenchSensitivityPanel } from "./components/WorkbenchSensitivityPanel";
@@ -57,6 +59,7 @@ import {
   type WorkbenchView,
 } from "./lib/solver-project";
 import { normalizeReportExportOptions, type ReportExportOptions } from "./lib/report-options";
+import { buildBeamPayload, buildFramePayload, buildTrussPayload, validateCustomFrameWorkspace, validateCustomTrussWorkspace } from "./solver-payload";
 import {
   ARCHSIGHT_SOLVER_PROJECT_ACCEPT,
   createArchSightSolverProjectFile,
@@ -85,7 +88,7 @@ const MODULE_NAV_WIDTH_STORAGE_KEY = "archsight.moduleNavWidth";
 const MODULE_NAV_COLLAPSED_STORAGE_KEY = "archsight.moduleNavCollapsed";
 const DEFAULT_MODULE_NAV_WIDTH = 248;
 const MIN_MODULE_NAV_WIDTH = 232;
-const MAX_MODULE_NAV_WIDTH = 288;
+const MAX_MODULE_NAV_VIEWPORT_RATIO = 1 / 3;
 const COLLAPSED_MODULE_NAV_WIDTH = 76;
 const COLLAPSED_INSPECTOR_WIDTH = 68;
 const SETTINGS_PANEL_WIDTH = 360;
@@ -110,8 +113,13 @@ function clampInspectorWidth(value: number) {
   return Math.min(MAX_INSPECTOR_WIDTH, Math.max(MIN_INSPECTOR_WIDTH, value));
 }
 
+function maxModuleNavWidth() {
+  if (typeof window === "undefined") return DEFAULT_MODULE_NAV_WIDTH;
+  return Math.max(MIN_MODULE_NAV_WIDTH, Math.floor(window.innerWidth * MAX_MODULE_NAV_VIEWPORT_RATIO));
+}
+
 function clampModuleNavWidth(value: number) {
-  return Math.min(MAX_MODULE_NAV_WIDTH, Math.max(MIN_MODULE_NAV_WIDTH, value));
+  return Math.min(maxModuleNavWidth(), Math.max(MIN_MODULE_NAV_WIDTH, value));
 }
 
 function readStoredNumber(key: string) {
@@ -130,6 +138,14 @@ function readLegacyReportExportOptions() {
     return normalizeReportExportOptions(null);
   }
 }
+
+function analysisObjectTypeLabel(type: AnalysisObjectType) {
+  if (type === "frame") return "平面框架";
+  if (type === "truss") return "平面桁架";
+  return "连续梁";
+}
+
+const BENCHMARK_SUBMISSION_NEEDS_RESULT_REASON = "请先运行当前分析对象的结构计算，再生成验证投稿包。";
 
 function createInitialSolverProject(projectInfo?: Partial<ProjectInfo> | null) {
   const project = projectInfo ? createDefaultSolverProject(projectInfo) : createDefaultSolverProject();
@@ -184,6 +200,7 @@ function App() {
   const isSystemSettingsDocked = isSystemSettingsOpen && isWideWorkbench;
   const effectiveInspectorWidth = isSystemSettingsDocked ? Math.min(inspectorWidth, DEFAULT_INSPECTOR_WIDTH) : inspectorWidth;
   const workspace = useMemo(() => createWorkspaceFromProject(project), [project]);
+  const activeAnalysisObject = useMemo(() => getActiveAnalysisObject(project), [project]);
   const setCompactWorkbenchView = (view: "parameters" | "results") => {
     setWorkbenchView(view === "results" ? "results" : "model");
   };
@@ -240,7 +257,7 @@ function App() {
     clientId,
     reportExportOptions,
     project.settings.projectInfo.name,
-    getActiveAnalysisObject(project).benchmark
+    activeAnalysisObject.benchmark
   );
 
   useEffect(() => {
@@ -287,6 +304,7 @@ function App() {
 
   const [isTemplateLibraryOpen, setIsTemplateLibraryOpen] = useState(false);
   const [isPublicExamplesOpen, setIsPublicExamplesOpen] = useState(false);
+  const [isBenchmarkSubmissionOpen, setIsBenchmarkSubmissionOpen] = useState(false);
   const [isFileMenuOpen, setIsFileMenuOpen] = useState(false);
   const [visitStats, setVisitStats] = useState<VisitStats>({ pageViews: "", uniqueVisitors: "" });
   
@@ -315,6 +333,15 @@ function App() {
   useEffect(() => {
     window.localStorage.setItem(MODULE_NAV_COLLAPSED_STORAGE_KEY, String(isModuleNavCollapsed));
   }, [isModuleNavCollapsed]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setModuleNavWidth((current) => clampModuleNavWidth(current));
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     if (!BUSUANZI_VISIT_STATS_ENABLED) return;
@@ -393,12 +420,13 @@ function App() {
   };
 
   useEffect(() => {
-    if (!isTemplateLibraryOpen && !isSystemSettingsOpen && !isNewAnalysisObjectDialogOpen && !isPublicExamplesOpen && projectInfoDialogMode === null) {
+    if (!isTemplateLibraryOpen && !isSystemSettingsOpen && !isNewAnalysisObjectDialogOpen && !isPublicExamplesOpen && !isBenchmarkSubmissionOpen && projectInfoDialogMode === null) {
       return;
     }
     const shouldLockScroll =
       isTemplateLibraryOpen ||
       isPublicExamplesOpen ||
+      isBenchmarkSubmissionOpen ||
       (isSystemSettingsOpen && !isSystemSettingsDocked) ||
       isNewAnalysisObjectDialogOpen ||
       projectInfoDialogMode !== null;
@@ -407,6 +435,7 @@ function App() {
       if (event.key === "Escape") {
         setIsTemplateLibraryOpen(false);
         setIsPublicExamplesOpen(false);
+        setIsBenchmarkSubmissionOpen(false);
         setIsSystemSettingsOpen(false);
         setIsNewAnalysisObjectDialogOpen(false);
         setProjectInfoDialogMode(null);
@@ -425,7 +454,7 @@ function App() {
       }
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isSystemSettingsDocked, isTemplateLibraryOpen, isPublicExamplesOpen, isSystemSettingsOpen, isNewAnalysisObjectDialogOpen, projectInfoDialogMode]);
+  }, [isSystemSettingsDocked, isTemplateLibraryOpen, isPublicExamplesOpen, isBenchmarkSubmissionOpen, isSystemSettingsOpen, isNewAnalysisObjectDialogOpen, projectInfoDialogMode]);
 
   useEffect(() => {
     if (!isFileMenuOpen) {
@@ -487,6 +516,41 @@ function App() {
   const frameResults = useMemo(() => frameResultForView(analysisData), [analysisData]);
   const trussResults = useMemo(() => trussResultForView(analysisData), [analysisData]);
   const beamResults = useMemo(() => beamResultForView(analysisData), [analysisData]);
+  const benchmarkSubmissionContext = useMemo(() => {
+    if (analysisMode === "frame") {
+      const disabledReason = validateCustomFrameWorkspace(workspace.frame);
+      const payload = disabledReason ? null : buildFramePayload(workspace.frame);
+      return {
+        category: "frame" as const,
+        payload,
+        calculationResult: frameResults,
+        disabledReason: disabledReason ?? (frameResults ? null : BENCHMARK_SUBMISSION_NEEDS_RESULT_REASON),
+        objectName: activeAnalysisObject.name,
+        objectTypeLabel: analysisObjectTypeLabel(activeAnalysisObject.type),
+      };
+    }
+    if (analysisMode === "truss") {
+      const disabledReason = validateCustomTrussWorkspace(workspace.truss);
+      const payload = disabledReason ? null : buildTrussPayload(workspace.truss);
+      return {
+        category: "truss" as const,
+        payload,
+        calculationResult: trussResults,
+        disabledReason: disabledReason ?? (trussResults ? null : BENCHMARK_SUBMISSION_NEEDS_RESULT_REASON),
+        objectName: activeAnalysisObject.name,
+        objectTypeLabel: analysisObjectTypeLabel(activeAnalysisObject.type),
+      };
+    }
+    const payload = buildBeamPayload(workspace.beam);
+    return {
+      category: "beam" as const,
+      payload,
+      calculationResult: beamResults,
+      disabledReason: beamResults ? null : BENCHMARK_SUBMISSION_NEEDS_RESULT_REASON,
+      objectName: activeAnalysisObject.name,
+      objectTypeLabel: analysisObjectTypeLabel(activeAnalysisObject.type),
+    };
+  }, [activeAnalysisObject.name, activeAnalysisObject.type, analysisMode, beamResults, frameResults, trussResults, workspace.beam, workspace.frame, workspace.truss]);
   const activeModuleSectionId = moduleSections.some((item) => item.id === activeModuleSection)
     ? activeModuleSection
     : moduleSections[0]?.id ?? "";
@@ -534,7 +598,7 @@ function App() {
       setProjectFileName(result.fileName);
       setLastSavedAt(result.savedAt);
       setIsProjectDirty(false);
-      setFileStatusMessage(result.mode === "download" ? `已下载导出：${result.fileName}` : `${forceSaveAs ? "另存为" : "保存"}成功：${result.fileName}`);
+      setFileStatusMessage(result.mode === "download" ? `已下载导出：${result.fileName}` : `${forceSaveAs ? "保存副本" : "保存"}成功：${result.fileName}`);
     } catch (error) {
       if (isFilePickerAbort(error)) return;
       alert(`项目文件保存失败：${error instanceof Error ? error.message : "未知错误"}`);
@@ -758,6 +822,14 @@ function App() {
                 </Button>
                 <Button
                   variant="ghost"
+                  onClick={() => void handleSaveProjectFile(false)}
+                  className={`rounded-lg font-bold text-foreground hover:bg-primary/10 ${isCompactWorkbench ? "h-9 px-3 text-xs" : "h-10 px-3.5"}`}
+                >
+                  <Save className={`mr-2 ${isCompactWorkbench ? "h-3.5 w-3.5" : "h-4 w-4"}`} />
+                  保存
+                </Button>
+                <Button
+                  variant="ghost"
                   onClick={() => setIsPublicExamplesOpen(true)}
                   className={`rounded-lg font-bold text-foreground hover:bg-primary/10 ${isCompactWorkbench ? "h-9 px-3 text-xs" : "h-10 px-3.5"}`}
                 >
@@ -766,11 +838,11 @@ function App() {
                 </Button>
                 <Button
                   variant="ghost"
-                  onClick={() => void handleSaveProjectFile(false)}
+                  onClick={() => setIsBenchmarkSubmissionOpen(true)}
                   className={`rounded-lg font-bold text-foreground hover:bg-primary/10 ${isCompactWorkbench ? "h-9 px-3 text-xs" : "h-10 px-3.5"}`}
                 >
-                  <Save className={`mr-2 ${isCompactWorkbench ? "h-3.5 w-3.5" : "h-4 w-4"}`} />
-                  保存
+                  <FileJson className={`mr-2 ${isCompactWorkbench ? "h-3.5 w-3.5" : "h-4 w-4"}`} />
+                  验证投稿
                 </Button>
                 <div ref={fileMenuRef} className="relative">
                   <Button
@@ -788,9 +860,8 @@ function App() {
                   {isFileMenuOpen ? (
                     <div
                       role="menu"
-                      className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-44 rounded-xl border border-border bg-popover p-1.5 text-popover-foreground shadow-xl shadow-black/15"
+                      className="absolute right-0 top-[calc(100%+0.45rem)] z-50 w-52 rounded-lg border border-slate-300 bg-white p-1.5 text-slate-950 shadow-2xl shadow-slate-950/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-50"
                     >
-                      <div className="px-3 py-2 text-[0.68rem] font-bold uppercase tracking-[0.08em] text-muted-foreground">文件操作</div>
                       <button
                         type="button"
                         role="menuitem"
@@ -798,10 +869,13 @@ function App() {
                           setIsFileMenuOpen(false);
                           void handleSaveProjectFile(true);
                         }}
-                        className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-bold text-foreground hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 dark:hover:bg-slate-900"
                       >
-                        <FileDown className="mr-2 h-4 w-4" />
-                        另存为
+                        <FileDown className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-300" />
+                        <span className="min-w-0">
+                          <span className="block text-sm font-black">保存副本</span>
+                          <span className="block truncate text-[11px] font-bold text-slate-500 dark:text-slate-400">另存为项目文件</span>
+                        </span>
                       </button>
                     </div>
                   ) : null}
@@ -853,7 +927,7 @@ function App() {
         >
           <aside className="relative hidden xl:block xl:sticky xl:top-24">
             <GlassCard className={`transition-all ${isModuleNavCollapsed ? "p-2" : "p-3"}`}>
-              <div className={`mb-3 flex items-center ${isModuleNavCollapsed ? "justify-center" : "justify-between gap-2"}`}>
+              <div className={`mb-3 flex items-center ${isModuleNavCollapsed ? "justify-center" : "justify-between gap-2 border-b border-white/10 pb-2"}`}>
                 {!isModuleNavCollapsed && (
                   <div className="min-w-0">
                     <div className="eyebrow truncate text-slate-500 dark:text-slate-300">工程树</div>
@@ -1106,6 +1180,58 @@ function App() {
           onClose={() => setIsPublicExamplesOpen(false)}
           onOpenProject={handleOpenPublicExampleProject}
         />
+      )}
+
+      {isBenchmarkSubmissionOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/82 p-3 sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="benchmark-submission-title"
+          onClick={() => setIsBenchmarkSubmissionOpen(false)}
+        >
+          <div
+            className="flex max-h-[calc(100dvh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-slate-700 bg-slate-950 text-slate-100 shadow-2xl shadow-black/45"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3 border-b border-slate-800 bg-slate-950 px-4 py-3 sm:px-5 sm:py-4">
+              <div className="min-w-0 space-y-1">
+                <div className="eyebrow flex items-center gap-2 text-slate-500">
+                  <FileJson className="h-3.5 w-3.5 text-sky-300" />
+                  公开验证
+                </div>
+                <h2 id="benchmark-submission-title" className="text-lg font-black tracking-tight text-slate-50">
+                  生成验证投稿包
+                </h2>
+                <p className="text-xs font-medium text-slate-400">
+                  基于当前分析对象生成离线 JSON，用于提交公开验证算例候选。
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setIsBenchmarkSubmissionOpen(false)}
+                aria-label="关闭验证投稿"
+                className="h-9 w-9 shrink-0 rounded-lg border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 p-3 sm:p-4">
+              <BenchmarkSubmissionPackagePanel
+                category={benchmarkSubmissionContext.category}
+                payload={benchmarkSubmissionContext.payload}
+                calculationResult={benchmarkSubmissionContext.calculationResult}
+                objectName={benchmarkSubmissionContext.objectName}
+                objectTypeLabel={benchmarkSubmissionContext.objectTypeLabel}
+                disabledReason={benchmarkSubmissionContext.disabledReason}
+                isCalculating={isSolving}
+                onRunCalculation={handleRunCurrentModule}
+                onCancel={() => setIsBenchmarkSubmissionOpen(false)}
+              />
+            </div>
+          </div>
+        </div>
       )}
 
       {isTemplateLibraryOpen && (

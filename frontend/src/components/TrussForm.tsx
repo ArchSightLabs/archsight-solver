@@ -25,7 +25,6 @@ export function TrussForm({ value, onChange, activeSectionId, selection, onSelec
   const visibleSectionId = TRUSS_SECTION_IDS.includes(requestedSectionId)
     ? requestedSectionId
     : DEFAULT_SECTION_ID;
-
   return (
     <TrussCustomModelEditor
       value={{

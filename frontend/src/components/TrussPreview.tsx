@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { GlassCard } from "./ui/GlassCard";
 import type { SupportType, TrussPreviewData } from "../types/structure";
 import { buildTrussLoadMarkers } from "./truss-preview-utils";
+import { formatEngineeringValue } from "../lib/engineering-format";
 
 interface TrussPreviewProps {
   truss: TrussPreviewData | null;
@@ -140,7 +141,7 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
             杆件 {truss.members.length}
           </span>
           <span className="rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-[10px] font-bold text-teal-700 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-300">
-            允许位移 {truss.summary.allowableMm.toFixed(3)} mm
+            允许位移 {formatEngineeringValue(truss.summary.allowableMm, "mm")}
           </span>
           <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${statusToneClass}`}>
             校核 {truss.summary.status}
@@ -265,12 +266,12 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
           },
           {
             label: "位移控制",
-            main: `${truss.summary.maxDisplacementMm.toFixed(3)} mm`,
-            sub: `节点 ${truss.summary.maxDisplacementNodeId ?? "—"} · 允许 ${truss.summary.allowableMm.toFixed(3)} mm · 比值 ${truss.summary.allowableRatio.toFixed(2)} ×`,
+            main: formatEngineeringValue(truss.summary.maxDisplacementMm, "mm"),
+            sub: `节点 ${truss.summary.maxDisplacementNodeId ?? "—"} · 允许 ${formatEngineeringValue(truss.summary.allowableMm, "mm")} · 比值 ${truss.summary.allowableRatio.toFixed(2)} ×`,
           },
           {
             label: "轴力控制",
-            main: `${truss.summary.maxAxialForceKn.toFixed(3)} kN`,
+            main: formatEngineeringValue(truss.summary.maxAxialForceKn, "kN"),
             sub: `杆件 ${truss.summary.maxAxialForceMemberId ?? "—"} · 状态：${truss.summary.status}`,
             highlight: true,
           },

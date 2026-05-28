@@ -99,14 +99,23 @@ def _case_metric_summary(case: Mapping[str, Any]) -> str:
     if not isinstance(expected, Mapping):
         return ""
     if "maxDeflectionMm" in expected:
-        return f"最大挠度 {expected['maxDeflectionMm']} mm"
+        return f"最大挠度 {_format_numeric_value(expected['maxDeflectionMm'])} mm"
     if "maxDisplacementMm" in expected:
-        return f"最大位移 {expected['maxDisplacementMm']} mm"
+        return f"最大位移 {_format_numeric_value(expected['maxDisplacementMm'])} mm"
     if "maxMomentKnM" in expected:
-        return f"最大弯矩 {expected['maxMomentKnM']} kN·m"
+        return f"最大弯矩 {_format_numeric_value(expected['maxMomentKnM'])} kN·m"
     if "maxAxialForceKn" in expected:
-        return f"最大轴力 {expected['maxAxialForceKn']} kN"
+        return f"最大轴力 {_format_numeric_value(expected['maxAxialForceKn'])} kN"
     return ""
+
+
+def _format_numeric_value(value: Any, decimals: int = 4) -> str:
+    if isinstance(value, bool):
+        return str(value)
+    if not isinstance(value, (int, float)):
+        return str(value)
+    formatted = f"{float(value):.{decimals}f}"
+    return formatted.rstrip("0").rstrip(".")
 
 
 def _format_metric_value(key: str, value: Any) -> str:
@@ -116,7 +125,8 @@ def _format_metric_value(key: str, value: Any) -> str:
     if isinstance(value, Mapping):
         return f"{label} {len(value)} 项"
     unit = METRIC_UNITS.get(key, "")
-    return f"{label} {value}{(' ' + unit) if unit else ''}"
+    formatted_value = _format_numeric_value(value)
+    return f"{label} {formatted_value}{(' ' + unit) if unit else ''}"
 
 
 def _case_expected_summary(case: Mapping[str, Any]) -> str:
@@ -339,9 +349,10 @@ def _benchmark_meta(case: Mapping[str, Any]) -> Dict[str, Any]:
 
 def _object_from_case(case: Mapping[str, Any], index: int, timestamp: str) -> Dict[str, Any]:
     analysis_type = _analysis_type(case)
+    case_title = str(case.get("title") or case.get("id"))
     return {
         "id": f"{analysis_type}-{case['id']}",
-        "name": str(case.get("title") or case.get("id")),
+        "name": f"{index + 1:02d} {case_title}",
         "type": analysis_type,
         "state": _state_from_case(case),
         "results": None,
