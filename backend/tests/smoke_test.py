@@ -1,12 +1,38 @@
-import requests
-import sys
+import json
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
+
 import pytest
 
 BASE_URL = "http://127.0.0.1:6240"
 
+
+def _post_json(path, payload):
+    request = Request(
+        f"{BASE_URL}{path}",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urlopen(request, timeout=5) as response:
+        return response.status, response.read().decode("utf-8")
+
+
+def _assert_endpoint_ok(path, payload):
+    try:
+        status_code, body = _post_json(path, payload)
+    except HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        pytest.fail(f"{path} failed: {exc.code} {body}")
+    except (OSError, TimeoutError, URLError) as exc:
+        pytest.skip(f"本地后端服务未运行，跳过外部 smoke 测试: {exc}")
+
+    assert status_code == 200, f"{path} failed: {status_code} {body}"
+
+
 def test_api_health():
     print("Checking API endpoints...")
-    
+
     # Test calculate (Beam)
     beam_payload = {
         "analysisType": "beam",
@@ -27,37 +53,18 @@ def test_api_health():
         "E_gpa": 210,
         "I_cm4": 8000
     }
-    
-    try:
-        resp = requests.post(f"{BASE_URL}/api/calculate", json=beam_payload, timeout=5)
-        if resp.status_code == 200:
-            print("✅ /api/calculate (Beam) OK")
-        else:
-            print(f"❌ /api/calculate (Beam) failed: {resp.status_code}")
-            return False
-            
-        # Test preview
-        resp = requests.post(f"{BASE_URL}/api/preview", json=beam_payload, timeout=5)
-        if resp.status_code == 200:
-            print("✅ /api/preview OK")
-        else:
-            print(f"❌ /api/preview failed: {resp.status_code}")
-            return False
-            
-        # Test sensitivity
-        sens_payload = {**beam_payload, "config": {"range": 20, "steps": 5}, "targetSpanIndex": 0}
-        resp = requests.post(f"{BASE_URL}/api/sensitivity", json=sens_payload, timeout=5)
-        if resp.status_code == 200:
-            print("✅ /api/sensitivity OK")
-        else:
-            print(f"❌ /api/sensitivity failed: {resp.status_code}")
-            return False
-            
-        return True
-    except Exception as e:
-        pytest.skip(f"本地后端服务未运行，跳过外部 smoke 测试: {e}")
+
+    _assert_endpoint_ok("/api/calculate", beam_payload)
+    print("/api/calculate (Beam) OK")
+
+    _assert_endpoint_ok("/api/preview", beam_payload)
+    print("/api/preview OK")
+
+    sens_payload = {**beam_payload, "config": {"range": 20, "steps": 5}, "targetSpanIndex": 0}
+    _assert_endpoint_ok("/api/sensitivity", sens_payload)
+    print("/api/sensitivity OK")
+
 
 if __name__ == "__main__":
-    if not test_api_health():
-        sys.exit(1)
+    test_api_health()
     print("\nAll core API tests passed!")
