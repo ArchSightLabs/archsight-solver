@@ -89,16 +89,16 @@ function supportType(value: string | undefined, fallback: StructureNode["support
   if (!normalized) {
     return fallback;
   }
-  if (["fixed", "fix", "固结", "固定", "刚接"].includes(normalized)) {
+  if (["fixed", "fix", "固结", "固结支座", "固定", "固定支座", "刚接"].includes(normalized)) {
     return "fixed";
   }
-  if (["pinned", "pin", "hinge", "铰接", "铰支"].includes(normalized)) {
+  if (["pinned", "pin", "hinge", "铰接", "铰支", "铰支座"].includes(normalized)) {
     return "pinned";
   }
-  if (["roller", "roll", "滑动", "滚动"].includes(normalized)) {
+  if (["roller", "roll", "滑动", "滚动", "滚动支座"].includes(normalized)) {
     return "roller";
   }
-  if (["free", "自由"].includes(normalized)) {
+  if (["free", "自由", "自由节点"].includes(normalized)) {
     return "free";
   }
 
@@ -493,7 +493,7 @@ export function serializeFrameTextModel(collections: FrameTextCollections): stri
     "# 节点：N,节点号,x,y",
     ...collections.nodes.map((node, index) => `N,${nodeNumber(node.id, index)},${node.x},${node.y}`),
     "",
-    "# 支座：NSUPT,节点号,类型码,角度；类型码 6=固结,4=铰接,3=滚动,0=自由",
+    "# 支座：NSUPT,节点号,类型码,角度；类型码 6=固结支座,4=铰支座,3=滚动支座,0=自由节点",
     ...collections.nodes
       .filter((node) => (node.supportType ?? "free") !== "free")
       .map((node) => `NSUPT,${nodeNumbers.get(node.id) ?? 1},${supportCode(node.supportType ?? "free")},${node.supportAngleDeg ?? 0}`),

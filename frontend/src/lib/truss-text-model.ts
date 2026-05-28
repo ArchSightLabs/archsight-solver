@@ -28,8 +28,8 @@ function toNumber(value: string | undefined): number | null {
 
 function supportType(value: string | undefined): TrussNode["supportType"] {
   const normalized = String(value ?? "free").toLowerCase();
-  if (["pinned", "pin", "铰接", "铰支"].includes(normalized)) return "pinned";
-  if (["roller", "roll", "滚动", "滑动"].includes(normalized)) return "roller";
+  if (["pinned", "pin", "铰接", "铰支", "铰支座"].includes(normalized)) return "pinned";
+  if (["roller", "roll", "滚动", "滚动支座", "滑动"].includes(normalized)) return "roller";
   return "free";
 }
 
@@ -89,7 +89,7 @@ export function parseTrussTextModel(text: string): TrussTextParseResult {
 export function serializeTrussTextModel(collections: TrussTextCollections): string {
   return [
     "# ArchSight 平面桁架文本模型",
-    "# NODE,节点号,x,y,支座类型",
+    "# NODE,节点号,x,y,支座类型（pinned=铰支座；roller=滚动支座；free=自由节点）",
     ...collections.nodes.map((node) => `NODE,${node.id},${node.x},${node.y},${node.supportType ?? "free"}`),
     "",
     "# MEMBER,杆件号,起点,终点,E_GPa,A_cm2,类型",

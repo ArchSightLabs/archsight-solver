@@ -38,7 +38,7 @@ const SEGMENTED_OPTION_IDLE_CLASS =
 const SUPPORT_TYPE_OPTIONS: Array<{ label: string; value: BeamSupportType }> = [
   { label: "铰支座", value: "pinned" },
   { label: "滚动支座", value: "roller" },
-  { label: "固结端", value: "fixed" },
+  { label: "固结支座", value: "fixed" },
   { label: "自由端", value: "free" },
 ];
 type SupportDofMode = "fixed" | "spring" | "free";
@@ -837,7 +837,7 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
         </div>
       </div>
       <div className="rounded-xl border border-white/8 bg-background/20 px-4 py-3 text-xs leading-relaxed text-foreground/55">
-        梁单元自由度为竖向位移 v 与转角 θz。铰支座/滚动支座通常约束 v、释放 θz；固结端同时约束 v 与 θz；弹簧支座按对应自由度刚度进入整体刚度矩阵。
+        梁单元自由度为竖向位移 v 与转角 θz。铰支座/滚动支座通常约束 v、释放 θz；固结支座同时约束 v 与 θz；弹簧支座按对应自由度刚度进入整体刚度矩阵。
       </div>
     </div>
   );

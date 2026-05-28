@@ -41,10 +41,10 @@ type FrameSelectedObject =
 type FrameAdvancedSection = "nodes" | "members" | "loads" | "loadCases" | "loadCombinations";
 
 const SUPPORT_OPTIONS = [
-  { value: "fixed", label: "固定" },
-  { value: "pinned", label: "铰接" },
-  { value: "roller", label: "滚动" },
-  { value: "free", label: "自由" },
+  { value: "fixed", label: "固结支座" },
+  { value: "pinned", label: "铰支座" },
+  { value: "roller", label: "滚动支座" },
+  { value: "free", label: "自由节点" },
 ];
 
 const MEMBER_KIND_OPTIONS = [

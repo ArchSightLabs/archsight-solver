@@ -586,7 +586,7 @@ function AssumptionsPanel({ mode, compact = false }: { mode: AnalysisMode; compa
     mode === "beam"
       ? [
           ["计算模型", "Euler-Bernoulli / Timoshenko 梁单元，节点自由度为竖向位移 v 与转角 θz。"],
-          ["支座约束", "铰支座/滚动支座在梁弯曲模型中均约束 v；固结端约束 v 与 θz；弹簧支座以刚度项进入整体刚度矩阵。"],
+          ["支座约束", "铰支座/滚动支座在梁弯曲模型中均约束 v；固结支座约束 v 与 θz；弹簧支座以刚度项进入整体刚度矩阵。"],
           ["符号约定", "挠度按竖向位移输出；弯矩、剪力采用求解器统一内力正负号，结果图以单位 kN、kN·m 和 mm 展示。"],
           ["单位换算", "E: GPa -> Pa，I: cm4 -> m4，q: kN/m -> N/m，P: kN -> N。"],
         ]

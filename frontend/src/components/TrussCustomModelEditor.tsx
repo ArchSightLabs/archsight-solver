@@ -31,9 +31,9 @@ type TrussSelectedObject =
 type TrussAdvancedSection = "nodes" | "members" | "loads";
 
 const SUPPORT_OPTIONS = [
-  { value: "pinned", label: "铰接" },
-  { value: "roller", label: "滚动" },
-  { value: "free", label: "自由" },
+  { value: "pinned", label: "铰支座" },
+  { value: "roller", label: "滚动支座" },
+  { value: "free", label: "自由节点" },
 ];
 
 const MEMBER_KIND_OPTIONS = [

@@ -4,6 +4,7 @@ import { GlassCard } from "./ui/GlassCard";
 import { Button } from "./ui/button";
 import { createPortalFrameModelFromState, type WorkspaceState } from "../lib/workspace-state";
 import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments } from "../lib/beam-span-dimensions";
+import { buildTrussMemberLengthDimension, buildTrussSupportMarkerGeometry } from "./truss-preview-utils";
 import type { AnalysisMode, FrameLoad, FrameLoadDirection, StructureNode, TrussLoad } from "../types/structure";
 import type { WorkbenchSelection } from "../types/workbench-selection";
 import type { BeamPreviewStyle } from "../types/beam";
@@ -898,6 +899,26 @@ function pointOnSegment(start: { x: number; y: number }, end: { x: number; y: nu
   };
 }
 
+function TrussSupportMarker({ type, x, y, selected }: { type?: string; x: number; y: number; selected: boolean }) {
+  const marker = buildTrussSupportMarkerGeometry(type, x, y);
+  if (!marker) return null;
+
+  const stroke = selected ? "var(--model-load)" : "var(--model-support-stroke)";
+  const line = selected ? "var(--model-load)" : "var(--model-support-line)";
+  const fill = selected ? "var(--model-badge-fill)" : "var(--model-support-fill)";
+
+  return (
+    <g aria-label={marker.label}>
+      <title>{marker.label}</title>
+      <polygon points={marker.trianglePoints} fill={fill} stroke={stroke} strokeWidth="1.4" />
+      <line x1={marker.baseLine.x1} y1={marker.baseLine.y1} x2={marker.baseLine.x2} y2={marker.baseLine.y2} stroke={line} strokeWidth="2.2" />
+      {marker.rollers.map((roller, index) => (
+        <circle key={`${marker.supportType}-roller-${index}`} cx={roller.cx} cy={roller.cy} r={roller.r} fill="none" stroke={line} strokeWidth="1.5" />
+      ))}
+    </g>
+  );
+}
+
 function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceState; selection?: WorkbenchSelection | null; onSelect?: (next: WorkbenchSelection) => void }) {
   const nodes = workspace.truss.customNodes;
   const members = workspace.truss.customMembers;
@@ -941,11 +962,38 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
       {members.map((member) => {
         const start = nodeMap.get(member.start);
         const end = nodeMap.get(member.end);
+        const rawStart = rawNodeMap.get(member.start);
+        const rawEnd = rawNodeMap.get(member.end);
         if (!start || !end) return null;
         const selected = selection?.mode === "truss" && selection.type === "member" && selection.id === member.id;
         const label = trussMemberLabelPlacement(start, end, { x: trussCenterX, y: trussMidY });
+        const lengthM = rawStart && rawEnd ? Math.hypot(rawEnd.x - rawStart.x, rawEnd.y - rawStart.y) : null;
+        const dimension = lengthM === null ? null : buildTrussMemberLengthDimension(start, end, { x: trussCenterX, y: trussMidY }, lengthM);
         return (
           <g key={member.id} className="cursor-pointer" onClick={() => onSelect?.({ mode: "truss", type: "member", id: member.id })}>
+            {dimension ? (
+              <g pointerEvents="none" stroke={selected ? "var(--model-load)" : "var(--model-guide)"} opacity={selected ? "0.92" : "0.74"}>
+                <line x1={dimension.lineStart.x} y1={dimension.lineStart.y} x2={dimension.lineEnd.x} y2={dimension.lineEnd.y} strokeWidth="1.2" strokeDasharray="4 4" />
+                <line x1={dimension.startTickStart.x} y1={dimension.startTickStart.y} x2={dimension.startTickEnd.x} y2={dimension.startTickEnd.y} strokeWidth="1.2" />
+                <line x1={dimension.endTickStart.x} y1={dimension.endTickStart.y} x2={dimension.endTickEnd.x} y2={dimension.endTickEnd.y} strokeWidth="1.2" />
+                <text
+                  x={dimension.labelX}
+                  y={dimension.labelY}
+                  transform={`rotate(${dimension.labelAngle} ${dimension.labelX} ${dimension.labelY})`}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fill={selected ? "var(--model-load)" : "var(--model-label)"}
+                  stroke="var(--model-label-halo)"
+                  strokeWidth="3"
+                  paintOrder="stroke"
+                  fontSize="10.5"
+                  fontWeight="700"
+                  fontFamily={svgTextFont}
+                >
+                  {dimension.label}
+                </text>
+              </g>
+            ) : null}
             <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="transparent" strokeWidth="18" strokeLinecap="round" />
             <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke={selected ? "var(--model-load)" : "var(--model-member)"} strokeWidth={selected ? "7" : "4.5"} strokeLinecap="round" opacity={selected ? "0.85" : "1"} />
             <text
@@ -971,9 +1019,11 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
         const point = nodeMap.get(node.id);
         if (!point) return null;
         const label = getNodeLabel(point);
+        const selected = selection?.mode === "truss" && selection.type === "node" && selection.id === node.id;
         return (
           <g key={node.id} className="cursor-pointer" onClick={() => onSelect?.({ mode: "truss", type: "node", id: node.id })}>
-            <circle cx={point.x} cy={point.y} r={selection?.mode === "truss" && selection.type === "node" && selection.id === node.id ? "7.5" : "5.5"} fill={selection?.mode === "truss" && selection.type === "node" && selection.id === node.id ? "var(--model-load)" : "var(--model-node)"} />
+            <TrussSupportMarker type={node.supportType} x={point.x} y={point.y} selected={selected} />
+            <circle cx={point.x} cy={point.y} r={selected ? "7.5" : "5.5"} fill={selected ? "var(--model-load)" : "var(--model-node)"} />
             <text x={label.x} y={label.y} textAnchor={label.anchor} fill="var(--model-label)" fontSize="10.5" fontWeight="400">
               {node.id}
             </text>

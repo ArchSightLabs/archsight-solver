@@ -27,7 +27,7 @@ function toNumber(value: string | undefined): number | null {
 
 function supportType(value: string | undefined): BeamSupportType | null {
   const normalized = String(value ?? "").trim().toLowerCase();
-  if (["fixed", "fix", "固结", "固定"].includes(normalized)) return "fixed";
+  if (["fixed", "fix", "固结", "固结支座", "固定", "固定支座"].includes(normalized)) return "fixed";
   if (["pinned", "pin", "铰支", "铰支座", "铰接"].includes(normalized)) return "pinned";
   if (["roller", "roll", "滚动", "滑动"].includes(normalized)) return "roller";
   if (["free", "自由"].includes(normalized)) return "free";
@@ -418,7 +418,7 @@ export function serializeBeamTextModel(value: BeamWorkspaceState): string {
     ...value.spans.map((span) => `SPAN,${span.length},${spanMaterialToken(span, materials)},${span.I}`),
     "",
     "# SUPPORT,编号,x位置m,类型",
-    "# 支座类型：fixed=固定支座；pinned=铰支座；roller=滚动支座；free=自由端/无约束",
+    "# 支座类型：fixed=固结支座；pinned=铰支座；roller=滚动支座；free=自由端/无约束",
     ...value.supports.map((support) => `SUPPORT,${support.id},${support.x},${support.type}`),
     ...value.supports.flatMap((support) =>
       (support.springs ?? []).map((spring) =>
