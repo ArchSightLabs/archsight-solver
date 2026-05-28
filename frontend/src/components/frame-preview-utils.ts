@@ -56,6 +56,39 @@ export interface FrameLoadLabelSet {
   distributed?: string;
 }
 
+export interface FrameGeometryDimension {
+  memberId: string;
+  valueLabel: string;
+}
+
+function formatFrameDimensionLength(length: number) {
+  return `${length.toFixed(2).replace(/\.?0+$/u, "")}m`;
+}
+
+export function frameMemberDimensionValueLabel(start: Pick<FramePreviewPoint, "x" | "y">, end: Pick<FramePreviewPoint, "x" | "y">) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const length = Math.hypot(dx, dy);
+  if (Math.abs(dx) <= 1e-6 && Math.abs(dy) > 1e-6) {
+    return formatFrameDimensionLength(Math.abs(dy));
+  }
+  return formatFrameDimensionLength(length);
+}
+
+export function buildFrameDimensionLegendRows(dimensions: FrameGeometryDimension[], _maxWidthPx: number, _fontSize = 12) {
+  const groupedDimensions = Array.from(
+    dimensions.reduce((groups, dimension) => {
+      const group = groups.get(dimension.valueLabel) ?? { memberIds: [] as string[], valueLabel: dimension.valueLabel };
+      group.memberIds.push(dimension.memberId);
+      groups.set(dimension.valueLabel, group);
+      return groups;
+    }, new Map<string, { memberIds: string[]; valueLabel: string }>())
+      .values(),
+  );
+
+  return groupedDimensions.map((dimension) => `${dimension.memberIds.join("=")}=${dimension.valueLabel}`);
+}
+
 function memberLoadDirection(
   direction: FrameLoadDirection | undefined,
   loadSign: number,

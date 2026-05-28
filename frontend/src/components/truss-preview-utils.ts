@@ -75,17 +75,11 @@ export function buildTrussSupportMarkerGeometry(type: string | undefined, x: num
   };
 }
 
-function estimateLegendTextWidth(text: string, fontSize: number) {
-  return text.length * fontSize * 0.62;
-}
-
 function formatTrussMemberLength(value: number) {
   return `${value.toFixed(2).replace(/\.?0+$/u, "")}m`;
 }
 
-export function buildTrussMemberLengthLegendRows(dimensions: TrussMemberLengthDimension[], maxWidthPx: number, fontSize = 12) {
-  const rows: string[] = [];
-  let current = "";
+export function buildTrussMemberLengthLegendRows(dimensions: TrussMemberLengthDimension[], _maxWidthPx: number, _fontSize = 12) {
   const groupedDimensions = Array.from(
     dimensions.reduce((groups, dimension) => {
       const group = groups.get(dimension.valueLabel) ?? { memberIds: [] as string[], valueLabel: dimension.valueLabel };
@@ -96,19 +90,7 @@ export function buildTrussMemberLengthLegendRows(dimensions: TrussMemberLengthDi
       .values(),
   );
 
-  for (const dimension of groupedDimensions) {
-    const item = `${dimension.memberIds.join("=")}=${dimension.valueLabel}`;
-    const next = current ? `${current}，${item}` : item;
-    if (current && estimateLegendTextWidth(next, fontSize) > maxWidthPx) {
-      rows.push(current);
-      current = item;
-    } else {
-      current = next;
-    }
-  }
-
-  if (current) rows.push(current);
-  return rows;
+  return groupedDimensions.map((dimension) => `${dimension.memberIds.join("=")}=${dimension.valueLabel}`);
 }
 
 export function buildTrussMemberLengthDimension(

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildFrameLoadLabelMap, buildFrameLoadMarkers } from "./frame-preview-utils.ts";
+import { buildFrameDimensionLegendRows, buildFrameLoadLabelMap, buildFrameLoadMarkers, frameMemberDimensionValueLabel } from "./frame-preview-utils.ts";
 
 test("buildFrameLoadMarkers anchors vertical nodal loads on the node x-coordinate", () => {
   const load = { type: "nodal" as const, node: "N2", fyKn: -42 };
@@ -90,4 +90,14 @@ test("buildFrameLoadMarkers respects partial distributed load range", () => {
   assert.equal(markers[0].x1, 160);
   assert.equal(markers[0].x2, 280);
   assert.match(markers[0].label, /@0\.25-0\.75L/u);
+});
+
+test("buildFrameDimensionLegendRows groups equal member lengths and separates differing lengths", () => {
+  const dimensions = [
+    { memberId: "C1", valueLabel: frameMemberDimensionValueLabel({ x: 0, y: 0 }, { x: 0, y: 4 }) },
+    { memberId: "B1", valueLabel: frameMemberDimensionValueLabel({ x: 0, y: 4 }, { x: 6, y: 4 }) },
+    { memberId: "C2", valueLabel: frameMemberDimensionValueLabel({ x: 6, y: 0 }, { x: 6, y: 4 }) },
+  ];
+
+  assert.deepEqual(buildFrameDimensionLegendRows(dimensions, 220, 12), ["C1=C2=4m", "B1=6m"]);
 });

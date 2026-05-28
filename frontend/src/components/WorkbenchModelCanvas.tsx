@@ -4,7 +4,7 @@ import { GlassCard } from "./ui/GlassCard";
 import { Button } from "./ui/button";
 import { createPortalFrameModelFromState, type WorkspaceState } from "../lib/workspace-state";
 import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments, formatBeamDimensionLength } from "../lib/beam-span-dimensions";
-import { buildFrameLoadLabelMap, formatFrameDistributedLoadLabel, formatFrameForceLoadLabel } from "./frame-preview-utils";
+import { buildFrameDimensionLegendRows, buildFrameLoadLabelMap, formatFrameDistributedLoadLabel, formatFrameForceLoadLabel, frameMemberDimensionValueLabel, type FrameGeometryDimension } from "./frame-preview-utils";
 import { buildTrussMemberLengthDimension, buildTrussMemberLengthLegendRows, buildTrussSupportMarkerGeometry } from "./truss-preview-utils";
 import type { AnalysisMode, FrameLoad, FrameLoadDirection, StructureNode, SupportType, TrussLoad } from "../types/structure";
 import type { WorkbenchSelection } from "../types/workbench-selection";
@@ -500,57 +500,8 @@ function frameMemberLoadDirection(
   return value >= 0 ? positiveDirection : { x: -positiveDirection.x, y: -positiveDirection.y };
 }
 
-type FrameGeometryDimension = {
-  memberId: string;
-  valueLabel: string;
-};
-
-function buildFrameDimensionLegendRows(dimensions: FrameGeometryDimension[], maxWidthPx: number, fontSize = 12) {
-  const rows: string[] = [];
-  let current = "";
-  const groupedDimensions = Array.from(
-    dimensions.reduce((groups, dimension) => {
-      const prefix = /^([A-Za-z]+)/.exec(dimension.memberId)?.[1] ?? dimension.memberId;
-      const key = `${prefix}|${dimension.valueLabel}`;
-      const group = groups.get(key) ?? { memberIds: [] as string[], valueLabel: dimension.valueLabel };
-      group.memberIds.push(dimension.memberId);
-      groups.set(key, group);
-      return groups;
-    }, new Map<string, { memberIds: string[]; valueLabel: string }>())
-      .values(),
-  );
-
-  for (const dimension of groupedDimensions) {
-    const item = `${dimension.memberIds.join("=")}=${dimension.valueLabel}`;
-    const next = current ? `${current}，${item}` : item;
-    if (current && next.length * fontSize * 0.62 > maxWidthPx) {
-      rows.push(current);
-      current = item;
-    } else {
-      current = next;
-    }
-  }
-
-  if (current) rows.push(current);
-  return rows;
-}
-
-function formatFrameDimensionLength(length: number) {
-  return `${length.toFixed(2).replace(/\.?0+$/u, "")}m`;
-}
-
 function frameForceComponentLabel(baseLabel: string, hasFx: boolean, hasFy: boolean, component: "x" | "y") {
   return hasFx && hasFy ? `${baseLabel}${component}` : baseLabel;
-}
-
-function frameMemberDimensionValueLabel(start: Pick<StructureNode, "x" | "y">, end: Pick<StructureNode, "x" | "y">) {
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-  const length = Math.hypot(dx, dy);
-  if (Math.abs(dx) <= 1e-6 && Math.abs(dy) > 1e-6) {
-    return formatFrameDimensionLength(Math.abs(dy));
-  }
-  return formatFrameDimensionLength(length);
 }
 
 function frameMemberLabelPlacement(

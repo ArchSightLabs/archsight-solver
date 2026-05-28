@@ -24,10 +24,6 @@ function beamSpanNodeRange(index: number) {
   return `N${index + 1}-N${index + 2}`;
 }
 
-function estimateLegendTextWidth(text: string, fontSize: number) {
-  return text.length * fontSize * 0.62;
-}
-
 export function beamSpanLengthLabel(length: number) {
   return formatBeamDimensionLength(length);
 }
@@ -37,34 +33,17 @@ export function beamSpanDimensionLabel(index: number, _length: number, widthPx: 
   return null;
 }
 
-export function buildBeamSpanDimensionLegendRows(dimensions: BeamSpanDimension[], maxWidthPx: number, fontSize = 12) {
-  const rows: string[] = [];
-  let current = "";
-  const groups = dimensions.reduce<Array<{ startIndex: number; endIndex: number; lengthLabel: string }>>((items, dimension) => {
-    const previous = items[items.length - 1];
-    if (previous && previous.lengthLabel === dimension.lengthLabel && previous.endIndex + 1 === dimension.index) {
-      previous.endIndex = dimension.index;
+export function buildBeamSpanDimensionLegendRows(dimensions: BeamSpanDimension[], _maxWidthPx: number, _fontSize = 12) {
+  const groups = dimensions.reduce<Array<{ memberIds: string[]; lengthLabel: string }>>((items, dimension) => {
+    const current = items.find((item) => item.lengthLabel === dimension.lengthLabel);
+    if (current) {
+      current.memberIds.push(beamSpanMemberId(dimension.index));
       return items;
     }
-    return [...items, { startIndex: dimension.index, endIndex: dimension.index, lengthLabel: dimension.lengthLabel }];
+    return [...items, { memberIds: [beamSpanMemberId(dimension.index)], lengthLabel: dimension.lengthLabel }];
   }, []);
 
-  for (const group of groups) {
-    const memberLabel = group.startIndex === group.endIndex
-      ? beamSpanMemberId(group.startIndex)
-      : `${beamSpanMemberId(group.startIndex)}-${beamSpanMemberId(group.endIndex)}`;
-    const item = `${memberLabel}=${group.lengthLabel}`;
-    const next = current ? `${current}，${item}` : item;
-    if (current && estimateLegendTextWidth(next, fontSize) > maxWidthPx) {
-      rows.push(current);
-      current = item;
-    } else {
-      current = next;
-    }
-  }
-
-  if (current) rows.push(current);
-  return rows;
+  return groups.map((group) => `${group.memberIds.join("=")}=${group.lengthLabel}`);
 }
 
 export function buildBeamSpanDimensionSegments(spans: number[], totalLength: number, startX: number, endX: number): BeamSpanDimension[] {

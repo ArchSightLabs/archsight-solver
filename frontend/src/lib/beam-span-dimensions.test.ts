@@ -20,9 +20,15 @@ test("buildBeamSpanDimensionSegments preserves precise length labels when span m
   assert.equal(segments[segments.length - 1]?.end, 920);
 });
 
-test("buildBeamSpanDimensionLegendRows wraps index length references", () => {
+test("buildBeamSpanDimensionLegendRows groups equal span lengths and separates differing lengths", () => {
   const segments = buildBeamSpanDimensionSegments([4, 4, 3], 11, 80, 920);
 
-  assert.deepEqual(buildBeamSpanDimensionLegendRows(segments, 100), ["B1-B2=4m", "B3=3m"]);
-  assert.deepEqual(buildBeamSpanDimensionLegendRows(segments, 420), ["B1-B2=4m，B3=3m"]);
+  assert.deepEqual(buildBeamSpanDimensionLegendRows(segments, 100), ["B1=B2=4m", "B3=3m"]);
+  assert.deepEqual(buildBeamSpanDimensionLegendRows(segments, 420), ["B1=B2=4m", "B3=3m"]);
+});
+
+test("buildBeamSpanDimensionLegendRows groups non-adjacent equal span lengths", () => {
+  const segments = buildBeamSpanDimensionSegments([4, 3, 4], 11, 80, 920);
+
+  assert.deepEqual(buildBeamSpanDimensionLegendRows(segments, 420), ["B1=B3=4m", "B2=3m"]);
 });
