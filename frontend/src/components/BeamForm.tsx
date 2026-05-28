@@ -581,7 +581,7 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <label className={FORM_LABEL_CLASS}>默认材料编号（新增跨段）</label>
-          <DropdownSelect value={value.materialId} onChange={(nextValue) => updateWorkspace("materialId", nextValue)} options={materialOptions} className={FORM_CONTROL_CLASS} menuClassName={FORM_SELECT_MENU_CLASS} optionClassName={FORM_SELECT_OPTION_CLASS} />
+          <DropdownSelect value={value.materialId} onChange={(nextValue) => updateWorkspace("materialId", nextValue)} options={materialOptions} className={FORM_CONTROL_CLASS} menuClassName={FORM_SELECT_MENU_CLASS} optionClassName={FORM_SELECT_OPTION_CLASS} ariaLabel="默认材料编号（新增跨段）" />
           <div className="font-mono text-[10px] text-muted-foreground">
             当前材料库 {materialLibrary.length} 项；每一跨可在“对象”页单独引用材料编号。
           </div>
@@ -646,15 +646,15 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1 sm:col-span-2">
                 <div className={FIELD_LABEL_CLASS}>均布荷载 q（kN/m）</div>
-                <Input type="number" step="0.1" value={value.q} onChange={(event) => updateWorkspace("q", Number(event.target.value) || 0)} className="h-10 min-w-0 font-mono text-xs" />
+                <Input aria-label="均布荷载 q（kN/m）" type="number" step="0.1" value={value.q} onChange={(event) => updateWorkspace("q", Number(event.target.value) || 0)} className="h-10 min-w-0 font-mono text-xs" />
               </div>
               <div className="space-y-1">
                 <div className={FIELD_LABEL_CLASS}>起点位置比例（0-1）</div>
-                <Input type="number" step="0.05" min="0" max="1" value={uniformRange.startRatio} onChange={(event) => updateUniformLoadRange({ uniformLoadStartRatio: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+                <Input aria-label="均布荷载起点位置比例（0-1）" type="number" step="0.05" min="0" max="1" value={uniformRange.startRatio} onChange={(event) => updateUniformLoadRange({ uniformLoadStartRatio: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
               </div>
               <div className="space-y-1">
                 <div className={FIELD_LABEL_CLASS}>终点位置比例（0-1）</div>
-                <Input type="number" step="0.05" min="0" max="1" value={uniformRange.endRatio} onChange={(event) => updateUniformLoadRange({ uniformLoadEndRatio: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+                <Input aria-label="均布荷载终点位置比例（0-1）" type="number" step="0.05" min="0" max="1" value={uniformRange.endRatio} onChange={(event) => updateUniformLoadRange({ uniformLoadEndRatio: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
               </div>
               <div className="rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 font-mono text-[11px] text-muted-foreground sm:col-span-2">
                 作用区间 {uniformRange.startRatio.toFixed(2)}-{uniformRange.endRatio.toFixed(2)}，长度 {uniformLoadLength.toFixed(2)} m
@@ -687,19 +687,19 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <div className={FIELD_LABEL_CLASS}>起点荷载（kN/m）</div>
-                <Input type="number" step="0.1" value={primaryLinearLoad.qStartKnPerM} onChange={(event) => updatePrimaryLinearLoad({ qStartKnPerM: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+                <Input aria-label="线性分布荷载起点荷载（kN/m）" type="number" step="0.1" value={primaryLinearLoad.qStartKnPerM} onChange={(event) => updatePrimaryLinearLoad({ qStartKnPerM: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
               </div>
               <div className="space-y-1">
                 <div className={FIELD_LABEL_CLASS}>终点荷载（kN/m）</div>
-                <Input type="number" step="0.1" value={primaryLinearLoad.qEndKnPerM} onChange={(event) => updatePrimaryLinearLoad({ qEndKnPerM: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+                <Input aria-label="线性分布荷载终点荷载（kN/m）" type="number" step="0.1" value={primaryLinearLoad.qEndKnPerM} onChange={(event) => updatePrimaryLinearLoad({ qEndKnPerM: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
               </div>
               <div className="space-y-1">
                 <div className={FIELD_LABEL_CLASS}>起点位置比例（0-1）</div>
-                <Input type="number" step="0.05" min="0" max="1" value={primaryLinearLoad.startRatio} onChange={(event) => updatePrimaryLinearLoad({ startRatio: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+                <Input aria-label="线性分布荷载起点位置比例（0-1）" type="number" step="0.05" min="0" max="1" value={primaryLinearLoad.startRatio} onChange={(event) => updatePrimaryLinearLoad({ startRatio: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
               </div>
               <div className="space-y-1">
                 <div className={FIELD_LABEL_CLASS}>终点位置比例（0-1）</div>
-                <Input type="number" step="0.05" min="0" max="1" value={primaryLinearLoad.endRatio} onChange={(event) => updatePrimaryLinearLoad({ endRatio: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+                <Input aria-label="线性分布荷载终点位置比例（0-1）" type="number" step="0.05" min="0" max="1" value={primaryLinearLoad.endRatio} onChange={(event) => updatePrimaryLinearLoad({ endRatio: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
               </div>
             </div>
           ) : null}
@@ -722,11 +722,11 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
                 <div key={load.id} className="grid grid-cols-1 gap-3 rounded-lg border border-white/8 bg-white/[0.02] p-3 sm:grid-cols-[1fr_1fr_auto]">
                   <div className="space-y-1">
                     <div className={FIELD_LABEL_CLASS}>{load.id} 集中力（kN）</div>
-                    <Input type="number" step="0.1" value={load.magnitudeKn} onChange={(event) => updatePointLoad(index, { magnitudeKn: Number(event.target.value) || 0 })} className="h-9 min-w-0 font-mono text-xs" />
+                    <Input aria-label={`${load.id} 集中力（kN）`} type="number" step="0.1" value={load.magnitudeKn} onChange={(event) => updatePointLoad(index, { magnitudeKn: Number(event.target.value) || 0 })} className="h-9 min-w-0 font-mono text-xs" />
                   </div>
                   <div className="space-y-1">
                     <div className={FIELD_LABEL_CLASS}>作用位置比例（0-1）</div>
-                    <Input type="number" step="0.05" min="0" max="1" value={load.positionRatio} onChange={(event) => updatePointLoad(index, { positionRatio: Number(event.target.value) || 0 })} className="h-9 min-w-0 font-mono text-xs" />
+                    <Input aria-label={`${load.id} 作用位置比例（0-1）`} type="number" step="0.05" min="0" max="1" value={load.positionRatio} onChange={(event) => updatePointLoad(index, { positionRatio: Number(event.target.value) || 0 })} className="h-9 min-w-0 font-mono text-xs" />
                   </div>
                   <Button type="button" variant="ghost" size="icon" className="self-end justify-self-end text-rose-300 hover:bg-rose-500/10" onClick={() => removePointLoad(index)} aria-label={`删除 ${load.id}`}>
                     <Minus className="h-4 w-4" />
@@ -805,6 +805,7 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
                 <div className="space-y-1">
                   <div className={FIELD_LABEL_CLASS}>{item.springLabel}</div>
                   <Input
+                    aria-label={item.springLabel}
                     type="number"
                     min="0"
                     step={item.dof === "rz" ? "1000" : "1000"}
@@ -822,6 +823,7 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
         <div className="space-y-1">
           <div className={FIELD_LABEL_CLASS}>支座位置 x（m）</div>
           <Input
+            aria-label="支座位置 x（m）"
             type="number"
             step="0.1"
             min="0"
@@ -833,7 +835,7 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
         </div>
         <div className="space-y-1">
           <div className={FIELD_LABEL_CLASS}>支座编号</div>
-          <Input value={support.id} readOnly className="h-10 min-w-0 font-mono text-xs opacity-70" />
+          <Input aria-label="支座编号" value={support.id} readOnly className="h-10 min-w-0 font-mono text-xs opacity-70" />
         </div>
       </div>
       <div className="rounded-xl border border-white/8 bg-background/20 px-4 py-3 text-xs leading-relaxed text-foreground/55">
@@ -879,6 +881,7 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
               onChange={(nextMaterialId) => updateSpanMaterial(index, nextMaterialId)}
               options={materialOptions}
               placeholder="手动输入 E"
+              ariaLabel="跨段材料编号"
               className={FORM_CONTROL_CLASS}
               menuClassName={FORM_SELECT_MENU_CLASS}
               optionClassName={FORM_SELECT_OPTION_CLASS}
@@ -886,15 +889,15 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
           </div>
           <div className="space-y-1">
             <div className={FIELD_LABEL_CLASS}>跨长（m）</div>
-            <Input type="number" step="0.1" value={span.length} onChange={(e) => updateSpan(index, "length", Number(e.target.value) || 0)} className="h-10 min-w-0 font-mono text-xs" />
+            <Input aria-label="跨长（m）" type="number" step="0.1" value={span.length} onChange={(e) => updateSpan(index, "length", Number(e.target.value) || 0)} className="h-10 min-w-0 font-mono text-xs" />
           </div>
           <div className="space-y-1">
             <div className={FIELD_LABEL_CLASS}>弹性模量（GPa）</div>
-            <Input type="number" value={span.E} onChange={(e) => updateSpan(index, "E", Number(e.target.value) || 0)} className="h-10 min-w-0 font-mono text-xs" />
+            <Input aria-label="弹性模量（GPa）" type="number" value={span.E} onChange={(e) => updateSpan(index, "E", Number(e.target.value) || 0)} className="h-10 min-w-0 font-mono text-xs" />
           </div>
           <div className="space-y-1 sm:col-span-2">
             <div className={FIELD_LABEL_CLASS}>截面惯性矩（cm4）</div>
-            <Input type="number" value={span.I} onChange={(e) => updateSpan(index, "I", Number(e.target.value) || 0)} className="h-10 min-w-0 font-mono text-xs" />
+            <Input aria-label="截面惯性矩（cm4）" type="number" value={span.I} onChange={(e) => updateSpan(index, "I", Number(e.target.value) || 0)} className="h-10 min-w-0 font-mono text-xs" />
           </div>
         </div>
       </div>

@@ -17,6 +17,7 @@ interface DropdownSelectProps {
   menuClassName?: string;
   optionClassName?: string;
   placeholder?: string;
+  ariaLabel?: string;
 }
 
 export function DropdownSelect({
@@ -27,9 +28,11 @@ export function DropdownSelect({
   menuClassName,
   optionClassName,
   placeholder = "请选择",
+  ariaLabel,
 }: DropdownSelectProps) {
   const rootRef = React.useRef<HTMLDivElement>(null);
   const menuRef = React.useRef<HTMLDivElement>(null);
+  const listboxId = React.useId();
   const [open, setOpen] = React.useState(false);
   const [menuStyle, setMenuStyle] = React.useState<React.CSSProperties | null>(null);
 
@@ -114,6 +117,8 @@ export function DropdownSelect({
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-controls={open ? listboxId : undefined}
+        aria-label={ariaLabel ? `${ariaLabel}，当前值：${selected?.label ?? placeholder}` : undefined}
         onClick={() => setOpen((current) => !current)}
         className={cn(
           "flex h-10 w-full items-center justify-between gap-3 rounded-md border border-white/10 px-3 text-left text-sm font-medium outline-none transition-colors",
@@ -129,6 +134,7 @@ export function DropdownSelect({
       {open && menuStyle
         ? createPortal(
             <div
+              id={listboxId}
               ref={menuRef}
               role="listbox"
               style={menuStyle}

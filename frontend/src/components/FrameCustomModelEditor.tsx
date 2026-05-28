@@ -766,21 +766,22 @@ export function FrameCustomModelEditor({
             }
             className="text-xs font-mono"
             menuClassName="text-xs font-mono"
+            ariaLabel={`第 ${index + 1} 条荷载类型`}
           />
         </div>
         {load.type === "nodal" ? (
           <div className="space-y-1">
             <div className={fieldLabelClass}>作用节点</div>
-            <DropdownSelect value={load.node} onChange={(nextValue) => onUpdate({ node: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" />
+            <DropdownSelect value={load.node} onChange={(nextValue) => onUpdate({ node: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${index + 1} 条荷载作用节点`} />
           </div>
         ) : (
           <div className="space-y-1">
             <div className={fieldLabelClass}>作用构件</div>
-            <DropdownSelect value={load.member} onChange={(nextValue) => onUpdate({ member: nextValue })} options={memberOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" />
+            <DropdownSelect value={load.member} onChange={(nextValue) => onUpdate({ member: nextValue })} options={memberOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${index + 1} 条荷载作用构件`} />
           </div>
         )}
         <div className="flex items-end">
-          <Button variant="ghost" size="icon" className="h-10 w-10" onClick={onRemove}>
+          <Button variant="ghost" size="icon" className="h-10 w-10" onClick={onRemove} aria-label={`删除第 ${index + 1} 条荷载`}>
             <Trash2 className="h-4 w-4 text-rose-300" />
           </Button>
         </div>
@@ -789,15 +790,15 @@ export function FrameCustomModelEditor({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <div className="space-y-1">
             <div className={fieldLabelClass}>X 向力（kN）</div>
-            <Input type="number" step="0.1" value={load.fxKn ?? 0} onChange={(e) => onUpdate({ fxKn: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+            <Input aria-label={`第 ${index + 1} 条荷载 X 向力（kN）`} type="number" step="0.1" value={load.fxKn ?? 0} onChange={(e) => onUpdate({ fxKn: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
           </div>
           <div className="space-y-1">
             <div className={fieldLabelClass}>Y 向力（kN）</div>
-            <Input type="number" step="0.1" value={load.fyKn ?? 0} onChange={(e) => onUpdate({ fyKn: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+            <Input aria-label={`第 ${index + 1} 条荷载 Y 向力（kN）`} type="number" step="0.1" value={load.fyKn ?? 0} onChange={(e) => onUpdate({ fyKn: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
           </div>
           <div className="space-y-1">
             <div className={fieldLabelClass}>节点弯矩（kN·m）</div>
-            <Input type="number" step="0.1" value={load.mzKnM ?? 0} onChange={(e) => onUpdate({ mzKnM: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+            <Input aria-label={`第 ${index + 1} 条荷载节点弯矩（kN·m）`} type="number" step="0.1" value={load.mzKnM ?? 0} onChange={(e) => onUpdate({ mzKnM: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
           </div>
         </div>
       ) : load.type === "distributed" ? (
@@ -810,19 +811,21 @@ export function FrameCustomModelEditor({
               options={LOAD_DIRECTION_OPTIONS}
               className="text-xs font-mono"
               menuClassName="text-xs font-mono"
+              ariaLabel={`第 ${index + 1} 条荷载方向`}
             />
           </div>
           <div className="space-y-1">
             <div className={fieldLabelClass}>起点强度（kN/m）</div>
-            <Input type="number" step="0.1" value={load.qStartKnPerM ?? load.wyKnPerM ?? 0} onChange={(e) => onUpdate({ qStartKnPerM: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+            <Input aria-label={`第 ${index + 1} 条荷载起点强度（kN/m）`} type="number" step="0.1" value={load.qStartKnPerM ?? load.wyKnPerM ?? 0} onChange={(e) => onUpdate({ qStartKnPerM: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
           </div>
           <div className="space-y-1">
             <div className={fieldLabelClass}>终点强度（kN/m）</div>
-            <Input type="number" step="0.1" value={load.qEndKnPerM ?? load.wyKnPerM ?? 0} onChange={(e) => onUpdate({ qEndKnPerM: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+            <Input aria-label={`第 ${index + 1} 条荷载终点强度（kN/m）`} type="number" step="0.1" value={load.qEndKnPerM ?? load.wyKnPerM ?? 0} onChange={(e) => onUpdate({ qEndKnPerM: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
           </div>
           <div className="space-y-1">
             <div className={fieldLabelClass}>起点位置 x/L</div>
             <Input
+              aria-label={`第 ${index + 1} 条荷载起点位置 x/L`}
               type="number"
               step="0.05"
               min="0"
@@ -835,6 +838,7 @@ export function FrameCustomModelEditor({
           <div className="space-y-1">
             <div className={fieldLabelClass}>终点位置 x/L</div>
             <Input
+              aria-label={`第 ${index + 1} 条荷载终点位置 x/L`}
               type="number"
               step="0.05"
               min="0"
@@ -855,11 +859,13 @@ export function FrameCustomModelEditor({
               options={LOAD_DIRECTION_OPTIONS}
               className="text-xs font-mono"
               menuClassName="text-xs font-mono"
+              ariaLabel={`第 ${index + 1} 条荷载方向`}
             />
           </div>
           <div className="space-y-1">
             <div className={fieldLabelClass}>位置比 x/L</div>
             <Input
+              aria-label={`第 ${index + 1} 条荷载位置比 x/L`}
               type="number"
               step="0.05"
               min="0"
@@ -871,7 +877,7 @@ export function FrameCustomModelEditor({
           </div>
           <div className="space-y-1">
             <div className={fieldLabelClass}>集中力（kN）</div>
-            <Input type="number" step="0.1" value={load.forceKn ?? 0} onChange={(e) => onUpdate({ forceKn: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+            <Input aria-label={`第 ${index + 1} 条荷载集中力（kN）`} type="number" step="0.1" value={load.forceKn ?? 0} onChange={(e) => onUpdate({ forceKn: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
           </div>
         </div>
       )}
@@ -892,8 +898,10 @@ export function FrameCustomModelEditor({
               options={SPRING_DOF_OPTIONS}
               className="text-xs font-mono"
               menuClassName="text-xs font-mono"
+              ariaLabel={`节点 ${node.id} 第 ${springIndex + 1} 个弹簧自由度`}
             />
             <Input
+              aria-label={`节点 ${node.id} 第 ${springIndex + 1} 个弹簧刚度`}
               type="number"
               step="100"
               value={spring.dof === "rz" ? spring.stiffnessKnMPerRad : spring.stiffnessKnPerM}
@@ -908,7 +916,7 @@ export function FrameCustomModelEditor({
               }
               className="h-10 min-w-0 font-mono text-xs"
             />
-            <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => removeNodeSpring(nodeIndex, springIndex)}>
+            <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => removeNodeSpring(nodeIndex, springIndex)} aria-label={`删除节点 ${node.id} 第 ${springIndex + 1} 个弹簧`}>
               <Trash2 className="h-4 w-4 text-rose-300" />
             </Button>
           </div>
@@ -940,23 +948,23 @@ export function FrameCustomModelEditor({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <div className={fieldLabelClass}>节点编号</div>
-              <Input value={node.id} onChange={(e) => updateNode(index, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
+              <Input aria-label="节点编号" value={node.id} onChange={(e) => updateNode(index, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>支座类型</div>
-              <DropdownSelect value={node.supportType ?? "free"} onChange={(nextValue) => updateNode(index, { supportType: nextValue as StructureNode["supportType"] })} options={SUPPORT_OPTIONS} className="text-xs font-mono" menuClassName="text-xs font-mono" />
+              <DropdownSelect value={node.supportType ?? "free"} onChange={(nextValue) => updateNode(index, { supportType: nextValue as StructureNode["supportType"] })} options={SUPPORT_OPTIONS} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel="支座类型" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>横坐标（m）</div>
-              <Input type="number" step="0.1" value={node.x} onChange={(e) => updateNode(index, { x: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+              <Input aria-label="节点横坐标（m）" type="number" step="0.1" value={node.x} onChange={(e) => updateNode(index, { x: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>纵坐标（m）</div>
-              <Input type="number" step="0.1" value={node.y} onChange={(e) => updateNode(index, { y: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+              <Input aria-label="节点纵坐标（m）" type="number" step="0.1" value={node.y} onChange={(e) => updateNode(index, { y: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>滚动约束角（deg）</div>
-              <Input type="number" step="1" value={node.supportAngleDeg ?? ""} onChange={(e) => updateNode(index, { supportAngleDeg: e.target.value === "" ? undefined : Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" placeholder="90" />
+              <Input aria-label="滚动约束角（deg）" type="number" step="1" value={node.supportAngleDeg ?? ""} onChange={(e) => updateNode(index, { supportAngleDeg: e.target.value === "" ? undefined : Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" placeholder="90" />
             </div>
           </div>
           <div className="rounded-lg border border-white/8 bg-white/[0.02] p-3">
@@ -970,6 +978,7 @@ export function FrameCustomModelEditor({
                     options={connectableNodeOptions}
                     className="text-xs font-mono"
                     menuClassName="text-xs font-mono"
+                    ariaLabel="连接到节点"
                   />
                 ) : (
                   <div className="flex h-10 items-center rounded-md border border-white/8 bg-slate-950/20 px-3 text-xs text-muted-foreground">无可连接节点</div>
@@ -1021,31 +1030,31 @@ export function FrameCustomModelEditor({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1">
               <div className={fieldLabelClass}>构件编号</div>
-              <Input value={member.id} onChange={(e) => updateMember(index, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
+              <Input aria-label="构件编号" value={member.id} onChange={(e) => updateMember(index, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>构件类型</div>
-              <DropdownSelect value={member.kind ?? "generic"} onChange={(nextValue) => updateMember(index, { kind: nextValue })} options={MEMBER_KIND_OPTIONS} className="text-xs font-mono" menuClassName="text-xs font-mono" />
+              <DropdownSelect value={member.kind ?? "generic"} onChange={(nextValue) => updateMember(index, { kind: nextValue })} options={MEMBER_KIND_OPTIONS} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel="构件类型" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>起点节点</div>
-              <DropdownSelect value={member.start} onChange={(nextValue) => updateMember(index, { start: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" />
+              <DropdownSelect value={member.start} onChange={(nextValue) => updateMember(index, { start: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel="起点节点" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>终点节点</div>
-              <DropdownSelect value={member.end} onChange={(nextValue) => updateMember(index, { end: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" />
+              <DropdownSelect value={member.end} onChange={(nextValue) => updateMember(index, { end: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel="终点节点" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>弹性模量（GPa）</div>
-              <Input type="number" value={member.E_GPa} onChange={(e) => updateMember(index, { E_GPa: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+              <Input aria-label="构件弹性模量（GPa）" type="number" value={member.E_GPa} onChange={(e) => updateMember(index, { E_GPa: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>截面面积（cm²）</div>
-              <Input type="number" value={member.A_cm2} onChange={(e) => updateMember(index, { A_cm2: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+              <Input aria-label="构件截面面积（cm²）" type="number" value={member.A_cm2} onChange={(e) => updateMember(index, { A_cm2: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>惯性矩（cm⁴）</div>
-              <Input type="number" value={member.I_cm4} onChange={(e) => updateMember(index, { I_cm4: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+              <Input aria-label="构件惯性矩（cm⁴）" type="number" value={member.I_cm4} onChange={(e) => updateMember(index, { I_cm4: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
             </div>
           </div>
         </div>
@@ -1296,15 +1305,15 @@ export function FrameCustomModelEditor({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <div className={fieldLabelClass}>节点编号</div>
-                  <Input value={node.id} onChange={(e) => updateNode(index, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
+                  <Input aria-label={`第 ${index + 1} 个节点编号`} value={node.id} onChange={(e) => updateNode(index, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
                 </div>
                 <div className="space-y-1">
                   <div className={fieldLabelClass}>横坐标</div>
-                  <Input type="number" step="0.1" value={node.x} onChange={(e) => updateNode(index, { x: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+                  <Input aria-label={`第 ${index + 1} 个节点横坐标`} type="number" step="0.1" value={node.x} onChange={(e) => updateNode(index, { x: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
                 </div>
                 <div className="space-y-1">
                   <div className={fieldLabelClass}>纵坐标</div>
-                  <Input type="number" step="0.1" value={node.y} onChange={(e) => updateNode(index, { y: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+                  <Input aria-label={`第 ${index + 1} 个节点纵坐标`} type="number" step="0.1" value={node.y} onChange={(e) => updateNode(index, { y: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
                 </div>
                 <div className="space-y-1">
                   <div className={fieldLabelClass}>支座类型</div>
@@ -1314,11 +1323,13 @@ export function FrameCustomModelEditor({
                     options={SUPPORT_OPTIONS}
                     className="text-xs font-mono"
                     menuClassName="text-xs font-mono"
+                    ariaLabel={`第 ${index + 1} 个节点支座类型`}
                   />
                 </div>
                 <div className="space-y-1">
                   <div className={fieldLabelClass}>滚动约束角</div>
                   <Input
+                    aria-label={`第 ${index + 1} 个节点滚动约束角`}
                     type="number"
                     step="1"
                     value={node.supportAngleDeg ?? ""}
@@ -1328,7 +1339,7 @@ export function FrameCustomModelEditor({
                   />
                 </div>
                 <div className="col-span-2 flex justify-end">
-                  <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => removeNode(index)} disabled={value.nodes.length <= 1}>
+                  <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => removeNode(index)} disabled={value.nodes.length <= 1} aria-label={`删除第 ${index + 1} 个节点`}>
                     <Trash2 className="h-4 w-4 text-rose-300" />
                   </Button>
                 </div>
@@ -1367,18 +1378,18 @@ export function FrameCustomModelEditor({
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
                 <div className="space-y-1">
                   <div className={fieldLabelClass}>构件编号</div>
-                  <Input value={member.id} onChange={(e) => updateMember(index, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
+                  <Input aria-label={`第 ${index + 1} 个构件编号`} value={member.id} onChange={(e) => updateMember(index, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
                 </div>
                 <div className="space-y-1">
                   <div className={fieldLabelClass}>起点节点</div>
-                  <DropdownSelect value={member.start} onChange={(nextValue) => updateMember(index, { start: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" />
+                  <DropdownSelect value={member.start} onChange={(nextValue) => updateMember(index, { start: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${index + 1} 个构件起点节点`} />
                 </div>
                 <div className="space-y-1">
                   <div className={fieldLabelClass}>终点节点</div>
-                  <DropdownSelect value={member.end} onChange={(nextValue) => updateMember(index, { end: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" />
+                  <DropdownSelect value={member.end} onChange={(nextValue) => updateMember(index, { end: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${index + 1} 个构件终点节点`} />
                 </div>
                 <div className="flex items-end">
-                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => removeMember(index)}>
+                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => removeMember(index)} aria-label={`删除第 ${index + 1} 个构件`}>
                     <Trash2 className="h-4 w-4 text-rose-300" />
                   </Button>
                 </div>
@@ -1386,15 +1397,15 @@ export function FrameCustomModelEditor({
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <div className="space-y-1">
                   <div className={fieldLabelClass}>弹性模量</div>
-                  <Input type="number" value={member.E_GPa} onChange={(e) => updateMember(index, { E_GPa: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+                  <Input aria-label={`第 ${index + 1} 个构件弹性模量`} type="number" value={member.E_GPa} onChange={(e) => updateMember(index, { E_GPa: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
                 </div>
                 <div className="space-y-1">
                   <div className={fieldLabelClass}>截面面积</div>
-                  <Input type="number" value={member.A_cm2} onChange={(e) => updateMember(index, { A_cm2: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+                  <Input aria-label={`第 ${index + 1} 个构件截面面积`} type="number" value={member.A_cm2} onChange={(e) => updateMember(index, { A_cm2: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
                 </div>
                 <div className="space-y-1">
                   <div className={fieldLabelClass}>惯性矩</div>
-                  <Input type="number" value={member.I_cm4} onChange={(e) => updateMember(index, { I_cm4: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+                  <Input aria-label={`第 ${index + 1} 个构件惯性矩`} type="number" value={member.I_cm4} onChange={(e) => updateMember(index, { I_cm4: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
                 </div>
                 <div className="space-y-1">
                   <div className={fieldLabelClass}>构件类型</div>
@@ -1404,6 +1415,7 @@ export function FrameCustomModelEditor({
                     options={MEMBER_KIND_OPTIONS}
                     className="text-xs font-mono"
                     menuClassName="text-xs font-mono"
+                    ariaLabel={`第 ${index + 1} 个构件类型`}
                   />
                 </div>
               </div>
@@ -1463,6 +1475,7 @@ export function FrameCustomModelEditor({
                       {(member.internalHinges ?? []).map((hinge, hingeIndex) => (
                         <div key={`frame-member-${index}-hinge-${hingeIndex}`} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
                           <Input
+                            aria-label={`第 ${index + 1} 个构件第 ${hingeIndex + 1} 个内部铰位置比`}
                             type="number"
                             step="0.05"
                             min="0.01"
@@ -1481,6 +1494,7 @@ export function FrameCustomModelEditor({
                             variant="ghost"
                             size="icon"
                             className="h-10 w-10"
+                            aria-label={`删除第 ${index + 1} 个构件第 ${hingeIndex + 1} 个内部铰`}
                             onClick={() =>
                               updateMember(index, {
                                 internalHinges: (member.internalHinges ?? []).filter((_, itemIndex) => itemIndex !== hingeIndex),
@@ -1540,18 +1554,18 @@ export function FrameCustomModelEditor({
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)_auto]">
                   <div className="space-y-1">
                     <div className={fieldLabelClass}>工况编号</div>
-                    <Input value={loadCase.id} onChange={(e) => updateLoadCase(loadCaseIndex, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
+                    <Input aria-label={`第 ${loadCaseIndex + 1} 个工况编号`} value={loadCase.id} onChange={(e) => updateLoadCase(loadCaseIndex, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
                   </div>
                   <div className="space-y-1">
                     <div className={fieldLabelClass}>工况名称</div>
-                    <Input value={loadCase.title} onChange={(e) => updateLoadCase(loadCaseIndex, { title: e.target.value })} className="h-10 min-w-0 text-xs" />
+                    <Input aria-label={`第 ${loadCaseIndex + 1} 个工况名称`} value={loadCase.title} onChange={(e) => updateLoadCase(loadCaseIndex, { title: e.target.value })} className="h-10 min-w-0 text-xs" />
                   </div>
                   <div className="flex items-end gap-2">
                     <Button variant="outline" size="sm" onClick={() => addLoadToCase(loadCaseIndex)} className="h-10 rounded-xl">
                       <Plus className="mr-1 h-3.5 w-3.5" />
                       荷载
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => removeLoadCase(loadCaseIndex)}>
+                    <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => removeLoadCase(loadCaseIndex)} aria-label={`删除第 ${loadCaseIndex + 1} 个工况`}>
                       <Trash2 className="h-4 w-4 text-rose-300" />
                     </Button>
                   </div>
@@ -1591,17 +1605,18 @@ export function FrameCustomModelEditor({
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)_auto]">
                   <div className="space-y-1">
                     <div className={fieldLabelClass}>组合编号</div>
-                    <Input value={combination.id} onChange={(e) => updateLoadCombination(combinationIndex, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
+                    <Input aria-label={`第 ${combinationIndex + 1} 个组合编号`} value={combination.id} onChange={(e) => updateLoadCombination(combinationIndex, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
                   </div>
                   <div className="space-y-1">
                     <div className={fieldLabelClass}>组合名称</div>
-                    <Input value={combination.title} onChange={(e) => updateLoadCombination(combinationIndex, { title: e.target.value })} className="h-10 min-w-0 text-xs" />
+                    <Input aria-label={`第 ${combinationIndex + 1} 个组合名称`} value={combination.title} onChange={(e) => updateLoadCombination(combinationIndex, { title: e.target.value })} className="h-10 min-w-0 text-xs" />
                   </div>
                   <div className="flex items-end">
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-10 w-10"
+                      aria-label={`删除第 ${combinationIndex + 1} 个荷载组合`}
                       onClick={() => commit(keep({ loadCombinations: value.loadCombinations.filter((_, index) => index !== combinationIndex) }))}
                     >
                       <Trash2 className="h-4 w-4 text-rose-300" />
@@ -1611,6 +1626,7 @@ export function FrameCustomModelEditor({
                 <div className="space-y-1">
                   <div className={fieldLabelClass}>组合标签</div>
                   <Input
+                    aria-label={`第 ${combinationIndex + 1} 个组合标签`}
                     value={(combination.tags ?? []).join(", ")}
                     onChange={(e) =>
                       updateLoadCombination(combinationIndex, {
@@ -1629,6 +1645,7 @@ export function FrameCustomModelEditor({
                     <div key={`${combination.id}-${loadCase.id}`} className="space-y-1">
                       <div className={fieldLabelClass}>{loadCase.id} 系数</div>
                       <Input
+                        aria-label={`${combination.id} 中 ${loadCase.id} 的组合系数`}
                         type="number"
                         step="0.1"
                         value={combination.factors[loadCase.id] ?? 0}

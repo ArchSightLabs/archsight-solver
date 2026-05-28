@@ -1,4 +1,4 @@
-import { useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type SVGProps } from "react";
 import { Minus, Plus, RotateCcw, ZoomIn } from "lucide-react";
 import { GlassCard } from "./ui/GlassCard";
 import { Button } from "./ui/button";
@@ -63,6 +63,23 @@ const BEAM_LOAD_BOTTOM_GUIDE_Y = BEAM_SKETCH_AXIS_Y - 38;
 const BEAM_LOAD_LANE_GAP_Y = 34;
 const BEAM_DISTRIBUTED_LOAD_TIP_Y = BEAM_SKETCH_AXIS_Y;
 const BEAM_POINT_LOAD_TIP_Y = BEAM_SKETCH_AXIS_Y - 6;
+
+function svgInteractiveProps<T extends SVGElement = SVGGElement>(label: string, onActivate: () => void): SVGProps<T> {
+  return {
+    role: "button",
+    tabIndex: 0,
+    "aria-label": label,
+    className: "model-canvas-interactive cursor-pointer",
+    onClick: onActivate,
+    onKeyDown: (event: ReactKeyboardEvent<T>) => {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+      event.preventDefault();
+      onActivate();
+    },
+  };
+}
 
 function clampRatio(value: number, fallback: number) {
   return Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : fallback;
@@ -276,7 +293,7 @@ function BeamSketch({
         const selected = selection?.mode === "beam" && selection.type === "span" && selection.id === `span-${segment.index}`;
         const dimension = spanDimensions[segment.index];
         return (
-          <g key={segment.index} className="cursor-pointer" onClick={() => onSelect?.({ mode: "beam", type: "span", id: `span-${segment.index}` })}>
+          <g key={segment.index} {...svgInteractiveProps(`选择梁系第 ${segment.index + 1} 跨`, () => onSelect?.({ mode: "beam", type: "span", id: `span-${segment.index}` }))}>
             {dimension ? <title>{dimension.title}</title> : null}
             <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="transparent" strokeWidth="20" strokeLinecap="round" />
             {selected ? <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="var(--beam-sketch-selected)" strokeWidth="7" strokeLinecap="round" opacity="0.45" /> : null}
@@ -299,7 +316,7 @@ function BeamSketch({
         const x = beamStart + (support.x / total) * (beamEnd - beamStart);
         const selected = selection?.mode === "beam" && selection.type === "support" && selection.id === `support-${index}`;
         return (
-          <g key={support.id} className="cursor-pointer" onClick={() => onSelect?.({ mode: "beam", type: "support", id: `support-${index}` })}>
+          <g key={support.id} {...svgInteractiveProps(`选择梁系支座 ${support.id}`, () => onSelect?.({ mode: "beam", type: "support", id: `support-${index}` }))}>
             <rect x={x - 24} y="148" width="48" height="58" rx="12" fill={selected ? "var(--beam-sketch-selected)" : "transparent"} opacity={selected ? "0.1" : "0"} />
             {support.type === "fixed" ? (
               <rect x={x - 12} y={BEAM_SKETCH_AXIS_Y} width="24" height="36" rx="2" fill="var(--beam-sketch-support-fill)" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
@@ -323,7 +340,7 @@ function BeamSketch({
           </g>
         );
       })}
-      <g className="cursor-pointer" onClick={() => onSelect?.({ mode: "beam", type: "load", id: "primary" })}>
+      <g {...svgInteractiveProps("选择梁系荷载", () => onSelect?.({ mode: "beam", type: "load", id: "primary" }))}>
         <rect x={beamStart - 20} y="24" width={beamEnd - beamStart + 40} height="125" fill="transparent" />
         {selection?.mode === "beam" && selection.type === "load" ? <rect x={beamStart - 16} y="28" width={beamEnd - beamStart + 32} height="118" rx="14" fill="var(--beam-sketch-selected)" opacity="0.07" /> : null}
         {uniformRange ? (
@@ -350,9 +367,8 @@ function BeamSketch({
             })}
           </g>
         )}
-      </g>
-      <g className="cursor-pointer" onClick={() => onSelect?.({ mode: "beam", type: "load", id: "primary" })}>
-        <g stroke="var(--beam-sketch-load)" strokeWidth={selection?.mode === "beam" && selection.type === "load" ? "1.55" : "1.15"}>
+        <g>
+          <g stroke="var(--beam-sketch-load)" strokeWidth={selection?.mode === "beam" && selection.type === "load" ? "1.55" : "1.15"}>
           {beam.uniformLoadEnabled ? visibleUniformArrows.map((x, index) => (
             <path key={`uniform-${index}`} d={`M${x.toFixed(1)} ${(uniformGuideY + 4).toFixed(1)} L${x.toFixed(1)} ${BEAM_DISTRIBUTED_LOAD_TIP_Y}`} markerEnd="url(#modelDistributedArrow)" />
           )) : null}
@@ -376,9 +392,9 @@ function BeamSketch({
               </g>
             );
           })}
+          </g>
         </g>
-      </g>
-      <g className="cursor-pointer" onClick={() => onSelect?.({ mode: "beam", type: "load", id: "primary" })} fontFamily={svgTextFont}>
+        <g fontFamily={svgTextFont}>
         {uniformRange ? (
           <g>
             <text x={uniformLabelX} y={uniformTitleY} textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--beam-sketch-load)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
@@ -417,6 +433,7 @@ function BeamSketch({
             </text>
           );
         })}
+        </g>
       </g>
       <g fontFamily={svgTextFont}>
         {nodeLabels.map((label) => (
@@ -604,7 +621,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
           const selected = selection?.mode === "frame" && selection.type === "member" && selection.id === member.id;
           const label = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
           return (
-            <g key={member.id} className="cursor-pointer" onClick={() => onSelect?.({ mode: "frame", type: "member", id: member.id })}>
+            <g key={member.id} {...svgInteractiveProps(`选择框架构件 ${member.id}`, () => onSelect?.({ mode: "frame", type: "member", id: member.id }))}>
               <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="transparent" strokeWidth="18" />
               <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} strokeWidth={selected ? "7" : "4.5"} stroke={selected ? "var(--model-load)" : "var(--model-member)"} opacity={selected ? "0.85" : "1"} />
               <text
@@ -631,7 +648,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
           const point = nodeMap.get(node.id);
           const selected = selection?.mode === "frame" && selection.type === "node" && selection.id === node.id;
           return point ? (
-            <g key={node.id} className="cursor-pointer" onClick={() => onSelect?.({ mode: "frame", type: "node", id: node.id })}>
+            <g key={node.id} {...svgInteractiveProps(`选择框架节点 ${node.id}`, () => onSelect?.({ mode: "frame", type: "node", id: node.id }))}>
               <circle cx={point.x} cy={point.y} r={selected ? "11" : "8"} fill="transparent" />
               <circle cx={point.x} cy={point.y} r={selected ? "7.5" : "5.5"} fill={selected ? "var(--model-load)" : "var(--model-node)"} />
             </g>
@@ -648,13 +665,13 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
               const sign = load.fxKn >= 0 ? 1 : -1;
               const x1 = point.x - sign * 48;
               const x2 = point.x - sign * 11;
-              items.push(<path key={`${index}-fx`} className="cursor-pointer" onClick={() => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` })} d={`M${x1} ${point.y} L${x2} ${point.y}`} markerEnd="url(#frameArrow)" strokeWidth={selection?.mode === "frame" && selection.type === "load" && selection.id === `load-${index}` ? "3.2" : "2"} />);
+              items.push(<path key={`${index}-fx`} {...svgInteractiveProps<SVGPathElement>(`选择框架荷载 ${index + 1}`, () => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` }))} d={`M${x1} ${point.y} L${x2} ${point.y}`} markerEnd="url(#frameArrow)" strokeWidth={selection?.mode === "frame" && selection.type === "load" && selection.id === `load-${index}` ? "3.2" : "2"} />);
             }
             if (load.fyKn) {
               const sign = load.fyKn >= 0 ? -1 : 1;
               const y1 = point.y - sign * 54;
               const y2 = point.y - sign * 12;
-              items.push(<path key={`${index}-fy`} className="cursor-pointer" onClick={() => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` })} d={`M${point.x} ${y1} L${point.x} ${y2}`} markerEnd="url(#frameArrow)" strokeWidth={selection?.mode === "frame" && selection.type === "load" && selection.id === `load-${index}` ? "3.2" : "2"} />);
+              items.push(<path key={`${index}-fy`} {...svgInteractiveProps<SVGPathElement>(`选择框架荷载 ${index + 1}`, () => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` }))} d={`M${point.x} ${y1} L${point.x} ${y2}`} markerEnd="url(#frameArrow)" strokeWidth={selection?.mode === "frame" && selection.type === "load" && selection.id === `load-${index}` ? "3.2" : "2"} />);
             }
             return items;
           }
@@ -671,8 +688,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
             return [
               <path
                 key={`${index}-member-point`}
-                className="cursor-pointer"
-                onClick={() => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` })}
+                {...svgInteractiveProps<SVGPathElement>(`选择框架荷载 ${index + 1}`, () => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` }))}
                 d={`M${point.x - direction.x * 54} ${point.y - direction.y * 54} L${point.x - direction.x * 10} ${point.y - direction.y * 10}`}
                 markerEnd="url(#frameArrow)"
                 strokeWidth={selection?.mode === "frame" && selection.type === "load" && selection.id === `load-${index}` ? "3.2" : "2"}
@@ -693,8 +709,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
           const items = [
             <line
               key={`${index}-dist-guide`}
-              className="cursor-pointer"
-              onClick={() => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` })}
+              {...svgInteractiveProps<SVGLineElement>(`选择框架荷载 ${index + 1}`, () => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` }))}
               x1={guideStart.x - guideDirection.x * guideOffset}
               y1={guideStart.y - guideDirection.y * guideOffset}
               x2={guideEnd.x - guideDirection.x * guideOffset}
@@ -716,8 +731,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
             items.push(
               <path
                 key={`${index}-dist-${arrowIndex}`}
-                className="cursor-pointer"
-                onClick={() => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` })}
+                {...svgInteractiveProps<SVGPathElement>(`选择框架荷载 ${index + 1}`, () => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` }))}
                 d={`M${x - direction.x * arrowLength} ${y - direction.y * arrowLength} L${x - direction.x * 9} ${y - direction.y * 9}`}
                 markerEnd="url(#frameArrow)"
                 strokeWidth={selectedStroke}
@@ -970,7 +984,7 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
         const lengthM = rawStart && rawEnd ? Math.hypot(rawEnd.x - rawStart.x, rawEnd.y - rawStart.y) : null;
         const dimension = lengthM === null ? null : buildTrussMemberLengthDimension(start, end, { x: trussCenterX, y: trussMidY }, lengthM);
         return (
-          <g key={member.id} className="cursor-pointer" onClick={() => onSelect?.({ mode: "truss", type: "member", id: member.id })}>
+          <g key={member.id} {...svgInteractiveProps(`选择桁架杆件 ${member.id}`, () => onSelect?.({ mode: "truss", type: "member", id: member.id }))}>
             {dimension ? (
               <g pointerEvents="none" stroke={selected ? "var(--model-load)" : "var(--model-guide)"} opacity={selected ? "0.92" : "0.74"}>
                 <line x1={dimension.lineStart.x} y1={dimension.lineStart.y} x2={dimension.lineEnd.x} y2={dimension.lineEnd.y} strokeWidth="1.2" strokeDasharray="4 4" />
@@ -1021,7 +1035,7 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
         const label = getNodeLabel(point);
         const selected = selection?.mode === "truss" && selection.type === "node" && selection.id === node.id;
         return (
-          <g key={node.id} className="cursor-pointer" onClick={() => onSelect?.({ mode: "truss", type: "node", id: node.id })}>
+          <g key={node.id} {...svgInteractiveProps(`选择桁架节点 ${node.id}`, () => onSelect?.({ mode: "truss", type: "node", id: node.id }))}>
             <TrussSupportMarker type={node.supportType} x={point.x} y={point.y} selected={selected} />
             <circle cx={point.x} cy={point.y} r={selected ? "7.5" : "5.5"} fill={selected ? "var(--model-load)" : "var(--model-node)"} />
             <text x={label.x} y={label.y} textAnchor={label.anchor} fill="var(--model-label)" fontSize="10.5" fontWeight="400">
@@ -1055,7 +1069,7 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
               { key: "end", force: endForce, anchor: pointOnSegment(start, end, 0.92) },
             ];
             const items = [
-              <g key={`${index}-member-load`} className="cursor-pointer" onClick={() => onSelect?.({ mode: "truss", type: "load", id: `load-${index}` })}>
+              <g key={`${index}-member-load`} {...svgInteractiveProps(`选择桁架荷载 ${index + 1}`, () => onSelect?.({ mode: "truss", type: "load", id: `load-${index}` }))}>
                 <line x1={guide.start.x} y1={guide.start.y} x2={guide.end.x} y2={guide.end.y} strokeWidth={selected ? "2.8" : "1.6"} strokeDasharray="5 4" opacity="0.85" />
                 {equivalentArrows.map((arrow) => {
                   if (Math.abs(arrow.force) <= 1e-9) return null;
@@ -1098,7 +1112,7 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
             const x1 = point.x - sign * 48;
             const x2 = point.x - sign * 10;
             items.push(
-              <g key={`${index}-fx`} className="cursor-pointer" onClick={() => onSelect?.({ mode: "truss", type: "load", id: `load-${index}` })}>
+              <g key={`${index}-fx`} {...svgInteractiveProps(`选择桁架荷载 ${index + 1}`, () => onSelect?.({ mode: "truss", type: "load", id: `load-${index}` }))}>
                 <path d={`M${x1} ${point.y} L${x2} ${point.y}`} markerEnd="url(#trussArrow)" strokeWidth={selection?.mode === "truss" && selection.type === "load" && selection.id === `load-${index}` ? "3.2" : "1.9"} />
                 <text
                   x={x1}
@@ -1122,7 +1136,7 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
             const y1 = point.y - sign * 54;
             const y2 = point.y - sign * 12;
             items.push(
-              <g key={`${index}-fy`} className="cursor-pointer" onClick={() => onSelect?.({ mode: "truss", type: "load", id: `load-${index}` })}>
+              <g key={`${index}-fy`} {...svgInteractiveProps(`选择桁架荷载 ${index + 1}`, () => onSelect?.({ mode: "truss", type: "load", id: `load-${index}` }))}>
                 <path d={`M${point.x} ${y1} L${point.x} ${y2}`} markerEnd="url(#trussArrow)" strokeWidth={selection?.mode === "truss" && selection.type === "load" && selection.id === `load-${index}` ? "3.2" : "1.9"} />
                 <text
                   x={point.x}

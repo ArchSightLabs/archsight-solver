@@ -384,19 +384,19 @@ export function TrussCustomModelEditor({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <div className={fieldLabelClass}>节点编号</div>
-              <Input value={node.id} onChange={(e) => updateNode(index, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
+              <Input aria-label="节点编号" value={node.id} onChange={(e) => updateNode(index, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>支座类型</div>
-              <DropdownSelect value={node.supportType ?? "free"} onChange={(nextValue) => updateNode(index, { supportType: nextValue as TrussNode["supportType"] })} options={SUPPORT_OPTIONS} className="text-xs font-mono" menuClassName="text-xs font-mono" />
+              <DropdownSelect value={node.supportType ?? "free"} onChange={(nextValue) => updateNode(index, { supportType: nextValue as TrussNode["supportType"] })} options={SUPPORT_OPTIONS} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel="支座类型" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>横坐标（m）</div>
-              <Input type="number" step="0.1" value={node.x} onChange={(e) => updateNode(index, { x: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+              <Input aria-label="节点横坐标（m）" type="number" step="0.1" value={node.x} onChange={(e) => updateNode(index, { x: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>纵坐标（m）</div>
-              <Input type="number" step="0.1" value={node.y} onChange={(e) => updateNode(index, { y: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+              <Input aria-label="节点纵坐标（m）" type="number" step="0.1" value={node.y} onChange={(e) => updateNode(index, { y: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
             </div>
           </div>
         </div>
@@ -421,27 +421,27 @@ export function TrussCustomModelEditor({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1">
               <div className={fieldLabelClass}>杆件编号</div>
-              <Input value={member.id} onChange={(e) => updateMember(index, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
+              <Input aria-label="杆件编号" value={member.id} onChange={(e) => updateMember(index, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>杆件类型</div>
-              <DropdownSelect value={member.kind ?? "generic"} onChange={(nextValue) => updateMember(index, { kind: nextValue })} options={MEMBER_KIND_OPTIONS} className="text-xs font-mono" menuClassName="text-xs font-mono" />
+              <DropdownSelect value={member.kind ?? "generic"} onChange={(nextValue) => updateMember(index, { kind: nextValue })} options={MEMBER_KIND_OPTIONS} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel="杆件类型" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>起点节点</div>
-              <DropdownSelect value={member.start} onChange={(nextValue) => updateMember(index, { start: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" />
+              <DropdownSelect value={member.start} onChange={(nextValue) => updateMember(index, { start: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel="起点节点" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>终点节点</div>
-              <DropdownSelect value={member.end} onChange={(nextValue) => updateMember(index, { end: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" />
+              <DropdownSelect value={member.end} onChange={(nextValue) => updateMember(index, { end: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel="终点节点" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>弹性模量（GPa）</div>
-              <Input type="number" value={member.E_GPa} onChange={(e) => updateMember(index, { E_GPa: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+              <Input aria-label="杆件弹性模量（GPa）" type="number" value={member.E_GPa} onChange={(e) => updateMember(index, { E_GPa: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>截面面积（cm²）</div>
-              <Input type="number" value={member.A_cm2} onChange={(e) => updateMember(index, { A_cm2: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+              <Input aria-label="杆件截面面积（cm²）" type="number" value={member.A_cm2} onChange={(e) => updateMember(index, { A_cm2: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
             </div>
           </div>
         </div>
@@ -469,14 +469,15 @@ export function TrussCustomModelEditor({
               options={LOAD_TYPE_OPTIONS}
               className="text-xs font-mono"
               menuClassName="text-xs font-mono"
+              ariaLabel={`第 ${index + 1} 条荷载类型`}
             />
           </div>
           <div className="space-y-1">
             <div className={fieldLabelClass}>{isMemberLoad ? "作用杆件" : "作用节点"}</div>
             {isMemberLoad ? (
-              <DropdownSelect value={load.member} onChange={(nextValue) => updateLoad(index, { member: nextValue } as Partial<TrussLoad>)} options={memberOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" />
+              <DropdownSelect value={load.member} onChange={(nextValue) => updateLoad(index, { member: nextValue } as Partial<TrussLoad>)} options={memberOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${index + 1} 条荷载作用杆件`} />
             ) : (
-              <DropdownSelect value={load.node} onChange={(nextValue) => updateLoad(index, { node: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" />
+              <DropdownSelect value={load.node} onChange={(nextValue) => updateLoad(index, { node: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${index + 1} 条荷载作用节点`} />
             )}
           </div>
           <Button variant="ghost" size="icon" className="h-10 w-10 self-end" onClick={() => removeLoad(index)} aria-label="删除当前荷载">
@@ -487,30 +488,30 @@ export function TrussCustomModelEditor({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1">
               <div className={fieldLabelClass}>荷载方向</div>
-              <DropdownSelect value={load.direction ?? "global_y"} onChange={(nextValue) => updateLoad(index, { direction: nextValue as "global_x" | "global_y" } as Partial<TrussLoad>)} options={MEMBER_LOAD_DIRECTION_OPTIONS} className="text-xs font-mono" menuClassName="text-xs font-mono" />
+              <DropdownSelect value={load.direction ?? "global_y"} onChange={(nextValue) => updateLoad(index, { direction: nextValue as "global_x" | "global_y" } as Partial<TrussLoad>)} options={MEMBER_LOAD_DIRECTION_OPTIONS} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${index + 1} 条荷载方向`} />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>起点线荷载（kN/m）</div>
-              <Input type="number" step="0.1" value={load.qStartKnPerM ?? load.wyKnPerM ?? 0} onChange={(e) => updateLoad(index, { qStartKnPerM: Number(e.target.value) || 0 } as Partial<TrussLoad>)} className="h-10 min-w-0 font-mono text-xs" />
+              <Input aria-label={`第 ${index + 1} 条荷载起点线荷载（kN/m）`} type="number" step="0.1" value={load.qStartKnPerM ?? load.wyKnPerM ?? 0} onChange={(e) => updateLoad(index, { qStartKnPerM: Number(e.target.value) || 0 } as Partial<TrussLoad>)} className="h-10 min-w-0 font-mono text-xs" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>终点线荷载（kN/m）</div>
-              <Input type="number" step="0.1" value={load.qEndKnPerM ?? load.wyKnPerM ?? 0} onChange={(e) => updateLoad(index, { qEndKnPerM: Number(e.target.value) || 0 } as Partial<TrussLoad>)} className="h-10 min-w-0 font-mono text-xs" />
+              <Input aria-label={`第 ${index + 1} 条荷载终点线荷载（kN/m）`} type="number" step="0.1" value={load.qEndKnPerM ?? load.wyKnPerM ?? 0} onChange={(e) => updateLoad(index, { qEndKnPerM: Number(e.target.value) || 0 } as Partial<TrussLoad>)} className="h-10 min-w-0 font-mono text-xs" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>自重强度（可选，kN/m）</div>
-              <Input type="number" step="0.1" value={load.selfWeightKnPerM ?? ""} onChange={(e) => updateLoad(index, { selfWeightKnPerM: e.target.value === "" ? undefined : Number(e.target.value) || 0 } as Partial<TrussLoad>)} className="h-10 min-w-0 font-mono text-xs" placeholder="留空则按起终点线荷载" />
+              <Input aria-label={`第 ${index + 1} 条荷载自重强度（可选，kN/m）`} type="number" step="0.1" value={load.selfWeightKnPerM ?? ""} onChange={(e) => updateLoad(index, { selfWeightKnPerM: e.target.value === "" ? undefined : Number(e.target.value) || 0 } as Partial<TrussLoad>)} className="h-10 min-w-0 font-mono text-xs" placeholder="留空则按起终点线荷载" />
             </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1">
               <div className={fieldLabelClass}>X 向力（kN）</div>
-              <Input type="number" step="0.1" value={load.fxKn ?? 0} onChange={(e) => updateLoad(index, { fxKn: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+              <Input aria-label={`第 ${index + 1} 条荷载 X 向力（kN）`} type="number" step="0.1" value={load.fxKn ?? 0} onChange={(e) => updateLoad(index, { fxKn: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>Y 向力（kN）</div>
-              <Input type="number" step="0.1" value={load.fyKn ?? 0} onChange={(e) => updateLoad(index, { fyKn: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+              <Input aria-label={`第 ${index + 1} 条荷载 Y 向力（kN）`} type="number" step="0.1" value={load.fyKn ?? 0} onChange={(e) => updateLoad(index, { fyKn: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
             </div>
           </div>
         )}
@@ -753,15 +754,15 @@ export function TrussCustomModelEditor({
             >
               <div className="space-y-1">
                 <div className={fieldLabelClass}>节点编号</div>
-                <Input value={node.id} onChange={(e) => updateNode(index, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
+                <Input aria-label={`第 ${index + 1} 个节点编号`} value={node.id} onChange={(e) => updateNode(index, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
               </div>
               <div className="space-y-1">
                 <div className={fieldLabelClass}>横坐标</div>
-                <Input type="number" step="0.1" value={node.x} onChange={(e) => updateNode(index, { x: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+                <Input aria-label={`第 ${index + 1} 个节点横坐标`} type="number" step="0.1" value={node.x} onChange={(e) => updateNode(index, { x: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
               </div>
               <div className="space-y-1">
                 <div className={fieldLabelClass}>纵坐标</div>
-                <Input type="number" step="0.1" value={node.y} onChange={(e) => updateNode(index, { y: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+                <Input aria-label={`第 ${index + 1} 个节点纵坐标`} type="number" step="0.1" value={node.y} onChange={(e) => updateNode(index, { y: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
               </div>
               <div className="space-y-1 sm:col-span-2 xl:col-span-2">
                 <div className={fieldLabelClass}>支座类型</div>
@@ -771,10 +772,11 @@ export function TrussCustomModelEditor({
                   options={SUPPORT_OPTIONS}
                   className="text-xs font-mono"
                   menuClassName="text-xs font-mono"
+                  ariaLabel={`第 ${index + 1} 个节点支座类型`}
                 />
               </div>
               <div className="flex items-end sm:col-span-2 xl:col-span-1">
-                <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => removeNode(index)} disabled={value.nodes.length <= 1}>
+                <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => removeNode(index)} disabled={value.nodes.length <= 1} aria-label={`删除第 ${index + 1} 个节点`}>
                   <Trash2 className="h-4 w-4 text-rose-300" />
                 </Button>
               </div>
@@ -805,7 +807,7 @@ export function TrussCustomModelEditor({
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
                 <div className="space-y-1">
                   <div className={fieldLabelClass}>杆件编号</div>
-                  <Input value={member.id} onChange={(e) => updateMember(index, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
+                  <Input aria-label={`第 ${index + 1} 个杆件编号`} value={member.id} onChange={(e) => updateMember(index, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
                 </div>
                 <div className="space-y-1">
                   <div className={fieldLabelClass}>起点节点</div>
@@ -815,6 +817,7 @@ export function TrussCustomModelEditor({
                     options={nodeOptions}
                     className="min-w-0 text-xs font-mono"
                     menuClassName="text-xs font-mono"
+                    ariaLabel={`第 ${index + 1} 个杆件起点节点`}
                   />
                 </div>
                 <div className="space-y-1">
@@ -825,10 +828,11 @@ export function TrussCustomModelEditor({
                     options={nodeOptions}
                     className="min-w-0 text-xs font-mono"
                     menuClassName="text-xs font-mono"
+                    ariaLabel={`第 ${index + 1} 个杆件终点节点`}
                   />
                 </div>
                 <div className="flex items-end md:justify-end">
-                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => removeMember(index)}>
+                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => removeMember(index)} aria-label={`删除第 ${index + 1} 个杆件`}>
                     <Trash2 className="h-4 w-4 text-rose-300" />
                   </Button>
                 </div>
@@ -836,11 +840,11 @@ export function TrussCustomModelEditor({
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
                 <div className="space-y-1">
                   <div className={fieldLabelClass}>弹性模量</div>
-                  <Input type="number" value={member.E_GPa} onChange={(e) => updateMember(index, { E_GPa: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+                  <Input aria-label={`第 ${index + 1} 个杆件弹性模量`} type="number" value={member.E_GPa} onChange={(e) => updateMember(index, { E_GPa: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
                 </div>
                 <div className="space-y-1">
                   <div className={fieldLabelClass}>截面面积</div>
-                  <Input type="number" value={member.A_cm2} onChange={(e) => updateMember(index, { A_cm2: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+                  <Input aria-label={`第 ${index + 1} 个杆件截面面积`} type="number" value={member.A_cm2} onChange={(e) => updateMember(index, { A_cm2: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
                 </div>
                 <div className="space-y-1">
                   <div className={fieldLabelClass}>杆件类型</div>
@@ -897,18 +901,19 @@ export function TrussCustomModelEditor({
                       options={LOAD_TYPE_OPTIONS}
                       className="text-xs font-mono"
                       menuClassName="text-xs font-mono"
+                      ariaLabel={`第 ${index + 1} 条荷载类型`}
                     />
                   </div>
                   <div className="space-y-1">
                     <div className={fieldLabelClass}>{isMemberLoad ? "作用杆件" : "作用节点"}</div>
                     {isMemberLoad ? (
-                      <DropdownSelect value={load.member} onChange={(nextValue) => updateLoad(index, { member: nextValue } as Partial<TrussLoad>)} options={memberOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" />
+                      <DropdownSelect value={load.member} onChange={(nextValue) => updateLoad(index, { member: nextValue } as Partial<TrussLoad>)} options={memberOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${index + 1} 条荷载作用杆件`} />
                     ) : (
-                      <DropdownSelect value={load.node} onChange={(nextValue) => updateLoad(index, { node: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" />
+                      <DropdownSelect value={load.node} onChange={(nextValue) => updateLoad(index, { node: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${index + 1} 条荷载作用节点`} />
                     )}
                   </div>
                   <div className="flex items-end">
-                    <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => removeLoad(index)}>
+                    <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => removeLoad(index)} aria-label={`删除第 ${index + 1} 条荷载`}>
                       <Trash2 className="h-4 w-4 text-rose-300" />
                     </Button>
                   </div>
@@ -923,30 +928,31 @@ export function TrussCustomModelEditor({
                         options={MEMBER_LOAD_DIRECTION_OPTIONS}
                         className="text-xs font-mono"
                         menuClassName="text-xs font-mono"
+                        ariaLabel={`第 ${index + 1} 条荷载方向`}
                       />
                     </div>
                     <div className="space-y-1">
                       <div className={fieldLabelClass}>起点线荷载（kN/m）</div>
-                      <Input type="number" step="0.1" value={load.qStartKnPerM ?? load.wyKnPerM ?? 0} onChange={(e) => updateLoad(index, { qStartKnPerM: Number(e.target.value) || 0 } as Partial<TrussLoad>)} className="h-10 min-w-0 font-mono text-xs" />
+                      <Input aria-label={`第 ${index + 1} 条荷载起点线荷载（kN/m）`} type="number" step="0.1" value={load.qStartKnPerM ?? load.wyKnPerM ?? 0} onChange={(e) => updateLoad(index, { qStartKnPerM: Number(e.target.value) || 0 } as Partial<TrussLoad>)} className="h-10 min-w-0 font-mono text-xs" />
                     </div>
                     <div className="space-y-1">
                       <div className={fieldLabelClass}>终点线荷载（kN/m）</div>
-                      <Input type="number" step="0.1" value={load.qEndKnPerM ?? load.wyKnPerM ?? 0} onChange={(e) => updateLoad(index, { qEndKnPerM: Number(e.target.value) || 0 } as Partial<TrussLoad>)} className="h-10 min-w-0 font-mono text-xs" />
+                      <Input aria-label={`第 ${index + 1} 条荷载终点线荷载（kN/m）`} type="number" step="0.1" value={load.qEndKnPerM ?? load.wyKnPerM ?? 0} onChange={(e) => updateLoad(index, { qEndKnPerM: Number(e.target.value) || 0 } as Partial<TrussLoad>)} className="h-10 min-w-0 font-mono text-xs" />
                     </div>
                     <div className="space-y-1">
                       <div className={fieldLabelClass}>自重强度（可选，kN/m）</div>
-                      <Input type="number" step="0.1" value={load.selfWeightKnPerM ?? ""} onChange={(e) => updateLoad(index, { selfWeightKnPerM: e.target.value === "" ? undefined : Number(e.target.value) || 0 } as Partial<TrussLoad>)} className="h-10 min-w-0 font-mono text-xs" placeholder="优先按向下自重换算" />
+                      <Input aria-label={`第 ${index + 1} 条荷载自重强度（可选，kN/m）`} type="number" step="0.1" value={load.selfWeightKnPerM ?? ""} onChange={(e) => updateLoad(index, { selfWeightKnPerM: e.target.value === "" ? undefined : Number(e.target.value) || 0 } as Partial<TrussLoad>)} className="h-10 min-w-0 font-mono text-xs" placeholder="优先按向下自重换算" />
                     </div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-1">
                       <div className={fieldLabelClass}>X 向力</div>
-                      <Input type="number" step="0.1" value={load.fxKn ?? 0} onChange={(e) => updateLoad(index, { fxKn: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+                      <Input aria-label={`第 ${index + 1} 条荷载 X 向力`} type="number" step="0.1" value={load.fxKn ?? 0} onChange={(e) => updateLoad(index, { fxKn: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
                     </div>
                     <div className="space-y-1">
                       <div className={fieldLabelClass}>Y 向力</div>
-                      <Input type="number" step="0.1" value={load.fyKn ?? 0} onChange={(e) => updateLoad(index, { fyKn: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+                      <Input aria-label={`第 ${index + 1} 条荷载 Y 向力`} type="number" step="0.1" value={load.fyKn ?? 0} onChange={(e) => updateLoad(index, { fyKn: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
                     </div>
                   </div>
                 )}

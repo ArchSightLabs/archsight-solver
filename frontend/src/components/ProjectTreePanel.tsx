@@ -37,6 +37,7 @@ export function ProjectTreePanel({ project, collapsed = false, compact = false, 
               key={object.id}
               type="button"
               onClick={() => onSelectObject(object.id)}
+              aria-label={displayName}
               title={displayName}
               className={`flex h-10 w-10 items-center justify-center rounded-lg border transition-colors ${
                 active
@@ -51,6 +52,7 @@ export function ProjectTreePanel({ project, collapsed = false, compact = false, 
         <button
           type="button"
           onClick={onCreateObject}
+          aria-label="新建分析对象"
           title="新建分析对象"
           className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-muted-foreground hover:bg-primary/5 hover:text-foreground"
         >

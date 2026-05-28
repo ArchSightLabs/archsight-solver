@@ -23,17 +23,21 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({
   options,
   className
 }) => {
+  const labelId = React.useId();
+
   return (
     <div className={cn("space-y-2.5", className)}>
-      <label className="block text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] px-1">
+      <div id={labelId} className="block text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] px-1">
         {label}
-      </label>
-      <div className="grid grid-cols-3 gap-2">
+      </div>
+      <div className="grid grid-cols-3 gap-2" role="group" aria-labelledby={labelId}>
         {options.map((option) => {
           const isActive = value === option.value;
           return (
             <button
               key={option.value}
+              type="button"
+              aria-pressed={isActive}
               onClick={() => onChange(option.value)}
               className={cn(
                 "cursor-pointer relative flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-300 overflow-hidden group",
