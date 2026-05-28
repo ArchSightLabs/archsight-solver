@@ -21,7 +21,7 @@ def test_benchmark_contract_document_matches_project_terms():
 
     expected_signatures = [
         "跨度必须大于 0",
-        "跨度数量超出系统限制 (最大 64 跨)",
+        "跨度数量超出系统限制 (最大 300 跨)",
         "模拟时长超出系统限制 (最大 120s)",
         "梁模型刚度矩阵奇异，请检查支座与跨度设置",
         "节点 ID 重复",

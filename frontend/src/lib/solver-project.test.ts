@@ -11,8 +11,8 @@ import {
   removeAnalysisObjectFromProject,
   updateActiveAnalysisObjectWorkspace,
 } from "./solver-project.ts";
-import { MAX_FRAME_MEMBERS, MAX_FRAME_NODES, MAX_TRUSS_MEMBERS, MAX_TRUSS_NODES } from "./solver-limits.ts";
-import { normalizeFrameWorkspaceState, normalizeTrussWorkspaceState } from "./workspace-state.ts";
+import { MAX_BEAM_SPANS, MAX_FRAME_MEMBERS, MAX_FRAME_NODES, MAX_TRUSS_MEMBERS, MAX_TRUSS_NODES } from "./solver-limits.ts";
+import { normalizeBeamWorkspaceState, normalizeFrameWorkspaceState, normalizeTrussWorkspaceState } from "./workspace-state.ts";
 
 test("默认求解器项目包含一个梁系分析对象", () => {
   const project = createDefaultSolverProject(new Date("2026-05-21T12:00:00.000Z"));
@@ -127,6 +127,33 @@ test("公开验证算例展示名自动补两位连续编号", () => {
 
   assert.equal(getAnalysisObjectDisplayName(object, 3), "04 Warren 型屋架");
   assert.equal(getAnalysisObjectDisplayName({ ...object, name: "04 Warren 型屋架" }, 3), "04 Warren 型屋架");
+});
+
+test("规范化梁工作台时保留超过 64 跨的连续梁模型", () => {
+  const spans = Array.from({ length: 72 }, () => ({
+    length: 4,
+    E: 210,
+    I: 6000,
+    materialId: "q345",
+  }));
+
+  const normalized = normalizeBeamWorkspaceState({ spans });
+
+  assert.equal(normalized.spans.length, 72);
+});
+
+test("规范化梁工作台时按显式上限截断超大跨段模型", () => {
+  const spans = Array.from({ length: MAX_BEAM_SPANS + 12 }, (_, index) => ({
+    length: 3 + (index % 4) * 0.5,
+    E: 210,
+    I: 6000,
+    materialId: "q345",
+  }));
+
+  const normalized = normalizeBeamWorkspaceState({ spans });
+
+  assert.equal(normalized.spans.length, MAX_BEAM_SPANS);
+  assert.equal(normalized.spans.at(-1)?.length, spans[MAX_BEAM_SPANS - 1].length);
 });
 
 test("规范化框架工作台时保留超过 60 根自定义构件", () => {

@@ -73,7 +73,7 @@ def _frame_base_payload():
     ("payload_factory", "expected_error"),
     [
         (lambda: {**_beam_base_payload(), "spans": []}, "跨度必须大于 0"),
-        (lambda: {**_beam_base_payload(), "spans": [5.0] * 65}, "跨度数量超出系统限制 (最大 64 跨)"),
+        (lambda: {**_beam_base_payload(), "spans": [5.0] * 301}, "跨度数量超出系统限制 (最大 300 跨)"),
         (lambda: {**_beam_base_payload(), "duration": 121}, "模拟时长超出系统限制 (最大 120s)"),
         (
             lambda: {

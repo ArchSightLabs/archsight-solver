@@ -76,7 +76,7 @@ def get_persistence_decision() -> str:
 
 def get_max_beam_spans() -> int:
     limits = load_defaults().get("analysisLimits", {})
-    return _env_int("ARCHSIGHT_MAX_BEAM_SPANS", int(limits.get("beamMaxSpans", 64)))
+    return _env_int("ARCHSIGHT_MAX_BEAM_SPANS", int(limits.get("beamMaxSpans", 300)))
 
 
 def get_max_frame_nodes() -> int:
@@ -113,7 +113,7 @@ def get_sparse_dof_threshold() -> int:
 def resolve_output_precision(payload: Mapping[str, Any] | None = None) -> Dict[str, int]:
     defaults = load_defaults().get("outputPrecision", {})
     precision: Dict[str, int] = {
-        "displayDecimals": _env_int("ARCHSIGHT_DISPLAY_DECIMALS", int(defaults.get("displayDecimals", 3))),
+        "displayDecimals": _env_int("ARCHSIGHT_DISPLAY_DECIMALS", int(defaults.get("displayDecimals", 4))),
         "summaryDecimals": _env_int("ARCHSIGHT_SUMMARY_DECIMALS", int(defaults.get("summaryDecimals", 4))),
         "seriesDecimals": _env_int("ARCHSIGHT_SERIES_DECIMALS", int(defaults.get("seriesDecimals", 6))),
     }

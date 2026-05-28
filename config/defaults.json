@@ -24,14 +24,14 @@
     "deflection": "mm"
   },
   "analysisLimits": {
-    "beamMaxSpans": 64,
+    "beamMaxSpans": 300,
     "frameMaxNodes": 300,
     "frameMaxMembers": 900,
     "trussMaxNodes": 300,
     "trussMaxMembers": 900
   },
   "outputPrecision": {
-    "displayDecimals": 3,
+    "displayDecimals": 4,
     "summaryDecimals": 4,
     "seriesDecimals": 6
   },

@@ -38,6 +38,13 @@ def test_beam_span_limit_can_be_raised_by_environment(monkeypatch):
     assert len(request["spans"]) == 65
 
 
+def test_beam_default_limits_and_display_precision_follow_configuration():
+    request = normalize_beam_request({**_beam_payload(), "spans": [1.0] * 300})
+
+    assert len(request["spans"]) == 300
+    assert request["output_precision"]["displayDecimals"] == 4
+
+
 def test_beam_output_precision_can_keep_small_nonzero_deflection(client):
     payload = {
         **_beam_payload(),

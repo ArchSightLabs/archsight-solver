@@ -40,7 +40,8 @@ BEAM_SUPPORT_LABELS = {
 DEFAULT_PROJECT_NAME = "默认结构工程项目"
 DEFAULT_MATERIAL_NAME = "自定义材料"
 DEFLECTION_LIMIT_RATIO = 250.0
-DEFAULT_BEAM_SPAN_LIMIT_MESSAGE = "跨度数量超出系统限制 (最大 64 跨)"
+DEFAULT_BEAM_MAX_SPANS = 300
+DEFAULT_BEAM_SPAN_LIMIT_MESSAGE = "跨度数量超出系统限制 (最大 300 跨)"
 
 
 def normalize_span_properties(
@@ -474,7 +475,7 @@ def normalize_beam_request(data: Dict[str, Any]) -> Dict[str, Any]:
         raise ValueError("跨度必须大于 0")
     max_spans = get_max_beam_spans()
     if len(spans) > max_spans:
-        message = DEFAULT_BEAM_SPAN_LIMIT_MESSAGE if max_spans == 64 else f"跨度数量超出系统限制 (最大 {max_spans} 跨)"
+        message = DEFAULT_BEAM_SPAN_LIMIT_MESSAGE if max_spans == DEFAULT_BEAM_MAX_SPANS else f"跨度数量超出系统限制 (最大 {max_spans} 跨)"
         raise ValueError(message)
 
     beam_type = sanitize_label(data.get("beamType", "continuous"), BEAM_TYPE_LABELS, "continuous")
