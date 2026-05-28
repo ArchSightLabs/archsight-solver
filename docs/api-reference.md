@@ -206,6 +206,28 @@ Content-Type: application/json
 - 桁架不做拓扑变化、构件增删或可靠度分析。
 - `0%` 扰动点应与基础求解链路一致。
 
+## POST /api/export
+
+导出 WORD 或 XLSX 计算书。输入为任一求解 payload，附加：
+
+```json
+{
+  "format": "docx",
+  "sensitivityResults": {},
+  "reportImages": {},
+  "reportOptions": {}
+}
+```
+
+字段说明：
+
+- `format`：`docx` 或 `xlsx`，默认 `xlsx`。
+- `sensitivityResults`：可选敏感性分析结果，仅作为计算书附录资料写入。
+- `reportImages`：可选结构图、变形图、内力图等图片资源。
+- `reportOptions`：可选计算书图形范围与排版配置。
+
+导出结果是二进制文件；导出计算书展示求解证据、平衡校核、验证集覆盖说明和适用边界，不构成工程签审结论。
+
 ## POST /api/jobs
 
 提交异步作业，适合批量计算、Agent 自动调用和未来 SaaS 长任务。
@@ -274,6 +296,10 @@ Content-Type: application/json
 ```http
 GET /api/contracts/schemas/asms-frame-model
 ```
+
+## GET /api/contracts/openapi
+
+返回由当前 JSON Schema Registry 组装的 OpenAPI 3.1 文档，覆盖同步求解、预览、敏感性分析、异步作业、计算书导出和契约端点。敏感性分析、计算书导出和 Schema Registry 使用端点专属 schema，避免把附加字段折叠成通用求解 payload。该文档用于系统集成、SDK 生成和接口审阅；字段语义仍以 ASMS-JSON 和对应 schema 为准。
 
 ## Capability CLI
 

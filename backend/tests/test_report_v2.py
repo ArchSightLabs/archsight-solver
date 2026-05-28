@@ -48,7 +48,13 @@ class TestFeatureSpecificationCalculationReportGenerationV2:
         response = client.post('/api/export', json=payload)
         doc = Document(io.BytesIO(response.data))
         
-        full_text = "\n".join([p.text for p in doc.paragraphs])
+        table_text = "\n".join(
+            cell.text
+            for table in doc.tables
+            for row in table.rows
+            for cell in row.cells
+        )
+        full_text = "\n".join([p.text for p in doc.paragraphs]) + "\n" + table_text
         assert "1. 项目概况" in full_text
         assert "2. 输入参数" in full_text
         assert "2.1 结构预览图" in full_text
@@ -65,6 +71,9 @@ class TestFeatureSpecificationCalculationReportGenerationV2:
         assert "边界条件表" in full_text
         assert "计算方法说明" in full_text
         assert "校核证据" in full_text
+        assert "公开验证集" in full_text
+        assert "当前分析类型 beam 覆盖" in full_text
+        assert "仅证明当前分析类型验证集覆盖范围内的回归一致性" in full_text
         assert len(doc.inline_shapes) >= 4
 
     def test_ac4_material_mapping(self, client):

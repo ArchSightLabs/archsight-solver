@@ -5,6 +5,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional
 
 import pandas as pd
 
+from backend.benchmarks.catalog import load_benchmark_catalog
 from backend.normalizers.structural_model import (
     FRAME_SUPPORT_LABELS,
     SUPPORT_DOF_MAP,
@@ -101,6 +102,7 @@ def _beam_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str,
         "校核证据": pd.DataFrame(
             [
                 ["竖向平衡校核", f"外荷载合力 {round(load_total, 6)} kN；支座反力合力 {round(reaction_total, 6)} kN", f"残差 {round(residual, 6)} kN，相对误差 {_format_percent(relative)}"],
+                ["公开验证集", _benchmark_summary_text("beam"), "仅证明当前分析类型验证集覆盖范围内的回归一致性"],
                 ["标准/教学校核", _symbolic_check_text(solution), "有解析或教材公式时列出理论值、求解值和适用限制"],
                 ["控制挠度", f"{round(solution.get('max_deflection_mm', 0.0), 6)} mm @ x={round(solution.get('max_deflection_position_m', 0.0), 6)} m", f"允许值 {round(solution.get('allowable_mm', 0.0), 6)} mm"],
                 ["控制弯矩", f"{round(max_moment_value, 6)} kN.m @ x={round(max_moment_x, 6)} m", "按弯矩图绝对值最大点提取"],
@@ -162,6 +164,7 @@ def _frame_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str
             [
                 ["X 向平衡校核", f"外荷载 {round(equilibrium['loadFxKn'], 6)} kN；支座反力 {round(equilibrium['reactionFxKn'], 6)} kN", f"残差 {round(equilibrium['residualFxKn'], 6)} kN，相对误差 {_format_percent(equilibrium['relativeFx'])}"],
                 ["Y 向平衡校核", f"外荷载 {round(equilibrium['loadFyKn'], 6)} kN；支座反力 {round(equilibrium['reactionFyKn'], 6)} kN", f"残差 {round(equilibrium['residualFyKn'], 6)} kN，相对误差 {_format_percent(equilibrium['relativeFy'])}"],
+                ["公开验证集", _benchmark_summary_text("frame"), "仅证明当前分析类型验证集覆盖范围内的回归一致性"],
                 ["控制位移", _node_control_text(max_node), f"允许值 {round(solution.get('summary', {}).get('allowableMm', 0.0), 6)} mm"],
                 ["控制弯矩", _frame_moment_text(max_moment), "按所有杆端弯矩绝对值最大提取"],
                 ["稳定初筛", f"P-Delta: {solution.get('secondOrder', {}).get('riskLevel', '未启用')}；屈曲: {solution.get('buckling', {}).get('riskLevel', '未启用')}", "该项为初筛提示"],
@@ -222,6 +225,7 @@ def _truss_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str
             [
                 ["X 向平衡校核", f"外荷载 {round(equilibrium['loadFxKn'], 6)} kN；支座反力 {round(equilibrium['reactionFxKn'], 6)} kN", f"残差 {round(equilibrium['residualFxKn'], 6)} kN，相对误差 {_format_percent(equilibrium['relativeFx'])}"],
                 ["Y 向平衡校核", f"外荷载 {round(equilibrium['loadFyKn'], 6)} kN；支座反力 {round(equilibrium['reactionFyKn'], 6)} kN", f"残差 {round(equilibrium['residualFyKn'], 6)} kN，相对误差 {_format_percent(equilibrium['relativeFy'])}"],
+                ["公开验证集", _benchmark_summary_text("truss"), "仅证明当前分析类型验证集覆盖范围内的回归一致性"],
                 ["求解残差", f"RMS 相对误差 {solution.get('summary', {}).get('equilibriumRmsRelativeError', '—')}", f"最大残差 {solution.get('summary', {}).get('equilibriumMaxResidualN', '—')} N"],
                 ["控制位移", _node_control_text(max_node), f"允许值 {round(solution.get('summary', {}).get('allowableMm', 0.0), 6)} mm"],
                 ["控制轴力", f"{max_member.get('memberId', '—')}：{round(abs(float(max_member.get('axialForceKn', 0.0))), 6)} kN", "按杆件轴力绝对值最大提取"],
@@ -292,6 +296,27 @@ def _member_unit_table(*, include_inertia: bool) -> pd.DataFrame:
         rows.append(["构件分布荷载 q", "kN/m", "N/m", "1 kN/m = 1000 N/m"])
         rows.append(["节点力矩 M", "kN.m", "N.m", "1 kN.m = 1000 N.m"])
     return pd.DataFrame(rows, columns=["输入量", "原始单位", "计算单位", "换算关系"])
+
+
+def _benchmark_summary_text(analysis_type: str) -> str:
+    catalog = load_benchmark_catalog()
+    cases = catalog.get("cases", [])
+    categories_by_type = {
+        "beam": {"beam"},
+        "frame": {"frame", "frame-beam-verify"},
+        "truss": {"truss", "truss-verify"},
+    }
+    categories = categories_by_type.get(analysis_type, {analysis_type})
+    relevant_cases = [case for case in cases if str(case.get("category", "")) in categories]
+    source_types = sorted(
+        {
+            str(case.get("verification", {}).get("sourceType", ""))
+            for case in relevant_cases
+            if case.get("verification", {}).get("sourceType")
+        }
+    )
+    category_text = "/".join(sorted(categories))
+    return f"当前分析类型 {category_text} 覆盖 {len(relevant_cases)} 个算例；全量公开验证集 {len(cases)} 个；来源类型：{', '.join(source_types)}"
 
 
 def _beam_vertical_load_kn(request: Mapping[str, Any]) -> float:

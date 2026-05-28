@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify
 
+from backend.contracts.openapi import build_openapi_document
 from backend.contracts.json_schemas import API_SCHEMA_VERSION, schema_by_id, schema_registry
 
 contracts_bp = Blueprint("contracts", __name__)
@@ -42,3 +43,7 @@ def get_schema(schema_id: str):
         )
     return jsonify(schema)
 
+
+@contracts_bp.route("/contracts/openapi", methods=["GET"])
+def get_openapi_document():
+    return jsonify(build_openapi_document())
