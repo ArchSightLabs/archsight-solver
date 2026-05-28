@@ -88,6 +88,8 @@ export function ProjectTreePanel({ project, collapsed = false, compact = false, 
             <div className="font-mono text-[11px] text-foreground">{activeObject.benchmark.caseId}</div>
             <div>{activeObject.benchmark.sourceLabel}</div>
             {activeObject.benchmark.metricSummary ? <div>{activeObject.benchmark.metricSummary}</div> : null}
+            {activeObject.benchmark.expectedSummary ? <div>{activeObject.benchmark.expectedSummary}</div> : null}
+            {activeObject.benchmark.toleranceSummary ? <div>{activeObject.benchmark.toleranceSummary}</div> : null}
             {activeObject.benchmark.reference ? <div className="max-h-16 overflow-hidden">{activeObject.benchmark.reference}</div> : null}
             {activeObject.benchmark.sourceLinks.length ? (
               <div className="flex flex-wrap gap-2 pt-1">

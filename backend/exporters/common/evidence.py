@@ -103,6 +103,7 @@ def _beam_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str,
             [
                 ["竖向平衡校核", f"外荷载合力 {round(load_total, 6)} kN；支座反力合力 {round(reaction_total, 6)} kN", f"残差 {round(residual, 6)} kN，相对误差 {_format_percent(relative)}"],
                 ["公开验证集", _benchmark_summary_text("beam"), "仅证明当前分析类型验证集覆盖范围内的回归一致性"],
+                *_active_benchmark_rows(solution),
                 ["标准/教学校核", _symbolic_check_text(solution), "有解析或教材公式时列出理论值、求解值和适用限制"],
                 ["控制挠度", f"{round(solution.get('max_deflection_mm', 0.0), 6)} mm @ x={round(solution.get('max_deflection_position_m', 0.0), 6)} m", f"允许值 {round(solution.get('allowable_mm', 0.0), 6)} mm"],
                 ["控制弯矩", f"{round(max_moment_value, 6)} kN.m @ x={round(max_moment_x, 6)} m", "按弯矩图绝对值最大点提取"],
@@ -165,6 +166,7 @@ def _frame_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str
                 ["X 向平衡校核", f"外荷载 {round(equilibrium['loadFxKn'], 6)} kN；支座反力 {round(equilibrium['reactionFxKn'], 6)} kN", f"残差 {round(equilibrium['residualFxKn'], 6)} kN，相对误差 {_format_percent(equilibrium['relativeFx'])}"],
                 ["Y 向平衡校核", f"外荷载 {round(equilibrium['loadFyKn'], 6)} kN；支座反力 {round(equilibrium['reactionFyKn'], 6)} kN", f"残差 {round(equilibrium['residualFyKn'], 6)} kN，相对误差 {_format_percent(equilibrium['relativeFy'])}"],
                 ["公开验证集", _benchmark_summary_text("frame"), "仅证明当前分析类型验证集覆盖范围内的回归一致性"],
+                *_active_benchmark_rows(solution),
                 ["控制位移", _node_control_text(max_node), f"允许值 {round(solution.get('summary', {}).get('allowableMm', 0.0), 6)} mm"],
                 ["控制弯矩", _frame_moment_text(max_moment), "按所有杆端弯矩绝对值最大提取"],
                 ["稳定初筛", f"P-Delta: {solution.get('secondOrder', {}).get('riskLevel', '未启用')}；屈曲: {solution.get('buckling', {}).get('riskLevel', '未启用')}", "该项为初筛提示"],
@@ -226,6 +228,7 @@ def _truss_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str
                 ["X 向平衡校核", f"外荷载 {round(equilibrium['loadFxKn'], 6)} kN；支座反力 {round(equilibrium['reactionFxKn'], 6)} kN", f"残差 {round(equilibrium['residualFxKn'], 6)} kN，相对误差 {_format_percent(equilibrium['relativeFx'])}"],
                 ["Y 向平衡校核", f"外荷载 {round(equilibrium['loadFyKn'], 6)} kN；支座反力 {round(equilibrium['reactionFyKn'], 6)} kN", f"残差 {round(equilibrium['residualFyKn'], 6)} kN，相对误差 {_format_percent(equilibrium['relativeFy'])}"],
                 ["公开验证集", _benchmark_summary_text("truss"), "仅证明当前分析类型验证集覆盖范围内的回归一致性"],
+                *_active_benchmark_rows(solution),
                 ["求解残差", f"RMS 相对误差 {solution.get('summary', {}).get('equilibriumRmsRelativeError', '—')}", f"最大残差 {solution.get('summary', {}).get('equilibriumMaxResidualN', '—')} N"],
                 ["控制位移", _node_control_text(max_node), f"允许值 {round(solution.get('summary', {}).get('allowableMm', 0.0), 6)} mm"],
                 ["控制轴力", f"{max_member.get('memberId', '—')}：{round(abs(float(max_member.get('axialForceKn', 0.0))), 6)} kN", "按杆件轴力绝对值最大提取"],
@@ -317,6 +320,43 @@ def _benchmark_summary_text(analysis_type: str) -> str:
     )
     category_text = "/".join(sorted(categories))
     return f"当前分析类型 {category_text} 覆盖 {len(relevant_cases)} 个算例；全量公开验证集 {len(cases)} 个；来源类型：{', '.join(source_types)}"
+
+
+def _active_benchmark_rows(solution: Mapping[str, Any]) -> List[List[str]]:
+    benchmark = solution.get("benchmark")
+    if not isinstance(benchmark, Mapping):
+        return []
+    case_id = str(benchmark.get("caseId", "")).strip()
+    if not case_id:
+        return []
+    source = str(benchmark.get("sourceLabel") or benchmark.get("sourceType") or "验证来源")
+    reference = str(benchmark.get("reference") or benchmark.get("method") or "当前计算书导出时随分析对象传入")
+    expected = str(benchmark.get("expectedSummary") or _format_mapping_summary(benchmark.get("expected", {})))
+    tolerance = str(benchmark.get("toleranceSummary") or _format_mapping_summary(benchmark.get("tolerances", {})))
+    rows = [
+        ["当前算例来源", f"{case_id} / {source}", reference],
+    ]
+    if expected:
+        rows.append(["当前算例标准值", expected, "来源于 benchmark expected 字段"])
+    if tolerance:
+        rows.append(["当前算例容许误差", tolerance, "来源于 benchmark tolerances 字段"])
+    return rows
+
+
+def _format_mapping_summary(values: Any) -> str:
+    if not isinstance(values, Mapping) or not values:
+        return ""
+    parts = []
+    for key, value in values.items():
+        if isinstance(value, list):
+            parts.append(f"{key}={len(value)} 项")
+        elif isinstance(value, Mapping):
+            parts.append(f"{key}={len(value)} 项")
+        else:
+            parts.append(f"{key}={value}")
+    if len(parts) > 6:
+        parts = [*parts[:6], f"另 {len(parts) - 6} 项"]
+    return "；".join(parts)
 
 
 def _beam_vertical_load_kn(request: Mapping[str, Any]) -> float:

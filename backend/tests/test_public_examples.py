@@ -47,7 +47,10 @@ def test_public_examples_api_returns_importable_projects(client):
     assert data["schemaVersion"] == 1
     assert data["caseCount"] == 33
     assert len(data["projects"]) == 3
-    assert data["projects"][0]["project"]["objects"][0]["benchmark"]["caseId"]
+    benchmark = data["projects"][0]["project"]["objects"][0]["benchmark"]
+    assert benchmark["caseId"]
+    assert benchmark["expectedSummary"].startswith("标准值：")
+    assert benchmark["toleranceSummary"].startswith("容许误差：")
 
 
 def test_public_examples_endpoint_is_published_in_openapi():
@@ -55,3 +58,6 @@ def test_public_examples_endpoint_is_published_in_openapi():
 
     assert "/api/examples/projects" in document["paths"]
     assert "public-example-projects-response" in document["components"]["schemas"]
+    benchmark_schema = document["components"]["schemas"]["public-example-projects-response"]["properties"]["projects"]["items"]["properties"]["project"]["properties"]["objects"]["items"]["properties"]["benchmark"]
+    assert "expectedSummary" in benchmark_schema["properties"]
+    assert "toleranceSummary" in benchmark_schema["properties"]

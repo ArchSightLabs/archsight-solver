@@ -26,6 +26,8 @@ def test_schema_registry_contains_api_and_tool_contracts():
     assert "job-request" in registry
     assert "calculate-tool-input" in registry
     assert "benchmark-case-run-input" in registry
+    assert "benchmark-submission-input" in registry
+    assert "benchmark-submission-response" in registry
     assert registry["asms-frame-model"]["properties"]["structure"]["required"] == ["nodes", "members"]
     assert registry["asms-truss-model"]["properties"]["structure"]["properties"]["loads"]["items"]["required"] == ["type", "node"]
     assert registry["job-request"]["required"] == ["payload"]
@@ -64,6 +66,9 @@ def test_openapi_document_reuses_schema_registry():
     }
     assert document["components"]["schemas"]["export-payload"]["properties"]["format"]["enum"] == ["xlsx", "docx"]
     assert "500" in document["paths"]["/api/export"]["post"]["responses"]
+    assert document["paths"]["/api/benchmark-submissions"]["post"]["requestBody"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/benchmark-submission-input"
+    }
     assert document["paths"]["/api/contracts/schemas"]["get"]["responses"]["200"]["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/schema-registry-response"
     }
@@ -76,6 +81,7 @@ def test_openapi_endpoint_exposes_document(client):
     payload = response.get_json()
     assert payload["openapi"] == "3.1.0"
     assert "/api/sensitivity" in payload["paths"]
+    assert "/api/benchmark-submissions" in payload["paths"]
 
 
 def test_schema_endpoint_returns_single_schema(client):

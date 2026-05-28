@@ -172,10 +172,12 @@ export function PublicExamplesDialog({ onClose, onOpenProject }: PublicExamplesD
                     <div className="mt-3 space-y-1.5 text-xs leading-5 text-muted-foreground">
                       <div className="flex items-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-200">
                         <ShieldCheck className="h-3.5 w-3.5" />
-                        {object.benchmark?.sourceLabel}
+                      {object.benchmark?.sourceLabel}
                       </div>
                       {object.benchmark?.purpose ? <div>{object.benchmark.purpose}</div> : null}
                       {object.benchmark?.metricSummary ? <div>{object.benchmark.metricSummary}</div> : null}
+                      {object.benchmark?.expectedSummary ? <div>{object.benchmark.expectedSummary}</div> : null}
+                      {object.benchmark?.toleranceSummary ? <div>{object.benchmark.toleranceSummary}</div> : null}
                       {object.benchmark?.sourceLinks?.length ? (
                         <div className="flex flex-wrap gap-2 pt-1">
                           {object.benchmark.sourceLinks.slice(0, 2).map((link, index) => (

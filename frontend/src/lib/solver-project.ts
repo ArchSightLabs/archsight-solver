@@ -40,6 +40,8 @@ export interface BenchmarkCaseSource {
   sourceLinks: string[];
   checkedMetrics: string[];
   metricSummary: string;
+  expectedSummary: string;
+  toleranceSummary: string;
   expected: Record<string, unknown>;
   tolerances: Record<string, unknown>;
 }
@@ -210,6 +212,8 @@ function normalizeBenchmarkCaseSource(rawSource: unknown): BenchmarkCaseSource |
     sourceLinks: Array.isArray(source.sourceLinks) ? source.sourceLinks.map((link) => String(link)).filter(Boolean) : [],
     checkedMetrics: Array.isArray(source.checkedMetrics) ? source.checkedMetrics.map((metric) => String(metric)).filter(Boolean) : [],
     metricSummary: String(source.metricSummary ?? ""),
+    expectedSummary: String(source.expectedSummary ?? ""),
+    toleranceSummary: String(source.toleranceSummary ?? ""),
     expected: source.expected && typeof source.expected === "object" ? source.expected : {},
     tolerances: source.tolerances && typeof source.tolerances === "object" ? source.tolerances : {},
   };

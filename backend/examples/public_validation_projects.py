@@ -40,7 +40,40 @@ GROUPS = [
 SOURCE_LABELS = {
     "textbook-analytical": "教材解析解",
     "independent-stiffness-baseline": "独立刚度法基准",
+    "engineering-software": "工程软件对标",
     "internal-regression": "内部回归算例",
+}
+
+METRIC_LABELS = {
+    "supportCount": "支座数量",
+    "nodeCount": "节点数量",
+    "memberCount": "构件数量",
+    "statusCode": "状态码",
+    "maxDeflectionMm": "最大挠度",
+    "maxDeflectionXM": "最大挠度位置",
+    "midSpanDisplacementMm": "跨中挠度",
+    "maxDisplacementMm": "最大节点位移",
+    "maxDisplacementNodeId": "控制节点",
+    "maxMomentKnM": "最大构件弯矩",
+    "maxAxialForceKn": "最大杆件轴力",
+    "maxAxialForceMemberId": "控制杆件",
+    "supportReactions": "支座反力",
+    "memberAxialForces": "杆件轴力明细",
+    "memberAxialForceKn": "杆件轴力容差",
+    "reactionKn": "支座反力容差",
+    "reactionFyKn": "竖向反力容差",
+}
+
+METRIC_UNITS = {
+    "maxDeflectionMm": "mm",
+    "maxDeflectionXM": "m",
+    "midSpanDisplacementMm": "mm",
+    "maxDisplacementMm": "mm",
+    "maxMomentKnM": "kN.m",
+    "maxAxialForceKn": "kN",
+    "memberAxialForceKn": "kN",
+    "reactionKn": "kN",
+    "reactionFyKn": "kN",
 }
 
 
@@ -74,6 +107,34 @@ def _case_metric_summary(case: Mapping[str, Any]) -> str:
     if "maxAxialForceKn" in expected:
         return f"最大轴力 {expected['maxAxialForceKn']} kN"
     return ""
+
+
+def _format_metric_value(key: str, value: Any) -> str:
+    label = METRIC_LABELS.get(key, key)
+    if isinstance(value, list):
+        return f"{label} {len(value)} 项"
+    if isinstance(value, Mapping):
+        return f"{label} {len(value)} 项"
+    unit = METRIC_UNITS.get(key, "")
+    return f"{label} {value}{(' ' + unit) if unit else ''}"
+
+
+def _case_expected_summary(case: Mapping[str, Any]) -> str:
+    expected = case.get("expected", {})
+    if not isinstance(expected, Mapping):
+        return ""
+    parts = [_format_metric_value(key, value) for key, value in expected.items()]
+    if len(parts) > 6:
+        parts = [*parts[:6], f"另 {len(parts) - 6} 项"]
+    return "标准值：" + "；".join(parts) if parts else ""
+
+
+def _case_tolerance_summary(case: Mapping[str, Any]) -> str:
+    tolerances = case.get("tolerances", {})
+    if not isinstance(tolerances, Mapping):
+        return ""
+    parts = [_format_metric_value(key, value) for key, value in tolerances.items()]
+    return "容许误差：" + "；".join(parts) if parts else ""
 
 
 def _support_constraints(support_type: str) -> list[str]:
@@ -269,6 +330,8 @@ def _benchmark_meta(case: Mapping[str, Any]) -> Dict[str, Any]:
         "sourceLinks": verification.get("sourceLinks", []) if isinstance(verification, Mapping) else [],
         "checkedMetrics": verification.get("checkedMetrics", []) if isinstance(verification, Mapping) else [],
         "metricSummary": _case_metric_summary(case),
+        "expectedSummary": _case_expected_summary(case),
+        "toleranceSummary": _case_tolerance_summary(case),
         "expected": case.get("expected", {}),
         "tolerances": case.get("tolerances", {}),
     }

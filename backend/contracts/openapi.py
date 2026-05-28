@@ -85,6 +85,7 @@ def build_openapi_document() -> Dict[str, Any]:
             {"name": "contracts", "description": "Schema 与 OpenAPI 契约"},
             {"name": "export", "description": "计算书导出"},
             {"name": "examples", "description": "公开工程案例与验证集工程入口"},
+            {"name": "benchmark-submissions", "description": "公开验证算例投稿前自动校验"},
         ],
     }
 
@@ -247,6 +248,18 @@ def _paths() -> Dict[str, Any]:
                 "responses": _json_response("public-example-projects-response"),
             }
         },
+        "/api/benchmark-submissions": {
+            "post": {
+                "tags": ["benchmark-submissions"],
+                "summary": "提交公开验证算例草案并执行自动校验",
+                "description": "接收完整模型、标准值、容许误差和验证来源；当前接口只做投稿前校验，响应中 persisted 固定为 false。",
+                "requestBody": _json_request("benchmark-submission-input"),
+                "responses": {
+                    **_json_response("benchmark-submission-response"),
+                    **_error_response(),
+                },
+            }
+        },
     }
 
 
@@ -406,6 +419,8 @@ def _public_example_projects_response_schema() -> Dict[str, Any]:
             "sourceLinks": {"type": "array", "items": {"type": "string", "format": "uri"}},
             "checkedMetrics": {"type": "array", "items": {"type": "string"}},
             "metricSummary": {"type": "string"},
+            "expectedSummary": {"type": "string"},
+            "toleranceSummary": {"type": "string"},
             "expected": {"type": "object", "additionalProperties": True},
             "tolerances": {"type": "object", "additionalProperties": True},
         },

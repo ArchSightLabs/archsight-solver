@@ -9,7 +9,7 @@
 | `app.py` | Flask 应用入口，负责初始化、蓝图注册、日志和前端静态文件服务。 |
 | `backend/` | 后端 API、结构求解、输入归一化、导出、benchmark、CLI/MCP 能力和测试。 |
 | `frontend/` | React + Vite + TypeScript 前端工作台。 |
-| `data/` | 公开样例数据，例如 Agent workflow few-shot。 |
+| `data/` | 公开样例数据，例如 Agent workflow few-shot 与模板验证映射。 |
 | `docs/` | 公开文档，面向用户、贡献者和第三方集成方。 |
 | `.github/` | GitHub Actions、Issue 模板和 PR 模板。 |
 | `Dockerfile`、`docker-compose.yml` | 单镜像构建和本地容器运行入口。 |
@@ -18,9 +18,9 @@
 
 | 路径 | 用途 |
 |---|---|
-| `backend/api/` | Flask API 蓝图，包括求解、预览、导出、作业、契约和公开案例接口。 |
+| `backend/api/` | Flask API 蓝图，包括求解、预览、导出、作业、契约、公开案例和 benchmark 投稿校验接口。 |
 | `backend/application/` | 应用层编排，承接结构求解前后的业务流程。 |
-| `backend/benchmarks/` | 公开验证集目录、运行器和报告生成。 |
+| `backend/benchmarks/` | 公开验证集目录、字段说明、运行器和报告生成。 |
 | `backend/capabilities/` | 本地 CLI、MCP server 和确定性工具封装。 |
 | `backend/contracts/` | JSON Schema Registry 与 OpenAPI 文档生成。 |
 | `backend/examples/` | 可导入工作台的公开工程案例生成逻辑。 |
@@ -46,9 +46,11 @@
 | 路径 | 用途 |
 |---|---|
 | `data/agent_workflows/asms_few_shots.json` | Agent 从自然语言工况到 ASMS-JSON、CLI/MCP 调用和 benchmark 复核的可测试样例。 |
+| `data/verification/template_benchmark_map.json` | 前端内置模板到公开 benchmark 的对应/相近映射。 |
 | `docs/asms-json-schema.md` | ASMS-JSON / Model Schema 字段语义、单位口径和结构体系边界。 |
 | `docs/api-reference.md` | REST API、CLI、MCP 和错误码说明。 |
 | `docs/verification/benchmark-validation-report.md` | 当前公开验证集自动生成报告。 |
+| `docs/verification/benchmark-catalog-summary.md` | 自动生成的 benchmark 人工阅读目录，包含算例标准值、容许误差和模板映射。 |
 
 ## 本地忽略目录
 

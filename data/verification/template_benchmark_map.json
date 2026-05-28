@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-05-28",
+  "templates": [
+    {
+      "module": "beam",
+      "templateId": "simple-span-uniform",
+      "templateTitle": "简支梁均布荷载",
+      "validationRefs": [
+        {
+          "caseId": "beam-simply-supported-uniform",
+          "relation": "对应",
+          "note": "同为单跨简支梁全跨均布荷载，主要复核最大挠度与峰值位置。"
+        }
+      ]
+    },
+    {
+      "module": "beam",
+      "templateId": "cantilever-tip-load",
+      "templateTitle": "悬臂梁端部集中力",
+      "validationRefs": [
+        {
+          "caseId": "beam-cantilever-end-point",
+          "relation": "对应",
+          "note": "同为悬臂梁自由端集中荷载，主要复核自由端挠度。"
+        }
+      ]
+    },
+    {
+      "module": "beam",
+      "templateId": "two-span-continuous",
+      "templateTitle": "两跨连续梁",
+      "validationRefs": [
+        {
+          "caseId": "beam-continuous-two-span-uniform",
+          "relation": "对应",
+          "note": "同为两跨连续梁均布荷载，主要复核连续梁变形控制值。"
+        }
+      ]
+    },
+    {
+      "module": "beam",
+      "templateId": "three-span-linear",
+      "templateTitle": "三跨连续梁线性分布荷载",
+      "validationRefs": [
+        {
+          "caseId": "beam-continuous-three-span-uniform",
+          "relation": "相近",
+          "note": "验证对象同为三跨连续梁；公开 benchmark 采用均布荷载，模板采用线性分布荷载。"
+        }
+      ]
+    },
+    {
+      "module": "frame",
+      "templateId": "portal-single-bay",
+      "templateTitle": "单跨单层刚架",
+      "validationRefs": [
+        {
+          "caseId": "frame-portal-benchmark",
+          "relation": "相近",
+          "note": "同为单跨门式刚架；荷载组合略有差异，主要复核位移与构件弯矩口径。"
+        }
+      ]
+    },
+    {
+      "module": "frame",
+      "templateId": "frame-two-bay",
+      "templateTitle": "两跨单层框架",
+      "validationRefs": [
+        {
+          "caseId": "frame-explicit-two-bay",
+          "relation": "对应",
+          "note": "同为显式两跨单层框架，主要复核节点位移、构件弯矩与对象数量。"
+        }
+      ]
+    },
+    {
+      "module": "frame",
+      "templateId": "frame-two-story",
+      "templateTitle": "两层两跨框架",
+      "validationRefs": [
+        {
+          "caseId": "frame-explicit-two-bay",
+          "relation": "相近",
+          "note": "公开 benchmark 覆盖显式两跨单层框架；该模板扩展到两层，需另补专门 benchmark。"
+        }
+      ]
+    },
+    {
+      "module": "frame",
+      "templateId": "braced-frame",
+      "templateTitle": "带斜撑框架",
+      "validationRefs": [
+        {
+          "caseId": "frame-portal-benchmark",
+          "relation": "相关",
+          "note": "共享门式刚架基本边界；斜撑端部释放与抗侧效果仍需新增专项 benchmark。"
+        }
+      ]
+    },
+    {
+      "module": "truss",
+      "templateId": "simple-roof-truss",
+      "templateTitle": "简支三角屋架",
+      "validationRefs": [
+        {
+          "caseId": "truss-simple-roof",
+          "relation": "对应",
+          "note": "同为简支屋架节点荷载，主要复核节点位移与杆件轴力。"
+        }
+      ]
+    },
+    {
+      "module": "truss",
+      "templateId": "pratt-truss",
+      "templateTitle": "Pratt 桁架",
+      "validationRefs": [
+        {
+          "caseId": "truss-pratt-bridge",
+          "relation": "对应",
+          "note": "同为 Pratt 桁架，主要复核节点位移、杆件轴力和控制杆件。"
+        }
+      ]
+    },
+    {
+      "module": "truss",
+      "templateId": "warren-truss",
+      "templateTitle": "Warren 桁架",
+      "validationRefs": [
+        {
+          "caseId": "truss-warren-roof",
+          "relation": "对应",
+          "note": "同为 Warren 桁架，主要复核节点位移与杆件轴力。"
+        }
+      ]
+    },
+    {
+      "module": "truss",
+      "templateId": "cantilever-truss",
+      "templateTitle": "悬臂桁架",
+      "validationRefs": [
+        {
+          "caseId": "truss-cantilever-panel",
+          "relation": "对应",
+          "note": "同为悬挑桁架体系，主要复核自由端节点位移与杆件轴力。"
+        }
+      ]
+    }
+  ]
+}

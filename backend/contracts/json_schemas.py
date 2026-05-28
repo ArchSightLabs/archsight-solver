@@ -3,7 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any, Dict
 
-API_SCHEMA_VERSION = "2026-05-26"
+API_SCHEMA_VERSION = "2026-05-28"
 
 
 QUANTITY_SCHEMA: Dict[str, Any] = {
@@ -411,6 +411,100 @@ BENCHMARK_CASE_RUN_INPUT_SCHEMA: Dict[str, Any] = {
     "additionalProperties": False,
 }
 
+BENCHMARK_SUBMISSION_CASE_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "required": ["id", "category", "title", "purpose", "payload", "expected", "tolerances", "verification"],
+    "properties": {
+        "id": {"type": "string", "description": "建议使用稳定短横线 caseId。"},
+        "category": {
+            "type": "string",
+            "enum": ["beam", "frame", "truss", "frame-beam-verify", "truss-verify"],
+        },
+        "title": {"type": "string"},
+        "purpose": {"type": "string", "description": "说明该算例验证的结构体系、边界或荷载特征。"},
+        "payload": SOLVER_PAYLOAD_SCHEMA,
+        "expected": {
+            "type": "object",
+            "description": "标准结果值，例如最大挠度、最大节点位移、最大杆件轴力等。",
+            "minProperties": 1,
+            "additionalProperties": True,
+        },
+        "tolerances": {
+            "type": "object",
+            "description": "与 expected 对应的容许误差。",
+            "minProperties": 1,
+            "additionalProperties": True,
+        },
+        "verification": {
+            "type": "object",
+            "required": ["sourceType", "method", "checkedMetrics"],
+            "properties": {
+                "sourceType": {
+                    "type": "string",
+                    "enum": [
+                        "textbook-analytical",
+                        "independent-stiffness-baseline",
+                        "engineering-software",
+                        "internal-regression",
+                    ],
+                },
+                "reference": {"type": "string"},
+                "method": {"type": "string"},
+                "sourceLinks": {"type": "array", "items": {"type": "string"}},
+                "checkedMetrics": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+            },
+            "additionalProperties": True,
+        },
+    },
+    "additionalProperties": True,
+}
+
+BENCHMARK_SUBMISSION_INPUT_SCHEMA: Dict[str, Any] = {
+    "$id": "https://archsight.cn/schemas/solver/benchmark-submission-input.schema.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "公开验证算例投稿输入",
+    "description": "用于云端服务执行投稿前自动校验；请求必须包含完整结构模型、标准值、容许误差和验证来源。",
+    "type": "object",
+    "required": ["case"],
+    "properties": {
+        "case": BENCHMARK_SUBMISSION_CASE_SCHEMA,
+        "contributor": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "organization": {"type": "string"},
+                "contact": {"type": "string"},
+            },
+            "additionalProperties": True,
+        },
+        "notes": {"type": "string"},
+    },
+    "additionalProperties": False,
+}
+
+BENCHMARK_SUBMISSION_RESPONSE_SCHEMA: Dict[str, Any] = {
+    "$id": "https://archsight.cn/schemas/solver/benchmark-submission-response.schema.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "公开验证算例投稿校验响应",
+    "type": "object",
+    "required": ["success", "operation", "submissionId", "reviewStatus", "persisted", "caseDraft", "evaluation"],
+    "properties": {
+        "success": {"type": "boolean", "const": True},
+        "operation": {"type": "string", "const": "submit_benchmark_case"},
+        "version": {"type": "string"},
+        "schemaVersion": {"type": "string"},
+        "submissionId": {"type": "string"},
+        "reviewStatus": {"type": "string", "enum": ["ready_for_review", "needs_correction"]},
+        "persisted": {"type": "boolean", "const": False},
+        "caseDraft": BENCHMARK_SUBMISSION_CASE_SCHEMA,
+        "evaluation": {"type": "object", "additionalProperties": True},
+        "diagnostics": {"type": "object", "additionalProperties": True},
+        "nextSteps": {"type": "array", "items": {"type": "string"}},
+        "meta": {"type": "object", "additionalProperties": True},
+    },
+    "additionalProperties": True,
+}
+
 SCHEMA_REGISTRY: Dict[str, Dict[str, Any]] = {
     "asms-model": ASMS_MODEL_SCHEMA,
     "asms-beam-model": ASMS_BEAM_MODEL_SCHEMA,
@@ -427,6 +521,8 @@ SCHEMA_REGISTRY: Dict[str, Dict[str, Any]] = {
     "sensitivity-tool-input": SENSITIVITY_TOOL_INPUT_SCHEMA,
     "benchmark-case-list-input": BENCHMARK_CASE_LIST_INPUT_SCHEMA,
     "benchmark-case-run-input": BENCHMARK_CASE_RUN_INPUT_SCHEMA,
+    "benchmark-submission-input": BENCHMARK_SUBMISSION_INPUT_SCHEMA,
+    "benchmark-submission-response": BENCHMARK_SUBMISSION_RESPONSE_SCHEMA,
 }
 
 

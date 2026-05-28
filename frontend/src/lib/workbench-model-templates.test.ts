@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { buildBeamPayload, buildFramePayload, buildTrussPayload, validateCustomFrameWorkspace, validateCustomTrussWorkspace } from "../solver-payload.ts";
 import {
@@ -10,6 +11,18 @@ import {
   applyTrussModelTemplate,
 } from "./workbench-model-templates.ts";
 import { createDefaultBeamWorkspaceState, createDefaultFrameWorkspaceState, createDefaultTrussWorkspaceState } from "./workspace-state.ts";
+
+interface TemplateBenchmarkMap {
+  templates: {
+    module: "beam" | "frame" | "truss";
+    templateId: string;
+    validationRefs: { caseId: string; relation: string; note: string }[];
+  }[];
+}
+
+const TEMPLATE_BENCHMARK_MAP = JSON.parse(
+  readFileSync(new URL("../../../data/verification/template_benchmark_map.json", import.meta.url), "utf-8")
+) as TemplateBenchmarkMap;
 
 test("内置梁系典型案例可导入并构造求解载荷", () => {
   assert.ok(BEAM_MODEL_TEMPLATES.length >= 4);
@@ -24,6 +37,29 @@ test("内置梁系典型案例可导入并构造求解载荷", () => {
     const payload = buildBeamPayload(workspace);
     assert.equal(payload.analysisType, "beam");
     assert.equal(payload.spans.length, template.state.spans.length);
+  }
+});
+
+test("内置模板均标注公开验证集映射", () => {
+  const templates = [
+    ...BEAM_MODEL_TEMPLATES.map((template) => ({ module: "beam", template })),
+    ...FRAME_MODEL_TEMPLATES.map((template) => ({ module: "frame", template })),
+    ...TRUSS_MODEL_TEMPLATES.map((template) => ({ module: "truss", template })),
+  ];
+  const mappingByTemplate = new Map(TEMPLATE_BENCHMARK_MAP.templates.map((item) => [`${item.module}:${item.templateId}`, item]));
+
+  for (const { module, template } of templates) {
+    assert.ok(template.validationRefs.length >= 1, `${template.id} 应标注 benchmark 映射`);
+    for (const ref of template.validationRefs) {
+      assert.ok(ref.caseId.trim(), `${template.id} 的 benchmark caseId 不能为空`);
+      assert.ok(ref.note.trim(), `${template.id} 的映射说明不能为空`);
+    }
+    const mapped = mappingByTemplate.get(`${module}:${template.id}`);
+    assert.ok(mapped, `${template.id} 应写入 docs/verification 的模板映射事实源`);
+    assert.deepEqual(
+      template.validationRefs.map((ref) => ref.caseId),
+      mapped.validationRefs.map((ref) => ref.caseId)
+    );
   }
 });
 

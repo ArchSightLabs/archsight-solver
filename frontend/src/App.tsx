@@ -233,7 +233,15 @@ function App() {
     handleRunCurrentModule,
     handleSensitivity,
     handleExport,
-  } = useWorkbenchActions(workspace, updateWorkspace, setCompactWorkbenchView, clientId, reportExportOptions, project.settings.projectInfo.name);
+  } = useWorkbenchActions(
+    workspace,
+    updateWorkspace,
+    setCompactWorkbenchView,
+    clientId,
+    reportExportOptions,
+    project.settings.projectInfo.name,
+    getActiveAnalysisObject(project).benchmark
+  );
 
   useEffect(() => {
     const previousRuntime = lastRuntimePersistRef.current;

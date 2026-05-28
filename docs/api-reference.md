@@ -3,7 +3,7 @@
 ## 版本与边界
 
 - API 版本：`v1`
-- Schema 版本：`2026-05-26`
+- Schema 版本：`2026-05-28`
 - 默认本地地址：`http://127.0.0.1:6240`
 - 核心对象：梁系、二维平面框架、二维平面桁架
 - 计算假定：线弹性、小变形、确定性静力分析；当前开源核心不提供规范设计、施工安全签审或三维杆系分析
@@ -20,6 +20,7 @@ ASMS-JSON 是 ArchSight Solver 的结构力学数据入口标准，用同一份 
 - **JSON Schema 是契约**：`GET /api/contracts/schemas/asms-model` 是总入口，`asms-beam-model`、`asms-frame-model`、`asms-truss-model` 是结构体系子契约。
 - **benchmark 是证据**：公开验证集使用同源 ASMS-JSON payload，Agent 或 CI 可通过 `benchmark_case_run` 记录复核证据。
 - **公开案例是可见入口**：`GET /api/examples/projects` 将公开验证集组合成可直接导入工作台的工程案例，适合第三方平台复核和演示。
+- **算例投稿必须带标准值**：`POST /api/benchmark-submissions` 接收完整模型、标准值、容许误差和验证来源，并在入库前执行自动校验。
 - **REST / CLI / MCP 是同源执行面**：REST 直接提交 ASMS-JSON；CLI 与 MCP 使用 `{ "payload": <ASMS-JSON> }` 包装，计算链路仍与 `/api/calculate` 同源。
 
 协议字段说明见 `docs/asms-json-schema.md`，Agent 从自然语言到 ASMS-JSON 的调用闭环见 `docs/agent-engineering-workflow.md`，可测试样例库见 `data/agent_workflows/asms_few_shots.json`。
@@ -229,7 +230,13 @@ Content-Type: application/json
   "format": "docx",
   "sensitivityResults": {},
   "reportImages": {},
-  "reportOptions": {}
+  "reportOptions": {},
+  "benchmark": {
+    "caseId": "beam-simply-supported-uniform",
+    "sourceLabel": "教材解析解",
+    "expectedSummary": "标准值：最大挠度 7.624943 mm",
+    "toleranceSummary": "容许误差：最大挠度 0.001 mm"
+  }
 }
 ```
 
@@ -239,6 +246,7 @@ Content-Type: application/json
 - `sensitivityResults`：可选敏感性分析结果，仅作为计算书附录资料写入。
 - `reportImages`：可选结构图、变形图、内力图等图片资源。
 - `reportOptions`：可选计算书图形范围与排版配置。
+- `benchmark`：可选验证来源元数据；公开案例导出的计算书会写入 `caseId`、标准值和容许误差。
 
 导出结果是二进制文件；导出计算书展示求解证据、平衡校核、验证集覆盖说明和适用边界，不构成工程签审结论。
 
@@ -302,6 +310,8 @@ Content-Type: application/json
 - `calculate-tool-input`
 - `sensitivity-tool-input`
 - `benchmark-case-run-input`
+- `benchmark-submission-input`
+- `benchmark-submission-response`
 
 ## GET /api/contracts/schemas/{schemaId}
 
@@ -313,7 +323,7 @@ GET /api/contracts/schemas/asms-frame-model
 
 ## GET /api/contracts/openapi
 
-返回由当前 JSON Schema Registry 组装的 OpenAPI 3.1 文档，覆盖同步求解、预览、敏感性分析、异步作业、计算书导出和契约端点。敏感性分析、计算书导出和 Schema Registry 使用端点专属 schema，避免把附加字段折叠成通用求解 payload。该文档用于系统集成、SDK 生成和接口审阅；字段语义仍以 ASMS-JSON 和对应 schema 为准。
+返回由当前 JSON Schema Registry 组装的 OpenAPI 3.1 文档，覆盖同步求解、预览、敏感性分析、异步作业、计算书导出、公开案例、benchmark 投稿校验和契约端点。敏感性分析、计算书导出、benchmark 投稿和 Schema Registry 使用端点专属 schema，避免把附加字段折叠成通用求解 payload。该文档用于系统集成、SDK 生成和接口审阅；字段语义仍以 ASMS-JSON 和对应 schema 为准。
 
 ## GET /api/examples/projects
 
@@ -335,6 +345,54 @@ GET /api/examples/projects
 - `projects[].project`：可直接被前端工作台导入的工程对象。
 - `projects[].project.objects[].benchmark`：该分析对象对应的验证元数据，包含 `caseId`、来源类型、参考说明、校核指标、标准值和容许误差。
 - `sourceLinks`：可用公开出处链接；内部回归算例可能没有外部链接，应按来源类型如实展示。
+
+## POST /api/benchmark-submissions
+
+提交公开验证算例草案并执行投稿前自动校验。该接口面向云端服务、第三方教学平台和开源贡献流程，必须同时提供计算参数、标准结果值、容许误差和验证来源。
+
+```json
+{
+  "case": {
+    "id": "beam-example-from-contributor",
+    "category": "beam",
+    "title": "投稿简支梁均布荷载算例",
+    "purpose": "复核单跨简支梁均布荷载最大挠度。",
+    "payload": {
+      "analysisType": "beam",
+      "beamType": "simply_supported",
+      "loadType": "uniform",
+      "spans": [6],
+      "q": 12,
+      "E": 206,
+      "I": 85000
+    },
+    "expected": {
+      "supportCount": 2,
+      "maxDeflectionMm": 7.624943,
+      "maxDeflectionXM": 3
+    },
+    "tolerances": {
+      "maxDeflectionMm": 0.001,
+      "maxDeflectionXM": 0.01
+    },
+    "verification": {
+      "sourceType": "textbook-analytical",
+      "reference": "结构力学教材简支梁均布荷载公式",
+      "method": "按 5qL^4/(384EI) 独立计算最大挠度。",
+      "checkedMetrics": ["最大挠度", "峰值位置", "支座数量"]
+    }
+  }
+}
+```
+
+成功响应：
+
+- `evaluation.passed`：标准值与当前求解结果是否在容许误差内。
+- `reviewStatus`：`ready_for_review` 或 `needs_correction`。
+- `persisted`：当前固定为 `false`，表示服务端只做投稿前校验，不直接入库。
+- `caseDraft`：可用于 PR / Issue 附件的标准化算例草案。
+
+桁架投稿的主校核指标必须保持桁架口径：节点位移、杆件轴力、杆件轴应力和支座反力。接口会拒绝把弯矩或剪力作为桁架 benchmark 主指标。
 
 ## Capability CLI
 
@@ -392,6 +450,7 @@ Prompts：
 - `COMMON_UNSUPPORTED_ASYNC_OPERATION`：不支持的异步作业类型。
 - `COMMON_JOB_NOT_FOUND`：异步作业不存在。
 - `COMMON_SCHEMA_NOT_FOUND`：Schema 不存在。
+- `BENCHMARK_SUBMISSION_INVALID`：公开验证算例投稿草案不满足必填字段、力学口径或自动校验入口要求。
 - `BEAM_INVALID_REQUEST`：梁系输入错误。
 - `FRAME_INVALID_REQUEST`：框架输入错误。
 - `TRUSS_INVALID_REQUEST`：桁架输入错误。

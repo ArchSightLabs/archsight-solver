@@ -8,6 +8,7 @@ import type { WorkspaceState } from "../lib/workspace-state";
 import { analysisRequestFromResult, apiErrorMessage, beamResultForView, frameResultForView, normalizeAnalysisResponse, trussResultForView } from "../lib/api-envelope";
 import { buildReportImages } from "../lib/report-images";
 import type { ReportExportOptions } from "../lib/report-options";
+import type { BenchmarkCaseSource } from "../lib/solver-project";
 
 export type AnalysisResults = BeamCalculationResults | FrameCalculationResults | TrussCalculationResults | null;
 export type ExportFormat = "docx" | "xlsx";
@@ -37,7 +38,8 @@ export function useWorkbenchActions(
   setCompactWorkbenchView: (view: "parameters" | "results") => void,
   clientId: string,
   reportExportOptions: ReportExportOptions,
-  projectName: string
+  projectName: string,
+  activeBenchmark?: BenchmarkCaseSource
 ) {
   const [analysisData, setAnalysisData] = useState<AnalysisResults>(null);
   const [sensitivityData, setSensitivityData] = useState<SensitivityResults | null>(null);
@@ -158,8 +160,8 @@ export function useWorkbenchActions(
     try {
       const exportPayload =
         format === "docx" && sensitivityData
-          ? { ...payload, format, sensitivityResults: sensitivityData, reportOptions: reportExportOptions }
-          : { ...payload, format, ...(format === "docx" ? { reportOptions: reportExportOptions } : {}) };
+          ? { ...payload, format, sensitivityResults: sensitivityData, reportOptions: reportExportOptions, benchmark: activeBenchmark }
+          : { ...payload, format, benchmark: activeBenchmark, ...(format === "docx" ? { reportOptions: reportExportOptions } : {}) };
       const beamResultsForReport = beamResultForView(analysisData);
       const frameResultsForReport = frameResultForView(analysisData);
       const trussResultsForReport = trussResultForView(analysisData);
