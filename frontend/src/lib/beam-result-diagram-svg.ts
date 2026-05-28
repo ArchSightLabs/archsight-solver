@@ -1,6 +1,6 @@
 import type { BeamCalculationResults, BeamPreviewData, BeamSupportType } from "../types/beam.ts";
 import { findBeamDiagramKeyPoints, type BeamDiagramKeyPointKind, type BeamDiagramMetricKey } from "./beam-diagram-key-points.ts";
-import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments, type BeamSpanDimension } from "./beam-span-dimensions.ts";
+import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments, formatBeamDimensionLength, type BeamSpanDimension } from "./beam-span-dimensions.ts";
 import { formatEngineeringValue } from "./engineering-format.ts";
 
 interface BeamDiagramMetric {
@@ -44,8 +44,7 @@ const RESULT_LINE_STROKE_WIDTH = 2;
 const SUPPORT_BASE_STROKE_WIDTH = 1.25;
 const NODE_RADIUS = 3;
 const EXTREME_RADIUS = 4;
-const SPAN_DIMENSION_Y = BEAM_RESULT_DIAGRAM_SVG_HEIGHT - 52;
-const SPAN_DIMENSION_TICK = 7;
+const SPAN_MEMBER_LABEL_Y = BEAM_Y + 18;
 const SPAN_DIMENSION_LEGEND_X = 32;
 const SPAN_DIMENSION_LEGEND_Y = 50;
 const SPAN_DIMENSION_LEGEND_GAP = 15;
@@ -156,29 +155,18 @@ function resultPointBlockers(points: SvgPoint[]): WeightedLabelBlocker[] {
 
 function spanDimensionBlockers(dimensions: BeamSpanDimension[], compact: boolean): WeightedLabelBlocker[] {
   const fontSize = compact ? 9 : 11;
-  const labelY = SPAN_DIMENSION_Y - 9;
   return dimensions.flatMap((dimension) => {
-    const lineBlocker = {
-      left: dimension.start,
-      right: dimension.end,
-      top: SPAN_DIMENSION_Y - SPAN_DIMENSION_TICK - 2,
-      bottom: SPAN_DIMENSION_Y + SPAN_DIMENSION_TICK + 2,
-      weight: 1.6,
-    };
-    if (!dimension.label) return [lineBlocker];
+    if (!dimension.label) return [];
 
     const midX = (dimension.start + dimension.end) / 2;
     const labelWidth = estimateTextWidth(dimension.label, fontSize) + 10;
-    return [
-      lineBlocker,
-      {
-        left: midX - labelWidth / 2,
-        right: midX + labelWidth / 2,
-        top: labelY - fontSize - 4,
-        bottom: labelY + 4,
-        weight: 14,
-      },
-    ];
+    return [{
+      left: midX - labelWidth / 2,
+      right: midX + labelWidth / 2,
+      top: SPAN_MEMBER_LABEL_Y - fontSize - 4,
+      bottom: SPAN_MEMBER_LABEL_Y + 4,
+      weight: 10,
+    }];
   });
 }
 
@@ -388,7 +376,7 @@ export function buildBeamResultDiagramSvg(results: BeamCalculationResults, metri
         `<line x1="42" y1="${n(BEAM_RESULT_DIAGRAM_SVG_HEIGHT * ratio)}" x2="${BEAM_RESULT_DIAGRAM_SVG_WIDTH - 42}" y2="${n(BEAM_RESULT_DIAGRAM_SVG_HEIGHT * ratio)}" stroke="${COLORS.grid}" stroke-opacity="0.78" stroke-width="${GRID_STROKE_WIDTH}" stroke-dasharray="6 8" />`,
     )
     .join("")}
-  <text x="32" y="30" fill="${COLORS.label}" font-size="${compact ? 10 : 12}" font-family="${DIAGRAM_LABEL_FONT}" font-weight="${DIAGRAM_LABEL_WEIGHT}">梁长 = ${escapeSvg(totalLength.toFixed(2))} m</text>
+  <text x="32" y="30" fill="${COLORS.label}" font-size="${compact ? 10 : 12}" font-family="${DIAGRAM_LABEL_FONT}" font-weight="${DIAGRAM_LABEL_WEIGHT}">梁长=${escapeSvg(formatBeamDimensionLength(totalLength))}</text>
   <g fill="${COLORS.label}" stroke="${COLORS.textHalo}" stroke-width="${STATION_TEXT_HALO_WIDTH}" paint-order="stroke" font-family="${DIAGRAM_LABEL_FONT}">
     ${spanDimensionLegendRows
       .map(
@@ -406,28 +394,22 @@ export function buildBeamResultDiagramSvg(results: BeamCalculationResults, metri
       return `
       <g>
         ${supportMarkerSvg(support.type, x)}
-        <text x="${n(x)}" y="${BEAM_Y + 58}" fill="${COLORS.label}" text-anchor="middle" font-size="${compact ? 9 : 11}" font-family="${DIAGRAM_LABEL_FONT}" font-weight="${DIAGRAM_LABEL_WEIGHT}">${escapeSvg(`S${index + 1}`)}</text>
+        <text x="${n(x)}" y="${BEAM_Y + 58}" fill="${COLORS.label}" text-anchor="middle" font-size="${compact ? 9 : 11}" font-family="${DIAGRAM_LABEL_FONT}" font-weight="${DIAGRAM_LABEL_WEIGHT}">${escapeSvg(support.label || `S${index + 1}`)}</text>
       </g>`;
     })
     .join("")}
   ${(beam.nodes ?? [])
     .map((node) => `<circle cx="${n(mapX(node.x))}" cy="${BEAM_Y}" r="${NODE_RADIUS}" fill="${node.support ? COLORS.node : COLORS.guide}" />`)
     .join("")}
-  <g stroke="${COLORS.guide}" stroke-width="1.1" fill="${COLORS.label}" font-family="${DIAGRAM_LABEL_FONT}">
+  <g fill="${COLORS.label}" font-family="${DIAGRAM_LABEL_FONT}">
     ${spanDimensions
       .map((dimension) => {
         const midX = (dimension.start + dimension.end) / 2;
+        if (!dimension.label) return "";
         return `
         <g>
           <title>${escapeSvg(dimension.title)}</title>
-          <line x1="${n(dimension.start)}" y1="${SPAN_DIMENSION_Y}" x2="${n(dimension.end)}" y2="${SPAN_DIMENSION_Y}" />
-          <line x1="${n(dimension.start)}" y1="${SPAN_DIMENSION_Y - SPAN_DIMENSION_TICK}" x2="${n(dimension.start)}" y2="${SPAN_DIMENSION_Y + SPAN_DIMENSION_TICK}" />
-          <line x1="${n(dimension.end)}" y1="${SPAN_DIMENSION_Y - SPAN_DIMENSION_TICK}" x2="${n(dimension.end)}" y2="${SPAN_DIMENSION_Y + SPAN_DIMENSION_TICK}" />
-          ${
-            dimension.label
-              ? `<text x="${n(midX)}" y="${SPAN_DIMENSION_Y - 9}" text-anchor="middle" font-size="${compact ? 9 : 11}" font-weight="${DIAGRAM_LABEL_WEIGHT}" stroke="${COLORS.textHalo}" stroke-width="${STATION_TEXT_HALO_WIDTH}" paint-order="stroke">${escapeSvg(dimension.label)}</text>`
-              : ""
-          }
+          <text x="${n(midX)}" y="${SPAN_MEMBER_LABEL_Y}" text-anchor="middle" font-size="${compact ? 10 : 12}" font-weight="${DIAGRAM_LABEL_WEIGHT}" stroke="${COLORS.textHalo}" stroke-width="${STATION_TEXT_HALO_WIDTH}" paint-order="stroke">${escapeSvg(dimension.label)}</text>
         </g>`;
       })
       .join("")}

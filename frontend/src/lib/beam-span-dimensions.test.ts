@@ -16,13 +16,13 @@ test("buildBeamSpanDimensionSegments preserves precise length labels when span m
   assert.equal(segments[0]?.label, null);
   assert.equal(segments[0]?.title, "B1：第 1 跨，N1-N2，L = 0.20 m");
   assert.equal(segments[2]?.label, "B3");
-  assert.equal(segments[2]?.lengthLabel, "L = 7.60 m");
+  assert.equal(segments[2]?.lengthLabel, "7.6m");
   assert.equal(segments[segments.length - 1]?.end, 920);
 });
 
 test("buildBeamSpanDimensionLegendRows wraps index length references", () => {
   const segments = buildBeamSpanDimensionSegments([4, 4, 3], 11, 80, 920);
 
-  assert.deepEqual(buildBeamSpanDimensionLegendRows(segments, 150), ["B1-B2 L = 4.00 m", "B3 L = 3.00 m"]);
-  assert.deepEqual(buildBeamSpanDimensionLegendRows(segments, 420), ["B1-B2 L = 4.00 m    B3 L = 3.00 m"]);
+  assert.deepEqual(buildBeamSpanDimensionLegendRows(segments, 100), ["B1-B2=4m", "B3=3m"]);
+  assert.deepEqual(buildBeamSpanDimensionLegendRows(segments, 420), ["B1-B2=4m，B3=3m"]);
 });

@@ -190,6 +190,7 @@ export interface BeamPreviewData {
   };
   reactions: Array<{
     dof: number;
+    supportId?: string;
     valueN: number;
     valueKn: number;
   }>;

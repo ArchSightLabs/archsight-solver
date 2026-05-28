@@ -11,7 +11,10 @@ def build_preview_beam(solution: Dict[str, Any]) -> Dict[str, Any]:
     total_length = float(request["total_length"])
     support_positions = solution["support_positions"]
     support_specs = solution.get("support_specs", [])
-    labels = [f"S{idx + 1}" for idx in range(len(support_positions))]
+    labels = [
+        str(support_specs[idx].get("id") or f"S{idx + 1}") if idx < len(support_specs) else f"S{idx + 1}"
+        for idx in range(len(support_positions))
+    ]
 
     supports = []
     for idx, position in enumerate(support_positions):
@@ -108,7 +111,12 @@ def build_preview_beam(solution: Dict[str, Any]) -> Dict[str, Any]:
             "spanIndex": max_span_index,
         },
         "reactions": [
-            {"dof": index, "valueN": float(item.get("vertical", 0.0) * 1000.0), "valueKn": float(item.get("vertical", 0.0))}
+            {
+                "dof": index,
+                "supportId": labels[index] if index < len(labels) else f"S{index + 1}",
+                "valueN": float(item.get("vertical", 0.0) * 1000.0),
+                "valueKn": float(item.get("vertical", 0.0)),
+            }
             for index, item in enumerate(solution.get("reactions", []))
         ],
         "queryResults": solution.get("queryResults", []),

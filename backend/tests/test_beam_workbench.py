@@ -87,6 +87,8 @@ def test_beam_supports_query_points_and_timoshenko_option(client):
     data = response.get_json()
     assert data["payload"]["beamTheory"] == "timoshenko"
     assert data["beam"]["beamTheoryLabel"] == "Timoshenko 梁理论"
+    assert [item["label"] for item in data["beam"]["supports"]] == ["A", "B"]
+    assert [item["supportId"] for item in data["beam"]["reactions"]] == ["A", "B"]
     assert [item["xM"] for item in data["queryResults"]] == [0.0, 2.0, 4.0]
     assert abs(data["queryResults"][1]["momentKnM"]) > 0.0
 

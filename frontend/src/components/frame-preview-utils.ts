@@ -46,6 +46,14 @@ export type FrameLoadMarker =
 interface FrameLoadMarkerContext {
   nodeMap: Map<string, FramePreviewPoint>;
   memberMap: Map<string, { start: string; end: string }>;
+  loadLabel?: FrameLoadLabelSet;
+}
+
+export interface FrameLoadLabelSet {
+  force?: string;
+  moment?: string;
+  memberPoint?: string;
+  distributed?: string;
 }
 
 function memberLoadDirection(
@@ -86,24 +94,64 @@ function distributedRange(load: Extract<FrameLoad, { type: "distributed" }>) {
   return { startRatio, endRatio, qStart, qEnd };
 }
 
-function frameLoadMagnitude(value: number) {
+export function frameLoadMagnitude(value: number) {
   return Math.abs(value).toFixed(1);
 }
 
-function frameDistributedLoadLabel(
-  memberId: string,
+export function formatFrameForceLoadLabel(label: string, value: number, unit = "kN") {
+  return `${label}=${frameLoadMagnitude(value)}${unit}`;
+}
+
+export function formatFrameDistributedLoadLabel(
+  label: string,
   qStart: number,
   qEnd: number,
-  startRatio: number,
-  endRatio: number,
+  startRatio = 0,
+  endRatio = 1,
 ) {
   const valueLabel = Math.abs(qStart - qEnd) < 1e-9
     ? frameLoadMagnitude(qStart)
     : `${frameLoadMagnitude(qStart)}-${frameLoadMagnitude(qEnd)}`;
   const rangeLabel = startRatio <= 1e-9 && endRatio >= 1 - 1e-9
     ? ""
-    : ` · ${startRatio.toFixed(2)}-${endRatio.toFixed(2)}L`;
-  return `${memberId} q = ${valueLabel} kN/m${rangeLabel}`;
+    : `@${startRatio.toFixed(2)}-${endRatio.toFixed(2)}L`;
+  return `${label}=${valueLabel}kN/m${rangeLabel}`;
+}
+
+export function buildFrameLoadLabelMap(loads: FrameLoad[]) {
+  const labels = new Map<number, FrameLoadLabelSet>();
+  let forceCount = 0;
+  let momentCount = 0;
+  let memberPointCount = 0;
+  let distributedCount = 0;
+
+  loads.forEach((load, index) => {
+    const label: FrameLoadLabelSet = {};
+    if (load.type === "nodal") {
+      const hasForce = Math.abs(load.fxKn ?? 0) > 1e-9 || Math.abs(load.fyKn ?? 0) > 1e-9;
+      if (hasForce) {
+        forceCount += 1;
+        label.force = `F${forceCount}`;
+      }
+      if (Math.abs(load.mzKnM ?? 0) > 1e-9) {
+        momentCount += 1;
+        label.moment = `M${momentCount}`;
+      }
+    } else if (load.type === "member_point") {
+      memberPointCount += 1;
+      label.memberPoint = `P${memberPointCount}`;
+    } else {
+      distributedCount += 1;
+      label.distributed = `q${distributedCount}`;
+    }
+    labels.set(index, label);
+  });
+
+  return labels;
+}
+
+function forceComponentLabel(baseLabel: string, hasFx: boolean, hasFy: boolean, component: "x" | "y") {
+  return hasFx && hasFy ? `${baseLabel}${component}` : baseLabel;
 }
 
 export function frameMemberLabelPlacement(
@@ -149,8 +197,11 @@ export function buildFrameLoadMarkers(load: FrameLoad, index: number, context: F
     const fxKn = load.fxKn ?? 0;
     const fyKn = load.fyKn ?? 0;
     const mzKnM = load.mzKnM ?? 0;
+    const hasFx = Math.abs(fxKn) > 1e-9;
+    const hasFy = Math.abs(fyKn) > 1e-9;
+    const forceLabel = context.loadLabel?.force ?? `F${index + 1}`;
 
-    if (Math.abs(fxKn) > 1e-9) {
+    if (hasFx) {
       const direction = Math.sign(fxKn);
       const headX = node.x - direction * 8;
       const tailX = node.x - direction * 56;
@@ -160,7 +211,7 @@ export function buildFrameLoadMarkers(load: FrameLoad, index: number, context: F
         y1: node.y,
         x2: headX,
         y2: node.y,
-        label: `${load.node} Fx = ${frameLoadMagnitude(fxKn)} kN`,
+        label: formatFrameForceLoadLabel(forceComponentLabel(forceLabel, hasFx, hasFy, "x"), fxKn),
         labelX: direction >= 0 ? tailX - 8 : tailX + 8,
         labelY: node.y - 12,
         textAnchor: direction >= 0 ? "end" : "start",
@@ -168,7 +219,7 @@ export function buildFrameLoadMarkers(load: FrameLoad, index: number, context: F
       });
     }
 
-    if (Math.abs(fyKn) > 1e-9) {
+    if (hasFy) {
       const direction = Math.sign(fyKn);
       const screenDirectionY = -direction;
       const headY = node.y - screenDirectionY * 8;
@@ -179,7 +230,7 @@ export function buildFrameLoadMarkers(load: FrameLoad, index: number, context: F
         y1: tailY,
         x2: node.x,
         y2: headY,
-        label: `${load.node} Fy = ${frameLoadMagnitude(fyKn)} kN`,
+        label: formatFrameForceLoadLabel(forceComponentLabel(forceLabel, hasFx, hasFy, "y"), fyKn),
         labelX: node.x + 14,
         labelY: (tailY + headY) / 2,
         key: `${index}-fy`,
@@ -192,7 +243,7 @@ export function buildFrameLoadMarkers(load: FrameLoad, index: number, context: F
         cx: node.x + 34,
         cy: node.y - 10,
         radius: 18,
-        label: `${load.node} Mz = ${frameLoadMagnitude(mzKnM)} kN·m`,
+        label: formatFrameForceLoadLabel(context.loadLabel?.moment ?? `M${index + 1}`, mzKnM, "kN·m"),
         labelX: node.x + 56,
         labelY: node.y - 18,
         clockwise: mzKnM < 0,
@@ -225,7 +276,7 @@ export function buildFrameLoadMarkers(load: FrameLoad, index: number, context: F
         y1: headY - screenDirection.y * arrowLength,
         x2: headX,
         y2: headY,
-        label: `${load.member} P = ${frameLoadMagnitude(forceKn)} kN`,
+        label: formatFrameForceLoadLabel(context.loadLabel?.memberPoint ?? `P${index + 1}`, forceKn),
         labelX: headX - screenDirection.x * (arrowLength + 10),
         labelY: headY - screenDirection.y * (arrowLength + 10),
         textAnchor: "middle",
@@ -254,7 +305,7 @@ export function buildFrameLoadMarkers(load: FrameLoad, index: number, context: F
     y1: guideStartY,
     x2: guideEndX,
     y2: guideEndY,
-    label: frameDistributedLoadLabel(load.member, qStart, qEnd, startRatio, endRatio),
+    label: formatFrameDistributedLoadLabel(context.loadLabel?.distributed ?? `q${index + 1}`, qStart, qEnd, startRatio, endRatio),
     labelX: (guideStartX + guideEndX) / 2,
     labelY: (guideStartY + guideEndY) / 2 - 8,
     textAnchor: "middle",

@@ -20,7 +20,8 @@ FROM ${PYTHON_IMAGE} AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     BEAM_SOLVER_BACKEND_HOST=0.0.0.0 \
-    BEAM_SOLVER_BACKEND_PORT=6240
+    BEAM_SOLVER_BACKEND_PORT=6240 \
+    ARCHSIGHT_GUNICORN_WORKERS=1
 
 WORKDIR /app
 
@@ -45,5 +46,5 @@ EXPOSE 6240
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:6240/')" || exit 1
 
-# 使用 Gunicorn 替代 Flask 自带服务器提供生产级服务
-CMD ["gunicorn", "--workers", "4", "--bind", "0.0.0.0:6240", "--timeout", "120", "app:app"]
+# 异步作业状态当前保存在进程内，默认单 worker 避免提交和轮询落到不同进程。
+CMD ["sh", "-c", "gunicorn --workers ${ARCHSIGHT_GUNICORN_WORKERS:-1} --bind 0.0.0.0:6240 --timeout 120 app:app"]

@@ -3,7 +3,8 @@ import { Minus, Plus, RotateCcw, ZoomIn } from "lucide-react";
 import { GlassCard } from "./ui/GlassCard";
 import { Button } from "./ui/button";
 import { createPortalFrameModelFromState, type WorkspaceState } from "../lib/workspace-state";
-import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments } from "../lib/beam-span-dimensions";
+import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments, formatBeamDimensionLength } from "../lib/beam-span-dimensions";
+import { buildFrameLoadLabelMap, formatFrameDistributedLoadLabel, formatFrameForceLoadLabel } from "./frame-preview-utils";
 import { buildTrussMemberLengthDimension, buildTrussMemberLengthLegendRows, buildTrussSupportMarkerGeometry } from "./truss-preview-utils";
 import type { AnalysisMode, FrameLoad, FrameLoadDirection, StructureNode, SupportType, TrussLoad } from "../types/structure";
 import type { WorkbenchSelection } from "../types/workbench-selection";
@@ -216,6 +217,7 @@ function BeamSketch({
   const beamEnd = segments[segments.length - 1]?.end ?? 804;
   const spanDimensions = buildBeamSpanDimensionSegments(beam.spans.map((span) => span.length), total, beamStart, beamEnd);
   const spanDimensionLegendRows = buildBeamSpanDimensionLegendRows(spanDimensions, 440, 12);
+  const beamDimensionLegendRows = [`梁长=${formatBeamDimensionLength(total)}`, ...spanDimensionLegendRows];
   const uniformRange = beam.uniformLoadEnabled ? buildUniformLoadRange(beam, beamStart, beamEnd) : null;
   const linearRanges = activeBeamLinearLoads(beam).map((load) => ({
     load,
@@ -275,7 +277,7 @@ function BeamSketch({
   return (
     <svg viewBox="0 0 900 300" className="h-full w-full" style={beamSketchStyle}>
       <g fontFamily={svgTextFont} fill="var(--beam-sketch-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
-        {spanDimensionLegendRows.map((row, index) => (
+        {beamDimensionLegendRows.map((row, index) => (
           <text key={`span-dimension-legend-${index}`} x={beamStart} y={34 + index * 16} fontSize="12" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT}>
             {row}
           </text>
@@ -290,7 +292,6 @@ function BeamSketch({
             {dimension ? <title>{dimension.title}</title> : null}
             <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="transparent" strokeWidth="20" strokeLinecap="round" />
             {selected ? <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="var(--beam-sketch-selected)" strokeWidth="7" strokeLinecap="round" opacity="0.45" /> : null}
-            <line x1={segment.start} y1="184" x2={segment.end} y2="184" stroke="var(--model-guide)" strokeWidth="1.5" />
             {dimension?.label ? (
               <text x={(segment.start + segment.end) / 2} y="176" textAnchor="middle" fontSize="13" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT} fill="var(--beam-sketch-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
                 {dimension.label}
@@ -504,30 +505,6 @@ type FrameGeometryDimension = {
   valueLabel: string;
 };
 
-function compactFrameMemberIds(ids: string[]) {
-  if (ids.length <= 1) {
-    return ids[0] ?? "";
-  }
-
-  const parsed = ids.map((id) => {
-    const match = /^([A-Za-z]+)(\d+)$/.exec(id);
-    return match ? { id, prefix: match[1], index: Number(match[2]) } : null;
-  });
-  const firstPrefix = parsed[0]?.prefix;
-  const samePrefix = Boolean(firstPrefix) && parsed.every((item) => item !== null && item.prefix === firstPrefix);
-  if (!samePrefix) {
-    return ids.join("/");
-  }
-
-  const sorted = [...parsed.filter((item): item is NonNullable<typeof item> => Boolean(item))].sort((a, b) => a.index - b.index);
-  const consecutive = sorted.every((item, index) => index === 0 || item.index === sorted[index - 1].index + 1);
-  if (!consecutive) {
-    return ids.join("/");
-  }
-
-  return `${sorted[0].id}-${sorted[sorted.length - 1].id}`;
-}
-
 function buildFrameDimensionLegendRows(dimensions: FrameGeometryDimension[], maxWidthPx: number, fontSize = 12) {
   const rows: string[] = [];
   let current = "";
@@ -544,8 +521,8 @@ function buildFrameDimensionLegendRows(dimensions: FrameGeometryDimension[], max
   );
 
   for (const dimension of groupedDimensions) {
-    const item = `${compactFrameMemberIds(dimension.memberIds)} ${dimension.valueLabel}`;
-    const next = current ? `${current}    ${item}` : item;
+    const item = `${dimension.memberIds.join("=")}=${dimension.valueLabel}`;
+    const next = current ? `${current}，${item}` : item;
     if (current && next.length * fontSize * 0.62 > maxWidthPx) {
       rows.push(current);
       current = item;
@@ -558,14 +535,22 @@ function buildFrameDimensionLegendRows(dimensions: FrameGeometryDimension[], max
   return rows;
 }
 
+function formatFrameDimensionLength(length: number) {
+  return `${length.toFixed(2).replace(/\.?0+$/u, "")}m`;
+}
+
+function frameForceComponentLabel(baseLabel: string, hasFx: boolean, hasFy: boolean, component: "x" | "y") {
+  return hasFx && hasFy ? `${baseLabel}${component}` : baseLabel;
+}
+
 function frameMemberDimensionValueLabel(start: Pick<StructureNode, "x" | "y">, end: Pick<StructureNode, "x" | "y">) {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const length = Math.hypot(dx, dy);
   if (Math.abs(dx) <= 1e-6 && Math.abs(dy) > 1e-6) {
-    return `h = ${Math.abs(dy).toFixed(2)} m`;
+    return formatFrameDimensionLength(Math.abs(dy));
   }
-  return `l = ${length.toFixed(2)} m`;
+  return formatFrameDimensionLength(length);
 }
 
 function frameMemberLabelPlacement(
@@ -591,13 +576,6 @@ function frameMemberLabelPlacement(
   const normal = { x: -dy / length, y: dx / length };
   const outward = (midX - center.x) * normal.x + (midY - center.y) * normal.y >= 0 ? 1 : -1;
   return { x: midX + normal.x * outward * 16, y: midY + normal.y * outward * 16, anchor: "middle" as const };
-}
-
-function frameDistributedLoadLabel(memberId: string, q: number, qStart: number, qEnd: number) {
-  if (Math.abs(qStart - qEnd) < 1e-9) {
-    return `${memberId} q = ${formatMagnitude(q)} kN/m`;
-  }
-  return `${memberId} q = ${formatMagnitude(qStart)}-${formatMagnitude(qEnd)} kN/m`;
 }
 
 function FrameSupportMarker({ type, x, y, selected, angleDeg }: { type?: SupportType; x: number; y: number; selected: boolean; angleDeg?: number }) {
@@ -665,6 +643,8 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
   const leftX = Math.min(...nodes.map((node) => map(node).x), 165);
   const rightX = Math.max(...nodes.map((node) => map(node).x), 735);
   const frameCenter = { x: (leftX + rightX) / 2, y: (topY + bottomY) / 2 };
+  const frameDimensionLegendX = Math.max(20, leftX - 112);
+  const frameLoadLabelMap = buildFrameLoadLabelMap(loads);
   const frameDimensions: FrameGeometryDimension[] = members.flatMap((member) => {
     const start = rawNodeMap.get(member.start);
     const end = rawNodeMap.get(member.end);
@@ -674,7 +654,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
       valueLabel: frameMemberDimensionValueLabel(start, end),
     }];
   });
-  const frameDimensionLegendRows = buildFrameDimensionLegendRows(frameDimensions, 330, 12);
+  const frameDimensionLegendRows = buildFrameDimensionLegendRows(frameDimensions, 220, 12);
   const nodeLabel = (node: StructureNode) => {
     const point = nodeMap.get(node.id);
     if (!point) return null;
@@ -691,7 +671,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
     <svg viewBox="0 0 900 360" className="h-full w-full">
       <g fontFamily={svgTextFont} fill="var(--model-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
         {frameDimensionLegendRows.map((row, index) => (
-          <text key={`frame-dimension-legend-${index}`} x="96" y={22 + index * 16} fontSize="12" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT}>
+          <text key={`frame-dimension-legend-${index}`} x={frameDimensionLegendX} y={22 + index * 16} fontSize="12" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT}>
             {row}
           </text>
         ))}
@@ -841,11 +821,14 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
             const point = nodeMap.get(load.node);
             if (!point) return null;
             const labels = [];
+            const hasFx = Math.abs(load.fxKn ?? 0) > 1e-9;
+            const hasFy = Math.abs(load.fyKn ?? 0) > 1e-9;
+            const forceLabel = frameLoadLabelMap.get(index)?.force ?? `F${index + 1}`;
             if (load.fxKn) {
               const sign = load.fxKn >= 0 ? 1 : -1;
               labels.push(
                 <text key={`${index}-fx-label`} x={point.x + sign * 18} y={point.y - 14} textAnchor={sign > 0 ? "start" : "end"}>
-                  {load.node} Fx = {formatMagnitude(load.fxKn)} kN
+                  {formatFrameForceLoadLabel(frameForceComponentLabel(forceLabel, hasFx, hasFy, "x"), load.fxKn)}
                 </text>
               );
             }
@@ -854,7 +837,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
               const labelY = point.y - sign * 70;
               labels.push(
                 <text key={`${index}-fy-label`} x={point.x} y={labelY} textAnchor="middle">
-                  {load.node} Fy = {formatMagnitude(load.fyKn)} kN
+                  {formatFrameForceLoadLabel(frameForceComponentLabel(forceLabel, hasFx, hasFy, "y"), load.fyKn)}
                 </text>
               );
             }
@@ -875,7 +858,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
             };
             return (
               <text key={`${index}-member-point-label`} x={label.x} y={label.y} textAnchor="middle">
-                {load.member} P = {formatMagnitude(force)} kN
+                {formatFrameForceLoadLabel(frameLoadLabelMap.get(index)?.memberPoint ?? `P${index + 1}`, force)}
               </text>
             );
           }
@@ -895,7 +878,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
           };
           return (
             <text key={`${index}-dist-label`} x={label.x} y={label.y} textAnchor="middle">
-              {frameDistributedLoadLabel(load.member, q, qStart, qEnd)}
+              {formatFrameDistributedLoadLabel(frameLoadLabelMap.get(index)?.distributed ?? `q${index + 1}`, qStart, qEnd, startRatio, endRatio)}
             </text>
           );
         })}
@@ -1029,6 +1012,8 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
   const memberMap = new Map(members.map((member) => [member.id, member]));
   const trussCenterX = 110 + 680 / 2;
   const trussMidY = 280 - 190 / 2;
+  const trussLeftX = Math.min(...nodes.map((node) => nodeMap.get(node.id)?.x ?? 110), 110);
+  const memberLengthLegendX = Math.max(20, trussLeftX - 86);
   const memberLengthDimensions = members.flatMap((member) => {
     const start = nodeMap.get(member.start);
     const end = nodeMap.get(member.end);
@@ -1041,7 +1026,7 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
     return dimension ? [dimension] : [];
   });
   const memberLengthDimensionById = new Map(memberLengthDimensions.map((dimension) => [dimension.memberId, dimension]));
-  const memberLengthLegendRows = buildTrussMemberLengthLegendRows(memberLengthDimensions, 340, 12);
+  const memberLengthLegendRows = buildTrussMemberLengthLegendRows(memberLengthDimensions, 190, 12);
 
   const getNodeLabel = (point: { x: number; y: number }) => {
     const isTopChord = point.y < trussMidY;
@@ -1065,7 +1050,7 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
     <svg viewBox="0 0 900 360" className="h-full w-full">
       <g fontFamily={svgTextFont} fill="var(--model-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
         {memberLengthLegendRows.map((row, index) => (
-          <text key={`truss-member-length-legend-${index}`} x="96" y={34 + index * 16} fontSize="12" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT}>
+          <text key={`truss-member-length-legend-${index}`} x={memberLengthLegendX} y={34 + index * 16} fontSize="12" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT}>
             {row}
           </text>
         ))}

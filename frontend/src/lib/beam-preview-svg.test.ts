@@ -24,9 +24,9 @@ test("buildBeamPreviewSvg follows the workbench beam preview sign convention", (
     spans: [4, 4],
     totalLength: 8,
     supports: [
-      { label: "A", x: 0, type: "pinned" },
-      { label: "B", x: 4, type: "pinned" },
-      { label: "C", x: 8, type: "roller" },
+      { label: "S1", x: 0, type: "pinned" },
+      { label: "S2", x: 4, type: "pinned" },
+      { label: "S3", x: 8, type: "roller" },
     ],
     nodes: [
       { index: 0, x: 0, support: true },
@@ -47,10 +47,12 @@ test("buildBeamPreviewSvg follows the workbench beam preview sign convention", (
 
   const svg = buildBeamPreviewSvg(beam);
 
-  assert.match(svg, /梁长 = 8\.00 m/);
+  assert.match(svg, /梁长=8m/);
+  assert.match(svg, />B1</);
+  assert.match(svg, />N1</);
   assert.match(svg, />S1</);
   assert.match(svg, />S3</);
-  assert.match(svg, /q = 10\.0 kN\/m/);
+  assert.match(svg, /q=10\.0 kN\/m/);
   assert.match(svg, /最大挠度 1 mm/);
   assert.match(svg, /80\.0,150\.0 500\.0,230\.0 920\.0,150\.0/);
 });
@@ -64,9 +66,9 @@ test("buildBeamResultDiagramSvg uses workbench-style span dimensions and key poi
     spans: [4, 4],
     totalLength: 8,
     supports: [
-      { label: "A", x: 0, type: "pinned" },
-      { label: "B", x: 4, type: "pinned" },
-      { label: "C", x: 8, type: "roller" },
+      { label: "S1", x: 0, type: "pinned" },
+      { label: "S2", x: 4, type: "pinned" },
+      { label: "S3", x: 8, type: "roller" },
     ],
     nodes: [
       { index: 0, x: 0, support: true },
@@ -92,8 +94,9 @@ test("buildBeamResultDiagramSvg uses workbench-style span dimensions and key poi
 
   const svg = buildBeamResultDiagramSvg(results, "momentKnM");
 
-  assert.match(svg, /梁长 = 8\.00 m/);
-  assert.match(svg, /B1-B2 L = 4\.00 m/);
+  assert.match(svg, /梁长=8m/);
+  assert.match(svg, /B1-B2=4m/);
+  assert.match(svg, />B1</);
   assert.match(svg, />-20 kN·m</);
   assert.match(svg, />11\.25 kN·m</);
   assert.match(svg, />x = 4\.00 m</);
@@ -111,9 +114,9 @@ test("assertReportImagesReady prevents frontend DOCX export from falling back to
     spans: [4, 4],
     totalLength: 8,
     supports: [
-      { label: "A", x: 0, type: "pinned" },
-      { label: "B", x: 4, type: "pinned" },
-      { label: "C", x: 8, type: "roller" },
+      { label: "S1", x: 0, type: "pinned" },
+      { label: "S2", x: 4, type: "pinned" },
+      { label: "S3", x: 8, type: "roller" },
     ],
     nodes: [
       { index: 0, x: 0, support: true },

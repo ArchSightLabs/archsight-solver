@@ -1,6 +1,7 @@
 import { useCallback, useMemo, type ReactNode } from "react";
 import { GlassCard } from "./ui/GlassCard";
 import type { BeamLoadMarker, BeamPreviewData, BeamSupport } from "../types/beam";
+import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments, formatBeamDimensionLength } from "../lib/beam-span-dimensions";
 import { formatEngineeringValue } from "../lib/engineering-format";
 
 interface BeamPreviewProps {
@@ -43,6 +44,7 @@ const BEAM_LEFT = 80;
 const BEAM_RIGHT = 920;
 const BEAM_LEN = BEAM_RIGHT - BEAM_LEFT;
 const PEAK_LABEL_Y = 46;
+const SPAN_MEMBER_LABEL_Y = BEAM_Y + 22;
 const svgTextFont = "Inter, Microsoft YaHei, system-ui, sans-serif";
 
 function clamp(value: number, min: number, max: number) {
@@ -110,7 +112,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
         arrowStartY: downward ? guideY + 5 : guideY - 5,
         arrowEndY: downward ? BEAM_Y - 8 : BEAM_Y + 8,
         arrowXs: distributedArrowXs(startX, endX),
-        label: `q = ${Math.abs(intensity).toFixed(1)} kN/m`,
+        label: `q=${Math.abs(intensity).toFixed(1)} kN/m`,
       });
     });
 
@@ -140,7 +142,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
           arrowStartY: downward ? guideY + 5 : guideY - 5,
           arrowEndY: downward ? BEAM_Y - 8 : BEAM_Y + 8,
           arrowXs: distributedArrowXs(startX, endX),
-          label: `q = ${Math.abs(first?.intensityKnPerM ?? 0).toFixed(1)} → ${Math.abs(last?.intensityKnPerM ?? 0).toFixed(1)} kN/m`,
+          label: `q=${Math.abs(first?.intensityKnPerM ?? 0).toFixed(1)}→${Math.abs(last?.intensityKnPerM ?? 0).toFixed(1)} kN/m`,
         });
       });
     }
@@ -148,8 +150,21 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
     return bands;
   }, [beam, mapX, totalLength]);
 
+  const spanDimensions = useMemo(
+    () => buildBeamSpanDimensionSegments(beam?.spans ?? [], totalLength, BEAM_LEFT, BEAM_RIGHT),
+    [beam?.spans, totalLength],
+  );
+  const dimensionLegendRows = useMemo(
+    () => beam ? [`梁长=${formatBeamDimensionLength(totalLength)}`, ...buildBeamSpanDimensionLegendRows(spanDimensions, compact ? 310 : 420, compact ? 10 : 12)] : [],
+    [beam, compact, spanDimensions, totalLength],
+  );
+
+  const supportLabelByIndex = useMemo(
+    () => new Map((beam?.supports || []).map((support, index) => [index, support.label || `S${index + 1}`])),
+    [beam?.supports],
+  );
   const reactionBadges = (beam?.reactions || []).map((r, i) => ({
-    label: `第 ${i + 1} 支座`,
+    label: r.supportId ?? supportLabelByIndex.get(i) ?? `S${i + 1}`,
     val: `${Math.abs(r.valueKn ?? 0).toFixed(2)} kN`,
   }));
   const peakPoint = beam?.maxDeflection
@@ -209,19 +224,34 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
             </marker>
           </defs>
 
-          {/* 梁长标注 */}
-          <text x="32" y="28" fill="var(--structure-preview-label)" fontSize={compact ? "10" : "12"} fontFamily="Fira Code">
-            梁长 = {totalLength.toFixed(2)} m
-          </text>
+          <g fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="3" paintOrder="stroke" fontFamily={svgTextFont}>
+            {dimensionLegendRows.map((row, index) => (
+              <text key={`beam-preview-dimension-${index}`} x="32" y={28 + index * 15} fontSize={compact ? "10" : "12"} fontWeight="600">
+                {row}
+              </text>
+            ))}
+          </g>
 
           {/* 主梁线 */}
           <line x1={BEAM_LEFT} y1={BEAM_Y} x2={BEAM_RIGHT} y2={BEAM_Y}
             stroke="url(#beamGrad)" strokeWidth="7" strokeLinecap="round" />
 
+          <g fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="3" paintOrder="stroke" fontFamily={svgTextFont}>
+            {spanDimensions.map((dimension) => {
+              if (!dimension.label) return null;
+              const midX = (dimension.start + dimension.end) / 2;
+              return (
+                <text key={`beam-preview-span-${dimension.index}`} x={midX} y={SPAN_MEMBER_LABEL_Y} textAnchor="middle" fontSize={compact ? "10" : "12"} fontWeight="700">
+                  {dimension.label}
+                </text>
+              );
+            })}
+          </g>
+
           {/* 支座 */}
           {(beam.supports || []).map((s: BeamSupport, i) => {
             const sx = mapX(s.x);
-            const label = `S${i + 1}`;
+            const label = s.label || `S${i + 1}`;
             return s.type === "fixed" ? (
               <g key={i}>
                 <rect x={sx - 14} y={BEAM_Y - 5} width="28" height="44" rx="3"
@@ -254,10 +284,17 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
           })}
 
           {/* 节点圆点 */}
-          {(beam.nodes || []).map((n, i) => (
-            <circle key={i} cx={mapX(n.x)} cy={BEAM_Y} r="4"
-              fill={n.support ? "var(--structure-preview-node)" : "var(--structure-preview-guide)"} />
-          ))}
+          {(beam.nodes || []).map((n, i) => {
+            const x = mapX(n.x);
+            return (
+              <g key={i}>
+                <circle cx={x} cy={BEAM_Y} r="4" fill={n.support ? "var(--structure-preview-node)" : "var(--structure-preview-guide)"} />
+                <text x={x + 7} y={BEAM_Y - 12} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="3" paintOrder="stroke" fontSize={compact ? "9" : "11"} fontWeight="600" fontFamily={svgTextFont}>
+                  N{i + 1}
+                </text>
+              </g>
+            );
+          })}
 
           {/* 分布荷载 */}
           {distributedLoadBands.map((band) => (
@@ -281,7 +318,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
               {load.type === "point" ? (
                 <text x={load.svgX + (i % 2 === 0 ? -8 : 8)} y={load.labelY} fill="var(--structure-preview-label)" textAnchor={i % 2 === 0 ? "end" : "start"} fontSize="11"
                   stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke" fontFamily={svgTextFont}>
-                  {`P = ${Math.abs(load.intensityKn || 0).toFixed(1)} kN`}
+                  {`P=${Math.abs(load.intensityKn || 0).toFixed(1)}kN`}
                 </text>
               ) : null}
             </g>

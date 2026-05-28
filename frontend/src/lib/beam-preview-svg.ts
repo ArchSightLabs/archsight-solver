@@ -1,4 +1,5 @@
 import type { BeamLoadMarker, BeamPreviewData, BeamSupport } from "../types/beam";
+import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments, formatBeamDimensionLength } from "./beam-span-dimensions.ts";
 import { formatEngineeringValue } from "./engineering-format.ts";
 
 type BeamLoadArrow = BeamLoadMarker & {
@@ -29,8 +30,8 @@ const BEAM_LEFT = 80;
 const BEAM_RIGHT = 920;
 const BEAM_LEN = BEAM_RIGHT - BEAM_LEFT;
 const PEAK_LABEL_Y = 46;
+const SPAN_MEMBER_LABEL_Y = BEAM_Y + 22;
 const SVG_TEXT_FONT = "Inter, Microsoft YaHei, system-ui, sans-serif";
-const MONO_TEXT_FONT = "Fira Code, ui-monospace, SFMono-Regular, Consolas, monospace";
 
 const PREVIEW_COLORS = {
   background: "#ffffff",
@@ -95,7 +96,7 @@ function buildDistributedLoadBands(beam: BeamPreviewData, mapX: (x: number) => n
       arrowStartY: downward ? guideY + 5 : guideY - 5,
       arrowEndY: downward ? BEAM_Y - 8 : BEAM_Y + 8,
       arrowXs: distributedArrowXs(startX, endX),
-      label: `q = ${Math.abs(intensity).toFixed(1)} kN/m`,
+      label: `q=${Math.abs(intensity).toFixed(1)} kN/m`,
     });
   });
 
@@ -126,7 +127,7 @@ function buildDistributedLoadBands(beam: BeamPreviewData, mapX: (x: number) => n
         arrowStartY: downward ? guideY + 5 : guideY - 5,
         arrowEndY: downward ? BEAM_Y - 8 : BEAM_Y + 8,
         arrowXs: distributedArrowXs(startX, endX),
-        label: `q = ${Math.abs(first.intensityKnPerM ?? 0).toFixed(1)} -> ${Math.abs(last?.intensityKnPerM ?? 0).toFixed(1)} kN/m`,
+        label: `q=${Math.abs(first.intensityKnPerM ?? 0).toFixed(1)}->${Math.abs(last?.intensityKnPerM ?? 0).toFixed(1)} kN/m`,
       });
     });
   }
@@ -153,7 +154,7 @@ function buildPointLoadArrows(beam: BeamPreviewData, mapX: (x: number) => number
 }
 
 function supportSvg(support: BeamSupport, index: number, x: number) {
-  const label = `S${index + 1}`;
+  const label = support.label || `S${index + 1}`;
   if (support.type === "fixed") {
     return `
       <g>
@@ -190,6 +191,8 @@ export function buildBeamPreviewSvg(beam: BeamPreviewData) {
   const maxDeflectionMm = Math.max(1, ...(beam.curve ?? []).map((point) => Math.abs(point.vMm)));
   const mapY = (vMm: number) => BEAM_Y - (vMm / maxDeflectionMm) * 80;
   const curvePoints = (beam.curve ?? []).map((point) => `${n(mapX(point.x))},${n(mapY(point.vMm))}`).join(" ");
+  const spanDimensions = buildBeamSpanDimensionSegments(beam.spans ?? [], totalLength, BEAM_LEFT, BEAM_RIGHT);
+  const dimensionLegendRows = [`梁长=${formatBeamDimensionLength(totalLength)}`, ...buildBeamSpanDimensionLegendRows(spanDimensions, 420, 12)];
   const loadBands = buildDistributedLoadBands(beam, mapX);
   const pointLoads = buildPointLoadArrows(beam, mapX);
   const peakPoint = beam.maxDeflection
@@ -218,11 +221,23 @@ export function buildBeamPreviewSvg(beam: BeamPreviewData) {
     </marker>
   </defs>
   <rect x="0" y="0" width="${BEAM_PREVIEW_SVG_WIDTH}" height="${BEAM_PREVIEW_SVG_HEIGHT}" fill="${PREVIEW_COLORS.background}" />
-  <text x="32" y="28" fill="${PREVIEW_COLORS.label}" font-size="12" font-family="${MONO_TEXT_FONT}">梁长 = ${escapeSvg(totalLength.toFixed(2))} m</text>
+  <g fill="${PREVIEW_COLORS.label}" stroke="${PREVIEW_COLORS.textHalo}" stroke-width="3" paint-order="stroke" font-family="${SVG_TEXT_FONT}">
+    ${dimensionLegendRows.map((row, index) => `<text x="32" y="${28 + index * 15}" font-size="12" font-weight="600">${escapeSvg(row)}</text>`).join("")}
+  </g>
   <line x1="${BEAM_LEFT}" y1="${BEAM_Y}" x2="${BEAM_RIGHT}" y2="${BEAM_Y}" stroke="url(#beamReportGrad)" stroke-width="7" stroke-linecap="round" />
+  <g fill="${PREVIEW_COLORS.label}" stroke="${PREVIEW_COLORS.textHalo}" stroke-width="3" paint-order="stroke" font-family="${SVG_TEXT_FONT}">
+    ${spanDimensions.map((dimension) => {
+      if (!dimension.label) return "";
+      const midX = (dimension.start + dimension.end) / 2;
+      return `<text x="${n(midX)}" y="${SPAN_MEMBER_LABEL_Y}" text-anchor="middle" font-size="12" font-weight="700">${escapeSvg(dimension.label)}</text>`;
+    }).join("")}
+  </g>
   ${(beam.supports ?? []).map((support, index) => supportSvg(support, index, mapX(support.x))).join("")}
   ${(beam.nodes ?? [])
-    .map((node) => `<circle cx="${n(mapX(node.x))}" cy="${BEAM_Y}" r="4" fill="${node.support ? PREVIEW_COLORS.node : PREVIEW_COLORS.guide}" />`)
+    .map((node, index) => {
+      const x = mapX(node.x);
+      return `<g><circle cx="${n(x)}" cy="${BEAM_Y}" r="4" fill="${node.support ? PREVIEW_COLORS.node : PREVIEW_COLORS.guide}" /><text x="${n(x + 7)}" y="${BEAM_Y - 12}" fill="${PREVIEW_COLORS.label}" stroke="${PREVIEW_COLORS.textHalo}" stroke-width="3" paint-order="stroke" font-size="11" font-weight="600" font-family="${SVG_TEXT_FONT}">N${index + 1}</text></g>`;
+    })
     .join("")}
   ${loadBands
     .map(
@@ -239,7 +254,7 @@ export function buildBeamPreviewSvg(beam: BeamPreviewData) {
       (load, index) => `
       <g>
         <line x1="${n(load.svgX)}" y1="${n(load.y1)}" x2="${n(load.svgX)}" y2="${n(load.y2)}" stroke="${PREVIEW_COLORS.load}" stroke-width="2" marker-end="url(#beamReportArrowLoad)" />
-        <text x="${n(load.svgX + (index % 2 === 0 ? -8 : 8))}" y="${n(load.labelY)}" fill="${PREVIEW_COLORS.label}" text-anchor="${index % 2 === 0 ? "end" : "start"}" font-size="11" stroke="${PREVIEW_COLORS.textHalo}" stroke-width="4" paint-order="stroke" font-family="${SVG_TEXT_FONT}">P = ${escapeSvg(Math.abs(load.intensityKn ?? 0).toFixed(1))} kN</text>
+        <text x="${n(load.svgX + (index % 2 === 0 ? -8 : 8))}" y="${n(load.labelY)}" fill="${PREVIEW_COLORS.label}" text-anchor="${index % 2 === 0 ? "end" : "start"}" font-size="11" stroke="${PREVIEW_COLORS.textHalo}" stroke-width="4" paint-order="stroke" font-family="${SVG_TEXT_FONT}">P=${escapeSvg(Math.abs(load.intensityKn ?? 0).toFixed(1))}kN</text>
       </g>`,
     )
     .join("")}

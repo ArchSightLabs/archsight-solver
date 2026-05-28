@@ -79,13 +79,26 @@ function estimateLegendTextWidth(text: string, fontSize: number) {
   return text.length * fontSize * 0.62;
 }
 
+function formatTrussMemberLength(value: number) {
+  return `${value.toFixed(2).replace(/\.?0+$/u, "")}m`;
+}
+
 export function buildTrussMemberLengthLegendRows(dimensions: TrussMemberLengthDimension[], maxWidthPx: number, fontSize = 12) {
   const rows: string[] = [];
   let current = "";
+  const groupedDimensions = Array.from(
+    dimensions.reduce((groups, dimension) => {
+      const group = groups.get(dimension.valueLabel) ?? { memberIds: [] as string[], valueLabel: dimension.valueLabel };
+      group.memberIds.push(dimension.memberId);
+      groups.set(dimension.valueLabel, group);
+      return groups;
+    }, new Map<string, { memberIds: string[]; valueLabel: string }>())
+      .values(),
+  );
 
-  for (const dimension of dimensions) {
-    const item = `${dimension.memberId} ${dimension.valueLabel}`;
-    const next = current ? `${current}    ${item}` : item;
+  for (const dimension of groupedDimensions) {
+    const item = `${dimension.memberIds.join("=")}=${dimension.valueLabel}`;
+    const next = current ? `${current}，${item}` : item;
     if (current && estimateLegendTextWidth(next, fontSize) > maxWidthPx) {
       rows.push(current);
       current = item;
@@ -111,7 +124,7 @@ export function buildTrussMemberLengthDimension(
     return null;
   }
 
-  const valueLabel = `l = ${lengthM.toFixed(2)} m`;
+  const valueLabel = formatTrussMemberLength(lengthM);
 
   return {
     memberId,

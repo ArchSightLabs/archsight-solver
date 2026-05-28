@@ -12,6 +12,10 @@ function formatFullSpanLength(value: number) {
   return `${Math.abs(value).toFixed(2)} m`;
 }
 
+export function formatBeamDimensionLength(value: number) {
+  return `${Math.abs(value).toFixed(2).replace(/\.?0+$/u, "")}m`;
+}
+
 function beamSpanMemberId(index: number) {
   return `B${index + 1}`;
 }
@@ -25,7 +29,7 @@ function estimateLegendTextWidth(text: string, fontSize: number) {
 }
 
 export function beamSpanLengthLabel(length: number) {
-  return `L = ${formatFullSpanLength(length)}`;
+  return formatBeamDimensionLength(length);
 }
 
 export function beamSpanDimensionLabel(index: number, _length: number, widthPx: number) {
@@ -49,8 +53,8 @@ export function buildBeamSpanDimensionLegendRows(dimensions: BeamSpanDimension[]
     const memberLabel = group.startIndex === group.endIndex
       ? beamSpanMemberId(group.startIndex)
       : `${beamSpanMemberId(group.startIndex)}-${beamSpanMemberId(group.endIndex)}`;
-    const item = `${memberLabel} ${group.lengthLabel}`;
-    const next = current ? `${current}    ${item}` : item;
+    const item = `${memberLabel}=${group.lengthLabel}`;
+    const next = current ? `${current}，${item}` : item;
     if (current && estimateLegendTextWidth(next, fontSize) > maxWidthPx) {
       rows.push(current);
       current = item;

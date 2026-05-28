@@ -24,6 +24,12 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
 
+      - name: Verify Docker requirements export
+        run: |
+          uv export --frozen --no-dev --format requirements-txt --no-header --output-file /tmp/requirements.txt
+          tail -n +3 requirements.txt > /tmp/requirements.current.txt
+          diff -u /tmp/requirements.current.txt /tmp/requirements.txt
+
       - name: Run backend tests
         run: uv run python -m pytest backend/tests -q
 

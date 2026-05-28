@@ -153,7 +153,7 @@ ASMS_BEAM_MODEL_SCHEMA: Dict[str, Any] = {
         "projectName": {"type": "string"},
         "materialId": {"type": "string"},
         "beamType": {"type": "string", "enum": ["continuous", "simply_supported", "cantilever"]},
-        "loadType": {"type": "string", "enum": ["uniform", "point", "linear"]},
+        "loadType": {"type": "string", "enum": ["none", "uniform", "point", "linear", "distributed", "combined"]},
         "spans": {"type": "array", "items": {"type": "number"}, "minItems": 1},
         "spanProperties": {
             "type": "array",

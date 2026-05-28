@@ -48,6 +48,8 @@ def test_docker_image_copies_runtime_config_directory():
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
 
     assert "COPY config ./config" in dockerfile
+    assert "ARCHSIGHT_GUNICORN_WORKERS=1" in dockerfile
+    assert "gunicorn --workers ${ARCHSIGHT_GUNICORN_WORKERS:-1}" in dockerfile
 
 
 def test_unsupported_persistence_mode_is_rejected(monkeypatch):
