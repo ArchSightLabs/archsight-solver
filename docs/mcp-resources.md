@@ -10,8 +10,7 @@
 | `archsight://docs/asms-json` | `text/markdown` | `docs/structural-model-protocol.md` | ASMS-JSON 字段语义、单位口径、结构体系差异和协议边界。 |
 | `archsight://examples/asms-few-shots` | `application/json` | `data/agent_workflows/asms_few_shots.json` | 自然语言工况到 ASMS-JSON、CLI/MCP 调用、benchmark 复核和计算书导出的可测试 few-shot 样例。 |
 | `archsight://benchmark/catalog` | `application/json` | `backend/benchmarks/benchmark_cases.json` 经 `load_benchmark_catalog()` 读取 | 公开验证集算例目录、标准值、容许误差和来源元数据。 |
-| `archsight://docs/benchmark-validation` | `text/markdown` | `docs/verification/benchmark-validation-suite.md` | 公开验证集建设说明、背书边界和对外引用口径。 |
-| `archsight://docs/aios-runtime-integration` | `text/markdown` | `docs/aios-runtime-integration.md` | REST、CLI、MCP 三层调用设计和 AIOS Runtime 风险边界。 |
+| `archsight://docs/benchmark-validation` | `text/markdown` | `docs/verification/benchmark-validation-report.md` | 公开验证集算例、通过状态、关键校核和专业边界。 |
 | `archsight://docs/mcp-resources` | `text/markdown` | `docs/mcp-resources.md` | 本清单，说明资源路径、更新责任和验收检查。 |
 
 ## 生成与更新责任
@@ -20,7 +19,7 @@
 - `archsight://benchmark/catalog` 不落静态导出文件，由 benchmark catalog 运行时读取，避免算例目录副本漂移。
 - 文档类资源必须对应仓库内真实 Markdown 文件，不允许返回“尚未生成”类占位内容。
 - few-shot 资源必须对应仓库内真实 JSON 文件，并保持 `schemaVersion`、`examples`、`cliCall`、`mcpCall`、`benchmarkCaseId` 和 `acceptanceChecks` 可测试。
-- 新增 MCP Resource 时，应同步更新本文档、`docs/README.md`、`docs/aios-runtime-integration.md` 和 `backend/tests/test_solver_tools_mcp.py`。
+- 新增 MCP Resource 时，应同步更新本文档、`docs/README.md`、`docs/quickstart.md` 和 `backend/tests/test_solver_tools_mcp.py`。
 
 ## Agent Host 推荐读取顺序
 
@@ -28,7 +27,7 @@
 2. 读取 `archsight://docs/asms-json` 明确字段语义、单位和结构体系边界。
 3. 读取 `archsight://examples/asms-few-shots` 获取可测试的生成样例。
 4. 对公开背书或回归复核任务，读取 `archsight://benchmark/catalog` 并调用 `benchmark_case_run`。
-5. 对运行时集成方案，读取 `archsight://docs/aios-runtime-integration` 和 `archsight://docs/mcp-resources`。
+5. 对 MCP 集成方案，读取 `archsight://docs/mcp-resources`。
 
 ## 验收检查
 

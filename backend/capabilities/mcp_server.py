@@ -27,15 +27,13 @@ SERVER_VERSION = "0.1.0"
 ROOT = Path(__file__).resolve().parents[2]
 ASMS_PROTOCOL_DOC_PATH = ROOT / "docs" / "structural-model-protocol.md"
 AGENT_FEW_SHOT_PATH = ROOT / "data" / "agent_workflows" / "asms_few_shots.json"
-BENCHMARK_DOC_PATH = ROOT / "docs" / "verification" / "benchmark-validation-suite.md"
-RUNTIME_DOC_PATH = ROOT / "docs" / "aios-runtime-integration.md"
+BENCHMARK_DOC_PATH = ROOT / "docs" / "verification" / "benchmark-validation-report.md"
 MCP_RESOURCES_DOC_PATH = ROOT / "docs" / "mcp-resources.md"
 
 FILE_RESOURCE_PATHS = {
     "archsight://docs/asms-json": ASMS_PROTOCOL_DOC_PATH,
     "archsight://examples/asms-few-shots": AGENT_FEW_SHOT_PATH,
     "archsight://docs/benchmark-validation": BENCHMARK_DOC_PATH,
-    "archsight://docs/aios-runtime-integration": RUNTIME_DOC_PATH,
     "archsight://docs/mcp-resources": MCP_RESOURCES_DOC_PATH,
 }
 
@@ -148,15 +146,8 @@ RESOURCE_DEFINITIONS = [
     {
         "uri": "archsight://docs/benchmark-validation",
         "name": "benchmark-validation-doc",
-        "title": "公开验证集说明",
-        "description": "面向工程可信度和销售材料的验证集说明。",
-        "mimeType": "text/markdown",
-    },
-    {
-        "uri": "archsight://docs/aios-runtime-integration",
-        "name": "aios-runtime-integration",
-        "title": "AIOS 调用层设计",
-        "description": "API、CLI、MCP 三种调用路径与风险取舍。",
+        "title": "公开验证集报告",
+        "description": "公开验证集算例、通过状态、关键校核和专业边界。",
         "mimeType": "text/markdown",
     },
     {
@@ -333,9 +324,6 @@ def _read_resource(uri: str) -> Dict[str, Any]:
         text = json.dumps(load_benchmark_catalog(), ensure_ascii=False, indent=2, sort_keys=True)
         mime_type = "application/json"
     elif uri == "archsight://docs/benchmark-validation":
-        text = _read_required_resource_text(uri, FILE_RESOURCE_PATHS[uri])
-        mime_type = "text/markdown"
-    elif uri == "archsight://docs/aios-runtime-integration":
         text = _read_required_resource_text(uri, FILE_RESOURCE_PATHS[uri])
         mime_type = "text/markdown"
     elif uri == "archsight://docs/mcp-resources":
