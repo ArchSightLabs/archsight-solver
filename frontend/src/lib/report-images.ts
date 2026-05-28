@@ -6,6 +6,8 @@ import { CanvasRenderer } from "echarts/renderers";
 import type { BeamCalculationResults, SensitivityResults } from "../types/beam";
 import type { AnalysisMode, FrameCalculationResults, FrameMemberDiagram, TrussCalculationResults } from "../types/structure";
 import { BEAM_PREVIEW_SVG_HEIGHT, BEAM_PREVIEW_SVG_WIDTH, buildBeamPreviewSvg } from "./beam-preview-svg";
+import { BEAM_RESULT_DIAGRAM_SVG_HEIGHT, BEAM_RESULT_DIAGRAM_SVG_WIDTH, beamReportMetricToDiagramMetric, buildBeamResultDiagramSvg } from "./beam-result-diagram-svg";
+import { assertReportImagesReady } from "./report-image-requirements";
 import {
   BEAM_REPORT_OVERLAY_FIGURES,
   BEAM_REPORT_TRADITIONAL_FIGURES,
@@ -153,6 +155,7 @@ export async function buildReportImages(input: ReportInput): Promise<ReportImage
     });
   }
 
+  assertReportImagesReady(images, input);
   return images;
 }
 
@@ -255,59 +258,9 @@ async function renderBeamPreview(results: BeamCalculationResults) {
 }
 
 async function renderBeamOverlay(results: BeamCalculationResults, metric: "moment" | "shear" | "deflection") {
-  const beam = results.beam;
-  if (!beam) return "";
-  const metricConfig =
-    metric === "moment"
-      ? { label: "弯矩图", unit: "kN·m", color: "#dc2626", values: results.moment_data }
-      : metric === "shear"
-        ? { label: "剪力图", unit: "kN", color: "#2563eb", values: results.shear_data }
-        : { label: "挠度图", unit: "mm", color: "#7c3aed", values: results.v_data.map((value) => value * 1000) };
-  const total = Math.max(beam.totalLength || 1, 1e-9);
-  const xValues = results.x_data?.length ? results.x_data : beam.curve.map((point) => point.x);
-  const samples = xValues.map((x, index) => ({ x, value: metricConfig.values[index] ?? 0 })).sort((a, b) => a.x - b.x);
-  const maxAbs = Math.max(...samples.map((point) => Math.abs(point.value)), 1e-9);
-  const mapX = (x: number) => 70 + (x / total) * 760;
-  const y0 = 270;
-  const mapY = (value: number) => y0 + (metric === "moment" ? 1 : -1) * (value / maxAbs) * 105;
-  const basePoints = samples.map((point) => [mapX(point.x), y0]);
-  const resultPoints = samples.map((point) => [mapX(point.x), mapY(point.value)]);
-  const areaPoints = [...resultPoints, ...basePoints.slice().reverse()];
-  const extreme = samples.reduce((current, point) => (Math.abs(point.value) > Math.abs(current.value) ? point : current), samples[0] ?? { x: 0, value: 0 });
-  const extremeX = mapX(extreme.x);
-  const extremeY = mapY(extreme.value);
-  const labelX = clamp(extremeX + 18, 30, 715);
-  const labelY = clamp(extremeY - 38, 74, 405);
-  const graphics: Array<Record<string, unknown>> = [
-    { type: "rect", shape: { x: 0, y: 0, width: 900, height: 460 }, style: { fill: REPORT_BG } },
-    { type: "text", left: 28, top: 22, style: { text: `梁系 ${metricConfig.label}（模型叠加）`, fill: TEXT, fontSize: 18, fontWeight: 700 } },
-    { type: "text", left: 28, top: 50, style: { text: `梁长 ${total.toFixed(2)} m，控制值 ${extreme.value.toFixed(3)} ${metricConfig.unit} @ x=${extreme.x.toFixed(2)} m`, fill: MUTED_TEXT, fontSize: 12 } },
-    { type: "line", shape: { x1: 70, y1: y0, x2: 830, y2: y0 }, style: { stroke: "#334155", lineWidth: 5 } },
-    ...(metric !== "deflection" ? [{ type: "polygon", shape: { points: areaPoints }, style: { fill: `${metricConfig.color}28` } }] : []),
-    { type: "polyline", shape: { points: resultPoints }, style: { stroke: metricConfig.color, lineWidth: 4, fill: "none" } },
-    { type: "line", shape: { x1: extremeX, y1: extremeY, x2: labelX - 6, y2: labelY + 12 }, style: { stroke: metricConfig.color, lineWidth: 1.5, lineDash: [4, 4] } },
-    { type: "circle", shape: { cx: extremeX, cy: extremeY, r: 6 }, style: { fill: metricConfig.color, stroke: "#ffffff", lineWidth: 2 } },
-    {
-      type: "text",
-      left: labelX,
-      top: labelY,
-      style: {
-        text: `${extreme.value.toFixed(2)} ${metricConfig.unit}\nx=${extreme.x.toFixed(2)} m`,
-        fill: metricConfig.color,
-        fontSize: 13,
-        fontWeight: 700,
-        lineHeight: 17,
-        stroke: "#ffffff",
-        lineWidth: 4,
-      },
-    },
-  ];
-  for (const support of beam.supports ?? []) {
-    const x = mapX(support.x);
-    graphics.push({ type: "polygon", shape: { points: [[x, y0 + 6], [x - 18, y0 + 36], [x + 18, y0 + 36]] }, style: { fill: "#64748b" } });
-    graphics.push({ type: "text", left: x - 18, top: y0 + 42, style: { text: support.label ?? "", fill: TEXT, fontSize: 11 } });
-  }
-  return renderOption({ backgroundColor: REPORT_BG, animation: false, xAxis: { show: false }, yAxis: { show: false }, graphic: graphics }, 900, 460);
+  const svg = buildBeamResultDiagramSvg(results, beamReportMetricToDiagramMetric(metric));
+  if (!svg) return "";
+  return renderSvgToPng(svg, BEAM_RESULT_DIAGRAM_SVG_WIDTH, BEAM_RESULT_DIAGRAM_SVG_HEIGHT);
 }
 
 async function renderFramePreview(results: FrameCalculationResults) {

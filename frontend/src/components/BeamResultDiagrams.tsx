@@ -3,6 +3,7 @@ import { GlassCard } from "./ui/GlassCard";
 import type { BeamCalculationResults, BeamPreviewData, BeamSupportType } from "../types/beam";
 import { findBeamDiagramKeyPoints, type BeamDiagramKeyPointKind, type BeamDiagramMetricKey } from "../lib/beam-diagram-key-points";
 import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments, type BeamSpanDimension } from "../lib/beam-span-dimensions";
+import { formatEngineeringValue } from "../lib/engineering-format";
 
 interface BeamDiagramMetric {
   key: BeamDiagramMetricKey;
@@ -127,7 +128,7 @@ function metricValues(results: BeamCalculationResults, metricKey: BeamDiagramMet
 }
 
 function valueText(value: number, unit: string) {
-  return `${value.toFixed(Math.abs(value) >= 100 ? 1 : 2)} ${unit}`;
+  return formatEngineeringValue(value, unit);
 }
 
 function estimateTextWidth(text: string, fontSize: number) {

@@ -5,7 +5,11 @@ function positiveInt(value: string | undefined, fallback: number) {
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
 }
 
-export const RESULT_DISPLAY_DECIMALS = positiveInt(viteEnv.VITE_RESULT_DISPLAY_DECIMALS, 3);
+export const RESULT_DISPLAY_DECIMALS = positiveInt(viteEnv.VITE_RESULT_DISPLAY_DECIMALS, 4);
+
+export function formatEngineeringNumber(value: number, decimals = RESULT_DISPLAY_DECIMALS) {
+  return value.toFixed(decimals).replace(/(\.\d*?[1-9])0+$/, "$1").replace(/\.0+$/, "");
+}
 
 export function formatEngineeringValue(value: number | null | undefined, unit = "", decimals = RESULT_DISPLAY_DECIMALS) {
   const numeric = Number(value ?? 0);
@@ -17,5 +21,5 @@ export function formatEngineeringValue(value: number | null | undefined, unit = 
     const sign = numeric < 0 ? "-" : "";
     return `${sign}<${threshold.toFixed(decimals)}${suffix}`;
   }
-  return `${numeric.toFixed(decimals)}${suffix}`;
+  return `${formatEngineeringNumber(numeric, decimals)}${suffix}`;
 }
