@@ -1,3 +1,5 @@
+import { outwardLabelCandidates, type DiagramLabelCandidate, type DiagramLabelRect } from "../lib/diagram-label-layout.ts";
+
 export interface TrussPreviewPoint {
   x: number;
   y: number;
@@ -73,6 +75,37 @@ export function buildTrussSupportMarkerGeometry(type: string | undefined, x: num
       : [],
     label: trussSupportTypeLabel(type),
   };
+}
+
+export function buildTrussNodeLabelCandidates(
+  point: TrussPreviewPoint,
+  center: TrussPreviewPoint,
+  supportType: string | undefined,
+  gap: number,
+  extendedGap = gap + 18,
+): DiagramLabelCandidate[] {
+  const baseCandidates = outwardLabelCandidates(point, center, gap, extendedGap);
+  if (supportType !== "pinned" && supportType !== "roller") {
+    return baseCandidates;
+  }
+
+  const side = point.x < center.x ? -1 : 1;
+  const textAnchor = side < 0 ? "end" : "start";
+  const lift = gap + 4;
+
+  return [
+    { dx: side * (gap + 2), dy: -lift, textAnchor, verticalAnchor: "bottom", penalty: -16 },
+    { dx: side * (gap + 10), dy: -(lift + 10), textAnchor, verticalAnchor: "bottom", penalty: -4 },
+    { dx: 0, dy: -extendedGap, textAnchor: "middle", verticalAnchor: "bottom", penalty: 6 },
+    ...baseCandidates.map((candidate) => ({
+      ...candidate,
+      penalty: (candidate.penalty ?? 0) + (candidate.dy > 0 || candidate.verticalAnchor === "top" ? 180 : 24),
+    })),
+  ];
+}
+
+export function scoreTrussSupportedNodeLabelClearance(rect: Pick<DiagramLabelRect, "bottom">, nodeY: number, minClearance = 8) {
+  return Math.max(0, rect.bottom - (nodeY - minClearance)) * 120;
 }
 
 function formatTrussMemberLength(value: number) {

@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildTrussLoadMarkers, buildTrussMemberLengthDimension, buildTrussMemberLengthDimensions, buildTrussMemberLengthLegendRows, buildTrussSupportMarkerGeometry } from "./truss-preview-utils.ts";
+import { placeDiagramLabel } from "../lib/diagram-label-layout.ts";
+import {
+  buildTrussLoadMarkers,
+  buildTrussMemberLengthDimension,
+  buildTrussMemberLengthDimensions,
+  buildTrussMemberLengthLegendRows,
+  buildTrussNodeLabelCandidates,
+  buildTrussSupportMarkerGeometry,
+  scoreTrussSupportedNodeLabelClearance,
+} from "./truss-preview-utils.ts";
 
 test("buildTrussLoadMarkers anchors vertical loads on the node x-coordinate", () => {
   const markers = buildTrussLoadMarkers({ x: 320, y: 180 }, { fyKn: -50 }, 3);
@@ -32,6 +41,29 @@ test("buildTrussSupportMarkerGeometry differentiates pinned and roller supports"
   assert.equal(roller?.rollers.length, 2);
   assert.equal(roller?.rollers[0].cy, 313);
   assert.equal(free, null);
+});
+
+test("buildTrussNodeLabelCandidates keeps supported bottom-node labels above the support marker", () => {
+  const node = { x: 790, y: 430 };
+  const placed = placeDiagramLabel({
+    id: "node-N2",
+    anchor: node,
+    lines: [{ text: "N2", fontSize: 11 }],
+    candidates: buildTrussNodeLabelCandidates(node, { x: 500, y: 270 }, "roller", 14),
+    blockers: [
+      { left: node.x - 24, right: node.x + 24, top: node.y - 12, bottom: node.y + 38, weight: 8 },
+      { left: node.x - 8, right: node.x + 8, top: node.y - 90, bottom: node.y + 8, weight: 5 },
+    ],
+    bounds: { left: 10, top: 16, right: 990, bottom: 524 },
+    paddingX: 1,
+    paddingY: 1,
+    lineGap: 0,
+    extraScore: (rect) => scoreTrussSupportedNodeLabelClearance(rect, node.y),
+  });
+
+  assert.equal(placed.textAnchor, "start");
+  assert.ok(placed.rect.bottom <= node.y - 8);
+  assert.ok(placed.lines[0].y < node.y);
 });
 
 test("buildTrussMemberLengthDimension uses the rod id as the dimension reference", () => {

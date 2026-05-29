@@ -12,7 +12,12 @@ import {
   type DiagramPlacedLabel,
 } from "../lib/diagram-label-layout";
 import { formatEngineeringValue } from "../lib/engineering-format";
-import { buildTrussMemberLengthDimensions, buildTrussMemberLengthLegendRows } from "./truss-preview-utils";
+import {
+  buildTrussMemberLengthDimensions,
+  buildTrussMemberLengthLegendRows,
+  buildTrussNodeLabelCandidates,
+  scoreTrussSupportedNodeLabelClearance,
+} from "./truss-preview-utils";
 
 type TrussDiagramMetricKey = "axialForceKn" | "displacementMm";
 type TrussDiagramSelectionKey = TrussDiagramMetricKey | "all";
@@ -236,16 +241,19 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
     truss.nodes.forEach((node) => {
       const point = layout.nodeMap.get(node.id);
       if (!point) return;
+      const supportType = supportTypeById.get(node.id) ?? "free";
+      const isSupportedNode = supportType === "pinned" || supportType === "roller";
       labels.push({
         id: `node-${node.id}`,
         anchor: point,
         lines: [{ text: node.id, fontSize: compact ? 9 : 11 }],
-        candidates: outwardLabelCandidates(point, center, compact ? 12 : 14),
+        candidates: buildTrussNodeLabelCandidates(point, center, supportType, compact ? 12 : 14),
         priority: 90,
         occupiedWeight: 11,
         paddingX: 1,
         paddingY: 1,
         lineGap: 0,
+        extraScore: isSupportedNode ? (rect) => scoreTrussSupportedNodeLabelClearance(rect, point.y, compact ? 6 : 8) : undefined,
       });
     });
     truss.members.forEach((member) => {
