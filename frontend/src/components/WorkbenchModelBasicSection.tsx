@@ -3,35 +3,36 @@ import { AlertTriangle, CheckCircle2, Sparkles } from "lucide-react";
 
 import { Button, type ButtonProps } from "./ui/button";
 
-export interface PlanarModelMetric {
+export interface WorkbenchModelMetric {
   label: string;
   value: number | string;
 }
 
-export interface PlanarModelDetailRow {
+export interface WorkbenchModelDetailRow {
   label: string;
   value: string;
 }
 
-export interface PlanarModelAction {
+export interface WorkbenchModelAction {
   label: string;
   icon: ReactNode;
   onClick: () => void;
   variant?: ButtonProps["variant"];
 }
 
-interface PlanarModelBasicSectionProps {
+interface WorkbenchModelBasicSectionProps {
   id: string;
   title: string;
   description: string;
-  metrics: PlanarModelMetric[];
+  metrics: WorkbenchModelMetric[];
   modelWarnings: string[];
   successMessage: string;
-  detailRows: PlanarModelDetailRow[];
-  actions: PlanarModelAction[];
+  detailRows: WorkbenchModelDetailRow[];
+  actions: WorkbenchModelAction[];
+  controls?: ReactNode;
 }
 
-export function PlanarModelBasicSection({
+export function WorkbenchModelBasicSection({
   id,
   title,
   description,
@@ -40,7 +41,8 @@ export function PlanarModelBasicSection({
   successMessage,
   detailRows,
   actions,
-}: PlanarModelBasicSectionProps) {
+  controls,
+}: WorkbenchModelBasicSectionProps) {
   return (
     <>
       <div id={id} className="space-y-4 rounded-2xl border border-white/8 bg-white/[0.03] p-4 scroll-mt-4">
@@ -70,6 +72,11 @@ export function PlanarModelBasicSection({
       </div>
 
       <section className="space-y-4 rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+        {controls ? (
+          <div className="rounded-xl border border-white/8 bg-slate-950/20 p-3">
+            {controls}
+          </div>
+        ) : null}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {metrics.map((item) => (
             <div key={item.label} className="rounded-xl border border-white/8 bg-slate-950/20 p-3">

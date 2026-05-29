@@ -1,7 +1,7 @@
 import { Plus, RotateCw, Wand2 } from "lucide-react";
 
 import { supportSystemHint } from "../lib/support-vocabulary.ts";
-import { PlanarModelBasicSection } from "./PlanarModelBasicSection";
+import { WorkbenchModelBasicSection } from "./WorkbenchModelBasicSection";
 
 interface FrameBasicSectionProps {
   nodeCount: number;
@@ -25,7 +25,7 @@ export function FrameBasicSection({
   onAddNode,
 }: FrameBasicSectionProps) {
   return (
-    <PlanarModelBasicSection
+    <WorkbenchModelBasicSection
       id="frame-basic"
       title="自定义平面框架建模"
       description="先套用参数模板或选择当前对象，再在属性检查器中修改节点、构件、支座、材料与截面、荷载；批量字段保留在表格页。"

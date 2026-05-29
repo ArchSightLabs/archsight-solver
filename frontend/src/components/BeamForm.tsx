@@ -1,7 +1,5 @@
 import { useMemo, useState } from "react";
-import { Button } from "./ui/button";
-import { DropdownSelect } from "./ui/DropdownSelect";
-import { Layers, RotateCcw, CheckCircle2 } from "lucide-react";
+import { BeamBasicSection } from "./BeamBasicSection";
 import { BeamLoadEditor } from "./BeamLoadEditor";
 import {
   BeamObjectNavigator,
@@ -20,7 +18,7 @@ import { BeamTableSection } from "./BeamTableSection";
 import { BeamTemplateSection } from "./BeamTemplateSection";
 import { BeamTextModelSection } from "./BeamTextModelSection";
 import { formatBeamLoadSummary } from "../lib/beam-loads.ts";
-import { materialEngineeringNote, materialOptionLabel } from "../lib/material-presets.ts";
+import { materialOptionLabel } from "../lib/material-presets.ts";
 import { PREDEFINED_MATERIALS } from "../types/material.ts";
 import type { BeamSpanConfig, BeamSupportConfig, BeamWorkspaceState } from "../types/beam.ts";
 import type { BeamWorkbenchSelection, WorkbenchSelectionOptions } from "../types/workbench-selection.ts";
@@ -264,55 +262,6 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
   const totalLength = value.spans.reduce((sum, span) => sum + span.length, 0);
   const loadSummary = formatBeamLoadSummary(value);
 
-  const renderBeamDefinitionEditor = () => (
-    <section className="space-y-4 rounded-lg border border-white/8 bg-slate-950/20 p-4">
-      <div className="eyebrow flex items-center gap-2">
-        <Layers className="h-3.5 w-3.5 text-primary" />
-        梁系定义
-      </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <label className={FORM_LABEL_CLASS}>默认材料编号（新增杆件）</label>
-          <DropdownSelect value={value.materialId} onChange={(nextValue) => updateWorkspace("materialId", nextValue)} options={materialOptions} className={FORM_CONTROL_CLASS} menuClassName={FORM_SELECT_MENU_CLASS} optionClassName={FORM_SELECT_OPTION_CLASS} ariaLabel="默认材料编号（新增杆件）" />
-          <div className="text-[10px] font-semibold leading-relaxed text-muted-foreground">
-            {materialEngineeringNote(value.materialId, materialLibrary)} 每一跨可在“对象”页单独引用材料编号。
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <label className={FORM_LABEL_CLASS}>梁型</label>
-        <div className="grid grid-cols-3 gap-2">
-          {[
-            { label: "简支梁", value: "simply_supported" },
-            { label: "悬臂梁", value: "cantilever" },
-            { label: "连续梁", value: "continuous" },
-          ].map((option) => {
-            const isActive = value.beamType === option.value;
-            return (
-              <Button
-                key={option.value}
-                type="button"
-                variant="outline"
-                aria-pressed={isActive}
-                className={`relative h-11 overflow-hidden rounded-md text-[12px] font-bold transition-all ${
-                  isActive
-                    ? "border-sky-300 bg-sky-400 text-slate-950 shadow-[0_0_0_1px_rgba(125,211,252,0.5),0_10px_24px_rgba(14,165,233,0.22)] hover:bg-sky-300"
-                    : "border-white/10 bg-white/[0.03] text-foreground/70 hover:border-sky-400/40 hover:bg-sky-400/10 hover:text-foreground"
-                }`}
-                onClick={() => updateBeamType(option.value as BeamWorkspaceState["beamType"])}
-              >
-                {isActive ? <CheckCircle2 className="h-3.5 w-3.5" /> : null}
-                {option.label}
-              </Button>
-            );
-          })}
-        </div>
-      </div>
-
-    </section>
-  );
-
   const renderSelectedEditor = () => {
     if (resolvedSelectedObject.type === "load") {
       return <BeamLoadEditor value={value} totalLength={totalLength} fieldLabelClass={FIELD_LABEL_CLASS} onChange={onChange} />;
@@ -362,52 +311,23 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
   return (
     <div className="space-y-4">
       {isSectionVisible("beam-basic") ? (
-      <section id="beam-basic" className="scroll-mt-4 space-y-3">
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onChange(DEFAULT_BEAM_STATE)}
-            aria-label="重置梁系参数"
-            className="h-8 w-8 px-0 text-primary hover:bg-primary/10 sm:w-auto sm:px-3"
-          >
-            <RotateCcw className="h-3.5 w-3.5 sm:mr-1" />
-            <span className="hidden text-[10px] font-bold sm:inline">重置</span>
-          </Button>
-        </div>
-
-        <div className="space-y-3 rounded-lg border border-white/8 bg-white/[0.04] p-4">
-          <div className="eyebrow">模型概览</div>
-          <div className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-white/8 bg-white/8">
-            {[
-              ["节点", `${derivedNodeCount}`],
-              ["杆件", `${value.spans.length}`],
-              ["总长", `${totalLength.toFixed(2)} m`],
-            ].map(([label, metric]) => (
-              <div key={label} className="bg-background/35 px-3 py-2">
-                <div className="text-[10px] font-bold text-muted-foreground">{label}</div>
-                <div className="mt-1 font-mono text-xs font-bold text-foreground/85">{metric}</div>
-              </div>
-            ))}
-          </div>
-          <div className="grid gap-2 text-xs text-foreground/70">
-            <div className="flex items-center justify-between gap-3 rounded-md bg-white/[0.03] px-3 py-2">
-              <span className="text-muted-foreground">求解模型</span>
-              <span className="font-semibold">矩阵位移法 / 三弯矩方程校核</span>
-            </div>
-            <div className="flex items-center justify-between gap-3 rounded-md bg-white/[0.03] px-3 py-2">
-              <span className="text-muted-foreground">输入单位</span>
-              <span className="font-mono font-semibold">E:GPa · I:cm4 · q:kN/m · P:kN</span>
-            </div>
-            <div className="flex items-center justify-between gap-3 rounded-md bg-white/[0.03] px-3 py-2">
-              <span className="text-muted-foreground">主要结果</span>
-              <span className="font-semibold">挠度、弯矩、剪力、支座反力</span>
-            </div>
-          </div>
-        </div>
-
-        {renderBeamDefinitionEditor()}
-      </section>
+      <BeamBasicSection
+        beamType={value.beamType}
+        materialId={value.materialId}
+        materialLibrary={materialLibrary}
+        materialOptions={materialOptions}
+        nodeCount={derivedNodeCount}
+        spanCount={value.spans.length}
+        supportCount={value.supports.length}
+        totalLength={totalLength}
+        formLabelClass={FORM_LABEL_CLASS}
+        formControlClass={FORM_CONTROL_CLASS}
+        formSelectMenuClass={FORM_SELECT_MENU_CLASS}
+        formSelectOptionClass={FORM_SELECT_OPTION_CLASS}
+        onBeamTypeChange={updateBeamType}
+        onMaterialChange={(nextValue) => updateWorkspace("materialId", nextValue)}
+        onReset={() => onChange(DEFAULT_BEAM_STATE)}
+      />
       ) : null}
 
       {isSectionVisible("beam-template") ? (

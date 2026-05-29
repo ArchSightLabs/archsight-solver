@@ -1,7 +1,7 @@
 import { Plus, RotateCw } from "lucide-react";
 
 import { supportSystemHint } from "../lib/support-vocabulary.ts";
-import { PlanarModelBasicSection } from "./PlanarModelBasicSection";
+import { WorkbenchModelBasicSection } from "./WorkbenchModelBasicSection";
 
 interface TrussBasicSectionProps {
   nodeCount: number;
@@ -23,7 +23,7 @@ export function TrussBasicSection({
   onAddNode,
 }: TrussBasicSectionProps) {
   return (
-    <PlanarModelBasicSection
+    <WorkbenchModelBasicSection
       id="truss-basic"
       title="自定义平面桁架建模"
       description="先套用桁架参数模板或选择当前对象，再在属性检查器中修改节点、杆件、支座、材料与截面、荷载；批量字段保留在表格页。"
