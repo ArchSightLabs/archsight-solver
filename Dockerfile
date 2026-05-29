@@ -13,6 +13,7 @@ COPY frontend/package*.json ./
 RUN npm ci
 
 COPY frontend/ ./
+COPY CHANGELOG.md /app/CHANGELOG.md
 RUN npm run build
 
 FROM ${PYTHON_IMAGE} AS runtime
@@ -29,8 +30,8 @@ RUN groupadd --system app \
     && useradd --system --gid app --create-home --home-dir /home/app app
 
 COPY requirements.txt ./
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --retries 5 --timeout 120 --upgrade pip \
+    && pip install --no-cache-dir --retries 5 --timeout 120 -r requirements.txt
 
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 COPY app.py ./app.py
