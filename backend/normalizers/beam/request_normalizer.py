@@ -74,6 +74,28 @@ def normalize_span_properties(
     return span_E_gpa, span_I_cm4
 
 
+def normalize_span_ids(data: Dict[str, Any], span_count: int) -> List[str]:
+    raw_properties = data.get("spanProperties", data.get("span_properties", []))
+    properties = list(raw_properties) if isinstance(raw_properties, Sequence) and not isinstance(raw_properties, (str, bytes)) else []
+    seen = set()
+    span_ids: List[str] = []
+    for index in range(span_count):
+        candidate = properties[min(index, len(properties) - 1)] if properties else None
+        raw_id = ""
+        if isinstance(candidate, Mapping):
+            raw_id = str(candidate.get("id", candidate.get("memberId", "")) or "").strip()
+        span_id = raw_id or f"B{index + 1}"
+        if span_id in seen:
+            span_id = f"B{index + 1}"
+        suffix = index + 1
+        while span_id in seen:
+            suffix += 1
+            span_id = f"B{suffix}"
+        seen.add(span_id)
+        span_ids.append(span_id)
+    return span_ids
+
+
 def _parse_beam_theory(value: Any) -> str:
     theory = str(value or "euler_bernoulli").strip().lower().replace("-", "_")
     if theory in {"euler", "eb", "euler_bernoulli"}:
@@ -486,6 +508,7 @@ def normalize_beam_request(data: Dict[str, Any]) -> Dict[str, Any]:
     E_gpa = to_float(data.get("E"), 1.0)
     I_cm4 = to_float(data.get("I"), 1.0)
     span_E_gpa, span_I_cm4 = normalize_span_properties(data, spans, E_gpa, I_cm4)
+    span_ids = normalize_span_ids(data, len(spans))
     duration = to_float(data.get("duration"), 5.0)
     if duration > 120:
         raise ValueError("模拟时长超出系统限制 (最大 120s)")
@@ -512,6 +535,9 @@ def normalize_beam_request(data: Dict[str, Any]) -> Dict[str, Any]:
     has_custom_supports = data.get("supports") not in (None, "")
     if not has_custom_supports and beam_type in {"simply_supported", "cantilever"} and len(spans) > 1:
         spans = spans[:1]
+        span_E_gpa = span_E_gpa[:1]
+        span_I_cm4 = span_I_cm4[:1]
+        span_ids = span_ids[:1]
         total_length = float(sum(spans))
     uniform_start, uniform_end, uniform_start_ratio, uniform_end_ratio = normalize_load_range(
         start_value=raw_uniform_start_m,
@@ -554,6 +580,7 @@ def normalize_beam_request(data: Dict[str, Any]) -> Dict[str, Any]:
         "I": to_si(I_cm4, "moment_of_inertia", "cm4"),
         "span_E_gpa": span_E_gpa,
         "span_I_cm4": span_I_cm4,
+        "span_ids": span_ids,
         "G_gpa": G_gpa,
         "A_cm2": A_cm2,
         "shear_correction_factor": shear_correction_factor,

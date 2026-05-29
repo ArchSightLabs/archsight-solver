@@ -24,6 +24,7 @@ export interface WorkspaceState {
 }
 
 export const DEFAULT_BEAM_SPAN: BeamSpanConfig = {
+  id: "B1",
   length: 4,
   E: 210,
   I: 4500,
@@ -544,16 +545,16 @@ function defaultBeamSupports(beamType: BeamWorkspaceState["beamType"], spans: Be
   const boundaries = beamSpanBoundaries(spans);
   const totalLength = boundaries[boundaries.length - 1] ?? 0;
   if (beamType === "cantilever") {
-    return [{ id: "S1", x: 0, type: "fixed", constraints: ["v", "rz"] }];
+    return [{ id: "N1", x: 0, type: "fixed", constraints: ["v", "rz"] }];
   }
   if (beamType === "simply_supported") {
     return [
-      { id: "S1", x: 0, type: "pinned", constraints: ["v"] },
-      { id: "S2", x: totalLength, type: "roller", constraints: ["v"] },
+      { id: "N1", x: 0, type: "pinned", constraints: ["v"] },
+      { id: "N2", x: totalLength, type: "roller", constraints: ["v"] },
     ];
   }
   return boundaries.map((x, index) => ({
-    id: `S${index + 1}`,
+    id: `N${index + 1}`,
     x,
     type: index === boundaries.length - 1 ? "roller" : "pinned",
     constraints: ["v"],
@@ -598,9 +599,9 @@ function normalizeBeamSupports(rawSupports: unknown, fallbackSupports: BeamSuppo
   const source = Array.isArray(rawSupports) && rawSupports.length > 0 ? rawSupports : fallbackSupports;
   const seen = new Set<string>();
   return source.slice(0, 32).map((support, index) => {
-    const fallback = fallbackSupports[index] ?? fallbackSupports[fallbackSupports.length - 1] ?? { id: `S${index + 1}`, x: 0, type: "pinned" as const };
+    const fallback = fallbackSupports[index] ?? fallbackSupports[fallbackSupports.length - 1] ?? { id: `N${index + 1}`, x: 0, type: "pinned" as const };
     const candidate = support && typeof support === "object" ? (support as Partial<BeamSupportConfig>) : {};
-    const id = normalizeTextId(candidate.id, fallback.id || `S${index + 1}`, seen, "S", index);
+    const id = normalizeTextId(candidate.id, fallback.id || `N${index + 1}`, seen, "N", index);
     const rawX = Number(candidate.x);
     const x = Number.isFinite(rawX) ? Math.min(Math.max(rawX, 0), totalLength) : fallback.x;
     const springs = Array.isArray(candidate.springs)
@@ -729,7 +730,10 @@ function inferBeamSpanMaterialId(span: Partial<BeamSpanConfig>, materials: Mater
 }
 
 export function createDefaultBeamWorkspaceState(): BeamWorkspaceState {
-  const spans = [{ ...DEFAULT_BEAM_SPAN }, { ...DEFAULT_BEAM_SPAN }];
+  const spans = [
+    { ...DEFAULT_BEAM_SPAN, id: "B1" },
+    { ...DEFAULT_BEAM_SPAN, id: "B2" },
+  ];
   return {
     projectName: "新建梁系项目",
     materialId: "q345",
@@ -864,10 +868,12 @@ export function normalizeBeamWorkspaceState(value: Partial<BeamWorkspaceState> |
   const materials = normalizeBeamMaterials(value?.materials);
   const materialId = pickBeamMaterialId(value?.materialId, materials, base.materialId);
   const spans = Array.isArray(value?.spans) && value.spans.length > 0 ? value.spans : base.spans;
-  const normalizedSpans = spans.slice(0, MAX_BEAM_SPANS).map((span) => {
+  const seenSpanIds = new Set<string>();
+  const normalizedSpans = spans.slice(0, MAX_BEAM_SPANS).map((span, index) => {
     const spanMaterialId = inferBeamSpanMaterialId(span, materials, materialId);
     const material = materialById(materials, spanMaterialId);
     return {
+      id: normalizeTextId(span.id, `B${index + 1}`, seenSpanIds, "B", index),
       length: Number.isFinite(span.length) && span.length > 0 ? Number(span.length) : DEFAULT_BEAM_SPAN.length,
       E: Number.isFinite(span.E) && span.E > 0 ? Number(span.E) : material?.youngModulus ?? DEFAULT_BEAM_SPAN.E,
       I: Number.isFinite(span.I) && span.I > 0 ? Number(span.I) : DEFAULT_BEAM_SPAN.I,

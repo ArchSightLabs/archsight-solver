@@ -160,6 +160,8 @@ ASMS_BEAM_MODEL_SCHEMA: Dict[str, Any] = {
             "items": {
                 "type": "object",
                 "properties": {
+                    "id": {"type": "string", "description": "梁杆件编号。"},
+                    "memberId": {"type": "string", "description": "梁杆件编号兼容字段。"},
                     "E": {"type": "number", "description": "弹性模量，单位 GPa。"},
                     "I": {"type": "number", "description": "截面惯性矩，单位 cm^4。"},
                 },

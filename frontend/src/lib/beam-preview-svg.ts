@@ -191,7 +191,10 @@ export function buildBeamPreviewSvg(beam: BeamPreviewData) {
   const maxDeflectionMm = Math.max(1, ...(beam.curve ?? []).map((point) => Math.abs(point.vMm)));
   const mapY = (vMm: number) => BEAM_Y - (vMm / maxDeflectionMm) * 80;
   const curvePoints = (beam.curve ?? []).map((point) => `${n(mapX(point.x))},${n(mapY(point.vMm))}`).join(" ");
-  const spanDimensions = buildBeamSpanDimensionSegments(beam.spans ?? [], totalLength, BEAM_LEFT, BEAM_RIGHT);
+  const spanDimensions = buildBeamSpanDimensionSegments(beam.spans ?? [], totalLength, BEAM_LEFT, BEAM_RIGHT, {
+    memberIds: beam.spanIds,
+    nodeIds: beam.nodes?.map((node, index) => node.id ?? `N${index + 1}`),
+  });
   const dimensionLegendRows = [`梁长=${formatBeamDimensionLength(totalLength)}`, ...buildBeamSpanDimensionLegendRows(spanDimensions, 420, 12)];
   const loadBands = buildDistributedLoadBands(beam, mapX);
   const pointLoads = buildPointLoadArrows(beam, mapX);
@@ -236,7 +239,7 @@ export function buildBeamPreviewSvg(beam: BeamPreviewData) {
   ${(beam.nodes ?? [])
     .map((node, index) => {
       const x = mapX(node.x);
-      return `<g><circle cx="${n(x)}" cy="${BEAM_Y}" r="4" fill="${node.support ? PREVIEW_COLORS.node : PREVIEW_COLORS.guide}" /><text x="${n(x + 7)}" y="${BEAM_Y - 12}" fill="${PREVIEW_COLORS.label}" stroke="${PREVIEW_COLORS.textHalo}" stroke-width="3" paint-order="stroke" font-size="11" font-weight="600" font-family="${SVG_TEXT_FONT}">N${index + 1}</text></g>`;
+      return `<g><circle cx="${n(x)}" cy="${BEAM_Y}" r="4" fill="${node.support ? PREVIEW_COLORS.node : PREVIEW_COLORS.guide}" /><text x="${n(x + 7)}" y="${BEAM_Y - 12}" fill="${PREVIEW_COLORS.label}" stroke="${PREVIEW_COLORS.textHalo}" stroke-width="3" paint-order="stroke" font-size="11" font-weight="600" font-family="${SVG_TEXT_FONT}">${escapeSvg(node.id ?? `N${index + 1}`)}</text></g>`;
     })
     .join("")}
   ${loadBands

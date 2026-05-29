@@ -32,3 +32,14 @@ test("buildBeamSpanDimensionLegendRows groups non-adjacent equal span lengths", 
 
   assert.deepEqual(buildBeamSpanDimensionLegendRows(segments, 420), ["B1=B3=4m", "B2=3m"]);
 });
+
+test("buildBeamSpanDimensionSegments uses custom member and node ids", () => {
+  const segments = buildBeamSpanDimensionSegments([4, 4], 8, 80, 920, {
+    memberIds: ["G1", "G2"],
+    nodeIds: ["A", "B", "C"],
+  });
+
+  assert.equal(segments[0]?.label, "G1");
+  assert.equal(segments[0]?.title, "G1：第 1 跨，A-B，L = 4.00 m");
+  assert.deepEqual(buildBeamSpanDimensionLegendRows(segments, 420), ["G1=G2=4m"]);
+});

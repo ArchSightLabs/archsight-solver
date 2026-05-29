@@ -296,7 +296,10 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
     const mapX = (x: number) => BEAM_LEFT + (clamp(x, 0, totalLength) / totalLength) * BEAM_LEN;
     const basePoints = samples.map((point) => ({ x: mapX(point.x), y: BEAM_Y }));
     const resultPoints: BeamResultSvgPoint[] = samples.map((point) => ({ x: mapX(point.x), y: BEAM_Y + valueToSvgOffset * point.value * offsetScale, value: point.value, stationM: point.x }));
-    const spanDimensions = buildBeamSpanDimensionSegments(beam.spans, totalLength, BEAM_LEFT, BEAM_RIGHT);
+    const spanDimensions = buildBeamSpanDimensionSegments(beam.spans, totalLength, BEAM_LEFT, BEAM_RIGHT, {
+      memberIds: beam.spanIds,
+      nodeIds: beam.nodes?.map((node, nodeIndex) => node.id ?? `N${nodeIndex + 1}`),
+    });
     const spanDimensionLegendRows = buildBeamSpanDimensionLegendRows(spanDimensions, compact ? 310 : 420, compact ? 10 : 11);
     const extreme = resultPoints.reduce<{ x: number; y: number; value: number; stationM: number } | null>((current, point) => {
       if (!current || Math.abs(point.value) > Math.abs(current.value)) return point;

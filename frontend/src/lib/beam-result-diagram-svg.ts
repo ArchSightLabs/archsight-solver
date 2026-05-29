@@ -340,7 +340,10 @@ export function buildBeamResultDiagramSvg(results: BeamCalculationResults, metri
     value: point.value,
     stationM: point.x,
   }));
-  const spanDimensions = buildBeamSpanDimensionSegments(beam.spans, totalLength, BEAM_LEFT, BEAM_RIGHT);
+  const spanDimensions = buildBeamSpanDimensionSegments(beam.spans, totalLength, BEAM_LEFT, BEAM_RIGHT, {
+    memberIds: beam.spanIds,
+    nodeIds: beam.nodes?.map((node, index) => node.id ?? `N${index + 1}`),
+  });
   const spanDimensionLegendRows = buildBeamSpanDimensionLegendRows(spanDimensions, compact ? 310 : 420, compact ? 10 : 11);
   const resultPath = pathFromPoints(resultPoints);
   const resultAreaPath = areaPath(basePoints, resultPoints);

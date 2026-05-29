@@ -151,8 +151,11 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
   }, [beam, mapX, totalLength]);
 
   const spanDimensions = useMemo(
-    () => buildBeamSpanDimensionSegments(beam?.spans ?? [], totalLength, BEAM_LEFT, BEAM_RIGHT),
-    [beam?.spans, totalLength],
+    () => buildBeamSpanDimensionSegments(beam?.spans ?? [], totalLength, BEAM_LEFT, BEAM_RIGHT, {
+      memberIds: beam?.spanIds,
+      nodeIds: beam?.nodes?.map((node, index) => node.id ?? `N${index + 1}`),
+    }),
+    [beam?.nodes, beam?.spanIds, beam?.spans, totalLength],
   );
   const dimensionLegendRows = useMemo(
     () => beam ? [`梁长=${formatBeamDimensionLength(totalLength)}`, ...buildBeamSpanDimensionLegendRows(spanDimensions, compact ? 310 : 420, compact ? 10 : 12)] : [],
@@ -290,7 +293,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
               <g key={i}>
                 <circle cx={x} cy={BEAM_Y} r="4" fill={n.support ? "var(--structure-preview-node)" : "var(--structure-preview-guide)"} />
                 <text x={x + 7} y={BEAM_Y - 12} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="3" paintOrder="stroke" fontSize={compact ? "9" : "11"} fontWeight="600" fontFamily={svgTextFont}>
-                  N{i + 1}
+                  {n.id ?? `N${i + 1}`}
                 </text>
               </g>
             );

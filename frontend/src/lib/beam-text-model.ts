@@ -159,41 +159,50 @@ export function parseBeamTextModel(text: string): BeamTextParseResult {
       continue;
     }
 
-    if (command === "SPAN" || command === "跨段") {
-      if (tokens.length < 4) {
-        diagnostics.push(`第 ${lineIndex + 1} 行：SPAN 必须包含跨长、材料编号或 E_GPa、I_cm4。`);
+    if (command === "SPAN" || command === "跨段" || command === "MEMBER" || command === "杆件") {
+      const directLength = toNumber(tokens[1]);
+      const hasExplicitId = directLength === null;
+      const spanId = hasExplicitId ? tokens[1]?.trim() : `B${spans.length + 1}`;
+      const lengthTokenIndex = hasExplicitId ? 2 : 1;
+      if ((hasExplicitId && tokens.length < 5) || (!hasExplicitId && tokens.length < 4)) {
+        diagnostics.push(`第 ${lineIndex + 1} 行：SPAN 必须包含杆件编号（可选）、跨长、材料编号或 E_GPa、I_cm4。`);
         continue;
       }
-      const length = toNumber(tokens[1]);
+      if (!spanId) {
+        diagnostics.push(`第 ${lineIndex + 1} 行：杆件编号不能为空。`);
+        continue;
+      }
+      const length = toNumber(tokens[lengthTokenIndex]);
       if (!length || length <= 0) {
         diagnostics.push(`第 ${lineIndex + 1} 行：跨长必须大于 0。`);
         continue;
       }
-      const directE = toNumber(tokens[2]);
-      const spanMaterial = directE === null ? materials.get(String(tokens[2] ?? "").trim().toLowerCase()) : null;
+      const materialToken = tokens[lengthTokenIndex + 1];
+      const directE = toNumber(materialToken);
+      const spanMaterial = directE === null ? materials.get(String(materialToken ?? "").trim().toLowerCase()) : null;
       const E = directE ?? spanMaterial?.youngModulus ?? null;
       if (!E || E <= 0) {
-        diagnostics.push(`第 ${lineIndex + 1} 行：跨段材料编号 ${tokens[2] ?? ""} 未在材料库中定义，或弹性模量 E_GPa 不是大于 0 的数字。`);
+        diagnostics.push(`第 ${lineIndex + 1} 行：杆件材料编号 ${materialToken ?? ""} 未在材料库中定义，或弹性模量 E_GPa 不是大于 0 的数字。`);
         continue;
       }
-      const I = toNumber(tokens[3]);
+      const I = toNumber(tokens[lengthTokenIndex + 2]);
       if (!I || I <= 0) {
         diagnostics.push(`第 ${lineIndex + 1} 行：截面惯性矩 I_cm4 必须大于 0。`);
         continue;
       }
       const inferredMaterialId = spanMaterial?.id ?? materialByYoungModulus(E, materials)?.id ?? patch.materialId;
-      spans.push({ length, E, I, materialId: inferredMaterialId });
+      spans.push({ id: spanId, length, E, I, materialId: inferredMaterialId });
       continue;
     }
 
-    if (command === "SUPPORT" || command === "支座") {
+    if (command === "SUPPORT" || command === "支座" || command === "NODE" || command === "节点") {
       if (tokens.length < 4) {
-        diagnostics.push(`第 ${lineIndex + 1} 行：SUPPORT 必须包含编号、x 位置和类型。`);
+        diagnostics.push(`第 ${lineIndex + 1} 行：NODE 必须包含节点编号、x 位置和支座类型。`);
         continue;
       }
       const id = tokens[1]?.trim();
       if (!id) {
-        diagnostics.push(`第 ${lineIndex + 1} 行：支座编号不能为空。`);
+        diagnostics.push(`第 ${lineIndex + 1} 行：节点编号不能为空。`);
         continue;
       }
       const x = toNumber(tokens[2]);
@@ -414,12 +423,12 @@ export function serializeBeamTextModel(value: BeamWorkspaceState): string {
     "# 自定义材料：MATERIAL,编号,名称,E_GPa,密度kg/m3",
     ...(materialLines.length ? materialLines : [`MATERIAL,${value.materialId}`]),
     "",
-    "# SPAN,跨长m,材料编号或E_GPa,I_cm4",
-    ...value.spans.map((span) => `SPAN,${span.length},${spanMaterialToken(span, materials)},${span.I}`),
+    "# SPAN,杆件编号,跨长m,材料编号或E_GPa,I_cm4",
+    ...value.spans.map((span, index) => `SPAN,${span.id?.trim() || `B${index + 1}`},${span.length},${spanMaterialToken(span, materials)},${span.I}`),
     "",
-    "# SUPPORT,编号,x位置m,类型",
+    "# NODE,节点编号,x位置m,支座类型",
     "# 支座类型：fixed=固结支座；pinned=铰支座；roller=滚动支座；free=自由端/无约束",
-    ...value.supports.map((support) => `SUPPORT,${support.id},${support.x},${support.type}`),
+    ...value.supports.map((support) => `NODE,${support.id},${support.x},${support.type}`),
     ...value.supports.flatMap((support) =>
       (support.springs ?? []).map((spring) =>
         spring.dof === "rz"

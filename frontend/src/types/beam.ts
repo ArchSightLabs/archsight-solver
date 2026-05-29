@@ -17,6 +17,7 @@ export interface BeamForm {
 }
 
 export interface BeamSpanConfig {
+  id?: string;
   length: number;
   E: number;
   I: number;
@@ -99,9 +100,11 @@ export interface BeamApiPayload extends BeamForm {
   distributedLoadStartRatio?: number;
   distributedLoadEndRatio?: number;
   spanProperties?: Array<{
-    E: number;
-    I: number;
-    materialId?: string;
+      E: number;
+      I: number;
+      id?: string;
+      memberId?: string;
+      materialId?: string;
   }>;
   supports?: BeamSupportConfig[];
 }
@@ -176,9 +179,10 @@ export interface BeamPreviewData {
   loadType: 'none' | 'uniform' | 'point' | 'linear' | 'combined';
   loadTypeLabel: string;
   spans: number[];
+  spanIds?: string[];
   totalLength: number;
   supports: BeamSupport[];
-  nodes: Array<{ index: number; x: number; support: boolean }>;
+  nodes: Array<{ index: number; id?: string; x: number; support: boolean }>;
   loads: BeamLoadMarker[];
   curve: BeamCurvePoint[];
   spanSummaries: BeamSpanSummary[];

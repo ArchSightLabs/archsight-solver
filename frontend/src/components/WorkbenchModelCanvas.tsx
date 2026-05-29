@@ -23,9 +23,9 @@ function buildMetrics(workspace: WorkspaceState, mode: AnalysisMode) {
   if (mode === "beam") {
     const length = workspace.beam.spans.reduce((sum, span) => sum + span.length, 0);
     return [
-      { label: "跨段数量", value: `${workspace.beam.spans.length} 跨` },
+      { label: "杆件数量", value: `${workspace.beam.spans.length}` },
       { label: "总长度", value: `${length.toFixed(2)} m` },
-      { label: "节点/支座", value: `${workspace.beam.supports.length} 个` },
+      { label: "节点数量", value: `${workspace.beam.supports.length}` },
     ];
   }
 
@@ -100,6 +100,14 @@ function activeBeamLinearLoads(beam: WorkspaceState["beam"]) {
     startRatio: beam.distributedLoadStartRatio,
     endRatio: beam.distributedLoadEndRatio,
   }];
+}
+
+function beamSpanMemberId(span: WorkspaceState["beam"]["spans"][number] | undefined, index: number) {
+  return span?.id?.trim() || `B${index + 1}`;
+}
+
+function beamBoundaryNodeId(beam: WorkspaceState["beam"], index: number) {
+  return beam.supports[index]?.id?.trim() || `N${index + 1}`;
 }
 
 function buildLinearLoadRange(load: ReturnType<typeof activeBeamLinearLoads>[number], beamStart: number, beamEnd: number) {
@@ -215,7 +223,12 @@ function BeamSketch({
   }, []);
   const beamStart = segments[0]?.start ?? 96;
   const beamEnd = segments[segments.length - 1]?.end ?? 804;
-  const spanDimensions = buildBeamSpanDimensionSegments(beam.spans.map((span) => span.length), total, beamStart, beamEnd);
+  const beamMemberIds = beam.spans.map((span, index) => beamSpanMemberId(span, index));
+  const beamNodeIds = Array.from({ length: beam.spans.length + 1 }, (_, index) => beamBoundaryNodeId(beam, index));
+  const spanDimensions = buildBeamSpanDimensionSegments(beam.spans.map((span) => span.length), total, beamStart, beamEnd, {
+    memberIds: beamMemberIds,
+    nodeIds: beamNodeIds,
+  });
   const spanDimensionLegendRows = buildBeamSpanDimensionLegendRows(spanDimensions, 440, 12);
   const beamDimensionLegendRows = [`梁长=${formatBeamDimensionLength(total)}`, ...spanDimensionLegendRows];
   const uniformRange = beam.uniformLoadEnabled ? buildUniformLoadRange(beam, beamStart, beamEnd) : null;
@@ -288,7 +301,7 @@ function BeamSketch({
         const selected = selection?.mode === "beam" && selection.type === "span" && selection.id === `span-${segment.index}`;
         const dimension = spanDimensions[segment.index];
         return (
-          <g key={segment.index} {...svgInteractiveProps(`选择梁段 B${segment.index + 1}`, () => onSelect?.({ mode: "beam", type: "span", id: `span-${segment.index}` }))}>
+          <g key={segment.index} {...svgInteractiveProps(`选择梁系杆件 ${beamMemberIds[segment.index]}`, () => onSelect?.({ mode: "beam", type: "span", id: `span-${segment.index}` }))}>
             {dimension ? <title>{dimension.title}</title> : null}
             <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="transparent" strokeWidth="20" strokeLinecap="round" />
             {selected ? <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="var(--beam-sketch-selected)" strokeWidth="7" strokeLinecap="round" opacity="0.45" /> : null}
@@ -310,7 +323,7 @@ function BeamSketch({
         const x = beamStart + (support.x / total) * (beamEnd - beamStart);
         const selected = selection?.mode === "beam" && selection.type === "support" && selection.id === `support-${index}`;
         return (
-          <g key={support.id} {...svgInteractiveProps(`选择梁系节点/支座 ${support.id}`, () => onSelect?.({ mode: "beam", type: "support", id: `support-${index}` }))}>
+          <g key={support.id} {...svgInteractiveProps(`选择梁系节点 ${support.id}`, () => onSelect?.({ mode: "beam", type: "support", id: `support-${index}` }))}>
             <rect x={x - 24} y="148" width="48" height="58" rx="12" fill={selected ? "var(--beam-sketch-selected)" : "transparent"} opacity={selected ? "0.1" : "0"} />
             {support.type === "fixed" ? (
               <rect x={x - 12} y={BEAM_SKETCH_AXIS_Y} width="24" height="36" rx="2" fill="var(--beam-sketch-support-fill)" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
@@ -433,7 +446,7 @@ function BeamSketch({
         {nodeLabels.map((label) => (
           <g key={`node-label-${label.index}`}>
             <text x={label.labelX} y="136" textAnchor="middle" fontSize="11" fontWeight="800" fill="var(--beam-sketch-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
-              N{label.index + 1}
+              {beamNodeIds[label.index] ?? `N${label.index + 1}`}
             </text>
           </g>
         ))}

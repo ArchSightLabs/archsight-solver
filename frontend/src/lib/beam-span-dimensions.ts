@@ -1,5 +1,8 @@
 export interface BeamSpanDimension {
   index: number;
+  memberId: string;
+  startNodeId: string;
+  endNodeId: string;
   length: number;
   start: number;
   end: number;
@@ -20,16 +23,12 @@ function beamSpanMemberId(index: number) {
   return `B${index + 1}`;
 }
 
-function beamSpanNodeRange(index: number) {
-  return `N${index + 1}-N${index + 2}`;
-}
-
 export function beamSpanLengthLabel(length: number) {
   return formatBeamDimensionLength(length);
 }
 
-export function beamSpanDimensionLabel(index: number, _length: number, widthPx: number) {
-  if (widthPx >= 34) return beamSpanMemberId(index);
+export function beamSpanDimensionLabel(index: number, _length: number, widthPx: number, memberId = beamSpanMemberId(index)) {
+  if (widthPx >= 34) return memberId;
   return null;
 }
 
@@ -37,16 +36,22 @@ export function buildBeamSpanDimensionLegendRows(dimensions: BeamSpanDimension[]
   const groups = dimensions.reduce<Array<{ memberIds: string[]; lengthLabel: string }>>((items, dimension) => {
     const current = items.find((item) => item.lengthLabel === dimension.lengthLabel);
     if (current) {
-      current.memberIds.push(beamSpanMemberId(dimension.index));
+      current.memberIds.push(dimension.memberId);
       return items;
     }
-    return [...items, { memberIds: [beamSpanMemberId(dimension.index)], lengthLabel: dimension.lengthLabel }];
+    return [...items, { memberIds: [dimension.memberId], lengthLabel: dimension.lengthLabel }];
   }, []);
 
   return groups.map((group) => `${group.memberIds.join("=")}=${group.lengthLabel}`);
 }
 
-export function buildBeamSpanDimensionSegments(spans: number[], totalLength: number, startX: number, endX: number): BeamSpanDimension[] {
+export function buildBeamSpanDimensionSegments(
+  spans: number[],
+  totalLength: number,
+  startX: number,
+  endX: number,
+  labels: { memberIds?: string[]; nodeIds?: string[] } = {},
+): BeamSpanDimension[] {
   const safeTotal = Math.max(1e-9, totalLength);
   const drawingLength = Math.max(0, endX - startX);
   let cursor = startX;
@@ -55,15 +60,21 @@ export function buildBeamSpanDimensionSegments(spans: number[], totalLength: num
     const width = drawingLength * (Math.max(0, length) / safeTotal);
     const start = cursor;
     const end = index === spans.length - 1 ? endX : start + width;
+    const memberId = labels.memberIds?.[index]?.trim() || beamSpanMemberId(index);
+    const startNodeId = labels.nodeIds?.[index]?.trim() || `N${index + 1}`;
+    const endNodeId = labels.nodeIds?.[index + 1]?.trim() || `N${index + 2}`;
     cursor = end;
     return {
       index,
+      memberId,
+      startNodeId,
+      endNodeId,
       length,
       start,
       end,
-      label: beamSpanDimensionLabel(index, length, Math.max(0, end - start)),
+      label: beamSpanDimensionLabel(index, length, Math.max(0, end - start), memberId),
       lengthLabel: beamSpanLengthLabel(length),
-      title: `${beamSpanMemberId(index)}：第 ${index + 1} 跨，${beamSpanNodeRange(index)}，L = ${formatFullSpanLength(length)}`,
+      title: `${memberId}：第 ${index + 1} 跨，${startNodeId}-${endNodeId}，L = ${formatFullSpanLength(length)}`,
     };
   });
 }

@@ -24,7 +24,7 @@ type BeamSelectedObject =
   | { type: "support"; id: string }
   | { type: "load"; id: "primary" };
 
-const DEFAULT_SPAN: BeamSpanConfig = { length: 4, E: 210, I: 4500, materialId: "q345" };
+const DEFAULT_SPAN: BeamSpanConfig = { id: "B1", length: 4, E: 210, I: 4500, materialId: "q345" };
 const DEFAULT_BEAM_STATE = createDefaultBeamWorkspaceState();
 const FORM_LABEL_CLASS = "text-[11px] font-semibold leading-none text-slate-600 dark:text-slate-300";
 const FORM_CONTROL_CLASS = "h-9 border-white/5 bg-primary/[0.03] font-sans text-[12px] font-medium";
@@ -82,20 +82,24 @@ function supportShortLabel(type: BeamSupportType) {
   return "自由";
 }
 
-function beamSpanMemberId(index: number) {
-  return `B${index + 1}`;
+function beamSpanMemberId(index: number, span?: BeamSpanConfig) {
+  return span?.id?.trim() || `B${index + 1}`;
 }
 
-function beamSpanSemanticLabel(index: number) {
-  return `第 ${index + 1} 跨 · N${index + 1}-N${index + 2}`;
+function beamNodeId(index: number, supports: BeamSupportConfig[]) {
+  return supports[index]?.id?.trim() || `N${index + 1}`;
 }
 
-function beamSpanChipLabel(index: number) {
-  return `${beamSpanMemberId(index)} · 第 ${index + 1} 跨`;
+function beamSpanSemanticLabel(index: number, supports: BeamSupportConfig[]) {
+  return `第 ${index + 1} 跨 · ${beamNodeId(index, supports)}-${beamNodeId(index + 1, supports)}`;
+}
+
+function beamSpanChipLabel(index: number, span: BeamSpanConfig, supports: BeamSupportConfig[]) {
+  return `${beamSpanMemberId(index, span)} · ${beamNodeId(index, supports)}-${beamNodeId(index + 1, supports)}`;
 }
 
 function beamSupportChipLabel(support: BeamSupportConfig) {
-  return `${support.id} ${supportShortLabel(support.type)} · x=${support.x.toFixed(2)} m`;
+  return `${support.id} · ${supportShortLabel(support.type)} · x=${support.x.toFixed(2)} m`;
 }
 
 function constraintsFromType(type: BeamSupportType): BeamSupportDof[] {
@@ -125,6 +129,50 @@ function dofMode(support: BeamSupportConfig, dof: BeamSupportDof): SupportDofMod
 
 function defaultSpring(dof: BeamSupportDof): BeamSupportSpring {
   return dof === "rz" ? { dof, stiffnessKnMPerRad: 10000 } : { dof, stiffnessKnPerM: 50000 };
+}
+
+function DeferredIdInput({
+  ariaLabel,
+  value,
+  onCommit,
+  className,
+}: {
+  ariaLabel: string;
+  value: string;
+  onCommit: (nextId: string) => void;
+  className?: string;
+}) {
+  const [draft, setDraft] = useState(value);
+
+  const commitDraft = () => {
+    const nextId = draft.trim();
+    if (!nextId) {
+      setDraft(value);
+      return;
+    }
+    if (nextId !== value) {
+      onCommit(nextId);
+    }
+  };
+
+  return (
+    <Input
+      aria-label={ariaLabel}
+      value={draft}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={commitDraft}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          event.currentTarget.blur();
+        }
+        if (event.key === "Escape") {
+          setDraft(value);
+          event.currentTarget.blur();
+        }
+      }}
+      className={className}
+    />
+  );
 }
 
 function supportId(index: number) {
@@ -309,27 +357,45 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
       const shouldKeepPriorType = prior && !(beamType === "continuous" && isLastSupport && prior.type === "pinned");
       return {
         ...support,
+        id: prior?.id?.trim() || support.id,
         type: shouldKeepPriorType ? prior.type : support.type,
         constraints: prior?.constraints ? [...prior.constraints] : support.constraints ? [...support.constraints] : undefined,
         springs: prior?.springs?.map((spring) => ({ ...spring })),
       };
     });
 
+  const withBeamSpanIds = (spans: BeamSpanConfig[]) => {
+    const seen = new Set<string>();
+    return spans.map((span, index) => {
+      const rawId = span.id?.trim();
+      const fallback = `B${index + 1}`;
+      const baseId = rawId && !seen.has(rawId) ? rawId : fallback;
+      let nextId = baseId;
+      let suffix = index + 1;
+      while (seen.has(nextId)) {
+        suffix += 1;
+        nextId = `B${suffix}`;
+      }
+      seen.add(nextId);
+      return { ...span, id: nextId };
+    });
+  };
+
   const normalizeSpansForBeamType = (beamType: BeamWorkspaceState["beamType"], spans: BeamSpanConfig[]) => {
     if (beamType === "continuous") {
-      if (spans.length >= 2) return spans.map((span) => ({ ...span }));
+      if (spans.length >= 2) return withBeamSpanIds(spans.map((span) => ({ ...span })));
       const span = spans[0] ?? DEFAULT_SPAN;
       const splitLength = Math.max(span.length / 2, 0.1);
-      return [
-        { ...span, length: splitLength },
-        { ...span, length: splitLength },
-      ];
+      return withBeamSpanIds([
+        { ...span, id: "B1", length: splitLength },
+        { ...span, id: "B2", length: splitLength },
+      ]);
     }
 
-    if (spans.length <= 1) return spans.map((span) => ({ ...span }));
+    if (spans.length <= 1) return withBeamSpanIds(spans.map((span) => ({ ...span })));
     const totalLength = spans.reduce((sum, span) => sum + span.length, 0);
     const firstSpan = spans[0] ?? DEFAULT_SPAN;
-    return [{ ...firstSpan, length: Math.max(totalLength, 0.1) }];
+    return withBeamSpanIds([{ ...firstSpan, length: Math.max(totalLength, 0.1) }]);
   };
 
   const updateBeamType = (beamType: BeamWorkspaceState["beamType"]) => {
@@ -338,7 +404,7 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
       ...value,
       beamType,
       spans,
-      supports: createDefaultBeamSupports(beamType, spans),
+      supports: mergeDefaultSupportLayout(beamType, spans),
     });
     selectObject({ type: "support", id: supportId(0) }, { openEditor: false });
   };
@@ -417,10 +483,18 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
   const addSpan = () => {
     if (value.spans.length >= MAX_BEAM_SPANS) return;
     const nextIndex = value.spans.length;
+    const existingIds = new Set(value.spans.map((span, index) => beamSpanMemberId(index, span)));
+    let nextSpanId = `B${nextIndex + 1}`;
+    let suffix = nextIndex + 1;
+    while (existingIds.has(nextSpanId)) {
+      suffix += 1;
+      nextSpanId = `B${suffix}`;
+    }
     const nextSpans = [
       ...value.spans,
       {
         ...DEFAULT_SPAN,
+        id: nextSpanId,
         E: defaultSpanMaterial?.youngModulus ?? DEFAULT_SPAN.E,
         materialId: defaultSpanMaterial?.id ?? DEFAULT_SPAN.materialId,
       },
@@ -459,6 +533,14 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
     });
   };
 
+  const updateSpanId = (index: number, nextId: string) => {
+    updateSpanPatch(index, { id: nextId.trim() || `B${index + 1}` });
+  };
+
+  const updateSupportId = (index: number, nextId: string) => {
+    updateSupport(index, { id: nextId.trim() || `N${index + 1}` });
+  };
+
   const updateSpan = (index: number, field: "length" | "E" | "I", nextValue: number) => {
     const patch: Partial<BeamSpanConfig> = { [field]: nextValue };
     if (field === "E") {
@@ -486,7 +568,7 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
     setTextModelDraft(serializeBeamTextModel(value));
     setTextModelDiagnostics([]);
     setTextModelPreviewMetrics([]);
-    setTextModelMessage("已按当前跨段、节点/支座与荷载生成梁系文本模型，可编辑后先检查再应用。");
+    setTextModelMessage("已按当前节点、杆件与荷载生成梁系文本模型，可编辑后先检查再应用。");
   };
 
   const previewTextModelDraft = (draft: string) => {
@@ -518,13 +600,13 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
       result.patch.materialId ? `默认材料：${result.patch.materialId}` : null,
       result.patch.materials ? `${result.patch.materials.length} 个材料编号` : null,
       result.patch.beamType ? "梁型" : null,
-      result.patch.spans ? `${nextSpans.length} 个跨段` : null,
-      result.patch.supports ? `${nextSupports.length} 个节点/支座` : null,
+      result.patch.spans ? `${nextSpans.length} 个杆件` : null,
+      result.patch.supports ? `${nextSupports.length} 个节点` : null,
       result.patch.loadType ? `荷载：${formatLoadSummary(previewState)}` : null,
     ].filter(Boolean);
     setTextModelPreviewMetrics([
-      { label: "跨段", value: `${nextSpans.length}` },
-      { label: "节点/支座", value: `${nextSupports.length}` },
+      { label: "杆件", value: `${nextSpans.length}` },
+      { label: "节点", value: `${nextSupports.length}` },
       { label: "总长", value: `${nextSpans.reduce((sum, span) => sum + span.length, 0).toFixed(2)} m` },
       { label: "默认材料", value: previewState.materialId },
       { label: "荷载", value: formatLoadSummary(previewState) },
@@ -564,17 +646,16 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
       supports: nextSupports,
     });
     setTextModelPreviewMetrics([
-      { label: "跨段", value: `${nextSpans.length}` },
-      { label: "节点/支座", value: `${nextSupports.length}` },
+      { label: "杆件", value: `${nextSpans.length}` },
+      { label: "节点", value: `${nextSupports.length}` },
       { label: "总长", value: `${nextSpans.reduce((sum, span) => sum + span.length, 0).toFixed(2)} m` },
       { label: "默认材料", value: String(result.patch.materialId ?? value.materialId) },
       { label: "荷载", value: formatLoadSummary({ ...value, ...result.patch, spans: nextSpans, supports: nextSupports }) },
     ]);
-    setTextModelMessage(`已导入 ${nextSpans.length} 个跨段、${nextSupports.length} 个节点/支座，默认材料 ${result.patch.materialId ?? value.materialId}。`);
+    setTextModelMessage(`已导入 ${nextSpans.length} 个杆件、${nextSupports.length} 个节点，默认材料 ${result.patch.materialId ?? value.materialId}。`);
     selectObject({ type: "span", id: spanId(0) });
   };
 
-  const supportCount = value.supports.length;
   const derivedNodeCount = value.beamType === "continuous" ? value.spans.length + 1 : 2;
   const totalLength = value.spans.reduce((sum, span) => sum + span.length, 0);
   const loadSummary = formatLoadSummary(value);
@@ -603,8 +684,8 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <label className={FORM_LABEL_CLASS}>默认材料编号（新增跨段）</label>
-          <DropdownSelect value={value.materialId} onChange={(nextValue) => updateWorkspace("materialId", nextValue)} options={materialOptions} className={FORM_CONTROL_CLASS} menuClassName={FORM_SELECT_MENU_CLASS} optionClassName={FORM_SELECT_OPTION_CLASS} ariaLabel="默认材料编号（新增跨段）" />
+          <label className={FORM_LABEL_CLASS}>默认材料编号（新增杆件）</label>
+          <DropdownSelect value={value.materialId} onChange={(nextValue) => updateWorkspace("materialId", nextValue)} options={materialOptions} className={FORM_CONTROL_CLASS} menuClassName={FORM_SELECT_MENU_CLASS} optionClassName={FORM_SELECT_OPTION_CLASS} ariaLabel="默认材料编号（新增杆件）" />
           <div className="font-mono text-[10px] text-muted-foreground">
             当前材料库 {materialLibrary.length} 项；每一跨可在“对象”页单独引用材料编号。
           </div>
@@ -859,7 +940,7 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
         </div>
         <div className="space-y-1">
           <div className={FIELD_LABEL_CLASS}>节点编号</div>
-          <Input aria-label="节点编号" value={support.id} readOnly className="h-10 min-w-0 font-mono text-xs opacity-70" />
+          <DeferredIdInput key={`beam-node-id-${support.id}`} ariaLabel="节点编号" value={support.id} onCommit={(nextId) => updateSupportId(index, nextId)} className="h-10 min-w-0 font-mono text-xs" />
         </div>
       </div>
       <div className="rounded-xl border border-white/8 bg-background/20 px-4 py-3 text-xs leading-relaxed text-foreground/55">
@@ -883,37 +964,42 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
     const span = value.spans[index];
     if (!span) return null;
     const spanMaterial = findMaterial(span.materialId);
+    const memberId = beamSpanMemberId(index, span);
     return (
       <div className="space-y-3 rounded-xl border border-white/8 bg-slate-950/20 p-3">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className={FIELD_LABEL_CLASS}>当前跨段</div>
-            <div className="mt-1 text-sm font-bold">{beamSpanMemberId(index)}</div>
+            <div className={FIELD_LABEL_CLASS}>当前杆件</div>
+            <div className="mt-1 text-sm font-bold">{memberId}</div>
             <div className="mt-1 font-mono text-[10px] text-muted-foreground">
-              {beamSpanSemanticLabel(index)} · 材料 {spanMaterial?.id ?? "手动 E"} · E = {span.E} GPa
+              {beamSpanSemanticLabel(index, value.supports)} · 材料 {spanMaterial?.id ?? "手动 E"} · E = {span.E} GPa
             </div>
           </div>
-          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => removeSpan(index)} disabled={value.spans.length <= 1} aria-label={`删除 ${beamSpanMemberId(index)}`}>
+          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => removeSpan(index)} disabled={value.spans.length <= 1} aria-label={`删除 ${memberId}`}>
             <Minus className="h-4 w-4 text-rose-300" />
           </Button>
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="space-y-1 sm:col-span-2">
-            <div className={FIELD_LABEL_CLASS}>跨段材料编号</div>
+            <div className={FIELD_LABEL_CLASS}>杆件编号</div>
+            <DeferredIdInput key={`beam-member-id-${memberId}`} ariaLabel="杆件编号" value={memberId} onCommit={(nextId) => updateSpanId(index, nextId)} className="h-10 min-w-0 font-mono text-xs" />
+          </div>
+          <div className="space-y-1 sm:col-span-2">
+            <div className={FIELD_LABEL_CLASS}>杆件材料编号</div>
             <DropdownSelect
               value={span.materialId ?? ""}
               onChange={(nextMaterialId) => updateSpanMaterial(index, nextMaterialId)}
               options={materialOptions}
               placeholder="手动输入 E"
-              ariaLabel="跨段材料编号"
+              ariaLabel="杆件材料编号"
               className={FORM_CONTROL_CLASS}
               menuClassName={FORM_SELECT_MENU_CLASS}
               optionClassName={FORM_SELECT_OPTION_CLASS}
             />
           </div>
           <div className="space-y-1">
-            <div className={FIELD_LABEL_CLASS}>跨长（m）</div>
-            <Input aria-label="跨长（m）" type="number" step="0.1" value={span.length} onChange={(e) => updateSpan(index, "length", Number(e.target.value) || 0)} className="h-10 min-w-0 font-mono text-xs" />
+            <div className={FIELD_LABEL_CLASS}>杆件长度（m）</div>
+            <Input aria-label="杆件长度（m）" type="number" step="0.1" value={span.length} onChange={(e) => updateSpan(index, "length", Number(e.target.value) || 0)} className="h-10 min-w-0 font-mono text-xs" />
           </div>
           <div className="space-y-1">
             <div className={FIELD_LABEL_CLASS}>弹性模量（GPa）</div>
@@ -950,7 +1036,7 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
           <div className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-white/8 bg-white/8">
             {[
               ["节点", `${derivedNodeCount}`],
-              ["节点/支座", `${supportCount}`],
+              ["杆件", `${value.spans.length}`],
               ["总长", `${totalLength.toFixed(2)} m`],
             ].map(([label, metric]) => (
               <div key={label} className="bg-background/35 px-3 py-2">
@@ -1017,32 +1103,32 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
           <div className="space-y-3 rounded-lg border border-white/8 bg-slate-950/20 p-3">
             <div className="eyebrow">模型对象</div>
           <div className="space-y-2">
-            <div className={FIELD_LABEL_CLASS}>跨段</div>
+            <div className={FIELD_LABEL_CLASS}>节点</div>
             <div className="flex flex-wrap gap-2">
-              {value.spans.map((_, index) => (
+              {value.supports.map((support, index) => (
+                <button
+                  key={supportId(index)}
+                  type="button"
+                  onClick={() => selectObject({ type: "support", id: supportId(index) })}
+                  className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold ${resolvedSelectedObject.type === "support" && resolvedSelectedObject.id === supportId(index) ? "border-sky-300 bg-sky-400 text-slate-950 shadow-sm shadow-sky-500/15" : "border-white/8 bg-slate-950/20 text-muted-foreground hover:text-foreground"}`}
+                >
+                  {beamSupportChipLabel(support)}
+                </button>
+              ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className={FIELD_LABEL_CLASS}>杆件</div>
+              <div className="flex flex-wrap gap-2">
+              {value.spans.map((span, index) => (
                 <button key={spanId(index)} type="button" onClick={() => selectObject({ type: "span", id: spanId(index) })} className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold ${resolvedSelectedObject.type === "span" && resolvedSelectedObject.id === spanId(index) ? "border-sky-300 bg-sky-400 text-slate-950 shadow-sm shadow-sky-500/15" : "border-white/8 bg-slate-950/20 text-muted-foreground hover:text-foreground"}`}>
-                    {beamSpanChipLabel(index)}
+                    {beamSpanChipLabel(index, span, value.supports)}
                   </button>
                 ))}
                 <Button variant="outline" size="sm" onClick={addSpan} disabled={value.spans.length >= MAX_BEAM_SPANS} className="h-8 rounded-lg px-2 text-[10px]">
                   <Plus className="mr-1 h-3 w-3" />
-                  {value.spans.length >= MAX_BEAM_SPANS ? `已达 ${MAX_BEAM_SPANS} 跨` : "新增跨段"}
+                  {value.spans.length >= MAX_BEAM_SPANS ? `已达 ${MAX_BEAM_SPANS} 跨` : "新增杆件"}
                 </Button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className={FIELD_LABEL_CLASS}>节点/支座</div>
-              <div className="flex flex-wrap gap-2">
-                {value.supports.map((support, index) => (
-                  <button
-                    key={supportId(index)}
-                    type="button"
-                    onClick={() => selectObject({ type: "support", id: supportId(index) })}
-                    className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold ${resolvedSelectedObject.type === "support" && resolvedSelectedObject.id === supportId(index) ? "border-sky-300 bg-sky-400 text-slate-950 shadow-sm shadow-sky-500/15" : "border-white/8 bg-slate-950/20 text-muted-foreground hover:text-foreground"}`}
-                  >
-                    {beamSupportChipLabel(support)}
-                  </button>
-                ))}
               </div>
             </div>
             <div className="space-y-2">
@@ -1062,8 +1148,8 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
                 {resolvedSelectedObject.type === "load"
                   ? loadSummary
                   : resolvedSelectedObject.type === "support"
-                    ? beamSupportChipLabel(value.supports[supportIndexFromId(resolvedSelectedObject.id)] ?? { id: "S?", x: 0, type: "pinned" })
-                    : beamSpanChipLabel(spanIndexFromId(resolvedSelectedObject.id))}
+                    ? beamSupportChipLabel(value.supports[supportIndexFromId(resolvedSelectedObject.id)] ?? { id: "N?", x: 0, type: "pinned" })
+                    : beamSpanChipLabel(spanIndexFromId(resolvedSelectedObject.id), value.spans[spanIndexFromId(resolvedSelectedObject.id)] ?? DEFAULT_SPAN, value.supports)}
               </span>
             </div>
             {renderSelectedEditor()}
@@ -1112,7 +1198,7 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
               spellCheck={false}
               wrap="off"
               className="min-h-[32rem] w-full resize-y border-0 bg-transparent p-3 font-mono text-[11px] leading-5 text-slate-900 outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500"
-              placeholder={"BEAM,continuous\nMATERIAL,q345\nSPAN,6,q345,85000\nSUPPORT,S1,0,pinned\nSUPPORT,S2,6,roller\nLOAD,uniform,12"}
+              placeholder={"BEAM,continuous\nMATERIAL,q345\nSPAN,B1,6,q345,85000\nNODE,N1,0,pinned\nNODE,N2,6,roller\nLOAD,uniform,12"}
             />
           </div>
           <TextModelCheckPanel
@@ -1129,12 +1215,12 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
         <div className="eyebrow">表格</div>
         <div className="space-y-3">
           <div className="space-y-2 rounded-lg border border-white/8 bg-slate-950/20 p-3">
-            <div className={FIELD_LABEL_CLASS}>跨段</div>
+            <div className={FIELD_LABEL_CLASS}>杆件</div>
             <div className="space-y-2">
               {value.spans.map((span, index) => (
                 <div key={spanId(index)} className="grid grid-cols-4 gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 text-xs">
-                  <span className="font-bold">{beamSpanMemberId(index)}</span>
-                  <span>{beamSpanSemanticLabel(index)}</span>
+                  <span className="font-bold">{beamSpanMemberId(index, span)}</span>
+                  <span>{beamSpanSemanticLabel(index, value.supports)}</span>
                   <span className="font-mono">L = {span.length.toFixed(2)} m</span>
                   <span className="font-mono">{findMaterial(span.materialId)?.id ?? "手动 E"} · E {span.E} GPa / I {span.I} cm4</span>
                 </div>
@@ -1142,7 +1228,7 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
             </div>
           </div>
           <div className="space-y-2 rounded-lg border border-white/8 bg-slate-950/20 p-3">
-            <div className={FIELD_LABEL_CLASS}>节点/支座</div>
+            <div className={FIELD_LABEL_CLASS}>节点</div>
             <div className="space-y-2">
               {value.supports.map((support, index) => (
                 <div key={supportId(index)} className="grid grid-cols-3 gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 text-xs">

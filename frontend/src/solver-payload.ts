@@ -114,6 +114,7 @@ export function buildBeamPayload(value: BeamWorkspaceState, projectName = value.
     distributedLoadStartRatio: value.distributedLoadStartRatio,
     distributedLoadEndRatio: value.distributedLoadEndRatio,
     spanProperties: value.spans.map((span) => ({
+      id: span.id,
       E: span.E,
       I: span.I,
       materialId: span.materialId,

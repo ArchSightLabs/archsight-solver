@@ -7,10 +7,10 @@ test("parseBeamTextModel imports spans supports springs and load", () => {
   const result = parseBeamTextModel(`
 BEAM,continuous
 MATERIAL,q345
-SPAN,6,206,85000
-SUPPORT,S1,0,pinned
-SUPPORT,S2,6,free
-SPRING,S2,v,50000
+SPAN,B1,6,206,85000
+NODE,N1,0,pinned
+NODE,N2,6,free
+SPRING,N2,v,50000
 LOAD,uniform,12
 `);
 
@@ -18,6 +18,7 @@ LOAD,uniform,12
   assert.equal(result.patch?.beamType, "continuous");
   assert.equal(result.patch?.materialId, "q345");
   assert.equal(result.patch?.spans?.length, 1);
+  assert.equal(result.patch?.spans?.[0]?.id, "B1");
   assert.equal(result.patch?.supports?.length, 2);
   assert.deepEqual(result.patch?.supports?.[0]?.constraints, ["v"]);
   assert.deepEqual(result.patch?.supports?.[1]?.springs, [{ dof: "v", stiffnessKnPerM: 50000 }]);
@@ -76,6 +77,7 @@ SPAN,6,q345,85000
 
   assert.ok(result.patch);
   assert.equal(result.patch?.spans?.[0]?.materialId, "q345");
+  assert.equal(result.patch?.spans?.[0]?.id, "B1");
   assert.equal(result.patch?.spans?.[0]?.E, 210);
 });
 
@@ -88,11 +90,13 @@ SPAN,5,steelx,9000
   assert.ok(result.patch);
   assert.equal(result.patch?.materialId, "steelx");
   assert.equal(result.patch?.materials?.some((material) => material.id === "steelx" && material.youngModulus === 205), true);
-  assert.deepEqual(result.patch?.spans?.[0], { length: 5, E: 205, I: 9000, materialId: "steelx" });
+  assert.deepEqual(result.patch?.spans?.[0], { id: "B1", length: 5, E: 205, I: 9000, materialId: "steelx" });
 });
 
 test("serializeBeamTextModel emits importable text", () => {
   const workspace = createDefaultBeamWorkspaceState();
+  workspace.spans[0] = { ...workspace.spans[0], id: "G1" };
+  workspace.supports[0] = { ...workspace.supports[0], id: "A" };
   workspace.supports[0] = {
     ...workspace.supports[0],
     constraints: [],
@@ -105,6 +109,8 @@ test("serializeBeamTextModel emits importable text", () => {
   assert.equal(result.patch?.beamType, workspace.beamType);
   assert.equal(result.patch?.materialId, workspace.materialId);
   assert.equal(result.patch?.spans?.length, workspace.spans.length);
+  assert.equal(result.patch?.spans?.[0]?.id, "G1");
+  assert.equal(result.patch?.supports?.[0]?.id, "A");
   assert.deepEqual(result.patch?.supports?.[0]?.springs, [{ dof: "rz", stiffnessKnMPerRad: 12000 }]);
 });
 
@@ -173,7 +179,7 @@ SUPPORT,S1,0,pinned
 
   assert.ok(result.patch);
   assert.equal(result.patch?.spans, undefined);
-  assert.match(result.diagnostics.join("\n"), /SPAN 必须包含跨长、材料编号或 E_GPa、I_cm4/u);
+  assert.match(result.diagnostics.join("\n"), /SPAN 必须包含杆件编号（可选）、跨长、材料编号或 E_GPa、I_cm4/u);
 });
 
 test("parseBeamTextModel rejects undefined material ids", () => {
@@ -196,7 +202,7 @@ SPAN,6,steelx,8000
 
   assert.ok(result.patch);
   assert.equal(result.patch?.spans, undefined);
-  assert.match(result.diagnostics.join("\n"), /跨段材料编号 steelx 未在材料库中定义/u);
+  assert.match(result.diagnostics.join("\n"), /杆件材料编号 steelx 未在材料库中定义/u);
 });
 
 test("parseBeamTextModel rejects incomplete supports loads and springs", () => {
@@ -214,7 +220,7 @@ LOAD,linear,1,2,0.9,0.1
   assert.equal(result.patch?.supports, undefined);
   assert.equal(result.patch?.loadType, "none");
   const diagnostics = result.diagnostics.join("\n");
-  assert.match(diagnostics, /SUPPORT 必须包含编号、x 位置和类型/u);
+  assert.match(diagnostics, /NODE 必须包含节点编号、x 位置和支座类型/u);
   assert.match(diagnostics, /支座类型必须为 fixed、pinned、roller 或 free/u);
   assert.match(diagnostics, /SPRING 必须包含支座编号、自由度和刚度/u);
   assert.match(diagnostics, /均布荷载 LOAD,uniform 必须包含 q_kN_per_m/u);
