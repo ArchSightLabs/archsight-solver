@@ -5,7 +5,8 @@ import numpy as np
 from flask import Blueprint, jsonify, request
 
 from backend.api.errors import ApiError, error_payload
-from .utils import build_calculation_response, get_analysis_type
+from backend.api.analysis_types import get_analysis_type
+from backend.api.calculation_response import build_calculation_response
 
 sensitivity_bp = Blueprint("sensitivity", __name__)
 

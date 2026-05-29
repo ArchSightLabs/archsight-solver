@@ -1,20 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent as ReactChangeEvent, CSSProperties, Dispatch, PointerEvent as ReactPointerEvent, SetStateAction } from "react";
 import {
-  Activity,
   BookOpenCheck,
-  FileText,
   FileDown,
   FileJson,
   FilePlus,
   FileUp,
   GripVertical,
-  Layers,
   MoreHorizontal,
   PanelLeftClose,
   PanelLeftOpen,
-  PanelRightClose,
-  PanelRightOpen,
   Save,
   Settings,
   Moon,
@@ -24,7 +19,6 @@ import {
 import { BeamForm } from "./components/BeamForm";
 import { FrameForm } from "./components/FrameForm";
 import { TrussForm } from "./components/TrussForm";
-import { ModuleSectionNav } from "./components/ModuleSectionNav";
 import { TemplateLibraryPanel } from "./components/TemplateLibraryPanel";
 import { SystemSettingsPanel } from "./components/SystemSettingsPanel";
 import { NewAnalysisObjectDialog } from "./components/NewAnalysisObjectDialog";
@@ -32,9 +26,11 @@ import { ProjectTreePanel } from "./components/ProjectTreePanel";
 import { ProjectInfoDialog } from "./components/ProjectInfoDialog";
 import { PublicExamplesDialog } from "./components/PublicExamplesDialog";
 import { BenchmarkSubmissionPackagePanel } from "./components/BenchmarkSubmissionPackagePanel";
+import { WorkbenchInspectorPanel } from "./components/WorkbenchInspectorPanel";
 import { WorkbenchModelCanvas } from "./components/WorkbenchModelCanvas";
 import { WorkbenchResultTabs } from "./components/WorkbenchResultTabs";
 import { WorkbenchSensitivityPanel } from "./components/WorkbenchSensitivityPanel";
+import { WorkbenchViewTabs } from "./components/WorkbenchViewTabs";
 import { GlassCard } from "./components/ui/GlassCard";
 import { Button } from "./components/ui/button";
 import { useMediaQuery } from "./hooks/useMediaQuery";
@@ -59,7 +55,7 @@ import {
   type WorkbenchView,
 } from "./lib/solver-project";
 import { normalizeReportExportOptions, type ReportExportOptions } from "./lib/report-options";
-import { moduleSectionsForMode, moduleTitleForMode, objectNavigatorSectionId } from "./lib/workbench-navigation";
+import { moduleSectionsForMode, objectNavigatorSectionId } from "./lib/workbench-navigation";
 import { buildBeamPayload, buildFramePayload, buildTrussPayload, validateCustomFrameWorkspace, validateCustomTrussWorkspace } from "./solver-payload";
 import {
   ARCHSIGHT_SOLVER_PROJECT_ACCEPT,
@@ -104,12 +100,6 @@ const HIDDEN_VISIT_STATS_STYLE = {
 const RELEASE_NOTES_HREF = "/docs/release-notes.html";
 const USER_MANUAL_HREF = "/docs/user-manual.html";
 const LEGACY_REPORT_EXPORT_OPTIONS_STORAGE_KEY = "archsight-solver.report-export-options";
-const WORKBENCH_VIEW_ITEMS: Array<{ id: WorkbenchView; label: string; shortLabel: string; icon: typeof Layers }> = [
-  { id: "model", label: "参数建模", shortLabel: "参数建模", icon: Layers },
-  { id: "results", label: "结构计算", shortLabel: "结构计算", icon: FileText },
-  { id: "sensitivity", label: "敏感性分析", shortLabel: "敏感性", icon: Activity },
-];
-
 interface VisitStats {
   pageViews: string;
   uniqueVisitors: string;
@@ -947,39 +937,7 @@ function App() {
               </GlassCard>
             </div>
 
-            <GlassCard className="p-2 sm:p-3">
-              <div className="flex min-w-0 flex-wrap items-center justify-end gap-2" role="toolbar" aria-label="主工作区功能切换">
-                  <div
-                    className="grid w-full min-w-0 flex-1 grid-cols-3 gap-2 sm:min-w-[22rem] sm:flex-none sm:gap-3"
-                    role="tablist"
-                    aria-label="主工作区分页"
-                  >
-                    {WORKBENCH_VIEW_ITEMS.map((item) => {
-                      const Icon = item.icon;
-                      const active = workbenchView === item.id;
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          role="tab"
-                          aria-selected={active}
-                          aria-label={item.label}
-                          title={item.label}
-                          onClick={() => setWorkbenchView(item.id)}
-                          className={`inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-lg border px-2 text-sm font-bold transition-colors ${
-                            active
-                              ? "border-sky-500/55 bg-sky-400 text-slate-950 shadow-sm shadow-sky-500/15 dark:border-sky-300/40 dark:bg-sky-400 dark:text-slate-950"
-                              : "border-slate-200/80 bg-white/60 text-slate-600 hover:border-sky-300/60 hover:bg-slate-100 hover:text-slate-950 dark:border-slate-600/80 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:border-sky-400/65 dark:hover:bg-sky-400/12 dark:hover:text-sky-50"
-                          }`}
-                        >
-                          <Icon className="h-4 w-4 shrink-0" />
-                          <span className="truncate">{item.shortLabel}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-              </div>
-            </GlassCard>
+            <WorkbenchViewTabs value={workbenchView} onChange={setWorkbenchView} />
 
             {workbenchView === "model" ? (
               <WorkbenchModelCanvas
@@ -1019,67 +977,17 @@ function App() {
             )}
           </section>
 
-          <aside className="relative space-y-5 xl:sticky xl:top-24 xl:max-h-[calc(100vh-7rem)]">
-            {showInspectorCollapsed ? (
-              <GlassCard className="flex min-h-[22rem] flex-col items-center gap-3 p-2 xl:h-[calc(100vh-7rem)]">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setIsInspectorCollapsed(false)}
-                  aria-label="展开右侧属性检查器"
-                  title="展开属性检查器"
-                  className="h-9 w-9 rounded-lg border-white/10 bg-white/[0.03]"
-                >
-                  <PanelRightOpen className="h-4 w-4" />
-                </Button>
-                <div className="mt-2 flex flex-1 items-start justify-center">
-                  <span className="[writing-mode:vertical-rl] text-xs font-bold tracking-[0.2em] text-muted-foreground">
-                    参数区
-                  </span>
-                </div>
-              </GlassCard>
-            ) : (
-              <>
-            <button
-              type="button"
-              aria-label="拖动调整属性检查器宽度"
-              title="拖动调整参数区宽度"
-              onPointerDown={handleInspectorResizeStart}
-              className="group absolute -left-4 top-0 hidden h-[calc(100vh-7rem)] w-3 cursor-col-resize items-center justify-center xl:flex"
-            >
-              <span className="h-20 w-1 rounded-full bg-slate-300/50 transition-colors group-hover:bg-primary/70 dark:bg-slate-700 dark:group-hover:bg-sky-400" />
-            </button>
-            <GlassCard className="inspector-panel flex min-h-0 flex-col gap-4 p-4 sm:p-5 xl:max-h-[calc(100vh-7rem)]">
-              <ModuleSectionNav
-                title={moduleTitleForMode(analysisMode)}
-                items={moduleSections}
-                activeId={activeModuleSectionId}
-                onSelect={setActiveModuleSection}
-                behavior="select"
-                rightSlot={
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setIsInspectorCollapsed(true)}
-                    aria-label="收起右侧参数面板"
-                    title="收起参数面板"
-                    className="hidden h-8 w-8 shrink-0 rounded-lg border-white/10 bg-white/[0.03] xl:inline-flex"
-                  >
-                    <PanelRightClose className="h-4 w-4" />
-                  </Button>
-                }
-              />
-              <div className="min-h-0 flex-1 overflow-visible pr-0 xl:overflow-y-auto xl:pr-2 custom-scrollbar">
-                <div className="space-y-4">
-                  {formContent}
-                </div>
-              </div>
-            </GlassCard>
-              </>
-            )}
-          </aside>
+          <WorkbenchInspectorPanel
+            analysisMode={analysisMode}
+            activeModuleSectionId={activeModuleSectionId}
+            collapsed={showInspectorCollapsed}
+            items={moduleSections}
+            onCollapsedChange={setIsInspectorCollapsed}
+            onResizeStart={handleInspectorResizeStart}
+            onSelectSection={setActiveModuleSection}
+          >
+            {formContent}
+          </WorkbenchInspectorPanel>
           {isSystemSettingsDocked ? (
             <SystemSettingsPanel
               compact={false}

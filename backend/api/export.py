@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, send_file
 import traceback
 from backend.api.errors import ApiError, error_payload
 from backend.exporters.common.artifact import ExportArtifact
-from .utils import get_analysis_type, get_material_name
+from backend.api.analysis_types import get_analysis_type, get_material_name
 from backend.services.export_service import build_report_model, export_report
 
 export_bp = Blueprint('export', __name__)
