@@ -156,20 +156,17 @@ function buildPointLoadArrows(beam: BeamPreviewData, mapX: (x: number) => number
     });
 }
 
-function supportSvg(support: BeamSupport, index: number, x: number) {
-  const label = support.label || `S${index + 1}`;
+function supportSvg(support: BeamSupport, x: number) {
   if (support.type === "fixed") {
     return `
       <g>
         <rect x="${n(x - 14)}" y="${n(BEAM_Y - 5)}" width="28" height="44" rx="3" fill="${PREVIEW_COLORS.supportFill}" stroke="${PREVIEW_COLORS.supportStroke}" stroke-width="1" />
-        <text x="${n(x)}" y="${n(BEAM_Y + 56)}" fill="${PREVIEW_COLORS.label}" text-anchor="middle" font-size="11" font-family="${SVG_TEXT_FONT}">${escapeSvg(label)}</text>
       </g>`;
   }
   if (support.type === "free") {
     return `
       <g>
         <circle cx="${n(x)}" cy="${n(BEAM_Y)}" r="7" fill="none" stroke="${PREVIEW_COLORS.supportStroke}" stroke-dasharray="3 3" />
-        <text x="${n(x)}" y="${n(BEAM_Y + 34)}" fill="${PREVIEW_COLORS.label}" text-anchor="middle" font-size="11" font-family="${SVG_TEXT_FONT}">${escapeSvg(label)}</text>
       </g>`;
   }
 
@@ -184,7 +181,6 @@ function supportSvg(support: BeamSupport, index: number, x: number) {
       <polygon points="${n(x - 16)},${n(BEAM_Y + 26)} ${n(x + 16)},${n(BEAM_Y + 26)} ${n(x)},${n(BEAM_Y + 2)}" fill="${PREVIEW_COLORS.supportFill}" stroke="${PREVIEW_COLORS.supportStroke}" stroke-width="1" />
       <line x1="${n(x - 18)}" y1="${n(BEAM_Y + 30)}" x2="${n(x + 18)}" y2="${n(BEAM_Y + 30)}" stroke="${PREVIEW_COLORS.supportLine}" stroke-width="2" />
       ${rollers}
-      <text x="${n(x)}" y="${n(BEAM_Y + (support.type === "roller" ? 58 : 44))}" fill="${PREVIEW_COLORS.label}" text-anchor="middle" font-size="11" font-family="${SVG_TEXT_FONT}">${escapeSvg(label)}</text>
     </g>`;
 }
 
@@ -238,7 +234,7 @@ export function buildBeamPreviewSvg(beam: BeamPreviewData) {
       return `<text x="${n(midX)}" y="${SPAN_MEMBER_LABEL_Y}" text-anchor="middle" font-size="12" font-weight="700">${escapeSvg(dimension.label)}</text>`;
     }).join("")}
   </g>
-  ${(beam.supports ?? []).map((support, index) => supportSvg(support, index, mapX(support.x))).join("")}
+  ${(beam.supports ?? []).map((support) => supportSvg(support, mapX(support.x))).join("")}
   ${(beam.nodes ?? [])
     .map((node, index) => {
       const x = mapX(node.x);

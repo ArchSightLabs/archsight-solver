@@ -50,8 +50,8 @@ test("buildBeamPreviewSvg follows the workbench beam preview sign convention", (
   assert.match(svg, /梁长=8m/);
   assert.match(svg, />\(1\)</);
   assert.match(svg, />1</);
-  assert.match(svg, />S1</);
-  assert.match(svg, />S3</);
+  assert.doesNotMatch(svg, />S1</);
+  assert.doesNotMatch(svg, />S3</);
   assert.match(svg, /q=10\.0 kN\/m/);
   assert.match(svg, /最大挠度 1 mm/);
   assert.match(svg, /80\.0,150\.0 500\.0,230\.0 920\.0,150\.0/);
@@ -101,7 +101,7 @@ test("buildBeamResultDiagramSvg uses workbench-style span dimensions and key poi
   assert.match(svg, />11\.25 kN·m</);
   assert.match(svg, />x = 4\.00 m</);
   assert.match(svg, />x = 1\.50 m</);
-  assert.match(svg, />S3</);
+  assert.doesNotMatch(svg, />S3</);
   assert.match(svg, /stroke-dasharray="4 4"/);
 });
 

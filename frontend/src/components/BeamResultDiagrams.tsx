@@ -463,11 +463,8 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
           {beam.supports.map((support, index) => {
             const x = diagram.mapX(support.x);
             return (
-              <g key={`${support.label}-${index}`}>
+              <g key={`support-${index}`}>
                 {supportMarker(support.type, x)}
-                <text x={x} y={BEAM_Y + 58} fill="var(--structure-preview-label)" textAnchor="middle" fontSize={compact ? "9" : "11"} fontFamily={DIAGRAM_LABEL_FONT} fontWeight={DIAGRAM_LABEL_WEIGHT}>
-                  {support.label ?? `S${index + 1}`}
-                </text>
               </g>
             );
           })}

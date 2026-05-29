@@ -395,12 +395,11 @@ export function buildBeamResultDiagramSvg(results: BeamCalculationResults, metri
   ${metric.diagramType === "area" && resultAreaPath ? `<path d="${resultAreaPath}" fill="${metric.fillColor}" stroke="none" />` : ""}
   ${resultPath ? `<path d="${resultPath}" fill="none" stroke="${metric.color}" stroke-opacity="0.92" stroke-width="${metric.diagramType === "line" ? RESULT_LINE_STROKE_WIDTH : RESULT_AREA_STROKE_WIDTH}" stroke-linecap="butt" stroke-linejoin="round" />` : ""}
   ${(beam.supports ?? [])
-    .map((support, index) => {
+    .map((support) => {
       const x = mapX(support.x);
       return `
       <g>
         ${supportMarkerSvg(support.type, x)}
-        <text x="${n(x)}" y="${BEAM_Y + 58}" fill="${COLORS.label}" text-anchor="middle" font-size="${compact ? 9 : 11}" font-family="${DIAGRAM_LABEL_FONT}" font-weight="${DIAGRAM_LABEL_WEIGHT}">${escapeSvg(support.label || `S${index + 1}`)}</text>
       </g>`;
     })
     .join("")}

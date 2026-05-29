@@ -341,9 +341,6 @@ function BeamSketch({
                 ) : null}
               </>
             )}
-            <text x={x} y="224" textAnchor="middle" fontSize="11" fontWeight="700" fill={selected ? "var(--beam-sketch-selected)" : "var(--beam-sketch-label)"}>
-              {support.id}
-            </text>
           </g>
         );
       })}

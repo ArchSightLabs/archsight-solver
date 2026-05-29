@@ -254,19 +254,14 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
           {/* 支座 */}
           {(beam.supports || []).map((s: BeamSupport, i) => {
             const sx = mapX(s.x);
-            const label = s.label || `S${i + 1}`;
             return s.type === "fixed" ? (
               <g key={i}>
                 <rect x={sx - 14} y={BEAM_Y - 5} width="28" height="44" rx="3"
                   fill="var(--structure-preview-support-fill)" stroke="var(--structure-preview-support-stroke)" strokeWidth="1" />
-                <text x={sx} y={BEAM_Y + 56} fill="var(--structure-preview-label)" textAnchor="middle" fontSize="11"
-                  fontFamily={svgTextFont}>{label}</text>
               </g>
             ) : s.type === "free" ? (
               <g key={i}>
                 <circle cx={sx} cy={BEAM_Y} r="7" fill="none" stroke="var(--structure-preview-support-stroke)" strokeDasharray="3 3" />
-                <text x={sx} y={BEAM_Y + 34} fill="var(--structure-preview-label)" textAnchor="middle" fontSize="11"
-                  fontFamily={svgTextFont}>{label}</text>
               </g>
             ) : (
               <g key={i}>
@@ -280,8 +275,6 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
                     <circle cx={sx + 9} cy={BEAM_Y + 36} r="3" fill="none" stroke="var(--structure-preview-support-stroke)" strokeWidth="1" />
                   </>
                 ) : null}
-                <text x={sx} y={BEAM_Y + (s.type === "roller" ? 58 : 44)} fill="var(--structure-preview-label)" textAnchor="middle" fontSize="11"
-                  fontFamily={svgTextFont}>{label}</text>
               </g>
             );
           })}
