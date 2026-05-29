@@ -3,6 +3,13 @@ import { GlassCard } from "./ui/GlassCard";
 import type { BeamCalculationResults, BeamPreviewData, BeamSupportType } from "../types/beam";
 import { findBeamDiagramKeyPoints, type BeamDiagramKeyPointKind, type BeamDiagramMetricKey } from "../lib/beam-diagram-key-points";
 import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments, formatBeamDimensionLength, type BeamSpanDimension } from "../lib/beam-span-dimensions";
+import {
+  estimateDiagramTextWidth,
+  placeDiagramLabel,
+  samplePointBlockers,
+  type DiagramLabelBlocker,
+  type DiagramPlacedLabel,
+} from "../lib/diagram-label-layout";
 import { formatEngineeringValue } from "../lib/engineering-format";
 
 interface BeamDiagramMetric {
@@ -30,16 +37,7 @@ type BeamAnnotationPoint = BeamResultSvgPoint & {
   priority: number;
 };
 type BeamDiagramSelectionKey = BeamDiagramMetricKey | "all";
-type LabelRect = { left: number; top: number; right: number; bottom: number };
-type WeightedLabelBlocker = LabelRect & { weight: number };
-type LabelLayout = {
-  textX: number;
-  valueY: number;
-  stationY: number;
-  connectorX: number;
-  connectorY: number;
-  rect: LabelRect;
-};
+type LabelLayout = DiagramPlacedLabel;
 type KeyPointAnnotation = {
   point: BeamAnnotationPoint;
   valueLabel: string;
@@ -132,24 +130,7 @@ function valueText(value: number, unit: string) {
   return formatEngineeringValue(value, unit);
 }
 
-function estimateTextWidth(text: string, fontSize: number) {
-  return text.length * fontSize * 0.66;
-}
-
-function overlapArea(a: LabelRect, b: LabelRect) {
-  const x = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left));
-  const y = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
-  return x * y;
-}
-
-function rectCenter(rect: LabelRect) {
-  return {
-    x: (rect.left + rect.right) / 2,
-    y: (rect.top + rect.bottom) / 2,
-  };
-}
-
-function supportBlockers(beam: BeamPreviewData, mapX: (x: number) => number): WeightedLabelBlocker[] {
+function supportBlockers(beam: BeamPreviewData, mapX: (x: number) => number): DiagramLabelBlocker[] {
   return beam.supports.map((support) => {
     const x = mapX(support.x);
     const supportHalfWidth = support.type === "fixed" ? 22 : 30;
@@ -163,24 +144,17 @@ function supportBlockers(beam: BeamPreviewData, mapX: (x: number) => number): We
   });
 }
 
-function resultPointBlockers(points: SvgPoint[]): WeightedLabelBlocker[] {
-  const stride = Math.max(1, Math.floor(points.length / 80));
-  return points.filter((_, index) => index % stride === 0).map((point) => ({
-    left: point.x - 4,
-    right: point.x + 4,
-    top: point.y - 4,
-    bottom: point.y + 4,
-    weight: 2.5,
-  }));
+function resultPointBlockers(points: SvgPoint[]): DiagramLabelBlocker[] {
+  return samplePointBlockers(points, 4, 2.5);
 }
 
-function spanDimensionBlockers(dimensions: BeamSpanDimension[], compact: boolean): WeightedLabelBlocker[] {
+function spanDimensionBlockers(dimensions: BeamSpanDimension[], compact: boolean): DiagramLabelBlocker[] {
   const fontSize = compact ? 9 : 11;
   return dimensions.flatMap((dimension) => {
     if (!dimension.label) return [];
 
     const midX = (dimension.start + dimension.end) / 2;
-    const labelWidth = estimateTextWidth(dimension.label, fontSize) + 10;
+    const labelWidth = estimateDiagramTextWidth(dimension.label, fontSize) + 10;
     return [{
       left: midX - labelWidth / 2,
       right: midX + labelWidth / 2,
@@ -191,16 +165,31 @@ function spanDimensionBlockers(dimensions: BeamSpanDimension[], compact: boolean
   });
 }
 
-function spanDimensionLegendBlockers(rows: string[], compact: boolean): WeightedLabelBlocker[] {
+function spanDimensionLegendBlockers(rows: string[], compact: boolean): DiagramLabelBlocker[] {
   const fontSize = compact ? 10 : 11;
   return rows.map((row, index) => {
     const top = SPAN_DIMENSION_LEGEND_Y + index * SPAN_DIMENSION_LEGEND_GAP - fontSize - 4;
     return {
       left: SPAN_DIMENSION_LEGEND_X,
-      right: SPAN_DIMENSION_LEGEND_X + estimateTextWidth(row, fontSize) + 8,
+      right: SPAN_DIMENSION_LEGEND_X + estimateDiagramTextWidth(row, fontSize) + 8,
       top,
       bottom: top + fontSize + 8,
       weight: 9,
+    };
+  });
+}
+
+function nodeBadgeBlockers(beam: BeamPreviewData, mapX: (x: number) => number, compact: boolean): DiagramLabelBlocker[] {
+  const radius = compact ? 8 : 10;
+  return beam.nodes.map((node) => {
+    const x = mapX(node.x) + NODE_BADGE_OFFSET_X;
+    const y = BEAM_Y + NODE_BADGE_OFFSET_Y;
+    return {
+      left: x - radius,
+      right: x + radius,
+      top: y - radius,
+      bottom: y + radius,
+      weight: 8,
     };
   });
 }
@@ -213,62 +202,42 @@ function buildLabelLayout(params: {
   beam: BeamPreviewData;
   resultPoints: SvgPoint[];
   mapX: (x: number) => number;
-  extraBlockers?: WeightedLabelBlocker[];
+  extraBlockers?: DiagramLabelBlocker[];
 }): LabelLayout {
   const valueFontSize = params.compact ? 11 : 13;
   const stationFontSize = params.compact ? 9 : 11;
   const lineGap = params.compact ? 14 : 16;
-  const labelWidth = Math.max(estimateTextWidth(params.valueLabel, valueFontSize), estimateTextWidth(params.stationLabel, stationFontSize));
-  const labelHeight = valueFontSize + lineGap + 5;
   const margin = 20;
   const gap = params.compact ? 14 : 18;
-  const blockers: WeightedLabelBlocker[] = [
+  const blockers: DiagramLabelBlocker[] = [
     { left: BEAM_LEFT - 8, right: BEAM_RIGHT + 8, top: BEAM_Y - 8, bottom: BEAM_Y + 8, weight: 7 },
     ...supportBlockers(params.beam, params.mapX),
     ...resultPointBlockers(params.resultPoints),
     ...(params.extraBlockers ?? []),
   ];
-  const candidateAnchors = [
-    { dx: gap, dy: -gap },
-    { dx: gap, dy: gap + valueFontSize },
-    { dx: -labelWidth - gap, dy: -gap },
-    { dx: -labelWidth - gap, dy: gap + valueFontSize },
-    { dx: gap * 2, dy: -gap - 18 },
-    { dx: gap * 2, dy: gap + valueFontSize + 18 },
-    { dx: -labelWidth - gap * 2, dy: -gap - 18 },
-    { dx: -labelWidth - gap * 2, dy: gap + valueFontSize + 18 },
-  ];
-
-  const candidates = candidateAnchors.map(({ dx, dy }) => {
-    const valueY = clamp(params.extreme.y + dy, margin + valueFontSize, SVG_H - margin - lineGap);
-    const left = clamp(params.extreme.x + dx, margin, SVG_W - margin - labelWidth);
-    const rect = {
-      left,
-      right: left + labelWidth,
-      top: valueY - valueFontSize - 3,
-      bottom: valueY - valueFontSize - 3 + labelHeight,
-    };
-    const center = rectCenter(rect);
-    const overlapPenalty = blockers.reduce((score, blocker) => score + overlapArea(rect, blocker) * blocker.weight, 0);
-    const distancePenalty = Math.hypot(center.x - params.extreme.x, center.y - params.extreme.y) * 0.35;
-    const beamSidePenalty = Math.abs(center.y - BEAM_Y) < 30 ? 180 : 0;
-    return {
-      rect,
-      valueY,
-      score: overlapPenalty + distancePenalty + beamSidePenalty,
-    };
+  return placeDiagramLabel({
+    anchor: params.extreme,
+    lines: [
+      { text: params.valueLabel, fontSize: valueFontSize },
+      { text: params.stationLabel, fontSize: stationFontSize },
+    ],
+    candidates: [
+      { dx: gap, dy: -gap - valueFontSize - 3, textAnchor: "start", verticalAnchor: "top", penalty: 0 },
+      { dx: gap, dy: gap - 3, textAnchor: "start", verticalAnchor: "top", penalty: 8 },
+      { dx: -gap, dy: -gap - valueFontSize - 3, textAnchor: "end", verticalAnchor: "top", penalty: 12 },
+      { dx: -gap, dy: gap - 3, textAnchor: "end", verticalAnchor: "top", penalty: 16 },
+      { dx: gap * 2, dy: -gap - valueFontSize - 21, textAnchor: "start", verticalAnchor: "top", penalty: 22 },
+      { dx: gap * 2, dy: gap + 15, textAnchor: "start", verticalAnchor: "top", penalty: 26 },
+      { dx: -gap * 2, dy: -gap - valueFontSize - 21, textAnchor: "end", verticalAnchor: "top", penalty: 30 },
+      { dx: -gap * 2, dy: gap + 15, textAnchor: "end", verticalAnchor: "top", penalty: 34 },
+    ],
+    blockers,
+    bounds: { left: margin, top: margin, right: SVG_W - margin, bottom: SVG_H - margin },
+    paddingX: 0,
+    paddingY: 0,
+    lineGap: Math.max(2, lineGap - stationFontSize),
+    extraScore: (rect) => (Math.abs((rect.top + rect.bottom) / 2 - BEAM_Y) < 30 ? 180 : 0),
   });
-
-  const best = candidates.reduce((current, candidate) => (candidate.score < current.score ? candidate : current), candidates[0]);
-  const connectorX = best.rect.left > params.extreme.x ? best.rect.left - 4 : best.rect.right + 4;
-  return {
-    textX: best.rect.left,
-    valueY: best.valueY,
-    stationY: best.valueY + lineGap,
-    connectorX,
-    connectorY: (best.rect.top + best.rect.bottom) / 2,
-    rect: best.rect,
-  };
 }
 
 function beamXData(results: BeamCalculationResults, beam: BeamPreviewData) {
@@ -334,9 +303,10 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
 
   const keyPointAnnotations = useMemo<KeyPointAnnotation[]>(() => {
     if (!diagram || !beam) return [];
-    const occupied: WeightedLabelBlocker[] = [
+    const occupied: DiagramLabelBlocker[] = [
       ...spanDimensionBlockers(diagram.spanDimensions, compact),
       ...spanDimensionLegendBlockers(diagram.spanDimensionLegendRows, compact),
+      ...nodeBadgeBlockers(beam, diagram.mapX, compact),
     ];
     return diagram.keyPoints
       .slice()

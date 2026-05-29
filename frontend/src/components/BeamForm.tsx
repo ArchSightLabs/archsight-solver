@@ -75,13 +75,6 @@ function supportLabel(type: BeamSupportType) {
   return SUPPORT_TYPE_OPTIONS.find((option) => option.value === type)?.label ?? "铰支座";
 }
 
-function supportShortLabel(type: BeamSupportType) {
-  if (type === "pinned") return "铰";
-  if (type === "roller") return "滚动";
-  if (type === "fixed") return "固结";
-  return "自由";
-}
-
 function beamSpanMemberId(index: number, span?: BeamSpanConfig) {
   return span?.id?.trim() || `(${index + 1})`;
 }
@@ -99,7 +92,7 @@ function beamSpanChipLabel(index: number, span: BeamSpanConfig) {
 }
 
 function beamSupportChipLabel(support: BeamSupportConfig, index: number) {
-  return `${support.id} · 节点 ${beamNodeLabel(index)} · ${supportShortLabel(support.type)} · x=${support.x.toFixed(2)} m`;
+  return `${support.id} · 节点 ${beamNodeLabel(index)}`;
 }
 
 function constraintsFromType(type: BeamSupportType): BeamSupportDof[] {
@@ -1103,7 +1096,7 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
           <div className="space-y-3 rounded-lg border border-white/8 bg-slate-950/20 p-3">
             <div className="eyebrow">模型对象</div>
           <div className="space-y-2">
-            <div className={FIELD_LABEL_CLASS}>支座</div>
+            <div className={FIELD_LABEL_CLASS}>支座节点</div>
             <div className="flex flex-wrap gap-2">
               {value.supports.map((support, index) => (
                 <button

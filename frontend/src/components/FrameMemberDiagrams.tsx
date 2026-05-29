@@ -9,6 +9,18 @@ import {
   type FrameDiagramMetric,
   type FrameDiagramMetricKey,
 } from "../lib/frame-member-diagrams";
+import {
+  labelCandidatesAroundPoint,
+  legendLabelCandidates,
+  lineBlocker,
+  outwardLabelCandidates,
+  placeDiagramLabels,
+  pointBlocker,
+  samplePointBlockers,
+  type DiagramLabelBlocker,
+  type DiagramLabelSpec,
+  type DiagramPlacedLabel,
+} from "../lib/diagram-label-layout";
 import { formatEngineeringValue } from "../lib/engineering-format";
 import { buildFrameDimensionLegendRows, buildFrameGeometryDimensions, frameMemberLabelPlacement } from "./frame-preview-utils";
 
@@ -122,13 +134,19 @@ function valueText(value: number, unit: string) {
   return formatEngineeringValue(value, unit);
 }
 
-function frameNodeLabelPlacement(point: SvgPoint, center: SvgPoint) {
-  const side = point.x < center.x ? -1 : 1;
+function supportBlocker(type: SupportType, point: SvgPoint): DiagramLabelBlocker {
+  const supportBottom = type === "free" ? 8 : 38;
   return {
-    x: point.x + side * 13,
-    y: point.y - 10,
-    textAnchor: side < 0 ? ("end" as const) : ("start" as const),
+    left: point.x - 24,
+    right: point.x + 24,
+    top: point.y - 12,
+    bottom: point.y + supportBottom,
+    weight: 8,
   };
+}
+
+function placedById(labels: DiagramPlacedLabel[]) {
+  return new Map(labels.map((label) => [label.id, label]));
 }
 
 function FrameStructureDiagram({
@@ -161,7 +179,6 @@ function FrameStructureDiagram({
     () => buildFrameDimensionLegendRows(buildFrameGeometryDimensions(frame.nodes, frame.members), compact ? 200 : 240, compact ? 10 : 12),
     [frame, compact],
   );
-  const dimensionLegendX = compact ? 18 : 24;
 
   const renderedMembers = useMemo(() => {
     return frame.members.flatMap((member) => {
@@ -213,8 +230,95 @@ function FrameStructureDiagram({
     }, null);
   }, [extreme, renderedMembers]);
 
-  const labelX = extremePoint ? clamp(extremePoint.x + 12, 18, SVG_W - 180) : 0;
-  const labelY = extremePoint ? clamp(extremePoint.y - 14, 26, SVG_H - 24) : 0;
+  const labelLayouts = useMemo(() => {
+    const bounds = { left: 10, top: 16, right: SVG_W - 10, bottom: SVG_H - 16 };
+    const baseBlockers: DiagramLabelBlocker[] = [
+      ...frame.members.flatMap((member) => {
+        const start = layout.nodeMap.get(member.start);
+        const end = layout.nodeMap.get(member.end);
+        if (!start || !end) return [];
+        return [lineBlocker(start, end, 8, 5)];
+      }),
+      ...frame.nodes.flatMap((node) => {
+        const point = layout.nodeMap.get(node.id);
+        if (!point) return [];
+        const supportType = (node.supportType ?? "free") as SupportType;
+        return [pointBlocker(point, 9, 10), supportBlocker(supportType, point)];
+      }),
+      ...renderedMembers.flatMap((member) => samplePointBlockers(member.resultPoints, 4, 4, 70)),
+    ];
+    const labels: DiagramLabelSpec[] = [];
+    if (dimensionLegendRows.length) {
+      labels.push({
+        id: "dimension-legend",
+        anchor: { x: compact ? 18 : 24, y: 18 },
+        lines: dimensionLegendRows.map((row) => ({ text: row, fontSize: compact ? 10 : 12 })),
+        candidates: legendLabelCandidates(SVG_W - (compact ? 36 : 48), SVG_H - 36),
+        priority: 100,
+        occupiedWeight: 12,
+        paddingX: 0,
+        paddingY: 0,
+        lineGap: compact ? 7 : 8,
+        distanceWeight: 0.04,
+      });
+    }
+    frame.nodes.forEach((node) => {
+      const point = layout.nodeMap.get(node.id);
+      if (!point) return;
+      labels.push({
+        id: `node-${node.id}`,
+        anchor: point,
+        lines: [{ text: node.id, fontSize: compact ? 9 : 11 }],
+        candidates: outwardLabelCandidates(point, frameCenter, compact ? 12 : 14),
+        priority: 90,
+        occupiedWeight: 11,
+        paddingX: 1,
+        paddingY: 1,
+        lineGap: 0,
+      });
+    });
+    if (extreme && extremePoint) {
+      labels.push({
+        id: "extreme-label",
+        anchor: extremePoint,
+        lines: [
+          { text: valueText(extreme.value, metric.unit), fontSize: compact ? 11 : 13 },
+          { text: `${extreme.memberId} / ${extreme.stationM.toFixed(2)} m`, fontSize: compact ? 9 : 11 },
+        ],
+        candidates: labelCandidatesAroundPoint(compact ? 14 : 18, compact ? 30 : 38),
+        priority: 70,
+        occupiedWeight: 13,
+        paddingX: 0,
+        paddingY: 0,
+        lineGap: 5,
+      });
+    }
+    frame.members.forEach((member) => {
+      const start = layout.nodeMap.get(member.start);
+      const end = layout.nodeMap.get(member.end);
+      if (!start || !end) return;
+      const preferred = frameMemberLabelPlacement(start, end, frameCenter, compact ? 14 : 18);
+      labels.push({
+        id: `member-${member.id}`,
+        anchor: { x: preferred.x, y: preferred.y },
+        lines: [{ text: member.id, fontSize: compact ? 9 : 11 }],
+        candidates: [
+          { dx: 0, dy: 0, textAnchor: preferred.textAnchor, verticalAnchor: "middle" as const, penalty: 0 },
+          ...outwardLabelCandidates({ x: preferred.x, y: preferred.y }, frameCenter, compact ? 10 : 12, compact ? 22 : 28).map((candidate) => ({
+            ...candidate,
+            penalty: (candidate.penalty ?? 0) + 24,
+          })),
+        ],
+        priority: 60,
+        occupiedWeight: 8,
+        paddingX: 1,
+        paddingY: 1,
+        lineGap: 0,
+        distanceWeight: 0.2,
+      });
+    });
+    return placedById(placeDiagramLabels(labels, { baseBlockers, bounds }));
+  }, [compact, dimensionLegendRows, extreme, extremePoint, frame.members, frame.nodes, frameCenter, layout.nodeMap, metric.unit, renderedMembers]);
 
   return (
     <div className="structure-preview-surface overflow-hidden rounded-lg border border-slate-200/80 bg-white/90 dark:border-slate-700/80 dark:bg-slate-900/45">
@@ -234,9 +338,9 @@ function FrameStructureDiagram({
         ))}
         {dimensionLegendRows.length ? (
           <g fontFamily="Fira Code" fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke">
-            {dimensionLegendRows.map((row, index) => (
-              <text key={`frame-diagram-dimension-${index}`} x={dimensionLegendX} y={30 + index * 16} fontSize={compact ? "10" : "12"} fontWeight="700">
-                {row}
+            {labelLayouts.get("dimension-legend")?.lines.map((line, index) => (
+              <text key={`frame-diagram-dimension-${index}`} x={line.x} y={line.y} textAnchor={labelLayouts.get("dimension-legend")?.textAnchor} fontSize={line.fontSize} fontWeight="700">
+                {line.text}
               </text>
             ))}
           </g>
@@ -273,18 +377,19 @@ function FrameStructureDiagram({
           const start = layout.nodeMap.get(member.start);
           const end = layout.nodeMap.get(member.end);
           if (!start || !end) return null;
-          const label = frameMemberLabelPlacement(start, end, frameCenter, compact ? 14 : 18);
+          const label = labelLayouts.get(`member-${member.id}`);
+          const line = label?.lines[0];
+          if (!label || !line) return null;
           return (
             <text
               key={`${member.id}-label`}
-              x={label.x}
-              y={label.y}
+              x={line.x}
+              y={line.y}
               fill="var(--structure-preview-label)"
               stroke="var(--structure-preview-text-halo)"
               strokeWidth="4"
               paintOrder="stroke"
               textAnchor={label.textAnchor}
-              dominantBaseline="middle"
               fontSize={compact ? "9" : "11"}
               fontFamily="Fira Code"
               fontWeight="700"
@@ -297,39 +402,52 @@ function FrameStructureDiagram({
         {frame.nodes.map((node) => {
           const point = layout.nodeMap.get(node.id);
           if (!point) return null;
-          const label = frameNodeLabelPlacement(point, frameCenter);
+          const label = labelLayouts.get(`node-${node.id}`);
+          const line = label?.lines[0];
           return (
             <g key={node.id}>
               {supportMarker((node.supportType ?? "free") as SupportType, point.x, point.y, node.supportAngleDeg)}
               <circle cx={point.x} cy={point.y} r="4.5" fill="var(--structure-preview-node)" />
-              <text
-                x={label.x}
-                y={label.y}
-                fill="var(--structure-preview-node-label)"
-                stroke="var(--structure-preview-text-halo)"
-                strokeWidth="4"
-                paintOrder="stroke"
-                textAnchor={label.textAnchor}
-                fontSize={compact ? "9" : "11"}
-                fontFamily="Fira Code"
-                fontWeight="700"
-              >
-                {node.id}
-              </text>
+              {label && line ? (
+                <text
+                  x={line.x}
+                  y={line.y}
+                  fill="var(--structure-preview-node-label)"
+                  stroke="var(--structure-preview-text-halo)"
+                  strokeWidth="4"
+                  paintOrder="stroke"
+                  textAnchor={label.textAnchor}
+                  fontSize={line.fontSize}
+                  fontFamily="Fira Code"
+                  fontWeight="700"
+                >
+                  {line.text}
+                </text>
+              ) : null}
             </g>
           );
         })}
 
-        {extreme && extremePoint ? (
+        {extreme && extremePoint && labelLayouts.get("extreme-label") ? (
           <g>
-            <circle cx={extremePoint.x} cy={extremePoint.y} r="5" fill={metric.color} stroke="var(--structure-preview-text-halo)" strokeWidth="2" />
-            <line x1={extremePoint.x} y1={extremePoint.y} x2={labelX - 4} y2={labelY - 4} stroke={metric.color} strokeWidth="1.5" strokeDasharray="4 4" />
-            <text x={labelX} y={labelY} fill={metric.color} stroke="var(--structure-preview-text-halo)" strokeWidth="5" paintOrder="stroke" fontSize={compact ? "11" : "13"} fontFamily="Fira Code" fontWeight="700">
-              {valueText(extreme.value, metric.unit)}
-            </text>
-            <text x={labelX} y={labelY + 16} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke" fontSize={compact ? "9" : "11"} fontFamily="Fira Code">
-              {extreme.memberId} / {extreme.stationM.toFixed(2)} m
-            </text>
+            {(() => {
+              const label = labelLayouts.get("extreme-label");
+              const valueLine = label?.lines[0];
+              const stationLine = label?.lines[1];
+              if (!label || !valueLine || !stationLine) return null;
+              return (
+                <>
+                  <circle cx={extremePoint.x} cy={extremePoint.y} r="5" fill={metric.color} stroke="var(--structure-preview-text-halo)" strokeWidth="2" />
+                  <line x1={extremePoint.x} y1={extremePoint.y} x2={label.connectorX} y2={label.connectorY} stroke={metric.color} strokeWidth="1.5" strokeDasharray="4 4" />
+                  <text x={valueLine.x} y={valueLine.y} textAnchor={label.textAnchor} fill={metric.color} stroke="var(--structure-preview-text-halo)" strokeWidth="5" paintOrder="stroke" fontSize={valueLine.fontSize} fontFamily="Fira Code" fontWeight="700">
+                    {valueLine.text}
+                  </text>
+                  <text x={stationLine.x} y={stationLine.y} textAnchor={label.textAnchor} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke" fontSize={stationLine.fontSize} fontFamily="Fira Code">
+                    {stationLine.text}
+                  </text>
+                </>
+              );
+            })()}
           </g>
         ) : null}
       </svg>

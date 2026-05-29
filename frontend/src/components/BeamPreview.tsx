@@ -47,6 +47,11 @@ const PEAK_LABEL_Y = 46;
 const SPAN_MEMBER_LABEL_Y = BEAM_Y + 22;
 const NODE_BADGE_OFFSET_X = 10;
 const NODE_BADGE_OFFSET_Y = -18;
+const DISTRIBUTED_LOAD_GUIDE_STROKE_WIDTH = 1.5;
+const DISTRIBUTED_LOAD_ARROW_STROKE_WIDTH = 1.15;
+const POINT_LOAD_ARROW_STROKE_WIDTH = 1.9;
+const DISTRIBUTED_LOAD_ARROW_MARKER_SIZE = 4.4;
+const POINT_LOAD_ARROW_MARKER_SIZE = 6.5;
 const svgTextFont = "Inter, Microsoft YaHei, system-ui, sans-serif";
 
 function clamp(value: number, min: number, max: number) {
@@ -224,7 +229,26 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
               <stop offset="0%" stopColor="var(--structure-preview-deformed-start)" stopOpacity="0.8" />
               <stop offset="100%" stopColor="var(--structure-preview-deformed-start)" stopOpacity="0" />
             </linearGradient>
-            <marker id="arrowLoad" viewBox="0 0 8 8" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+            <marker
+              id="beamPreviewDistributedLoadArrow"
+              viewBox="0 0 8 8"
+              markerWidth={DISTRIBUTED_LOAD_ARROW_MARKER_SIZE}
+              markerHeight={DISTRIBUTED_LOAD_ARROW_MARKER_SIZE}
+              refX="7"
+              refY="4"
+              orient="auto"
+            >
+              <path d="M0,0 L8,4 L0,8 z" fill="var(--structure-preview-load)" />
+            </marker>
+            <marker
+              id="beamPreviewPointLoadArrow"
+              viewBox="0 0 8 8"
+              markerWidth={POINT_LOAD_ARROW_MARKER_SIZE}
+              markerHeight={POINT_LOAD_ARROW_MARKER_SIZE}
+              refX="7"
+              refY="4"
+              orient="auto"
+            >
               <path d="M0,0 L8,4 L0,8 z" fill="var(--structure-preview-load)" />
             </marker>
           </defs>
@@ -300,9 +324,18 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
           {/* 分布荷载 */}
           {distributedLoadBands.map((band) => (
             <g key={band.key}>
-              <line x1={band.startX} y1={band.guideY} x2={band.endX} y2={band.guideY} stroke="var(--structure-preview-load)" strokeWidth="1.7" opacity="0.86" />
+              <line x1={band.startX} y1={band.guideY} x2={band.endX} y2={band.guideY} stroke="var(--structure-preview-load)" strokeWidth={DISTRIBUTED_LOAD_GUIDE_STROKE_WIDTH} opacity="0.86" />
               {band.arrowXs.map((x, index) => (
-                <line key={`${band.key}-${index}`} x1={x} y1={band.arrowStartY} x2={x} y2={band.arrowEndY} stroke="var(--structure-preview-load)" strokeWidth="1.8" markerEnd="url(#arrowLoad)" />
+                <line
+                  key={`${band.key}-${index}`}
+                  x1={x}
+                  y1={band.arrowStartY}
+                  x2={x}
+                  y2={band.arrowEndY}
+                  stroke="var(--structure-preview-load)"
+                  strokeWidth={DISTRIBUTED_LOAD_ARROW_STROKE_WIDTH}
+                  markerEnd="url(#beamPreviewDistributedLoadArrow)"
+                />
               ))}
               <text x={band.labelX} y={band.labelY} fill="var(--structure-preview-label)" textAnchor="middle" fontSize="11"
                 stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke" fontWeight="500" fontFamily={svgTextFont}>
@@ -315,7 +348,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
           {loadArrows.map((load, i) => (
             <g key={i}>
               <line x1={load.svgX} y1={load.y1} x2={load.svgX} y2={load.y2}
-                stroke="var(--structure-preview-load)" strokeWidth="2" markerEnd="url(#arrowLoad)" />
+                stroke="var(--structure-preview-load)" strokeWidth={POINT_LOAD_ARROW_STROKE_WIDTH} markerEnd="url(#beamPreviewPointLoadArrow)" />
               {load.type === "point" ? (
                 <text x={load.svgX + (i % 2 === 0 ? -8 : 8)} y={load.labelY} fill="var(--structure-preview-label)" textAnchor={i % 2 === 0 ? "end" : "start"} fontSize="11"
                   stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke" fontFamily={svgTextFont}>
