@@ -64,6 +64,8 @@ const BEAM_LOAD_BOTTOM_GUIDE_Y = BEAM_SKETCH_AXIS_Y - 38;
 const BEAM_LOAD_LANE_GAP_Y = 34;
 const BEAM_DISTRIBUTED_LOAD_TIP_Y = BEAM_SKETCH_AXIS_Y;
 const BEAM_POINT_LOAD_TIP_Y = BEAM_SKETCH_AXIS_Y - 6;
+const BEAM_NODE_BADGE_OFFSET_X = 18;
+const BEAM_NODE_BADGE_Y = BEAM_SKETCH_AXIS_Y - 14;
 
 function svgInteractiveProps<T extends SVGElement = SVGGElement>(label: string, onActivate: () => void): SVGProps<T> {
   return {
@@ -165,11 +167,12 @@ function shiftAwayFromLabels(x: number, blockedXs: number[], minGap = 34) {
 
 function buildBeamNodeLabels(nodeXs: number[], pointLoadXs: number[], beamStart: number, beamEnd: number) {
   const centerX = (beamStart + beamEnd) / 2;
+  const defaultLabelX = (x: number) => Math.min(beamEnd + BEAM_NODE_BADGE_OFFSET_X, Math.max(beamStart + BEAM_NODE_BADGE_OFFSET_X, x + BEAM_NODE_BADGE_OFFSET_X));
 
   return nodeXs.map((x, index) => {
     const hasPointLoad = pointLoadXs.some((loadX) => Math.abs(loadX - x) < 16);
     if (!hasPointLoad) {
-      return { index, x, labelX: x, anchor: "middle" as const };
+      return { index, x, labelX: defaultLabelX(x), anchor: "middle" as const };
     }
 
     if (x <= beamStart + 16) {
@@ -442,8 +445,8 @@ function BeamSketch({
       <g fontFamily={svgTextFont}>
         {nodeLabels.map((label) => (
           <g key={`node-label-${label.index}`}>
-            <circle cx={label.labelX} cy="136" r="8.5" fill="var(--beam-sketch-badge-fill)" stroke="var(--beam-sketch-badge-stroke)" strokeWidth="1.5" />
-            <text x={label.labelX} y="136.5" textAnchor="middle" dominantBaseline="middle" fontSize="10" fontWeight="800" fill="var(--beam-sketch-badge-text)">
+            <circle cx={label.labelX} cy={BEAM_NODE_BADGE_Y} r="8.5" fill="var(--beam-sketch-badge-fill)" stroke="var(--beam-sketch-badge-stroke)" strokeWidth="1.5" />
+            <text x={label.labelX} y={BEAM_NODE_BADGE_Y + 0.5} textAnchor="middle" dominantBaseline="middle" fontSize="10" fontWeight="800" fill="var(--beam-sketch-badge-text)">
               {beamNodeIds[label.index] ?? `${label.index + 1}`}
             </text>
           </g>

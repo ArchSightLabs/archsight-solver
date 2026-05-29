@@ -31,6 +31,8 @@ const BEAM_RIGHT = 920;
 const BEAM_LEN = BEAM_RIGHT - BEAM_LEFT;
 const PEAK_LABEL_Y = 46;
 const SPAN_MEMBER_LABEL_Y = BEAM_Y + 22;
+const NODE_BADGE_OFFSET_X = 18;
+const NODE_BADGE_OFFSET_Y = -18;
 const SVG_TEXT_FONT = "Inter, Microsoft YaHei, system-ui, sans-serif";
 
 const PREVIEW_COLORS = {
@@ -238,7 +240,9 @@ export function buildBeamPreviewSvg(beam: BeamPreviewData) {
   ${(beam.nodes ?? [])
     .map((node, index) => {
       const x = mapX(node.x);
-      return `<g><circle cx="${n(x)}" cy="${BEAM_Y}" r="4" fill="${node.support ? PREVIEW_COLORS.node : PREVIEW_COLORS.guide}" /><circle cx="${n(x + 12)}" cy="${BEAM_Y - 18}" r="8" fill="${PREVIEW_COLORS.badgeFill}" stroke="${PREVIEW_COLORS.badgeStroke}" stroke-width="1.3" /><text x="${n(x + 12)}" y="${BEAM_Y - 18}" fill="${PREVIEW_COLORS.badgeText}" text-anchor="middle" dominant-baseline="middle" font-size="9" font-weight="700" font-family="${SVG_TEXT_FONT}">${escapeSvg(node.id ?? `${index + 1}`)}</text></g>`;
+      const badgeX = x + NODE_BADGE_OFFSET_X;
+      const badgeY = BEAM_Y + NODE_BADGE_OFFSET_Y;
+      return `<g><circle cx="${n(x)}" cy="${BEAM_Y}" r="4" fill="${node.support ? PREVIEW_COLORS.node : PREVIEW_COLORS.guide}" /><circle cx="${n(badgeX)}" cy="${n(badgeY)}" r="8" fill="${PREVIEW_COLORS.badgeFill}" stroke="${PREVIEW_COLORS.badgeStroke}" stroke-width="1.3" /><text x="${n(badgeX)}" y="${n(badgeY)}" fill="${PREVIEW_COLORS.badgeText}" text-anchor="middle" dominant-baseline="middle" font-size="9" font-weight="700" font-family="${SVG_TEXT_FONT}">${escapeSvg(node.id ?? `${index + 1}`)}</text></g>`;
     })
     .join("")}
   ${loadBands

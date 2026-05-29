@@ -45,6 +45,8 @@ const SUPPORT_BASE_STROKE_WIDTH = 1.25;
 const NODE_RADIUS = 3;
 const EXTREME_RADIUS = 4;
 const SPAN_MEMBER_LABEL_Y = BEAM_Y + 18;
+const NODE_BADGE_OFFSET_X = 18;
+const NODE_BADGE_OFFSET_Y = -16;
 const SPAN_DIMENSION_LEGEND_X = 32;
 const SPAN_DIMENSION_LEGEND_Y = 50;
 const SPAN_DIMENSION_LEGEND_GAP = 15;
@@ -406,7 +408,9 @@ export function buildBeamResultDiagramSvg(results: BeamCalculationResults, metri
   ${(beam.nodes ?? [])
     .map((node, index) => {
       const x = mapX(node.x);
-      return `<g><circle cx="${n(x)}" cy="${BEAM_Y}" r="${NODE_RADIUS}" fill="${node.support ? COLORS.node : COLORS.guide}" /><circle cx="${n(x + 10)}" cy="${BEAM_Y - 16}" r="7.5" fill="${COLORS.badgeFill}" stroke="${COLORS.badgeStroke}" stroke-width="1.2" /><text x="${n(x + 10)}" y="${BEAM_Y - 16}" fill="${COLORS.badgeText}" text-anchor="middle" dominant-baseline="middle" font-size="8.5" font-family="${DIAGRAM_LABEL_FONT}" font-weight="${DIAGRAM_LABEL_WEIGHT}">${escapeSvg(node.id ?? `${index + 1}`)}</text></g>`;
+      const badgeX = x + NODE_BADGE_OFFSET_X;
+      const badgeY = BEAM_Y + NODE_BADGE_OFFSET_Y;
+      return `<g><circle cx="${n(x)}" cy="${BEAM_Y}" r="${NODE_RADIUS}" fill="${node.support ? COLORS.node : COLORS.guide}" /><circle cx="${n(badgeX)}" cy="${n(badgeY)}" r="7.5" fill="${COLORS.badgeFill}" stroke="${COLORS.badgeStroke}" stroke-width="1.2" /><text x="${n(badgeX)}" y="${n(badgeY)}" fill="${COLORS.badgeText}" text-anchor="middle" dominant-baseline="middle" font-size="8.5" font-family="${DIAGRAM_LABEL_FONT}" font-weight="${DIAGRAM_LABEL_WEIGHT}">${escapeSvg(node.id ?? `${index + 1}`)}</text></g>`;
     })
     .join("")}
   <g fill="${COLORS.label}" font-family="${DIAGRAM_LABEL_FONT}">

@@ -45,6 +45,8 @@ const BEAM_RIGHT = 920;
 const BEAM_LEN = BEAM_RIGHT - BEAM_LEFT;
 const PEAK_LABEL_Y = 46;
 const SPAN_MEMBER_LABEL_Y = BEAM_Y + 22;
+const NODE_BADGE_OFFSET_X = 18;
+const NODE_BADGE_OFFSET_Y = -18;
 const svgTextFont = "Inter, Microsoft YaHei, system-ui, sans-serif";
 
 function clamp(value: number, min: number, max: number) {
@@ -282,11 +284,13 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
           {/* 节点圆点 */}
           {(beam.nodes || []).map((n, i) => {
             const x = mapX(n.x);
+            const badgeX = x + NODE_BADGE_OFFSET_X;
+            const badgeY = BEAM_Y + NODE_BADGE_OFFSET_Y;
             return (
               <g key={i}>
                 <circle cx={x} cy={BEAM_Y} r="4" fill={n.support ? "var(--structure-preview-node)" : "var(--structure-preview-guide)"} />
-                <circle cx={x + 12} cy={BEAM_Y - 18} r={compact ? "7" : "8"} fill="var(--model-badge-fill)" stroke="var(--model-badge-stroke)" strokeWidth="1.3" />
-                <text x={x + 12} y={BEAM_Y - 18} fill="var(--model-badge-text)" textAnchor="middle" dominantBaseline="middle" fontSize={compact ? "8" : "9"} fontWeight="700" fontFamily={svgTextFont}>
+                <circle cx={badgeX} cy={badgeY} r={compact ? "7" : "8"} fill="var(--model-badge-fill)" stroke="var(--model-badge-stroke)" strokeWidth="1.3" />
+                <text x={badgeX} y={badgeY} fill="var(--model-badge-text)" textAnchor="middle" dominantBaseline="middle" fontSize={compact ? "8" : "9"} fontWeight="700" fontFamily={svgTextFont}>
                   {n.id ?? `${i + 1}`}
                 </text>
               </g>
