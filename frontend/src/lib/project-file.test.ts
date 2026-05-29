@@ -24,7 +24,8 @@ test("创建 ArchSight Solver 项目文件时写入专属 schema 和 .slv 文件
   assert.equal(projectFile.product, "archsight-solver");
   assert.equal(projectFile.schemaVersion, "2.0.0");
   assert.equal(projectFile.project.name, "门式刚架: 方案 A");
-  assert.equal(projectFile.project.objects.length, 1);
+  assert.equal(projectFile.project.objects.length, 3);
+  assert.deepEqual(projectFile.project.objects.map((object) => object.type), ["beam", "truss", "frame"]);
   assert.equal(ARCHSIGHT_SOLVER_PROJECT_EXTENSION, ".slv");
   assert.deepEqual([...ARCHSIGHT_SOLVER_LEGACY_PROJECT_EXTENSIONS], [".aslv.json", ".json"]);
   assert.equal(getArchSightSolverProjectFileName(project), `门式刚架- 方案 A${ARCHSIGHT_SOLVER_PROJECT_EXTENSION}`);
@@ -65,14 +66,14 @@ test("序列化后的项目文件可以恢复为规范化工作台状态", () =>
   assert.equal(parsed.value?.project.settings.projectInfo.address, "上海市浦东新区");
   assert.equal(parsed.value?.project.settings.projectInfo.projectManager, "张工");
   assert.equal(parsed.value?.project.settings.reportExportOptions.figureScope, "all");
-  assert.equal(parsed.value?.project.objects.length, 2);
-  assert.equal(parsed.value?.project.objects.find((object) => object.type === "truss")?.name, "屋架复核");
+  assert.equal(parsed.value?.project.objects.length, 4);
+  assert.ok(parsed.value?.project.objects.some((object) => object.type === "truss" && object.name === "屋架复核"));
 });
 
 test("项目文件往返保留框架荷载组合标签", () => {
   let project = createDefaultSolverProject();
   project = addAnalysisObjectToProject(project, "frame", "组合标签复核");
-  const frameObject = project.objects.find((object) => object.type === "frame");
+  const frameObject = project.objects.find((object) => object.name === "组合标签复核");
   assert.ok(frameObject);
   const frameState = frameObject.state as FrameWorkspaceState;
   frameObject.state = {
@@ -86,7 +87,7 @@ test("项目文件往返保留框架荷载组合标签", () => {
   const parsed = parseArchSightSolverProjectFile(raw);
 
   assert.equal(parsed.ok, true);
-  const restoredFrame = parsed.value?.project.objects.find((object) => object.type === "frame");
+  const restoredFrame = parsed.value?.project.objects.find((object) => object.name === "组合标签复核");
   assert.ok(restoredFrame);
   assert.deepEqual((restoredFrame.state as { customLoadCombinations: Array<{ tags?: string[] }> }).customLoadCombinations[0].tags, ["ULS", "包络"]);
 });

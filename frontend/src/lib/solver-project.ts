@@ -150,6 +150,14 @@ export function createAnalysisObject(type: AnalysisObjectType, name?: string, no
   };
 }
 
+function createDefaultAnalysisObjects(now = new Date()): AnalysisObject[] {
+  return [
+    createAnalysisObject("beam", "连续梁-1", now),
+    createAnalysisObject("truss", "平面桁架-1", now),
+    createAnalysisObject("frame", "平面框架-1", now),
+  ];
+}
+
 export function createDefaultSolverProject(
   nowOrProjectInfo: Date | Partial<ProjectInfo> | null = new Date(),
   rawProjectInfo?: Partial<ProjectInfo> | null
@@ -157,13 +165,13 @@ export function createDefaultSolverProject(
   const now = nowOrProjectInfo instanceof Date ? nowOrProjectInfo : new Date();
   const projectInfoSource = nowOrProjectInfo instanceof Date ? rawProjectInfo : nowOrProjectInfo;
   const timestamp = now.toISOString();
-  const object = createAnalysisObject("beam", "连续梁-1", now);
+  const objects = createDefaultAnalysisObjects(now);
   const projectInfo = normalizeProjectInfo(projectInfoSource);
   return {
     id: createId("project"),
     name: projectInfo.name,
-    activeObjectId: object.id,
-    objects: [object],
+    activeObjectId: objects[0].id,
+    objects,
     settings: {
       activeModuleSection: "",
       beamPreviewStyle: "color",
@@ -231,7 +239,7 @@ export function normalizeSolverProject(rawProject: unknown): SolverProject {
   const projectInfo = normalizeProjectInfo(raw.settings?.projectInfo, String(raw.name ?? "新建结构分析项目"));
   const normalizedObjects = Array.isArray(raw.objects) && raw.objects.length > 0
     ? raw.objects.map(normalizeAnalysisObject)
-    : [createAnalysisObject("beam", "连续梁-1")];
+    : createDefaultAnalysisObjects();
   const activeObjectId = normalizedObjects.some((object) => object.id === raw.activeObjectId)
     ? String(raw.activeObjectId)
     : normalizedObjects[0].id;

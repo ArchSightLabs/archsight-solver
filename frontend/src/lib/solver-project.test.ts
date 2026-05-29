@@ -14,10 +14,11 @@ import {
 import { MAX_BEAM_SPANS, MAX_FRAME_MEMBERS, MAX_FRAME_NODES, MAX_TRUSS_MEMBERS, MAX_TRUSS_NODES } from "./solver-limits.ts";
 import { normalizeBeamWorkspaceState, normalizeFrameWorkspaceState, normalizeTrussWorkspaceState } from "./workspace-state.ts";
 
-test("默认求解器项目包含一个梁系分析对象", () => {
+test("默认求解器项目包含三类分析对象并激活梁系", () => {
   const project = createDefaultSolverProject(new Date("2026-05-21T12:00:00.000Z"));
-  assert.equal(project.objects.length, 1);
-  assert.equal(project.objects[0].type, "beam");
+  assert.equal(project.objects.length, 3);
+  assert.deepEqual(project.objects.map((object) => object.type), ["beam", "truss", "frame"]);
+  assert.deepEqual(project.objects.map((object) => object.name), ["连续梁-1", "平面桁架-1", "平面框架-1"]);
   assert.equal(project.activeObjectId, project.objects[0].id);
   assert.equal(getActiveAnalysisObject(project).name, "连续梁-1");
   assert.equal(project.settings.projectInfo.name, "新建结构分析项目");
@@ -46,7 +47,7 @@ test("可创建不同类型的独立分析对象", () => {
 test("添加分析对象后自动激活新对象并保留原对象", () => {
   const project = createDefaultSolverProject();
   const next = addAnalysisObjectToProject(project, "frame", "A轴框架");
-  assert.equal(next.objects.length, 2);
+  assert.equal(next.objects.length, 4);
   assert.equal(getActiveAnalysisObject(next).name, "A轴框架");
   assert.equal(next.objects[0].type, "beam");
 });
@@ -64,12 +65,17 @@ test("更新活动对象工作台状态不会修改其他分析对象", () => {
 test("删除活动对象后切换到剩余对象，单对象项目不删除", () => {
   const project = addAnalysisObjectToProject(createDefaultSolverProject(), "truss", "屋架方案");
   const removed = removeAnalysisObjectFromProject(project, project.activeObjectId);
-  assert.equal(removed.objects.length, 1);
+  assert.equal(removed.objects.length, 3);
   assert.equal(getActiveAnalysisObject(removed).type, "beam");
 
-  const unchanged = removeAnalysisObjectFromProject(removed, removed.activeObjectId);
+  const singleObjectProject = normalizeSolverProject({
+    ...removed,
+    activeObjectId: removed.objects[0].id,
+    objects: [removed.objects[0]],
+  });
+  const unchanged = removeAnalysisObjectFromProject(singleObjectProject, singleObjectProject.activeObjectId);
   assert.equal(unchanged.objects.length, 1);
-  assert.equal(unchanged.activeObjectId, removed.activeObjectId);
+  assert.equal(unchanged.activeObjectId, singleObjectProject.activeObjectId);
 });
 
 test("规范化项目时保留公开验证算例元数据", () => {
