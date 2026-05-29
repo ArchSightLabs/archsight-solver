@@ -52,10 +52,6 @@ userData.json
 .claude/
 .gemini/
 .cursorrules
-AGENTS.md
-AI_CODING_RULES.md
-CLAUDE.md
-GEMINI.md
 
 # Frontend
 node_modules/
