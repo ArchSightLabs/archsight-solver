@@ -62,7 +62,7 @@ const SUPPORT_BASE_STROKE_WIDTH = 1.25;
 const NODE_RADIUS = 3;
 const EXTREME_RADIUS = 4;
 const SPAN_MEMBER_LABEL_Y = BEAM_Y + 18;
-const NODE_BADGE_OFFSET_X = 18;
+const NODE_BADGE_OFFSET_X = 10;
 const NODE_BADGE_OFFSET_Y = -16;
 const SPAN_DIMENSION_LEGEND_X = 32;
 const SPAN_DIMENSION_LEGEND_Y = 50;
@@ -478,8 +478,8 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
             return (
               <g key={node.index}>
                 <circle cx={x} cy={BEAM_Y} r={NODE_RADIUS} fill={node.support ? "var(--structure-preview-node)" : "var(--structure-preview-guide)"} />
-                <circle cx={badgeX} cy={badgeY} r={compact ? "6.5" : "7.5"} fill="var(--model-badge-fill)" stroke="var(--model-badge-stroke)" strokeWidth="1.2" />
-                <text x={badgeX} y={badgeY} fill="var(--model-badge-text)" textAnchor="middle" dominantBaseline="middle" fontSize={compact ? "7.5" : "8.5"} fontFamily={DIAGRAM_LABEL_FONT} fontWeight={DIAGRAM_LABEL_WEIGHT}>
+                <circle cx={badgeX} cy={badgeY} r={compact ? "6.5" : "7.5"} fill="var(--structure-preview-badge-fill)" stroke="var(--structure-preview-badge-stroke)" strokeWidth="1.2" />
+                <text x={badgeX} y={badgeY} fill="var(--structure-preview-badge-text)" textAnchor="middle" dominantBaseline="middle" fontSize={compact ? "7.5" : "8.5"} fontFamily={DIAGRAM_LABEL_FONT} fontWeight={DIAGRAM_LABEL_WEIGHT}>
                   {node.id ?? `${node.index + 1}`}
                 </text>
               </g>

@@ -64,7 +64,7 @@ const BEAM_LOAD_BOTTOM_GUIDE_Y = BEAM_SKETCH_AXIS_Y - 38;
 const BEAM_LOAD_LANE_GAP_Y = 34;
 const BEAM_DISTRIBUTED_LOAD_TIP_Y = BEAM_SKETCH_AXIS_Y;
 const BEAM_POINT_LOAD_TIP_Y = BEAM_SKETCH_AXIS_Y - 6;
-const BEAM_NODE_BADGE_OFFSET_X = 18;
+const BEAM_NODE_BADGE_OFFSET_X = 10;
 const BEAM_NODE_BADGE_Y = BEAM_SKETCH_AXIS_Y - 14;
 
 function svgInteractiveProps<T extends SVGElement = SVGGElement>(label: string, onActivate: () => void): SVGProps<T> {
@@ -147,9 +147,9 @@ function buildLoadArrowXs(start: number, end: number, minSpacing = 30) {
   const width = end - start;
   if (width <= 0) return [];
 
-  const arrowCount = Math.max(3, Math.min(28, Math.floor(width / minSpacing)));
+  const arrowCount = Math.max(3, Math.min(28, Math.floor(width / minSpacing) + 1));
   return Array.from({ length: arrowCount }, (_, index) => {
-    const ratio = (index + 0.5) / arrowCount;
+    const ratio = index / (arrowCount - 1);
     return start + width * ratio;
   });
 }
@@ -624,10 +624,9 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
     const point = nodeMap.get(node.id);
     if (!point) return null;
     const isLeft = point.x < (leftX + rightX) / 2;
-    const isTop = point.y < (topY + bottomY) / 2;
     return {
-      x: point.x + (isLeft ? -16 : 16),
-      y: point.y + (isTop ? -10 : 20),
+      x: point.x + (isLeft ? -22 : 22),
+      y: point.y - 12,
       anchor: isLeft ? ("end" as const) : ("start" as const),
     };
   };
@@ -994,20 +993,11 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
   const memberLengthLegendRows = buildTrussMemberLengthLegendRows(memberLengthDimensions, 190, 12);
 
   const getNodeLabel = (point: { x: number; y: number }) => {
-    const isTopChord = point.y < trussMidY;
     const isLeftSide = point.x < trussCenterX;
-    if (isTopChord) {
-      return {
-        x: point.x + (isLeftSide ? -18 : 18),
-        y: point.y - 12,
-        anchor: isLeftSide ? ("end" as const) : ("start" as const),
-      };
-    }
-
     return {
-      x: point.x + (isLeftSide ? 14 : 18),
-      y: point.y + 18,
-      anchor: "start" as const,
+      x: point.x + (isLeftSide ? -22 : 22),
+      y: point.y - 12,
+      anchor: isLeftSide ? ("end" as const) : ("start" as const),
     };
   };
 

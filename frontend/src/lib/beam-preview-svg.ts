@@ -31,7 +31,7 @@ const BEAM_RIGHT = 920;
 const BEAM_LEN = BEAM_RIGHT - BEAM_LEFT;
 const PEAK_LABEL_Y = 46;
 const SPAN_MEMBER_LABEL_Y = BEAM_Y + 22;
-const NODE_BADGE_OFFSET_X = 18;
+const NODE_BADGE_OFFSET_X = 10;
 const NODE_BADGE_OFFSET_Y = -18;
 const SVG_TEXT_FONT = "Inter, Microsoft YaHei, system-ui, sans-serif";
 
@@ -74,8 +74,8 @@ function n(value: number) {
 
 function distributedArrowXs(startX: number, endX: number) {
   const width = Math.max(0, endX - startX);
-  const arrowCount = Math.max(3, Math.min(30, Math.floor(width / 28)));
-  return Array.from({ length: arrowCount }, (_, index) => startX + width * ((index + 0.5) / arrowCount));
+  const arrowCount = Math.max(3, Math.min(30, Math.floor(width / 28) + 1));
+  return Array.from({ length: arrowCount }, (_, index) => startX + width * (index / (arrowCount - 1)));
 }
 
 function buildDistributedLoadBands(beam: BeamPreviewData, mapX: (x: number) => number): BeamDistributedLoadBand[] {

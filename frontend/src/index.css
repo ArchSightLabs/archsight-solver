@@ -347,6 +347,9 @@ div[class*="text-[9px]"] {
   --structure-preview-deformed-node-stroke: #ccfbf1;
   --structure-preview-peak-label: #92400e;
   --structure-preview-text-halo: rgba(248, 250, 252, 0.92);
+  --structure-preview-badge-fill: #fff7ed;
+  --structure-preview-badge-stroke: #f97316;
+  --structure-preview-badge-text: #7c2d12;
   background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
   border-top: 1px solid rgba(100, 116, 139, 0.18);
   border-bottom: 1px solid rgba(100, 116, 139, 0.18);
@@ -380,6 +383,9 @@ div[class*="text-[9px]"] {
   --structure-preview-deformed-node-stroke: #dcfce7;
   --structure-preview-peak-label: #fde68a;
   --structure-preview-text-halo: rgba(2, 8, 23, 0.92);
+  --structure-preview-badge-fill: rgba(251, 191, 36, 0.16);
+  --structure-preview-badge-stroke: #fbbf24;
+  --structure-preview-badge-text: #fde68a;
   background: linear-gradient(180deg, #060d18 0%, #0b1628 100%);
   border-top-color: rgba(255, 255, 255, 0.05);
   border-bottom-color: rgba(255, 255, 255, 0.05);

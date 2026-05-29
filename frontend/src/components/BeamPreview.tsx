@@ -45,7 +45,7 @@ const BEAM_RIGHT = 920;
 const BEAM_LEN = BEAM_RIGHT - BEAM_LEFT;
 const PEAK_LABEL_Y = 46;
 const SPAN_MEMBER_LABEL_Y = BEAM_Y + 22;
-const NODE_BADGE_OFFSET_X = 18;
+const NODE_BADGE_OFFSET_X = 10;
 const NODE_BADGE_OFFSET_Y = -18;
 const svgTextFont = "Inter, Microsoft YaHei, system-ui, sans-serif";
 
@@ -55,8 +55,8 @@ function clamp(value: number, min: number, max: number) {
 
 function distributedArrowXs(startX: number, endX: number) {
   const width = Math.max(0, endX - startX);
-  const arrowCount = Math.max(3, Math.min(30, Math.floor(width / 28)));
-  return Array.from({ length: arrowCount }, (_, index) => startX + width * ((index + 0.5) / arrowCount));
+  const arrowCount = Math.max(3, Math.min(30, Math.floor(width / 28) + 1));
+  return Array.from({ length: arrowCount }, (_, index) => startX + width * (index / (arrowCount - 1)));
 }
 
 export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
@@ -289,8 +289,8 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
             return (
               <g key={i}>
                 <circle cx={x} cy={BEAM_Y} r="4" fill={n.support ? "var(--structure-preview-node)" : "var(--structure-preview-guide)"} />
-                <circle cx={badgeX} cy={badgeY} r={compact ? "7" : "8"} fill="var(--model-badge-fill)" stroke="var(--model-badge-stroke)" strokeWidth="1.3" />
-                <text x={badgeX} y={badgeY} fill="var(--model-badge-text)" textAnchor="middle" dominantBaseline="middle" fontSize={compact ? "8" : "9"} fontWeight="700" fontFamily={svgTextFont}>
+                <circle cx={badgeX} cy={badgeY} r={compact ? "7" : "8"} fill="var(--structure-preview-badge-fill)" stroke="var(--structure-preview-badge-stroke)" strokeWidth="1.3" />
+                <text x={badgeX} y={badgeY} fill="var(--structure-preview-badge-text)" textAnchor="middle" dominantBaseline="middle" fontSize={compact ? "8" : "9"} fontWeight="700" fontFamily={svgTextFont}>
                   {n.id ?? `${i + 1}`}
                 </text>
               </g>
