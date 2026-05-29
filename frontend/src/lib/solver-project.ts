@@ -153,8 +153,8 @@ export function createAnalysisObject(type: AnalysisObjectType, name?: string, no
 function createDefaultAnalysisObjects(now = new Date()): AnalysisObject[] {
   return [
     createAnalysisObject("beam", "连续梁-1", now),
-    createAnalysisObject("truss", "平面桁架-1", now),
     createAnalysisObject("frame", "平面框架-1", now),
+    createAnalysisObject("truss", "平面桁架-1", now),
   ];
 }
 

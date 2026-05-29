@@ -17,8 +17,8 @@ import { normalizeBeamWorkspaceState, normalizeFrameWorkspaceState, normalizeTru
 test("默认求解器项目包含三类分析对象并激活梁系", () => {
   const project = createDefaultSolverProject(new Date("2026-05-21T12:00:00.000Z"));
   assert.equal(project.objects.length, 3);
-  assert.deepEqual(project.objects.map((object) => object.type), ["beam", "truss", "frame"]);
-  assert.deepEqual(project.objects.map((object) => object.name), ["连续梁-1", "平面桁架-1", "平面框架-1"]);
+  assert.deepEqual(project.objects.map((object) => object.type), ["beam", "frame", "truss"]);
+  assert.deepEqual(project.objects.map((object) => object.name), ["连续梁-1", "平面框架-1", "平面桁架-1"]);
   assert.equal(project.activeObjectId, project.objects[0].id);
   assert.equal(getActiveAnalysisObject(project).name, "连续梁-1");
   assert.equal(project.settings.projectInfo.name, "新建结构分析项目");
