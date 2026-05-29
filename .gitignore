@@ -86,8 +86,13 @@ frontend/tmp/playwright-report/
 .gstack/
 .local-docs/
 logs/
-deploy/
-scripts/
+deploy/.env
+deploy/docker-compose.yml
+scripts/*
+!scripts/build-image.ps1
+!scripts/generate_benchmark_report.py
+!scripts/kill-ports.ps1
+!scripts/remote-deploy.ps1
 !frontend/scripts/
 !frontend/scripts/**
 specs/

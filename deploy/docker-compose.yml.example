@@ -1,0 +1,16 @@
+services:
+  app:
+    image: ${IMAGE_REPOSITORY:-registry.cn-hangzhou.aliyuncs.com/your-namespace/archsight-solver}:${IMAGE_TAG:-v1.2.0}
+    container_name: archsight-solver-app
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      BEAM_SOLVER_BACKEND_PORT: "6240"
+      ARCHSIGHT_GUNICORN_WORKERS: ${ARCHSIGHT_GUNICORN_WORKERS:-4}
+    ports:
+      - "${APP_HOST_BIND:-127.0.0.1}:${APP_HOST_PORT:-6280}:6240"
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
