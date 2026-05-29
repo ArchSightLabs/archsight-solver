@@ -59,6 +59,7 @@ import {
   type WorkbenchView,
 } from "./lib/solver-project";
 import { normalizeReportExportOptions, type ReportExportOptions } from "./lib/report-options";
+import { moduleSectionsForMode, moduleTitleForMode, objectNavigatorSectionId } from "./lib/workbench-navigation";
 import { buildBeamPayload, buildFramePayload, buildTrussPayload, validateCustomFrameWorkspace, validateCustomTrussWorkspace } from "./solver-payload";
 import {
   ARCHSIGHT_SOLVER_PROJECT_ACCEPT,
@@ -71,7 +72,7 @@ import {
   supportsNativeProjectFiles,
   type ProjectFileHandle,
 } from "./lib/project-file";
-import type { BeamPreviewStyle, ProjectTemplate, SensitivityResults } from "./types/beam";
+import type { ModelPreviewStyle, ProjectTemplate, SensitivityResults } from "./types/beam";
 import type { BeamWorkbenchSelection, FrameWorkbenchSelection, TrussWorkbenchSelection, WorkbenchSelection, WorkbenchSelectionOptions } from "./types/workbench-selection";
 import type { TemplateActionResult } from "./lib/template-library";
 import { useWorkbenchSession } from "./hooks/useWorkbenchSession";
@@ -103,6 +104,11 @@ const HIDDEN_VISIT_STATS_STYLE = {
 const RELEASE_NOTES_HREF = "/docs/release-notes.html";
 const USER_MANUAL_HREF = "/docs/user-manual.html";
 const LEGACY_REPORT_EXPORT_OPTIONS_STORAGE_KEY = "archsight-solver.report-export-options";
+const WORKBENCH_VIEW_ITEMS: Array<{ id: WorkbenchView; label: string; shortLabel: string; icon: typeof Layers }> = [
+  { id: "model", label: "参数建模", shortLabel: "参数建模", icon: Layers },
+  { id: "results", label: "结构计算", shortLabel: "结构计算", icon: FileText },
+  { id: "sensitivity", label: "敏感性分析", shortLabel: "敏感性", icon: Activity },
+];
 
 interface VisitStats {
   pageViews: string;
@@ -220,14 +226,14 @@ function App() {
       updatedAt: new Date().toISOString(),
     }));
   }, []);
-  const setBeamPreviewStyle = useCallback((style: BeamPreviewStyle) => {
+  const setModelPreviewStyle = useCallback((style: ModelPreviewStyle) => {
     setLastSavedAt(null);
     setIsProjectDirty(true);
     setProject((current) => normalizeSolverProject({
       ...current,
       settings: {
         ...current.settings,
-        beamPreviewStyle: style,
+        modelPreviewStyle: style,
       },
       updatedAt: new Date().toISOString(),
     }));
@@ -477,35 +483,7 @@ function App() {
   }, [isFileMenuOpen]);
 
   const analysisMode = workspace.analysisMode;
-  const moduleSections = useMemo(() => {
-    if (analysisMode === "beam") {
-      return [
-        { id: "beam-typical-cases", label: "模板" },
-        { id: "beam-basic", label: "基本" },
-        { id: "beam-object-navigator", label: "对象" },
-        { id: "beam-text-model", label: "文本" },
-        { id: "beam-advanced-tables", label: "表格" },
-      ];
-    }
-
-    if (analysisMode === "truss") {
-      return [
-        { id: "truss-typical-cases", label: "模板" },
-        { id: "truss-custom-overview", label: "基本" },
-        { id: "truss-object-navigator", label: "对象" },
-        { id: "truss-text-model", label: "文本" },
-        { id: "truss-advanced-tables", label: "表格" },
-      ];
-    }
-
-    return [
-      { id: "frame-typical-cases", label: "模板" },
-      { id: "frame-custom-overview", label: "基本" },
-      { id: "frame-object-navigator", label: "对象" },
-      { id: "frame-text-model", label: "文本" },
-      { id: "frame-advanced-tables", label: "表格" },
-    ];
-  }, [analysisMode]);
+  const moduleSections = moduleSectionsForMode(analysisMode);
 
   const frameResults = useMemo(() => frameResultForView(analysisData), [analysisData]);
   const trussResults = useMemo(() => trussResultForView(analysisData), [analysisData]);
@@ -676,11 +654,6 @@ function App() {
     setLastSavedAt(null);
     setFileStatusMessage("已删除分析对象");
   };
-  const workbenchViewItems = [
-    { id: "model" as const, label: "参数建模", shortLabel: "参数建模", icon: Layers },
-    { id: "results" as const, label: "结构计算", shortLabel: "结构计算", icon: FileText },
-    { id: "sensitivity" as const, label: "敏感性分析", shortLabel: "敏感性", icon: Activity },
-  ];
   const handleRunAndReview = () => {
     setWorkbenchView("results");
     handleRunCurrentModule();
@@ -690,8 +663,7 @@ function App() {
     if (options?.openEditor === false) {
       return;
     }
-    const selectedEditorId =
-      next.mode === "beam" ? "beam-object-navigator" : next.mode === "frame" ? "frame-object-navigator" : "truss-object-navigator";
+    const selectedEditorId = objectNavigatorSectionId(next.mode);
     if (moduleSections.some((section) => section.id === selectedEditorId)) {
       setActiveModuleSection(selectedEditorId);
     }
@@ -982,7 +954,7 @@ function App() {
                     role="tablist"
                     aria-label="主工作区分页"
                   >
-                    {workbenchViewItems.map((item) => {
+                    {WORKBENCH_VIEW_ITEMS.map((item) => {
                       const Icon = item.icon;
                       const active = workbenchView === item.id;
                       return (
@@ -1014,7 +986,7 @@ function App() {
                 workspace={workspace}
                 mode={analysisMode}
                 compact={isCompactWorkbench}
-                beamPreviewStyle={project.settings.beamPreviewStyle}
+                modelPreviewStyle={project.settings.modelPreviewStyle}
                 selection={workbenchSelection?.mode === analysisMode ? workbenchSelection : null}
                 onSelect={handleWorkbenchSelectionChange}
               />
@@ -1080,7 +1052,7 @@ function App() {
             </button>
             <GlassCard className="inspector-panel flex min-h-0 flex-col gap-4 p-4 sm:p-5 xl:max-h-[calc(100vh-7rem)]">
               <ModuleSectionNav
-                title={analysisMode === "beam" ? "梁系参数" : analysisMode === "frame" ? "框架参数" : "桁架参数"}
+                title={moduleTitleForMode(analysisMode)}
                 items={moduleSections}
                 activeId={activeModuleSectionId}
                 onSelect={setActiveModuleSection}
@@ -1114,9 +1086,9 @@ function App() {
               docked
               releaseNotesHref={RELEASE_NOTES_HREF}
               userManualHref={USER_MANUAL_HREF}
-              beamPreviewStyle={project.settings.beamPreviewStyle}
+              modelPreviewStyle={project.settings.modelPreviewStyle}
               visitStats={visitStats}
-              onBeamPreviewStyleChange={setBeamPreviewStyle}
+              onModelPreviewStyleChange={setModelPreviewStyle}
               onOpenTemplateLibrary={() => setIsTemplateLibraryOpen(true)}
               onClose={() => setIsSystemSettingsOpen(false)}
             />
@@ -1140,9 +1112,9 @@ function App() {
           compact={isCompactWorkbench}
           releaseNotesHref={RELEASE_NOTES_HREF}
           userManualHref={USER_MANUAL_HREF}
-          beamPreviewStyle={project.settings.beamPreviewStyle}
+          modelPreviewStyle={project.settings.modelPreviewStyle}
           visitStats={visitStats}
-          onBeamPreviewStyleChange={setBeamPreviewStyle}
+          onModelPreviewStyleChange={setModelPreviewStyle}
           onOpenTemplateLibrary={() => setIsTemplateLibraryOpen(true)}
           onClose={() => setIsSystemSettingsOpen(false)}
         />

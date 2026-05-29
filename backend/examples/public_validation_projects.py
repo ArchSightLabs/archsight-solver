@@ -374,7 +374,7 @@ def _project_from_group(group: Mapping[str, Any], cases: Iterable[Mapping[str, A
         "objects": objects,
         "settings": {
             "activeModuleSection": "",
-            "beamPreviewStyle": "color",
+            "modelPreviewStyle": "color",
             "reportExportOptions": {
                 "template": "standard",
                 "figureMode": "overlay",

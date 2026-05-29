@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { BarChart3, BookOpen, ClipboardList, ExternalLink, Github, Info, Library, Palette, Settings, X } from "lucide-react";
 import { Button } from "./ui/button";
-import type { BeamPreviewStyle } from "../types/beam";
+import type { ModelPreviewStyle } from "../types/beam";
 import { APP_VERSION, BUSUANZI_VISIT_STATS_ENABLED, GITHUB_REPOSITORY_URL } from "../lib/app-metadata";
 
 interface VisitStats {
@@ -14,16 +14,16 @@ interface SystemSettingsPanelProps {
   docked?: boolean;
   releaseNotesHref: string;
   userManualHref: string;
-  beamPreviewStyle: BeamPreviewStyle;
+  modelPreviewStyle: ModelPreviewStyle;
   visitStats: VisitStats;
-  onBeamPreviewStyleChange: (style: BeamPreviewStyle) => void;
+  onModelPreviewStyleChange: (style: ModelPreviewStyle) => void;
   onOpenTemplateLibrary: () => void;
   onClose: () => void;
 }
 
-const BEAM_PREVIEW_STYLE_OPTIONS: Array<{ label: string; value: BeamPreviewStyle; description: string }> = [
-  { label: "彩色高亮", value: "color", description: "蓝色构件、橙色荷载，适合演示和选中辨识" },
-  { label: "工程简图", value: "simple", description: "低饱和黑白表达，适合快速读图" },
+const MODEL_PREVIEW_STYLE_OPTIONS: Array<{ label: string; value: ModelPreviewStyle; description: string }> = [
+  { label: "彩色高亮", value: "color", description: "梁系、框架和桁架建模图使用蓝色构件与橙色荷载" },
+  { label: "工程简图", value: "simple", description: "梁系、框架和桁架建模图使用低饱和黑白表达" },
 ];
 const STATUS_LINE_CLASS = "rounded-lg border border-slate-200/80 bg-slate-50 px-3 py-2 text-[11px] font-semibold leading-5 text-slate-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300";
 
@@ -92,9 +92,9 @@ export function SystemSettingsPanel({
   docked = false,
   releaseNotesHref,
   userManualHref,
-  beamPreviewStyle,
+  modelPreviewStyle,
   visitStats,
-  onBeamPreviewStyleChange,
+  onModelPreviewStyleChange,
   onOpenTemplateLibrary,
   onClose,
 }: SystemSettingsPanelProps) {
@@ -136,19 +136,19 @@ export function SystemSettingsPanel({
             </h3>
             <div className="space-y-3 rounded-lg border border-slate-200/80 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/[0.04]">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-xs font-black">连续梁建模图</div>
+                <div className="text-xs font-black">结构建模图</div>
                 <span className="rounded-full border border-sky-200 bg-white px-2.5 py-1 text-[10px] font-bold text-sky-700 shadow-sm dark:border-sky-400/30 dark:bg-sky-400/10 dark:text-sky-200">
-                  {beamPreviewStyle === "simple" ? "简图" : "彩色"}
+                  {modelPreviewStyle === "simple" ? "简图" : "彩色"}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2 rounded-lg border border-slate-200/80 bg-slate-100/80 p-1 dark:border-white/10 dark:bg-slate-900/60">
-                {BEAM_PREVIEW_STYLE_OPTIONS.map((option) => {
-                  const active = beamPreviewStyle === option.value;
+                {MODEL_PREVIEW_STYLE_OPTIONS.map((option) => {
+                  const active = modelPreviewStyle === option.value;
                   return (
                     <button
                       key={option.value}
                       type="button"
-                      onClick={() => onBeamPreviewStyleChange(option.value)}
+                      onClick={() => onModelPreviewStyleChange(option.value)}
                       className={`rounded-lg border px-3 py-2 text-left transition-colors ${
                         active
                           ? "border-sky-300 bg-sky-400 text-slate-950 shadow-[0_10px_24px_rgba(56,189,248,0.22)] hover:bg-sky-300 focus-visible:ring-sky-300/70 dark:border-sky-300/70 dark:bg-sky-400 dark:text-slate-950 dark:hover:bg-sky-300"

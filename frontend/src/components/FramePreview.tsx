@@ -12,6 +12,8 @@ interface FramePreviewProps {
 const SVG_W = 1000;
 const SVG_H = 540;
 const PADDING = 70;
+const FRAME_PREVIEW_LOAD_STROKE_WIDTH = 1.55;
+const FRAME_PREVIEW_LOAD_GUIDE_STROKE_WIDTH = 1.2;
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -151,12 +153,30 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
   }, [frame, layout, deformationScaleRatio]);
   const memberMap = useMemo(() => new Map((frame?.members ?? []).map((member) => [member.id, member])), [frame?.members]);
   const loadLabelMap = useMemo(() => buildFrameLoadLabelMap(frame?.loads ?? []), [frame?.loads]);
+  const reservedLoadPoints = useMemo(() => {
+    if (!frame || !layout) return [];
+    return frame.loads.flatMap((load) => {
+      if (load.type === "nodal") {
+        const hasForce = Math.abs(load.fxKn ?? 0) > 1e-9 || Math.abs(load.fyKn ?? 0) > 1e-9;
+        const point = layout.nodeMap.get(load.node);
+        return hasForce && point ? [point] : [];
+      }
+      if (load.type !== "member_point") return [];
+      const forceKn = load.forceKn ?? 0;
+      const member = memberMap.get(load.member);
+      const start = member ? layout.nodeMap.get(member.start) : null;
+      const end = member ? layout.nodeMap.get(member.end) : null;
+      if (Math.abs(forceKn) <= 1e-9 || !start || !end) return [];
+      const ratio = Math.min(1, Math.max(0, load.positionRatio ?? 0.5));
+      return [{ x: start.x + (end.x - start.x) * ratio, y: start.y + (end.y - start.y) * ratio }];
+    });
+  }, [frame, layout, memberMap]);
   const dimensionLegendRows = useMemo(
     () => frame ? buildFrameDimensionLegendRows(buildFrameGeometryDimensions(frame.nodes, frame.members), compact ? 200 : 240, compact ? 10 : 12) : [],
     [frame, compact],
   );
   const loadMarkers: FrameLoadMarker[] = frame && layout
-    ? frame.loads.flatMap((load, index) => buildFrameLoadMarkers(load, index, { nodeMap: layout.nodeMap, memberMap, loadLabel: loadLabelMap.get(index) }))
+    ? frame.loads.flatMap((load, index) => buildFrameLoadMarkers(load, index, { nodeMap: layout.nodeMap, memberMap, loadLabel: loadLabelMap.get(index), reservedLoadPoints }))
     : [];
 
   if (!frame || !layout) {
@@ -212,8 +232,8 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
               <stop offset="0%" stopColor="var(--structure-preview-deformed-start)" stopOpacity="0.95" />
               <stop offset="100%" stopColor="var(--structure-preview-deformed-end)" stopOpacity="0.95" />
             </linearGradient>
-            <marker id="frameLoadArrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
-              <path d="M0,0 L10,5 L0,10 z" fill="var(--structure-preview-load)" />
+            <marker id="frameLoadArrow" viewBox="0 0 8 8" markerWidth="7" markerHeight="7" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+              <path d="M0,0 L8,4 L0,8 z" fill="var(--structure-preview-load)" />
             </marker>
           </defs>
 
@@ -256,9 +276,8 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
                 x2={end.x}
                 y2={end.y}
                 stroke="url(#frameDeformedGrad)"
-                strokeWidth="2"
-                strokeOpacity="0.7"
-                strokeDasharray="8 6"
+                strokeWidth="2.4"
+                strokeOpacity="0.55"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
@@ -299,7 +318,7 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
                   }
                   fill="none"
                   stroke="var(--structure-preview-load)"
-                  strokeWidth="2"
+                  strokeWidth={FRAME_PREVIEW_LOAD_STROKE_WIDTH}
                   markerEnd="url(#frameLoadArrow)"
                 />
               ) : load.type === "distributed-guide" ? (
@@ -309,8 +328,8 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
                   x2={load.x2}
                   y2={load.y2}
                   stroke="var(--structure-preview-guide)"
-                  strokeWidth="1.5"
-                  strokeOpacity="0.75"
+                  strokeWidth={FRAME_PREVIEW_LOAD_GUIDE_STROKE_WIDTH}
+                  strokeOpacity="0.68"
                   strokeDasharray="6 5"
                 />
               ) : (
@@ -320,7 +339,7 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
                   x2={load.x2}
                   y2={load.y2}
                   stroke="var(--structure-preview-load)"
-                  strokeWidth="2"
+                  strokeWidth={FRAME_PREVIEW_LOAD_STROKE_WIDTH}
                   markerEnd="url(#frameLoadArrow)"
                 />
               )}

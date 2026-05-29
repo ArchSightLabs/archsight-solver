@@ -1,5 +1,5 @@
 import type { AnalysisResults } from "../hooks/useWorkbenchActions.ts";
-import type { BeamPreviewStyle, BeamWorkspaceState, SensitivityResults } from "../types/beam.ts";
+import type { BeamWorkspaceState, ModelPreviewStyle, SensitivityResults } from "../types/beam.ts";
 import type { AnalysisMode, FrameWorkspaceState, TrussWorkspaceState } from "../types/structure.ts";
 import { normalizeReportExportOptions, type ReportExportOptions } from "./report-options.ts";
 import {
@@ -67,7 +67,7 @@ export function getAnalysisObjectDisplayName(object: Pick<AnalysisObject, "name"
 
 export interface ProjectSettings {
   activeModuleSection: string;
-  beamPreviewStyle: BeamPreviewStyle;
+  modelPreviewStyle: ModelPreviewStyle;
   reportExportOptions: ReportExportOptions;
   projectInfo: ProjectInfo;
 }
@@ -114,11 +114,11 @@ function defaultStateForType(type: AnalysisObjectType): AnalysisObjectState {
   return createDefaultBeamWorkspaceState();
 }
 
-function normalizeBeamPreviewStyle(value: unknown): BeamPreviewStyle {
+function normalizeModelPreviewStyle(value: unknown): ModelPreviewStyle {
   return value === "simple" ? "simple" : "color";
 }
 
-function legacyBeamPreviewStyleFromObjects(objects: AnalysisObject[]): BeamPreviewStyle | undefined {
+function legacyModelPreviewStyleFromObjects(objects: AnalysisObject[]): ModelPreviewStyle | undefined {
   for (const object of objects) {
     if (object.type !== "beam") continue;
     const state = object.state as unknown as Record<string, unknown>;
@@ -174,7 +174,7 @@ export function createDefaultSolverProject(
     objects,
     settings: {
       activeModuleSection: "",
-      beamPreviewStyle: "color",
+      modelPreviewStyle: "color",
       reportExportOptions: normalizeReportExportOptions(null),
       projectInfo,
     },
@@ -243,16 +243,17 @@ export function normalizeSolverProject(rawProject: unknown): SolverProject {
   const activeObjectId = normalizedObjects.some((object) => object.id === raw.activeObjectId)
     ? String(raw.activeObjectId)
     : normalizedObjects[0].id;
-  const legacyBeamPreviewStyle = legacyBeamPreviewStyleFromObjects(normalizedObjects);
+  const rawSettings = raw.settings as (Partial<ProjectSettings> & { beamPreviewStyle?: unknown }) | undefined;
+  const legacyModelPreviewStyle = legacyModelPreviewStyleFromObjects(normalizedObjects);
   return {
     id: String(raw.id ?? createId("project")),
     name: projectInfo.name,
     activeObjectId,
     objects: normalizedObjects,
     settings: {
-      activeModuleSection: String(raw.settings?.activeModuleSection ?? ""),
-      beamPreviewStyle: normalizeBeamPreviewStyle(raw.settings?.beamPreviewStyle ?? legacyBeamPreviewStyle),
-      reportExportOptions: normalizeReportExportOptions(raw.settings?.reportExportOptions),
+      activeModuleSection: String(rawSettings?.activeModuleSection ?? ""),
+      modelPreviewStyle: normalizeModelPreviewStyle(rawSettings?.modelPreviewStyle ?? rawSettings?.beamPreviewStyle ?? legacyModelPreviewStyle),
+      reportExportOptions: normalizeReportExportOptions(rawSettings?.reportExportOptions),
       projectInfo,
     },
     createdAt: String(raw.createdAt ?? now),

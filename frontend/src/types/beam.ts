@@ -53,7 +53,8 @@ export interface BeamLinearLoadConfig {
   endRatio: number;
 }
 
-export type BeamPreviewStyle = 'simple' | 'color';
+export type ModelPreviewStyle = 'simple' | 'color';
+export type BeamPreviewStyle = ModelPreviewStyle;
 
 export type BeamLoadInput =
   | { type: 'uniform'; qKnPerM: number; start?: number; end?: number; enabled?: boolean }

@@ -22,7 +22,22 @@ test("默认求解器项目包含三类分析对象并激活梁系", () => {
   assert.equal(project.activeObjectId, project.objects[0].id);
   assert.equal(getActiveAnalysisObject(project).name, "连续梁-1");
   assert.equal(project.settings.projectInfo.name, "新建结构分析项目");
+  assert.equal(project.settings.modelPreviewStyle, "color");
   assert.equal(project.settings.reportExportOptions.template, "standard");
+});
+
+test("项目级建模图显示样式兼容旧梁系设置字段", () => {
+  const project = createDefaultSolverProject(new Date("2026-05-21T12:00:00.000Z"));
+  const normalized = normalizeSolverProject({
+    ...project,
+    settings: {
+      ...project.settings,
+      modelPreviewStyle: undefined,
+      beamPreviewStyle: "simple",
+    },
+  });
+
+  assert.equal(normalized.settings.modelPreviewStyle, "simple");
 });
 
 test("新建项目可一次性写入项目级工程信息", () => {

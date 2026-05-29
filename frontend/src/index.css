@@ -276,6 +276,22 @@ div[class*="text-[9px]"] {
     radial-gradient(circle at 50% 10%, rgba(148, 163, 184, 0.12), transparent 52%);
 }
 
+.model-canvas-surface[data-preview-style="simple"] {
+  --model-member: #111827;
+  --model-node: #111827;
+  --model-support-fill: #f8fafc;
+  --model-support-stroke: #334155;
+  --model-support-line: #475569;
+  --model-load: #1f2937;
+  --model-load-halo: rgba(248, 250, 252, 0.92);
+  --model-badge-fill: #f8fafc;
+  --model-badge-stroke: #111827;
+  --model-badge-text: #111827;
+  --model-guide: #64748b;
+  --model-label: #334155;
+  --model-label-halo: rgba(248, 250, 252, 0.92);
+}
+
 .dark .model-canvas-surface {
   --model-member: #38bdf8;
   --model-node: #e2e8f0;
@@ -303,6 +319,22 @@ div[class*="text-[9px]"] {
   --beam-sketch-badge-text: #f8fafc;
   --beam-sketch-selected: #38bdf8;
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.68), rgba(8, 20, 36, 0.86));
+}
+
+.dark .model-canvas-surface[data-preview-style="simple"] {
+  --model-member: #e2e8f0;
+  --model-node: #e2e8f0;
+  --model-support-fill: #0f172a;
+  --model-support-stroke: #cbd5e1;
+  --model-support-line: #94a3b8;
+  --model-load: #e2e8f0;
+  --model-load-halo: rgba(2, 8, 23, 0.92);
+  --model-badge-fill: rgba(226, 232, 240, 0.12);
+  --model-badge-stroke: #e2e8f0;
+  --model-badge-text: #f8fafc;
+  --model-guide: #94a3b8;
+  --model-label: #cbd5e1;
+  --model-label-halo: rgba(2, 8, 23, 0.92);
 }
 
 .model-canvas-board {

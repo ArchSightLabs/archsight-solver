@@ -47,6 +47,7 @@ interface FrameLoadMarkerContext {
   nodeMap: Map<string, FramePreviewPoint>;
   memberMap: Map<string, { start: string; end: string }>;
   loadLabel?: FrameLoadLabelSet;
+  reservedLoadPoints?: FramePreviewPoint[];
 }
 
 export interface FrameLoadLabelSet {
@@ -201,6 +202,10 @@ export function buildFrameLoadLabelMap(loads: FrameLoad[]) {
 
 function forceComponentLabel(baseLabel: string, hasFx: boolean, hasFy: boolean, component: "x" | "y") {
   return hasFx && hasFy ? `${baseLabel}${component}` : baseLabel;
+}
+
+function isNearReservedLoadPoint(point: FramePreviewPoint, reservedLoadPoints: FramePreviewPoint[] | undefined, minDistance = 16) {
+  return Boolean(reservedLoadPoints?.some((reserved) => Math.hypot(point.x - reserved.x, point.y - reserved.y) <= minDistance));
 }
 
 export function frameMemberLabelPlacement(
@@ -372,6 +377,7 @@ export function buildFrameLoadMarkers(load: FrameLoad, index: number, context: F
     const currentArrowLength = 30 + 14 * Math.abs(qAt) / maxQ;
     const headX = start.x + (end.x - start.x) * t;
     const headY = start.y + (end.y - start.y) * t;
+    if (isNearReservedLoadPoint({ x: headX, y: headY }, context.reservedLoadPoints)) continue;
     const tailX = headX - arrowDirection.x * currentArrowLength;
     const tailY = headY - arrowDirection.y * currentArrowLength;
     markers.push({

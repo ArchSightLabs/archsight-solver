@@ -104,6 +104,28 @@ test("buildFrameLoadMarkers respects partial distributed load range", () => {
   }
 });
 
+test("buildFrameLoadMarkers skips distributed arrows that overlap reserved point loads", () => {
+  const load = { type: "distributed" as const, member: "B1", wyKnPerM: -18 };
+  const loadLabels = buildFrameLoadLabelMap([load]);
+  const markers = buildFrameLoadMarkers(
+    load,
+    0,
+    {
+      nodeMap: new Map([
+        ["N1", { x: 100, y: 320 }],
+        ["N2", { x: 340, y: 320 }],
+      ]),
+      memberMap: new Map([["B1", { start: "N1", end: "N2" }]]),
+      loadLabel: loadLabels.get(0),
+      reservedLoadPoints: [{ x: 340, y: 320 }],
+    }
+  );
+
+  assert.equal(markers.length, 12);
+  assert.equal(markers[0].type, "distributed-guide");
+  assert.equal(markers.some((marker) => marker.type === "force" && marker.x2 === 340 && marker.y2 === 320), false);
+});
+
 test("buildFrameDimensionLegendRows groups equal member lengths and separates differing lengths", () => {
   const dimensions = [
     { memberId: "C1", valueLabel: frameMemberDimensionValueLabel({ x: 0, y: 0 }, { x: 0, y: 4 }) },

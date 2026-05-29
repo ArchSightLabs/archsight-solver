@@ -8,13 +8,13 @@ import { buildFrameDimensionLegendRows, buildFrameLoadLabelMap, formatFrameDistr
 import { buildTrussMemberLengthDimension, buildTrussMemberLengthLegendRows, buildTrussSupportMarkerGeometry } from "./truss-preview-utils";
 import type { AnalysisMode, FrameLoad, FrameLoadDirection, StructureNode, SupportType, TrussLoad } from "../types/structure";
 import type { WorkbenchSelection } from "../types/workbench-selection";
-import type { BeamPreviewStyle } from "../types/beam";
+import type { ModelPreviewStyle } from "../types/beam";
 
 interface WorkbenchModelCanvasProps {
   workspace: WorkspaceState;
   mode: AnalysisMode;
   compact?: boolean;
-  beamPreviewStyle?: BeamPreviewStyle;
+  modelPreviewStyle?: ModelPreviewStyle;
   selection?: WorkbenchSelection | null;
   onSelect?: (next: WorkbenchSelection) => void;
 }
@@ -59,6 +59,9 @@ const MODEL_CANVAS_BUTTON_ZOOM_STEP_PERCENT = 10;
 const MODEL_CANVAS_INPUT_ZOOM_STEP_PERCENT = 5;
 const MODEL_CANVAS_DEFAULT_ZOOM_PERCENT = 100;
 const MODEL_CANVAS_DRAG_THRESHOLD_PX = 8;
+const FRAME_LOAD_STROKE_WIDTH = 1.55;
+const FRAME_LOAD_SELECTED_STROKE_WIDTH = 2.35;
+const FRAME_LOAD_GUIDE_STROKE_WIDTH = 1.2;
 const BEAM_SKETCH_AXIS_Y = 150;
 const BEAM_LOAD_BOTTOM_GUIDE_Y = BEAM_SKETCH_AXIS_Y - 38;
 const BEAM_LOAD_LANE_GAP_Y = 34;
@@ -209,12 +212,12 @@ function shiftLoadLabelAwayFromPointLoads(labelX: number, pointLoadXs: number[],
 
 function BeamSketch({
   beam,
-  beamPreviewStyle = "simple",
+  modelPreviewStyle = "simple",
   selection,
   onSelect,
 }: {
   beam: WorkspaceState["beam"];
-  beamPreviewStyle?: BeamPreviewStyle;
+  modelPreviewStyle?: ModelPreviewStyle;
   selection?: WorkbenchSelection | null;
   onSelect?: (next: WorkbenchSelection) => void;
 }) {
@@ -273,7 +276,7 @@ function BeamSketch({
   const uniformLabelX = uniformRange
     ? shiftLoadLabelAwayFromPointLoads((uniformRange.startX + uniformRange.endX) / 2, pointLoadXs, beamStart + 118, beamEnd - 118, -1)
     : beamStart;
-  const beamSketchStyle: CSSProperties | undefined = beamPreviewStyle === "color"
+  const beamSketchStyle: CSSProperties | undefined = modelPreviewStyle === "color"
     ? ({
         "--beam-sketch-member": "var(--model-member)",
         "--beam-sketch-node": "var(--model-node)",
@@ -630,6 +633,20 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
       anchor: isLeft ? ("end" as const) : ("start" as const),
     };
   };
+  const reservedLoadPoints = loads.flatMap((load) => {
+    if (load.type === "nodal") {
+      const hasForce = Math.abs(load.fxKn ?? 0) > 1e-9 || Math.abs(load.fyKn ?? 0) > 1e-9;
+      const point = nodeMap.get(load.node);
+      return hasForce && point ? [point] : [];
+    }
+    if (load.type !== "member_point") return [];
+    const member = memberMap.get(load.member);
+    const startNode = member ? nodeMap.get(member.start) : null;
+    const endNode = member ? nodeMap.get(member.end) : null;
+    const force = load.forceKn ?? 0;
+    if (Math.abs(force) <= 1e-9 || !startNode || !endNode) return [];
+    return [frameMemberPoint(startNode, endNode, load.positionRatio ?? 0.5)];
+  });
 
   return (
     <svg viewBox="0 0 900 360" className="h-full w-full">
@@ -683,7 +700,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
           ) : null;
         })}
       </g>
-      <g stroke="var(--model-load)" strokeWidth="2">
+      <g stroke="var(--model-load)" strokeWidth={FRAME_LOAD_STROKE_WIDTH}>
         {loads.flatMap((load, index) => {
           if (load.type === "nodal") {
             const point = nodeMap.get(load.node);
@@ -693,13 +710,13 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
               const sign = load.fxKn >= 0 ? 1 : -1;
               const x1 = point.x - sign * 48;
               const x2 = point.x - sign * 11;
-              items.push(<path key={`${index}-fx`} {...svgInteractiveProps<SVGPathElement>(`选择框架荷载 ${index + 1}`, () => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` }))} d={`M${x1} ${point.y} L${x2} ${point.y}`} markerEnd="url(#frameArrow)" strokeWidth={selection?.mode === "frame" && selection.type === "load" && selection.id === `load-${index}` ? "3.2" : "2"} />);
+              items.push(<path key={`${index}-fx`} {...svgInteractiveProps<SVGPathElement>(`选择框架荷载 ${index + 1}`, () => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` }))} d={`M${x1} ${point.y} L${x2} ${point.y}`} markerEnd="url(#frameArrow)" strokeWidth={selection?.mode === "frame" && selection.type === "load" && selection.id === `load-${index}` ? FRAME_LOAD_SELECTED_STROKE_WIDTH : FRAME_LOAD_STROKE_WIDTH} />);
             }
             if (load.fyKn) {
               const sign = load.fyKn >= 0 ? -1 : 1;
               const y1 = point.y - sign * 54;
               const y2 = point.y - sign * 12;
-              items.push(<path key={`${index}-fy`} {...svgInteractiveProps<SVGPathElement>(`选择框架荷载 ${index + 1}`, () => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` }))} d={`M${point.x} ${y1} L${point.x} ${y2}`} markerEnd="url(#frameArrow)" strokeWidth={selection?.mode === "frame" && selection.type === "load" && selection.id === `load-${index}` ? "3.2" : "2"} />);
+              items.push(<path key={`${index}-fy`} {...svgInteractiveProps<SVGPathElement>(`选择框架荷载 ${index + 1}`, () => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` }))} d={`M${point.x} ${y1} L${point.x} ${y2}`} markerEnd="url(#frameArrow)" strokeWidth={selection?.mode === "frame" && selection.type === "load" && selection.id === `load-${index}` ? FRAME_LOAD_SELECTED_STROKE_WIDTH : FRAME_LOAD_STROKE_WIDTH} />);
             }
             return items;
           }
@@ -719,7 +736,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
                 {...svgInteractiveProps<SVGPathElement>(`选择框架荷载 ${index + 1}`, () => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` }))}
                 d={`M${point.x - direction.x * 54} ${point.y - direction.y * 54} L${point.x - direction.x * 10} ${point.y - direction.y * 10}`}
                 markerEnd="url(#frameArrow)"
-                strokeWidth={selection?.mode === "frame" && selection.type === "load" && selection.id === `load-${index}` ? "3.2" : "2"}
+                strokeWidth={selection?.mode === "frame" && selection.type === "load" && selection.id === `load-${index}` ? FRAME_LOAD_SELECTED_STROKE_WIDTH : FRAME_LOAD_STROKE_WIDTH}
               />,
             ];
           }
@@ -728,7 +745,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
           const { startRatio, endRatio, qStart, qEnd } = getFrameDistributedLoadRange(load);
           const representative = Math.abs(qStart) >= Math.abs(qEnd) ? qStart : qEnd;
           const guideDirection = frameMemberLoadDirection(startNode, endNode, load.direction, representative || q);
-          const selectedStroke = selection?.mode === "frame" && selection.type === "load" && selection.id === `load-${index}` ? "3.2" : "2";
+          const selectedStroke = selection?.mode === "frame" && selection.type === "load" && selection.id === `load-${index}` ? FRAME_LOAD_SELECTED_STROKE_WIDTH : FRAME_LOAD_STROKE_WIDTH;
           const guideOffset = 45;
           const guideStart = frameMemberPoint(startNode, endNode, startRatio);
           const guideEnd = frameMemberPoint(startNode, endNode, endRatio);
@@ -742,7 +759,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
               y1={guideStart.y - guideDirection.y * guideOffset}
               x2={guideEnd.x - guideDirection.x * guideOffset}
               y2={guideEnd.y - guideDirection.y * guideOffset}
-              strokeWidth="1.5"
+              strokeWidth={FRAME_LOAD_GUIDE_STROKE_WIDTH}
               strokeDasharray="5 4"
               opacity="0.85"
             />,
@@ -755,6 +772,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
             const direction = frameMemberLoadDirection(startNode, endNode, load.direction, qAtRatio);
             const x = startNode.x + (endNode.x - startNode.x) * ratio;
             const y = startNode.y + (endNode.y - startNode.y) * ratio;
+            if (reservedLoadPoints.some((point) => Math.hypot(point.x - x, point.y - y) <= 16)) continue;
             const arrowLength = 30 + 14 * Math.abs(qAtRatio) / maxQ;
             items.push(
               <path
@@ -848,7 +866,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
         })}
       </g>
       <defs>
-        <marker id="frameArrow" viewBox="0 0 8 8" markerWidth="6.5" markerHeight="6.5" refX="7" refY="4" orient="auto">
+        <marker id="frameArrow" viewBox="0 0 8 8" markerWidth="7" markerHeight="7" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse">
           <path d="M0 0 L8 4 L0 8z" fill="var(--model-load)" />
         </marker>
       </defs>
@@ -1179,7 +1197,7 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
   );
 }
 
-export function WorkbenchModelCanvas({ workspace, mode, compact = false, beamPreviewStyle = "simple", selection, onSelect }: WorkbenchModelCanvasProps) {
+export function WorkbenchModelCanvas({ workspace, mode, compact = false, modelPreviewStyle = "simple", selection, onSelect }: WorkbenchModelCanvasProps) {
   const [zoomPercent, setZoomPercent] = useState(MODEL_CANVAS_DEFAULT_ZOOM_PERCENT);
   const [zoomDraft, setZoomDraft] = useState(String(MODEL_CANVAS_DEFAULT_ZOOM_PERCENT));
   const [showZoomControls, setShowZoomControls] = useState(false);
@@ -1254,7 +1272,7 @@ export function WorkbenchModelCanvas({ workspace, mode, compact = false, beamPre
 
   return (
     <GlassCard className="overflow-hidden">
-      <div className={`model-canvas-surface relative flex flex-col gap-3 px-4 py-4 ${compact ? "h-[260px]" : "h-[360px]"}`}>
+      <div className={`model-canvas-surface relative flex flex-col gap-3 px-4 py-4 ${compact ? "h-[260px]" : "h-[360px]"}`} data-preview-style={modelPreviewStyle}>
         <div className="flex h-8 items-center justify-end">
           <div className="flex items-center gap-1 rounded-xl border border-slate-200/80 bg-white/[0.88] p-1 shadow-sm backdrop-blur dark:border-slate-700/80 dark:bg-slate-950/[0.82]">
             {showZoomControls ? (
@@ -1352,7 +1370,7 @@ export function WorkbenchModelCanvas({ workspace, mode, compact = false, beamPre
         >
           <div className="model-canvas-board" style={zoomedBoardStyle}>
             {mode === "beam" ? (
-              <BeamSketch beam={workspace.beam} beamPreviewStyle={beamPreviewStyle} selection={selection} onSelect={onSelect} />
+              <BeamSketch beam={workspace.beam} modelPreviewStyle={modelPreviewStyle} selection={selection} onSelect={onSelect} />
             ) : mode === "frame" ? (
               <FrameSketch workspace={workspace} selection={selection} onSelect={onSelect} />
             ) : (
