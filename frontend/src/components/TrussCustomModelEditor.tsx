@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Button } from "./ui/button";
-import { Plus, Triangle, RotateCw, Sparkles } from "lucide-react";
+import { Plus, Triangle, Sparkles } from "lucide-react";
 import { TrussLoadEditor } from "./TrussLoadEditor";
+import { TrussBasicSection } from "./TrussBasicSection";
 import { TrussMemberEditor } from "./TrussMemberEditor";
 import { TrussNodeEditor } from "./TrussNodeEditor";
 import { TrussObjectNavigator, type TrussSelectedObject } from "./TrussObjectNavigator";
@@ -275,68 +276,15 @@ export function TrussCustomModelEditor({
   return (
     <div className="space-y-5">
       {isSectionVisible("truss-basic") ? (
-      <>
-      <div id="truss-basic" className="space-y-4 rounded-2xl border border-white/8 bg-white/[0.03] p-4 scroll-mt-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="space-y-1">
-            <div className="eyebrow flex items-center gap-2">
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
-              自定义桁架建模
-            </div>
-            <p className="text-xs text-muted-foreground">
-              先套用桁架参数模板，再选择节点、杆件、支座或荷载进行属性修改；材料截面参数按杆件维护，批量字段保留在表格页。
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={onResetToBenchmark} className="h-8 rounded-xl">
-              <RotateCw className="mr-1.5 h-3.5 w-3.5" />
-              恢复默认屋架
-            </Button>
-            <Button size="sm" onClick={addNode} className="h-8 rounded-xl">
-              <Plus className="mr-1.5 h-3.5 w-3.5" />
-              新增节点
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <section className="space-y-4 rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {[
-            { label: "节点", value: value.nodes.length },
-            { label: "杆件", value: value.members.length },
-            { label: "支座", value: supportCount },
-            { label: "荷载", value: value.loads.length },
-          ].map((item) => (
-            <div key={item.label} className="rounded-xl border border-white/8 bg-slate-950/20 p-3">
-              <div className="text-[10px] font-black tracking-widest text-muted-foreground">{item.label}</div>
-              <div className="mt-1 font-mono text-lg font-black">{item.value}</div>
-            </div>
-          ))}
-        </div>
-        {modelWarnings.length === 0 ? (
-          <div className="rounded-xl border border-emerald-400/15 bg-emerald-500/8 p-3 text-xs text-emerald-700 dark:text-emerald-200">
-            当前桁架节点、杆件、荷载引用完整，可继续复核节点位移、杆件轴力与支座反力。
-          </div>
-        ) : (
-          <div className="space-y-1 rounded-xl border border-amber-400/15 bg-amber-500/8 p-3 text-xs text-amber-700 dark:text-amber-200">
-            {modelWarnings.map((warning) => (
-              <div key={warning}>{warning}</div>
-            ))}
-          </div>
-        )}
-        <div className="grid gap-2 text-xs text-foreground/70">
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2">
-            <span className="text-muted-foreground">材料与截面</span>
-            <span className="font-semibold">按杆件维护 E / A；桁架单元仅承担轴力，不输出弯矩主指标</span>
-          </div>
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2">
-            <span className="text-muted-foreground">主要结果</span>
-            <span className="font-semibold">节点位移、杆件轴力、杆件轴应力、支座反力</span>
-          </div>
-        </div>
-      </section>
-      </>
+      <TrussBasicSection
+        nodeCount={value.nodes.length}
+        memberCount={value.members.length}
+        supportCount={supportCount}
+        loadCount={value.loads.length}
+        modelWarnings={modelWarnings}
+        onResetToBenchmark={onResetToBenchmark}
+        onAddNode={addNode}
+      />
       ) : null}
 
       {isSectionVisible("truss-text") ? (
