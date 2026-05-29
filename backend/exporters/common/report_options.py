@@ -13,7 +13,7 @@ VALID_REPORT_FIGURE_SCOPES = set(report_option_values("figureScopes"))
 
 def normalize_report_options(options: Optional[Dict[str, Any]]) -> Dict[str, str]:
     if options is None:
-        return dict(LEGACY_REPORT_OPTIONS)
+        return dict(DEFAULT_REPORT_OPTIONS)
     template = str(options.get("template", DEFAULT_REPORT_OPTIONS["template"]))
     figure_mode = str(options.get("figureMode", DEFAULT_REPORT_OPTIONS["figureMode"]))
     figure_scope = str(options.get("figureScope", DEFAULT_REPORT_OPTIONS["figureScope"]))

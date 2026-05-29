@@ -5,7 +5,6 @@ import {
   BEAM_REPORT_TRADITIONAL_FIGURES,
   FRAME_REPORT_MEMBER_FIGURES,
   TRUSS_REPORT_OVERLAY_FIGURES,
-  TRUSS_REPORT_TRADITIONAL_FIGURES,
   reportFiguresForScope,
   type BeamReportFigure,
   type FrameMemberReportFigure,
@@ -82,7 +81,7 @@ export function buildReportImagePlan(input: ReportImagePlanInput): ReportImagePl
 
   if (includeFigures && input.analysisMode === "frame" && input.frameResults) {
     plan.push({ key: "frame.preview", label: analysisVocabulary("frame").previewFigureLabel, kind: "framePreview" });
-    if (includeOverlay) {
+    if (includeOverlay || includeTraditional) {
       plan.push(...reportFiguresForScope(FRAME_REPORT_MEMBER_FIGURES, includeAll).map((figure) => ({
         key: figure.overlayImageKey,
         label: `构件${figure.title}`,
@@ -90,43 +89,15 @@ export function buildReportImagePlan(input: ReportImagePlanInput): ReportImagePl
         figure,
       })));
     }
-    if (includeTraditional) {
-      if (includeAll) {
-        plan.push(
-          { key: "frame.ux", label: "节点 X 向水平位移图", kind: "frameNodeCurve", axis: "ux" },
-          { key: "frame.uy", label: "节点 Y 向竖向位移图", kind: "frameNodeCurve", axis: "uy" },
-        );
-      }
-      plan.push(...reportFiguresForScope(FRAME_REPORT_MEMBER_FIGURES, includeAll).map((figure) => ({
-        key: figure.traditionalImageKey,
-        label: `构件${figure.title}`,
-        kind: "frameMemberTraditional" as const,
-        figure,
-      })));
-    }
   }
 
   if (includeFigures && input.analysisMode === "truss" && input.trussResults) {
     plan.push({ key: "truss.preview", label: analysisVocabulary("truss").previewFigureLabel, kind: "trussPreview" });
-    if (includeOverlay) {
+    if (includeOverlay || includeTraditional) {
       plan.push(...reportFiguresForScope(TRUSS_REPORT_OVERLAY_FIGURES, includeAll).map((figure) => ({
         key: figure.imageKey,
         label: `平面桁架${figure.title}`,
         kind: "trussOverlay" as const,
-        figure,
-      })));
-    }
-    if (includeTraditional) {
-      if (includeAll) {
-        plan.push(
-          { key: "truss.ux", label: "节点 X 向水平位移图", kind: "trussNodeCurve", axis: "ux" },
-          { key: "truss.uy", label: "节点 Y 向竖向位移图", kind: "trussNodeCurve", axis: "uy" },
-        );
-      }
-      plan.push(...reportFiguresForScope(TRUSS_REPORT_TRADITIONAL_FIGURES, includeAll).map((figure) => ({
-        key: figure.imageKey,
-        label: figure.title,
-        kind: "trussTraditional" as const,
         figure,
       })));
     }

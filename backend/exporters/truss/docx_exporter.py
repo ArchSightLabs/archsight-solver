@@ -11,12 +11,11 @@ from backend.exporters.common.artifact import ExportArtifact
 from backend.exporters.common.docx_utils import HAS_DOCX, add_df_table, add_heading, add_png_figure, add_report_title, create_document, png_from_report_images
 from backend.exporters.common.evidence import build_evidence_tables
 from backend.exporters.common.load_tables import build_load_combination_rows
-from backend.exporters.common.report_figure_catalog import TRUSS_REPORT_OVERLAY_FIGURES, TRUSS_REPORT_TRADITIONAL_FIGURES, report_figures_for_scope
+from backend.exporters.common.report_figure_catalog import TRUSS_REPORT_OVERLAY_FIGURES, report_figures_for_scope
 from backend.exporters.common.report_options import include_all_result_figures, include_figures, include_overlay_figures, include_traditional_figures, normalize_report_options
 from backend.exporters.common.report_figures import (
     AMBER,
     BLUE,
-    GREEN,
     ChartSeries,
     line_chart_png,
     sensitivity_chart_png,
@@ -67,19 +66,6 @@ def export_docx(
     _add_load_combination_table(doc, solution, "2.3 荷载组合标签")
     add_heading(doc, "3. 节点结果")
     add_df_table(doc, df_nodes)
-    if include_traditional_figures(options) and include_all_result_figures(options):
-        add_heading(doc, "3.1 节点水平位移图")
-        add_png_figure(
-            doc,
-            _report_or_fallback(report_images, "truss.ux", line_chart_png(_ordinal_x(solution["nodeResults"]), [ChartSeries("节点 X 向水平位移", [item["uxMm"] for item in solution["nodeResults"]], GREEN)])),
-            "图 3-1 节点 X 向水平位移（mm）",
-        )
-        add_heading(doc, "3.2 节点竖向位移图")
-        add_png_figure(
-            doc,
-            _report_or_fallback(report_images, "truss.uy", line_chart_png(_ordinal_x(solution["nodeResults"]), [ChartSeries("节点 Y 向竖向位移", [item["uyMm"] for item in solution["nodeResults"]], BLUE)])),
-            "图 3-2 节点 Y 向竖向位移（mm）",
-        )
     add_heading(doc, "4. 杆件结果")
     add_df_table(doc, df_members)
     _add_member_figures(doc, solution, report_images, options)
@@ -150,7 +136,7 @@ def _add_member_figures(doc, solution: Dict[str, Any], report_images: Optional[D
         return
     index = 1
     include_all = include_all_result_figures(options)
-    if include_overlay_figures(options):
+    if include_overlay_figures(options) or include_traditional_figures(options):
         for figure in report_figures_for_scope(TRUSS_REPORT_OVERLAY_FIGURES, include_all):
             fallback_values = _truss_series(solution, figure.metric)
             fallback_x = _ordinal_x(solution["memberResults"] if figure.metric == "axial" else solution["nodeResults"])
@@ -159,15 +145,6 @@ def _add_member_figures(doc, solution: Dict[str, Any], report_images: Optional[D
                 doc,
                 _report_or_fallback(report_images, figure.image_key, line_chart_png(fallback_x, [ChartSeries(figure.series_label, fallback_values, _truss_figure_color(figure.metric))])),
                 f"图 4-{index} {figure.title}（计算简图与结果同图显示）",
-            )
-            index += 1
-    if include_traditional_figures(options):
-        for figure in report_figures_for_scope(TRUSS_REPORT_TRADITIONAL_FIGURES, include_all):
-            add_heading(doc, f"4.{index} {figure.title}")
-            add_png_figure(
-                doc,
-                _report_or_fallback(report_images, figure.image_key, line_chart_png(_ordinal_x(solution["memberResults"]), [ChartSeries(figure.series_label, _truss_series(solution, figure.metric), _truss_figure_color(figure.metric))])),
-                f"图 4-{index} 杆件轴力分布（kN，拉力为正、压力为负）",
             )
             index += 1
 

@@ -16,8 +16,8 @@ def test_report_options_catalog_defines_modern_and_legacy_defaults():
     }
 
 
-def test_report_options_normalization_keeps_legacy_missing_payload_compatibility():
-    assert normalize_report_options(None) == legacy_report_options()
+def test_report_options_normalization_uses_modern_default_for_missing_payload():
+    assert normalize_report_options(None) == default_report_options()
     assert normalize_report_options({}) == default_report_options()
     assert normalize_report_options({"template": "bad", "figureMode": "bad", "figureScope": "bad"}) == default_report_options()
 

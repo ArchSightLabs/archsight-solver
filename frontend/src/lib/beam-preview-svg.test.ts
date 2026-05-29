@@ -199,3 +199,31 @@ test("buildReportImagePlan keeps control figure keys aligned for every analysis 
     ["truss.preview", "truss.overlay.axial"],
   );
 });
+
+test("框架和桁架计算书图形计划不再混入非 UI 同源传统曲线", () => {
+  const reportOptions = { template: "complete" as const, figureMode: "both" as const, figureScope: "all" as const };
+
+  assert.deepEqual(
+    buildReportImagePlan({
+      analysisMode: "frame",
+      beamResults: null,
+      frameResults: {} as FrameCalculationResults,
+      trussResults: null,
+      sensitivityData: null,
+      reportOptions,
+    }).map((item) => item.key),
+    ["frame.preview", "frame.overlay.moment", "frame.overlay.shear", "frame.overlay.memberDeflection", "frame.overlay.axial"],
+  );
+
+  assert.deepEqual(
+    buildReportImagePlan({
+      analysisMode: "truss",
+      beamResults: null,
+      frameResults: null,
+      trussResults: {} as TrussCalculationResults,
+      sensitivityData: null,
+      reportOptions,
+    }).map((item) => item.key),
+    ["truss.preview", "truss.overlay.axial", "truss.overlay.displacement"],
+  );
+});

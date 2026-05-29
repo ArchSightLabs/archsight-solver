@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { GlassCard } from "./ui/GlassCard";
 import type { FrameMemberDiagram, FramePreviewData, SupportType } from "../types/structure";
 import {
   DEFAULT_FRAME_DIAGRAM_METRIC_KEY,
@@ -23,6 +22,7 @@ import {
 } from "../lib/diagram-label-layout";
 import { formatEngineeringValue } from "../lib/engineering-format";
 import { summaryMetricLabel } from "../lib/result-metrics";
+import { ResultDiagramCard, ResultDiagramEmptyState, ResultDiagramMetricBadge, ResultDiagramMetricTabs } from "./ResultDiagramLayout";
 import { buildFrameDimensionLegendRows, buildFrameGeometryDimensions, frameMemberLabelPlacement } from "./frame-preview-utils";
 
 interface FrameMemberDiagramsProps {
@@ -470,55 +470,21 @@ export function FrameMemberDiagrams({ frame, diagrams, compact = false, metricKe
   const extreme = useMemo(() => findFrameDiagramExtreme(diagrams, selectedMetric), [diagrams, selectedMetric]);
 
   if (!frame || !diagrams.length) {
-    return (
-      <GlassCard className={`flex items-center justify-center border-dashed border-primary/10 ${compact ? "min-h-[220px]" : "min-h-[320px]"}`}>
-        <div className="text-center text-sm text-muted-foreground">暂无框架工程图数据</div>
-      </GlassCard>
-    );
+    return <ResultDiagramEmptyState compact={compact} label="暂无框架工程图数据" />;
   }
 
   if (showMetricTabs) {
     const visibleMetrics = selectedMetricKey === "all" ? FRAME_DIAGRAM_METRICS : [selectedMetric];
     return (
       <div className="space-y-3">
-        <GlassCard className={compact ? "p-3 sm:p-4" : "p-4 sm:p-5"}>
-          <div className="flex justify-end">
-              <div className={`grid w-full gap-2 sm:w-auto ${compact ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-5"}`} role="tablist" aria-label="框架工程图类型">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={selectedMetricKey === "all"}
-                  onClick={() => setSelectedMetricState("all")}
-                  className={`min-w-0 rounded-lg border px-3 py-2 text-left text-[12px] font-bold transition-colors ${
-                    selectedMetricKey === "all"
-                      ? "border-slate-300 bg-slate-100 text-slate-950 dark:border-sky-400/40 dark:bg-sky-400/[0.14] dark:text-sky-50"
-                      : "border-slate-200/80 bg-white/45 text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700/80 dark:bg-slate-900/45 dark:text-slate-300 dark:hover:border-sky-400/35 dark:hover:bg-sky-400/10"
-                  }`}
-                >
-                  <span className="block truncate">全部</span>
-                </button>
-                {FRAME_DIAGRAM_METRICS.map((metric) => {
-                  const active = metric.key === selectedMetricKey;
-                  return (
-                    <button
-                      key={metric.key}
-                      type="button"
-                      role="tab"
-                      aria-selected={active}
-                      onClick={() => setSelectedMetricState(metric.key)}
-                      className={`min-w-0 rounded-lg border px-3 py-2 text-left text-[12px] font-bold transition-colors ${
-                        active
-                          ? "border-slate-300 bg-slate-100 text-slate-950 dark:border-sky-400/40 dark:bg-sky-400/[0.14] dark:text-sky-50"
-                          : "border-slate-200/80 bg-white/45 text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700/80 dark:bg-slate-900/45 dark:text-slate-300 dark:hover:border-sky-400/35 dark:hover:bg-sky-400/10"
-                      }`}
-                    >
-                      <span className="block truncate">{metric.title}</span>
-                    </button>
-                  );
-                })}
-              </div>
-          </div>
-        </GlassCard>
+        <ResultDiagramMetricTabs
+          ariaLabel="框架工程图类型"
+          compact={compact}
+          gridClassName={compact ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-5"}
+          metrics={FRAME_DIAGRAM_METRICS}
+          selectedKey={selectedMetricKey}
+          onSelect={(key) => setSelectedMetricState(key)}
+        />
         {visibleMetrics.map((metric) => (
           <FrameMemberDiagrams key={metric.key} frame={frame} diagrams={diagrams} compact={compact} metricKey={metric.key} showMetricTabs={false} heading={metric.title} />
         ))}
@@ -527,20 +493,18 @@ export function FrameMemberDiagrams({ frame, diagrams, compact = false, metricKe
   }
 
   return (
-    <GlassCard className={compact ? "space-y-3 p-3 sm:p-4" : "space-y-4 p-4 sm:p-5"}>
-      <div className={`flex gap-3 ${compact ? "flex-col" : "flex-col xl:flex-row xl:items-start xl:justify-between"}`}>
-        <div className="min-w-0">
-          <h3 className={`${compact ? "text-lg" : "text-xl"} font-black tracking-tight`}>{heading}</h3>
-          <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-bold text-slate-600 dark:text-slate-300">
-            {extreme ? (
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 dark:border-slate-700 dark:bg-slate-900/70">
-                {frameDiagramPeakLabel(selectedMetric)}：{extreme.memberId} / {valueText(extreme.value, selectedMetric.unit)} / x={extreme.stationM.toFixed(2)} m
-              </span>
-            ) : null}
-          </div>
-        </div>
-      </div>
+    <ResultDiagramCard
+      compact={compact}
+      heading={heading}
+      badges={
+        extreme ? (
+          <ResultDiagramMetricBadge>
+            {frameDiagramPeakLabel(selectedMetric)}：{extreme.memberId} / {valueText(extreme.value, selectedMetric.unit)} / x={extreme.stationM.toFixed(2)} m
+          </ResultDiagramMetricBadge>
+        ) : null
+      }
+    >
       <FrameStructureDiagram frame={frame} diagrams={diagrams} metric={selectedMetric} compact={compact} />
-    </GlassCard>
+    </ResultDiagramCard>
   );
 }

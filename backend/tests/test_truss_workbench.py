@@ -119,12 +119,33 @@ def test_truss_docx_export_smoke(client):
     assert "桁架" in full_text
     assert "仅承受轴力" in table_text
     assert "校核证据" in full_text
-    assert "3.1 节点水平位移图" in full_text
-    assert "3.2 节点竖向位移图" in full_text
-    assert "4.1 杆件轴力曲线" in full_text
+    assert "3.1 节点水平位移图" not in full_text
+    assert "3.2 节点竖向位移图" not in full_text
+    assert "4.1 杆件轴力图" in full_text
+    assert "杆件轴力曲线" not in full_text
     assert "5. 校核结论" in full_text
     assert "7. 附录数据" in full_text
-    assert len(doc.inline_shapes) >= 4
+    assert len(doc.inline_shapes) >= 2
+
+
+def test_truss_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
+    response = client.post(
+        "/api/export",
+        json={
+            **_base_payload(),
+            "format": "docx",
+            "reportOptions": {"template": "complete", "figureMode": "both", "figureScope": "all"},
+        },
+    )
+
+    assert response.status_code == 200
+    doc = Document(io.BytesIO(response.data))
+    full_text = "\n".join(paragraph.text for paragraph in doc.paragraphs)
+
+    assert "3.1 节点水平位移图" not in full_text
+    assert "杆件轴力曲线" not in full_text
+    assert "4.1 杆件轴力图" in full_text
+    assert "4.2 节点位移图" in full_text
 
 
 @pytest.mark.parametrize(

@@ -249,15 +249,37 @@ def test_frame_docx_export_smoke(client):
     assert "模型假定与适用范围" in full_text
     assert "边界条件表" in full_text
     assert "校核证据" in full_text
-    assert "3.1 节点水平位移图" in full_text
-    assert "3.2 节点竖向位移图" in full_text
-    assert "4.1 构件弯矩图" in full_text
-    assert "4.2 构件剪力图" in full_text
-    assert "4.3 构件局部 y 向挠度图" in full_text
-    assert "4.4 构件轴力图" in full_text
+    assert "3.1 节点水平位移图" not in full_text
+    assert "3.2 节点竖向位移图" not in full_text
+    assert "4.1 构件弯矩叠加图" in full_text
+    assert "4.2 构件剪力" not in full_text
+    assert "构件弯矩曲线" not in full_text
     assert "5. 校核结论" in full_text
     assert "7. 附录数据" in full_text
-    assert len(doc.inline_shapes) >= 7
+    assert len(doc.inline_shapes) >= 2
+
+
+def test_frame_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
+    response = client.post(
+        "/api/export",
+        json={
+            **frame_payload(),
+            "format": "docx",
+            "reportOptions": {"template": "complete", "figureMode": "both", "figureScope": "all"},
+        },
+    )
+
+    assert response.status_code == 200
+    doc = Document(io.BytesIO(response.data))
+    full_text = "\n".join(paragraph.text for paragraph in doc.paragraphs)
+
+    assert "3.1 节点水平位移图" not in full_text
+    assert "构件弯矩曲线" not in full_text
+    assert "构件剪力曲线" not in full_text
+    assert "4.1 构件弯矩叠加图" in full_text
+    assert "4.2 构件剪力叠加图" in full_text
+    assert "4.3 构件局部 y 向挠度叠加图" in full_text
+    assert "4.4 构件轴力叠加图" in full_text
 
 
 def test_frame_exports_include_load_combination_tags(client):

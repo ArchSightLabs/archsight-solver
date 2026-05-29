@@ -60,9 +60,9 @@ class TestFeatureSpecificationCalculationReportGenerationV2:
         assert "2.1 结构预览图" in full_text
         assert "3. 计算摘要" in full_text
         assert "4. 结果汇总" in full_text
-        assert "4.1 挠度曲线" in full_text
-        assert "4.2 弯矩曲线" in full_text
-        assert "4.3 剪力曲线" in full_text
+        assert "4.1 弯矩图" in full_text
+        assert "4.2 弯矩曲线" not in full_text
+        assert "4.3 剪力曲线" not in full_text
         assert "5. 校核结论" in full_text
         assert "6. 附录数据" in full_text
         assert "可审查计算证据链" in full_text
@@ -74,7 +74,7 @@ class TestFeatureSpecificationCalculationReportGenerationV2:
         assert "公开验证集" in full_text
         assert "当前分析类型 beam 覆盖" in full_text
         assert "仅证明当前分析类型验证集覆盖范围内的回归一致性" in full_text
-        assert len(doc.inline_shapes) >= 4
+        assert len(doc.inline_shapes) >= 2
 
     def test_ac4_material_mapping(self, client):
         """AC-4: Material Mapping [FR-2]"""
@@ -207,7 +207,7 @@ class TestFeatureSpecificationCalculationReportGenerationV2:
         full_text = "\n".join([p.text for p in doc.paragraphs])
         assert "5.1 参数敏感性分析" in full_text
         assert "图 5-1 参数扰动响应曲线" in full_text
-        assert len(doc.inline_shapes) >= 5
+        assert len(doc.inline_shapes) >= 3
 
     def test_docx_export_report_options_can_use_control_overlay_only(self, client):
         payload = {
