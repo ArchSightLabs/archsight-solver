@@ -17,24 +17,25 @@
 **核心功能方向：**
 
 1. **智能体前端生成 (Agent-driven Frontend)**: 基于需求生成现代化、响应式工程界面。
-2. **后台复杂算法实现 (Backend Engineering via AI)**: 使用 Python 实现结构工程复杂力学计算（如多跨连续梁挠度与动荷载模拟）。
-3. **全栈连通自动化 (Full-stack Integration)**: 自主分析前后端结构并完成 RESTful API 对接与图表渲染。
-4. **工具链整合与智能调试 (MCP-powered Debugging)**: 深度整合 Chrome DevTools (MCP) 等工具链，实现自动诊断与修复。
+2. **结构力学求解 (Structural Solving)**: 使用 Python 实现梁系、二维平面框架和二维平面桁架的线弹性静力分析与结果恢复。
+3. **全栈连通自动化 (Full-stack Integration)**: 围绕 ASMS-JSON、REST API、CLI、MCP tools、benchmark 和计算书导出完成前后端闭环。
+4. **工具链整合与智能调试 (MCP-powered Debugging)**: 深度整合 Chrome DevTools、测试、公开验证集和错误契约，实现自动诊断与修复。
 
 ## 2. 技术栈 (Technology Stack)
 
 - **前端 (Frontend)**: Vite + React + TypeScript + Tailwind CSS v4 + shadcn/ui + ECharts
 - **后端 (Backend)**: Python + Flask + Numpy + Pandas + Openpyxl
-- **工程计算 (Engineering)**: 连续梁三弯矩方程计算、真实载荷模型。
+- **工程计算 (Engineering)**: 梁系、二维平面框架和二维平面桁架的线弹性静力分析；覆盖连续梁、简支梁、悬臂梁、门式刚架、显式二维杆系、典型屋架、桥式桁架和教学算例。
+- **工程结果 (Results)**: 支座反力、剪力、弯矩、挠度、节点位移、杆端内力、杆件轴力、杆件轴应力等专业结果输出。
+- **工程集成 (Integration)**: ASMS-JSON 模型协议、REST API、CLI、MCP tools、单因素参数敏感性分析、公开 benchmark、WORD / XLSX 计算书导出。
 
-## 3. 项目演进规划 (Roadmap)
+## 3. 可选协作与规格化实践 (Optional Workflow Practices)
 
-后续版本重点：
+项目协作可以按任务复杂度推荐使用规格化需求和智能体协作工具，但不得把某个外部工具或个人工作流写成强制依赖。
 
-1. **引入 Github-Spec (Spec-Driven Development)**:
-   - 读取规范化 Markdown 需求（`github-spec`）或 PRD，完成架构拆解与代码闭环。
-2. **引入 Ossature 架构升级 (Enterprise-level Architecture Generation)**:
-   - 将现有轻量级 Flask 版本逐步升级为更高阶企业架构，验证复杂框架驾驭能力。
+- 对需求较明确、影响范围较大的功能，可推荐使用 Github-Spec、PRD 或结构化 Markdown 需求来沉淀输入、验收标准和任务拆解。
+- 对需要多角色协作、评审或验证闭环的任务，可推荐使用 OMX、Superpowers 或同类智能体协作工具辅助执行。
+- 无论使用哪类工具，最终实现仍必须以本仓库代码、测试、文档和 `AI_CODING_RULES.md` 为准。
 
 ## 4. 智能体行为准则 (Agent Behavior Guidelines)
 
