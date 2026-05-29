@@ -10,7 +10,7 @@ import {
   type FrameDiagramMetricKey,
 } from "../lib/frame-member-diagrams";
 import { formatEngineeringValue } from "../lib/engineering-format";
-import { frameMemberLabelPlacement } from "./frame-preview-utils";
+import { buildFrameDimensionLegendRows, buildFrameGeometryDimensions, frameMemberLabelPlacement } from "./frame-preview-utils";
 
 interface FrameMemberDiagramsProps {
   frame: FramePreviewData | null;
@@ -92,9 +92,18 @@ function buildNodeLayout(frame: FramePreviewData, padding: number) {
     x: padding + (point.x - minX) * scale,
     y: SVG_H - padding - (point.y - minY) * scale,
   });
+  const mappedNodes = frame.nodes.map((node) => map(node));
+  const mappedXs = mappedNodes.map((point) => point.x);
+  const mappedYs = mappedNodes.map((point) => point.y);
   return {
-    nodeMap: new Map(frame.nodes.map((node) => [node.id, map(node)])),
+    nodeMap: new Map(frame.nodes.map((node, index) => [node.id, mappedNodes[index]])),
     scale,
+    bounds: {
+      left: Math.min(...mappedXs),
+      right: Math.max(...mappedXs),
+      top: Math.min(...mappedYs),
+      bottom: Math.max(...mappedYs),
+    },
   };
 }
 
@@ -111,6 +120,15 @@ function metricValues(diagram: FrameMemberDiagram, metric: FrameDiagramMetric) {
 
 function valueText(value: number, unit: string) {
   return formatEngineeringValue(value, unit);
+}
+
+function frameNodeLabelPlacement(point: SvgPoint, center: SvgPoint) {
+  const side = point.x < center.x ? -1 : 1;
+  return {
+    x: point.x + side * 13,
+    y: point.y - 10,
+    textAnchor: side < 0 ? ("end" as const) : ("start" as const),
+  };
 }
 
 function FrameStructureDiagram({
@@ -134,14 +152,16 @@ function FrameStructureDiagram({
   const extreme = useMemo(() => findFrameDiagramExtreme(diagrams, metric), [diagrams, metric]);
   const offsetScale = rawMaxAbs > 1e-9 ? (compact ? 42 : 58) / rawMaxAbs : 0;
   const frameCenter = useMemo(() => {
-    const points = Array.from(layout.nodeMap.values());
-    const xs = points.map((point) => point.x);
-    const ys = points.map((point) => point.y);
     return {
-      x: (Math.min(...xs) + Math.max(...xs)) / 2,
-      y: (Math.min(...ys) + Math.max(...ys)) / 2,
+      x: (layout.bounds.left + layout.bounds.right) / 2,
+      y: (layout.bounds.top + layout.bounds.bottom) / 2,
     };
-  }, [layout.nodeMap]);
+  }, [layout.bounds]);
+  const dimensionLegendRows = useMemo(
+    () => buildFrameDimensionLegendRows(buildFrameGeometryDimensions(frame.nodes, frame.members), compact ? 200 : 240, compact ? 10 : 12),
+    [frame, compact],
+  );
+  const dimensionLegendX = compact ? 18 : 24;
 
   const renderedMembers = useMemo(() => {
     return frame.members.flatMap((member) => {
@@ -212,6 +232,15 @@ function FrameStructureDiagram({
         {[0.25, 0.5, 0.75].map((ratio) => (
           <line key={ratio} x1="42" y1={SVG_H * ratio} x2={SVG_W - 42} y2={SVG_H * ratio} stroke="var(--frame-diagram-grid)" strokeDasharray="6 8" />
         ))}
+        {dimensionLegendRows.length ? (
+          <g fontFamily="Fira Code" fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke">
+            {dimensionLegendRows.map((row, index) => (
+              <text key={`frame-diagram-dimension-${index}`} x={dimensionLegendX} y={30 + index * 16} fontSize={compact ? "10" : "12"} fontWeight="700">
+                {row}
+              </text>
+            ))}
+          </g>
+        ) : null}
         {frame.members.map((member) => {
           const start = layout.nodeMap.get(member.start);
           const end = layout.nodeMap.get(member.end);
@@ -268,10 +297,25 @@ function FrameStructureDiagram({
         {frame.nodes.map((node) => {
           const point = layout.nodeMap.get(node.id);
           if (!point) return null;
+          const label = frameNodeLabelPlacement(point, frameCenter);
           return (
             <g key={node.id}>
               {supportMarker((node.supportType ?? "free") as SupportType, point.x, point.y, node.supportAngleDeg)}
               <circle cx={point.x} cy={point.y} r="4.5" fill="var(--structure-preview-node)" />
+              <text
+                x={label.x}
+                y={label.y}
+                fill="var(--structure-preview-node-label)"
+                stroke="var(--structure-preview-text-halo)"
+                strokeWidth="4"
+                paintOrder="stroke"
+                textAnchor={label.textAnchor}
+                fontSize={compact ? "9" : "11"}
+                fontFamily="Fira Code"
+                fontWeight="700"
+              >
+                {node.id}
+              </text>
             </g>
           );
         })}

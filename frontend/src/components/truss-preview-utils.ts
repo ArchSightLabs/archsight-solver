@@ -93,6 +93,24 @@ export function buildTrussMemberLengthLegendRows(dimensions: TrussMemberLengthDi
   return groupedDimensions.map((dimension) => `${dimension.memberIds.join("=")}=${dimension.valueLabel}`);
 }
 
+export function buildTrussMemberLengthDimensions(
+  nodes: Array<{ id: string; x: number; y: number }>,
+  members: Array<{ id: string; start: string; end: string }>,
+) {
+  const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+  return members.flatMap<TrussMemberLengthDimension>((member) => {
+    const start = nodeMap.get(member.start);
+    const end = nodeMap.get(member.end);
+    if (!start || !end) return [];
+    return buildTrussMemberLengthDimension(
+      member.id,
+      start,
+      end,
+      Math.hypot(end.x - start.x, end.y - start.y),
+    ) ?? [];
+  });
+}
+
 export function buildTrussMemberLengthDimension(
   memberId: string,
   start: TrussPreviewPoint,

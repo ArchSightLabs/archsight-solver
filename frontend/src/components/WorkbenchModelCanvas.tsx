@@ -748,7 +748,7 @@ function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
             />,
           ];
           for (let arrowIndex = 0; arrowIndex < arrowCount; arrowIndex += 1) {
-            const ratio = startRatio + (endRatio - startRatio) * (arrowIndex + 0.5) / arrowCount;
+            const ratio = startRatio + (endRatio - startRatio) * (arrowIndex / (arrowCount - 1));
             const loadRatio = (ratio - startRatio) / Math.max(endRatio - startRatio, 1e-9);
             const qAtRatio = qStart + (qEnd - qStart) * loadRatio;
             if (Math.abs(qAtRatio) <= 1e-9) continue;
@@ -995,8 +995,8 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
   const getNodeLabel = (point: { x: number; y: number }) => {
     const isLeftSide = point.x < trussCenterX;
     return {
-      x: point.x + (isLeftSide ? -22 : 22),
-      y: point.y - 12,
+      x: point.x + (isLeftSide ? -14 : 14),
+      y: point.y - 10,
       anchor: isLeftSide ? ("end" as const) : ("start" as const),
     };
   };
@@ -1077,8 +1077,8 @@ function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceS
             const labelMid = pointOnSegment(labelGuide.start, labelGuide.end, 0.5);
             const labelAngle = readableSegmentAngle(guide.start, guide.end);
             const equivalentArrows = [
-              { key: "start", force: startForce, anchor: pointOnSegment(start, end, 0.08) },
-              { key: "end", force: endForce, anchor: pointOnSegment(start, end, 0.92) },
+              { key: "start", force: startForce, anchor: pointOnSegment(start, end, 0) },
+              { key: "end", force: endForce, anchor: pointOnSegment(start, end, 1) },
             ];
             const items = [
               <g key={`${index}-member-load`} {...svgInteractiveProps(`选择桁架荷载 ${index + 1}`, () => onSelect?.({ mode: "truss", type: "load", id: `load-${index}` }))}>

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildTrussLoadMarkers, buildTrussMemberLengthDimension, buildTrussMemberLengthLegendRows, buildTrussSupportMarkerGeometry } from "./truss-preview-utils.ts";
+import { buildTrussLoadMarkers, buildTrussMemberLengthDimension, buildTrussMemberLengthDimensions, buildTrussMemberLengthLegendRows, buildTrussSupportMarkerGeometry } from "./truss-preview-utils.ts";
 
 test("buildTrussLoadMarkers anchors vertical loads on the node x-coordinate", () => {
   const markers = buildTrussLoadMarkers({ x: 320, y: 180 }, { fyKn: -50 }, 3);
@@ -51,4 +51,22 @@ test("buildTrussMemberLengthLegendRows groups equal member dimensions and separa
 
   assert.deepEqual(buildTrussMemberLengthLegendRows(dimensions, 280, 12), ["M1=M3=4m", "M2=2m"]);
   assert.deepEqual(buildTrussMemberLengthLegendRows(dimensions, 90, 12), ["M1=M3=4m", "M2=2m"]);
+});
+
+test("buildTrussMemberLengthDimensions derives member dimensions from node coordinates", () => {
+  const dimensions = buildTrussMemberLengthDimensions(
+    [
+      { id: "N1", x: 0, y: 0 },
+      { id: "N2", x: 6, y: 0 },
+      { id: "N3", x: 0, y: 4 },
+      { id: "N4", x: 6, y: 4 },
+    ],
+    [
+      { id: "M1", start: "N1", end: "N3" },
+      { id: "M2", start: "N3", end: "N4" },
+      { id: "M3", start: "N2", end: "N4" },
+    ],
+  );
+
+  assert.deepEqual(buildTrussMemberLengthLegendRows(dimensions, 220, 12), ["M1=M3=4m", "M2=6m"]);
 });

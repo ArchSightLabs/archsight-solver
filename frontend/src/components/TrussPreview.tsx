@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { GlassCard } from "./ui/GlassCard";
 import type { SupportType, TrussPreviewData } from "../types/structure";
-import { buildTrussLoadMarkers } from "./truss-preview-utils";
+import { buildTrussLoadMarkers, buildTrussMemberLengthDimensions, buildTrussMemberLengthLegendRows } from "./truss-preview-utils";
 import { formatEngineeringValue } from "../lib/engineering-format";
 
 interface TrussPreviewProps {
@@ -13,6 +13,19 @@ const SVG_W = 1000;
 const SVG_H = 540;
 const PADDING = 72;
 const svgTextFont = "Inter, Microsoft YaHei, system-ui, sans-serif";
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function nodeLabelPlacement(point: { x: number; y: number }, centerX: number) {
+  const isLeft = point.x < centerX;
+  return {
+    x: point.x + (isLeft ? -16 : 16),
+    y: point.y - 10,
+    anchor: isLeft ? ("end" as const) : ("start" as const),
+  };
+}
 
 function supportMarker(type: SupportType, x: number, y: number) {
   if (type === "pinned") {
@@ -77,9 +90,19 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
       y: SVG_H - padding - (point.y - minY) * scale,
     });
 
-    const nodeMap = new Map(truss.nodes.map((node) => [node.id, map(node)]));
-    return { map, nodeMap, scale };
-  }, [truss, padding]);
+    const mappedNodes = truss.nodes.map((node) => map(node));
+    const mappedXs = mappedNodes.map((point) => point.x);
+    const mappedYs = mappedNodes.map((point) => point.y);
+    const bounds = {
+      left: Math.min(...mappedXs),
+      right: Math.max(...mappedXs),
+      top: Math.min(...mappedYs),
+      bottom: Math.max(...mappedYs),
+    };
+    const nodeMap = new Map(truss.nodes.map((node, index) => [node.id, mappedNodes[index]]));
+    const dimensionLegendX = clamp(bounds.left - (compact ? 112 : 126), 28, SVG_W - 260);
+    return { map, nodeMap, scale, bounds, dimensionLegendX };
+  }, [truss, padding, compact]);
 
   const deformationDrawScale = truss ? Math.min(truss.deformationScale, 64) : 0;
   const deformationScaleRatio = truss && truss.deformationScale > 1e-9 ? deformationDrawScale / truss.deformationScale : 0;
@@ -104,6 +127,10 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
     truss?.nodeResults.forEach((node) => map.set(node.nodeId, node.supportType));
     return map;
   }, [truss]);
+  const dimensionLegendRows = useMemo(
+    () => truss ? buildTrussMemberLengthLegendRows(buildTrussMemberLengthDimensions(truss.nodes, truss.members), compact ? 200 : 240, compact ? 10 : 12) : [],
+    [truss, compact],
+  );
 
   if (!truss || !layout) {
     return (
@@ -152,11 +179,11 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
       <div className="structure-preview-surface relative">
         <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} className={`block w-full ${compact ? "h-[200px] sm:h-[280px]" : "h-[240px] sm:h-[340px]"}`}>
           <defs>
-            <linearGradient id="trussBaseGrad" x1="0%" x2="100%">
+            <linearGradient id="trussBaseGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={SVG_W} y2="0">
               <stop offset="0%" stopColor="var(--structure-preview-base-start)" stopOpacity="0.95" />
               <stop offset="100%" stopColor="var(--structure-preview-base-end)" stopOpacity="0.95" />
             </linearGradient>
-            <linearGradient id="trussDeformedGrad" x1="0%" x2="100%">
+            <linearGradient id="trussDeformedGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={SVG_W} y2="0">
               <stop offset="0%" stopColor="var(--structure-preview-deformed-start)" stopOpacity="0.95" />
               <stop offset="100%" stopColor="var(--structure-preview-deformed-end)" stopOpacity="0.95" />
             </linearGradient>
@@ -165,7 +192,17 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
             </marker>
           </defs>
 
-          {truss.members.map((member, index) => {
+          {dimensionLegendRows.length ? (
+            <g fontFamily={svgTextFont} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke">
+              {dimensionLegendRows.map((row, index) => (
+                <text key={`truss-preview-dimension-${index}`} x={layout.dimensionLegendX} y={28 + index * 16} fontSize={compact ? "10" : "12"} fontWeight="700">
+                  {row}
+                </text>
+              ))}
+            </g>
+          ) : null}
+
+          {truss.members.map((member) => {
             const start = layout.nodeMap.get(member.start);
             const end = layout.nodeMap.get(member.end);
             if (!start || !end) return null;
@@ -187,7 +224,7 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
                   fontWeight="500"
                   fontFamily={svgTextFont}
                 >
-                  杆件 {index + 1}
+                  {member.id}
                 </text>
               </g>
             );
@@ -219,10 +256,11 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
             const point = layout.nodeMap.get(node.id);
             if (!point) return null;
             const supportType = supportTypeById.get(node.id) ?? "free";
+            const label = nodeLabelPlacement(point, (layout.bounds.left + layout.bounds.right) / 2);
             return (
               <g key={node.id}>
                 <circle cx={point.x} cy={point.y} r="4.5" fill="var(--structure-preview-node)" />
-                <text x={point.x + 8} y={point.y - 8} fill="var(--structure-preview-node-label)" fontSize={compact ? "9" : "11"} fontFamily={svgTextFont}>
+                <text x={label.x} y={label.y} textAnchor={label.anchor} fill="var(--structure-preview-node-label)" fontSize={compact ? "9" : "11"} fontFamily={svgTextFont}>
                   {node.id}
                 </text>
                 {supportMarker(supportType, point.x, point.y)}

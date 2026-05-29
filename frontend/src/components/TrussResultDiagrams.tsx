@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { GlassCard } from "./ui/GlassCard";
 import type { SupportType, TrussMemberResult, TrussNodeResult, TrussPreviewData } from "../types/structure";
 import { formatEngineeringValue } from "../lib/engineering-format";
+import { buildTrussMemberLengthDimensions, buildTrussMemberLengthLegendRows } from "./truss-preview-utils";
 
 type TrussDiagramMetricKey = "axialForceKn" | "displacementMm";
 type TrussDiagramSelectionKey = TrussDiagramMetricKey | "all";
@@ -23,6 +24,7 @@ interface TrussDiagramMetric {
 const SVG_W = 1000;
 const SVG_H = 540;
 const PADDING = 72;
+const svgTextFont = "Inter, Microsoft YaHei, system-ui, sans-serif";
 const TRUSS_DIAGRAM_METRICS: TrussDiagramMetric[] = [
   { key: "axialForceKn", title: "杆件轴力图", unit: "kN" },
   { key: "displacementMm", title: "节点位移图", unit: "mm" },
@@ -30,6 +32,15 @@ const TRUSS_DIAGRAM_METRICS: TrussDiagramMetric[] = [
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
+}
+
+function nodeLabelPlacement(point: { x: number; y: number }, centerX: number) {
+  const isLeft = point.x < centerX;
+  return {
+    x: point.x + (isLeft ? -16 : 16),
+    y: point.y - 10,
+    anchor: isLeft ? ("end" as const) : ("start" as const),
+  };
 }
 
 function supportMarker(type: SupportType, x: number, y: number) {
@@ -97,9 +108,18 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
       x: padding + (point.x - minX) * scale,
       y: SVG_H - padding - (point.y - minY) * scale,
     });
+    const mappedNodes = truss.nodes.map((node) => map(node));
+    const mappedXs = mappedNodes.map((point) => point.x);
+    const mappedYs = mappedNodes.map((point) => point.y);
     return {
-      nodeMap: new Map(truss.nodes.map((node) => [node.id, map(node)])),
+      nodeMap: new Map(truss.nodes.map((node, index) => [node.id, mappedNodes[index]])),
       scale,
+      bounds: {
+        left: Math.min(...mappedXs),
+        right: Math.max(...mappedXs),
+        top: Math.min(...mappedYs),
+        bottom: Math.max(...mappedYs),
+      },
     };
   }, [padding, truss]);
 
@@ -123,6 +143,11 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
       return current;
     }, null);
   }, [truss]);
+  const dimensionLegendRows = useMemo(
+    () => truss ? buildTrussMemberLengthLegendRows(buildTrussMemberLengthDimensions(truss.nodes, truss.members), compact ? 200 : 240, compact ? 10 : 12) : [],
+    [truss, compact],
+  );
+  const dimensionLegendX = layout ? clamp(layout.bounds.left - (compact ? 112 : 132), 24, SVG_W - 260) : 24;
 
   const autoDisplacementDisplayScale = useMemo(() => {
     if (!truss || !layout || !maxDisplacementNode || maxDisplacementNode.displacementMm <= 1e-9) return 0;
@@ -274,6 +299,15 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
           {[0.25, 0.5, 0.75].map((ratio) => (
             <line key={ratio} x1="42" y1={SVG_H * ratio} x2={SVG_W - 42} y2={SVG_H * ratio} stroke="var(--frame-diagram-grid)" strokeDasharray="6 8" />
           ))}
+          {dimensionLegendRows.length ? (
+            <g fontFamily={svgTextFont} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke">
+              {dimensionLegendRows.map((row, index) => (
+                <text key={`truss-diagram-dimension-${index}`} x={dimensionLegendX} y={30 + index * 16} fontSize={compact ? "10" : "12"} fontWeight="700">
+                  {row}
+                </text>
+              ))}
+            </g>
+          ) : null}
 
           {truss.members.map((member) => {
             const start = layout.nodeMap.get(member.start);
@@ -291,10 +325,14 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
                   <>
                     <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke={isTension ? "#dc2626" : "#2563eb"} strokeOpacity="0.82" strokeWidth={strokeWidth} strokeLinecap="round" />
                     <text x={label.x} y={label.y} fill={isTension ? "#dc2626" : "#2563eb"} stroke="var(--structure-preview-text-halo)" strokeWidth="5" paintOrder="stroke" textAnchor="middle" fontSize={compact ? "9" : "11"} fontFamily="Fira Code" fontWeight="700">
-                      {valueText(value, "kN")}
+                      {member.id} {valueText(value, "kN")}
                     </text>
                   </>
-                ) : null}
+                ) : (
+                  <text x={label.x} y={label.y} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke" textAnchor="middle" fontSize={compact ? "9" : "11"} fontFamily={svgTextFont} fontWeight="700">
+                    {member.id}
+                  </text>
+                )}
               </g>
             );
           })}
@@ -314,10 +352,11 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
             const deformed = renderedDeformedMap.get(node.id);
             const nodeResult = truss.nodeResults.find((result) => result.nodeId === node.id);
             const showDisplacementLabel = selectedMetricKey === "displacementMm" && nodeResult?.nodeId === maxDisplacementNode?.nodeId && deformed;
+            const label = nodeLabelPlacement(point, (layout.bounds.left + layout.bounds.right) / 2);
             return (
               <g key={node.id}>
                 <circle cx={point.x} cy={point.y} r="4.5" fill="var(--structure-preview-node)" />
-                <text x={point.x + 8} y={point.y - 8} fill="var(--structure-preview-node-label)" fontSize={compact ? "9" : "11"} fontFamily="Fira Code">
+                <text x={label.x} y={label.y} textAnchor={label.anchor} fill="var(--structure-preview-node-label)" fontSize={compact ? "9" : "11"} fontFamily="Fira Code">
                   {node.id}
                 </text>
                 {supportMarker(supportType, point.x, point.y)}

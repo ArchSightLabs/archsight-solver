@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { GlassCard } from "./ui/GlassCard";
 import type { FramePreviewData, SupportType } from "../types/structure";
-import { buildFrameLoadLabelMap, buildFrameLoadMarkers, frameMemberLabelPlacement, type FrameLoadMarker } from "./frame-preview-utils";
+import { buildFrameDimensionLegendRows, buildFrameGeometryDimensions, buildFrameLoadLabelMap, buildFrameLoadMarkers, frameMemberLabelPlacement, type FrameLoadMarker } from "./frame-preview-utils";
 import { formatEngineeringValue } from "../lib/engineering-format";
 
 interface FramePreviewProps {
@@ -12,6 +12,19 @@ interface FramePreviewProps {
 const SVG_W = 1000;
 const SVG_H = 540;
 const PADDING = 70;
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function nodeLabelPlacement(point: { x: number; y: number }, centerX: number) {
+  const isLeft = point.x < centerX;
+  return {
+    x: point.x + (isLeft ? -24 : 24),
+    y: point.y - 12,
+    anchor: isLeft ? ("end" as const) : ("start" as const),
+  };
+}
 
 function supportMarker(type: SupportType, x: number, y: number, angleDeg?: number) {
   if (type === "fixed") {
@@ -104,13 +117,20 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
     const mappedNodes = frame.nodes.map((node) => map(node));
     const mappedXs = mappedNodes.map((point) => point.x);
     const mappedYs = mappedNodes.map((point) => point.y);
+    const bounds = {
+      left: Math.min(...mappedXs),
+      right: Math.max(...mappedXs),
+      top: Math.min(...mappedYs),
+      bottom: Math.max(...mappedYs),
+    };
     const center = {
-      x: (Math.min(...mappedXs) + Math.max(...mappedXs)) / 2,
-      y: (Math.min(...mappedYs) + Math.max(...mappedYs)) / 2,
+      x: (bounds.left + bounds.right) / 2,
+      y: (bounds.top + bounds.bottom) / 2,
     };
     const nodeMap = new Map(frame.nodes.map((node, index) => [node.id, mappedNodes[index]]));
-    return { map, nodeMap, scale, center };
-  }, [frame, padding]);
+    const dimensionLegendX = clamp(bounds.left - (compact ? 148 : 170), 8, SVG_W - 260);
+    return { map, nodeMap, scale, center, bounds, dimensionLegendX };
+  }, [frame, padding, compact]);
 
   const deformationDrawScale = frame ? Math.min(frame.deformationScale, 60) : 0;
   const deformationScaleRatio = frame && frame.deformationScale > 1e-9 ? deformationDrawScale / frame.deformationScale : 0;
@@ -131,6 +151,10 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
   }, [frame, layout, deformationScaleRatio]);
   const memberMap = useMemo(() => new Map((frame?.members ?? []).map((member) => [member.id, member])), [frame?.members]);
   const loadLabelMap = useMemo(() => buildFrameLoadLabelMap(frame?.loads ?? []), [frame?.loads]);
+  const dimensionLegendRows = useMemo(
+    () => frame ? buildFrameDimensionLegendRows(buildFrameGeometryDimensions(frame.nodes, frame.members), compact ? 200 : 240, compact ? 10 : 12) : [],
+    [frame, compact],
+  );
   const loadMarkers: FrameLoadMarker[] = frame && layout
     ? frame.loads.flatMap((load, index) => buildFrameLoadMarkers(load, index, { nodeMap: layout.nodeMap, memberMap, loadLabel: loadLabelMap.get(index) }))
     : [];
@@ -193,6 +217,16 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
             </marker>
           </defs>
 
+          {dimensionLegendRows.length ? (
+            <g fontFamily="Fira Code" fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke">
+              {dimensionLegendRows.map((row, index) => (
+                <text key={`frame-preview-dimension-${index}`} x={layout.dimensionLegendX} y={28 + index * 16} fontSize={compact ? "10" : "12"} fontWeight="700">
+                  {row}
+                </text>
+              ))}
+            </g>
+          ) : null}
+
           {frame.members.map((member) => {
             const start = layout.nodeMap.get(member.start);
             const end = layout.nodeMap.get(member.end);
@@ -234,11 +268,12 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
           {frame.nodes.map((node) => {
             const point = layout.nodeMap.get(node.id);
             if (!point) return null;
+            const label = nodeLabelPlacement(point, layout.center.x);
             return (
               <g key={node.id}>
                 {supportMarker((node.supportType ?? "free") as SupportType, point.x, point.y, node.supportAngleDeg)}
                 <circle cx={point.x} cy={point.y} r="4.5" fill="var(--structure-preview-node)" />
-                <text x={point.x + 8} y={point.y - 8} fill="var(--structure-preview-node-label)" fontSize={compact ? "9" : "11"} fontFamily="Fira Code">
+                <text x={label.x} y={label.y} textAnchor={label.anchor} fill="var(--structure-preview-node-label)" fontSize={compact ? "9" : "11"} fontFamily="Fira Code">
                   {node.id}
                 </text>
                 {springMarkers(node, point.x, point.y)}

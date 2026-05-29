@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildFrameDimensionLegendRows, buildFrameLoadLabelMap, buildFrameLoadMarkers, frameMemberDimensionValueLabel } from "./frame-preview-utils.ts";
+import { buildFrameDimensionLegendRows, buildFrameGeometryDimensions, buildFrameLoadLabelMap, buildFrameLoadMarkers, frameMemberDimensionValueLabel } from "./frame-preview-utils.ts";
 
 test("buildFrameLoadMarkers anchors vertical nodal loads on the node x-coordinate", () => {
   const load = { type: "nodal" as const, node: "N2", fyKn: -42 };
@@ -63,11 +63,16 @@ test("buildFrameLoadMarkers builds distributed load guide and arrows from the me
   assert.equal(markers[0].type, "distributed-guide");
   assert.equal(markers[0].label, "q1=18.0kN/m");
   assert.equal(markers[1].type, "force");
-  assert.equal(markers[1].x1, 110);
-  assert.equal(markers[1].x2, 110);
+  assert.equal(markers[1].x1, 100);
+  assert.equal(markers[1].x2, 100);
   assert.equal(markers[1].y1, 276);
   assert.equal(markers[1].y2, 320);
   assert.equal(markers[1].label, undefined);
+  const lastMarker = markers.at(-1);
+  assert.equal(lastMarker?.type, "force");
+  if (lastMarker?.type === "force") {
+    assert.equal(lastMarker.x2, 340);
+  }
 });
 
 test("buildFrameLoadMarkers respects partial distributed load range", () => {
@@ -90,6 +95,13 @@ test("buildFrameLoadMarkers respects partial distributed load range", () => {
   assert.equal(markers[0].x1, 160);
   assert.equal(markers[0].x2, 280);
   assert.match(markers[0].label, /@0\.25-0\.75L/u);
+  assert.equal(markers[1].type, "force");
+  assert.equal(markers[1].x2, 160);
+  const lastMarker = markers.at(-1);
+  assert.equal(lastMarker?.type, "force");
+  if (lastMarker?.type === "force") {
+    assert.equal(lastMarker.x2, 280);
+  }
 });
 
 test("buildFrameDimensionLegendRows groups equal member lengths and separates differing lengths", () => {
@@ -98,6 +110,24 @@ test("buildFrameDimensionLegendRows groups equal member lengths and separates di
     { memberId: "B1", valueLabel: frameMemberDimensionValueLabel({ x: 0, y: 4 }, { x: 6, y: 4 }) },
     { memberId: "C2", valueLabel: frameMemberDimensionValueLabel({ x: 6, y: 0 }, { x: 6, y: 4 }) },
   ];
+
+  assert.deepEqual(buildFrameDimensionLegendRows(dimensions, 220, 12), ["C1=C2=4m", "B1=6m"]);
+});
+
+test("buildFrameGeometryDimensions derives frame member dimensions from node coordinates", () => {
+  const dimensions = buildFrameGeometryDimensions(
+    [
+      { id: "N1", x: 0, y: 0 },
+      { id: "N2", x: 6, y: 0 },
+      { id: "N3", x: 0, y: 4 },
+      { id: "N4", x: 6, y: 4 },
+    ],
+    [
+      { id: "C1", start: "N1", end: "N3" },
+      { id: "B1", start: "N3", end: "N4" },
+      { id: "C2", start: "N2", end: "N4" },
+    ],
+  );
 
   assert.deepEqual(buildFrameDimensionLegendRows(dimensions, 220, 12), ["C1=C2=4m", "B1=6m"]);
 });

@@ -61,6 +61,22 @@ export interface FrameGeometryDimension {
   valueLabel: string;
 }
 
+export function buildFrameGeometryDimensions(
+  nodes: Array<{ id: string; x: number; y: number }>,
+  members: Array<{ id: string; start: string; end: string }>,
+) {
+  const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+  return members.flatMap<FrameGeometryDimension>((member) => {
+    const start = nodeMap.get(member.start);
+    const end = nodeMap.get(member.end);
+    if (!start || !end) return [];
+    return [{
+      memberId: member.id,
+      valueLabel: frameMemberDimensionValueLabel(start, end),
+    }];
+  });
+}
+
 function formatFrameDimensionLength(length: number) {
   return `${length.toFixed(2).replace(/\.?0+$/u, "")}m`;
 }
@@ -348,7 +364,7 @@ export function buildFrameLoadMarkers(load: FrameLoad, index: number, context: F
   const arrowCount = Math.max(5, Math.min(12, Math.round((endRatio - startRatio) * 12)));
   const maxQ = Math.max(Math.abs(qStart), Math.abs(qEnd), 1e-9);
   for (let step = 0; step < arrowCount; step += 1) {
-    const t = startRatio + (endRatio - startRatio) * (step + 0.5) / arrowCount;
+    const t = startRatio + (endRatio - startRatio) * (step / (arrowCount - 1));
     const localRatio = (t - startRatio) / Math.max(endRatio - startRatio, 1e-9);
     const qAt = qStart + (qEnd - qStart) * localRatio;
     if (Math.abs(qAt) <= 1e-9) continue;
