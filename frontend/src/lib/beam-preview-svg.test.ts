@@ -160,6 +160,43 @@ test("assertReportImagesReady prevents frontend DOCX export from falling back to
   assert.doesNotThrow(() => assertReportImagesReady({ "beam.preview": "data:image/png;base64,test", "beam.overlay.moment": "data:image/png;base64,test" }, input));
 });
 
+test("assertReportImagesReady requires frame and truss preview images before DOCX export", () => {
+  const reportOptions = { template: "complete" as const, figureMode: "both" as const, figureScope: "all" as const };
+  const frameInput = {
+    analysisMode: "frame" as const,
+    beamResults: null,
+    frameResults: {} as FrameCalculationResults,
+    trussResults: null,
+    sensitivityData: null,
+    reportOptions,
+  };
+  const trussInput = {
+    analysisMode: "truss" as const,
+    beamResults: null,
+    frameResults: null,
+    trussResults: {} as TrussCalculationResults,
+    sensitivityData: null,
+    reportOptions,
+  };
+
+  assert.deepEqual(
+    reportImageRequirements(frameInput).map((item) => item.key),
+    ["frame.preview", "frame.overlay.moment", "frame.overlay.shear", "frame.overlay.memberDeflection", "frame.overlay.axial"],
+  );
+  assert.throws(
+    () => assertReportImagesReady({ "frame.overlay.moment": "data:image/png;base64,test" }, frameInput),
+    /平面框架结构预览图/u,
+  );
+  assert.deepEqual(
+    reportImageRequirements(trussInput).map((item) => item.key),
+    ["truss.preview", "truss.overlay.axial", "truss.overlay.displacement"],
+  );
+  assert.throws(
+    () => assertReportImagesReady({ "truss.overlay.axial": "data:image/png;base64,test" }, trussInput),
+    /平面桁架结构预览图/u,
+  );
+});
+
 test("buildReportImagePlan keeps control figure keys aligned for every analysis mode", () => {
   const reportOptions = { template: "standard" as const, figureMode: "overlay" as const, figureScope: "control" as const };
 

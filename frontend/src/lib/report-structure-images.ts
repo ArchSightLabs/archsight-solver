@@ -1,6 +1,12 @@
 import type { FrameCalculationResults, TrussCalculationResults } from "../types/structure";
-import { buildFrameDimensionLegendRows, buildFrameGeometryDimensions, frameMemberLabelPlacement } from "../components/frame-preview-utils";
-import { buildTrussMemberLengthDimensions, buildTrussMemberLengthLegendRows, buildTrussSupportMarkerGeometry } from "../components/truss-preview-utils";
+import {
+  buildFrameDimensionLegendRows,
+  buildFrameGeometryDimensions,
+  buildFrameLoadLabelMap,
+  buildFrameLoadMarkers,
+  frameMemberLabelPlacement,
+} from "../components/frame-preview-utils";
+import { buildTrussLoadMarkers, buildTrussMemberLengthDimensions, buildTrussMemberLengthLegendRows, buildTrussSupportMarkerGeometry } from "../components/truss-preview-utils";
 import {
   MUTED_TEXT,
   REPORT_BG,
@@ -19,11 +25,21 @@ const BASE_MEMBER_LIGHT_STROKE = "rgba(51,65,85,0.48)";
 const NODE_FILL = "#0f172a";
 const LABEL_HALO = "#ffffff";
 const DIMENSION_TEXT = "#475569";
+const LOAD_STROKE = "#dc2626";
+const LOAD_LABEL = "#b91c1c";
 
 type ReportNode = { id: string; x: number; y: number; supportType?: string };
 type ReportMember = { id?: string; start: string; end: string };
 type ReportGraphic = Record<string, unknown>;
 type ReportPoint = { x: number; y: number };
+type ReportStructureLoadRenderer = (
+  graphics: ReportGraphic[],
+  context: {
+    layout: ReturnType<typeof buildReportStructureLayout>;
+    nodeById: Map<string, ReportNode>;
+    memberById: Map<string, ReportMember>;
+  },
+) => void;
 
 function buildReportStructureLayout(
   nodes: Array<{ id?: string; x: number; y: number }>,
@@ -158,7 +174,7 @@ function addNode(graphics: ReportGraphic[], id: string, point: ReportPoint, cent
 
 function addMemberLabel(graphics: ReportGraphic[], id: string | undefined, start: ReportPoint, end: ReportPoint, center: ReportPoint) {
   if (!id) return;
-  const label = frameMemberLabelPlacement(start, end, center, 18);
+  const label = frameMemberLabelPlacement(start, end, center, 28);
   graphics.push({
     type: "text",
     left: label.x,
@@ -176,6 +192,100 @@ function addMemberLabel(graphics: ReportGraphic[], id: string | undefined, start
   });
 }
 
+function addArrow(graphics: ReportGraphic[], x1: number, y1: number, x2: number, y2: number, color = LOAD_STROKE, width = 2.2) {
+  const angle = Math.atan2(y2 - y1, x2 - x1);
+  const arrowLength = 11;
+  const arrowAngle = Math.PI * 0.78;
+  graphics.push(
+    { type: "line", shape: { x1, y1, x2, y2 }, style: { stroke: color, lineWidth: width } },
+    {
+      type: "line",
+      shape: {
+        x1: x2,
+        y1: y2,
+        x2: x2 + Math.cos(angle + arrowAngle) * arrowLength,
+        y2: y2 + Math.sin(angle + arrowAngle) * arrowLength,
+      },
+      style: { stroke: color, lineWidth: width },
+    },
+    {
+      type: "line",
+      shape: {
+        x1: x2,
+        y1: y2,
+        x2: x2 + Math.cos(angle - arrowAngle) * arrowLength,
+        y2: y2 + Math.sin(angle - arrowAngle) * arrowLength,
+      },
+      style: { stroke: color, lineWidth: width },
+    },
+  );
+}
+
+function addLoadLabel(graphics: ReportGraphic[], text: string | undefined, x: number, y: number, align: "start" | "middle" | "end" = "start") {
+  if (!text) return;
+  graphics.push({
+    type: "text",
+    left: x,
+    top: y - 8,
+    style: {
+      text,
+      fill: LOAD_LABEL,
+      fontSize: 11,
+      fontWeight: 700,
+      fontFamily: "Fira Code, Consolas, monospace",
+      align: align === "middle" ? "center" : align === "end" ? "right" : "left",
+      stroke: LABEL_HALO,
+      lineWidth: 4,
+    },
+  });
+}
+
+function addFrameLoadGraphics(
+  graphics: ReportGraphic[],
+  loads: FrameCalculationResults["structure"]["loads"],
+  context: Parameters<ReportStructureLoadRenderer>[1],
+) {
+  const screenNodeMap = new Map(Array.from(context.nodeById.values()).map((node) => [node.id, context.layout.map(node)]));
+  const memberMap = new Map(Array.from(context.memberById.values()).flatMap((member) => (member.id ? [[member.id, { start: member.start, end: member.end }]] : [])));
+  const loadLabelMap = buildFrameLoadLabelMap(loads);
+  loads.forEach((load, index) => {
+    const markers = buildFrameLoadMarkers(load, index, {
+      nodeMap: screenNodeMap,
+      memberMap,
+      loadLabel: loadLabelMap.get(index),
+    });
+    markers.forEach((marker) => {
+      if (marker.type === "force") {
+        addArrow(graphics, marker.x1, marker.y1, marker.x2, marker.y2);
+        addLoadLabel(graphics, marker.label, marker.labelX, marker.labelY, marker.textAnchor);
+      } else if (marker.type === "distributed-guide") {
+        graphics.push({ type: "line", shape: marker, style: { stroke: LOAD_STROKE, lineWidth: 1.5, lineDash: [5, 4] } });
+        addLoadLabel(graphics, marker.label, marker.labelX, marker.labelY, marker.textAnchor);
+      } else {
+        graphics.push({ type: "circle", shape: { cx: marker.cx, cy: marker.cy, r: marker.radius }, style: { stroke: LOAD_STROKE, lineWidth: 2, fill: "transparent" } });
+        addLoadLabel(graphics, marker.label, marker.labelX, marker.labelY, marker.textAnchor);
+      }
+    });
+  });
+}
+
+function addTrussLoadGraphics(
+  graphics: ReportGraphic[],
+  loads: TrussCalculationResults["structure"]["loads"],
+  context: Parameters<ReportStructureLoadRenderer>[1],
+) {
+  const screenNodeMap = new Map(Array.from(context.nodeById.values()).map((node) => [node.id, context.layout.map(node)]));
+  loads.forEach((load, index) => {
+    if (load.type !== "nodal") return;
+    const point = screenNodeMap.get(load.node);
+    if (!point) return;
+    buildTrussLoadMarkers(point, load, index).forEach((marker) => {
+      addArrow(graphics, marker.x1, marker.y1, marker.x2, marker.y2);
+      addLoadLabel(graphics, marker.label, marker.labelX, marker.labelY);
+    });
+  });
+}
+
 export async function renderFramePreview(results: FrameCalculationResults) {
   const preview = results.frame ?? results.preview;
   if (!preview) return "";
@@ -186,6 +296,7 @@ export async function renderFramePreview(results: FrameCalculationResults) {
     deformedNodes: preview.deformedNodes.map((node) => ({ id: node.nodeId, x: node.x, y: node.y })),
     supportMarker: addFrameSupportMarker,
     dimensionRows: buildFrameDimensionLegendRows(buildFrameGeometryDimensions(preview.nodes, preview.members), 240, 12),
+    renderLoads: (graphics, context) => addFrameLoadGraphics(graphics, preview.loads, context),
   });
 }
 
@@ -199,6 +310,7 @@ export async function renderTrussPreview(results: TrussCalculationResults) {
     deformedNodes: preview.deformedNodes.map((node) => ({ id: node.id, x: node.x, y: node.y })),
     supportMarker: addTrussSupportMarker,
     dimensionRows: buildTrussMemberLengthLegendRows(buildTrussMemberLengthDimensions(preview.nodes, preview.members), 240, 12),
+    renderLoads: (graphics, context) => addTrussLoadGraphics(graphics, preview.loads, context),
   });
 }
 
@@ -411,6 +523,7 @@ async function renderStructurePreview(
     deformedNodes,
     supportMarker,
     dimensionRows,
+    renderLoads,
   }: {
     systemLabel: string;
     nodes: ReportNode[];
@@ -418,10 +531,12 @@ async function renderStructurePreview(
     deformedNodes: Array<{ id: string; x: number; y: number }>;
     supportMarker: (graphics: ReportGraphic[], type: string | undefined, point: ReportPoint) => void;
     dimensionRows: string[];
+    renderLoads?: ReportStructureLoadRenderer;
   },
 ) {
   const layout = buildReportStructureLayout(nodes, deformedNodes);
   const byId = new Map(nodes.map((node) => [node.id, node]));
+  const memberById = new Map(members.flatMap((member) => (member.id ? [[member.id, member]] : [])));
   const deformedById = new Map(deformedNodes.map((node) => [node.id, node]));
   const graphics: ReportGraphic[] = [];
   addImageBackground(graphics);
@@ -449,5 +564,6 @@ async function renderStructurePreview(
     supportMarker(graphics, node.supportType, point);
     addNode(graphics, node.id, point, layout.center);
   }
+  renderLoads?.(graphics, { layout, nodeById: byId, memberById });
   return renderOption({ backgroundColor: REPORT_BG, animation: false, xAxis: { show: false }, yAxis: { show: false }, graphic: graphics }, REPORT_IMAGE_W, REPORT_IMAGE_H);
 }
