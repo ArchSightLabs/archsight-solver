@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import { GlassCard } from "./ui/GlassCard";
 
-type DiagramSelectionKey<Key extends string> = Key | "all";
+export type DiagramSelectionKey<Key extends string> = Key | "all";
 
-interface ResultDiagramMetricOption<Key extends string> {
+export interface ResultDiagramMetricOption<Key extends string> {
   key: Key;
   title: string;
 }
@@ -22,6 +22,17 @@ interface ResultDiagramCardProps {
   heading: string;
   badges?: ReactNode;
   children: ReactNode;
+}
+
+interface ResultDiagramMetricGalleryProps<Key extends string, Metric extends ResultDiagramMetricOption<Key>> {
+  ariaLabel: string;
+  compact: boolean;
+  gridClassName: string;
+  metrics: Metric[];
+  selectedKey: DiagramSelectionKey<Key>;
+  selectedMetric: Metric;
+  onSelect: (key: DiagramSelectionKey<Key>) => void;
+  renderMetric: (metric: Metric) => ReactNode;
 }
 
 const activeMetricTabClass =
@@ -82,6 +93,39 @@ export function ResultDiagramMetricTabs<Key extends string>({
         </div>
       </div>
     </GlassCard>
+  );
+}
+
+export function resultDiagramVisibleMetrics<Key extends string, Metric extends ResultDiagramMetricOption<Key>>(
+  selectedKey: DiagramSelectionKey<Key>,
+  metrics: Metric[],
+  selectedMetric: Metric,
+): Metric[] {
+  return selectedKey === "all" ? metrics : [selectedMetric];
+}
+
+export function ResultDiagramMetricGallery<Key extends string, Metric extends ResultDiagramMetricOption<Key>>({
+  ariaLabel,
+  compact,
+  gridClassName,
+  metrics,
+  selectedKey,
+  selectedMetric,
+  onSelect,
+  renderMetric,
+}: ResultDiagramMetricGalleryProps<Key, Metric>) {
+  return (
+    <div className="space-y-3">
+      <ResultDiagramMetricTabs
+        ariaLabel={ariaLabel}
+        compact={compact}
+        gridClassName={gridClassName}
+        metrics={metrics}
+        selectedKey={selectedKey}
+        onSelect={onSelect}
+      />
+      {resultDiagramVisibleMetrics(selectedKey, metrics, selectedMetric).map((metric) => renderMetric(metric))}
+    </div>
   );
 }
 

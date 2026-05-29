@@ -22,7 +22,7 @@ import {
 } from "../lib/diagram-label-layout";
 import { formatEngineeringValue } from "../lib/engineering-format";
 import { summaryMetricLabel } from "../lib/result-metrics";
-import { ResultDiagramCard, ResultDiagramEmptyState, ResultDiagramMetricBadge, ResultDiagramMetricTabs } from "./ResultDiagramLayout";
+import { ResultDiagramCard, ResultDiagramEmptyState, ResultDiagramMetricBadge, ResultDiagramMetricGallery } from "./ResultDiagramLayout";
 import { buildFrameDimensionLegendRows, buildFrameGeometryDimensions, frameMemberLabelPlacement } from "./frame-preview-utils";
 
 interface FrameMemberDiagramsProps {
@@ -474,21 +474,19 @@ export function FrameMemberDiagrams({ frame, diagrams, compact = false, metricKe
   }
 
   if (showMetricTabs) {
-    const visibleMetrics = selectedMetricKey === "all" ? FRAME_DIAGRAM_METRICS : [selectedMetric];
     return (
-      <div className="space-y-3">
-        <ResultDiagramMetricTabs
-          ariaLabel="框架工程图类型"
-          compact={compact}
-          gridClassName={compact ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-5"}
-          metrics={FRAME_DIAGRAM_METRICS}
-          selectedKey={selectedMetricKey}
-          onSelect={(key) => setSelectedMetricState(key)}
-        />
-        {visibleMetrics.map((metric) => (
+      <ResultDiagramMetricGallery
+        ariaLabel="框架工程图类型"
+        compact={compact}
+        gridClassName={compact ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-5"}
+        metrics={FRAME_DIAGRAM_METRICS}
+        selectedKey={selectedMetricKey}
+        selectedMetric={selectedMetric}
+        onSelect={(key) => setSelectedMetricState(key)}
+        renderMetric={(metric) => (
           <FrameMemberDiagrams key={metric.key} frame={frame} diagrams={diagrams} compact={compact} metricKey={metric.key} showMetricTabs={false} heading={metric.title} />
-        ))}
-      </div>
+        )}
+      />
     );
   }
 

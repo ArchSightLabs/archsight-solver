@@ -12,7 +12,7 @@ import {
 } from "../lib/diagram-label-layout";
 import { formatEngineeringValue } from "../lib/engineering-format";
 import { summaryMetricLabel } from "../lib/result-metrics";
-import { ResultDiagramCard, ResultDiagramEmptyState, ResultDiagramMetricBadge, ResultDiagramMetricTabs } from "./ResultDiagramLayout";
+import { ResultDiagramCard, ResultDiagramEmptyState, ResultDiagramMetricBadge, ResultDiagramMetricGallery } from "./ResultDiagramLayout";
 import {
   buildTrussMemberLengthDimensions,
   buildTrussMemberLengthLegendRows,
@@ -326,21 +326,19 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
   const controlId = selectedMetricKey === "axialForceKn" ? controlAxial?.memberId : maxDisplacementNode?.nodeId;
 
   if (showMetricTabs) {
-    const visibleMetrics = selectedMetricKey === "all" ? TRUSS_DIAGRAM_METRICS : [selectedMetric];
     return (
-      <div className="space-y-3">
-        <ResultDiagramMetricTabs
-          ariaLabel="桁架工程图类型"
-          compact={compact}
-          gridClassName={compact ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"}
-          metrics={TRUSS_DIAGRAM_METRICS}
-          selectedKey={selectedMetricKey}
-          onSelect={(key) => setSelectedMetricState(key)}
-        />
-        {visibleMetrics.map((metric) => (
+      <ResultDiagramMetricGallery
+        ariaLabel="桁架工程图类型"
+        compact={compact}
+        gridClassName={compact ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"}
+        metrics={TRUSS_DIAGRAM_METRICS}
+        selectedKey={selectedMetricKey}
+        selectedMetric={selectedMetric}
+        onSelect={(key) => setSelectedMetricState(key)}
+        renderMetric={(metric) => (
           <TrussResultDiagrams key={metric.key} truss={truss} compact={compact} metricKey={metric.key} showMetricTabs={false} heading={metric.title} />
-        ))}
-      </div>
+        )}
+      />
     );
   }
 

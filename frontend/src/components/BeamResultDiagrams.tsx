@@ -11,7 +11,7 @@ import {
 } from "../lib/diagram-label-layout";
 import { formatEngineeringValue } from "../lib/engineering-format";
 import { sensitivityResponseMetricLabel } from "../lib/result-metrics";
-import { ResultDiagramCard, ResultDiagramEmptyState, ResultDiagramMetricBadge, ResultDiagramMetricTabs } from "./ResultDiagramLayout";
+import { ResultDiagramCard, ResultDiagramEmptyState, ResultDiagramMetricBadge, ResultDiagramMetricGallery } from "./ResultDiagramLayout";
 
 interface BeamDiagramMetric {
   key: BeamDiagramMetricKey;
@@ -348,21 +348,19 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
   const extreme = diagram.extreme;
 
   if (showMetricTabs) {
-    const visibleMetrics = selectedMetricKey === "all" ? BEAM_DIAGRAM_METRICS : [selectedMetric];
     return (
-      <div className="space-y-3">
-        <ResultDiagramMetricTabs
-          ariaLabel="梁系工程图类型"
-          compact={compact}
-          gridClassName={compact ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-4"}
-          metrics={BEAM_DIAGRAM_METRICS}
-          selectedKey={selectedMetricKey}
-          onSelect={(key) => setSelectedMetricState(key)}
-        />
-        {visibleMetrics.map((metric) => (
+      <ResultDiagramMetricGallery
+        ariaLabel="梁系工程图类型"
+        compact={compact}
+        gridClassName={compact ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-4"}
+        metrics={BEAM_DIAGRAM_METRICS}
+        selectedKey={selectedMetricKey}
+        selectedMetric={selectedMetric}
+        onSelect={(key) => setSelectedMetricState(key)}
+        renderMetric={(metric) => (
           <BeamResultDiagrams key={metric.key} results={results} compact={compact} metricKey={metric.key} showMetricTabs={false} heading={metric.title} />
-        ))}
-      </div>
+        )}
+      />
     );
   }
 
