@@ -1,19 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ChangeEvent as ReactChangeEvent, CSSProperties, Dispatch, PointerEvent as ReactPointerEvent, SetStateAction } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import {
-  BookOpenCheck,
-  FileDown,
   FileJson,
-  FilePlus,
-  FileUp,
   GripVertical,
-  MoreHorizontal,
   PanelLeftClose,
   PanelLeftOpen,
-  Save,
-  Settings,
-  Moon,
-  Sun,
   X,
 } from "lucide-react";
 import { BeamForm } from "./components/BeamForm";
@@ -26,6 +17,7 @@ import { ProjectTreePanel } from "./components/ProjectTreePanel";
 import { ProjectInfoDialog } from "./components/ProjectInfoDialog";
 import { PublicExamplesDialog } from "./components/PublicExamplesDialog";
 import { BenchmarkSubmissionPackagePanel } from "./components/BenchmarkSubmissionPackagePanel";
+import { AppHeader } from "./components/AppHeader";
 import { WorkbenchInspectorPanel } from "./components/WorkbenchInspectorPanel";
 import { WorkbenchModelCanvas } from "./components/WorkbenchModelCanvas";
 import { WorkbenchResultTabs } from "./components/WorkbenchResultTabs";
@@ -33,62 +25,23 @@ import { WorkbenchSensitivityPanel } from "./components/WorkbenchSensitivityPane
 import { WorkbenchViewTabs } from "./components/WorkbenchViewTabs";
 import { GlassCard } from "./components/ui/GlassCard";
 import { Button } from "./components/ui/button";
-import { useMediaQuery } from "./hooks/useMediaQuery";
 import { useTemplateLibrary } from "./hooks/useTemplateLibrary";
-import type { WorkspaceState } from "./lib/workspace-state";
 import { createWorkspaceSnapshot, restoreWorkspaceSnapshot } from "./lib/template-library";
-import {
-  addAnalysisObjectToProject,
-  createDefaultSolverProject,
-  createWorkspaceFromProject,
-  getActiveAnalysisObject,
-  removeAnalysisObjectFromProject,
-  normalizeProjectInfo,
-  normalizeSolverProject,
-  setActiveAnalysisObject,
-  updateActiveAnalysisObject,
-  updateActiveAnalysisObjectWorkspace,
-  type AnalysisObject,
-  type AnalysisObjectType,
-  type ProjectInfo,
-  type SolverProject,
-  type WorkbenchView,
-} from "./lib/solver-project";
-import { normalizeReportExportOptions, type ReportExportOptions } from "./lib/report-options";
+import type { ProjectInfo } from "./lib/solver-project";
 import { moduleSectionsForMode, objectNavigatorSectionId } from "./lib/workbench-navigation";
-import { buildBeamPayload, buildFramePayload, buildTrussPayload, validateCustomFrameWorkspace, validateCustomTrussWorkspace } from "./solver-payload";
-import {
-  ARCHSIGHT_SOLVER_PROJECT_ACCEPT,
-  createArchSightSolverProjectFile,
-  getArchSightSolverProjectFileName,
-  isFilePickerAbort,
-  openArchSightSolverProjectFileWithPicker,
-  readArchSightSolverProjectFile,
-  saveArchSightSolverProjectFile,
-  supportsNativeProjectFiles,
-  type ProjectFileHandle,
-} from "./lib/project-file";
-import type { ModelPreviewStyle, ProjectTemplate, SensitivityResults } from "./types/beam";
+import { ARCHSIGHT_SOLVER_PROJECT_ACCEPT } from "./lib/project-file";
+import type { ProjectTemplate } from "./types/beam";
 import type { BeamWorkbenchSelection, FrameWorkbenchSelection, TrussWorkbenchSelection, WorkbenchSelection, WorkbenchSelectionOptions } from "./types/workbench-selection";
 import type { TemplateActionResult } from "./lib/template-library";
 import { useWorkbenchSession } from "./hooks/useWorkbenchSession";
-import { useWorkbenchActions, type AnalysisResults } from "./hooks/useWorkbenchActions";
-import { beamResultForView, frameResultForView, trussResultForView } from "./lib/api-envelope";
-import { APP_VERSION, BUSUANZI_VISIT_STATS_ENABLED, loadBusuanziVisitStats } from "./lib/app-metadata";
+import { useAnalysisObjectManager } from "./hooks/useAnalysisObjectManager";
+import { useProjectFileActions } from "./hooks/useProjectFileActions";
+import { useResizableWorkbenchLayout } from "./hooks/useResizableWorkbenchLayout";
+import { createInitialSolverProject, useSolverProjectDocument } from "./hooks/useSolverProjectDocument";
+import { useVisitStats } from "./hooks/useVisitStats";
+import { useWorkbenchRuntime } from "./hooks/useWorkbenchRuntime";
+import { APP_VERSION, BUSUANZI_VISIT_STATS_ENABLED } from "./lib/app-metadata";
 
-const INSPECTOR_WIDTH_STORAGE_KEY = "archsight.inspectorWidth";
-const INSPECTOR_COLLAPSED_STORAGE_KEY = "archsight.inspectorCollapsed";
-const DEFAULT_INSPECTOR_WIDTH = 400;
-const MIN_INSPECTOR_WIDTH = 360;
-const MAX_INSPECTOR_WIDTH = 680;
-const MODULE_NAV_WIDTH_STORAGE_KEY = "archsight.moduleNavWidth";
-const MODULE_NAV_COLLAPSED_STORAGE_KEY = "archsight.moduleNavCollapsed";
-const DEFAULT_MODULE_NAV_WIDTH = 248;
-const MIN_MODULE_NAV_WIDTH = 232;
-const MAX_MODULE_NAV_VIEWPORT_RATIO = 1 / 3;
-const COLLAPSED_MODULE_NAV_WIDTH = 76;
-const COLLAPSED_INSPECTOR_WIDTH = 68;
-const SETTINGS_PANEL_WIDTH = 360;
 const HIDDEN_VISIT_STATS_STYLE = {
   position: "absolute",
   width: "1px",
@@ -99,204 +52,87 @@ const HIDDEN_VISIT_STATS_STYLE = {
 } satisfies CSSProperties;
 const RELEASE_NOTES_HREF = "/docs/release-notes.html";
 const USER_MANUAL_HREF = "/docs/user-manual.html";
-const LEGACY_REPORT_EXPORT_OPTIONS_STORAGE_KEY = "archsight-solver.report-export-options";
-interface VisitStats {
-  pageViews: string;
-  uniqueVisitors: string;
-}
-
-function clampInspectorWidth(value: number) {
-  return Math.min(MAX_INSPECTOR_WIDTH, Math.max(MIN_INSPECTOR_WIDTH, value));
-}
-
-function maxModuleNavWidth() {
-  if (typeof window === "undefined") return DEFAULT_MODULE_NAV_WIDTH;
-  return Math.max(MIN_MODULE_NAV_WIDTH, Math.floor(window.innerWidth * MAX_MODULE_NAV_VIEWPORT_RATIO));
-}
-
-function clampModuleNavWidth(value: number) {
-  return Math.min(maxModuleNavWidth(), Math.max(MIN_MODULE_NAV_WIDTH, value));
-}
-
-function readStoredNumber(key: string) {
-  const stored = window.localStorage.getItem(key);
-  if (stored === null) return null;
-
-  const value = Number(stored);
-  return Number.isFinite(value) ? value : null;
-}
-
-function readLegacyReportExportOptions() {
-  try {
-    const raw = window.localStorage.getItem(LEGACY_REPORT_EXPORT_OPTIONS_STORAGE_KEY);
-    return raw ? normalizeReportExportOptions(JSON.parse(raw) as Partial<ReportExportOptions>) : normalizeReportExportOptions(null);
-  } catch {
-    return normalizeReportExportOptions(null);
-  }
-}
-
-const BENCHMARK_SUBMISSION_NEEDS_RESULT_REASON = "请先运行当前分析对象的结构计算，再生成验证投稿包。";
-
-function createInitialSolverProject(projectInfo?: Partial<ProjectInfo> | null) {
-  const project = projectInfo ? createDefaultSolverProject(projectInfo) : createDefaultSolverProject();
-  return normalizeSolverProject({
-    ...project,
-    settings: {
-      ...project.settings,
-      reportExportOptions: readLegacyReportExportOptions(),
-    },
-  });
-}
 
 function App() {
   const { isDark, setIsDark, clientId } = useWorkbenchSession();
   const [activeModuleSection, setActiveModuleSection] = useState("");
-  const [project, setProject] = useState<SolverProject>(() => createInitialSolverProject());
   const [workbenchSelection, setWorkbenchSelection] = useState<WorkbenchSelection | null>(null);
-  const [workbenchView, setWorkbenchView] = useState<WorkbenchView>("model");
   const [isNewAnalysisObjectDialogOpen, setIsNewAnalysisObjectDialogOpen] = useState(false);
   const [projectInfoDialogMode, setProjectInfoDialogMode] = useState<"create" | "edit" | null>(null);
-  const projectFileInputRef = useRef<HTMLInputElement | null>(null);
-  const fileMenuRef = useRef<HTMLDivElement | null>(null);
-  const skipNextRuntimePersistRef = useRef(true);
-  const lastRuntimePersistRef = useRef<{
-    analysisData: AnalysisResults;
-    sensitivityData: SensitivityResults | null;
-    workbenchView: WorkbenchView;
-  }>({ analysisData: null, sensitivityData: null, workbenchView: "model" });
-  const [projectFileHandle, setProjectFileHandle] = useState<ProjectFileHandle | null>(null);
-  const [projectFileName, setProjectFileName] = useState<string | null>(null);
-  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
-  const [isProjectDirty, setIsProjectDirty] = useState(false);
-  const [fileStatusMessage, setFileStatusMessage] = useState<string | null>(null);
-  const [inspectorWidth, setInspectorWidth] = useState(() => {
-    const stored = readStoredNumber(INSPECTOR_WIDTH_STORAGE_KEY);
-    return stored === null ? DEFAULT_INSPECTOR_WIDTH : clampInspectorWidth(stored);
-  });
-  const [isInspectorCollapsed, setIsInspectorCollapsed] = useState(
-    () => window.localStorage.getItem(INSPECTOR_COLLAPSED_STORAGE_KEY) === "true"
-  );
-  const [moduleNavWidth, setModuleNavWidth] = useState(() => {
-    const stored = readStoredNumber(MODULE_NAV_WIDTH_STORAGE_KEY);
-    return stored === null ? DEFAULT_MODULE_NAV_WIDTH : clampModuleNavWidth(stored);
-  });
-  const [isModuleNavCollapsed, setIsModuleNavCollapsed] = useState(
-    () => window.localStorage.getItem(MODULE_NAV_COLLAPSED_STORAGE_KEY) === "true"
-  );
   const [isSystemSettingsOpen, setIsSystemSettingsOpen] = useState(false);
-  const isCompactWorkbench = useMediaQuery("(max-width: 1023px)");
-  const isWideWorkbench = useMediaQuery("(min-width: 1280px)");
-  const showInspectorCollapsed = isWideWorkbench && isInspectorCollapsed;
-  const isSystemSettingsDocked = isSystemSettingsOpen && isWideWorkbench;
-  const effectiveInspectorWidth = isSystemSettingsDocked ? Math.min(inspectorWidth, DEFAULT_INSPECTOR_WIDTH) : inspectorWidth;
-  const workspace = useMemo(() => createWorkspaceFromProject(project), [project]);
-  const activeAnalysisObject = useMemo(() => getActiveAnalysisObject(project), [project]);
-  const setCompactWorkbenchView = (view: "parameters" | "results") => {
-    setWorkbenchView(view === "results" ? "results" : "model");
-  };
-  const updateWorkspace: Dispatch<SetStateAction<WorkspaceState>> = useCallback((next) => {
-    setLastSavedAt(null);
-    setIsProjectDirty(true);
-    setProject((current) => {
-      const currentWorkspace = createWorkspaceFromProject(current);
-      const nextWorkspace = typeof next === "function" ? next(currentWorkspace) : next;
-      return updateActiveAnalysisObjectWorkspace(current, nextWorkspace);
-    });
-  }, []);
-  const reportExportOptions = project.settings.reportExportOptions;
-  const setReportExportOptions = useCallback((options: ReportExportOptions) => {
-    setLastSavedAt(null);
-    setIsProjectDirty(true);
-    setProject((current) => normalizeSolverProject({
-      ...current,
-      settings: {
-        ...current.settings,
-        reportExportOptions: options,
-      },
-      updatedAt: new Date().toISOString(),
-    }));
-  }, []);
-  const setModelPreviewStyle = useCallback((style: ModelPreviewStyle) => {
-    setLastSavedAt(null);
-    setIsProjectDirty(true);
-    setProject((current) => normalizeSolverProject({
-      ...current,
-      settings: {
-        ...current.settings,
-        modelPreviewStyle: style,
-      },
-      updatedAt: new Date().toISOString(),
-    }));
-  }, []);
-
-  const {
-    analysisData,
-    setAnalysisData,
-    sensitivityData,
-    setSensitivityData,
-    isSolving,
-    isScanning,
-    exportingFormat,
-    handleRunCurrentModule,
-    handleSensitivity,
-    handleExport,
-  } = useWorkbenchActions(
-    workspace,
-    updateWorkspace,
-    setCompactWorkbenchView,
-    clientId,
-    reportExportOptions,
-    project.settings.projectInfo.name,
-    activeAnalysisObject.benchmark
-  );
-
-  useEffect(() => {
-    const previousRuntime = lastRuntimePersistRef.current;
-    const isSameRuntime =
-      previousRuntime.analysisData === analysisData &&
-      previousRuntime.sensitivityData === sensitivityData &&
-      previousRuntime.workbenchView === workbenchView;
-
-    if (skipNextRuntimePersistRef.current) {
-      skipNextRuntimePersistRef.current = false;
-      lastRuntimePersistRef.current = { analysisData, sensitivityData, workbenchView };
-      return;
-    }
-    if (isSameRuntime) {
-      return;
-    }
-    lastRuntimePersistRef.current = { analysisData, sensitivityData, workbenchView };
-    setProject((current) => updateActiveAnalysisObject(current, (object) => ({
-      ...object,
-      results: analysisData,
-      sensitivityResults: sensitivityData,
-      workbenchView,
-    })));
-    setLastSavedAt(null);
-    setIsProjectDirty(true);
-  }, [analysisData, sensitivityData, workbenchView]);
-
-  const syncRuntimeFromAnalysisObject = useCallback((object: AnalysisObject) => {
-    skipNextRuntimePersistRef.current = true;
-    setAnalysisData(object.results);
-    setSensitivityData(object.sensitivityResults);
-    setWorkbenchView(object.workbenchView);
-    setWorkbenchSelection(null);
-    setActiveModuleSection("");
-  }, [setAnalysisData, setSensitivityData]);
-
-  const applyCurrentRuntimeToProject = useCallback((sourceProject: SolverProject) => updateActiveAnalysisObject(sourceProject, (object) => ({
-    ...object,
-    results: analysisData,
-    sensitivityResults: sensitivityData,
-    workbenchView,
-  })), [analysisData, sensitivityData, workbenchView]);
-
   const [isTemplateLibraryOpen, setIsTemplateLibraryOpen] = useState(false);
   const [isPublicExamplesOpen, setIsPublicExamplesOpen] = useState(false);
   const [isBenchmarkSubmissionOpen, setIsBenchmarkSubmissionOpen] = useState(false);
   const [isFileMenuOpen, setIsFileMenuOpen] = useState(false);
-  const [visitStats, setVisitStats] = useState<VisitStats>({ pageViews: "", uniqueVisitors: "" });
+  const fileMenuRef = useRef<HTMLDivElement | null>(null);
+  const {
+    activeAnalysisObject,
+    clearProjectFileLink,
+    fileStatusMessage,
+    isProjectDirty,
+    lastSavedAt,
+    markProjectDirty,
+    project,
+    projectFileHandle,
+    projectFileName,
+    replaceProject,
+    setFileStatusMessage,
+    setModelPreviewStyle,
+    setProject,
+    setReportExportOptions,
+    updateProjectInfo,
+    updateWorkspace,
+    workspace,
+  } = useSolverProjectDocument();
+  const reportExportOptions = project.settings.reportExportOptions;
+  const {
+    handleInspectorResizeStart,
+    handleModuleNavResizeStart,
+    isCompactWorkbench,
+    isModuleNavCollapsed,
+    isSystemSettingsDocked,
+    setIsInspectorCollapsed,
+    setIsModuleNavCollapsed,
+    showInspectorCollapsed,
+    workbenchGridStyle,
+  } = useResizableWorkbenchLayout(isSystemSettingsOpen);
+  const resetWorkbenchContext = useCallback(() => {
+    setWorkbenchSelection(null);
+    setActiveModuleSection("");
+  }, []);
+  const visitStats = useVisitStats();
+  const {
+    applyCurrentRuntimeToProject,
+    beamResults,
+    benchmarkSubmissionContext,
+    clearCurrentAnalysisRuntime,
+    exportingFormat,
+    frameResults,
+    handleExport,
+    handleRunAndReview,
+    handleRunCurrentModule,
+    handleSensitivity,
+    isScanning,
+    isSolving,
+    markRuntimePersisted,
+    resetRuntimeForNewAnalysisObject,
+    runLabel,
+    sensitivityData,
+    syncRuntimeFromAnalysisObject,
+    trussResults,
+    workbenchView,
+    setWorkbenchView,
+  } = useWorkbenchRuntime({
+    activeAnalysisObject,
+    clientId,
+    markProjectDirty,
+    projectName: project.settings.projectInfo.name,
+    reportExportOptions,
+    resetWorkbenchContext,
+    setProject,
+    updateWorkspace,
+    workspace,
+  });
   
   const {
     templates,
@@ -307,107 +143,6 @@ function App() {
     deleteTemplate,
     setBaselineTemplate,
   } = useTemplateLibrary();
-  
-  useEffect(() => {
-    window.localStorage.setItem(INSPECTOR_WIDTH_STORAGE_KEY, String(inspectorWidth));
-  }, [inspectorWidth]);
-
-  useEffect(() => {
-    window.localStorage.setItem(INSPECTOR_COLLAPSED_STORAGE_KEY, String(isInspectorCollapsed));
-  }, [isInspectorCollapsed]);
-
-  useEffect(() => {
-    window.localStorage.setItem(MODULE_NAV_WIDTH_STORAGE_KEY, String(moduleNavWidth));
-  }, [moduleNavWidth]);
-
-  useEffect(() => {
-    window.localStorage.setItem(MODULE_NAV_COLLAPSED_STORAGE_KEY, String(isModuleNavCollapsed));
-  }, [isModuleNavCollapsed]);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setModuleNavWidth((current) => clampModuleNavWidth(current));
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  useEffect(() => {
-    if (!BUSUANZI_VISIT_STATS_ENABLED) return;
-
-    const syncVisitStats = () => {
-      const pageViews = document.getElementById("busuanzi_value_site_pv")?.textContent?.trim() || "";
-      const uniqueVisitors = document.getElementById("busuanzi_value_site_uv")?.textContent?.trim() || "";
-      setVisitStats({ pageViews, uniqueVisitors });
-    };
-
-    const observer = new window.MutationObserver(syncVisitStats);
-    const observedNodes = [
-      document.getElementById("busuanzi_value_site_pv"),
-      document.getElementById("busuanzi_value_site_uv"),
-    ].filter((node): node is HTMLElement => Boolean(node));
-
-    observedNodes.forEach((node) => observer.observe(node, { childList: true, characterData: true, subtree: true }));
-    syncVisitStats();
-    loadBusuanziVisitStats();
-
-    const fallbackTimer = window.setTimeout(syncVisitStats, 2500);
-    return () => {
-      observer.disconnect();
-      window.clearTimeout(fallbackTimer);
-    };
-  }, []);
-
-  const handleModuleNavResizeStart = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (isCompactWorkbench || isModuleNavCollapsed) return;
-    event.preventDefault();
-
-    const startX = event.clientX;
-    const startWidth = moduleNavWidth;
-    const previousCursor = document.body.style.cursor;
-    const previousUserSelect = document.body.style.userSelect;
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-
-    const handlePointerMove = (moveEvent: PointerEvent) => {
-      setModuleNavWidth(clampModuleNavWidth(startWidth + moveEvent.clientX - startX));
-    };
-    const handlePointerUp = () => {
-      document.body.style.cursor = previousCursor;
-      document.body.style.userSelect = previousUserSelect;
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", handlePointerUp);
-    };
-
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handlePointerUp);
-  };
-
-  const handleInspectorResizeStart = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (isCompactWorkbench || showInspectorCollapsed) return;
-    event.preventDefault();
-
-    const startX = event.clientX;
-    const startWidth = inspectorWidth;
-    const previousCursor = document.body.style.cursor;
-    const previousUserSelect = document.body.style.userSelect;
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-
-    const handlePointerMove = (moveEvent: PointerEvent) => {
-      setInspectorWidth(clampInspectorWidth(startWidth + startX - moveEvent.clientX));
-    };
-    const handlePointerUp = () => {
-      document.body.style.cursor = previousCursor;
-      document.body.style.userSelect = previousUserSelect;
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", handlePointerUp);
-    };
-
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handlePointerUp);
-  };
 
   useEffect(() => {
     if (!isTemplateLibraryOpen && !isSystemSettingsOpen && !isNewAnalysisObjectDialogOpen && !isPublicExamplesOpen && !isBenchmarkSubmissionOpen && projectInfoDialogMode === null) {
@@ -475,41 +210,6 @@ function App() {
   const analysisMode = workspace.analysisMode;
   const moduleSections = moduleSectionsForMode(analysisMode);
 
-  const frameResults = useMemo(() => frameResultForView(analysisData), [analysisData]);
-  const trussResults = useMemo(() => trussResultForView(analysisData), [analysisData]);
-  const beamResults = useMemo(() => beamResultForView(analysisData), [analysisData]);
-  const benchmarkSubmissionContext = useMemo(() => {
-    if (analysisMode === "frame") {
-      const disabledReason = validateCustomFrameWorkspace(workspace.frame);
-      const payload = disabledReason ? null : buildFramePayload(workspace.frame);
-      return {
-        category: "frame" as const,
-        payload,
-        calculationResult: frameResults,
-        disabledReason: disabledReason ?? (frameResults ? null : BENCHMARK_SUBMISSION_NEEDS_RESULT_REASON),
-        objectName: activeAnalysisObject.name,
-      };
-    }
-    if (analysisMode === "truss") {
-      const disabledReason = validateCustomTrussWorkspace(workspace.truss);
-      const payload = disabledReason ? null : buildTrussPayload(workspace.truss);
-      return {
-        category: "truss" as const,
-        payload,
-        calculationResult: trussResults,
-        disabledReason: disabledReason ?? (trussResults ? null : BENCHMARK_SUBMISSION_NEEDS_RESULT_REASON),
-        objectName: activeAnalysisObject.name,
-      };
-    }
-    const payload = buildBeamPayload(workspace.beam);
-    return {
-      category: "beam" as const,
-      payload,
-      calculationResult: beamResults,
-      disabledReason: beamResults ? null : BENCHMARK_SUBMISSION_NEEDS_RESULT_REASON,
-      objectName: activeAnalysisObject.name,
-    };
-  }, [activeAnalysisObject.name, analysisMode, beamResults, frameResults, trussResults, workspace.beam, workspace.frame, workspace.truss]);
   const activeModuleSectionId = moduleSections.some((item) => item.id === activeModuleSection)
     ? activeModuleSection
     : moduleSections[0]?.id ?? "";
@@ -517,137 +217,47 @@ function App() {
   const handleRestoreTemplate = (template: ProjectTemplate): TemplateActionResult<void> => {
     const restoredWorkspace = restoreWorkspaceSnapshot(template.snapshot);
     updateWorkspace(restoredWorkspace);
-    setProjectFileHandle(null);
-    setProjectFileName(null);
-    setFileStatusMessage(`已恢复模板：${template.name}`);
-    setWorkbenchSelection(null);
-    setAnalysisData(null);
-    setSensitivityData(null);
-    setWorkbenchView("model");
+    clearProjectFileLink(`已恢复模板：${template.name}`);
+    clearCurrentAnalysisRuntime();
     return { ok: true };
   };
 
-  const confirmDiscardUnsavedChanges = () =>
-    !isProjectDirty || window.confirm("当前项目有未保存更改。继续操作会放弃这些更改，是否继续？");
-
-  const replaceProject = (nextProject: SolverProject, fileName: string | null, handle: ProjectFileHandle | null, savedAt: string | null, message: string) => {
-    setProject(nextProject);
-    setProjectFileHandle(handle);
-    setProjectFileName(fileName);
-    setLastSavedAt(savedAt);
-    setIsProjectDirty(false);
-    setFileStatusMessage(message);
-    syncRuntimeFromAnalysisObject(getActiveAnalysisObject(nextProject));
-  };
-
-  const handleNewProjectFile = () => {
-    if (!confirmDiscardUnsavedChanges()) return;
-    setProjectInfoDialogMode("create");
-  };
-
-  const handleSaveProjectFile = async (forceSaveAs = false) => {
-    try {
-      const savedProject = applyCurrentRuntimeToProject(project);
-      const projectFile = createArchSightSolverProjectFile(savedProject);
-      const result = await saveArchSightSolverProjectFile(projectFile, projectFileHandle, forceSaveAs);
-      skipNextRuntimePersistRef.current = true;
-      lastRuntimePersistRef.current = { analysisData, sensitivityData, workbenchView };
-      setProject(savedProject);
-      setProjectFileHandle(result.handle);
-      setProjectFileName(result.fileName);
-      setLastSavedAt(result.savedAt);
-      setIsProjectDirty(false);
-      setFileStatusMessage(result.mode === "download" ? `已下载导出：${result.fileName}` : `${forceSaveAs ? "保存副本" : "保存"}成功：${result.fileName}`);
-    } catch (error) {
-      if (isFilePickerAbort(error)) return;
-      alert(`项目文件保存失败：${error instanceof Error ? error.message : "未知错误"}`);
-    }
-  };
-
-  const handleOpenProjectFile = () => {
-    if (!confirmDiscardUnsavedChanges()) return;
-    if (!supportsNativeProjectFiles()) {
-      projectFileInputRef.current?.click();
-      return;
-    }
-
-    void (async () => {
-      try {
-        const { projectFile, handle, fileName } = await openArchSightSolverProjectFileWithPicker();
-        replaceProject(projectFile.project, fileName, handle, projectFile.updatedAt, `已打开：${fileName}`);
-      } catch (error) {
-        if (isFilePickerAbort(error)) return;
-        alert(`项目文件读取失败：${error instanceof Error ? error.message : "未知错误"}`);
-      }
-    })();
-  };
-  const handleOpenPublicExampleProject = (nextProject: SolverProject, title: string) => {
-    if (!confirmDiscardUnsavedChanges()) return;
-    const normalizedProject = normalizeSolverProject(nextProject);
-    replaceProject(normalizedProject, null, null, normalizedProject.updatedAt, `已打开公开验证工程：${title}`);
-    setIsPublicExamplesOpen(false);
-    setWorkbenchSelection(null);
-    setActiveModuleSection("");
-  };
-
-  const handleProjectFileChange = async (event: ReactChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) {
-      return;
-    }
-
-    try {
-      const projectFile = await readArchSightSolverProjectFile(file);
-      const fileName = file.name || getArchSightSolverProjectFileName(projectFile.project);
-      replaceProject(projectFile.project, fileName, null, projectFile.updatedAt, `已打开：${fileName}`);
-    } catch (error) {
-      alert(`项目文件读取失败：${error instanceof Error ? error.message : "未知错误"}`);
-    }
-  };
-
-  const runLabel = isSolving ? "计算中..." : analysisMode === "frame" ? "运行平面框架计算" : analysisMode === "truss" ? "运行平面桁架计算" : "运行连续梁计算";
+  const {
+    handleNewProjectFile,
+    handleOpenProjectFile,
+    handleOpenPublicExampleProject,
+    handleProjectFileChange,
+    handleSaveProjectFile,
+    projectFileInputRef,
+  } = useProjectFileActions({
+    applyCurrentRuntimeToProject,
+    isProjectDirty,
+    markRuntimePersisted,
+    onNewProjectRequested: () => setProjectInfoDialogMode("create"),
+    onProjectOpened: resetWorkbenchContext,
+    onPublicExampleClosed: () => setIsPublicExamplesOpen(false),
+    project,
+    projectFileHandle,
+    replaceProject,
+    syncRuntimeFromAnalysisObject,
+  });
+  const {
+    handleCreateAnalysisObject,
+    handleRemoveAnalysisObject,
+    handleSelectAnalysisObject,
+    objectCountByType,
+  } = useAnalysisObjectManager({
+    applyCurrentRuntimeToProject,
+    markProjectDirty,
+    onCreatedDialogClose: () => setIsNewAnalysisObjectDialogOpen(false),
+    project,
+    resetRuntimeForNewAnalysisObject,
+    setFileStatusMessage,
+    setProject,
+    syncRuntimeFromAnalysisObject,
+  });
   const fileDisplayName = projectFileName ?? "未选择文件";
   const fileStateLabel = isProjectDirty ? "未保存" : lastSavedAt ? "已保存" : "新建项目";
-  const objectCountByType = useMemo(() => ({
-    beam: project.objects.filter((object) => object.type === "beam").length,
-    frame: project.objects.filter((object) => object.type === "frame").length,
-    truss: project.objects.filter((object) => object.type === "truss").length,
-  }), [project.objects]);
-  const handleSelectAnalysisObject = (objectId: string) => {
-    if (objectId === project.activeObjectId) return;
-    const nextProject = setActiveAnalysisObject(applyCurrentRuntimeToProject(project), objectId);
-    setProject(nextProject);
-    syncRuntimeFromAnalysisObject(getActiveAnalysisObject(nextProject));
-  };
-  const handleCreateAnalysisObject = (type: AnalysisObjectType, name: string) => {
-    const nextProject = addAnalysisObjectToProject(applyCurrentRuntimeToProject(project), type, name);
-    setProject(nextProject);
-    skipNextRuntimePersistRef.current = true;
-    setAnalysisData(null);
-    setSensitivityData(null);
-    setWorkbenchView("model");
-    setWorkbenchSelection(null);
-    setActiveModuleSection("");
-    setIsProjectDirty(true);
-    setLastSavedAt(null);
-    setFileStatusMessage(`已新建分析对象：${name}`);
-    setIsNewAnalysisObjectDialogOpen(false);
-  };
-  const handleRemoveAnalysisObject = (objectId: string) => {
-    if (project.objects.length <= 1) return;
-    if (!window.confirm("删除该分析对象会同时移除其输入与计算结果，是否继续？")) return;
-    const nextProject = removeAnalysisObjectFromProject(applyCurrentRuntimeToProject(project), objectId);
-    setProject(nextProject);
-    syncRuntimeFromAnalysisObject(getActiveAnalysisObject(nextProject));
-    setIsProjectDirty(true);
-    setLastSavedAt(null);
-    setFileStatusMessage("已删除分析对象");
-  };
-  const handleRunAndReview = () => {
-    setWorkbenchView("results");
-    handleRunCurrentModule();
-  };
   const handleWorkbenchSelectionChange = (next: WorkbenchSelection, options?: WorkbenchSelectionOptions) => {
     setWorkbenchSelection(next);
     if (options?.openEditor === false) {
@@ -658,26 +268,13 @@ function App() {
       setActiveModuleSection(selectedEditorId);
     }
   };
-  const handleProjectInfoChange = (next: ProjectInfo) => {
-    const normalizedProjectInfo = normalizeProjectInfo(next);
-    setLastSavedAt(null);
-    setIsProjectDirty(true);
-    setProject((current) => normalizeSolverProject({
-      ...current,
-      name: normalizedProjectInfo.name,
-      settings: {
-        ...current.settings,
-        projectInfo: normalizedProjectInfo,
-      },
-      updatedAt: new Date().toISOString(),
-    }));
-  };
   const handleCreateProjectWithInfo = (next: ProjectInfo) => {
     replaceProject(createInitialSolverProject(next), null, null, null, "新建项目");
+    resetRuntimeForNewAnalysisObject();
     setProjectInfoDialogMode(null);
   };
   const handleUpdateProjectInfo = (next: ProjectInfo) => {
-    handleProjectInfoChange(next);
+    updateProjectInfo(next);
     setProjectInfoDialogMode(null);
     setFileStatusMessage("已更新工程信息");
   };
@@ -723,160 +320,31 @@ function App() {
       <div className="fixed inset-0 pointer-events-none opacity-[0.02] dark:opacity-[0.08] [background-image:linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] [background-size:32px_32px]" />
       <div className="fixed top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
 
-      <header className="sticky top-0 z-30 border-b border-white/8 bg-background/85 backdrop-blur-2xl">
-        <div className="mx-auto max-w-[118rem] px-4 py-2.5 sm:px-6 sm:py-3">
-          <div className={`grid xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center ${isCompactWorkbench ? "gap-3" : "gap-4"}`}>
-            <div>
-              <div className="flex flex-wrap items-end">
-                <h1 className={`font-heading font-extrabold leading-tight tracking-tight ${isCompactWorkbench ? "text-[1.25rem]" : "text-lg sm:text-xl md:text-2xl"}`}>
-                  ArchSight 结构力学求解器
-                </h1>
-                <a
-                  className="ml-2 mb-1 rounded-full border border-sky-400/30 bg-sky-400/10 px-2.5 py-1 font-mono text-[11px] font-black text-sky-700 transition-colors hover:border-sky-400/60 hover:bg-sky-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70 dark:text-sky-200"
-                  href={RELEASE_NOTES_HREF}
-                  target="_blank"
-                  rel="noreferrer"
-                  title="查看版本发布记录"
-                >
-                  v{APP_VERSION}
-                </a>
-              </div>
-              <div
-                className="mt-2 flex max-w-full flex-wrap items-center gap-2 text-xs font-bold text-muted-foreground"
-                title={fileDisplayName}
-              >
-                <span className="max-w-[18rem] truncate rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1">
-                  {fileDisplayName}
-                </span>
-                <span className={`rounded-lg border px-2.5 py-1 ${isProjectDirty ? "border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-300" : "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"}`}>
-                  {fileStateLabel}
-                </span>
-                {fileStatusMessage ? <span className="truncate opacity-75">{fileStatusMessage}</span> : null}
-              </div>
-            </div>
-
-            <div className={`flex flex-wrap items-center justify-start xl:justify-end ${isCompactWorkbench ? "gap-2" : "gap-3"}`}>
-              <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.035] p-1 shadow-sm shadow-black/5 dark:bg-white/[0.025]">
-                <Button
-                  variant="ghost"
-                  onClick={handleNewProjectFile}
-                  className={`rounded-lg font-bold text-foreground hover:bg-primary/10 ${isCompactWorkbench ? "h-9 px-3 text-xs" : "h-10 px-3.5"}`}
-                >
-                  <FilePlus className={`mr-2 ${isCompactWorkbench ? "h-3.5 w-3.5" : "h-4 w-4"}`} />
-                  新建
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={handleOpenProjectFile}
-                  className={`rounded-lg font-bold text-foreground hover:bg-primary/10 ${isCompactWorkbench ? "h-9 px-3 text-xs" : "h-10 px-3.5"}`}
-                >
-                  <FileUp className={`mr-2 ${isCompactWorkbench ? "h-3.5 w-3.5" : "h-4 w-4"}`} />
-                  打开
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => void handleSaveProjectFile(false)}
-                  className={`rounded-lg font-bold text-foreground hover:bg-primary/10 ${isCompactWorkbench ? "h-9 px-3 text-xs" : "h-10 px-3.5"}`}
-                >
-                  <Save className={`mr-2 ${isCompactWorkbench ? "h-3.5 w-3.5" : "h-4 w-4"}`} />
-                  保存
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => setIsPublicExamplesOpen(true)}
-                  className={`rounded-lg font-bold text-foreground hover:bg-primary/10 ${isCompactWorkbench ? "h-9 px-3 text-xs" : "h-10 px-3.5"}`}
-                >
-                  <BookOpenCheck className={`mr-2 ${isCompactWorkbench ? "h-3.5 w-3.5" : "h-4 w-4"}`} />
-                  公开案例
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => setIsBenchmarkSubmissionOpen(true)}
-                  className={`rounded-lg font-bold text-foreground hover:bg-primary/10 ${isCompactWorkbench ? "h-9 px-3 text-xs" : "h-10 px-3.5"}`}
-                >
-                  <FileJson className={`mr-2 ${isCompactWorkbench ? "h-3.5 w-3.5" : "h-4 w-4"}`} />
-                  验证投稿
-                </Button>
-                <div ref={fileMenuRef} className="relative">
-                  <Button
-                    variant="ghost"
-                    onClick={() => setIsFileMenuOpen((current) => !current)}
-                    aria-haspopup="menu"
-                    aria-expanded={isFileMenuOpen}
-                    aria-label="更多文件操作"
-                    title="更多文件操作"
-                    className={`rounded-lg font-bold text-foreground hover:bg-primary/10 ${isCompactWorkbench ? "h-9 px-2.5" : "h-10 px-3"}`}
-                  >
-                    <MoreHorizontal className={isCompactWorkbench ? "h-4 w-4" : "h-5 w-5"} />
-                    <span className="sr-only">更多文件操作</span>
-                  </Button>
-                  {isFileMenuOpen ? (
-                    <div
-                      role="menu"
-                      className="absolute right-0 top-[calc(100%+0.45rem)] z-50 w-52 rounded-lg border border-slate-300 bg-white p-1.5 text-slate-950 shadow-2xl shadow-slate-950/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-50"
-                    >
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => {
-                          setIsFileMenuOpen(false);
-                          void handleSaveProjectFile(true);
-                        }}
-                        className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 dark:hover:bg-slate-900"
-                      >
-                        <FileDown className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-300" />
-                        <span className="min-w-0">
-                          <span className="block text-sm font-black">保存副本</span>
-                          <span className="block truncate text-[11px] font-bold text-slate-500 dark:text-slate-400">另存为项目文件</span>
-                        </span>
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => setIsDark((current) => !current)}
-                aria-label={isDark ? "切换到浅色主题" : "切换到深色主题"}
-                title={isDark ? "切换到浅色主题" : "切换到深色主题"}
-                className={`rounded-lg border-white/10 bg-white/[0.03] font-bold text-foreground hover:bg-primary/5 ${isCompactWorkbench ? "h-10 px-3 text-xs" : "h-11 px-4"}`}
-              >
-                {isDark ? (
-                  <Sun className={`mr-2 text-amber-400 ${isCompactWorkbench ? "h-3.5 w-3.5" : "h-4 w-4"}`} />
-                ) : (
-                  <Moon className={`mr-2 text-blue-600 ${isCompactWorkbench ? "h-3.5 w-3.5" : "h-4 w-4"}`} />
-                )}
-                {isDark ? "浅色" : "深色"}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setIsSystemSettingsOpen(true)}
-                className={`rounded-lg border-white/10 bg-white/[0.03] font-bold text-foreground hover:bg-primary/5 ${isCompactWorkbench ? "h-10 px-3 text-xs" : "h-11 px-4"}`}
-              >
-                <Settings className={`mr-2 ${isCompactWorkbench ? "h-3.5 w-3.5" : "h-4 w-4"}`} />
-                系统设置
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <AppHeader
+        appVersion={APP_VERSION}
+        fileDisplayName={fileDisplayName}
+        fileMenuRef={fileMenuRef}
+        fileStateLabel={fileStateLabel}
+        fileStatusMessage={fileStatusMessage}
+        isCompactWorkbench={isCompactWorkbench}
+        isDark={isDark}
+        isFileMenuOpen={isFileMenuOpen}
+        isProjectDirty={isProjectDirty}
+        releaseNotesHref={RELEASE_NOTES_HREF}
+        onNewProjectFile={handleNewProjectFile}
+        onOpenBenchmarkSubmission={() => setIsBenchmarkSubmissionOpen(true)}
+        onOpenProjectFile={handleOpenProjectFile}
+        onOpenPublicExamples={() => setIsPublicExamplesOpen(true)}
+        onOpenSystemSettings={() => setIsSystemSettingsOpen(true)}
+        onSaveProjectFile={(forceSaveAs) => void handleSaveProjectFile(forceSaveAs)}
+        setIsDark={setIsDark}
+        setIsFileMenuOpen={setIsFileMenuOpen}
+      />
 
       <main className="relative z-10 mx-auto max-w-[118rem] px-4 pb-12 pt-4 sm:px-6 sm:pb-16 sm:pt-6">
         <div
           className="grid grid-cols-1 gap-5 xl:items-start"
-          style={
-            isCompactWorkbench
-              ? undefined
-              : !isWideWorkbench
-                ? undefined
-              : {
-                  gridTemplateColumns: `${
-                    isModuleNavCollapsed ? COLLAPSED_MODULE_NAV_WIDTH : moduleNavWidth
-                  }px minmax(0,1fr) ${showInspectorCollapsed ? COLLAPSED_INSPECTOR_WIDTH : effectiveInspectorWidth}px${
-                    isSystemSettingsDocked ? ` ${SETTINGS_PANEL_WIDTH}px` : ""
-                  }`,
-                }
-          }
+          style={workbenchGridStyle}
         >
           <aside className="relative hidden xl:block xl:sticky xl:top-24">
             <GlassCard className={`transition-all ${isModuleNavCollapsed ? "p-2" : "p-3"}`}>
