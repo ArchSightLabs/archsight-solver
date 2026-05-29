@@ -153,7 +153,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
   const spanDimensions = useMemo(
     () => buildBeamSpanDimensionSegments(beam?.spans ?? [], totalLength, BEAM_LEFT, BEAM_RIGHT, {
       memberIds: beam?.spanIds,
-      nodeIds: beam?.nodes?.map((node, index) => node.id ?? `N${index + 1}`),
+      nodeIds: beam?.nodes?.map((node, index) => node.id ?? `${index + 1}`),
     }),
     [beam?.nodes, beam?.spanIds, beam?.spans, totalLength],
   );
@@ -292,8 +292,9 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
             return (
               <g key={i}>
                 <circle cx={x} cy={BEAM_Y} r="4" fill={n.support ? "var(--structure-preview-node)" : "var(--structure-preview-guide)"} />
-                <text x={x + 7} y={BEAM_Y - 12} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="3" paintOrder="stroke" fontSize={compact ? "9" : "11"} fontWeight="600" fontFamily={svgTextFont}>
-                  {n.id ?? `N${i + 1}`}
+                <circle cx={x + 12} cy={BEAM_Y - 18} r={compact ? "7" : "8"} fill="var(--model-badge-fill)" stroke="var(--model-badge-stroke)" strokeWidth="1.3" />
+                <text x={x + 12} y={BEAM_Y - 18} fill="var(--model-badge-text)" textAnchor="middle" dominantBaseline="middle" fontSize={compact ? "8" : "9"} fontWeight="700" fontFamily={svgTextFont}>
+                  {n.id ?? `${i + 1}`}
                 </text>
               </g>
             );

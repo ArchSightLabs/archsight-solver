@@ -8,7 +8,7 @@ from backend.common.numbers import cumulative, round_list
 def build_preview_beam(solution: Dict[str, Any]) -> Dict[str, Any]:
     request = solution["request"]
     spans = request["spans"]
-    span_ids = request.get("span_ids") or [f"B{idx + 1}" for idx in range(len(spans))]
+    span_ids = request.get("span_ids") or [f"({idx + 1})" for idx in range(len(spans))]
     total_length = float(request["total_length"])
     support_positions = solution["support_positions"]
     support_specs = solution.get("support_specs", [])
@@ -30,12 +30,12 @@ def build_preview_beam(solution: Dict[str, Any]) -> Dict[str, Any]:
 
     nodes = []
     for idx, position in enumerate(round_list(cumulative(spans), 6)):
-        nodes.append({"index": idx, "id": labels[idx] if idx < len(labels) else f"N{idx + 1}", "x": float(position), "support": True})
+        nodes.append({"index": idx, "id": str(idx + 1), "x": float(position), "support": True})
 
     if request["beam_type"] == "cantilever":
-        nodes = [{"index": 0, "id": labels[0] if labels else "N1", "x": 0.0, "support": True}]
+        nodes = [{"index": 0, "id": "1", "x": 0.0, "support": True}]
         if total_length > 0:
-            nodes.append({"index": 1, "id": "N2", "x": float(total_length), "support": False})
+            nodes.append({"index": 1, "id": "2", "x": float(total_length), "support": False})
 
     loads: List[Dict[str, Any]] = []
     for load in solution.get("load_items", []):

@@ -20,7 +20,7 @@ export function formatBeamDimensionLength(value: number) {
 }
 
 function beamSpanMemberId(index: number) {
-  return `B${index + 1}`;
+  return `(${index + 1})`;
 }
 
 export function beamSpanLengthLabel(length: number) {
@@ -61,8 +61,8 @@ export function buildBeamSpanDimensionSegments(
     const start = cursor;
     const end = index === spans.length - 1 ? endX : start + width;
     const memberId = labels.memberIds?.[index]?.trim() || beamSpanMemberId(index);
-    const startNodeId = labels.nodeIds?.[index]?.trim() || `N${index + 1}`;
-    const endNodeId = labels.nodeIds?.[index + 1]?.trim() || `N${index + 2}`;
+    const startNodeId = labels.nodeIds?.[index]?.trim() || `${index + 1}`;
+    const endNodeId = labels.nodeIds?.[index + 1]?.trim() || `${index + 2}`;
     cursor = end;
     return {
       index,

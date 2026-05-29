@@ -298,7 +298,7 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
     const resultPoints: BeamResultSvgPoint[] = samples.map((point) => ({ x: mapX(point.x), y: BEAM_Y + valueToSvgOffset * point.value * offsetScale, value: point.value, stationM: point.x }));
     const spanDimensions = buildBeamSpanDimensionSegments(beam.spans, totalLength, BEAM_LEFT, BEAM_RIGHT, {
       memberIds: beam.spanIds,
-      nodeIds: beam.nodes?.map((node, nodeIndex) => node.id ?? `N${nodeIndex + 1}`),
+      nodeIds: beam.nodes?.map((node, nodeIndex) => node.id ?? `${nodeIndex + 1}`),
     });
     const spanDimensionLegendRows = buildBeamSpanDimensionLegendRows(spanDimensions, compact ? 310 : 420, compact ? 10 : 11);
     const extreme = resultPoints.reduce<{ x: number; y: number; value: number; stationM: number } | null>((current, point) => {
@@ -472,9 +472,18 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
             );
           })}
 
-          {beam.nodes.map((node) => (
-            <circle key={node.index} cx={diagram.mapX(node.x)} cy={BEAM_Y} r={NODE_RADIUS} fill={node.support ? "var(--structure-preview-node)" : "var(--structure-preview-guide)"} />
-          ))}
+          {beam.nodes.map((node) => {
+            const x = diagram.mapX(node.x);
+            return (
+              <g key={node.index}>
+                <circle cx={x} cy={BEAM_Y} r={NODE_RADIUS} fill={node.support ? "var(--structure-preview-node)" : "var(--structure-preview-guide)"} />
+                <circle cx={x + 10} cy={BEAM_Y - 16} r={compact ? "6.5" : "7.5"} fill="var(--model-badge-fill)" stroke="var(--model-badge-stroke)" strokeWidth="1.2" />
+                <text x={x + 10} y={BEAM_Y - 16} fill="var(--model-badge-text)" textAnchor="middle" dominantBaseline="middle" fontSize={compact ? "7.5" : "8.5"} fontFamily={DIAGRAM_LABEL_FONT} fontWeight={DIAGRAM_LABEL_WEIGHT}>
+                  {node.id ?? `${node.index + 1}`}
+                </text>
+              </g>
+            );
+          })}
 
           <g fill="var(--structure-preview-label)" fontFamily={DIAGRAM_LABEL_FONT}>
             {diagram.spanDimensions.map((dimension) => {

@@ -103,11 +103,11 @@ function activeBeamLinearLoads(beam: WorkspaceState["beam"]) {
 }
 
 function beamSpanMemberId(span: WorkspaceState["beam"]["spans"][number] | undefined, index: number) {
-  return span?.id?.trim() || `B${index + 1}`;
+  return span?.id?.trim() || `(${index + 1})`;
 }
 
-function beamBoundaryNodeId(beam: WorkspaceState["beam"], index: number) {
-  return beam.supports[index]?.id?.trim() || `N${index + 1}`;
+function beamBoundaryNodeId(_beam: WorkspaceState["beam"], index: number) {
+  return `${index + 1}`;
 }
 
 function buildLinearLoadRange(load: ReturnType<typeof activeBeamLinearLoads>[number], beamStart: number, beamEnd: number) {
@@ -323,7 +323,7 @@ function BeamSketch({
         const x = beamStart + (support.x / total) * (beamEnd - beamStart);
         const selected = selection?.mode === "beam" && selection.type === "support" && selection.id === `support-${index}`;
         return (
-          <g key={support.id} {...svgInteractiveProps(`选择梁系节点 ${support.id}`, () => onSelect?.({ mode: "beam", type: "support", id: `support-${index}` }))}>
+          <g key={support.id} {...svgInteractiveProps(`选择梁系支座 ${support.id}`, () => onSelect?.({ mode: "beam", type: "support", id: `support-${index}` }))}>
             <rect x={x - 24} y="148" width="48" height="58" rx="12" fill={selected ? "var(--beam-sketch-selected)" : "transparent"} opacity={selected ? "0.1" : "0"} />
             {support.type === "fixed" ? (
               <rect x={x - 12} y={BEAM_SKETCH_AXIS_Y} width="24" height="36" rx="2" fill="var(--beam-sketch-support-fill)" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
@@ -445,8 +445,9 @@ function BeamSketch({
       <g fontFamily={svgTextFont}>
         {nodeLabels.map((label) => (
           <g key={`node-label-${label.index}`}>
-            <text x={label.labelX} y="136" textAnchor="middle" fontSize="11" fontWeight="800" fill="var(--beam-sketch-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
-              {beamNodeIds[label.index] ?? `N${label.index + 1}`}
+            <circle cx={label.labelX} cy="136" r="8.5" fill="var(--beam-sketch-badge-fill)" stroke="var(--beam-sketch-badge-stroke)" strokeWidth="1.5" />
+            <text x={label.labelX} y="136.5" textAnchor="middle" dominantBaseline="middle" fontSize="10" fontWeight="800" fill="var(--beam-sketch-badge-text)">
+              {beamNodeIds[label.index] ?? `${label.index + 1}`}
             </text>
           </g>
         ))}

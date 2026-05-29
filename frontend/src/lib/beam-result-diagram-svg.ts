@@ -65,6 +65,9 @@ const COLORS = {
   label: "#475569",
   node: "#2f5f8f",
   guide: "#94a3b8",
+  badgeFill: "#fff7ed",
+  badgeStroke: "#f97316",
+  badgeText: "#7c2d12",
   textHalo: "#ffffff",
 };
 
@@ -342,7 +345,7 @@ export function buildBeamResultDiagramSvg(results: BeamCalculationResults, metri
   }));
   const spanDimensions = buildBeamSpanDimensionSegments(beam.spans, totalLength, BEAM_LEFT, BEAM_RIGHT, {
     memberIds: beam.spanIds,
-    nodeIds: beam.nodes?.map((node, index) => node.id ?? `N${index + 1}`),
+    nodeIds: beam.nodes?.map((node, index) => node.id ?? `${index + 1}`),
   });
   const spanDimensionLegendRows = buildBeamSpanDimensionLegendRows(spanDimensions, compact ? 310 : 420, compact ? 10 : 11);
   const resultPath = pathFromPoints(resultPoints);
@@ -402,7 +405,10 @@ export function buildBeamResultDiagramSvg(results: BeamCalculationResults, metri
     })
     .join("")}
   ${(beam.nodes ?? [])
-    .map((node) => `<circle cx="${n(mapX(node.x))}" cy="${BEAM_Y}" r="${NODE_RADIUS}" fill="${node.support ? COLORS.node : COLORS.guide}" />`)
+    .map((node, index) => {
+      const x = mapX(node.x);
+      return `<g><circle cx="${n(x)}" cy="${BEAM_Y}" r="${NODE_RADIUS}" fill="${node.support ? COLORS.node : COLORS.guide}" /><circle cx="${n(x + 10)}" cy="${BEAM_Y - 16}" r="7.5" fill="${COLORS.badgeFill}" stroke="${COLORS.badgeStroke}" stroke-width="1.2" /><text x="${n(x + 10)}" y="${BEAM_Y - 16}" fill="${COLORS.badgeText}" text-anchor="middle" dominant-baseline="middle" font-size="8.5" font-family="${DIAGRAM_LABEL_FONT}" font-weight="${DIAGRAM_LABEL_WEIGHT}">${escapeSvg(node.id ?? `${index + 1}`)}</text></g>`;
+    })
     .join("")}
   <g fill="${COLORS.label}" font-family="${DIAGRAM_LABEL_FONT}">
     ${spanDimensions

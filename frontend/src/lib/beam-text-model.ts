@@ -40,6 +40,19 @@ function constraintsForType(type: BeamSupportType): BeamSupportDof[] {
   return [];
 }
 
+function defaultBeamSupportTextId(index: number) {
+  return `S${index + 1}`;
+}
+
+function normalizeBeamSupportTextId(value: string | undefined, index: number) {
+  const id = String(value ?? "").trim();
+  const legacyNodeMatch = /^N(\d+)$/iu.exec(id);
+  if (legacyNodeMatch) {
+    return `S${legacyNodeMatch[1]}`;
+  }
+  return id || defaultBeamSupportTextId(index);
+}
+
 function beamType(value: string | undefined): BeamWorkspaceState["beamType"] | null {
   const normalized = String(value ?? "").trim().toLowerCase();
   if (["continuous", "连续", "连续梁"].includes(normalized)) return "continuous";
@@ -162,7 +175,7 @@ export function parseBeamTextModel(text: string): BeamTextParseResult {
     if (command === "SPAN" || command === "跨段" || command === "MEMBER" || command === "杆件") {
       const directLength = toNumber(tokens[1]);
       const hasExplicitId = directLength === null;
-      const spanId = hasExplicitId ? tokens[1]?.trim() : `B${spans.length + 1}`;
+      const spanId = hasExplicitId ? tokens[1]?.trim() : `(${spans.length + 1})`;
       const lengthTokenIndex = hasExplicitId ? 2 : 1;
       if ((hasExplicitId && tokens.length < 5) || (!hasExplicitId && tokens.length < 4)) {
         diagnostics.push(`第 ${lineIndex + 1} 行：SPAN 必须包含杆件编号（可选）、跨长、材料编号或 E_GPa、I_cm4。`);
@@ -197,12 +210,12 @@ export function parseBeamTextModel(text: string): BeamTextParseResult {
 
     if (command === "SUPPORT" || command === "支座" || command === "NODE" || command === "节点") {
       if (tokens.length < 4) {
-        diagnostics.push(`第 ${lineIndex + 1} 行：NODE 必须包含节点编号、x 位置和支座类型。`);
+        diagnostics.push(`第 ${lineIndex + 1} 行：SUPPORT 必须包含支座编号、x 位置和支座类型。`);
         continue;
       }
-      const id = tokens[1]?.trim();
+      const id = normalizeBeamSupportTextId(tokens[1], supports.length);
       if (!id) {
-        diagnostics.push(`第 ${lineIndex + 1} 行：节点编号不能为空。`);
+        diagnostics.push(`第 ${lineIndex + 1} 行：支座编号不能为空。`);
         continue;
       }
       const x = toNumber(tokens[2]);
@@ -229,7 +242,8 @@ export function parseBeamTextModel(text: string): BeamTextParseResult {
         diagnostics.push(`第 ${lineIndex + 1} 行：SPRING 必须包含支座编号、自由度和刚度。`);
         continue;
       }
-      const support = supports.find((item) => item.id === tokens[1]);
+      const supportReference = normalizeBeamSupportTextId(tokens[1], 0);
+      const support = supports.find((item) => item.id === supportReference || item.id === tokens[1]);
       if (!support) {
         diagnostics.push(`第 ${lineIndex + 1} 行：弹簧引用了不存在的支座 ${tokens[1] ?? ""}。`);
         continue;
@@ -424,11 +438,11 @@ export function serializeBeamTextModel(value: BeamWorkspaceState): string {
     ...(materialLines.length ? materialLines : [`MATERIAL,${value.materialId}`]),
     "",
     "# SPAN,杆件编号,跨长m,材料编号或E_GPa,I_cm4",
-    ...value.spans.map((span, index) => `SPAN,${span.id?.trim() || `B${index + 1}`},${span.length},${spanMaterialToken(span, materials)},${span.I}`),
+    ...value.spans.map((span, index) => `SPAN,${span.id?.trim() || `(${index + 1})`},${span.length},${spanMaterialToken(span, materials)},${span.I}`),
     "",
-    "# NODE,节点编号,x位置m,支座类型",
+    "# SUPPORT,支座编号,x位置m,支座类型",
     "# 支座类型：fixed=固结支座；pinned=铰支座；roller=滚动支座；free=自由端/无约束",
-    ...value.supports.map((support) => `NODE,${support.id},${support.x},${support.type}`),
+    ...value.supports.map((support) => `SUPPORT,${support.id},${support.x},${support.type}`),
     ...value.supports.flatMap((support) =>
       (support.springs ?? []).map((spring) =>
         spring.dof === "rz"

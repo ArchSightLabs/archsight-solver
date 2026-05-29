@@ -39,22 +39,22 @@
 ### 命令
 
 ```text
-SPAN,跨长m,E_GPa,I_cm4
-SUPPORT,编号,x位置m,类型
+SPAN,杆件编号,跨长m,E_GPa或材料编号,I_cm4
+SUPPORT,支座编号,x位置m,类型
 SPRING,支座编号,自由度,刚度
 LOAD,uniform,q_kN_per_m
 LOAD,linear,q1,q2,startRatio,endRatio
 LOAD,point,P_kN,ratio
 ```
 
-支座类型支持 `fixed`、`pinned`、`roller`、`free`，也支持中文常用表达“固定、固结、滚动、滑动、自由”。弹簧自由度支持 `v` 和 `rz`。
+梁系默认按主流结构力学软件表达：杆件编号为 `(1)`、`(2)`，节点图面标注为圆圈数字 `1`、`2`，支座对象编号为 `S1`、`S2`。杆件编号和支座编号都可以手动改名；旧版 `NODE,N1,...` 写法仍可兼容导入，但推荐使用 `SUPPORT,S1,...`。支座类型支持 `fixed`、`pinned`、`roller`、`free`，也支持中文常用表达“固定、固结、滚动、滑动、自由”。弹簧自由度支持 `v` 和 `rz`。
 
 ### 示例
 
 ```text
 # 两跨连续梁，含均布荷载和集中力
-SPAN,4,210,4500
-SPAN,4,210,4500
+SPAN,(1),4,210,4500
+SPAN,(2),4,210,4500
 SUPPORT,S1,0,pinned
 SUPPORT,S2,4,pinned
 SUPPORT,S3,8,roller

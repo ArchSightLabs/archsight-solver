@@ -84,13 +84,13 @@ def normalize_span_ids(data: Dict[str, Any], span_count: int) -> List[str]:
         raw_id = ""
         if isinstance(candidate, Mapping):
             raw_id = str(candidate.get("id", candidate.get("memberId", "")) or "").strip()
-        span_id = raw_id or f"B{index + 1}"
+        span_id = raw_id or f"({index + 1})"
         if span_id in seen:
-            span_id = f"B{index + 1}"
+            span_id = f"({index + 1})"
         suffix = index + 1
         while span_id in seen:
             suffix += 1
-            span_id = f"B{suffix}"
+            span_id = f"({suffix})"
         seen.add(span_id)
         span_ids.append(span_id)
     return span_ids

@@ -48,8 +48,8 @@ test("buildBeamPreviewSvg follows the workbench beam preview sign convention", (
   const svg = buildBeamPreviewSvg(beam);
 
   assert.match(svg, /梁长=8m/);
-  assert.match(svg, />B1</);
-  assert.match(svg, />N1</);
+  assert.match(svg, />\(1\)</);
+  assert.match(svg, />1</);
   assert.match(svg, />S1</);
   assert.match(svg, />S3</);
   assert.match(svg, /q=10\.0 kN\/m/);
@@ -95,8 +95,8 @@ test("buildBeamResultDiagramSvg uses workbench-style span dimensions and key poi
   const svg = buildBeamResultDiagramSvg(results, "momentKnM");
 
   assert.match(svg, /梁长=8m/);
-  assert.match(svg, /B1=B2=4m/);
-  assert.match(svg, />B1</);
+  assert.match(svg, /\(1\)=\(2\)=4m/);
+  assert.match(svg, />\(1\)</);
   assert.match(svg, />-20 kN·m</);
   assert.match(svg, />11\.25 kN·m</);
   assert.match(svg, />x = 4\.00 m</);

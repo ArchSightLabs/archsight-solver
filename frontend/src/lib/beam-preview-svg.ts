@@ -48,6 +48,9 @@ const PREVIEW_COLORS = {
   peak: "#92400e",
   peakDot: "#d97706",
   peakDotStroke: "#ffedd5",
+  badgeFill: "#fff7ed",
+  badgeStroke: "#f97316",
+  badgeText: "#7c2d12",
   textHalo: "#f8fafc",
 };
 
@@ -193,7 +196,7 @@ export function buildBeamPreviewSvg(beam: BeamPreviewData) {
   const curvePoints = (beam.curve ?? []).map((point) => `${n(mapX(point.x))},${n(mapY(point.vMm))}`).join(" ");
   const spanDimensions = buildBeamSpanDimensionSegments(beam.spans ?? [], totalLength, BEAM_LEFT, BEAM_RIGHT, {
     memberIds: beam.spanIds,
-    nodeIds: beam.nodes?.map((node, index) => node.id ?? `N${index + 1}`),
+    nodeIds: beam.nodes?.map((node, index) => node.id ?? `${index + 1}`),
   });
   const dimensionLegendRows = [`梁长=${formatBeamDimensionLength(totalLength)}`, ...buildBeamSpanDimensionLegendRows(spanDimensions, 420, 12)];
   const loadBands = buildDistributedLoadBands(beam, mapX);
@@ -239,7 +242,7 @@ export function buildBeamPreviewSvg(beam: BeamPreviewData) {
   ${(beam.nodes ?? [])
     .map((node, index) => {
       const x = mapX(node.x);
-      return `<g><circle cx="${n(x)}" cy="${BEAM_Y}" r="4" fill="${node.support ? PREVIEW_COLORS.node : PREVIEW_COLORS.guide}" /><text x="${n(x + 7)}" y="${BEAM_Y - 12}" fill="${PREVIEW_COLORS.label}" stroke="${PREVIEW_COLORS.textHalo}" stroke-width="3" paint-order="stroke" font-size="11" font-weight="600" font-family="${SVG_TEXT_FONT}">${escapeSvg(node.id ?? `N${index + 1}`)}</text></g>`;
+      return `<g><circle cx="${n(x)}" cy="${BEAM_Y}" r="4" fill="${node.support ? PREVIEW_COLORS.node : PREVIEW_COLORS.guide}" /><circle cx="${n(x + 12)}" cy="${BEAM_Y - 18}" r="8" fill="${PREVIEW_COLORS.badgeFill}" stroke="${PREVIEW_COLORS.badgeStroke}" stroke-width="1.3" /><text x="${n(x + 12)}" y="${BEAM_Y - 18}" fill="${PREVIEW_COLORS.badgeText}" text-anchor="middle" dominant-baseline="middle" font-size="9" font-weight="700" font-family="${SVG_TEXT_FONT}">${escapeSvg(node.id ?? `${index + 1}`)}</text></g>`;
     })
     .join("")}
   ${loadBands

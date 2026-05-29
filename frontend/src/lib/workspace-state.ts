@@ -24,7 +24,7 @@ export interface WorkspaceState {
 }
 
 export const DEFAULT_BEAM_SPAN: BeamSpanConfig = {
-  id: "B1",
+  id: "(1)",
   length: 4,
   E: 210,
   I: 4500,
@@ -257,6 +257,17 @@ function normalizeTextId(candidate: unknown, fallback: string, seen: Set<string>
   }
   seen.add(next);
   return next;
+}
+
+function defaultBeamSupportId(index: number): string {
+  return `S${index + 1}`;
+}
+
+function normalizeBeamSupportId(candidate: unknown, fallback: string, seen: Set<string>, index: number): string {
+  const raw = String(candidate ?? "").trim();
+  const normalizedFallback = fallback || defaultBeamSupportId(index);
+  const shouldUseDefault = !raw || /^N\d+$/iu.test(raw);
+  return normalizeTextId(shouldUseDefault ? normalizedFallback : raw, normalizedFallback, seen, "S", index);
 }
 
 function pickExistingId(candidate: unknown, available: string[], fallback: string): string {
@@ -545,16 +556,16 @@ function defaultBeamSupports(beamType: BeamWorkspaceState["beamType"], spans: Be
   const boundaries = beamSpanBoundaries(spans);
   const totalLength = boundaries[boundaries.length - 1] ?? 0;
   if (beamType === "cantilever") {
-    return [{ id: "N1", x: 0, type: "fixed", constraints: ["v", "rz"] }];
+    return [{ id: "S1", x: 0, type: "fixed", constraints: ["v", "rz"] }];
   }
   if (beamType === "simply_supported") {
     return [
-      { id: "N1", x: 0, type: "pinned", constraints: ["v"] },
-      { id: "N2", x: totalLength, type: "roller", constraints: ["v"] },
+      { id: "S1", x: 0, type: "pinned", constraints: ["v"] },
+      { id: "S2", x: totalLength, type: "roller", constraints: ["v"] },
     ];
   }
   return boundaries.map((x, index) => ({
-    id: `N${index + 1}`,
+    id: defaultBeamSupportId(index),
     x,
     type: index === boundaries.length - 1 ? "roller" : "pinned",
     constraints: ["v"],
@@ -599,9 +610,9 @@ function normalizeBeamSupports(rawSupports: unknown, fallbackSupports: BeamSuppo
   const source = Array.isArray(rawSupports) && rawSupports.length > 0 ? rawSupports : fallbackSupports;
   const seen = new Set<string>();
   return source.slice(0, 32).map((support, index) => {
-    const fallback = fallbackSupports[index] ?? fallbackSupports[fallbackSupports.length - 1] ?? { id: `N${index + 1}`, x: 0, type: "pinned" as const };
+    const fallback = fallbackSupports[index] ?? fallbackSupports[fallbackSupports.length - 1] ?? { id: defaultBeamSupportId(index), x: 0, type: "pinned" as const };
     const candidate = support && typeof support === "object" ? (support as Partial<BeamSupportConfig>) : {};
-    const id = normalizeTextId(candidate.id, fallback.id || `N${index + 1}`, seen, "N", index);
+    const id = normalizeBeamSupportId(candidate.id, fallback.id || defaultBeamSupportId(index), seen, index);
     const rawX = Number(candidate.x);
     const x = Number.isFinite(rawX) ? Math.min(Math.max(rawX, 0), totalLength) : fallback.x;
     const springs = Array.isArray(candidate.springs)
@@ -731,8 +742,8 @@ function inferBeamSpanMaterialId(span: Partial<BeamSpanConfig>, materials: Mater
 
 export function createDefaultBeamWorkspaceState(): BeamWorkspaceState {
   const spans = [
-    { ...DEFAULT_BEAM_SPAN, id: "B1" },
-    { ...DEFAULT_BEAM_SPAN, id: "B2" },
+    { ...DEFAULT_BEAM_SPAN, id: "(1)" },
+    { ...DEFAULT_BEAM_SPAN, id: "(2)" },
   ];
   return {
     projectName: "新建梁系项目",
@@ -873,7 +884,7 @@ export function normalizeBeamWorkspaceState(value: Partial<BeamWorkspaceState> |
     const spanMaterialId = inferBeamSpanMaterialId(span, materials, materialId);
     const material = materialById(materials, spanMaterialId);
     return {
-      id: normalizeTextId(span.id, `B${index + 1}`, seenSpanIds, "B", index),
+      id: normalizeTextId(span.id, `(${index + 1})`, seenSpanIds, "B", index),
       length: Number.isFinite(span.length) && span.length > 0 ? Number(span.length) : DEFAULT_BEAM_SPAN.length,
       E: Number.isFinite(span.E) && span.E > 0 ? Number(span.E) : material?.youngModulus ?? DEFAULT_BEAM_SPAN.E,
       I: Number.isFinite(span.I) && span.I > 0 ? Number(span.I) : DEFAULT_BEAM_SPAN.I,
