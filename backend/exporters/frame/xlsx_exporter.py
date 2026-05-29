@@ -5,6 +5,8 @@ from typing import Any, Dict
 
 import pandas as pd
 
+from backend.common.material_catalog import material_report_rows
+from backend.common.result_metric_catalog import result_metric_label
 from backend.exporters.common.artifact import ExportArtifact
 from backend.exporters.common.evidence import build_evidence_tables
 from backend.exporters.common.load_tables import build_load_combination_rows
@@ -13,6 +15,8 @@ from backend.exporters.common.xlsx_utils import HAS_OPENPYXL, apply_standard_wor
 
 def build_summary_tables(solution: Dict[str, Any], material_name: str):
     structure = solution["structure"]
+    max_node_displacement_label = result_metric_label("frame", "max_node_displacement")
+    max_member_moment_label = result_metric_label("frame", "max_member_moment")
     df_summary = pd.DataFrame(
         [
             ["项目名称", solution["projectName"]],
@@ -21,9 +25,9 @@ def build_summary_tables(solution: Dict[str, Any], material_name: str):
             ["材料名称", material_name],
             ["节点数量", len(structure.get("nodes", []))],
             ["构件数量", len(structure.get("members", []))],
-            ["最大位移 (mm)", round(solution["summary"]["maxDisplacementMm"], 3)],
-            ["最大位移节点", solution["summary"]["maxDisplacementNodeId"] or "—"],
-            ["最大弯矩 (kN·m)", round(solution["summary"]["maxMomentKnM"], 3)],
+            [f"{max_node_displacement_label} (mm)", round(solution["summary"]["maxDisplacementMm"], 3)],
+            ["控制节点", solution["summary"]["maxDisplacementNodeId"] or "—"],
+            [f"{max_member_moment_label} (kN·m)", round(solution["summary"]["maxMomentKnM"], 3)],
             ["结论", solution["summary"]["status"]],
         ],
         columns=["项目", "数值/说明"],
@@ -34,6 +38,7 @@ def build_summary_tables(solution: Dict[str, Any], material_name: str):
             ["分析类型", "二维框架"],
             ["项目名称", solution["projectName"]],
             ["材料名称", material_name],
+            *material_report_rows(solution.get("materialId")),
             ["跨度 (m)", round(float(max(node["x"] for node in structure["nodes"]) - min(node["x"] for node in structure["nodes"])), 3)],
             ["层高 (m)", round(float(max(node["y"] for node in structure["nodes"]) - min(node["y"] for node in structure["nodes"])), 3)],
             ["左支座", structure["nodes"][0]["supportType"]],
@@ -147,9 +152,10 @@ def export_xlsx(solution: Dict[str, Any], material_name: str):
 
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        max_node_displacement_label = result_metric_label("frame", "max_node_displacement")
         df_check = pd.DataFrame(
             [
-                ["最大位移 (mm)", round(solution["summary"]["maxDisplacementMm"], 4)],
+                [f"{max_node_displacement_label} (mm)", round(solution["summary"]["maxDisplacementMm"], 4)],
                 ["允许位移 (mm)", round(solution["summary"]["allowableMm"], 4)],
                 ["结果", solution["summary"]["status"]],
             ],

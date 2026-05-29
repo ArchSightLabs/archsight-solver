@@ -1,3 +1,8 @@
+import type { Material } from "./material.ts";
+
+export type { Material } from "./material.ts";
+export { PREDEFINED_MATERIALS } from "./material.ts";
+
 export interface BeamForm {
   analysisType: 'beam';
   q: number;
@@ -109,23 +114,6 @@ export interface BeamApiPayload extends BeamForm {
   }>;
   supports?: BeamSupportConfig[];
 }
-
-export interface Material {
-  id: string;
-  name: string;
-  youngModulus: number; // in GPa
-  density: number;      // in kg/m3
-}
-
-export const PREDEFINED_MATERIALS: Material[] = [
-  { id: 'custom', name: '自定义 (手动输入)', youngModulus: 206, density: 7850 },
-  { id: 'q235', name: 'Q235 碳素结构钢', youngModulus: 206, density: 7850 },
-  { id: 'q345', name: 'Q345 低合金高强度结构钢', youngModulus: 210, density: 7850 },
-  { id: 'c30', name: 'C30 混凝土', youngModulus: 30, density: 2500 },
-  { id: 'c35', name: 'C35 混凝土', youngModulus: 31.5, density: 2500 },
-  { id: 'c40', name: 'C40 混凝土', youngModulus: 32.5, density: 2500 },
-  { id: 'c50', name: 'C50 混凝土', youngModulus: 34.5, density: 2500 },
-];
 
 export interface BeamCalculationResults {
   analysisType?: "beam";

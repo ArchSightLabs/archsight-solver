@@ -1,6 +1,7 @@
 import type { AnalysisResults } from "../hooks/useWorkbenchActions.ts";
 import type { BeamWorkspaceState, ModelPreviewStyle, SensitivityResults } from "../types/beam.ts";
 import type { AnalysisMode, FrameWorkspaceState, TrussWorkspaceState } from "../types/structure.ts";
+import { defaultAnalysisObjectNameForMode } from "./analysis-vocabulary.ts";
 import { normalizeReportExportOptions, type ReportExportOptions } from "./report-options.ts";
 import {
   createDefaultBeamWorkspaceState,
@@ -103,9 +104,7 @@ export function normalizeProjectInfo(raw: Partial<ProjectInfo> | null | undefine
 }
 
 export function defaultAnalysisObjectName(type: AnalysisObjectType, index = 1): string {
-  if (type === "frame") return `平面框架-${index}`;
-  if (type === "truss") return `平面桁架-${index}`;
-  return `连续梁-${index}`;
+  return defaultAnalysisObjectNameForMode(type, index);
 }
 
 function defaultStateForType(type: AnalysisObjectType): AnalysisObjectState {
@@ -152,9 +151,9 @@ export function createAnalysisObject(type: AnalysisObjectType, name?: string, no
 
 function createDefaultAnalysisObjects(now = new Date()): AnalysisObject[] {
   return [
-    createAnalysisObject("beam", "连续梁-1", now),
-    createAnalysisObject("frame", "平面框架-1", now),
-    createAnalysisObject("truss", "平面桁架-1", now),
+    createAnalysisObject("beam", defaultAnalysisObjectName("beam"), now),
+    createAnalysisObject("frame", defaultAnalysisObjectName("frame"), now),
+    createAnalysisObject("truss", defaultAnalysisObjectName("truss"), now),
   ];
 }
 

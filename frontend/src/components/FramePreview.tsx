@@ -3,6 +3,7 @@ import { GlassCard } from "./ui/GlassCard";
 import type { FramePreviewData, SupportType } from "../types/structure";
 import { buildFrameDimensionLegendRows, buildFrameGeometryDimensions, buildFrameLoadLabelMap, buildFrameLoadMarkers, frameMemberLabelPlacement, type FrameLoadMarker } from "./frame-preview-utils";
 import { formatEngineeringValue } from "../lib/engineering-format";
+import { summaryMetricLabel } from "../lib/result-metrics";
 
 interface FramePreviewProps {
   frame: FramePreviewData | null;
@@ -203,6 +204,8 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
       ? curr.nodeId
       : prev;
   }, "");
+  const maxNodeDisplacementLabel = summaryMetricLabel("frame", "max_node_displacement", "最大节点位移");
+  const maxMemberMomentLabel = summaryMetricLabel("frame", "max_member_moment", "最大构件弯矩");
 
   return (
     <GlassCard className="overflow-hidden">
@@ -216,7 +219,7 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
             节点 {frame.nodes.length}
           </span>
           <span className="rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-[10px] font-bold text-teal-700 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-300">
-            最大位移 = {formatEngineeringValue(peakBadge.maxDisplacementMm, "mm")}
+            {maxNodeDisplacementLabel} = {formatEngineeringValue(peakBadge.maxDisplacementMm, "mm")}
           </span>
         </div>
       </div>
@@ -361,12 +364,12 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
             sub: frame.structureTypeLabel,
           },
           {
-            label: "位移峰值",
+            label: maxNodeDisplacementLabel,
             main: formatEngineeringValue(peakBadge.maxDisplacementMm, "mm"),
             sub: `节点 ${maxNodeLabel || "—"}`,
           },
           {
-            label: "弯矩峰值",
+            label: maxMemberMomentLabel,
             main: formatEngineeringValue(maxMomentKnM, "kN·m"),
             sub: `状态：${peakBadge.status}`,
             highlight: true,

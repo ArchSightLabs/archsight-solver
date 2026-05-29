@@ -1,9 +1,11 @@
-import type { FrameLoad, StructureMember, StructureNode } from "../types/structure.ts";
+import type { FrameLoad, FrameLoadCase, FrameLoadCombination, StructureMember, StructureNode } from "../types/structure.ts";
 
 export interface FrameTextCollections {
   nodes: StructureNode[];
   members: StructureMember[];
   loads: FrameLoad[];
+  loadCases?: FrameLoadCase[];
+  loadCombinations?: FrameLoadCombination[];
 }
 
 export interface FrameTextParseResult {
@@ -241,13 +243,38 @@ function parseMemberPointLoad(tokens: string[]): FrameLoad {
   };
 }
 
+function parseLoadTokens(tokens: string[]): FrameLoad | null {
+  const command = tokens[0]?.toUpperCase();
+  if (command === "NLOAD" || command === "LOAD") {
+    return parseNodalLoad(tokens);
+  }
+  if (command === "ELOAD" || command === "DLOAD") {
+    return parseDistributedLoad(tokens);
+  }
+  if (command === "PLOAD" || command === "MLOAD") {
+    return parseMemberPointLoad(tokens);
+  }
+  return null;
+}
+
+function isLoadReferenceValid(load: FrameLoad, nodeIds: Set<string>, memberIds: Set<string>): boolean {
+  if (load.type === "nodal") {
+    return nodeIds.has(load.node);
+  }
+  return memberIds.has(load.member);
+}
+
 export function parseFrameTextModel(text: string): FrameTextParseResult {
   const diagnostics: string[] = [];
   const rawNodes: StructureNode[] = [];
   const members: StructureMember[] = [];
   const loads: FrameLoad[] = [];
+  const loadCases: FrameLoadCase[] = [];
+  const loadCombinations: FrameLoadCombination[] = [];
   const seenNodes = new Set<string>();
   const seenMembers = new Set<string>();
+  const seenLoadCases = new Set<string>();
+  const seenLoadCombinations = new Set<string>();
 
   const lines = text.split(/\r?\n/u);
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
@@ -395,7 +422,7 @@ export function parseFrameTextModel(text: string): FrameTextParseResult {
     }
 
     if (command === "NLOAD" || command === "LOAD") {
-      const load = parseNodalLoad(tokens);
+      const load = parseLoadTokens(tokens);
       if (load) {
         loads.push(load);
       }
@@ -403,7 +430,7 @@ export function parseFrameTextModel(text: string): FrameTextParseResult {
     }
 
     if (command === "ELOAD" || command === "DLOAD") {
-      const load = parseDistributedLoad(tokens);
+      const load = parseLoadTokens(tokens);
       if (load) {
         loads.push(load);
       } else {
@@ -413,7 +440,70 @@ export function parseFrameTextModel(text: string): FrameTextParseResult {
     }
 
     if (command === "PLOAD" || command === "MLOAD") {
-      loads.push(parseMemberPointLoad(tokens));
+      const load = parseLoadTokens(tokens);
+      if (load) {
+        loads.push(load);
+      }
+      continue;
+    }
+
+    if (command === "CASE" || command === "LCASE" || command === "LOADCASE") {
+      const id = uniqueId(String(tokens[1] ?? `LC${loadCases.length + 1}`).trim() || `LC${loadCases.length + 1}`, seenLoadCases);
+      loadCases.push({
+        id,
+        title: tokens.slice(2).join(" ") || id,
+        loads: [],
+      });
+      continue;
+    }
+
+    if (command === "CASELOAD" || command === "LCLOAD") {
+      const caseId = String(tokens[1] ?? "").trim();
+      const loadCase = loadCases.find((item) => item.id === caseId);
+      if (!loadCase) {
+        diagnostics.push(`第 ${lineIndex + 1} 行：CASELOAD 引用了不存在的工况 ${caseId || "（空）"}。`);
+        continue;
+      }
+      const load = parseLoadTokens(tokens.slice(2));
+      if (!load) {
+        diagnostics.push(`第 ${lineIndex + 1} 行：CASELOAD 缺少有效的荷载定义。`);
+        continue;
+      }
+      loadCase.loads = [...loadCase.loads, load];
+      continue;
+    }
+
+    if (command === "COMB" || command === "COMBINATION") {
+      const id = uniqueId(String(tokens[1] ?? `COMB${loadCombinations.length + 1}`).trim() || `COMB${loadCombinations.length + 1}`, seenLoadCombinations);
+      const tagsToken = tokens.length >= 4 ? tokens[tokens.length - 1] : "";
+      const tags = tagsToken
+        ? tagsToken.split(/[|/；;]+/u).map((tag) => tag.trim()).filter(Boolean)
+        : undefined;
+      loadCombinations.push({
+        id,
+        title: tokens.length >= 4 ? tokens.slice(2, -1).join(" ") || id : tokens.slice(2).join(" ") || id,
+        factors: {},
+        tags,
+      });
+      continue;
+    }
+
+    if (command === "FACTOR" || command === "COMBFACTOR") {
+      const combinationId = String(tokens[1] ?? "").trim();
+      const loadCaseId = String(tokens[2] ?? "").trim();
+      const combination = loadCombinations.find((item) => item.id === combinationId);
+      if (!combination) {
+        diagnostics.push(`第 ${lineIndex + 1} 行：组合系数引用了不存在的组合 ${combinationId || "（空）"}。`);
+        continue;
+      }
+      if (!loadCaseId) {
+        diagnostics.push(`第 ${lineIndex + 1} 行：组合系数缺少工况编号。`);
+        continue;
+      }
+      combination.factors = {
+        ...combination.factors,
+        [loadCaseId]: toNumber(tokens[3]) ?? 0,
+      };
       continue;
     }
 
@@ -423,17 +513,29 @@ export function parseFrameTextModel(text: string): FrameTextParseResult {
   const nodeIds = new Set(rawNodes.map((node) => node.id));
   const memberIds = new Set(members.map((member) => member.id));
   const validMembers = members.filter((member) => nodeIds.has(member.start) && nodeIds.has(member.end) && member.start !== member.end);
-  const validLoads = loads.filter((load) => {
-    if (load.type === "nodal") {
-      return nodeIds.has(load.node);
-    }
-    return memberIds.has(load.member);
-  });
+  const validLoads = loads.filter((load) => isLoadReferenceValid(load, nodeIds, memberIds));
+  const validLoadCases = loadCases.map((loadCase) => ({
+    ...loadCase,
+    loads: loadCase.loads.filter((load) => isLoadReferenceValid(load, nodeIds, memberIds)),
+  }));
+  const validLoadCaseIds = new Set(validLoadCases.map((loadCase) => loadCase.id));
+  const validLoadCombinations = loadCombinations.map((combination) => ({
+    ...combination,
+    factors: Object.fromEntries(
+      Object.entries(combination.factors).filter(([caseId]) => validLoadCaseIds.has(caseId))
+    ),
+  }));
   if (validMembers.length !== members.length) {
     diagnostics.push("已忽略起止节点不存在或两端相同的构件。");
   }
   if (validLoads.length !== loads.length) {
     diagnostics.push("已忽略引用不存在节点或构件的荷载。");
+  }
+  if (validLoadCases.some((loadCase, index) => loadCase.loads.length !== loadCases[index]?.loads.length)) {
+    diagnostics.push("已忽略工况中引用不存在节点或构件的荷载。");
+  }
+  if (validLoadCombinations.some((combination, index) => Object.keys(combination.factors).length !== Object.keys(loadCombinations[index]?.factors ?? {}).length)) {
+    diagnostics.push("已忽略组合中引用不存在工况的系数。");
   }
 
   if (rawNodes.length === 0) {
@@ -445,6 +547,8 @@ export function parseFrameTextModel(text: string): FrameTextParseResult {
       nodes: rawNodes,
       members: validMembers,
       loads: validLoads,
+      loadCases: validLoadCases,
+      loadCombinations: validLoadCombinations,
     },
     diagnostics,
   };
@@ -483,6 +587,16 @@ function nodalLoadLines(load: Extract<FrameLoad, { type: "nodal" }>, nodeNumbers
   return lines;
 }
 
+function frameLoadLine(load: FrameLoad, nodeNumbers: Map<string, number>, memberNumbers: Map<string, number>): string[] {
+  if (load.type === "nodal") {
+    return nodalLoadLines(load, nodeNumbers);
+  }
+  if (load.type === "member_point") {
+    return [`PLOAD,${memberNumbers.get(load.member) ?? 1},${load.forceKn ?? 0},${load.positionRatio ?? 0.5},${load.direction ?? "local_y"}`];
+  }
+  return [`DLOAD,${memberNumbers.get(load.member) ?? 1},${load.qStartKnPerM ?? load.wyKnPerM ?? 0},${load.qEndKnPerM ?? load.wyKnPerM ?? 0},${load.direction ?? "local_y"},${load.startRatio ?? 0},${load.endRatio ?? 1}`];
+}
+
 export function serializeFrameTextModel(collections: FrameTextCollections): string {
   const nodeNumbers = new Map(collections.nodes.map((node, index) => [node.id, nodeNumber(node.id, index)]));
   const memberNumbers = new Map(collections.members.map((member, index) => [member.id, memberNumber(member.id, index)]));
@@ -509,15 +623,19 @@ export function serializeFrameTextModel(collections: FrameTextCollections): stri
     ...collections.members.map((member, index) => `PROP,${memberNumber(member.id, index)},${memberNumber(member.id, index)},${member.E_GPa},${member.A_cm2},${member.I_cm4},${member.kind ?? "generic"}`),
     "",
     "# 荷载",
-    ...collections.loads.flatMap((load) => {
-      if (load.type === "nodal") {
-        return nodalLoadLines(load, nodeNumbers);
-      }
-      if (load.type === "member_point") {
-        return [`PLOAD,${memberNumbers.get(load.member) ?? 1},${load.forceKn ?? 0},${load.positionRatio ?? 0.5},${load.direction ?? "local_y"}`];
-      }
-      return [`DLOAD,${memberNumbers.get(load.member) ?? 1},${load.qStartKnPerM ?? load.wyKnPerM ?? 0},${load.qEndKnPerM ?? load.wyKnPerM ?? 0},${load.direction ?? "local_y"},${load.startRatio ?? 0},${load.endRatio ?? 1}`];
-    }),
+    ...collections.loads.flatMap((load) => frameLoadLine(load, nodeNumbers, memberNumbers)),
+    "",
+    "# 荷载工况扩展：CASE,工况编号,工况名称；CASELOAD,工况编号,<NLOAD/DLOAD/PLOAD...>",
+    ...(collections.loadCases ?? []).flatMap((loadCase) => [
+      `CASE,${loadCase.id},${loadCase.title}`,
+      ...loadCase.loads.flatMap((load) => frameLoadLine(load, nodeNumbers, memberNumbers).map((line) => `CASELOAD,${loadCase.id},${line}`)),
+    ]),
+    "",
+    "# 荷载组合扩展：COMB,组合编号,组合名称,标签；FACTOR,组合编号,工况编号,系数",
+    ...(collections.loadCombinations ?? []).flatMap((combination) => [
+      `COMB,${combination.id},${combination.title},${(combination.tags ?? []).join("/")}`,
+      ...Object.entries(combination.factors).map(([caseId, factor]) => `FACTOR,${combination.id},${caseId},${factor}`),
+    ]),
   ];
 
   return lines.join("\n");

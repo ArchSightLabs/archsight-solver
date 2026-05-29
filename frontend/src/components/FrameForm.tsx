@@ -1,5 +1,6 @@
 import { FrameCustomModelEditor } from "./FrameCustomModelEditor";
 import { createDefaultFrameWorkspaceState } from "../lib/workspace-state.ts";
+import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
 import type { FrameWorkspaceState } from "../types/structure.ts";
 import type { FrameWorkbenchSelection, WorkbenchSelectionOptions } from "../types/workbench-selection.ts";
 
@@ -11,20 +12,10 @@ interface FrameFormProps {
   onSelectionChange?: (next: FrameWorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
 }
 
-const DEFAULT_SECTION_ID = "frame-typical-cases";
-const FRAME_SECTION_IDS = [
-  "frame-typical-cases",
-  "frame-custom-overview",
-  "frame-object-navigator",
-  "frame-text-model",
-  "frame-advanced-tables",
-];
+const DEFAULT_SECTION_ID = "frame-template";
 
 export function FrameForm({ value, onChange, activeSectionId, selection, onSelectionChange }: FrameFormProps) {
-  const requestedSectionId = activeSectionId ?? "";
-  const visibleSectionId = FRAME_SECTION_IDS.includes(requestedSectionId)
-    ? requestedSectionId
-    : DEFAULT_SECTION_ID;
+  const visibleSectionId = normalizeModuleSectionId("frame", activeSectionId) ?? DEFAULT_SECTION_ID;
   const commitCollections = (next: {
     nodes: FrameWorkspaceState["customNodes"];
     members: FrameWorkspaceState["customMembers"];

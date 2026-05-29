@@ -6,6 +6,8 @@ from typing import Any, Dict
 
 import pandas as pd
 
+from backend.common.material_catalog import material_report_rows
+from backend.common.result_metric_catalog import result_metric_label
 from backend.exporters.common.artifact import ExportArtifact
 from backend.exporters.common.evidence import build_evidence_tables
 from backend.exporters.common.load_tables import build_load_combination_rows
@@ -15,6 +17,8 @@ from backend.normalizers.truss.request_normalizer import node_support_dofs
 
 def build_summary_tables(solution: Dict[str, Any], material_name: str):
     structure = solution["structure"]
+    max_node_displacement_label = result_metric_label("truss", "max_node_displacement")
+    max_member_axial_label = result_metric_label("truss", "max_member_axial")
     df_summary = pd.DataFrame(
         [
             ["项目名称", solution["projectName"]],
@@ -23,9 +27,9 @@ def build_summary_tables(solution: Dict[str, Any], material_name: str):
             ["材料名称", material_name],
             ["节点数量", len(structure.get("nodes", []))],
             ["杆件数量", len(structure.get("members", []))],
-            ["最大位移 (mm)", round(solution["summary"]["maxDisplacementMm"], 3)],
-            ["最大位移节点", solution["summary"]["maxDisplacementNodeId"] or "—"],
-            ["最大轴力 (kN)", round(solution["summary"]["maxAxialForceKn"], 3)],
+            [f"{max_node_displacement_label} (mm)", round(solution["summary"]["maxDisplacementMm"], 3)],
+            ["控制节点", solution["summary"]["maxDisplacementNodeId"] or "—"],
+            [f"{max_member_axial_label} (kN)", round(solution["summary"]["maxAxialForceKn"], 3)],
             ["结论", solution["summary"]["status"]],
         ],
         columns=["项目", "数值/说明"],
@@ -36,6 +40,7 @@ def build_summary_tables(solution: Dict[str, Any], material_name: str):
             ["分析类型", "二维平面桁架"],
             ["项目名称", solution["projectName"]],
             ["材料名称", material_name],
+            *material_report_rows(solution.get("materialId")),
             ["节点数量", len(structure.get("nodes", []))],
             ["杆件数量", len(structure.get("members", []))],
             ["约束自由度", sum(len(node_support_dofs(node["supportType"])) for node in structure.get("nodes", []))],
@@ -118,11 +123,13 @@ def export_xlsx(solution: Dict[str, Any], material_name: str):
 
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        max_node_displacement_label = result_metric_label("truss", "max_node_displacement")
+        max_member_axial_label = result_metric_label("truss", "max_member_axial")
         df_check = pd.DataFrame(
             [
-                ["最大位移 (mm)", round(solution["summary"]["maxDisplacementMm"], 4)],
+                [f"{max_node_displacement_label} (mm)", round(solution["summary"]["maxDisplacementMm"], 4)],
                 ["允许位移 (mm)", round(solution["summary"]["allowableMm"], 4)],
-                ["最大轴力 (kN)", round(solution["summary"]["maxAxialForceKn"], 4)],
+                [f"{max_member_axial_label} (kN)", round(solution["summary"]["maxAxialForceKn"], 4)],
                 ["结果", solution["summary"]["status"]],
             ],
             columns=["项目", "数值/说明"],

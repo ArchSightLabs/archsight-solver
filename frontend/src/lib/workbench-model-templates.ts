@@ -1,4 +1,5 @@
-import { PREDEFINED_MATERIALS, type BeamWorkspaceState } from "../types/beam.ts";
+import type { BeamWorkspaceState } from "../types/beam.ts";
+import { PREDEFINED_MATERIALS } from "../types/material.ts";
 import type { FrameLoad, FrameWorkspaceState, StructureMember, StructureNode, TrussLoad, TrussMember, TrussNode, TrussWorkspaceState } from "../types/structure.ts";
 
 export interface TemplateValidationRef {
@@ -346,8 +347,8 @@ export const FRAME_MODEL_TEMPLATES: FrameModelTemplate[] = [
   {
     id: "braced-frame",
     title: "带斜撑框架",
-    description: "单跨框架含交叉支撑，用于比较支撑对水平位移和构件轴力的影响。",
-    tags: ["支撑", "抗侧", "轴力"],
+    description: "单跨框架含交叉斜撑，用于比较斜撑构件对水平位移和构件轴力的影响。",
+    tags: ["斜撑", "抗侧", "轴力"],
     validationRefs: [
       {
         caseId: "frame-portal-benchmark",

@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
 from typing import Literal, TypeVar
 
 ReportFigureScope = Literal["control", "all"]
 TReportFigure = TypeVar("TReportFigure")
+_REPORT_FIGURES_PATH = Path(__file__).resolve().parents[3] / "shared" / "report-figures.json"
 
 
 @dataclass(frozen=True)
@@ -37,33 +41,49 @@ class TrussReportFigure:
     scope: ReportFigureScope
 
 
-BEAM_REPORT_OVERLAY_FIGURES: tuple[BeamReportFigure, ...] = (
-    BeamReportFigure("beam.overlay.moment", "moment", "控制弯矩叠加图", "弯矩", "kN·m", "control"),
-    BeamReportFigure("beam.overlay.shear", "shear", "剪力叠加图", "剪力", "kN", "all"),
-    BeamReportFigure("beam.overlay.deflection", "deflection", "挠度叠加图", "挠度", "mm", "all"),
-)
+@lru_cache(maxsize=1)
+def _report_figure_catalog() -> dict:
+    return json.loads(_REPORT_FIGURES_PATH.read_text(encoding="utf-8"))
 
-BEAM_REPORT_TRADITIONAL_FIGURES: tuple[BeamReportFigure, ...] = (
-    BeamReportFigure("beam.deflection", "deflection", "挠度曲线", "挠度", "mm", "all"),
-    BeamReportFigure("beam.moment", "moment", "弯矩图", "弯矩", "kN·m", "control"),
-    BeamReportFigure("beam.shear", "shear", "剪力图", "剪力", "kN", "all"),
-)
 
-FRAME_REPORT_MEMBER_FIGURES: tuple[FrameMemberReportFigure, ...] = (
-    FrameMemberReportFigure("frame.overlay.moment", "frame.moment", "momentKnM", "弯矩", "kN·m", "control"),
-    FrameMemberReportFigure("frame.overlay.shear", "frame.shear", "shearKn", "剪力", "kN", "all"),
-    FrameMemberReportFigure("frame.overlay.memberDeflection", "frame.memberDeflection", "deflectionMm", "局部 y 向挠度", "mm", "all"),
-    FrameMemberReportFigure("frame.overlay.axial", "frame.axial", "axialKn", "轴力", "kN", "all"),
-)
+def _beam_figure(row: dict) -> BeamReportFigure:
+    return BeamReportFigure(
+        image_key=str(row["imageKey"]),
+        metric=str(row["metric"]),  # type: ignore[arg-type]
+        title=str(row["title"]),
+        series_label=str(row["seriesLabel"]),
+        unit=str(row["unit"]),
+        scope=str(row["scope"]),  # type: ignore[arg-type]
+    )
 
-TRUSS_REPORT_OVERLAY_FIGURES: tuple[TrussReportFigure, ...] = (
-    TrussReportFigure("truss.overlay.axial", "axial", "杆件轴力叠加图", "杆件轴力", "kN", "control"),
-    TrussReportFigure("truss.overlay.displacement", "displacement", "节点位移叠加图", "节点位移", "mm", "all"),
-)
 
-TRUSS_REPORT_TRADITIONAL_FIGURES: tuple[TrussReportFigure, ...] = (
-    TrussReportFigure("truss.axial", "axial", "杆件轴力图", "杆件轴力", "kN", "control"),
-)
+def _frame_member_figure(row: dict) -> FrameMemberReportFigure:
+    return FrameMemberReportFigure(
+        overlay_image_key=str(row["overlayImageKey"]),
+        traditional_image_key=str(row["traditionalImageKey"]),
+        metric_key=str(row["metric"]),  # type: ignore[arg-type]
+        label=str(row["label"]),
+        unit=str(row["unit"]),
+        scope=str(row["scope"]),  # type: ignore[arg-type]
+    )
+
+
+def _truss_figure(row: dict) -> TrussReportFigure:
+    return TrussReportFigure(
+        image_key=str(row["imageKey"]),
+        metric=str(row["metric"]),  # type: ignore[arg-type]
+        title=str(row["title"]),
+        series_label=str(row["seriesLabel"]),
+        unit=str(row["unit"]),
+        scope=str(row["scope"]),  # type: ignore[arg-type]
+    )
+
+
+BEAM_REPORT_OVERLAY_FIGURES: tuple[BeamReportFigure, ...] = tuple(_beam_figure(row) for row in _report_figure_catalog()["beam"]["overlay"])
+BEAM_REPORT_TRADITIONAL_FIGURES: tuple[BeamReportFigure, ...] = tuple(_beam_figure(row) for row in _report_figure_catalog()["beam"]["traditional"])
+FRAME_REPORT_MEMBER_FIGURES: tuple[FrameMemberReportFigure, ...] = tuple(_frame_member_figure(row) for row in _report_figure_catalog()["frame"]["member"])
+TRUSS_REPORT_OVERLAY_FIGURES: tuple[TrussReportFigure, ...] = tuple(_truss_figure(row) for row in _report_figure_catalog()["truss"]["overlay"])
+TRUSS_REPORT_TRADITIONAL_FIGURES: tuple[TrussReportFigure, ...] = tuple(_truss_figure(row) for row in _report_figure_catalog()["truss"]["traditional"])
 
 
 def report_figures_for_scope(figures: tuple[TReportFigure, ...], include_all: bool) -> tuple[TReportFigure, ...]:

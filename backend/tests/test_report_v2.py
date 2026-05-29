@@ -61,8 +61,8 @@ class TestFeatureSpecificationCalculationReportGenerationV2:
         assert "3. 计算摘要" in full_text
         assert "4. 结果汇总" in full_text
         assert "4.1 挠度曲线" in full_text
-        assert "4.2 弯矩图" in full_text
-        assert "4.3 剪力图" in full_text
+        assert "4.2 弯矩曲线" in full_text
+        assert "4.3 剪力曲线" in full_text
         assert "5. 校核结论" in full_text
         assert "6. 附录数据" in full_text
         assert "可审查计算证据链" in full_text
@@ -227,9 +227,9 @@ class TestFeatureSpecificationCalculationReportGenerationV2:
 
         doc = Document(io.BytesIO(response.data))
         full_text = "\n".join([p.text for p in doc.paragraphs])
-        assert "4.1 控制弯矩叠加图" in full_text
+        assert "4.1 弯矩图" in full_text
         assert "计算简图与结果同图显示" in full_text
-        assert "4.2 弯矩图" not in full_text
+        assert "4.2 弯矩曲线" not in full_text
 
     def test_docx_export_report_options_can_disable_figures(self, client):
         payload = {

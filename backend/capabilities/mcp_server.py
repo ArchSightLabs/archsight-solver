@@ -65,7 +65,7 @@ TOOL_DEFINITIONS = [
     {
         "name": "frame_displacement",
         "title": "平面框架位移求解",
-        "description": "调用现有二维平面框架刚度法求解，返回最大位移、控制节点和内力控制摘要。",
+        "description": "调用现有二维平面框架刚度法求解，返回最大节点位移、控制节点和构件内力控制摘要。",
         "inputSchema": FRAME_TOOL_INPUT_SCHEMA,
         "outputSchema": CAPABILITY_RESULT_SCHEMA,
         "annotations": {**READ_ONLY_ANNOTATIONS, "title": "平面框架位移求解"},
@@ -73,7 +73,7 @@ TOOL_DEFINITIONS = [
     {
         "name": "truss_member_force",
         "title": "平面桁架杆件轴力求解",
-        "description": "调用现有二维平面桁架杆单元法求解，返回最大轴力、控制杆件和指定杆件结果。",
+        "description": "调用现有二维平面桁架杆单元法求解，返回最大杆件轴力、控制杆件和指定杆件结果。",
         "inputSchema": TRUSS_TOOL_INPUT_SCHEMA,
         "outputSchema": CAPABILITY_RESULT_SCHEMA,
         "annotations": {**READ_ONLY_ANNOTATIONS, "title": "平面桁架杆件轴力求解"},

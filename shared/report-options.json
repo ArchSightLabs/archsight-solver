@@ -1,0 +1,54 @@
+{
+  "default": {
+    "template": "standard",
+    "figureMode": "overlay",
+    "figureScope": "control"
+  },
+  "legacyDefault": {
+    "template": "complete",
+    "figureMode": "traditional",
+    "figureScope": "all"
+  },
+  "templates": [
+    {
+      "value": "standard",
+      "label": "标准计算书"
+    },
+    {
+      "value": "complete",
+      "label": "完整计算书"
+    },
+    {
+      "value": "brief",
+      "label": "精简报告"
+    }
+  ],
+  "figureModes": [
+    {
+      "value": "overlay",
+      "label": "计算简图叠加"
+    },
+    {
+      "value": "traditional",
+      "label": "传统单项图"
+    },
+    {
+      "value": "both",
+      "label": "叠加 + 单项"
+    }
+  ],
+  "figureScopes": [
+    {
+      "value": "control",
+      "label": "仅控制图"
+    },
+    {
+      "value": "all",
+      "label": "全部结果图"
+    },
+    {
+      "value": "none",
+      "label": "不插入图形"
+    }
+  ]
+}

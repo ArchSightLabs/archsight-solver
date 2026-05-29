@@ -2,8 +2,10 @@ import { lazy, Suspense } from "react";
 import { GlassCard } from "./ui/GlassCard";
 import type { WorkspaceState } from "../lib/workspace-state";
 import { defaultSensitivityMetricForMode, sensitivityOptionsForMode } from "../lib/sensitivity-options";
+import type { WorkbenchOperationNotice as WorkbenchOperationNoticeModel } from "../lib/workbench-operation-status";
 import type { AnalysisMode } from "../types/structure";
 import type { SensitivityResults } from "../types/beam";
+import { WorkbenchOperationNotice } from "./WorkbenchOperationNotice";
 
 const SensitivityDashboard = lazy(() =>
   import("./ui/SensitivityDashboard").then((module) => ({ default: module.SensitivityDashboard }))
@@ -14,6 +16,7 @@ interface WorkbenchSensitivityPanelProps {
   workspace: WorkspaceState;
   sensitivityData: SensitivityResults | null;
   isScanning: boolean;
+  operationNotice: WorkbenchOperationNoticeModel | null;
   compact?: boolean;
   onRunSensitivity: (config: { range: number; steps: number; targetSpanIndex: number; responseMetric: string }) => void;
 }
@@ -35,6 +38,7 @@ export function WorkbenchSensitivityPanel({
   workspace,
   sensitivityData,
   isScanning,
+  operationNotice,
   compact = false,
   onRunSensitivity,
 }: WorkbenchSensitivityPanelProps) {
@@ -49,6 +53,7 @@ export function WorkbenchSensitivityPanel({
 
   return (
     <section className="space-y-4" aria-label="敏感性分析结果">
+      <WorkbenchOperationNotice notice={operationNotice} compact={compact} />
       <Suspense fallback={<LoadingPanel compact={compact} />}>
         <SensitivityDashboard
           results={sensitivityData}

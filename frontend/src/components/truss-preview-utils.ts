@@ -1,4 +1,5 @@
 import { outwardLabelCandidates, type DiagramLabelCandidate, type DiagramLabelRect } from "../lib/diagram-label-layout.ts";
+import { trussSupportLabel } from "../lib/support-vocabulary.ts";
 
 export interface TrussPreviewPoint {
   x: number;
@@ -48,9 +49,7 @@ export interface TrussMemberLengthDimension {
 }
 
 export function trussSupportTypeLabel(type: TrussSupportType) {
-  if (type === "pinned") return "铰支座";
-  if (type === "roller") return "滚动支座";
-  return "自由节点";
+  return trussSupportLabel(type);
 }
 
 export function buildTrussSupportMarkerGeometry(type: string | undefined, x: number, y: number): TrussSupportMarkerGeometry | null {

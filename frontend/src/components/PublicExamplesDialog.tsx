@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { BookOpenCheck, ExternalLink, FolderOpen, Loader2, ShieldCheck, X } from "lucide-react";
+import { analysisVocabulary } from "../lib/analysis-vocabulary";
 import { getAnalysisObjectDisplayName, type SolverProject } from "../lib/solver-project";
 import { Button } from "./ui/button";
 
@@ -38,9 +39,8 @@ function sourceTypeLabel(sourceType: string) {
 }
 
 function objectTypeLabel(type: string) {
-  if (type === "frame") return "平面框架";
-  if (type === "truss") return "平面桁架";
-  return "梁系";
+  if (type === "frame" || type === "truss" || type === "beam") return analysisVocabulary(type).systemLabel;
+  return type;
 }
 
 function createSelectedProject(project: SolverProject, selectedObjects: SolverProject["objects"]): SolverProject {

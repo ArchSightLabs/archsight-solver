@@ -260,7 +260,7 @@
         "reference": "二维平面框架杆单元独立刚度法工作表基线，门式刚架水平荷载与梁均布荷载组合工况",
         "method": "用独立矩阵装配基线校验最大节点位移、构件弯矩和模型规模",
         "checkedMetrics": [
-          "最大位移",
+          "最大节点位移",
           "构件弯矩",
           "节点数量",
           "构件数量"
@@ -271,7 +271,7 @@
       "id": "frame-portal-rotational-spring",
       "category": "frame",
       "title": "转动弹簧门式刚架",
-      "purpose": "验证柱脚转动弹簧刚度进入框架整体刚度矩阵，并对最大位移与支座弯矩形成稳定回归。",
+      "purpose": "验证柱脚转动弹簧刚度进入框架整体刚度矩阵，并对最大节点位移与支座弯矩形成稳定回归。",
       "payload": {
         "analysisType": "frame",
         "projectName": "Benchmark Rotational Spring Portal",
@@ -380,9 +380,9 @@
       "verification": {
         "sourceType": "independent-stiffness-baseline",
         "reference": "二维平面框架杆单元独立刚度法工作表基线，柱脚转动弹簧门式刚架工况",
-        "method": "校验转动弹簧进入整体刚度矩阵后的最大位移和最大弯矩",
+        "method": "校验转动弹簧进入整体刚度矩阵后的最大节点位移和最大构件弯矩",
         "checkedMetrics": [
-          "最大位移",
+          "最大节点位移",
           "构件弯矩",
           "节点数量",
           "构件数量"
@@ -639,9 +639,9 @@
       "verification": {
         "sourceType": "independent-stiffness-baseline",
         "reference": "二维平面框架杆单元独立刚度法工作表基线，显式双跨单层框架工况",
-        "method": "校验多跨梁分布荷载、混合支座和侧向节点荷载下的最大位移与弯矩",
+        "method": "校验多跨梁分布荷载、混合支座和侧向节点荷载下的最大节点位移与构件弯矩",
         "checkedMetrics": [
-          "最大位移",
+          "最大节点位移",
           "构件弯矩",
           "节点数量",
           "构件数量"
@@ -1812,7 +1812,7 @@
       "id": "frame-portal-light-load",
       "category": "frame",
       "title": "轻载门式刚架",
-      "purpose": "扩展门式刚架低荷载回归，覆盖较小水平荷载下的最大位移与弯矩。",
+      "purpose": "扩展门式刚架低荷载回归，覆盖较小水平荷载下的最大节点位移与构件弯矩。",
       "payload": {
         "analysisType": "frame",
         "projectName": "Benchmark Portal Light Load",
@@ -1911,9 +1911,9 @@
       "verification": {
         "sourceType": "internal-regression",
         "reference": "二维平面框架内部回归基线",
-        "method": "校验节点数量、构件数量、最大位移和最大构件弯矩，用于防止框架装配与荷载转换回归",
+        "method": "校验节点数量、构件数量、最大节点位移和最大构件弯矩，用于防止框架装配与荷载转换回归",
         "checkedMetrics": [
-          "最大位移",
+          "最大节点位移",
           "构件弯矩",
           "节点数量",
           "构件数量"
@@ -2023,9 +2023,9 @@
       "verification": {
         "sourceType": "internal-regression",
         "reference": "二维平面框架内部回归基线",
-        "method": "校验节点数量、构件数量、最大位移和最大构件弯矩，用于防止框架装配与荷载转换回归",
+        "method": "校验节点数量、构件数量、最大节点位移和最大构件弯矩，用于防止框架装配与荷载转换回归",
         "checkedMetrics": [
-          "最大位移",
+          "最大节点位移",
           "构件弯矩",
           "节点数量",
           "构件数量"
@@ -2115,9 +2115,9 @@
       "verification": {
         "sourceType": "internal-regression",
         "reference": "二维平面框架内部回归基线",
-        "method": "校验节点数量、构件数量、最大位移和最大构件弯矩，用于防止框架装配与荷载转换回归",
+        "method": "校验节点数量、构件数量、最大节点位移和最大构件弯矩，用于防止框架装配与荷载转换回归",
         "checkedMetrics": [
-          "最大位移",
+          "最大节点位移",
           "构件弯矩",
           "节点数量",
           "构件数量"
@@ -2222,9 +2222,9 @@
       "verification": {
         "sourceType": "internal-regression",
         "reference": "二维平面框架内部回归基线",
-        "method": "校验节点数量、构件数量、最大位移和最大构件弯矩，用于防止框架装配与荷载转换回归",
+        "method": "校验节点数量、构件数量、最大节点位移和最大构件弯矩，用于防止框架装配与荷载转换回归",
         "checkedMetrics": [
-          "最大位移",
+          "最大节点位移",
           "构件弯矩",
           "节点数量",
           "构件数量"

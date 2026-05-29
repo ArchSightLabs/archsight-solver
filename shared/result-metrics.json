@@ -1,0 +1,170 @@
+{
+  "beam": {
+    "defaultSensitivityMetric": "max_deflection",
+    "summaryMetrics": [
+      {
+        "value": "allowable_deflection",
+        "label": "允许挠度",
+        "unit": "mm",
+        "unitLabel": "毫米",
+        "description": "按挠度限值比控制的服务性校核值。"
+      },
+      {
+        "value": "max_deflection",
+        "label": "最大挠度",
+        "unit": "mm",
+        "unitLabel": "毫米",
+        "description": "梁系竖向位移绝对值最大值。"
+      },
+      {
+        "value": "span_count",
+        "label": "跨段数量",
+        "unit": "",
+        "unitLabel": "",
+        "description": "梁系计算跨段数量。"
+      },
+      {
+        "value": "calculation_status",
+        "label": "计算结论",
+        "unit": "",
+        "unitLabel": "",
+        "description": "当前挠度校核和求解状态。"
+      }
+    ],
+    "sensitivityResponses": [
+      {
+        "value": "max_deflection",
+        "label": "最大挠度",
+        "unit": "mm",
+        "unitLabel": "毫米",
+        "description": "梁系服务性控制位移指标。"
+      },
+      {
+        "value": "max_moment",
+        "label": "最大弯矩",
+        "unit": "kN·m",
+        "unitLabel": "千牛·米",
+        "description": "梁系弯矩图绝对值最大值。"
+      },
+      {
+        "value": "max_shear",
+        "label": "最大剪力",
+        "unit": "kN",
+        "unitLabel": "千牛",
+        "description": "梁系剪力图绝对值最大值。"
+      }
+    ]
+  },
+  "frame": {
+    "defaultSensitivityMetric": "max_ux",
+    "summaryMetrics": [
+      {
+        "value": "allowable_displacement",
+        "label": "允许位移",
+        "unit": "mm",
+        "unitLabel": "毫米",
+        "description": "平面框架节点位移控制限值。"
+      },
+      {
+        "value": "max_node_displacement",
+        "label": "最大节点位移",
+        "unit": "mm",
+        "unitLabel": "毫米",
+        "description": "平面框架节点合位移或控制位移最大值。"
+      },
+      {
+        "value": "max_member_moment",
+        "label": "最大构件弯矩",
+        "unit": "kN·m",
+        "unitLabel": "千牛·米",
+        "description": "框架构件杆端弯矩绝对值最大值。"
+      },
+      {
+        "value": "calculation_status",
+        "label": "计算结论",
+        "unit": "",
+        "unitLabel": "",
+        "description": "当前位移校核和求解状态。"
+      }
+    ],
+    "sensitivityResponses": [
+      {
+        "value": "max_ux",
+        "label": "最大水平位移",
+        "unit": "mm",
+        "unitLabel": "毫米",
+        "description": "节点 ux 绝对值最大值。"
+      },
+      {
+        "value": "max_uy",
+        "label": "最大竖向位移",
+        "unit": "mm",
+        "unitLabel": "毫米",
+        "description": "节点 uy 绝对值最大值。"
+      },
+      {
+        "value": "max_member_moment",
+        "label": "最大构件弯矩",
+        "unit": "kN·m",
+        "unitLabel": "千牛·米",
+        "description": "框架构件杆端弯矩绝对值最大值。"
+      }
+    ]
+  },
+  "truss": {
+    "defaultSensitivityMetric": "max_node_displacement",
+    "summaryMetrics": [
+      {
+        "value": "allowable_displacement",
+        "label": "允许位移",
+        "unit": "mm",
+        "unitLabel": "毫米",
+        "description": "平面桁架节点位移控制限值。"
+      },
+      {
+        "value": "max_node_displacement",
+        "label": "最大节点位移",
+        "unit": "mm",
+        "unitLabel": "毫米",
+        "description": "桁架节点位移绝对值最大值。"
+      },
+      {
+        "value": "max_member_axial",
+        "label": "最大杆件轴力",
+        "unit": "kN",
+        "unitLabel": "千牛",
+        "description": "桁架杆件轴力绝对值最大值，拉为正、压为负。"
+      },
+      {
+        "value": "calculation_status",
+        "label": "计算结论",
+        "unit": "",
+        "unitLabel": "",
+        "description": "当前位移校核和求解状态。"
+      }
+    ],
+    "sensitivityResponses": [
+      {
+        "value": "max_node_displacement",
+        "label": "最大节点位移",
+        "unit": "mm",
+        "unitLabel": "毫米",
+        "description": "桁架节点位移绝对值最大值。"
+      },
+      {
+        "value": "max_member_axial",
+        "label": "最大杆件轴力",
+        "unit": "kN",
+        "unitLabel": "千牛",
+        "description": "桁架杆件轴力绝对值最大值。"
+      },
+      {
+        "value": "max_member_stress",
+        "label": "最大杆件轴应力",
+        "unit": "MPa",
+        "unitLabel": "兆帕",
+        "description": "桁架杆件轴应力绝对值最大值。"
+      }
+    ]
+  }
+}

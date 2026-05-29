@@ -104,6 +104,49 @@ test("serializeFrameTextModel uses sequential SM element numbers for named membe
   assert.match(text, /PLOAD,2,-12,0.5,global_y/u);
 });
 
+test("serializeFrameTextModel round-trips load cases and combinations", () => {
+  const text = serializeFrameTextModel({
+    nodes: [
+      { id: "N1", x: 0, y: 0, supportType: "fixed" },
+      { id: "N2", x: 6, y: 0, supportType: "pinned" },
+      { id: "N3", x: 6, y: 4, supportType: "free" },
+    ],
+    members: [
+      { id: "C1", start: "N1", end: "N3", elementType: "frame", E_GPa: 210, A_cm2: 240, I_cm4: 12000, kind: "column" },
+      { id: "B1", start: "N2", end: "N3", elementType: "frame", E_GPa: 210, A_cm2: 220, I_cm4: 15000, kind: "beam" },
+    ],
+    loads: [{ type: "nodal", node: "N3", fxKn: 20, fyKn: 0, mzKnM: 0 }],
+    loadCases: [
+      {
+        id: "DL",
+        title: "恒载",
+        loads: [{ type: "distributed", member: "B1", qStartKnPerM: -12, qEndKnPerM: -12, direction: "global_y", startRatio: 0, endRatio: 1 }],
+      },
+      {
+        id: "WL",
+        title: "风荷载",
+        loads: [{ type: "nodal", node: "N3", fxKn: 16, fyKn: 0, mzKnM: 0 }],
+      },
+    ],
+    loadCombinations: [
+      { id: "ULS1", title: "基本组合", factors: { DL: 1.2, WL: 1.4 }, tags: ["ULS", "包络"] },
+    ],
+  });
+
+  assert.match(text, /CASE,DL,恒载/u);
+  assert.match(text, /CASELOAD,DL,DLOAD,2,-12,-12,global_y,0,1/u);
+  assert.match(text, /COMB,ULS1,基本组合,ULS\/包络/u);
+  assert.match(text, /FACTOR,ULS1,WL,1.4/u);
+
+  const restored = parseFrameTextModel(text);
+
+  assert.ok(restored.collections);
+  assert.equal(restored.collections.loadCases?.length, 2);
+  assert.equal(restored.collections.loadCases?.[0]?.loads.length, 1);
+  assert.equal(restored.collections.loadCombinations?.length, 1);
+  assert.deepEqual(restored.collections.loadCombinations?.[0]?.factors, { DL: 1.2, WL: 1.4 });
+});
+
 test("parseFrameTextModel reports ignored invalid references for preview blocking", () => {
   const result = parseFrameTextModel(`
 N,1,0,0

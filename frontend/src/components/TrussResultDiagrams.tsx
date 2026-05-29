@@ -12,6 +12,7 @@ import {
   type DiagramPlacedLabel,
 } from "../lib/diagram-label-layout";
 import { formatEngineeringValue } from "../lib/engineering-format";
+import { summaryMetricLabel } from "../lib/result-metrics";
 import {
   buildTrussMemberLengthDimensions,
   buildTrussMemberLengthLegendRows,
@@ -73,6 +74,12 @@ function supportMarker(type: SupportType, x: number, y: number) {
 
 function valueText(value: number, unit: string) {
   return formatEngineeringValue(value, unit);
+}
+
+function trussDiagramControlLabel(key: TrussDiagramSelectionKey): string {
+  if (key === "displacementMm") return summaryMetricLabel("truss", "max_node_displacement", "最大节点位移");
+  if (key === "axialForceKn") return summaryMetricLabel("truss", "max_member_axial", "最大杆件轴力");
+  return "控制值";
 }
 
 function memberLabelPlacement(start: { x: number; y: number }, end: { x: number; y: number }, offset: number) {
@@ -379,7 +386,7 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
           <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-bold text-slate-600 dark:text-slate-300">
             {controlValue !== undefined ? (
               <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 dark:border-slate-700 dark:bg-slate-900/70">
-                {selectedMetricKey === "displacementMm" ? "最大位移" : "峰值"}：{controlId ?? "—"} / {valueText(controlValue, selectedMetric.unit)}
+                {trussDiagramControlLabel(selectedMetricKey)}：{controlId ?? "—"} / {valueText(controlValue, selectedMetric.unit)}
               </span>
             ) : null}
             {selectedMetricKey === "displacementMm" && displacementDisplayScale > 0 ? (
@@ -399,6 +406,7 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
           </div>
           <input
             type="range"
+            name="truss-displacement-display-scale"
             min={1}
             max={displacementScaleMax}
             step={1}
@@ -409,6 +417,7 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
           />
           <input
             type="number"
+            name="truss-displacement-display-scale-value"
             min={1}
             max={displacementScaleMax}
             step={1}

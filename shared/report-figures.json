@@ -1,0 +1,126 @@
+{
+  "beam": {
+    "overlay": [
+      {
+        "imageKey": "beam.overlay.moment",
+        "metric": "moment",
+        "title": "弯矩图",
+        "seriesLabel": "弯矩",
+        "unit": "kN·m",
+        "scope": "control"
+      },
+      {
+        "imageKey": "beam.overlay.shear",
+        "metric": "shear",
+        "title": "剪力图",
+        "seriesLabel": "剪力",
+        "unit": "kN",
+        "scope": "all"
+      },
+      {
+        "imageKey": "beam.overlay.deflection",
+        "metric": "deflection",
+        "title": "挠度图",
+        "seriesLabel": "挠度",
+        "unit": "mm",
+        "scope": "all"
+      }
+    ],
+    "traditional": [
+      {
+        "imageKey": "beam.deflection",
+        "metric": "deflection",
+        "title": "挠度曲线",
+        "seriesLabel": "挠度",
+        "unit": "mm",
+        "scope": "all"
+      },
+      {
+        "imageKey": "beam.moment",
+        "metric": "moment",
+        "title": "弯矩曲线",
+        "seriesLabel": "弯矩",
+        "unit": "kN·m",
+        "scope": "control"
+      },
+      {
+        "imageKey": "beam.shear",
+        "metric": "shear",
+        "title": "剪力曲线",
+        "seriesLabel": "剪力",
+        "unit": "kN",
+        "scope": "all"
+      }
+    ]
+  },
+  "frame": {
+    "member": [
+      {
+        "overlayImageKey": "frame.overlay.moment",
+        "traditionalImageKey": "frame.moment",
+        "metric": "momentKnM",
+        "label": "弯矩",
+        "title": "弯矩图",
+        "unit": "kN·m",
+        "scope": "control"
+      },
+      {
+        "overlayImageKey": "frame.overlay.shear",
+        "traditionalImageKey": "frame.shear",
+        "metric": "shearKn",
+        "label": "剪力",
+        "title": "剪力图",
+        "unit": "kN",
+        "scope": "all"
+      },
+      {
+        "overlayImageKey": "frame.overlay.memberDeflection",
+        "traditionalImageKey": "frame.memberDeflection",
+        "metric": "deflectionMm",
+        "label": "局部 y 向挠度",
+        "title": "局部 y 向挠度图",
+        "unit": "mm",
+        "scope": "all"
+      },
+      {
+        "overlayImageKey": "frame.overlay.axial",
+        "traditionalImageKey": "frame.axial",
+        "metric": "axialKn",
+        "label": "轴力",
+        "title": "轴力图",
+        "unit": "kN",
+        "scope": "all"
+      }
+    ]
+  },
+  "truss": {
+    "overlay": [
+      {
+        "imageKey": "truss.overlay.axial",
+        "metric": "axial",
+        "title": "杆件轴力图",
+        "seriesLabel": "杆件轴力",
+        "unit": "kN",
+        "scope": "control"
+      },
+      {
+        "imageKey": "truss.overlay.displacement",
+        "metric": "displacement",
+        "title": "节点位移图",
+        "seriesLabel": "节点位移",
+        "unit": "mm",
+        "scope": "all"
+      }
+    ],
+    "traditional": [
+      {
+        "imageKey": "truss.axial",
+        "metric": "axial",
+        "title": "杆件轴力曲线",
+        "seriesLabel": "杆件轴力",
+        "unit": "kN",
+        "scope": "control"
+      }
+    ]
+  }
+}

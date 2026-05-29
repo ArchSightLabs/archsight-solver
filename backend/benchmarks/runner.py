@@ -70,7 +70,7 @@ def _evaluate_response(case: Mapping[str, Any], data: Mapping[str, Any]) -> list
         checks.append(_check("构件数量", len(data["memberIds"]), expected["memberCount"]))
         checks.append(
             _check(
-                "最大位移(mm)",
+                "最大节点位移(mm)",
                 summary["maxDisplacementMm"],
                 expected["maxDisplacementMm"],
                 tolerances["maxDisplacementMm"],
@@ -226,4 +226,3 @@ def evaluate_benchmark_suite(category: str | None = None) -> Dict[str, Any]:
         "failed": len(results) - passed,
         "results": results,
     }
-

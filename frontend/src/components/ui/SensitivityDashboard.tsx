@@ -353,7 +353,7 @@ export function SensitivityDashboard({
                   <span className="text-slate-600 dark:text-slate-300">变动幅度</span>
                   <span className="text-slate-700 dark:text-slate-200">±{range}%</span>
                 </div>
-                <input type="range" min="5" max="50" step="5" value={range}
+                <input name="sensitivity-parameter-range" type="range" min="5" max="50" step="5" value={range}
                   onChange={(e) => setRange(Number(e.target.value))}
                   className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-300 accent-slate-700 dark:bg-slate-800 dark:accent-slate-300" />
               </div>
@@ -363,7 +363,7 @@ export function SensitivityDashboard({
                   <span className="text-slate-600 dark:text-slate-300">步数</span>
                   <span className="text-teal-700 dark:text-teal-300">{steps}</span>
                 </div>
-                <input type="range" min="4" max="20" step="2" value={steps}
+                <input name="sensitivity-step-count" type="range" min="4" max="20" step="2" value={steps}
                   onChange={(e) => setSteps(Number(e.target.value))}
                   className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-300 accent-teal-600 dark:bg-slate-800" />
               </div>

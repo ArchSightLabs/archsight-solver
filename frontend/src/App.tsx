@@ -28,7 +28,7 @@ import { Button } from "./components/ui/button";
 import { useTemplateLibrary } from "./hooks/useTemplateLibrary";
 import { createWorkspaceSnapshot, restoreWorkspaceSnapshot } from "./lib/template-library";
 import type { ProjectInfo } from "./lib/solver-project";
-import { moduleSectionsForMode, objectNavigatorSectionId } from "./lib/workbench-navigation";
+import { moduleSectionsForMode, normalizeModuleSectionId, objectNavigatorSectionId } from "./lib/workbench-navigation";
 import { ARCHSIGHT_SOLVER_PROJECT_ACCEPT } from "./lib/project-file";
 import type { ProjectTemplate } from "./types/beam";
 import type { BeamWorkbenchSelection, FrameWorkbenchSelection, TrussWorkbenchSelection, WorkbenchSelection, WorkbenchSelectionOptions } from "./types/workbench-selection";
@@ -115,6 +115,7 @@ function App() {
     isScanning,
     isSolving,
     markRuntimePersisted,
+    operationNotice,
     resetRuntimeForNewAnalysisObject,
     runLabel,
     sensitivityData,
@@ -209,9 +210,10 @@ function App() {
 
   const analysisMode = workspace.analysisMode;
   const moduleSections = moduleSectionsForMode(analysisMode);
+  const normalizedActiveModuleSection = normalizeModuleSectionId(analysisMode, activeModuleSection);
 
-  const activeModuleSectionId = moduleSections.some((item) => item.id === activeModuleSection)
-    ? activeModuleSection
+  const activeModuleSectionId = normalizedActiveModuleSection && moduleSections.some((item) => item.id === normalizedActiveModuleSection)
+    ? normalizedActiveModuleSection
     : moduleSections[0]?.id ?? "";
 
   const handleRestoreTemplate = (template: ProjectTemplate): TemplateActionResult<void> => {
@@ -313,6 +315,7 @@ function App() {
       <input
         ref={projectFileInputRef}
         type="file"
+        name="project-file"
         accept={ARCHSIGHT_SOLVER_PROJECT_ACCEPT}
         className="hidden"
         onChange={handleProjectFileChange}
@@ -422,6 +425,7 @@ function App() {
                 workspace={workspace}
                 sensitivityData={sensitivityData}
                 isScanning={isScanning}
+                operationNotice={operationNotice}
                 compact={isCompactWorkbench}
                 onRunSensitivity={handleSensitivity}
               />
@@ -440,6 +444,7 @@ function App() {
                   onRunCalculation={handleRunAndReview}
                   isSolving={isSolving}
                   runLabel={runLabel}
+                  operationNotice={operationNotice}
                 />
               </section>
             )}

@@ -2,9 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import type { BeamCalculationResults, BeamPreviewData } from "../types/beam.ts";
+import type { FrameCalculationResults, TrussCalculationResults } from "../types/structure.ts";
 import { buildBeamResultDiagramSvg } from "./beam-result-diagram-svg.ts";
 import { buildBeamPreviewSvg } from "./beam-preview-svg.ts";
 import { formatEngineeringValue } from "./engineering-format.ts";
+import { buildReportImagePlan } from "./report-image-plan.ts";
 import { assertReportImagesReady, reportImageRequirements } from "./report-image-requirements.ts";
 
 test("formatEngineeringValue uses up to four decimals and trims trailing zeros", () => {
@@ -156,4 +158,44 @@ test("assertReportImagesReady prevents frontend DOCX export from falling back to
   );
   assert.throws(() => assertReportImagesReady({ "beam.preview": "data:image/png;base64,test" }, input), /梁系弯矩图/);
   assert.doesNotThrow(() => assertReportImagesReady({ "beam.preview": "data:image/png;base64,test", "beam.overlay.moment": "data:image/png;base64,test" }, input));
+});
+
+test("buildReportImagePlan keeps control figure keys aligned for every analysis mode", () => {
+  const reportOptions = { template: "standard" as const, figureMode: "overlay" as const, figureScope: "control" as const };
+
+  assert.deepEqual(
+    buildReportImagePlan({
+      analysisMode: "beam",
+      beamResults: {} as BeamCalculationResults,
+      frameResults: null,
+      trussResults: null,
+      sensitivityData: null,
+      reportOptions,
+    }).map((item) => item.key),
+    ["beam.preview", "beam.overlay.moment"],
+  );
+
+  assert.deepEqual(
+    buildReportImagePlan({
+      analysisMode: "frame",
+      beamResults: null,
+      frameResults: {} as FrameCalculationResults,
+      trussResults: null,
+      sensitivityData: null,
+      reportOptions,
+    }).map((item) => item.key),
+    ["frame.preview", "frame.overlay.moment"],
+  );
+
+  assert.deepEqual(
+    buildReportImagePlan({
+      analysisMode: "truss",
+      beamResults: null,
+      frameResults: null,
+      trussResults: {} as TrussCalculationResults,
+      sensitivityData: null,
+      reportOptions,
+    }).map((item) => item.key),
+    ["truss.preview", "truss.overlay.axial"],
+  );
 });

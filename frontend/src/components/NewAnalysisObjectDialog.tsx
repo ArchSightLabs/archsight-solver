@@ -1,5 +1,6 @@
 import { Network, Ruler, Triangle, X } from "lucide-react";
 import { useMemo, useState } from "react";
+import { analysisVocabulary } from "../lib/analysis-vocabulary";
 import type { AnalysisObjectType } from "../lib/solver-project";
 import { defaultAnalysisObjectName } from "../lib/solver-project";
 import { Button } from "./ui/button";
@@ -11,9 +12,9 @@ interface NewAnalysisObjectDialogProps {
 }
 
 const TYPE_OPTIONS = [
-  { type: "beam" as const, label: "梁系分析", icon: Ruler },
-  { type: "frame" as const, label: "平面框架", icon: Network },
-  { type: "truss" as const, label: "平面桁架", icon: Triangle },
+  { type: "beam" as const, label: analysisVocabulary("beam").analysisLabel, icon: Ruler },
+  { type: "frame" as const, label: analysisVocabulary("frame").analysisLabel, icon: Network },
+  { type: "truss" as const, label: analysisVocabulary("truss").analysisLabel, icon: Triangle },
 ];
 
 export function NewAnalysisObjectDialog({ existingCountByType, onCreate, onClose }: NewAnalysisObjectDialogProps) {

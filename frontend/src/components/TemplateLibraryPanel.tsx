@@ -4,6 +4,7 @@ import { Button } from "./ui/button";
 import { GlassCard, GlassHeader } from "./ui/GlassCard";
 import type { AnalysisMode } from "../types/structure.ts";
 import type { ProjectTemplate } from "../types/beam.ts";
+import { analysisVocabulary } from "../lib/analysis-vocabulary.ts";
 import type { TemplateActionResult } from "../lib/template-library.ts";
 
 interface TemplateLibraryPanelProps {
@@ -21,15 +22,15 @@ interface TemplateLibraryPanelProps {
 }
 
 const MODE_LABELS: Record<AnalysisMode, string> = {
-  beam: "梁系",
-  frame: "框架",
-  truss: "桁架",
+  beam: analysisVocabulary("beam").systemLabel,
+  frame: analysisVocabulary("frame").systemLabel,
+  truss: analysisVocabulary("truss").systemLabel,
 };
 
 const MODE_PLACEHOLDERS: Record<AnalysisMode, string> = {
   beam: "例如：标准梁系方案",
-  frame: "例如：标准框架方案",
-  truss: "例如：标准桁架方案",
+  frame: "例如：标准平面框架方案",
+  truss: "例如：标准平面桁架方案",
 };
 
 const panelSurfaceButton =
@@ -224,7 +225,7 @@ export function TemplateLibraryPanel({
         ) : (
           templates.map((template) => {
             const isBaseline = template.id === baselineTemplateId;
-            const modeLabel = template.snapshot.analysisMode === "frame" ? "框架" : template.snapshot.analysisMode === "truss" ? "桁架" : "梁系";
+            const modeLabel = analysisVocabulary(template.snapshot.analysisMode).systemLabel;
 
             return (
               <div

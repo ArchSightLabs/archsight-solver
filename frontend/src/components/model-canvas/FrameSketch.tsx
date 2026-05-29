@@ -1,4 +1,5 @@
 import { createPortalFrameModelFromState, type WorkspaceState } from "../../lib/workspace-state";
+import { nodeSupportLabel } from "../../lib/support-vocabulary";
 import { buildFrameDimensionLegendRows, buildFrameLoadLabelMap, formatFrameDistributedLoadLabel, formatFrameForceLoadLabel, frameMemberDimensionValueLabel, type FrameGeometryDimension } from "../frame-preview-utils";
 import type { FrameLoad, FrameLoadDirection, StructureNode, SupportType } from "../../types/structure";
 import type { WorkbenchSelection } from "../../types/workbench-selection";
@@ -92,7 +93,7 @@ function FrameSupportMarker({ type, x, y, selected, angleDeg }: { type?: Support
   const stroke = selected ? "var(--model-load)" : "var(--model-support-stroke)";
   const line = selected ? "var(--model-load)" : "var(--model-support-line)";
   const fill = selected ? "var(--model-badge-fill)" : "var(--model-support-fill)";
-  const label = type === "fixed" ? "固结支座" : type === "roller" ? "滚动支座" : "铰支座";
+  const label = nodeSupportLabel(type);
 
   if (type === "fixed") {
     return (
@@ -413,4 +414,3 @@ export function FrameSketch({ workspace, selection, onSelect }: { workspace: Wor
     </svg>
   );
 }
-

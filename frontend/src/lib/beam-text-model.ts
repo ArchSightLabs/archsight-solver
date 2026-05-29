@@ -1,4 +1,5 @@
-import { PREDEFINED_MATERIALS, type BeamLinearLoadConfig, type BeamPointLoadConfig, type BeamSpanConfig, type BeamSupportConfig, type BeamSupportDof, type BeamSupportType, type BeamWorkspaceState, type Material } from "../types/beam.ts";
+import type { BeamLinearLoadConfig, BeamPointLoadConfig, BeamSpanConfig, BeamSupportConfig, BeamSupportDof, BeamSupportType, BeamWorkspaceState } from "../types/beam.ts";
+import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
 
 export interface BeamTextParseResult {
   patch: Partial<BeamWorkspaceState> | null;

@@ -7,6 +7,7 @@ from flask import Blueprint, jsonify, request
 from backend.api.errors import ApiError, error_payload
 from backend.api.analysis_types import get_analysis_type
 from backend.api.calculation_response import build_calculation_response
+from backend.common.result_metric_catalog import default_sensitivity_metric, sensitivity_response_meta
 
 sensitivity_bp = Blueprint("sensitivity", __name__)
 
@@ -20,11 +21,7 @@ BEAM_SERIES_META = (
     ("freq", "动力主频 f", "#ef4444"),
 )
 
-BEAM_RESPONSE_META = {
-    "max_deflection": ("最大挠度", "毫米"),
-    "max_moment": ("最大弯矩", "千牛·米"),
-    "max_shear": ("最大剪力", "千牛"),
-}
+BEAM_RESPONSE_META = sensitivity_response_meta("beam")
 
 FRAME_SERIES_META = (
     ("beamLoad", "梁面荷载", "#38bdf8"),
@@ -33,11 +30,7 @@ FRAME_SERIES_META = (
     ("I", "截面惯性矩 I", "#ef4444"),
 )
 
-FRAME_RESPONSE_META = {
-    "max_ux": ("最大水平位移", "毫米"),
-    "max_uy": ("最大竖向位移", "毫米"),
-    "max_member_moment": ("最大构件弯矩", "千牛·米"),
-}
+FRAME_RESPONSE_META = sensitivity_response_meta("frame")
 
 TRUSS_SERIES_META = (
     ("fx", "节点水平荷载 Fx", "#38bdf8"),
@@ -46,11 +39,7 @@ TRUSS_SERIES_META = (
     ("A", "截面面积 A", "#ef4444"),
 )
 
-TRUSS_RESPONSE_META = {
-    "max_node_displacement": ("最大节点位移", "毫米"),
-    "max_member_axial": ("最大杆件轴力", "千牛"),
-    "max_member_stress": ("最大杆件轴应力", "兆帕"),
-}
+TRUSS_RESPONSE_META = sensitivity_response_meta("truss")
 
 
 def _safe_float(value, default=0.0):
@@ -253,7 +242,7 @@ def build_sensitivity_response(data):
         response_metric, response_label, response_unit = _resolve_response_meta(
             metric=requested_metric,
             mapping=FRAME_RESPONSE_META,
-            default_metric="max_ux",
+            default_metric=default_sensitivity_metric("frame"),
         )
         values_by_key = {key: [] for key, _, _ in FRAME_SERIES_META}
         for v in variations:
@@ -274,7 +263,7 @@ def build_sensitivity_response(data):
         response_metric, response_label, response_unit = _resolve_response_meta(
             metric=requested_metric,
             mapping=TRUSS_RESPONSE_META,
-            default_metric="max_node_displacement",
+            default_metric=default_sensitivity_metric("truss"),
         )
         values_by_key = {key: [] for key, _, _ in TRUSS_SERIES_META}
         for v in variations:
@@ -295,7 +284,7 @@ def build_sensitivity_response(data):
     response_metric, response_label, response_unit = _resolve_response_meta(
         metric=requested_metric,
         mapping=BEAM_RESPONSE_META,
-        default_metric="max_deflection",
+        default_metric=default_sensitivity_metric("beam"),
     )
     values_by_key = {key: [] for key, _, _ in BEAM_SERIES_META}
     for v in variations:

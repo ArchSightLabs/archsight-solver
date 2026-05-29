@@ -6,28 +6,8 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional
 import pandas as pd
 
 from backend.benchmarks.catalog import load_benchmark_catalog
-from backend.normalizers.structural_model import (
-    FRAME_SUPPORT_LABELS,
-    SUPPORT_DOF_MAP,
-    TRUSS_SUPPORT_LABELS,
-)
-
-
-BEAM_SUPPORT_LABELS = {
-    "fixed": "固结支座",
-    "pinned": "铰支座",
-    "roller": "滚动支座",
-    "free": "自由端",
-    "spring": "弹性支座",
-}
-
-BEAM_SUPPORT_DOF_MAP = {
-    "fixed": ["v", "rz"],
-    "pinned": ["v"],
-    "roller": ["v"],
-    "free": [],
-    "spring": [],
-}
+from backend.exporters.common.analysis_assumptions import analysis_assumption_table_rows
+from backend.common.support_catalog import support_constraint_dofs, support_label
 
 DOF_LABELS = {
     "ux": "ux 水平位移",
@@ -69,13 +49,7 @@ def _beam_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str,
             columns=["项目", "数值/说明"],
         ),
         "模型假定与适用范围": pd.DataFrame(
-            [
-                ["梁理论", request.get("beam_theory_label", solution.get("beamTheoryLabel", "Euler-Bernoulli 梁理论"))],
-                ["材料假定", "线弹性、均质材料，弹性模量按输入值参与刚度矩阵"],
-                ["几何假定", "小变形杆系分析，变形图仅用于放大显示，不代表真实比例"],
-                ["自由度", "每个梁节点采用竖向位移 v 与截面转角 rz"],
-                ["适用范围", "适用于常规梁系静力响应与教学/方案阶段复核；不替代规范承载力设计"],
-            ],
+            list(analysis_assumption_table_rows("beam")),
             columns=["项目", "说明"],
         ),
         "单位换算表": pd.DataFrame(
@@ -140,13 +114,7 @@ def _frame_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str
             columns=["项目", "数值/说明"],
         ),
         "模型假定与适用范围": pd.DataFrame(
-            [
-                ["单元类型", "二维平面杆单元，节点自由度为 ux、uy、rz"],
-                ["材料假定", "线弹性、小变形，截面参数沿构件常值"],
-                ["荷载假定", "节点荷载作用于全局坐标；构件分布荷载按局部/全局方向等效为杆端荷载"],
-                ["内力恢复", "由构件局部坐标位移恢复轴力、剪力、弯矩"],
-                ["适用范围", "适用于二维杆系静力分析与方案阶段复核；稳定初筛不替代规范验算"],
-            ],
+            list(analysis_assumption_table_rows("frame")),
             columns=["项目", "说明"],
         ),
         "单位换算表": _member_unit_table(include_inertia=True),
@@ -202,13 +170,7 @@ def _truss_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str
             columns=["项目", "数值/说明"],
         ),
         "模型假定与适用范围": pd.DataFrame(
-            [
-                ["单元类型", "二维杆单元，节点自由度为 ux、uy"],
-                ["杆件假定", "杆件两端铰接，仅承受轴力，不输出弯矩和剪力作为主结果"],
-                ["材料假定", "线弹性、小变形，截面面积沿杆件常值"],
-                ["荷载假定", "节点荷载为主；构件自重/线荷载进入求解前等效为节点荷载"],
-                ["适用范围", "适用于二维桁架静力分析，不适用于刚接框架或受弯构件验算"],
-            ],
+            list(analysis_assumption_table_rows("truss")),
             columns=["项目", "说明"],
         ),
         "单位换算表": _member_unit_table(include_inertia=False),
@@ -251,13 +213,13 @@ def _beam_boundary_table(support_specs: List[Mapping[str, Any]], support_positio
     for index, position in enumerate(support_positions):
         support = support_specs[index] if index < len(support_specs) else {}
         support_type = str(support.get("type", "pinned"))
-        constraints = support.get("constraints") or BEAM_SUPPORT_DOF_MAP.get(support_type, [])
+        constraints = support.get("constraints") or support_constraint_dofs("beam", support_type)
         springs = support.get("springs") or []
         rows.append(
             {
                 "支座/节点": support.get("id", f"S{index + 1}"),
                 "位置": f"x={round(float(position), 6)} m",
-                "支座类型": BEAM_SUPPORT_LABELS.get(support_type, support_type),
+                "支座类型": support_label("beam", support_type),
                 "约束自由度": _format_dofs(constraints),
                 "弹簧刚度": _format_springs(springs),
                 "释放/内铰": "梁单元端部释放见结构模型；未设置则为连续转角",
@@ -267,18 +229,17 @@ def _beam_boundary_table(support_specs: List[Mapping[str, Any]], support_positio
 
 
 def _node_boundary_table(nodes: Iterable[Mapping[str, Any]], analysis_type: str) -> pd.DataFrame:
-    labels = FRAME_SUPPORT_LABELS if analysis_type == "frame" else TRUSS_SUPPORT_LABELS
     rows = []
     for node in nodes:
         support_type = str(node.get("supportType", "free"))
-        constraints = SUPPORT_DOF_MAP[analysis_type].get(support_type, [])
+        constraints = support_constraint_dofs(analysis_type, support_type)  # type: ignore[arg-type]
         if node.get("condensedDofs"):
             constraints = [*constraints, *node.get("condensedDofs", [])]
         rows.append(
             {
                 "节点": node.get("id", "—"),
                 "位置": f"({round(float(node.get('x', 0.0)), 6)}, {round(float(node.get('y', 0.0)), 6)}) m",
-                "支座类型": labels.get(support_type, support_type),
+                "支座类型": support_label(analysis_type, support_type),  # type: ignore[arg-type]
                 "约束自由度": _format_dofs(constraints),
                 "弹簧刚度": _format_springs(node.get("springs", [])),
                 "释放/内铰": _format_node_release(node),

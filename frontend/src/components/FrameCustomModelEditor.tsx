@@ -1,17 +1,32 @@
 import { useMemo, useState } from "react";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { DropdownSelect } from "./ui/DropdownSelect";
-import { Plus, Trash2, Layers3, Link2, MapPin, RotateCw, Sparkles, GitBranch, Waypoints, FileText, CheckCircle2, AlertTriangle, Wand2 } from "lucide-react";
-import { TextModelCheckPanel, type TextModelPreviewMetric } from "./TextModelCheckPanel";
-import { parseFrameTextModel, serializeFrameTextModel } from "../lib/frame-text-model.ts";
+import { FrameBasicSection } from "./FrameBasicSection";
+import { FrameLoadEditor } from "./FrameLoadEditor";
+import { FrameMemberEditor } from "./FrameMemberEditor";
+import { FrameNodeEditor } from "./FrameNodeEditor";
+import { FrameObjectNavigator, type FrameSelectedObject } from "./FrameObjectNavigator";
+import { FrameTableSection, type FrameAdvancedSection } from "./FrameTableSection";
+import { FrameTemplateSection } from "./FrameTemplateSection";
+import { FrameTextModelSection } from "./FrameTextModelSection";
+import { Plus, Layers3 } from "lucide-react";
+import {
+  createConnectedFrameMember,
+  createFrameCombinationDraft,
+  createFrameLoadCaseDraft,
+  createFrameLoadDraft,
+  createFrameMemberDraft,
+  distanceBetweenFrameNodes,
+  frameDistributedLoadKindLabel,
+  frameMemberExists,
+  inferFrameNodeDraft,
+} from "../lib/frame-editor-model.ts";
+import { useFrameTextModel } from "../hooks/useFrameTextModel.ts";
 import { FRAME_MODEL_TEMPLATES, cloneFrameModelTemplate } from "../lib/workbench-model-templates.ts";
+import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
 import type {
   FrameLoad,
   FrameLoadCase,
   FrameLoadCombination,
-  FrameLoadDirection,
-  FrameSpring,
   StructureMember,
   StructureNode,
 } from "../types/structure.ts";
@@ -34,270 +49,8 @@ interface FrameCustomModelEditorProps {
   onSelectionChange?: (next: FrameWorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
 }
 
-type FrameSelectedObject =
-  | { type: "node"; id: string }
-  | { type: "member"; id: string }
-  | { type: "load"; id: string };
-type FrameAdvancedSection = "nodes" | "members" | "loads" | "loadCases" | "loadCombinations";
-
-const SUPPORT_OPTIONS = [
-  { value: "fixed", label: "固结支座" },
-  { value: "pinned", label: "铰支座" },
-  { value: "roller", label: "滚动支座" },
-  { value: "free", label: "自由节点" },
-];
-
-const MEMBER_KIND_OPTIONS = [
-  { value: "column", label: "柱" },
-  { value: "beam", label: "梁" },
-  { value: "brace", label: "支撑" },
-  { value: "generic", label: "通用" },
-];
-
-const LOAD_TYPE_OPTIONS = [
-  { value: "nodal", label: "节点荷载" },
-  { value: "distributed", label: "分布荷载" },
-  { value: "member_point", label: "集中荷载" },
-];
-
-const LOAD_DIRECTION_OPTIONS: Array<{ value: FrameLoadDirection; label: string }> = [
-  { value: "local_y", label: "局部 y" },
-  { value: "global_y", label: "全局 Y" },
-];
-
-function frameDistributedLoadKindLabel(load: Extract<FrameLoad, { type: "distributed" }>): string {
-  const qStart = Number(load.qStartKnPerM ?? load.wyKnPerM ?? 0);
-  const qEnd = Number(load.qEndKnPerM ?? load.qStartKnPerM ?? load.wyKnPerM ?? qStart);
-  return Math.abs(qStart - qEnd) < 1e-9 ? "均布荷载" : "线性分布荷载";
-}
-
-const SPRING_DOF_OPTIONS = [
-  { value: "uy", label: "竖向平动 uy" },
-  { value: "ux", label: "水平平动 ux" },
-  { value: "rz", label: "转角 rz" },
-];
-
-function nextDraftId(prefix: string, existingIds: string[]): string {
-  const used = new Set(existingIds);
-  let maxSuffix = 0;
-  for (const id of existingIds) {
-    const match = new RegExp(`^${prefix}(\\d+)$`).exec(id);
-    if (!match) continue;
-    maxSuffix = Math.max(maxSuffix, Number(match[1]) || 0);
-  }
-  let candidate = `${prefix}${maxSuffix + 1}`;
-  while (used.has(candidate)) {
-    maxSuffix += 1;
-    candidate = `${prefix}${maxSuffix + 1}`;
-  }
-  return candidate;
-}
-
-function createNodeDraft(index: number, existingIds: string[]): StructureNode {
-  const isBase = index < 2;
-  return {
-    id: nextDraftId("N", existingIds),
-    x: (index + 1) * 3,
-    y: isBase ? 0 : 4,
-    supportType: isBase ? "fixed" : "free",
-  };
-}
-
-function positiveStep(values: number[], fallback: number): number {
-  const sorted = [...new Set(values.map((value) => Number(value.toFixed(6))))].sort((a, b) => a - b);
-  const steps = sorted
-    .slice(1)
-    .map((value, index) => value - sorted[index])
-    .filter((value) => Number.isFinite(value) && value > 1e-9);
-  return steps[0] ?? fallback;
-}
-
-function inferNodeDraft(nodes: StructureNode[], existingIds: string[]): StructureNode {
-  if (nodes.length === 0) {
-    return createNodeDraft(0, existingIds);
-  }
-
-  const maxY = Math.max(...nodes.map((node) => node.y));
-  const topNodes = nodes.filter((node) => Math.abs(node.y - maxY) < 1e-9);
-  const reference = topNodes.reduce((rightMost, node) => (node.x > rightMost.x ? node : rightMost), topNodes[0]);
-  const dx = positiveStep(nodes.map((node) => node.x), 3);
-  return {
-    id: nextDraftId("N", existingIds),
-    x: Number((reference.x + dx).toFixed(3)),
-    y: reference.y,
-    supportType: reference.y === 0 ? "roller" : "free",
-  };
-}
-
-function distanceBetween(a: StructureNode, b: StructureNode): number {
-  return Math.hypot(a.x - b.x, a.y - b.y);
-}
-
-function memberKindBetween(start: StructureNode | undefined, end: StructureNode | undefined): string {
-  if (!start || !end) return "generic";
-  if (Math.abs(start.x - end.x) < 1e-9) return "column";
-  if (Math.abs(start.y - end.y) < 1e-9) return "beam";
-  return "brace";
-}
-
-function memberExists(members: StructureMember[], start: string, end: string): boolean {
-  return members.some((member) => (member.start === start && member.end === end) || (member.start === end && member.end === start));
-}
-
-function templateForKind(members: StructureMember[], kind: string): Pick<StructureMember, "E_GPa" | "A_cm2" | "I_cm4" | "kind"> {
-  const template = members.find((member) => member.kind === kind) ?? members[0];
-  return {
-    E_GPa: template?.E_GPa ?? 210,
-    A_cm2: template?.A_cm2 ?? 120,
-    I_cm4: template?.I_cm4 ?? 8000,
-    kind: template?.kind ?? kind,
-  };
-}
-
-function createConnectedMember(
-  start: StructureNode,
-  end: StructureNode,
-  members: StructureMember[],
-  existingIds: string[]
-): StructureMember {
-  const kind = memberKindBetween(start, end);
-  return {
-    id: nextDraftId(kind === "beam" ? "B" : kind === "column" ? "C" : "M", existingIds),
-    start: start.id,
-    end: end.id,
-    elementType: "frame",
-    ...templateForKind(members, kind),
-    kind,
-  };
-}
-
-function createMemberDraft(index: number, nodes: StructureNode[], existingIds: string[]): StructureMember {
-  const start = nodes[index]?.id ?? nodes[0]?.id ?? "N1";
-  const end = nodes[index + 1]?.id ?? nodes[nodes.length - 1]?.id ?? start;
-  return {
-    id: nextDraftId("M", existingIds),
-    start,
-    end,
-    elementType: "frame",
-    E_GPa: 210,
-    A_cm2: 120,
-    I_cm4: 8000,
-    kind: "generic",
-  };
-}
-
-function createLoadDraft(index: number, nodes: StructureNode[], members: StructureMember[]): FrameLoad {
-  const fallbackNodeId = nodes[0]?.id ?? "N1";
-  const fallbackMemberId = members[0]?.id ?? "M1";
-
-  if (index % 3 === 1 && members.length > 0) {
-    return {
-      type: "distributed",
-      member: members[index % members.length]?.id ?? fallbackMemberId,
-      direction: "local_y",
-      qStartKnPerM: -10,
-      qEndKnPerM: -10,
-      startRatio: 0,
-      endRatio: 1,
-    };
-  }
-
-  if (index % 3 === 2 && members.length > 0) {
-    return {
-      type: "member_point",
-      member: members[index % members.length]?.id ?? fallbackMemberId,
-      direction: "local_y",
-      forceKn: -10,
-      positionRatio: 0.5,
-    };
-  }
-
-  return {
-    type: "nodal",
-    node: fallbackNodeId,
-    fxKn: 0,
-    fyKn: -10,
-    mzKnM: 0,
-  };
-}
-
-function createLoadCaseDraft(index: number, nodes: StructureNode[], members: StructureMember[], existingIds: string[]): FrameLoadCase {
-  const id = nextDraftId("LC", existingIds);
-  return {
-    id,
-    title: `工况 ${index + 1}`,
-    loads: [createLoadDraft(0, nodes, members)],
-  };
-}
-
-function createCombinationDraft(index: number, loadCases: FrameLoadCase[], existingIds: string[]): FrameLoadCombination {
-  const id = nextDraftId("COMB", existingIds);
-  return {
-    id,
-    title: `组合 ${index + 1}`,
-    factors: Object.fromEntries(loadCases.map((loadCase) => [loadCase.id, 1.0])),
-    tags: [],
-  };
-}
-
-function updateSpringValue(spring: FrameSpring, patch: Partial<FrameSpring>): FrameSpring {
-  const dof = patch.dof ?? spring.dof;
-  if (dof === "rz") {
-    const previous = spring.dof === "rz" ? spring.stiffnessKnMPerRad : spring.stiffnessKnPerM;
-    const next = "stiffnessKnMPerRad" in patch ? patch.stiffnessKnMPerRad : previous;
-    return { dof, stiffnessKnMPerRad: Number(next) || 0 };
-  }
-  const previous = spring.dof === "rz" ? spring.stiffnessKnMPerRad : spring.stiffnessKnPerM;
-  const next = "stiffnessKnPerM" in patch ? patch.stiffnessKnPerM : previous;
-  return { dof, stiffnessKnPerM: Number(next) || 0 };
-}
-
 function canonicalId(value: string | undefined, fallback: string): string {
   return value?.trim() || fallback;
-}
-
-function DeferredIdInput({
-  ariaLabel,
-  value,
-  onCommit,
-  className,
-}: {
-  ariaLabel: string;
-  value: string;
-  onCommit: (nextId: string) => void;
-  className?: string;
-}) {
-  const [draft, setDraft] = useState(value);
-
-  const commitDraft = () => {
-    const nextId = draft.trim();
-    if (!nextId) {
-      setDraft(value);
-      return;
-    }
-    if (nextId !== value) {
-      onCommit(nextId);
-    }
-  };
-
-  return (
-    <Input
-      aria-label={ariaLabel}
-      value={draft}
-      onChange={(event) => setDraft(event.target.value)}
-      onBlur={commitDraft}
-      onKeyDown={(event) => {
-        if (event.key === "Enter") {
-          event.currentTarget.blur();
-        }
-        if (event.key === "Escape") {
-          setDraft(value);
-          event.currentTarget.blur();
-        }
-      }}
-      className={className}
-    />
-  );
 }
 
 export function FrameCustomModelEditor({
@@ -308,14 +61,10 @@ export function FrameCustomModelEditor({
   selection,
   onSelectionChange,
 }: FrameCustomModelEditorProps) {
-  const [textModelDraft, setTextModelDraft] = useState("");
-  const [textModelMessage, setTextModelMessage] = useState<string | null>(null);
-  const [textModelDiagnostics, setTextModelDiagnostics] = useState<string[]>([]);
-  const [textModelPreviewMetrics, setTextModelPreviewMetrics] = useState<TextModelPreviewMetric[]>([]);
   const [selectedObject, setSelectedObject] = useState<FrameSelectedObject>({ type: "node", id: value.nodes[0]?.id ?? "" });
   const [nodeConnectionTargetId, setNodeConnectionTargetId] = useState("");
   const [advancedSectionId, setAdvancedSectionId] = useState<FrameAdvancedSection>("nodes");
-  const visibleSectionId = activeSectionId ?? "frame-custom-overview";
+  const visibleSectionId = normalizeModuleSectionId("frame", activeSectionId) ?? "frame-template";
   const isSectionVisible = (sectionId: string) => visibleSectionId === sectionId;
 
   const nodeOptions = useMemo(
@@ -372,27 +121,10 @@ export function FrameCustomModelEditor({
     loadCombinations: patch.loadCombinations ?? value.loadCombinations,
   });
 
-  const buildTextModelCollections = (collections: { nodes: StructureNode[]; members: StructureMember[]; loads: FrameLoad[] }) => {
-    let nextMembers = collections.members;
-    if (nextMembers.length === 0 && collections.nodes.length >= 2) {
-      const generatedMembers: StructureMember[] = [];
-      collections.nodes.slice(1).forEach((node, index) => {
-        generatedMembers.push(createConnectedMember(
-          collections.nodes[index],
-          node,
-          generatedMembers,
-          generatedMembers.map((member) => member.id)
-        ));
-      });
-      nextMembers = generatedMembers;
-    }
-
-    return {
-      nodes: collections.nodes,
-      members: nextMembers,
-      loads: collections.loads,
-    };
-  };
+  const frameTextModel = useFrameTextModel({
+    value,
+    onApplyCollections: (next) => commit(keep(next)),
+  });
 
   const applyTypicalCase = (templateId: string) => {
     const template = FRAME_MODEL_TEMPLATES.find((item) => item.id === templateId);
@@ -406,8 +138,7 @@ export function FrameCustomModelEditor({
       loadCombinations: [],
     });
     selectObject({ type: "node", id: collections.nodes[0]?.id ?? "" }, { openEditor: false });
-    setTextModelMessage(`已套用参数模板「${template.title}」。`);
-    setTextModelDiagnostics([]);
+    frameTextModel.noteTemplateApplied(template.title);
   };
 
   const updateNode = (index: number, patch: Partial<StructureNode>) => {
@@ -447,35 +178,15 @@ export function FrameCustomModelEditor({
     }
   };
 
-  const addNodeSpring = (nodeIndex: number) => {
-    const node = value.nodes[nodeIndex];
-    if (!node) return;
-    updateNode(nodeIndex, { springs: [...(node.springs ?? []), { dof: "uy", stiffnessKnPerM: 10000 }] });
-  };
-
-  const updateNodeSpring = (nodeIndex: number, springIndex: number, patch: Partial<FrameSpring>) => {
-    const node = value.nodes[nodeIndex];
-    if (!node) return;
-    updateNode(nodeIndex, {
-      springs: (node.springs ?? []).map((spring, index) => (index === springIndex ? updateSpringValue(spring, patch) : spring)),
-    });
-  };
-
-  const removeNodeSpring = (nodeIndex: number, springIndex: number) => {
-    const node = value.nodes[nodeIndex];
-    if (!node) return;
-    updateNode(nodeIndex, { springs: (node.springs ?? []).filter((_, index) => index !== springIndex) });
-  };
-
   const addNode = () => {
-    const nextNode = inferNodeDraft(value.nodes, value.nodes.map((node) => node.id));
+    const nextNode = inferFrameNodeDraft(value.nodes, value.nodes.map((node) => node.id));
     const nextNodes = [...value.nodes, nextNode];
     const nearest = value.nodes.reduce<StructureNode | null>((candidate, node) => {
       if (!candidate) return node;
-      return distanceBetween(node, nextNode) < distanceBetween(candidate, nextNode) ? node : candidate;
+      return distanceBetweenFrameNodes(node, nextNode) < distanceBetweenFrameNodes(candidate, nextNode) ? node : candidate;
     }, null);
-    const nextMembers = nearest && !memberExists(value.members, nearest.id, nextNode.id)
-      ? [...value.members, createConnectedMember(nearest, nextNode, value.members, value.members.map((member) => member.id))]
+    const nextMembers = nearest && !frameMemberExists(value.members, nearest.id, nextNode.id)
+      ? [...value.members, createConnectedFrameMember(nearest, nextNode, value.members, value.members.map((member) => member.id))]
       : value.members;
     commit(keep({ nodes: nextNodes, members: nextMembers }));
   };
@@ -500,10 +211,10 @@ export function FrameCustomModelEditor({
 
     let nextMembers = [...value.members];
     for (const [start, end] of candidates) {
-      if (!nodeById.has(start.id) || !nodeById.has(end.id) || memberExists(nextMembers, start.id, end.id)) {
+      if (!nodeById.has(start.id) || !nodeById.has(end.id) || frameMemberExists(nextMembers, start.id, end.id)) {
         continue;
       }
-      nextMembers = [...nextMembers, createConnectedMember(start, end, nextMembers, nextMembers.map((member) => member.id))];
+      nextMembers = [...nextMembers, createConnectedFrameMember(start, end, nextMembers, nextMembers.map((member) => member.id))];
     }
     commit(keep({ members: nextMembers }));
   };
@@ -525,14 +236,14 @@ export function FrameCustomModelEditor({
     if (value.nodes.length < 2) {
       return;
     }
-    const nextMember = createMemberDraft(value.members.length, value.nodes, value.members.map((member) => member.id));
+    const nextMember = createFrameMemberDraft(value.members.length, value.nodes, value.members.map((member) => member.id));
     const nextMembers = [...value.members, nextMember];
     commit(keep({ members: nextMembers }));
     selectObject({ type: "member", id: nextMember.id }, { openEditor: false });
   };
 
   const addMemberBetweenNodes = (startId: string, endId: string) => {
-    if (!startId || !endId || startId === endId || memberExists(value.members, startId, endId)) {
+    if (!startId || !endId || startId === endId || frameMemberExists(value.members, startId, endId)) {
       return;
     }
     const start = value.nodes.find((node) => node.id === startId);
@@ -540,7 +251,7 @@ export function FrameCustomModelEditor({
     if (!start || !end) {
       return;
     }
-    const nextMember = createConnectedMember(start, end, value.members, value.members.map((member) => member.id));
+    const nextMember = createConnectedFrameMember(start, end, value.members, value.members.map((member) => member.id));
     commit(keep({ members: [...value.members, nextMember] }));
     selectObject({ type: "member", id: nextMember.id }, { openEditor: false });
   };
@@ -586,7 +297,7 @@ export function FrameCustomModelEditor({
   };
 
   const addLoad = () => {
-    const nextLoads = [...value.loads, createLoadDraft(value.loads.length, value.nodes, value.members)];
+    const nextLoads = [...value.loads, createFrameLoadDraft(value.loads.length, value.nodes, value.members)];
     commit(keep({ loads: nextLoads }));
   };
 
@@ -604,7 +315,7 @@ export function FrameCustomModelEditor({
   const addLoadCase = () => {
     const nextLoadCases = [
       ...value.loadCases,
-      createLoadCaseDraft(value.loadCases.length, value.nodes, value.members, value.loadCases.map((loadCase) => loadCase.id)),
+      createFrameLoadCaseDraft(value.loadCases.length, value.nodes, value.members, value.loadCases.map((loadCase) => loadCase.id)),
     ];
     commit(keep({ loadCases: nextLoadCases }));
   };
@@ -642,7 +353,7 @@ export function FrameCustomModelEditor({
   const addLoadToCase = (loadCaseIndex: number) => {
     const loadCase = value.loadCases[loadCaseIndex];
     if (!loadCase) return;
-    updateLoadCase(loadCaseIndex, { loads: [...loadCase.loads, createLoadDraft(loadCase.loads.length, value.nodes, value.members)] });
+    updateLoadCase(loadCaseIndex, { loads: [...loadCase.loads, createFrameLoadDraft(loadCase.loads.length, value.nodes, value.members)] });
   };
 
   const updateLoadInCase = (loadCaseIndex: number, loadIndex: number, patch: Partial<FrameLoad>) => {
@@ -662,7 +373,7 @@ export function FrameCustomModelEditor({
   const addLoadCombination = () => {
     const nextCombinations = [
       ...value.loadCombinations,
-      createCombinationDraft(value.loadCombinations.length, value.loadCases, value.loadCombinations.map((combination) => combination.id)),
+      createFrameCombinationDraft(value.loadCombinations.length, value.loadCases, value.loadCombinations.map((combination) => combination.id)),
     ];
     commit(keep({ loadCombinations: nextCombinations }));
   };
@@ -676,383 +387,26 @@ export function FrameCustomModelEditor({
   };
 
   const fieldLabelClass = "text-[10px] font-black tracking-widest text-muted-foreground";
-  const advancedSections: Array<{ id: FrameAdvancedSection; label: string; count: number }> = [
-    { id: "nodes", label: "节点", count: value.nodes.length },
-    { id: "members", label: "构件", count: value.members.length },
-    { id: "loads", label: "荷载", count: value.loads.length },
-    { id: "loadCases", label: "工况", count: value.loadCases.length },
-    { id: "loadCombinations", label: "组合", count: value.loadCombinations.length },
-  ];
-
-  const exportTextModel = () => {
-    setTextModelDraft(serializeFrameTextModel({ nodes: value.nodes, members: value.members, loads: value.loads }));
-    setTextModelDiagnostics([]);
-    setTextModelPreviewMetrics([]);
-    setTextModelMessage("已按当前节点、构件与基本荷载生成文本模型，可编辑后先检查再应用。");
-  };
-
-  const previewTextModelDraft = (draft: string) => {
-    setTextModelDraft(draft);
-    if (draft.trim().length === 0) {
-      setTextModelDiagnostics([]);
-      setTextModelPreviewMetrics([]);
-      setTextModelMessage(null);
-      return;
-    }
-
-    const result = parseFrameTextModel(draft);
-    setTextModelDiagnostics(result.diagnostics);
-    if (!result.collections || result.diagnostics.length > 0) {
-      setTextModelPreviewMetrics([]);
-      setTextModelMessage(null);
-      return;
-    }
-
-    const next = buildTextModelCollections(result.collections);
-    setTextModelPreviewMetrics([
-      { label: "节点", value: `${next.nodes.length}` },
-      { label: "构件", value: `${next.members.length}` },
-      { label: "基本荷载", value: `${next.loads.length}` },
-      { label: "工况/组合", value: value.loadCases.length > 0 || value.loadCombinations.length > 0 ? "应用时重置" : "无影响" },
-    ]);
-    const resetNotice = value.loadCases.length > 0 || value.loadCombinations.length > 0 ? "；现有工况与组合将在应用时重置" : "";
-    setTextModelMessage(`检查通过：将导入 ${next.nodes.length} 个节点、${next.members.length} 个构件、${next.loads.length} 条基本荷载${resetNotice}。点击“应用文本模型”后写入正式模型。`);
-  };
-
-  const checkTextModelDraft = () => {
-    if (!textModelDraft.trim()) {
-      setTextModelDiagnostics(["请先生成或输入文本模型。"]);
-      setTextModelPreviewMetrics([]);
-      setTextModelMessage(null);
-      return;
-    }
-    previewTextModelDraft(textModelDraft);
-  };
-
-  const importTextModel = () => {
-    const result = parseFrameTextModel(textModelDraft);
-    setTextModelDiagnostics(result.diagnostics);
-    if (result.diagnostics.length > 0) {
-      setTextModelDiagnostics(["存在诊断，未写入正式模型。", ...result.diagnostics]);
-      setTextModelPreviewMetrics([]);
-      setTextModelMessage(null);
-      return;
-    }
-    if (!result.collections) {
-      setTextModelMessage("文本模型未导入。");
-      return;
-    }
-
-    const next = buildTextModelCollections(result.collections);
-    commit(keep({
-      nodes: next.nodes,
-      members: next.members,
-      loads: next.loads,
-      loadCases: [],
-      loadCombinations: [],
-    }));
-    setTextModelPreviewMetrics([
-      { label: "节点", value: `${next.nodes.length}` },
-      { label: "构件", value: `${next.members.length}` },
-      { label: "基本荷载", value: `${next.loads.length}` },
-      { label: "工况/组合", value: "已重置" },
-    ]);
-    setTextModelMessage(`已导入 ${next.nodes.length} 个节点、${next.members.length} 个构件、${next.loads.length} 条基本荷载。`);
-  };
-
-  const renderLoadEditor = (
-    load: FrameLoad,
-    index: number,
-    onUpdate: (patch: Partial<FrameLoad>) => void,
-    onRemove: () => void
-  ) => (
-    <div key={index} className="space-y-3 rounded-2xl border border-white/8 bg-slate-950/20 p-3">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_auto]">
-        <div className="space-y-1">
-          <div className={fieldLabelClass}>荷载类型</div>
-          <DropdownSelect
-            value={load.type}
-            onChange={(nextValue) => {
-              if (nextValue === "distributed") {
-                onUpdate({
-                  type: "distributed",
-                  member: value.members[0]?.id ?? "M1",
-                  direction: "local_y",
-                  qStartKnPerM: "qStartKnPerM" in load ? load.qStartKnPerM ?? 0 : -10,
-                  qEndKnPerM: "qEndKnPerM" in load ? load.qEndKnPerM ?? 0 : -10,
-                  startRatio: "startRatio" in load ? load.startRatio ?? 0 : 0,
-                  endRatio: "endRatio" in load ? load.endRatio ?? 1 : 1,
-                } as FrameLoad);
-                return;
-              }
-              if (nextValue === "member_point") {
-                onUpdate({
-                  type: "member_point",
-                  member: "member" in load ? load.member : value.members[0]?.id ?? "M1",
-                  direction: "direction" in load ? load.direction ?? "local_y" : "local_y",
-                  forceKn: "forceKn" in load ? load.forceKn ?? -10 : -10,
-                  positionRatio: "positionRatio" in load ? load.positionRatio ?? 0.5 : 0.5,
-                } as FrameLoad);
-                return;
-              }
-              onUpdate({
-                type: "nodal",
-                node: value.nodes[0]?.id ?? "N1",
-                fxKn: "fxKn" in load ? load.fxKn ?? 0 : 0,
-                fyKn: "fyKn" in load ? load.fyKn ?? -10 : -10,
-                mzKnM: "mzKnM" in load ? load.mzKnM ?? 0 : 0,
-              } as FrameLoad);
-            }}
-            options={
-              load.type === "distributed"
-                ? LOAD_TYPE_OPTIONS.map((option) => option.value === "distributed" ? { ...option, label: frameDistributedLoadKindLabel(load) } : option)
-                : LOAD_TYPE_OPTIONS
-            }
-            className="text-xs font-mono"
-            menuClassName="text-xs font-mono"
-            ariaLabel={`第 ${index + 1} 条荷载类型`}
-          />
-        </div>
-        {load.type === "nodal" ? (
-          <div className="space-y-1">
-            <div className={fieldLabelClass}>作用节点</div>
-            <DropdownSelect value={load.node} onChange={(nextValue) => onUpdate({ node: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${index + 1} 条荷载作用节点`} />
-          </div>
-        ) : (
-          <div className="space-y-1">
-            <div className={fieldLabelClass}>作用构件</div>
-            <DropdownSelect value={load.member} onChange={(nextValue) => onUpdate({ member: nextValue })} options={memberOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${index + 1} 条荷载作用构件`} />
-          </div>
-        )}
-        <div className="flex items-end">
-          <Button variant="ghost" size="icon" className="h-10 w-10" onClick={onRemove} aria-label={`删除第 ${index + 1} 条荷载`}>
-            <Trash2 className="h-4 w-4 text-rose-300" />
-          </Button>
-        </div>
-      </div>
-      {load.type === "nodal" ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <div className="space-y-1">
-            <div className={fieldLabelClass}>X 向力（kN）</div>
-            <Input aria-label={`第 ${index + 1} 条荷载 X 向力（kN）`} type="number" step="0.1" value={load.fxKn ?? 0} onChange={(e) => onUpdate({ fxKn: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
-          </div>
-          <div className="space-y-1">
-            <div className={fieldLabelClass}>Y 向力（kN）</div>
-            <Input aria-label={`第 ${index + 1} 条荷载 Y 向力（kN）`} type="number" step="0.1" value={load.fyKn ?? 0} onChange={(e) => onUpdate({ fyKn: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
-          </div>
-          <div className="space-y-1">
-            <div className={fieldLabelClass}>节点弯矩（kN·m）</div>
-            <Input aria-label={`第 ${index + 1} 条荷载节点弯矩（kN·m）`} type="number" step="0.1" value={load.mzKnM ?? 0} onChange={(e) => onUpdate({ mzKnM: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
-          </div>
-        </div>
-      ) : load.type === "distributed" ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="space-y-1">
-            <div className={fieldLabelClass}>荷载方向</div>
-            <DropdownSelect
-              value={load.direction ?? "local_y"}
-              onChange={(nextValue) => onUpdate({ direction: nextValue as FrameLoadDirection })}
-              options={LOAD_DIRECTION_OPTIONS}
-              className="text-xs font-mono"
-              menuClassName="text-xs font-mono"
-              ariaLabel={`第 ${index + 1} 条荷载方向`}
-            />
-          </div>
-          <div className="space-y-1">
-            <div className={fieldLabelClass}>起点强度（kN/m）</div>
-            <Input aria-label={`第 ${index + 1} 条荷载起点强度（kN/m）`} type="number" step="0.1" value={load.qStartKnPerM ?? load.wyKnPerM ?? 0} onChange={(e) => onUpdate({ qStartKnPerM: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
-          </div>
-          <div className="space-y-1">
-            <div className={fieldLabelClass}>终点强度（kN/m）</div>
-            <Input aria-label={`第 ${index + 1} 条荷载终点强度（kN/m）`} type="number" step="0.1" value={load.qEndKnPerM ?? load.wyKnPerM ?? 0} onChange={(e) => onUpdate({ qEndKnPerM: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
-          </div>
-          <div className="space-y-1">
-            <div className={fieldLabelClass}>起点位置 x/L</div>
-            <Input
-              aria-label={`第 ${index + 1} 条荷载起点位置 x/L`}
-              type="number"
-              step="0.05"
-              min="0"
-              max="1"
-              value={load.startRatio ?? 0}
-              onChange={(e) => onUpdate({ startRatio: Math.min(1, Math.max(0, Number(e.target.value) || 0)) })}
-              className="h-10 min-w-0 font-mono text-xs"
-            />
-          </div>
-          <div className="space-y-1">
-            <div className={fieldLabelClass}>终点位置 x/L</div>
-            <Input
-              aria-label={`第 ${index + 1} 条荷载终点位置 x/L`}
-              type="number"
-              step="0.05"
-              min="0"
-              max="1"
-              value={load.endRatio ?? 1}
-              onChange={(e) => onUpdate({ endRatio: Math.min(1, Math.max(0, Number(e.target.value) || 0)) })}
-              className="h-10 min-w-0 font-mono text-xs"
-            />
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <div className="space-y-1">
-            <div className={fieldLabelClass}>荷载方向</div>
-            <DropdownSelect
-              value={load.direction ?? "local_y"}
-              onChange={(nextValue) => onUpdate({ direction: nextValue as FrameLoadDirection })}
-              options={LOAD_DIRECTION_OPTIONS}
-              className="text-xs font-mono"
-              menuClassName="text-xs font-mono"
-              ariaLabel={`第 ${index + 1} 条荷载方向`}
-            />
-          </div>
-          <div className="space-y-1">
-            <div className={fieldLabelClass}>位置比 x/L</div>
-            <Input
-              aria-label={`第 ${index + 1} 条荷载位置比 x/L`}
-              type="number"
-              step="0.05"
-              min="0"
-              max="1"
-              value={load.positionRatio ?? 0.5}
-              onChange={(e) => onUpdate({ positionRatio: Math.min(1, Math.max(0, Number(e.target.value) || 0)) })}
-              className="h-10 min-w-0 font-mono text-xs"
-            />
-          </div>
-          <div className="space-y-1">
-            <div className={fieldLabelClass}>集中力（kN）</div>
-            <Input aria-label={`第 ${index + 1} 条荷载集中力（kN）`} type="number" step="0.1" value={load.forceKn ?? 0} onChange={(e) => onUpdate({ forceKn: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  const renderNodeSprings = (node: StructureNode, nodeIndex: number) => {
-    if ((node.springs ?? []).length === 0) {
-      return <div className="text-xs text-muted-foreground">未设置节点弹簧</div>;
-    }
-    return (
-      <div className="space-y-2">
-        {(node.springs ?? []).map((spring, springIndex) => (
-          <div key={`frame-node-${nodeIndex}-spring-${springIndex}`} className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-            <DropdownSelect
-              value={spring.dof}
-              onChange={(nextValue) => updateNodeSpring(nodeIndex, springIndex, { dof: nextValue as FrameSpring["dof"] })}
-              options={SPRING_DOF_OPTIONS}
-              className="text-xs font-mono"
-              menuClassName="text-xs font-mono"
-              ariaLabel={`节点 ${node.id} 第 ${springIndex + 1} 个弹簧自由度`}
-            />
-            <Input
-              aria-label={`节点 ${node.id} 第 ${springIndex + 1} 个弹簧刚度`}
-              type="number"
-              step="100"
-              value={spring.dof === "rz" ? spring.stiffnessKnMPerRad : spring.stiffnessKnPerM}
-              onChange={(e) =>
-                updateNodeSpring(
-                  nodeIndex,
-                  springIndex,
-                  spring.dof === "rz"
-                    ? { stiffnessKnMPerRad: Number(e.target.value) || 0 } as Partial<FrameSpring>
-                    : { stiffnessKnPerM: Number(e.target.value) || 0 } as Partial<FrameSpring>
-                )
-              }
-              className="h-10 min-w-0 font-mono text-xs"
-            />
-            <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => removeNodeSpring(nodeIndex, springIndex)} aria-label={`删除节点 ${node.id} 第 ${springIndex + 1} 个弹簧`}>
-              <Trash2 className="h-4 w-4 text-rose-300" />
-            </Button>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
   const renderSelectedEditor = () => {
     if (resolvedSelectedObject.type === "node") {
       const index = value.nodes.findIndex((node) => node.id === resolvedSelectedObject.id);
       const node = value.nodes[index];
       if (!node) return null;
-      const connectableNodeOptions = nodeOptions.filter((option) => option.value !== node.id && !memberExists(value.members, node.id, option.value));
-      const connectionTargetId = connectableNodeOptions.some((option) => option.value === nodeConnectionTargetId)
-        ? nodeConnectionTargetId
-        : connectableNodeOptions[0]?.value ?? "";
       return (
-        <div className="space-y-3 rounded-xl border border-white/8 bg-slate-950/20 p-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className={fieldLabelClass}>当前节点</div>
-              <div className="mt-1 text-sm font-bold">{node.id}</div>
-            </div>
-            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => removeNode(index)} disabled={value.nodes.length <= 1} aria-label="删除当前节点">
-              <Trash2 className="h-4 w-4 text-rose-300" />
-            </Button>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <div className={fieldLabelClass}>节点编号</div>
-              <DeferredIdInput key={`selected-node-id-${node.id}`} ariaLabel="节点编号" value={node.id} onCommit={(nextId) => updateNode(index, { id: nextId })} className="h-10 min-w-0 font-mono text-xs" />
-            </div>
-            <div className="space-y-1">
-              <div className={fieldLabelClass}>支座约束</div>
-              <DropdownSelect value={node.supportType ?? "free"} onChange={(nextValue) => updateNode(index, { supportType: nextValue as StructureNode["supportType"] })} options={SUPPORT_OPTIONS} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel="支座约束" />
-            </div>
-            <div className="space-y-1">
-              <div className={fieldLabelClass}>横坐标（m）</div>
-              <Input aria-label="节点横坐标（m）" type="number" step="0.1" value={node.x} onChange={(e) => updateNode(index, { x: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
-            </div>
-            <div className="space-y-1">
-              <div className={fieldLabelClass}>纵坐标（m）</div>
-              <Input aria-label="节点纵坐标（m）" type="number" step="0.1" value={node.y} onChange={(e) => updateNode(index, { y: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
-            </div>
-            <div className="space-y-1">
-              <div className={fieldLabelClass}>滚动约束角（deg）</div>
-              <Input aria-label="滚动约束角（deg）" type="number" step="1" value={node.supportAngleDeg ?? ""} onChange={(e) => updateNode(index, { supportAngleDeg: e.target.value === "" ? undefined : Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" placeholder="90" />
-            </div>
-          </div>
-          <div className="rounded-lg border border-white/8 bg-white/[0.02] p-3">
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-              <div className="space-y-1">
-                <div className={fieldLabelClass}>连接到节点</div>
-                {connectableNodeOptions.length > 0 ? (
-                  <DropdownSelect
-                    value={connectionTargetId}
-                    onChange={setNodeConnectionTargetId}
-                    options={connectableNodeOptions}
-                    className="text-xs font-mono"
-                    menuClassName="text-xs font-mono"
-                    ariaLabel="连接到节点"
-                  />
-                ) : (
-                  <div className="flex h-10 items-center rounded-md border border-white/8 bg-slate-950/20 px-3 text-xs text-muted-foreground">无可连接节点</div>
-                )}
-              </div>
-              <div className="flex items-end">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => addMemberBetweenNodes(node.id, connectionTargetId)}
-                  disabled={!connectionTargetId}
-                  className="h-10 rounded-lg px-3"
-                >
-                  <Plus className="mr-1.5 h-3.5 w-3.5" />
-                  新增构件
-                </Button>
-              </div>
-            </div>
-          </div>
-          <div className="rounded-lg border border-white/8 bg-white/[0.02] p-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className={fieldLabelClass}>弹性支座</div>
-              <Button variant="outline" size="sm" onClick={() => addNodeSpring(index)} className="h-7 rounded-lg px-2 text-[10px]">
-                <Plus className="mr-1 h-3 w-3" />
-                新增弹簧
-              </Button>
-            </div>
-            <div className="mt-2">{renderNodeSprings(node, index)}</div>
-          </div>
-        </div>
+        <FrameNodeEditor
+          node={node}
+          nodeIndex={index}
+          nodeCount={value.nodes.length}
+          members={value.members}
+          nodeOptions={nodeOptions}
+          fieldLabelClass={fieldLabelClass}
+          onUpdate={(patch) => updateNode(index, patch)}
+          onRemove={() => removeNode(index)}
+          variant="selected"
+          connectionTargetId={nodeConnectionTargetId}
+          onConnectionTargetChange={setNodeConnectionTargetId}
+          onAddMemberBetweenNodes={addMemberBetweenNodes}
+        />
       );
     }
 
@@ -1061,243 +415,86 @@ export function FrameCustomModelEditor({
       const member = value.members[index];
       if (!member) return null;
       return (
-        <div className="space-y-3 rounded-xl border border-white/8 bg-slate-950/20 p-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className={fieldLabelClass}>当前构件</div>
-              <div className="mt-1 text-sm font-bold">{member.id}</div>
-            </div>
-            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => removeMember(index)} aria-label="删除当前构件">
-              <Trash2 className="h-4 w-4 text-rose-300" />
-            </Button>
-          </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="space-y-1">
-              <div className={fieldLabelClass}>构件编号</div>
-              <DeferredIdInput key={`selected-member-id-${member.id}`} ariaLabel="构件编号" value={member.id} onCommit={(nextId) => updateMember(index, { id: nextId })} className="h-10 min-w-0 font-mono text-xs" />
-            </div>
-            <div className="space-y-1">
-              <div className={fieldLabelClass}>构件类型</div>
-              <DropdownSelect value={member.kind ?? "generic"} onChange={(nextValue) => updateMember(index, { kind: nextValue })} options={MEMBER_KIND_OPTIONS} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel="构件类型" />
-            </div>
-            <div className="space-y-1">
-              <div className={fieldLabelClass}>起点节点</div>
-              <DropdownSelect value={member.start} onChange={(nextValue) => updateMember(index, { start: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel="起点节点" />
-            </div>
-            <div className="space-y-1">
-              <div className={fieldLabelClass}>终点节点</div>
-              <DropdownSelect value={member.end} onChange={(nextValue) => updateMember(index, { end: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel="终点节点" />
-            </div>
-            <div className="space-y-1">
-              <div className={fieldLabelClass}>弹性模量（GPa）</div>
-              <Input aria-label="构件弹性模量（GPa）" type="number" value={member.E_GPa} onChange={(e) => updateMember(index, { E_GPa: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
-            </div>
-            <div className="space-y-1">
-              <div className={fieldLabelClass}>截面面积（cm²）</div>
-              <Input aria-label="构件截面面积（cm²）" type="number" value={member.A_cm2} onChange={(e) => updateMember(index, { A_cm2: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
-            </div>
-            <div className="space-y-1">
-              <div className={fieldLabelClass}>惯性矩（cm⁴）</div>
-              <Input aria-label="构件惯性矩（cm⁴）" type="number" value={member.I_cm4} onChange={(e) => updateMember(index, { I_cm4: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
-            </div>
-          </div>
-        </div>
+        <FrameMemberEditor
+          member={member}
+          memberIndex={index}
+          nodeOptions={nodeOptions}
+          fieldLabelClass={fieldLabelClass}
+          onUpdate={(patch) => updateMember(index, patch)}
+          onRemove={() => removeMember(index)}
+          variant="selected"
+        />
       );
     }
 
     const loadIndex = Number(resolvedSelectedObject.id.replace("load-", ""));
     const load = value.loads[loadIndex];
     if (!load) return null;
-    return renderLoadEditor(load, loadIndex, (patch) => updateLoad(loadIndex, patch), () => removeLoad(loadIndex));
+    return (
+      <FrameLoadEditor
+        load={load}
+        index={loadIndex}
+        nodes={value.nodes}
+        members={value.members}
+        nodeOptions={nodeOptions}
+        memberOptions={memberOptions}
+        fieldLabelClass={fieldLabelClass}
+        onUpdate={(patch) => updateLoad(loadIndex, patch)}
+        onRemove={() => removeLoad(loadIndex)}
+      />
+    );
   };
 
   return (
     <div className="space-y-5">
-      {isSectionVisible("frame-custom-overview") ? (
-      <>
-      <div id="frame-custom-overview" className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 space-y-4 scroll-mt-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="space-y-1">
-            <div className="eyebrow flex items-center gap-2">
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
-              自定义节点建模
-            </div>
-            <p className="text-xs text-muted-foreground">
-              先套用参数模板或选择当前对象，再在属性检查器中修改；批量字段保留在高级表格中。
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={onResetToPortal} className="h-8 rounded-xl">
-              <RotateCw className="mr-1.5 h-3.5 w-3.5" />
-              恢复单跨刚架
-            </Button>
-            <Button variant="outline" size="sm" onClick={completeAxisMembers} className="h-8 rounded-xl">
-              <Wand2 className="mr-1.5 h-3.5 w-3.5" />
-              补全同轴构件
-            </Button>
-            <Button size="sm" onClick={addNode} className="h-8 rounded-xl">
-              <Plus className="mr-1.5 h-3.5 w-3.5" />
-              新增节点并连接
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <section className="space-y-4 rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {[
-            { label: "节点", value: value.nodes.length },
-            { label: "构件", value: value.members.length },
-            { label: "支座", value: supportCount },
-            { label: "荷载", value: value.loads.length },
-          ].map((item) => (
-            <div key={item.label} className="rounded-xl border border-white/8 bg-slate-950/20 p-3">
-              <div className="text-[10px] font-black tracking-widest text-muted-foreground">{item.label}</div>
-              <div className="mt-1 font-mono text-lg font-black">{item.value}</div>
-            </div>
-          ))}
-        </div>
-        {modelWarnings.length === 0 ? (
-          <div className="flex items-start gap-2 rounded-xl border border-emerald-400/15 bg-emerald-500/8 p-3 text-xs text-emerald-700 dark:text-emerald-200">
-            <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            当前模型对象引用完整，可继续复核截面、节点约束与荷载参数。
-          </div>
-        ) : (
-          <div className="space-y-1 rounded-xl border border-amber-400/15 bg-amber-500/8 p-3 text-xs text-amber-700 dark:text-amber-200">
-            {modelWarnings.map((warning) => (
-              <div key={warning} className="flex items-start gap-2">
-                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                <span>{warning}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-      </>
+      {isSectionVisible("frame-basic") ? (
+      <FrameBasicSection
+        nodeCount={value.nodes.length}
+        memberCount={value.members.length}
+        supportCount={supportCount}
+        loadCount={value.loads.length}
+        modelWarnings={modelWarnings}
+        onResetToPortal={onResetToPortal}
+        onCompleteAxisMembers={completeAxisMembers}
+        onAddNode={addNode}
+      />
       ) : null}
 
-      {isSectionVisible("frame-text-model") ? (
-      <section id="frame-text-model" className="space-y-3 rounded-2xl border border-white/8 bg-white/[0.03] p-4 scroll-mt-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="eyebrow flex items-center gap-2">
-            <FileText className="h-3.5 w-3.5 text-primary" />
-            文本模型
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={exportTextModel} className="h-7 rounded-lg px-2 text-[10px]">
-              生成当前模型文本
-            </Button>
-            <Button variant="outline" size="sm" onClick={checkTextModelDraft} className="h-7 rounded-lg px-2 text-[10px]" disabled={!textModelDraft.trim()}>
-              检查文本模型
-            </Button>
-            <Button size="sm" onClick={importTextModel} className="h-7 rounded-lg px-2 text-[10px]" disabled={!textModelDraft.trim()}>
-              应用文本模型
-            </Button>
-          </div>
-        </div>
-        <textarea
-          value={textModelDraft}
-          onChange={(event) => previewTextModelDraft(event.target.value)}
-          spellCheck={false}
-          wrap="off"
-          className="min-h-[32rem] w-full resize-y rounded-xl border border-slate-200 bg-white p-3 font-mono text-[11px] leading-5 text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary/60 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-100 dark:placeholder:text-slate-500"
-          placeholder={"N,1,0,0\nN,2,6,0\nN,3,0,4\nN,4,6,4\nNSUPT,1,6,0\nNSUPT,2,6,0\nE,1,3,1,1,1,1,1,1\nE,3,4,1,1,1,1,1,1\nE,2,4,1,1,1,1,1,1\nDLOAD,2,-18,-18,global_y,0.15,0.85\nPLOAD,2,-12,0.5,global_y\nNLOAD,4,-1,24,90"}
-        />
-        <TextModelCheckPanel
-          message={textModelMessage}
-          diagnostics={textModelDiagnostics}
-          metrics={textModelPreviewMetrics}
-          maxDiagnostics={4}
-        />
-      </section>
+      {isSectionVisible("frame-text") ? (
+      <FrameTextModelSection
+        draft={frameTextModel.draft}
+        message={frameTextModel.message}
+        diagnostics={frameTextModel.diagnostics}
+        metrics={frameTextModel.metrics}
+        onDraftChange={frameTextModel.previewDraft}
+        onExport={frameTextModel.exportTextModel}
+        onCheck={frameTextModel.checkDraft}
+        onImport={frameTextModel.importDraft}
+      />
       ) : null}
 
-      {isSectionVisible("frame-typical-cases") ? (
-      <section id="frame-typical-cases" className="space-y-3 rounded-2xl border border-white/8 bg-white/[0.03] p-4 scroll-mt-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="eyebrow flex items-center gap-2">
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
-            模板
-          </div>
-        </div>
-        <div className="grid grid-cols-1 gap-2">
-          {FRAME_MODEL_TEMPLATES.map((template) => (
-            <button
-              key={template.id}
-              type="button"
-              onClick={() => applyTypicalCase(template.id)}
-              className="rounded-xl border border-white/8 bg-slate-950/20 p-3 text-left transition-colors hover:border-primary/35 hover:bg-primary/5"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-sm font-bold">{template.title}</div>
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-1.5">
-                  <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] text-muted-foreground">
-                    {template.nodes.length} 节点
-                  </span>
-                  <span className="rounded border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-                    套用
-                  </span>
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </section>
+      {isSectionVisible("frame-template") ? (
+      <FrameTemplateSection onApplyTemplate={applyTypicalCase} />
       ) : null}
 
-      {isSectionVisible("frame-object-navigator") ? (
-      <section id="frame-object-navigator" className="space-y-3 rounded-2xl border border-white/8 bg-white/[0.03] p-4 scroll-mt-4">
-        <div className="eyebrow flex items-center gap-2">
-          <MapPin className="h-3.5 w-3.5 text-primary" />
-          对象
-        </div>
-        <div className="grid grid-cols-1 gap-3">
-          <div className="space-y-2">
-            <div className={fieldLabelClass}>节点</div>
-            <div className="flex flex-wrap gap-2">
-              {value.nodes.map((node) => (
-                <button key={node.id} type="button" onClick={() => selectObject({ type: "node", id: node.id })} className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold ${resolvedSelectedObject.type === "node" && resolvedSelectedObject.id === node.id ? "border-primary/40 bg-primary/10 text-primary" : "border-white/8 bg-slate-950/20 text-muted-foreground hover:text-foreground"}`}>
-                  {node.id}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-2">
-            <div className={fieldLabelClass}>构件</div>
-            <div className="flex flex-wrap gap-2">
-              {value.members.map((member) => (
-                <button key={member.id} type="button" onClick={() => selectObject({ type: "member", id: member.id })} className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold ${resolvedSelectedObject.type === "member" && resolvedSelectedObject.id === member.id ? "border-primary/40 bg-primary/10 text-primary" : "border-white/8 bg-slate-950/20 text-muted-foreground hover:text-foreground"}`}>
-                  {member.id}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-2">
-            <div className={fieldLabelClass}>荷载</div>
-            <div className="flex flex-wrap gap-2">
-              {loadOptions.map((option) => (
-                <button key={option.value} type="button" onClick={() => selectObject({ type: "load", id: option.value })} className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold ${resolvedSelectedObject.type === "load" && resolvedSelectedObject.id === option.value ? "border-primary/40 bg-primary/10 text-primary" : "border-white/8 bg-slate-950/20 text-muted-foreground hover:text-foreground"}`}>
-                  {option.label}
-                </button>
-              ))}
-              <Button variant="outline" size="sm" onClick={addLoad} className="h-8 rounded-lg px-2 text-[10px]">
-                <Plus className="mr-1 h-3 w-3" />
-                新增荷载
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
+      {isSectionVisible("frame-object") ? (
+      <FrameObjectNavigator
+        nodes={value.nodes}
+        members={value.members}
+        loadOptions={loadOptions}
+        selectedObject={resolvedSelectedObject}
+        fieldLabelClass={fieldLabelClass}
+        onSelectObject={(next) => selectObject(next)}
+        onAddLoad={addLoad}
+      />
       ) : null}
 
-      {isSectionVisible("frame-object-navigator") ? (
+      {isSectionVisible("frame-object") ? (
       <section id="frame-selected-editor" className="space-y-3 rounded-2xl border border-white/8 bg-white/[0.03] p-4 scroll-mt-4">
         <div className="flex items-center justify-between gap-3">
           <div className="eyebrow flex items-center gap-2">
             <Layers3 className="h-3.5 w-3.5 text-primary" />
-            属性
+            属性编辑
           </div>
           <Button variant="outline" size="sm" onClick={addNode} className="h-8 rounded-xl">
             <Plus className="mr-1.5 h-3.5 w-3.5" />
@@ -1308,409 +505,38 @@ export function FrameCustomModelEditor({
       </section>
       ) : null}
 
-      {isSectionVisible("frame-advanced-tables") ? (
-      <section id="frame-advanced-tables" className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 scroll-mt-4">
-        <div className="flex flex-wrap gap-2" role="tablist" aria-label="框架高级表格分组">
-          {advancedSections.map((section) => {
-            const active = advancedSectionId === section.id;
-            return (
-              <button
-                key={section.id}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => setAdvancedSectionId(section.id)}
-                className={`inline-flex h-8 items-center gap-2 rounded-lg border px-3 text-xs font-bold transition-colors ${
-                  active
-                    ? "border-primary/50 bg-primary/12 text-primary"
-                    : "border-white/8 bg-slate-950/20 text-muted-foreground hover:border-white/18 hover:text-foreground"
-                }`}
-              >
-                <span>{section.label}</span>
-                <span className="font-mono text-[10px] opacity-70">{section.count}</span>
-              </button>
-            );
-          })}
-        </div>
-        <div className="mt-4 space-y-5">
-
-      {advancedSectionId === "nodes" ? (
-      <section id="frame-custom-nodes" className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 space-y-4 scroll-mt-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="eyebrow flex items-center gap-2">
-            <MapPin className="h-3.5 w-3.5 text-primary" />
-            节点
-          </div>
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">节点编号 / 横坐标 / 纵坐标 / 支座约束</span>
-        </div>
-        <div className="space-y-3">
-          {value.nodes.map((node, index) => (
-            <div key={`frame-node-${index}`} className="space-y-3 rounded-2xl border border-white/8 bg-slate-950/20 p-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <div className={fieldLabelClass}>节点编号</div>
-                  <DeferredIdInput ariaLabel={`第 ${index + 1} 个节点编号`} value={node.id} onCommit={(nextId) => updateNode(index, { id: nextId })} className="h-10 min-w-0 font-mono text-xs" />
-                </div>
-                <div className="space-y-1">
-                  <div className={fieldLabelClass}>横坐标</div>
-                  <Input aria-label={`第 ${index + 1} 个节点横坐标`} type="number" step="0.1" value={node.x} onChange={(e) => updateNode(index, { x: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
-                </div>
-                <div className="space-y-1">
-                  <div className={fieldLabelClass}>纵坐标</div>
-                  <Input aria-label={`第 ${index + 1} 个节点纵坐标`} type="number" step="0.1" value={node.y} onChange={(e) => updateNode(index, { y: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
-                </div>
-                <div className="space-y-1">
-                  <div className={fieldLabelClass}>支座约束</div>
-                  <DropdownSelect
-                    value={node.supportType ?? "free"}
-                    onChange={(nextValue) => updateNode(index, { supportType: nextValue as StructureNode["supportType"] })}
-                    options={SUPPORT_OPTIONS}
-                    className="text-xs font-mono"
-                    menuClassName="text-xs font-mono"
-                    ariaLabel={`第 ${index + 1} 个节点支座约束`}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <div className={fieldLabelClass}>滚动约束角</div>
-                  <Input
-                    aria-label={`第 ${index + 1} 个节点滚动约束角`}
-                    type="number"
-                    step="1"
-                    value={node.supportAngleDeg ?? ""}
-                    onChange={(e) => updateNode(index, { supportAngleDeg: e.target.value === "" ? undefined : Number(e.target.value) || 0 })}
-                    className="h-10 min-w-0 font-mono text-xs"
-                    placeholder="90"
-                  />
-                </div>
-                <div className="col-span-2 flex justify-end">
-                  <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => removeNode(index)} disabled={value.nodes.length <= 1} aria-label={`删除第 ${index + 1} 个节点`}>
-                    <Trash2 className="h-4 w-4 text-rose-300" />
-                  </Button>
-                </div>
-              </div>
-              <div className="space-y-2 rounded-xl border border-white/8 bg-white/[0.02] p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className={fieldLabelClass}>弹性支座</div>
-                  <Button variant="outline" size="sm" onClick={() => addNodeSpring(index)} className="h-7 rounded-lg px-2 text-[10px]">
-                    <Plus className="mr-1 h-3 w-3" />
-                    新增弹簧
-                  </Button>
-                </div>
-                {renderNodeSprings(node, index)}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-      ) : null}
-
-      {advancedSectionId === "members" ? (
-      <section id="frame-custom-members" className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 space-y-4 scroll-mt-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="eyebrow flex items-center gap-2">
-            <Layers3 className="h-3.5 w-3.5 text-primary" />
-            构件
-          </div>
-          <Button variant="outline" size="sm" onClick={addMember} className="h-8 rounded-xl" disabled={value.nodes.length < 2}>
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
-            新增构件
-          </Button>
-        </div>
-        <div className="space-y-3">
-          {value.members.map((member, index) => (
-            <div key={`frame-member-${index}`} className="space-y-3 rounded-2xl border border-white/8 bg-slate-950/20 p-3">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
-                <div className="space-y-1">
-                  <div className={fieldLabelClass}>构件编号</div>
-                  <DeferredIdInput ariaLabel={`第 ${index + 1} 个构件编号`} value={member.id} onCommit={(nextId) => updateMember(index, { id: nextId })} className="h-10 min-w-0 font-mono text-xs" />
-                </div>
-                <div className="space-y-1">
-                  <div className={fieldLabelClass}>起点节点</div>
-                  <DropdownSelect value={member.start} onChange={(nextValue) => updateMember(index, { start: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${index + 1} 个构件起点节点`} />
-                </div>
-                <div className="space-y-1">
-                  <div className={fieldLabelClass}>终点节点</div>
-                  <DropdownSelect value={member.end} onChange={(nextValue) => updateMember(index, { end: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${index + 1} 个构件终点节点`} />
-                </div>
-                <div className="flex items-end">
-                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => removeMember(index)} aria-label={`删除第 ${index + 1} 个构件`}>
-                    <Trash2 className="h-4 w-4 text-rose-300" />
-                  </Button>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="space-y-1">
-                  <div className={fieldLabelClass}>弹性模量</div>
-                  <Input aria-label={`第 ${index + 1} 个构件弹性模量`} type="number" value={member.E_GPa} onChange={(e) => updateMember(index, { E_GPa: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
-                </div>
-                <div className="space-y-1">
-                  <div className={fieldLabelClass}>截面面积</div>
-                  <Input aria-label={`第 ${index + 1} 个构件截面面积`} type="number" value={member.A_cm2} onChange={(e) => updateMember(index, { A_cm2: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
-                </div>
-                <div className="space-y-1">
-                  <div className={fieldLabelClass}>惯性矩</div>
-                  <Input aria-label={`第 ${index + 1} 个构件惯性矩`} type="number" value={member.I_cm4} onChange={(e) => updateMember(index, { I_cm4: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
-                </div>
-                <div className="space-y-1">
-                  <div className={fieldLabelClass}>构件类型</div>
-                  <DropdownSelect
-                    value={member.kind ?? "generic"}
-                    onChange={(nextValue) => updateMember(index, { kind: nextValue })}
-                    options={MEMBER_KIND_OPTIONS}
-                    className="text-xs font-mono"
-                    menuClassName="text-xs font-mono"
-                    ariaLabel={`第 ${index + 1} 个构件类型`}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 gap-3 rounded-xl border border-white/8 bg-white/[0.02] p-3 lg:grid-cols-2">
-                <div className="space-y-2">
-                  <div className={fieldLabelClass}>端部转角释放</div>
-                  <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                    <label className="inline-flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(member.endReleases?.start?.includes("rz"))}
-                        onChange={(e) =>
-                          updateMember(index, {
-                            endReleases: {
-                              ...member.endReleases,
-                              start: e.target.checked ? ["rz"] : undefined,
-                            },
-                          })
-                        }
-                      />
-                      起端 rz 释放
-                    </label>
-                    <label className="inline-flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(member.endReleases?.end?.includes("rz"))}
-                        onChange={(e) =>
-                          updateMember(index, {
-                            endReleases: {
-                              ...member.endReleases,
-                              end: e.target.checked ? ["rz"] : undefined,
-                            },
-                          })
-                        }
-                      />
-                      终端 rz 释放
-                    </label>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className={fieldLabelClass}>构件内部铰</div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => updateMember(index, { internalHinges: [...(member.internalHinges ?? []), { ratio: 0.5 }] })}
-                      className="h-7 rounded-lg px-2 text-[10px]"
-                    >
-                      <Plus className="mr-1 h-3 w-3" />
-                      新增铰点
-                    </Button>
-                  </div>
-                  {(member.internalHinges ?? []).length === 0 ? (
-                    <div className="text-xs text-muted-foreground">未设置内部铰</div>
-                  ) : (
-                    <div className="space-y-2">
-                      {(member.internalHinges ?? []).map((hinge, hingeIndex) => (
-                        <div key={`frame-member-${index}-hinge-${hingeIndex}`} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-                          <Input
-                            aria-label={`第 ${index + 1} 个构件第 ${hingeIndex + 1} 个内部铰位置比`}
-                            type="number"
-                            step="0.05"
-                            min="0.01"
-                            max="0.99"
-                            value={hinge.ratio}
-                            onChange={(e) =>
-                              updateMember(index, {
-                                internalHinges: (member.internalHinges ?? []).map((item, itemIndex) =>
-                                  itemIndex === hingeIndex ? { ratio: Number(e.target.value) || 0.5 } : item
-                                ),
-                              })
-                            }
-                            className="h-10 min-w-0 font-mono text-xs"
-                          />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-10 w-10"
-                            aria-label={`删除第 ${index + 1} 个构件第 ${hingeIndex + 1} 个内部铰`}
-                            onClick={() =>
-                              updateMember(index, {
-                                internalHinges: (member.internalHinges ?? []).filter((_, itemIndex) => itemIndex !== hingeIndex),
-                              })
-                            }
-                          >
-                            <Trash2 className="h-4 w-4 text-rose-300" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-      ) : null}
-
-      {advancedSectionId === "loads" ? (
-      <section id="frame-custom-loads" className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 space-y-4 scroll-mt-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="eyebrow flex items-center gap-2">
-            <Link2 className="h-3.5 w-3.5 text-primary" />
-            荷载
-          </div>
-          <Button variant="outline" size="sm" onClick={addLoad} className="h-8 rounded-xl">
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
-            新增荷载
-          </Button>
-        </div>
-        <div className="space-y-3">
-          {value.loads.map((load, index) => renderLoadEditor(load, index, (patch) => updateLoad(index, patch), () => removeLoad(index)))}
-        </div>
-      </section>
-      ) : null}
-
-      {advancedSectionId === "loadCases" ? (
-      <section id="frame-custom-load-cases" className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 space-y-4 scroll-mt-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="eyebrow flex items-center gap-2">
-            <GitBranch className="h-3.5 w-3.5 text-primary" />
-            荷载工况
-          </div>
-          <Button variant="outline" size="sm" onClick={addLoadCase} className="h-8 rounded-xl">
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
-            新增工况
-          </Button>
-        </div>
-        {value.loadCases.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-white/10 p-4 text-xs text-muted-foreground">未设置独立荷载工况，求解器将使用上方基本荷载。</div>
-        ) : (
-          <div className="space-y-3">
-            {value.loadCases.map((loadCase, loadCaseIndex) => (
-              <div key={loadCase.id} className="space-y-3 rounded-2xl border border-white/8 bg-slate-950/20 p-3">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)_auto]">
-                  <div className="space-y-1">
-                    <div className={fieldLabelClass}>工况编号</div>
-                    <Input aria-label={`第 ${loadCaseIndex + 1} 个工况编号`} value={loadCase.id} onChange={(e) => updateLoadCase(loadCaseIndex, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
-                  </div>
-                  <div className="space-y-1">
-                    <div className={fieldLabelClass}>工况名称</div>
-                    <Input aria-label={`第 ${loadCaseIndex + 1} 个工况名称`} value={loadCase.title} onChange={(e) => updateLoadCase(loadCaseIndex, { title: e.target.value })} className="h-10 min-w-0 text-xs" />
-                  </div>
-                  <div className="flex items-end gap-2">
-                    <Button variant="outline" size="sm" onClick={() => addLoadToCase(loadCaseIndex)} className="h-10 rounded-xl">
-                      <Plus className="mr-1 h-3.5 w-3.5" />
-                      荷载
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => removeLoadCase(loadCaseIndex)} aria-label={`删除第 ${loadCaseIndex + 1} 个工况`}>
-                      <Trash2 className="h-4 w-4 text-rose-300" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  {loadCase.loads.map((load, loadIndex) =>
-                    renderLoadEditor(load, loadIndex, (patch) => updateLoadInCase(loadCaseIndex, loadIndex, patch), () => removeLoadFromCase(loadCaseIndex, loadIndex))
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-      ) : null}
-
-      {advancedSectionId === "loadCombinations" ? (
-      <section id="frame-custom-load-combinations" className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 space-y-4 scroll-mt-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="eyebrow flex items-center gap-2">
-            <Waypoints className="h-3.5 w-3.5 text-primary" />
-            荷载组合
-          </div>
-          <Button variant="outline" size="sm" onClick={addLoadCombination} className="h-8 rounded-xl" disabled={value.loadCases.length === 0}>
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
-            新增组合
-          </Button>
-        </div>
-        {value.loadCases.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-white/10 p-4 text-xs text-muted-foreground">先定义荷载工况后可编辑组合系数。</div>
-        ) : value.loadCombinations.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-white/10 p-4 text-xs text-muted-foreground">未设置荷载组合。</div>
-        ) : (
-          <div className="space-y-3">
-            {value.loadCombinations.map((combination, combinationIndex) => (
-              <div key={combination.id} className="space-y-3 rounded-2xl border border-white/8 bg-slate-950/20 p-3">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)_auto]">
-                  <div className="space-y-1">
-                    <div className={fieldLabelClass}>组合编号</div>
-                    <Input aria-label={`第 ${combinationIndex + 1} 个组合编号`} value={combination.id} onChange={(e) => updateLoadCombination(combinationIndex, { id: e.target.value })} className="h-10 min-w-0 font-mono text-xs" />
-                  </div>
-                  <div className="space-y-1">
-                    <div className={fieldLabelClass}>组合名称</div>
-                    <Input aria-label={`第 ${combinationIndex + 1} 个组合名称`} value={combination.title} onChange={(e) => updateLoadCombination(combinationIndex, { title: e.target.value })} className="h-10 min-w-0 text-xs" />
-                  </div>
-                  <div className="flex items-end">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-10 w-10"
-                      aria-label={`删除第 ${combinationIndex + 1} 个荷载组合`}
-                      onClick={() => commit(keep({ loadCombinations: value.loadCombinations.filter((_, index) => index !== combinationIndex) }))}
-                    >
-                      <Trash2 className="h-4 w-4 text-rose-300" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <div className={fieldLabelClass}>组合标签</div>
-                  <Input
-                    aria-label={`第 ${combinationIndex + 1} 个组合标签`}
-                    value={(combination.tags ?? []).join(", ")}
-                    onChange={(e) =>
-                      updateLoadCombination(combinationIndex, {
-                        tags: e.target.value
-                          .split(",")
-                          .map((tag) => tag.trim())
-                          .filter(Boolean),
-                      })
-                    }
-                    className="h-10 min-w-0 text-xs"
-                    placeholder="ULS, 包络"
-                  />
-                </div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  {value.loadCases.map((loadCase) => (
-                    <div key={`${combination.id}-${loadCase.id}`} className="space-y-1">
-                      <div className={fieldLabelClass}>{loadCase.id} 系数</div>
-                      <Input
-                        aria-label={`${combination.id} 中 ${loadCase.id} 的组合系数`}
-                        type="number"
-                        step="0.1"
-                        value={combination.factors[loadCase.id] ?? 0}
-                        onChange={(e) =>
-                          updateLoadCombination(combinationIndex, {
-                            factors: { ...combination.factors, [loadCase.id]: Number(e.target.value) || 0 },
-                          })
-                        }
-                        className="h-10 min-w-0 font-mono text-xs"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-      ) : null}
-        </div>
-      </section>
+      {isSectionVisible("frame-table") ? (
+      <FrameTableSection
+        nodes={value.nodes}
+        members={value.members}
+        loads={value.loads}
+        loadCases={value.loadCases}
+        loadCombinations={value.loadCombinations}
+        nodeOptions={nodeOptions}
+        memberOptions={memberOptions}
+        fieldLabelClass={fieldLabelClass}
+        activeSectionId={advancedSectionId}
+        onSectionChange={setAdvancedSectionId}
+        onAddMember={addMember}
+        onUpdateNode={updateNode}
+        onRemoveNode={removeNode}
+        onUpdateMember={updateMember}
+        onRemoveMember={removeMember}
+        onAddLoad={addLoad}
+        onUpdateLoad={updateLoad}
+        onRemoveLoad={removeLoad}
+        onAddLoadCase={addLoadCase}
+        onUpdateLoadCase={updateLoadCase}
+        onRemoveLoadCase={removeLoadCase}
+        onAddLoadToCase={addLoadToCase}
+        onUpdateLoadInCase={updateLoadInCase}
+        onRemoveLoadFromCase={removeLoadFromCase}
+        onAddLoadCombination={addLoadCombination}
+        onUpdateLoadCombination={updateLoadCombination}
+        onRemoveLoadCombination={(combinationIndex) =>
+          commit(keep({ loadCombinations: value.loadCombinations.filter((_, index) => index !== combinationIndex) }))
+        }
+      />
       ) : null}
     </div>
   );

@@ -7,6 +7,7 @@ from typing import Any, Dict
 import numpy as np
 import pandas as pd
 
+from backend.common.material_catalog import material_report_rows
 from backend.exporters.common.artifact import ExportArtifact
 from backend.exporters.common.evidence import build_evidence_tables
 from backend.exporters.common.load_tables import build_load_combination_rows
@@ -33,6 +34,7 @@ def build_summary_tables(solution: Dict[str, Any], material_name: str):
 
     param_rows = [
         ["材料名称", material_name],
+        *material_report_rows(request.get("material_id")),
         ["梁型", request["beam_type_label"]],
         ["荷载类型", request["load_type_label"]],
         ["弹性模量 E (GPa)", request["E_gpa"]],

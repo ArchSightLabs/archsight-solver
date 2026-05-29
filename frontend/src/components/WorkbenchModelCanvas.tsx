@@ -16,6 +16,7 @@ import {
 import type { AnalysisMode } from "../types/structure";
 import type { WorkbenchSelection } from "../types/workbench-selection";
 import type { ModelPreviewStyle } from "../types/beam";
+import { modelObjectMetricRows } from "../lib/model-object-vocabulary";
 interface WorkbenchModelCanvasProps {
   workspace: WorkspaceState;
   mode: AnalysisMode;
@@ -23,34 +24,6 @@ interface WorkbenchModelCanvasProps {
   modelPreviewStyle?: ModelPreviewStyle;
   selection?: WorkbenchSelection | null;
   onSelect?: (next: WorkbenchSelection) => void;
-}
-
-function buildMetrics(workspace: WorkspaceState, mode: AnalysisMode) {
-  if (mode === "beam") {
-    const length = workspace.beam.spans.reduce((sum, span) => sum + span.length, 0);
-    return [
-      { label: "杆件数量", value: `${workspace.beam.spans.length}` },
-      { label: "总长度", value: `${length.toFixed(2)} m` },
-      { label: "节点数量", value: `${workspace.beam.supports.length}` },
-    ];
-  }
-
-  if (mode === "frame") {
-    const nodeCount = workspace.frame.frameMode === "custom" ? workspace.frame.customNodes.length : 4;
-    const memberCount = workspace.frame.frameMode === "custom" ? workspace.frame.customMembers.length : 3;
-    const loadCount = workspace.frame.frameMode === "custom" ? workspace.frame.customLoads.length : 2;
-    return [
-      { label: "节点数量", value: `${nodeCount}` },
-      { label: "构件数量", value: `${memberCount}` },
-      { label: "荷载数量", value: `${loadCount}` },
-    ];
-  }
-
-  return [
-    { label: "节点数量", value: `${workspace.truss.customNodes.length}` },
-    { label: "杆件数量", value: `${workspace.truss.customMembers.length}` },
-    { label: "荷载数量", value: `${workspace.truss.customLoads.length}` },
-  ];
 }
 
 export function WorkbenchModelCanvas({ workspace, mode, compact = false, modelPreviewStyle = "simple", selection, onSelect }: WorkbenchModelCanvasProps) {
@@ -70,7 +43,7 @@ export function WorkbenchModelCanvas({ workspace, mode, compact = false, modelPr
     zoomedBoardStyle,
     zoomPercent,
   } = useModelCanvasZoom();
-  const metrics = buildMetrics(workspace, mode);
+  const metrics = modelObjectMetricRows(workspace, mode);
 
   return (
     <GlassCard className="overflow-hidden">

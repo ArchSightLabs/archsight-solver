@@ -1,4 +1,5 @@
 import { ExternalLink, Network, PencilLine, Plus, Ruler, ShieldCheck, Trash2, Triangle } from "lucide-react";
+import { analysisVocabulary } from "../lib/analysis-vocabulary";
 import { getAnalysisObjectDisplayName, type AnalysisObject, type SolverProject } from "../lib/solver-project";
 import { Button } from "./ui/button";
 
@@ -13,9 +14,7 @@ interface ProjectTreePanelProps {
 }
 
 function objectTypeLabel(object: AnalysisObject) {
-  if (object.type === "frame") return "框架";
-  if (object.type === "truss") return "桁架";
-  return "梁";
+  return analysisVocabulary(object.type).systemLabel;
 }
 
 function ObjectIcon({ object }: { object: AnalysisObject }) {

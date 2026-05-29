@@ -137,4 +137,4 @@ $payload = @{
 Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:6240/api/calculate" -ContentType "application/json" -Body $payload
 ```
 
-预期返回 `analysisType: "frame"`，并在 `summary` 中包含最大位移、最大弯矩、控制节点和校核状态。
+预期返回 `analysisType: "frame"`，并在 `summary` 中包含最大节点位移、最大构件弯矩、控制节点和校核状态。

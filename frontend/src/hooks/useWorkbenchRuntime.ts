@@ -10,7 +10,9 @@ import {
 import type { ReportExportOptions } from "../lib/report-options";
 import { buildBeamPayload, buildFramePayload, buildTrussPayload, validateCustomFrameWorkspace, validateCustomTrussWorkspace } from "../solver-payload";
 import { beamResultForView, frameResultForView, trussResultForView } from "../lib/api-envelope";
+import { analysisVocabulary } from "../lib/analysis-vocabulary";
 import { useWorkbenchActions, type AnalysisResults } from "./useWorkbenchActions";
+import { solvingRunLabel } from "../lib/workbench-operation-status";
 
 const BENCHMARK_SUBMISSION_NEEDS_RESULT_REASON = "请先运行当前分析对象的结构计算，再生成验证投稿包。";
 
@@ -56,6 +58,8 @@ export function useWorkbenchRuntime({
     isSolving,
     isScanning,
     exportingFormat,
+    operationNotice,
+    setOperationNotice,
     handleRunCurrentModule,
     handleSensitivity,
     handleExport,
@@ -98,23 +102,26 @@ export function useWorkbenchRuntime({
     skipNextRuntimePersistRef.current = true;
     setAnalysisData(object.results);
     setSensitivityData(object.sensitivityResults);
+    setOperationNotice(null);
     setWorkbenchView(object.workbenchView);
     resetWorkbenchContext();
-  }, [resetWorkbenchContext, setAnalysisData, setSensitivityData]);
+  }, [resetWorkbenchContext, setAnalysisData, setOperationNotice, setSensitivityData]);
 
   const resetRuntimeForNewAnalysisObject = useCallback(() => {
     skipNextRuntimePersistRef.current = true;
     setAnalysisData(null);
     setSensitivityData(null);
+    setOperationNotice(null);
     setWorkbenchView("model");
     resetWorkbenchContext();
-  }, [resetWorkbenchContext, setAnalysisData, setSensitivityData]);
+  }, [resetWorkbenchContext, setAnalysisData, setOperationNotice, setSensitivityData]);
 
   const clearCurrentAnalysisRuntime = useCallback(() => {
     skipNextRuntimePersistRef.current = true;
     lastRuntimePersistRef.current = { analysisData: null, sensitivityData: null, workbenchView: "model" };
     setAnalysisData(null);
     setSensitivityData(null);
+    setOperationNotice(null);
     setWorkbenchView("model");
     setProject((current) => updateActiveAnalysisObject(current, (object) => ({
       ...object,
@@ -124,7 +131,7 @@ export function useWorkbenchRuntime({
     })));
     markProjectDirty();
     resetWorkbenchContext();
-  }, [markProjectDirty, resetWorkbenchContext, setAnalysisData, setProject, setSensitivityData]);
+  }, [markProjectDirty, resetWorkbenchContext, setAnalysisData, setOperationNotice, setProject, setSensitivityData]);
 
   const markRuntimePersisted = useCallback(() => {
     skipNextRuntimePersistRef.current = true;
@@ -174,7 +181,7 @@ export function useWorkbenchRuntime({
       objectName: activeAnalysisObject.name,
     };
   }, [activeAnalysisObject.name, analysisMode, beamResults, frameResults, trussResults, workspace.beam, workspace.frame, workspace.truss]);
-  const runLabel = isSolving ? "计算中..." : analysisMode === "frame" ? "运行平面框架计算" : analysisMode === "truss" ? "运行平面桁架计算" : "运行连续梁计算";
+  const runLabel = isSolving ? solvingRunLabel(analysisMode) : analysisVocabulary(analysisMode).runLabel;
 
   const handleRunAndReview = () => {
     setWorkbenchView("results");
@@ -196,6 +203,7 @@ export function useWorkbenchRuntime({
     isScanning,
     isSolving,
     markRuntimePersisted,
+    operationNotice,
     resetRuntimeForNewAnalysisObject,
     runLabel,
     sensitivityData,

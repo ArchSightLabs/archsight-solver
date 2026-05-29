@@ -5,10 +5,19 @@ import type { BeamApiPayload, BeamCalculationResults, SensitivityResults } from 
 import type { FrameCalculationResults, TrussCalculationResults } from "../types/structure";
 import { buildBeamPayload, buildFramePayload, buildTrussPayload, validateCustomFrameWorkspace, validateCustomTrussWorkspace } from "../solver-payload";
 import type { WorkspaceState } from "../lib/workspace-state";
+import { analysisVocabulary } from "../lib/analysis-vocabulary";
 import { analysisRequestFromResult, apiErrorMessage, beamResultForView, frameResultForView, normalizeAnalysisResponse, trussResultForView } from "../lib/api-envelope";
 import { buildReportImages } from "../lib/report-images";
 import type { ReportExportOptions } from "../lib/report-options";
 import type { BenchmarkCaseSource } from "../lib/solver-project";
+import {
+  exportOperationForFormat,
+  operationCompletedNotice,
+  operationFailedNotice,
+  operationRunningNotice,
+  validationNotice,
+  type WorkbenchOperationNotice,
+} from "../lib/workbench-operation-status";
 
 export type AnalysisResults = BeamCalculationResults | FrameCalculationResults | TrussCalculationResults | null;
 export type ExportFormat = "docx" | "xlsx";
@@ -46,6 +55,7 @@ export function useWorkbenchActions(
   const [isSolving, setIsSolving] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [exportingFormat, setExportingFormat] = useState<ExportFormat | null>(null);
+  const [operationNotice, setOperationNotice] = useState<WorkbenchOperationNotice | null>(null);
   const [latestPayload, setLatestPayload] = useState<CalculationPayload | null>(null);
   const buildCurrentPayload = (): CalculationPayload | null => {
     const { analysisMode } = workspace;
@@ -53,7 +63,7 @@ export function useWorkbenchActions(
     if (analysisMode === "truss") {
       const validationError = validateCustomTrussWorkspace(workspace.truss);
       if (validationError) {
-        alert(validationError);
+        setOperationNotice(validationNotice(validationError));
         return null;
       }
       return buildTrussPayload(workspace.truss, projectName);
@@ -62,7 +72,7 @@ export function useWorkbenchActions(
     if (analysisMode === "frame") {
       const validationError = validateCustomFrameWorkspace(workspace.frame);
       if (validationError) {
-        alert(validationError);
+        setOperationNotice(validationNotice(validationError));
         return null;
       }
       return buildFramePayload(workspace.frame, projectName);
@@ -75,6 +85,7 @@ export function useWorkbenchActions(
     const analysisType: AnalysisMode = data.analysisType === "frame" ? "frame" : data.analysisType === "truss" ? "truss" : "beam";
     setWorkspace((current) => ({ ...current, analysisMode: analysisType }));
     setIsSolving(true);
+    setOperationNotice(operationRunningNotice("solve", analysisType));
     try {
       const response = await fetch(apiUrl("/api/calculate"), {
         method: "POST",
@@ -93,10 +104,11 @@ export function useWorkbenchActions(
       setLatestPayload(data);
       setSensitivityData(null); // Reset sensitivity on new solve
       setCompactWorkbenchView("results");
+      setOperationNotice(operationCompletedNotice("solve", analysisType));
       return result;
     } catch (error) {
       console.error("求解失败：", error);
-      alert(`力学引擎连接失败: ${error instanceof Error ? error.message : "未知错误"}`);
+      setOperationNotice(operationFailedNotice("solve", error instanceof Error ? error.message : "未知错误"));
       return null;
     } finally {
       setIsSolving(false);
@@ -118,6 +130,7 @@ export function useWorkbenchActions(
     }
     
     setIsScanning(true);
+    setOperationNotice(operationRunningNotice("sensitivity", workspace.analysisMode));
     try {
       const requestBody =
         workspace.analysisMode === "beam"
@@ -146,8 +159,9 @@ export function useWorkbenchActions(
       }
       setSensitivityData(data);
       setLatestPayload(currentPayload);
+      setOperationNotice(operationCompletedNotice("sensitivity", workspace.analysisMode));
     } catch (error) {
-      alert(`敏感性分析失败: ${error instanceof Error ? error.message : error}`);
+      setOperationNotice(operationFailedNotice("sensitivity", error instanceof Error ? error.message : String(error)));
     } finally {
       setIsScanning(false);
     }
@@ -156,10 +170,12 @@ export function useWorkbenchActions(
   const handleExport = async (format: ExportFormat = "docx") => {
     const payload = (analysisRequestFromResult(analysisData) as CalculationPayload | null) ?? latestPayload;
     if (!payload) {
-      alert("请先完成一次计算或敏感性分析，再导出计算书。");
+      setOperationNotice(validationNotice("请先完成当前分析对象的结构计算或敏感性分析，再导出计算书。"));
       return;
     }
+    const exportOperation = exportOperationForFormat(format);
     setExportingFormat(format);
+    setOperationNotice(operationRunningNotice(exportOperation, workspace.analysisMode));
     try {
       const exportPayload =
         format === "docx" && sensitivityData
@@ -198,14 +214,15 @@ export function useWorkbenchActions(
       const url = window.URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      const modeName = workspace.analysisMode === "frame" ? "平面框架" : workspace.analysisMode === "truss" ? "平面桁架" : "多跨连续梁";
+      const modeName = analysisVocabulary(workspace.analysisMode).systemLabel;
       anchor.download = `${modeName}-计算书.${format}`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
       window.URL.revokeObjectURL(url);
+      setOperationNotice(operationCompletedNotice(exportOperation, workspace.analysisMode));
     } catch (error) {
-      alert(`导出失败: ${error instanceof Error ? error.message : "未知错误"}`);
+      setOperationNotice(operationFailedNotice(exportOperation, error instanceof Error ? error.message : "未知错误"));
     } finally {
       setExportingFormat(null);
     }
@@ -219,6 +236,8 @@ export function useWorkbenchActions(
     isSolving,
     isScanning,
     exportingFormat,
+    operationNotice,
+    setOperationNotice,
     handleRunCurrentModule,
     handleSensitivity,
     handleExport,

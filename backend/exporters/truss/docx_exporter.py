@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional
 
 import pandas as pd
 
+from backend.common.result_metric_catalog import result_metric_label
 from backend.exporters.common.artifact import ExportArtifact
 from backend.exporters.common.docx_utils import HAS_DOCX, add_df_table, add_heading, add_png_figure, add_report_title, create_document, png_from_report_images
 from backend.exporters.common.evidence import build_evidence_tables
@@ -83,13 +84,15 @@ def export_docx(
     add_df_table(doc, df_members)
     _add_member_figures(doc, solution, report_images, options)
     add_heading(doc, "5. 校核结论")
+    max_node_displacement_label = result_metric_label("truss", "max_node_displacement")
+    max_member_axial_label = result_metric_label("truss", "max_member_axial")
     add_df_table(
         doc,
         pd.DataFrame(
             [
-                ["最大位移 (mm)", round(solution["summary"]["maxDisplacementMm"], 4)],
+                [f"{max_node_displacement_label} (mm)", round(solution["summary"]["maxDisplacementMm"], 4)],
                 ["允许位移 (mm)", round(solution["summary"]["allowableMm"], 4)],
-                ["最大轴力 (kN)", round(solution["summary"]["maxAxialForceKn"], 4)],
+                [f"{max_member_axial_label} (kN)", round(solution["summary"]["maxAxialForceKn"], 4)],
                 ["结果", solution["summary"]["status"]],
             ],
             columns=["项目", "数值/说明"],

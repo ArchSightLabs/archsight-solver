@@ -1,48 +1,81 @@
 import type { AnalysisMode } from "../types/structure";
+import { analysisVocabulary } from "./analysis-vocabulary.ts";
 
 export type ModuleSectionItem = {
   id: string;
   label: string;
 };
 
+export type ModuleSectionKey = "template" | "basic" | "object" | "text" | "table";
+
+const SECTION_LABELS: Record<ModuleSectionKey, string> = {
+  template: "模板",
+  basic: "基本",
+  object: "对象",
+  text: "文本",
+  table: "表格",
+};
+
+const SECTION_ORDER: ModuleSectionKey[] = ["template", "basic", "object", "text", "table"];
+
+const LEGACY_SECTION_ID_ALIASES: Partial<Record<string, ModuleSectionKey>> = {
+  "beam-typical-cases": "template",
+  "beam-object-navigator": "object",
+  "beam-text-model": "text",
+  "beam-advanced-tables": "table",
+  "frame-typical-cases": "template",
+  "frame-custom-overview": "basic",
+  "frame-object-navigator": "object",
+  "frame-text-model": "text",
+  "frame-advanced-tables": "table",
+  "truss-typical-cases": "template",
+  "truss-custom-overview": "basic",
+  "truss-object-navigator": "object",
+  "truss-text-model": "text",
+  "truss-advanced-tables": "table",
+};
+
+export function moduleSectionId(mode: AnalysisMode, section: ModuleSectionKey): string {
+  return `${mode}-${section}`;
+}
+
+function buildModuleSections(mode: AnalysisMode): ModuleSectionItem[] {
+  return SECTION_ORDER.map((section) => ({
+    id: moduleSectionId(mode, section),
+    label: SECTION_LABELS[section],
+  }));
+}
+
 const MODULE_SECTIONS_BY_MODE: Record<AnalysisMode, ModuleSectionItem[]> = {
-  beam: [
-    { id: "beam-typical-cases", label: "模板" },
-    { id: "beam-basic", label: "基本" },
-    { id: "beam-object-navigator", label: "对象" },
-    { id: "beam-text-model", label: "文本" },
-    { id: "beam-advanced-tables", label: "表格" },
-  ],
-  frame: [
-    { id: "frame-typical-cases", label: "模板" },
-    { id: "frame-custom-overview", label: "基本" },
-    { id: "frame-object-navigator", label: "对象" },
-    { id: "frame-text-model", label: "文本" },
-    { id: "frame-advanced-tables", label: "表格" },
-  ],
-  truss: [
-    { id: "truss-typical-cases", label: "模板" },
-    { id: "truss-custom-overview", label: "基本" },
-    { id: "truss-object-navigator", label: "对象" },
-    { id: "truss-text-model", label: "文本" },
-    { id: "truss-advanced-tables", label: "表格" },
-  ],
+  beam: buildModuleSections("beam"),
+  frame: buildModuleSections("frame"),
+  truss: buildModuleSections("truss"),
 };
 
 const MODULE_TITLES: Record<AnalysisMode, string> = {
-  beam: "梁系参数",
-  frame: "框架参数",
-  truss: "桁架参数",
+  beam: analysisVocabulary("beam").parameterTitle,
+  frame: analysisVocabulary("frame").parameterTitle,
+  truss: analysisVocabulary("truss").parameterTitle,
 };
 
 const OBJECT_NAVIGATOR_SECTION_IDS: Record<AnalysisMode, string> = {
-  beam: "beam-object-navigator",
-  frame: "frame-object-navigator",
-  truss: "truss-object-navigator",
+  beam: moduleSectionId("beam", "object"),
+  frame: moduleSectionId("frame", "object"),
+  truss: moduleSectionId("truss", "object"),
 };
 
 export function moduleSectionsForMode(mode: AnalysisMode): ModuleSectionItem[] {
   return MODULE_SECTIONS_BY_MODE[mode];
+}
+
+export function normalizeModuleSectionId(mode: AnalysisMode, sectionId: string | undefined): string | null {
+  if (!sectionId) return null;
+  if (MODULE_SECTIONS_BY_MODE[mode].some((item) => item.id === sectionId)) {
+    return sectionId;
+  }
+  const legacyKey = LEGACY_SECTION_ID_ALIASES[sectionId];
+  if (!legacyKey) return null;
+  return moduleSectionId(mode, legacyKey);
 }
 
 export function moduleTitleForMode(mode: AnalysisMode): string {

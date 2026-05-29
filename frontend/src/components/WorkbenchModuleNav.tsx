@@ -1,5 +1,6 @@
 import { Activity, Building2, Layers, Triangle } from "lucide-react";
 import type { AnalysisMode } from "../types/structure";
+import { analysisVocabulary } from "../lib/analysis-vocabulary";
 import { cn } from "@/lib/utils";
 
 interface WorkbenchModuleNavProps {
@@ -20,20 +21,20 @@ const MODULES: Array<{
 }> = [
   {
     mode: "beam",
-    title: "梁系",
-    ariaLabel: "梁系分析工作台",
+    title: analysisVocabulary("beam").systemLabel,
+    ariaLabel: `${analysisVocabulary("beam").analysisLabel}工作台`,
     icon: Layers,
   },
   {
     mode: "frame",
-    title: "平面框架",
-    ariaLabel: "平面框架分析",
+    title: analysisVocabulary("frame").systemLabel,
+    ariaLabel: analysisVocabulary("frame").analysisLabel,
     icon: Building2,
   },
   {
     mode: "truss",
-    title: "平面桁架",
-    ariaLabel: "平面桁架分析",
+    title: analysisVocabulary("truss").systemLabel,
+    ariaLabel: analysisVocabulary("truss").analysisLabel,
     icon: Triangle,
   },
 ];

@@ -4,35 +4,13 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from backend.common.numbers import to_float
+from backend.common.support_catalog import support_constraint_dof_map, support_constraint_dofs as catalog_support_constraint_dofs, support_labels
 from backend.normalizers.section_library import resolve_section
 
 
-FRAME_SUPPORT_LABELS = {
-    "fixed": "固结支座",
-    "pinned": "铰支座",
-    "roller": "滚动支座",
-    "free": "自由端",
-}
-
-TRUSS_SUPPORT_LABELS = {
-    "pinned": "铰支座",
-    "roller": "滚动支座",
-    "free": "自由端",
-}
-
-SUPPORT_DOF_MAP = {
-    "frame": {
-        "fixed": ["ux", "uy", "rz"],
-        "pinned": ["ux", "uy"],
-        "roller": ["uy"],
-        "free": [],
-    },
-    "truss": {
-        "pinned": ["ux", "uy"],
-        "roller": ["uy"],
-        "free": [],
-    },
-}
+FRAME_SUPPORT_LABELS = support_labels("frame")
+TRUSS_SUPPORT_LABELS = support_labels("truss")
+SUPPORT_DOF_MAP = support_constraint_dof_map()
 
 
 @dataclass(frozen=True)
@@ -186,7 +164,9 @@ def parse_support_type(value: Any, labels: Mapping[str, str], default: str = "fr
 
 
 def support_constraint_dofs(analysis_type: str, support_type: str) -> List[str]:
-    return list(SUPPORT_DOF_MAP[analysis_type].get(str(support_type or "free").lower(), []))
+    if analysis_type not in {"beam", "frame", "truss"}:
+        return []
+    return catalog_support_constraint_dofs(analysis_type, support_type)  # type: ignore[arg-type]
 
 
 def support_dof_indexes(analysis_type: str, support_type: str) -> List[int]:

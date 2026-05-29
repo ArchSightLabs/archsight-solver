@@ -22,6 +22,7 @@ import {
   type DiagramPlacedLabel,
 } from "../lib/diagram-label-layout";
 import { formatEngineeringValue } from "../lib/engineering-format";
+import { summaryMetricLabel } from "../lib/result-metrics";
 import { buildFrameDimensionLegendRows, buildFrameGeometryDimensions, frameMemberLabelPlacement } from "./frame-preview-utils";
 
 interface FrameMemberDiagramsProps {
@@ -132,6 +133,13 @@ function metricValues(diagram: FrameMemberDiagram, metric: FrameDiagramMetric) {
 
 function valueText(value: number, unit: string) {
   return formatEngineeringValue(value, unit);
+}
+
+function frameDiagramPeakLabel(metric: FrameDiagramMetric): string {
+  if (metric.key === "momentKnM") return summaryMetricLabel("frame", "max_member_moment", "最大构件弯矩");
+  if (metric.key === "shearKn") return "最大构件剪力";
+  if (metric.key === "axialKn") return "最大构件轴力";
+  return "最大局部 y 向挠度";
 }
 
 function supportBlocker(type: SupportType, point: SvgPoint): DiagramLabelBlocker {
@@ -526,7 +534,7 @@ export function FrameMemberDiagrams({ frame, diagrams, compact = false, metricKe
           <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-bold text-slate-600 dark:text-slate-300">
             {extreme ? (
               <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 dark:border-slate-700 dark:bg-slate-900/70">
-                峰值：{extreme.memberId} / {valueText(extreme.value, selectedMetric.unit)} / x={extreme.stationM.toFixed(2)} m
+                {frameDiagramPeakLabel(selectedMetric)}：{extreme.memberId} / {valueText(extreme.value, selectedMetric.unit)} / x={extreme.stationM.toFixed(2)} m
               </span>
             ) : null}
           </div>

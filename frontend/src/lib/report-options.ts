@@ -1,3 +1,5 @@
+import sharedReportOptions from "../../../shared/report-options.json" with { type: "json" };
+
 export type ReportTemplate = "standard" | "complete" | "brief";
 export type ReportFigureMode = "overlay" | "traditional" | "both";
 export type ReportFigureScope = "control" | "all" | "none";
@@ -8,34 +10,47 @@ export interface ReportExportOptions {
   figureScope: ReportFigureScope;
 }
 
-export const DEFAULT_REPORT_EXPORT_OPTIONS: ReportExportOptions = {
-  template: "standard",
-  figureMode: "overlay",
-  figureScope: "control",
-};
+export interface ReportOptionItem<T extends string = string> {
+  value: T;
+  label: string;
+}
+
+interface SharedReportOptions {
+  default: ReportExportOptions;
+  legacyDefault: ReportExportOptions;
+  templates: Array<ReportOptionItem<ReportTemplate>>;
+  figureModes: Array<ReportOptionItem<ReportFigureMode>>;
+  figureScopes: Array<ReportOptionItem<ReportFigureScope>>;
+}
+
+const REPORT_OPTIONS = sharedReportOptions as SharedReportOptions;
+
+export const DEFAULT_REPORT_EXPORT_OPTIONS: ReportExportOptions = { ...REPORT_OPTIONS.default };
+
+export const REPORT_TEMPLATE_OPTIONS: readonly ReportOptionItem<ReportTemplate>[] = REPORT_OPTIONS.templates.map((option) => ({ ...option }));
+export const REPORT_FIGURE_MODE_OPTIONS: readonly ReportOptionItem<ReportFigureMode>[] = REPORT_OPTIONS.figureModes.map((option) => ({ ...option }));
+export const REPORT_FIGURE_SCOPE_OPTIONS: readonly ReportOptionItem<ReportFigureScope>[] = REPORT_OPTIONS.figureScopes.map((option) => ({ ...option }));
+
+const REPORT_TEMPLATE_VALUES = new Set(REPORT_TEMPLATE_OPTIONS.map((option) => option.value));
+const REPORT_FIGURE_MODE_VALUES = new Set(REPORT_FIGURE_MODE_OPTIONS.map((option) => option.value));
+const REPORT_FIGURE_SCOPE_VALUES = new Set(REPORT_FIGURE_SCOPE_OPTIONS.map((option) => option.value));
+
+function isReportTemplate(value: unknown): value is ReportTemplate {
+  return typeof value === "string" && REPORT_TEMPLATE_VALUES.has(value as ReportTemplate);
+}
+
+function isReportFigureMode(value: unknown): value is ReportFigureMode {
+  return typeof value === "string" && REPORT_FIGURE_MODE_VALUES.has(value as ReportFigureMode);
+}
+
+function isReportFigureScope(value: unknown): value is ReportFigureScope {
+  return typeof value === "string" && REPORT_FIGURE_SCOPE_VALUES.has(value as ReportFigureScope);
+}
 
 export function normalizeReportExportOptions(raw: Partial<ReportExportOptions> | null | undefined): ReportExportOptions {
   return {
-    template: raw?.template === "brief" || raw?.template === "complete" || raw?.template === "standard" ? raw.template : DEFAULT_REPORT_EXPORT_OPTIONS.template,
-    figureMode: raw?.figureMode === "traditional" || raw?.figureMode === "both" || raw?.figureMode === "overlay" ? raw.figureMode : DEFAULT_REPORT_EXPORT_OPTIONS.figureMode,
-    figureScope: raw?.figureScope === "all" || raw?.figureScope === "none" || raw?.figureScope === "control" ? raw.figureScope : DEFAULT_REPORT_EXPORT_OPTIONS.figureScope,
+    template: isReportTemplate(raw?.template) ? raw.template : DEFAULT_REPORT_EXPORT_OPTIONS.template,
+    figureMode: isReportFigureMode(raw?.figureMode) ? raw.figureMode : DEFAULT_REPORT_EXPORT_OPTIONS.figureMode,
+    figureScope: isReportFigureScope(raw?.figureScope) ? raw.figureScope : DEFAULT_REPORT_EXPORT_OPTIONS.figureScope,
   };
 }
-
-export const REPORT_TEMPLATE_OPTIONS = [
-  { value: "standard", label: "标准计算书" },
-  { value: "complete", label: "完整计算书" },
-  { value: "brief", label: "精简报告" },
-] as const;
-
-export const REPORT_FIGURE_MODE_OPTIONS = [
-  { value: "overlay", label: "模型叠加图" },
-  { value: "traditional", label: "传统单项图" },
-  { value: "both", label: "两者都插入" },
-] as const;
-
-export const REPORT_FIGURE_SCOPE_OPTIONS = [
-  { value: "control", label: "仅控制图" },
-  { value: "all", label: "全部结果图" },
-  { value: "none", label: "不插入图形" },
-] as const;

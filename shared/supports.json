@@ -1,0 +1,101 @@
+{
+  "notes": {
+    "beam": "梁节点自由度为竖向位移 v 与转角 θz；支座约束作为节点边界条件进入整体刚度矩阵，弹簧支座以刚度项参与装配。",
+    "frame": "平面框架节点自由度为 ux、uy、rz；滚动支座默认约束 uy，设置支座角度时按法向位移约束处理。",
+    "truss": "平面桁架节点仅含 ux、uy 平动自由度；桁架支座不提供转动约束，也不形成弯矩主指标。"
+  },
+  "beam": [
+    {
+      "value": "pinned",
+      "label": "铰支座",
+      "constraints": ["v"],
+      "released": ["θz"],
+      "detail": "约束 v，释放 θz",
+      "note": "适用于梁端或中间节点的竖向位移约束；梁系弯曲模型中不约束水平位移。"
+    },
+    {
+      "value": "roller",
+      "label": "滚动支座",
+      "constraints": ["v"],
+      "released": ["θz"],
+      "detail": "约束 v，释放 θz；梁系中与铰支座同自由度",
+      "note": "用于表达可水平滑移的竖向支承；当前梁系自由度只含 v、θz，因此与铰支座同自由度。"
+    },
+    {
+      "value": "fixed",
+      "label": "固结支座",
+      "constraints": ["v", "rz"],
+      "released": [],
+      "detail": "约束 v、θz",
+      "note": "同时约束竖向位移和截面转角，适用于悬臂梁固定端或固结边界。"
+    },
+    {
+      "value": "free",
+      "label": "自由端",
+      "constraints": [],
+      "released": ["v", "θz"],
+      "detail": "释放 v、θz",
+      "note": "不提供固定约束；可叠加弹簧自由度形成弹性支承。"
+    }
+  ],
+  "frame": [
+    {
+      "value": "fixed",
+      "label": "固结支座",
+      "constraints": ["ux", "uy", "rz"],
+      "released": [],
+      "detail": "约束 ux、uy、rz",
+      "note": "同时约束节点水平位移、竖向位移和平面转角。"
+    },
+    {
+      "value": "pinned",
+      "label": "铰支座",
+      "constraints": ["ux", "uy"],
+      "released": ["rz"],
+      "detail": "约束 ux、uy，释放 rz",
+      "note": "约束节点平动自由度，但释放平面转角。"
+    },
+    {
+      "value": "roller",
+      "label": "滚动支座",
+      "constraints": ["uy"],
+      "released": ["ux", "rz"],
+      "detail": "默认约束 uy、释放 ux 与 rz；设置支座角度时约束法向位移",
+      "note": "适用于滑动支承；支座角度用于斜向滚动支座的法向约束。"
+    },
+    {
+      "value": "free",
+      "label": "自由节点",
+      "constraints": [],
+      "released": ["ux", "uy", "rz"],
+      "detail": "释放 ux、uy、rz",
+      "note": "不提供固定约束，常用于普通连接节点或自由端节点。"
+    }
+  ],
+  "truss": [
+    {
+      "value": "pinned",
+      "label": "铰支座",
+      "constraints": ["ux", "uy"],
+      "released": [],
+      "detail": "约束 ux、uy",
+      "note": "约束节点两个平动自由度；桁架节点不含转动自由度。"
+    },
+    {
+      "value": "roller",
+      "label": "滚动支座",
+      "constraints": ["uy"],
+      "released": ["ux"],
+      "detail": "约束 uy，释放 ux",
+      "note": "提供竖向支承并允许水平滑移，常与铰支座配合消除刚体位移。"
+    },
+    {
+      "value": "free",
+      "label": "自由节点",
+      "constraints": [],
+      "released": ["ux", "uy"],
+      "detail": "释放 ux、uy",
+      "note": "不提供固定约束，通常作为荷载节点或杆件连接节点。"
+    }
+  ]
+}

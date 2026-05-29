@@ -4,6 +4,7 @@ import itertools
 from typing import Any, Dict, List, Mapping, Sequence, Tuple
 
 from backend.common.numbers import clamp_ratio, sanitize_label, to_float
+from backend.common.support_catalog import support_constraint_dofs, support_labels
 from backend.common.units import to_si
 from backend.config import get_max_beam_spans, resolve_output_precision
 from backend.normalizers.structural_model import parse_combination_tags
@@ -29,13 +30,7 @@ LOAD_TYPE_ALIASES = {
     "distributed": "linear",
 }
 
-BEAM_SUPPORT_LABELS = {
-    "pinned": "铰支座",
-    "hinged": "铰支座",
-    "roller": "滚动支座",
-    "fixed": "固结支座",
-    "free": "自由端",
-}
+BEAM_SUPPORT_LABELS = {**support_labels("beam"), "hinged": "铰支座"}
 
 DEFAULT_PROJECT_NAME = "默认结构工程项目"
 DEFAULT_MATERIAL_NAME = "自定义材料"
@@ -115,11 +110,7 @@ def _support_type(value: Any, default: str = "pinned") -> str:
 
 
 def _support_constraints(support_type: str) -> List[str]:
-    if support_type in {"pinned", "roller"}:
-        return ["v"]
-    if support_type == "fixed":
-        return ["v", "rz"]
-    return []
+    return support_constraint_dofs("beam", support_type)
 
 
 def _parse_beam_support_constraints(raw_constraints: Any, support_type: str) -> List[str]:

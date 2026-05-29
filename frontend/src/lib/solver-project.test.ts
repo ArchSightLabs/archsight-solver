@@ -18,9 +18,9 @@ test("默认求解器项目包含三类分析对象并激活梁系", () => {
   const project = createDefaultSolverProject(new Date("2026-05-21T12:00:00.000Z"));
   assert.equal(project.objects.length, 3);
   assert.deepEqual(project.objects.map((object) => object.type), ["beam", "frame", "truss"]);
-  assert.deepEqual(project.objects.map((object) => object.name), ["连续梁-1", "平面框架-1", "平面桁架-1"]);
+  assert.deepEqual(project.objects.map((object) => object.name), ["梁系-1", "平面框架-1", "平面桁架-1"]);
   assert.equal(project.activeObjectId, project.objects[0].id);
-  assert.equal(getActiveAnalysisObject(project).name, "连续梁-1");
+  assert.equal(getActiveAnalysisObject(project).name, "梁系-1");
   assert.equal(project.settings.projectInfo.name, "新建结构分析项目");
   assert.equal(project.settings.modelPreviewStyle, "color");
   assert.equal(project.settings.reportExportOptions.template, "standard");
@@ -50,11 +50,11 @@ test("新建项目可一次性写入项目级工程信息", () => {
   assert.equal(project.settings.projectInfo.name, "某教学楼结构复核");
   assert.equal(project.settings.projectInfo.address, "上海市浦东新区");
   assert.equal(project.settings.projectInfo.developerUnit, "建设单位 A");
-  assert.equal(getActiveAnalysisObject(project).name, "连续梁-1");
+  assert.equal(getActiveAnalysisObject(project).name, "梁系-1");
 });
 
 test("可创建不同类型的独立分析对象", () => {
-  assert.equal(createAnalysisObject("beam", "").name, "连续梁-1");
+  assert.equal(createAnalysisObject("beam", "").name, "梁系-1");
   assert.equal(createAnalysisObject("frame", "").name, "平面框架-1");
   assert.equal(createAnalysisObject("truss", "").name, "平面桁架-1");
 });
@@ -74,7 +74,7 @@ test("更新活动对象工作台状态不会修改其他分析对象", () => {
   const next = updateActiveAnalysisObjectWorkspace(project, workspace);
   assert.equal(getActiveAnalysisObject(next).type, "frame");
   assert.equal(createWorkspaceFromProject(next).frame.span, 9.5);
-  assert.equal(next.objects.find((object) => object.type === "beam")?.name, "连续梁-1");
+  assert.equal(next.objects.find((object) => object.type === "beam")?.name, "梁系-1");
 });
 
 test("删除活动对象后切换到剩余对象，单对象项目不删除", () => {
@@ -138,8 +138,8 @@ test("公开验证算例展示名自动补两位连续编号", () => {
       method: "",
       sourceLinks: [],
       checkedMetrics: ["最大杆件轴力"],
-      metricSummary: "最大轴力 43.33 kN",
-      expectedSummary: "标准值：最大轴力 43.33 kN",
+      metricSummary: "最大杆件轴力 43.33 kN",
+      expectedSummary: "标准值：最大杆件轴力 43.33 kN",
       toleranceSummary: "容许误差：杆件轴力容差 0.02 kN",
       expected: { maxAxialForceKn: 43.33 },
       tolerances: { memberAxialForceKn: 0.02 },

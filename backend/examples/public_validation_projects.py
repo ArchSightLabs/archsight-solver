@@ -99,13 +99,13 @@ def _case_metric_summary(case: Mapping[str, Any]) -> str:
     if not isinstance(expected, Mapping):
         return ""
     if "maxDeflectionMm" in expected:
-        return f"最大挠度 {_format_numeric_value(expected['maxDeflectionMm'])} mm"
+        return f"{METRIC_LABELS['maxDeflectionMm']} {_format_numeric_value(expected['maxDeflectionMm'])} mm"
     if "maxDisplacementMm" in expected:
-        return f"最大位移 {_format_numeric_value(expected['maxDisplacementMm'])} mm"
+        return f"{METRIC_LABELS['maxDisplacementMm']} {_format_numeric_value(expected['maxDisplacementMm'])} mm"
     if "maxMomentKnM" in expected:
-        return f"最大弯矩 {_format_numeric_value(expected['maxMomentKnM'])} kN·m"
+        return f"{METRIC_LABELS['maxMomentKnM']} {_format_numeric_value(expected['maxMomentKnM'])} kN·m"
     if "maxAxialForceKn" in expected:
-        return f"最大轴力 {_format_numeric_value(expected['maxAxialForceKn'])} kN"
+        return f"{METRIC_LABELS['maxAxialForceKn']} {_format_numeric_value(expected['maxAxialForceKn'])} kN"
     return ""
 
 

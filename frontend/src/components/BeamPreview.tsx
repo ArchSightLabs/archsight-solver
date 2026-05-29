@@ -3,6 +3,7 @@ import { GlassCard } from "./ui/GlassCard";
 import type { BeamLoadMarker, BeamPreviewData, BeamSupport } from "../types/beam";
 import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments, formatBeamDimensionLength } from "../lib/beam-span-dimensions";
 import { formatEngineeringValue } from "../lib/engineering-format";
+import { summaryMetricLabel } from "../lib/result-metrics";
 
 interface BeamPreviewProps {
   beam?: BeamPreviewData | null;
@@ -177,6 +178,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
     label: r.supportId ?? supportLabelByIndex.get(i) ?? `S${i + 1}`,
     val: `${Math.abs(r.valueKn ?? 0).toFixed(2)} kN`,
   }));
+  const maxDeflectionLabel = summaryMetricLabel("beam", "max_deflection", "最大挠度");
   const peakPoint = beam?.maxDeflection
     ? {
         x: mapX(beam.maxDeflection.xM),
@@ -434,7 +436,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
             sub: "竖向反力（kN）",
           },
           {
-            label: "挠度峰值",
+            label: maxDeflectionLabel,
             main: formatEngineeringValue(Math.abs(beam.maxDeflection?.valueMm ?? 0), "mm"),
             sub: `距左端 ${(beam.maxDeflection?.xM ?? 0).toFixed(2)} m`,
             highlight: true,

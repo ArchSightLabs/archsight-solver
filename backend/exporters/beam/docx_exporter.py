@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional
 
 import pandas as pd
 
+from backend.common.material_catalog import material_report_rows
 from backend.exporters.common.artifact import ExportArtifact
 from backend.exporters.common.docx_utils import HAS_DOCX, add_df_table, add_heading, add_png_figure, add_report_title, create_document, png_from_report_images, style_table_header_row
 from backend.exporters.common.evidence import build_evidence_tables
@@ -54,6 +55,7 @@ def export_docx(
     style_table_header_row(table)
     rows = [
         ("材料名称", material_name),
+        *[(left, right) for left, right in material_report_rows(request.get("material_id"))],
         ("弹性模量 E", f"{request['E_gpa']} GPa"),
         ("截面惯性矩 I", f"{request['I_cm4']} cm^4"),
         ("梁理论", request.get("beam_theory_label", "Euler-Bernoulli 梁理论")),

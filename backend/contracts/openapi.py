@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any, Dict
 
+from backend.common.report_options_catalog import default_report_options, report_option_values
 from backend.contracts.json_schemas import API_SCHEMA_VERSION, schema_registry
 
 
@@ -392,6 +393,26 @@ def _export_payload_schema() -> Dict[str, Any]:
             "reportOptions": {
                 "type": "object",
                 "description": "可选计算书排版与图形范围设置。",
+                "properties": {
+                    "template": {
+                        "type": "string",
+                        "enum": list(report_option_values("templates")),
+                        "default": default_report_options()["template"],
+                        "description": "计算书内容模板。",
+                    },
+                    "figureMode": {
+                        "type": "string",
+                        "enum": list(report_option_values("figureModes")),
+                        "default": default_report_options()["figureMode"],
+                        "description": "计算书结果插图模式。",
+                    },
+                    "figureScope": {
+                        "type": "string",
+                        "enum": list(report_option_values("figureScopes")),
+                        "default": default_report_options()["figureScope"],
+                        "description": "计算书结果插图范围。",
+                    },
+                },
                 "additionalProperties": True,
             },
         },

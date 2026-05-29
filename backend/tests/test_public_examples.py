@@ -57,8 +57,8 @@ def test_public_validation_project_metric_summaries_use_trimmed_four_decimal_pre
         for obj in project["project"]["objects"]
     }
 
-    assert objects["frame-portal-benchmark"]["benchmark"]["metricSummary"] == "最大位移 3.8141 mm"
-    assert objects["truss-warren-roof"]["benchmark"]["metricSummary"] == "最大位移 1.6771 mm"
+    assert objects["frame-portal-benchmark"]["benchmark"]["metricSummary"] == "最大节点位移 3.8141 mm"
+    assert objects["truss-warren-roof"]["benchmark"]["metricSummary"] == "最大节点位移 1.6771 mm"
     assert objects["beam-simply-supported-center-point"]["benchmark"]["metricSummary"] == "最大挠度 11.25 mm"
     assert "最大挠度 11.25 mm" in objects["beam-simply-supported-center-point"]["benchmark"]["expectedSummary"]
 

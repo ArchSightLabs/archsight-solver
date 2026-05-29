@@ -11,6 +11,7 @@ import {
   type DiagramPlacedLabel,
 } from "../lib/diagram-label-layout";
 import { formatEngineeringValue } from "../lib/engineering-format";
+import { sensitivityResponseMetricLabel } from "../lib/result-metrics";
 
 interface BeamDiagramMetric {
   key: BeamDiagramMetricKey;
@@ -77,6 +78,11 @@ const BEAM_DIAGRAM_METRICS: BeamDiagramMetric[] = [
   { key: "shearKn", title: "剪力图", unit: "kN", color: "#3b82f6", fillColor: "rgba(59, 130, 246, 0.09)", diagramType: "area" },
   { key: "deflectionMm", title: "挠度图", unit: "mm", color: "#8b5cf6", fillColor: "rgba(139, 92, 246, 0.08)", diagramType: "line" },
 ];
+const BEAM_DIAGRAM_RESPONSE_METRICS: Record<BeamDiagramMetricKey, string> = {
+  momentKnM: "max_moment",
+  shearKn: "max_shear",
+  deflectionMm: "max_deflection",
+};
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -118,6 +124,11 @@ function supportMarker(type: BeamSupportType, x: number) {
 
 function getMetric(key: BeamDiagramMetricKey) {
   return BEAM_DIAGRAM_METRICS.find((metric) => metric.key === key) ?? BEAM_DIAGRAM_METRICS[0];
+}
+
+function peakMetricLabel(key: BeamDiagramMetricKey): string {
+  const responseMetric = BEAM_DIAGRAM_RESPONSE_METRICS[key];
+  return sensitivityResponseMetricLabel("beam", responseMetric, "峰值");
 }
 
 function metricValues(results: BeamCalculationResults, metricKey: BeamDiagramMetricKey) {
@@ -397,7 +408,7 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
           <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-bold text-slate-600 dark:text-slate-300">
             {extreme ? (
               <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 dark:border-slate-700 dark:bg-slate-900/70">
-                峰值：{valueText(extreme.value, selectedMetric.unit)} / x={extreme.stationM.toFixed(2)} m
+                {peakMetricLabel(selectedMetric.key)}：{valueText(extreme.value, selectedMetric.unit)} / x={extreme.stationM.toFixed(2)} m
               </span>
             ) : null}
           </div>

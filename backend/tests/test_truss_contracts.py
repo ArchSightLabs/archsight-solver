@@ -107,8 +107,8 @@ def test_truss_api_response_excludes_bending_and_shear_primary_series():
 
 
 def test_truss_frontend_display_sections_exclude_bending_and_shear_primary_text():
-    source = (ROOT / "frontend" / "src" / "components" / "WorkbenchResultTabs.tsx").read_text(encoding="utf-8")
-    truss_options = _extract_between(source, "function trussDataCurveOptions", "function frameSummaryRows")
+    source = (ROOT / "frontend" / "src" / "components" / "workbench-result-metrics.ts").read_text(encoding="utf-8")
+    truss_options = _extract_between(source, "function trussDataCurveOptions", "function frameDataCurveOptions")
     truss_summary = _extract_between(source, "function trussSummaryRows", "function frameSummaryRows")
 
     for section in (truss_options, truss_summary):
