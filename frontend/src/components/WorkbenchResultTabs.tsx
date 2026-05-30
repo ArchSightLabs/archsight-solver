@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { GlassCard } from "./ui/GlassCard";
 import type { BeamCalculationResults } from "../types/beam";
 import type {
@@ -10,32 +10,10 @@ import type { ExportFormat } from "../hooks/useWorkbenchActions";
 import type { ReportExportOptions } from "../lib/report-options";
 import type { WorkbenchOperationNotice as WorkbenchOperationNoticeModel } from "../lib/workbench-operation-status";
 import { WorkbenchOperationNotice } from "./WorkbenchOperationNotice";
+import { WorkbenchResultContent } from "./WorkbenchResultContent";
 import { WorkbenchResultTabSelector } from "./WorkbenchResultTabSelector";
 import { WorkbenchResultToolbar } from "./WorkbenchResultToolbar";
-import {
-  AssumptionsPanel,
-  BeamBenchmarkPanel,
-  DataCurvePanel,
-  EmptyResult,
-  LoadingPanel,
-  SummaryGrid,
-} from "./workbench-result-panels";
-import {
-  beamDataCurveOptions,
-  beamSummaryRows,
-  frameDataCurveOptions,
-  frameSummaryRows,
-  trussDataCurveOptions,
-  trussSummaryRows,
-} from "./workbench-result-metrics";
 import { buildDisplayedFrameResults, buildFrameDisplayOptions, resultTabsForMode, type FrameDisplayOption } from "./workbench-result-model";
-
-const BeamPreview = lazy(() => import("./BeamPreview").then((module) => ({ default: module.BeamPreview })));
-const BeamResultDiagrams = lazy(() => import("./BeamResultDiagrams").then((module) => ({ default: module.BeamResultDiagrams })));
-const FramePreview = lazy(() => import("./FramePreview").then((module) => ({ default: module.FramePreview })));
-const FrameMemberDiagrams = lazy(() => import("./FrameMemberDiagrams").then((module) => ({ default: module.FrameMemberDiagrams })));
-const TrussPreview = lazy(() => import("./TrussPreview").then((module) => ({ default: module.TrussPreview })));
-const TrussResultDiagrams = lazy(() => import("./TrussResultDiagrams").then((module) => ({ default: module.TrussResultDiagrams })));
 
 interface WorkbenchResultTabsProps {
   analysisMode: AnalysisMode;
@@ -79,146 +57,17 @@ export function WorkbenchResultTabs({
   const activeFrameDisplayOption = frameDisplayOptions.find((option) => option.source === frameDisplayState.source && option.id === frameDisplayState.id) ?? frameDisplayOptions[0];
   const displayedFrameResults = useMemo(() => buildDisplayedFrameResults(frameResults, activeFrameDisplayOption), [activeFrameDisplayOption, frameResults]);
 
-  const content = (() => {
-    if (!hasResults) {
-      return <EmptyResult mode={analysisMode} compact={compact} />;
-    }
-
-    if (analysisMode === "beam" && beamResults) {
-      if (activeTabId === "overview") {
-        return (
-          <div className={`space-y-3 ${compact ? "" : "sm:space-y-4"}`}>
-            {beamResults.beam ? (
-              <Suspense fallback={<LoadingPanel compact={compact} />}>
-                <BeamPreview beam={beamResults.beam} compact={compact} />
-              </Suspense>
-            ) : null}
-            <Suspense fallback={<LoadingPanel compact={compact} />}>
-              <BeamResultDiagrams results={beamResults} compact={compact} />
-            </Suspense>
-            <DataCurvePanel options={beamDataCurveOptions(beamResults)} compact={compact} />
-            <AssumptionsPanel mode="beam" compact={compact} />
-            <BeamBenchmarkPanel results={beamResults} compact={compact} />
-            <SummaryGrid compact={compact} rows={beamSummaryRows(beamResults)} />
-          </div>
-        );
-      }
-      if (activeTabId === "preview") {
-        return beamResults.beam ? (
-          <Suspense fallback={<LoadingPanel compact={compact} />}>
-            <BeamPreview beam={beamResults.beam} compact={compact} />
-          </Suspense>
-        ) : (
-          <EmptyResult mode="beam" compact={compact} />
-        );
-      }
-      if (activeTabId === "diagrams") {
-        return (
-          <Suspense fallback={<LoadingPanel compact={compact} />}>
-            <BeamResultDiagrams results={beamResults} compact={compact} />
-          </Suspense>
-        );
-      }
-      if (activeTabId === "curves") {
-        return <DataCurvePanel options={beamDataCurveOptions(beamResults)} compact={compact} />;
-      }
-      return (
-        <div className="space-y-3">
-          <AssumptionsPanel mode="beam" compact={compact} />
-          <BeamBenchmarkPanel results={beamResults} compact={compact} />
-          <SummaryGrid compact={compact} rows={beamSummaryRows(beamResults)} />
-        </div>
-      );
-    }
-
-    if (analysisMode === "truss") {
-      if (!trussResults) {
-        return <EmptyResult mode="truss" compact={compact} />;
-      }
-
-      if (activeTabId === "overview") {
-        return (
-          <div className={`space-y-3 ${compact ? "" : "sm:space-y-4"}`}>
-            <Suspense fallback={<LoadingPanel compact={compact} />}>
-              <TrussPreview truss={trussResults.truss ?? null} compact={compact} />
-            </Suspense>
-            <Suspense fallback={<LoadingPanel compact={compact} />}>
-              <TrussResultDiagrams truss={trussResults.truss ?? null} compact={compact} />
-            </Suspense>
-            <DataCurvePanel options={trussDataCurveOptions(trussResults)} compact={compact} />
-            <AssumptionsPanel mode="truss" compact={compact} />
-            <SummaryGrid compact={compact} rows={trussSummaryRows(trussResults)} />
-          </div>
-        );
-      }
-      if (activeTabId === "preview") {
-        return (
-          <Suspense fallback={<LoadingPanel compact={compact} />}>
-            <TrussPreview truss={trussResults.truss ?? null} compact={compact} />
-          </Suspense>
-        );
-      }
-      if (activeTabId === "diagrams") {
-        return (
-          <Suspense fallback={<LoadingPanel compact={compact} />}>
-            <TrussResultDiagrams truss={trussResults.truss ?? null} compact={compact} />
-          </Suspense>
-        );
-      }
-      if (activeTabId === "curves") {
-        return <DataCurvePanel options={trussDataCurveOptions(trussResults)} compact={compact} />;
-      }
-      return (
-        <div className="space-y-3">
-          <AssumptionsPanel mode="truss" compact={compact} />
-          <SummaryGrid compact={compact} rows={trussSummaryRows(trussResults)} />
-        </div>
-      );
-    }
-
-    if (!displayedFrameResults) {
-      return <EmptyResult mode="frame" compact={compact} />;
-    }
-
-    if (activeTabId === "overview") {
-      return (
-        <div className={`space-y-3 ${compact ? "" : "sm:space-y-4"}`}>
-          <Suspense fallback={<LoadingPanel compact={compact} />}>
-            <FramePreview frame={displayedFrameResults.frame ?? null} compact={compact} />
-          </Suspense>
-          <Suspense fallback={<LoadingPanel compact={compact} />}>
-            <FrameMemberDiagrams frame={displayedFrameResults.frame ?? null} diagrams={displayedFrameResults.memberDiagrams ?? []} compact={compact} />
-          </Suspense>
-          <DataCurvePanel options={frameDataCurveOptions(displayedFrameResults)} compact={compact} />
-          <AssumptionsPanel mode="frame" compact={compact} />
-          <SummaryGrid compact={compact} rows={frameSummaryRows(displayedFrameResults)} />
-        </div>
-      );
-    }
-    if (activeTabId === "preview") {
-      return (
-        <Suspense fallback={<LoadingPanel compact={compact} />}>
-          <FramePreview frame={displayedFrameResults.frame ?? null} compact={compact} />
-        </Suspense>
-      );
-    }
-    if (activeTabId === "diagrams") {
-      return (
-        <Suspense fallback={<LoadingPanel compact={compact} />}>
-          <FrameMemberDiagrams frame={displayedFrameResults.frame ?? null} diagrams={displayedFrameResults.memberDiagrams ?? []} compact={compact} />
-        </Suspense>
-      );
-    }
-    if (activeTabId === "curves") {
-      return <DataCurvePanel options={frameDataCurveOptions(displayedFrameResults)} compact={compact} />;
-    }
-    return (
-      <div className="space-y-3">
-        <AssumptionsPanel mode="frame" compact={compact} />
-        <SummaryGrid compact={compact} rows={frameSummaryRows(displayedFrameResults)} />
-      </div>
-    );
-  })();
+  const content = (
+    <WorkbenchResultContent
+      analysisMode={analysisMode}
+      activeTabId={activeTabId}
+      compact={compact}
+      hasResults={hasResults}
+      beamResults={beamResults}
+      trussResults={trussResults}
+      displayedFrameResults={displayedFrameResults}
+    />
+  );
 
   return (
     <section className={`space-y-2 sm:space-y-4 ${compact ? "sm:space-y-3" : ""}`}>
