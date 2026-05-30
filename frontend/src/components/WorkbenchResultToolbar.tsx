@@ -7,6 +7,7 @@ import {
   REPORT_TEMPLATE_OPTIONS,
   reportFigureModeHintForMode,
   reportFigureModeOptionsForMode,
+  reportFigureModeValueForMode,
   type ReportExportOptions,
   type ReportFigureMode,
   type ReportFigureScope,
@@ -48,6 +49,7 @@ export function WorkbenchResultToolbar({
   const exportLabel = exportToolbarLabel(exportingFormat);
   const figureModeOptions = reportFigureModeOptionsForMode(analysisMode);
   const figureModeHint = reportFigureModeHintForMode(analysisMode);
+  const figureModeValue = reportFigureModeValueForMode(analysisMode, reportExportOptions.figureMode);
 
   const updateReportExportOption = <K extends keyof ReportExportOptions>(key: K, value: ReportExportOptions[K]) => {
     onReportExportOptionsChange({ ...reportExportOptions, [key]: value });
@@ -185,7 +187,7 @@ export function WorkbenchResultToolbar({
                     name="reportFigureMode"
                     label="图形模式"
                     hint={figureModeHint}
-                    value={reportExportOptions.figureMode}
+                    value={figureModeValue}
                     options={figureModeOptions}
                     onChange={(value) => updateReportExportOption("figureMode", value as ReportFigureMode)}
                   />

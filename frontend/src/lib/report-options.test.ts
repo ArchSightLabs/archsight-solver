@@ -10,6 +10,7 @@ import {
   normalizeReportExportOptions,
   reportFigureModeHintForMode,
   reportFigureModeOptionsForMode,
+  reportFigureModeValueForMode,
 } from "./report-options.ts";
 
 test("计算书导出选项读取 shared 契约默认值", () => {
@@ -36,13 +37,16 @@ test("计算书图形模式文案按结构体系避免误导传统曲线", () =>
   assert.deepEqual(reportFigureModeOptionsForMode("beam"), sharedReportOptions.figureModes);
   assert.deepEqual(
     reportFigureModeOptionsForMode("frame").map((item) => item.label),
-    ["模型叠加图", "模型叠加图（传统项映射）", "模型叠加图（合并项映射）"],
+    ["模型叠加工程图"],
   );
   assert.deepEqual(
     reportFigureModeOptionsForMode("truss").map((item) => item.label),
-    ["模型叠加图", "模型叠加图（传统项映射）", "模型叠加图（合并项映射）"],
+    ["模型叠加工程图"],
   );
+  assert.equal(reportFigureModeValueForMode("beam", "traditional"), "traditional");
+  assert.equal(reportFigureModeValueForMode("frame", "traditional"), "overlay");
+  assert.equal(reportFigureModeValueForMode("truss", "both"), "overlay");
   assert.match(reportFigureModeHintForMode("beam"), /传统单项曲线/u);
-  assert.match(reportFigureModeHintForMode("frame"), /模型叠加图/u);
-  assert.match(reportFigureModeHintForMode("truss"), /模型叠加图/u);
+  assert.match(reportFigureModeHintForMode("frame"), /模型叠加工程图/u);
+  assert.match(reportFigureModeHintForMode("truss"), /模型叠加工程图/u);
 });

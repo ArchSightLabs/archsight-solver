@@ -33,9 +33,7 @@ export const REPORT_FIGURE_MODE_OPTIONS: readonly ReportOptionItem<ReportFigureM
 export const REPORT_FIGURE_SCOPE_OPTIONS: readonly ReportOptionItem<ReportFigureScope>[] = REPORT_OPTIONS.figureScopes.map((option) => ({ ...option }));
 
 const STRUCTURE_OVERLAY_ONLY_FIGURE_MODE_OPTIONS: readonly ReportOptionItem<ReportFigureMode>[] = [
-  { value: "overlay", label: "模型叠加图" },
-  { value: "traditional", label: "模型叠加图（传统项映射）" },
-  { value: "both", label: "模型叠加图（合并项映射）" },
+  { value: "overlay", label: "模型叠加工程图" },
 ];
 
 const REPORT_TEMPLATE_VALUES = new Set(REPORT_TEMPLATE_OPTIONS.map((option) => option.value));
@@ -66,12 +64,16 @@ export function reportFigureModeOptionsForMode(mode: AnalysisMode): readonly Rep
   return mode === "beam" ? REPORT_FIGURE_MODE_OPTIONS : STRUCTURE_OVERLAY_ONLY_FIGURE_MODE_OPTIONS;
 }
 
+export function reportFigureModeValueForMode(mode: AnalysisMode, value: ReportFigureMode): ReportFigureMode {
+  return mode === "beam" ? value : "overlay";
+}
+
 export function reportFigureModeHintForMode(mode: AnalysisMode): string {
   if (mode === "beam") {
     return "梁系可导出计算简图叠加图，也可附加传统单项曲线。";
   }
   if (mode === "frame") {
-    return "平面框架计算书仅导出与工程图同源的模型叠加图。";
+    return "平面框架计算书仅导出与结果页同源的模型叠加工程图。";
   }
-  return "平面桁架计算书仅导出与工程图同源的模型叠加图。";
+  return "平面桁架计算书仅导出与结果页同源的模型叠加工程图。";
 }
