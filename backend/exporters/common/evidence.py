@@ -7,7 +7,7 @@ import pandas as pd
 
 from backend.benchmarks.catalog import load_benchmark_catalog
 from backend.exporters.common.analysis_assumptions import analysis_assumption_table_rows
-from backend.common.support_catalog import support_constraint_dofs, support_label
+from backend.common.support_catalog import support_constraint_dofs, support_label, support_system_note
 
 DOF_LABELS = {
     "ux": "ux 水平位移",
@@ -42,8 +42,10 @@ def _beam_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str,
                 ["结构类型", request.get("beam_type_label", "梁系")],
                 ["荷载类型", request.get("load_type_label", "—")],
                 ["材料名称", material_name],
+                ["材料适用范围", "材料名称为项目默认材料说明；梁系整体刚度按各跨段 E_GPa / I_cm4 输入装配。"],
                 ["跨段布置", " + ".join(str(span) for span in request.get("spans", [])) + " m"],
                 ["节点/支座数量", f"{len(solution.get('span_boundaries', []))} 个计算节点，{len(support_positions)} 个支座"],
+                ["支座体系说明", support_system_note("beam")],
                 ["原始输入单位", "E: GPa；I: cm^4；q: kN/m；P: kN；长度: m"],
             ],
             columns=["项目", "数值/说明"],
@@ -62,6 +64,7 @@ def _beam_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str,
             ],
             columns=["输入量", "原始输入", "计算单位", "换算关系"],
         ),
+        "跨段刚度输入": _beam_span_stiffness_table(request),
         "边界条件表": _beam_boundary_table(support_specs, support_positions),
         "计算方法说明": pd.DataFrame(
             [
@@ -94,6 +97,25 @@ def _beam_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str,
             columns=["控制项", "位置/对象", "数值", "判定依据"],
         ),
     }
+
+
+def _beam_span_stiffness_table(request: Mapping[str, Any]) -> pd.DataFrame:
+    rows = []
+    spans = list(request.get("spans", []))
+    span_ids = list(request.get("span_ids", []))
+    span_E = list(request.get("span_E_gpa", []))
+    span_I = list(request.get("span_I_cm4", []))
+    for index, span in enumerate(spans):
+        rows.append(
+            {
+                "跨段": str(span_ids[index]) if index < len(span_ids) else f"({index + 1})",
+                "长度": f"{round(float(span), 6)} m",
+                "弹性模量 E": f"{round(float(span_E[index]), 6)} GPa" if index < len(span_E) else "—",
+                "截面惯性矩 I": f"{round(float(span_I[index]), 6)} cm^4" if index < len(span_I) else "—",
+                "说明": "该跨段刚度参与梁单元刚度矩阵装配",
+            }
+        )
+    return pd.DataFrame(rows or [{"跨段": "—", "长度": "—", "弹性模量 E": "—", "截面惯性矩 I": "—", "说明": "—"}])
 
 
 def _frame_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str, pd.DataFrame]:

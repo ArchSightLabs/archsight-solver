@@ -1,8 +1,11 @@
 import copy
+import io
 import os
 import sys
 
+import pandas as pd
 import pytest
+from docx import Document
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
@@ -263,6 +266,62 @@ def test_beam_support_constraints_override_nominal_type(client):
     assert fixed_data["payload"]["supports"][0]["constraints"] == ["v", "rz"]
     assert fixed_data["beam"]["supports"][0]["constraints"] == ["v", "rz"]
     assert fixed_data["summary"]["maxDeflectionMm"] < pinned_data["summary"]["maxDeflectionMm"]
+
+
+def test_beam_exports_describe_material_scope_span_stiffness_and_supports(client):
+    payload = beam_payload()
+    payload.update(
+        {
+            "projectName": "Beam Semantic Export",
+            "spans": [3.0, 5.0],
+            "spanProperties": [
+                {"id": "L1", "E": 210.0, "I": 4500.0},
+                {"id": "L2", "E": 30.0, "I": 900.0},
+            ],
+            "supports": [
+                {"id": "A", "x": 0.0, "type": "fixed"},
+                {"id": "M", "x": 3.0, "type": "free", "springs": [{"dof": "v", "stiffnessKnPerM": 800.0}]},
+                {"id": "B", "x": 8.0, "type": "roller"},
+            ],
+        }
+    )
+
+    xlsx_response = client.post("/api/export", json={**payload, "format": "xlsx"})
+    assert xlsx_response.status_code == 200
+    with pd.ExcelFile(io.BytesIO(xlsx_response.data)) as xls:
+        model_text = pd.read_excel(xls, sheet_name="02_输入模型", header=None).to_string()
+        boundary_text = pd.read_excel(xls, sheet_name="04_边界条件", header=None).to_string()
+
+    assert "材料适用范围" in model_text
+    assert "梁系整体刚度按各跨段 E_GPa / I_cm4 输入装配" in model_text
+    assert "跨段刚度输入" in model_text
+    assert "L2" in model_text
+    assert "30.0 GPa" in model_text
+    assert "900.0 cm^4" in model_text
+    assert "支座体系说明" in model_text
+    assert "A" in boundary_text
+    assert "固结支座" in boundary_text
+    assert "M" in boundary_text
+    assert "v 竖向挠度: 800.0 kN/m" in boundary_text
+    assert "左支座" not in model_text
+    assert "右支座" not in model_text
+
+    docx_response = client.post("/api/export", json={**payload, "format": "docx"})
+    assert docx_response.status_code == 200
+    doc = Document(io.BytesIO(docx_response.data))
+    table_text = "\n".join(cell.text for table in doc.tables for row in table.rows for cell in row.cells)
+
+    assert "材料适用范围" in table_text
+    assert "梁系整体刚度按各跨段 E_GPa / I_cm4 输入装配" in table_text
+    assert "跨段刚度输入" in "\n".join(paragraph.text for paragraph in doc.paragraphs)
+    assert "L2" in table_text
+    assert "30.0 GPa" in table_text
+    assert "900.0 cm^4" in table_text
+    assert "A" in table_text
+    assert "固结支座" in table_text
+    assert "v 竖向挠度: 800.0 kN/m" in table_text
+    assert "左支座" not in table_text
+    assert "右支座" not in table_text
 
 
 def test_beam_load_cases_combinations_and_envelope(client):

@@ -120,6 +120,7 @@ def export_xlsx(solution: Dict[str, Any], material_name: str):
             [
                 ("工程输入摘要", evidence_tables["工程输入摘要"]),
                 ("参数记录", df_params),
+                ("跨段刚度输入", evidence_tables["跨段刚度输入"]),
                 ("荷载与模型", df_loads),
             ],
         )
