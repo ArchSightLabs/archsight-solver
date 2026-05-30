@@ -1,4 +1,4 @@
-import type { BeamSupportDof, BeamSupportType } from "../types/beam.ts";
+import type { BeamSupportConfig, BeamSupportDof, BeamSupportSpring, BeamSupportType } from "../types/beam.ts";
 import type { SupportType } from "../types/structure.ts";
 import sharedSupports from "../../../shared/supports.json" with { type: "json" };
 
@@ -106,6 +106,40 @@ function optionNote<T extends string>(options: Array<SupportOption<T>>, value: T
 
 export function beamSupportDetail(type: BeamSupportType | undefined): string {
   return optionDetail(BEAM_SUPPORT_OPTIONS, type ?? "pinned", "约束 v，释放 θz");
+}
+
+function compactSupportNumber(value: number): string {
+  if (!Number.isFinite(value)) return "0";
+  if (Number.isInteger(value)) return value.toFixed(0);
+  return value.toFixed(2).replace(/\.?0+$/u, "");
+}
+
+function beamDofLabel(dof: BeamSupportDof): string {
+  return dof === "rz" ? "θz" : "v";
+}
+
+function beamSpringSummary(spring: BeamSupportSpring): string {
+  if (spring.dof === "rz") return `${beamDofLabel(spring.dof)} 弹簧 ${compactSupportNumber(spring.stiffnessKnMPerRad)} kN·m/rad`;
+  return `${beamDofLabel(spring.dof)} 弹簧 ${compactSupportNumber(spring.stiffnessKnPerM)} kN/m`;
+}
+
+export function beamSupportStateDetail(support: Pick<BeamSupportConfig, "type" | "constraints" | "springs">): string {
+  const constraints = support.constraints ?? beamSupportConstraints(support.type);
+  const springs = support.springs ?? [];
+  const constrained = new Set<BeamSupportDof>(constraints);
+  const springDofs = new Set<BeamSupportDof>(springs.map((spring) => spring.dof));
+  const released = BEAM_SUPPORT_DOF_ROWS.map((row) => row.dof).filter((dof) => !constrained.has(dof) && !springDofs.has(dof));
+  const parts: string[] = [];
+
+  if (constraints.length) parts.push(`约束 ${constraints.map(beamDofLabel).join("、")}`);
+  parts.push(...springs.map(beamSpringSummary));
+  if (released.length) parts.push(`释放 ${released.map(beamDofLabel).join("、")}`);
+
+  return parts.length ? parts.join("，") : "释放 v、θz";
+}
+
+export function beamSupportSummary(support: Pick<BeamSupportConfig, "type" | "constraints" | "springs">): string {
+  return `${beamSupportLabel(support.type)} · ${beamSupportStateDetail(support)}`;
 }
 
 export function nodeSupportDetail(type: SupportType | undefined): string {

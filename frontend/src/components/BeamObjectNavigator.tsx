@@ -5,6 +5,7 @@ import { Button } from "./ui/button";
 import { ModelObjectGuide } from "./ModelObjectGuide";
 import { memberSectionSummary } from "../lib/member-property-vocabulary";
 import { modelObjectVocabulary } from "../lib/model-object-vocabulary";
+import { beamSupportSummary } from "../lib/support-vocabulary";
 
 export type BeamSelectedObject =
   | { type: "span"; id: string }
@@ -41,7 +42,7 @@ export function beamSpanChipSummary(span: BeamSpanConfig, materialLabel: string)
 }
 
 export function beamSupportChipLabel(support: BeamSupportConfig, index: number) {
-  return `${support.id} · 节点 ${beamNodeLabel(index)}`;
+  return `${support.id} · 节点 ${beamNodeLabel(index)} · ${beamSupportSummary(support)}`;
 }
 
 export function supportId(index: number) {

@@ -9,6 +9,8 @@ import {
   beamSupportConstraints,
   beamSupportDetail,
   beamSupportNote,
+  beamSupportStateDetail,
+  beamSupportSummary,
   nodeSupportDetail,
   nodeSupportNote,
   nodeSupportSummary,
@@ -43,10 +45,20 @@ test("支座选择项显示自由度含义", () => {
 });
 
 test("对象导航支座概览同时显示支座类型和自由度约束", () => {
+  assert.equal(beamSupportSummary({ type: "pinned" }), "铰支座 · 约束 v，释放 θz");
+  assert.equal(beamSupportSummary({ type: "fixed" }), "固结支座 · 约束 v、θz");
   assert.equal(nodeSupportSummary("fixed"), "固结支座 · 约束 ux、uy、rz");
   assert.equal(nodeSupportSummary("roller"), "滚动支座 · 默认约束 uy、释放 ux 与 rz；设置支座角度时约束法向位移");
   assert.equal(trussSupportSummary("pinned"), "铰支座 · 约束 ux、uy");
   assert.equal(trussSupportSummary("roller"), "滚动支座 · 约束 uy，释放 ux");
+});
+
+test("梁系支座概览优先显示实际自由度和弹簧状态", () => {
+  assert.equal(beamSupportStateDetail({ type: "free", springs: [{ dof: "v", stiffnessKnPerM: 50000 }] }), "v 弹簧 50000 kN/m，释放 θz");
+  assert.equal(
+    beamSupportStateDetail({ type: "fixed", constraints: ["v"], springs: [{ dof: "rz", stiffnessKnMPerRad: 12500.5 }] }),
+    "约束 v，θz 弹簧 12500.5 kN·m/rad",
+  );
 });
 
 test("支座单项工程提示来自共享目录", () => {
