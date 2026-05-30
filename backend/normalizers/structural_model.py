@@ -160,6 +160,8 @@ def member_label(index: int) -> str:
 
 def parse_support_type(value: Any, labels: Mapping[str, str], default: str = "free") -> str:
     key = str(value or default).strip().lower()
+    if key == "fixed" and "fixed" not in labels and "pinned" in labels:
+        return "pinned"
     return key if key in labels else default
 
 

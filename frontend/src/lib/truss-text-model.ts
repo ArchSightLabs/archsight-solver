@@ -17,6 +17,7 @@ const toNumber = parseTextModelNumber;
 
 function supportType(value: string | undefined): TrussNode["supportType"] {
   const normalized = String(value ?? "free").toLowerCase();
+  if (["fixed", "fix", "固结", "固结支座", "固定", "固定支座"].includes(normalized)) return "pinned";
   if (["pinned", "pin", "铰接", "铰支", "铰支座"].includes(normalized)) return "pinned";
   if (["roller", "roll", "滚动", "滚动支座", "滑动"].includes(normalized)) return "roller";
   return "free";

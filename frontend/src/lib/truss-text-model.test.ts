@@ -35,6 +35,17 @@ LOAD,N2,0,-10
   assert.equal(load?.type === "nodal" ? load.node : "", "N2");
 });
 
+test("parseTrussTextModel maps legacy fixed support to pinned", () => {
+  const result = parseTrussTextModel(`
+NODE,N1,0,0,fixed
+NODE,N2,4,0,roller
+MEMBER,M1,N1,N2,210,24,generic
+`);
+
+  assert.ok(result.collections);
+  assert.equal(result.collections?.nodes[0]?.supportType, "pinned");
+});
+
 test("parseTrussTextModel reports ignored invalid references for preview blocking", () => {
   const result = parseTrussTextModel(`
 NODE,N1,0,0,pinned

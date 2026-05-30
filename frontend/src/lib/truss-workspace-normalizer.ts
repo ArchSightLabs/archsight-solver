@@ -17,7 +17,7 @@ function normalizeSupportType(value: unknown, fallback: SupportType = "free"): S
 function normalizeTrussSupportType(value: unknown, fallback: SupportType = "free"): SupportType {
   const normalized = normalizeSupportType(value, fallback);
   if (normalized === "fixed") {
-    return "free";
+    return "pinned";
   }
   return normalized;
 }
