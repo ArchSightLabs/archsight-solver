@@ -84,3 +84,22 @@ export function reportFigureModeHintForMode(mode: AnalysisMode): string {
   }
   return "平面桁架计算书仅导出与结果页同源的模型叠加工程图。";
 }
+
+export function reportFigureScopeHintForMode(mode: AnalysisMode, scope: ReportFigureScope): string {
+  if (scope === "none") {
+    return "不插入结构预览图和结果工程图，仅导出输入、结果表格与校核摘要。";
+  }
+  if (mode === "beam") {
+    return scope === "control"
+      ? "插入结构预览图和控制弯矩图；如需剪力、挠度图，选择“全部结果图”。"
+      : "插入结构预览图，并按图形模式导出弯矩、剪力、挠度图。";
+  }
+  if (mode === "frame") {
+    return scope === "control"
+      ? "插入结构预览图和控制构件弯矩图；如需剪力、轴力和局部 y 向挠度图，选择“全部结果图”。"
+      : "插入结果页工程图廊中的构件弯矩、剪力、局部 y 向挠度和轴力模型叠加图。";
+  }
+  return scope === "control"
+    ? "插入结构预览图和控制杆件轴力图；如需节点位移图，选择“全部结果图”。"
+    : "插入结果页工程图廊中的杆件轴力和节点位移模型叠加图。";
+}

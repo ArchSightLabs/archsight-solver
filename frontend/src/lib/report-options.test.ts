@@ -12,6 +12,7 @@ import {
   reportFigureModeHintForMode,
   reportFigureModeOptionsForMode,
   reportFigureModeValueForMode,
+  reportFigureScopeHintForMode,
 } from "./report-options.ts";
 
 test("计算书导出选项读取 shared 契约默认值", () => {
@@ -65,4 +66,20 @@ test("计算书图形模式文案按结构体系避免误导传统曲线", () =>
   assert.match(reportFigureModeHintForMode("beam"), /传统单项曲线/u);
   assert.match(reportFigureModeHintForMode("frame"), /模型叠加工程图/u);
   assert.match(reportFigureModeHintForMode("truss"), /模型叠加工程图/u);
+});
+
+test("计算书插图范围提示说明实际导出的工程图口径", () => {
+  assert.match(reportFigureScopeHintForMode("beam", "control"), /控制弯矩图/u);
+  assert.match(reportFigureScopeHintForMode("beam", "all"), /弯矩、剪力、挠度图/u);
+
+  assert.match(reportFigureScopeHintForMode("frame", "control"), /控制构件弯矩图/u);
+  assert.match(reportFigureScopeHintForMode("frame", "control"), /剪力、轴力和局部 y 向挠度图/u);
+  assert.match(reportFigureScopeHintForMode("frame", "all"), /结果页工程图廊/u);
+  assert.match(reportFigureScopeHintForMode("frame", "all"), /构件弯矩、剪力、局部 y 向挠度和轴力/u);
+
+  assert.match(reportFigureScopeHintForMode("truss", "control"), /控制杆件轴力图/u);
+  assert.match(reportFigureScopeHintForMode("truss", "control"), /节点位移图/u);
+  assert.match(reportFigureScopeHintForMode("truss", "all"), /杆件轴力和节点位移/u);
+
+  assert.match(reportFigureScopeHintForMode("frame", "none"), /不插入结构预览图和结果工程图/u);
 });
