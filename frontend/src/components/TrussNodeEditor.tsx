@@ -36,7 +36,7 @@ export function TrussNodeEditor({
       className={
         isSelectedVariant
           ? "space-y-3 rounded-xl border border-white/8 bg-slate-950/20 p-3"
-          : "grid grid-cols-1 gap-3 rounded-2xl border border-white/8 bg-slate-950/20 p-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1fr)_auto]"
+          : "grid grid-cols-1 gap-3 rounded-2xl border border-white/8 bg-slate-950/20 p-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1.45fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_auto]"
       }
     >
       {isSelectedVariant ? (
@@ -68,7 +68,7 @@ export function TrussNodeEditor({
           onSupportTypeChange={(supportType) => onUpdate({ supportType })}
           fieldLabelClass={fieldLabelClass}
           showHint={isSelectedVariant}
-          className={isSelectedVariant ? undefined : "sm:col-span-2 xl:col-span-2"}
+          className={isSelectedVariant ? undefined : "sm:col-span-2 xl:col-span-1"}
           ariaLabel={`${labelPrefix}支座约束`}
         />
         <div className="space-y-1">
