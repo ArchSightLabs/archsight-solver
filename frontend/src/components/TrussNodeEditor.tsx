@@ -1,6 +1,7 @@
 import { Trash2 } from "lucide-react";
 
 import { Button } from "./ui/button";
+import { DeferredIdInput } from "./ui/DeferredIdInput";
 import { Input } from "./ui/input";
 import { NodeSupportField } from "./NodeSupportField";
 import { nodeCoordinateAriaLabel, nodeCoordinateLabel } from "../lib/node-field-vocabulary.ts";
@@ -53,7 +54,13 @@ export function TrussNodeEditor({
       <div className={isSelectedVariant ? "grid grid-cols-2 gap-3" : "contents"}>
         <div className="space-y-1">
           <div className={fieldLabelClass}>节点编号</div>
-          <Input aria-label={`${labelPrefix}编号`} value={node.id} onChange={(event) => onUpdate({ id: event.target.value })} className="h-10 min-w-0 font-mono text-xs" />
+          <DeferredIdInput
+            key={`${variant}-truss-node-id-${node.id}`}
+            ariaLabel={`${labelPrefix}编号`}
+            value={node.id}
+            onCommit={(nextId) => onUpdate({ id: nextId })}
+            className="h-10 min-w-0 font-mono text-xs"
+          />
         </div>
         <NodeSupportField
           mode="truss"

@@ -1,6 +1,7 @@
 import { Trash2 } from "lucide-react";
 
 import { Button } from "./ui/button";
+import { DeferredIdInput } from "./ui/DeferredIdInput";
 import { DropdownSelect } from "./ui/DropdownSelect";
 import { Input } from "./ui/input";
 import { MemberMaterialPresetField } from "./MemberMaterialPresetField";
@@ -47,7 +48,12 @@ export function TrussMemberEditor({
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
           <div className="space-y-1">
             <div className={fieldLabelClass}>杆件编号</div>
-            <Input aria-label={`第 ${memberIndex + 1} 个杆件编号`} value={member.id} onChange={(event) => onUpdate({ id: event.target.value })} className="h-10 min-w-0 font-mono text-xs" />
+            <DeferredIdInput
+              ariaLabel={`第 ${memberIndex + 1} 个杆件编号`}
+              value={member.id}
+              onCommit={(nextId) => onUpdate({ id: nextId })}
+              className="h-10 min-w-0 font-mono text-xs"
+            />
           </div>
           <div className="space-y-1">
             <div className={fieldLabelClass}>起点节点</div>
@@ -70,7 +76,13 @@ export function TrussMemberEditor({
           <>
             <div className="space-y-1">
               <div className={fieldLabelClass}>杆件编号</div>
-              <Input aria-label="杆件编号" value={member.id} onChange={(event) => onUpdate({ id: event.target.value })} className="h-10 min-w-0 font-mono text-xs" />
+              <DeferredIdInput
+                key={`selected-truss-member-id-${member.id}`}
+                ariaLabel="杆件编号"
+                value={member.id}
+                onCommit={(nextId) => onUpdate({ id: nextId })}
+                className="h-10 min-w-0 font-mono text-xs"
+              />
             </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>杆件类型</div>
