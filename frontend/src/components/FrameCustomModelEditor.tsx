@@ -24,6 +24,7 @@ import { useFrameTextModel } from "../hooks/useFrameTextModel.ts";
 import { FRAME_MODEL_TEMPLATES, cloneFrameModelTemplate } from "../lib/workbench-model-templates.ts";
 import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
 import { memberElasticityDistributionLabel, youngModulusForMaterial } from "../lib/material-presets.ts";
+import { resolveNodePairAfterEndChange, resolveNodePairAfterStartChange, resolveNodePairConnection } from "../lib/node-pair-connection.ts";
 import { frameSupportStabilityWarning } from "../solver-payload.ts";
 import { PREDEFINED_MATERIALS } from "../types/material.ts";
 import type {
@@ -81,19 +82,19 @@ export function FrameCustomModelEditor({
     [value.nodes]
   );
   const nodeIds = useMemo(() => value.nodes.map((node) => node.id), [value.nodes]);
-  const resolvedMemberConnectionStartId = nodeIds.includes(memberConnectionStartId) ? memberConnectionStartId : nodeIds[0] ?? "";
-  const resolvedMemberConnectionEndId =
-    nodeIds.includes(memberConnectionEndId) && memberConnectionEndId !== resolvedMemberConnectionStartId
-      ? memberConnectionEndId
-      : nodeIds.find((id) => id !== resolvedMemberConnectionStartId) ?? "";
-  const memberConnectionDisabledReason =
-    value.nodes.length < 2
-      ? "至少需要 2 个节点"
-      : resolvedMemberConnectionStartId === resolvedMemberConnectionEndId
-        ? "起点和终点不能相同"
-        : frameMemberExists(value.members, resolvedMemberConnectionStartId, resolvedMemberConnectionEndId)
-          ? "两节点间已有构件"
-          : undefined;
+  const memberConnection = useMemo(
+    () => resolveNodePairConnection({
+      nodeIds,
+      startNodeId: memberConnectionStartId,
+      endNodeId: memberConnectionEndId,
+      duplicateExists: (startNodeId, endNodeId) => frameMemberExists(value.members, startNodeId, endNodeId),
+      duplicateReason: "两节点间已有构件",
+    }),
+    [memberConnectionEndId, memberConnectionStartId, nodeIds, value.members],
+  );
+  const resolvedMemberConnectionStartId = memberConnection.startNodeId;
+  const resolvedMemberConnectionEndId = memberConnection.endNodeId;
+  const memberConnectionDisabledReason = memberConnection.disabledReason;
   const memberOptions = useMemo(
     () => value.members.map((member) => ({ value: member.id, label: member.id })),
     [value.members]
@@ -151,17 +152,23 @@ export function FrameCustomModelEditor({
   };
 
   const updateMemberConnectionStart = (nextId: string) => {
-    setMemberConnectionStartId(nextId);
-    if (nextId === resolvedMemberConnectionEndId) {
-      setMemberConnectionEndId(nodeIds.find((id) => id !== nextId) ?? "");
-    }
+    const next = resolveNodePairAfterStartChange({
+      nodeIds,
+      nextStartNodeId: nextId,
+      currentEndNodeId: resolvedMemberConnectionEndId,
+    });
+    setMemberConnectionStartId(next.startNodeId);
+    setMemberConnectionEndId(next.endNodeId);
   };
 
   const updateMemberConnectionEnd = (nextId: string) => {
-    setMemberConnectionEndId(nextId);
-    if (nextId === resolvedMemberConnectionStartId) {
-      setMemberConnectionStartId(nodeIds.find((id) => id !== nextId) ?? "");
-    }
+    const next = resolveNodePairAfterEndChange({
+      nodeIds,
+      currentStartNodeId: resolvedMemberConnectionStartId,
+      nextEndNodeId: nextId,
+    });
+    setMemberConnectionStartId(next.startNodeId);
+    setMemberConnectionEndId(next.endNodeId);
   };
 
   const keep = (patch: Partial<FrameCollections> = {}): FrameCollections => ({
