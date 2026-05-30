@@ -269,3 +269,27 @@ def test_truss_load_cases_combinations_and_envelope(client):
     assert data["envelope"]["maxNodeDisplacementMm"] > 0.0
     assert data["envelope"]["maxAxialForceKn"] > 0.0
     assert data["envelope"]["maxReactionKn"] > 0.0
+
+
+def test_truss_exports_describe_support_nodes_and_constraints(client):
+    payload = _base_payload()
+
+    xlsx_response = client.post("/api/export", json={**payload, "format": "xlsx"})
+    assert xlsx_response.status_code == 200
+    with pd.ExcelFile(io.BytesIO(xlsx_response.data)) as xls:
+        model_text = pd.read_excel(xls, sheet_name="02_输入模型", header=None).to_string()
+
+    assert "支座节点" in model_text
+    assert "N1：铰支座（约束 ux、uy）" in model_text
+    assert "N2：滚动支座（约束 uy）" in model_text
+    assert "平面桁架节点仅含 ux、uy 平动自由度" in model_text
+    assert "弯矩主指标" in model_text
+
+    docx_response = client.post("/api/export", json={**payload, "format": "docx"})
+    assert docx_response.status_code == 200
+    doc = Document(io.BytesIO(docx_response.data))
+    table_text = "\n".join(cell.text for table in doc.tables for row in table.rows for cell in row.cells)
+
+    assert "N1：铰支座（约束 ux、uy）" in table_text
+    assert "N2：滚动支座（约束 uy）" in table_text
+    assert "平面桁架节点仅含 ux、uy 平动自由度" in table_text

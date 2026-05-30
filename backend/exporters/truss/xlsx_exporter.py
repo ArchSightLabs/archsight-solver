@@ -7,6 +7,7 @@ import pandas as pd
 
 from backend.common.material_catalog import material_report_rows
 from backend.common.result_metric_catalog import result_metric_label
+from backend.common.support_catalog import support_constraint_dofs, support_label, support_system_note
 from backend.exporters.common.artifact import ExportArtifact
 from backend.exporters.common.evidence import build_evidence_tables
 from backend.exporters.common.filenames import export_filename
@@ -43,6 +44,8 @@ def build_summary_tables(solution: Dict[str, Any], material_name: str):
             *material_report_rows(solution.get("materialId")),
             ["节点数量", len(structure.get("nodes", []))],
             ["杆件数量", len(structure.get("members", []))],
+            ["支座节点", _truss_support_summary(structure.get("nodes", []))],
+            ["支座说明", support_system_note("truss")],
             ["约束自由度", sum(len(node_support_dofs(node["supportType"])) for node in structure.get("nodes", []))],
             ["允许位移 (mm)", round(solution["summary"]["allowableMm"], 3)],
         ],
@@ -93,6 +96,18 @@ def build_summary_tables(solution: Dict[str, Any], material_name: str):
     )
 
     return df_summary, df_params, df_nodes, df_members, df_conventions
+
+
+def _truss_support_summary(nodes: list[Dict[str, Any]]) -> str:
+    rows: list[str] = []
+    for node in nodes:
+        support_type = str(node.get("supportType", "free")).strip().lower()
+        if support_type == "free":
+            continue
+        constraints = support_constraint_dofs("truss", support_type)
+        constraint_text = f"（约束 {'、'.join(constraints)}）" if constraints else ""
+        rows.append(f"{node.get('id', '—')}：{support_label('truss', support_type)}{constraint_text}")
+    return "；".join(rows) if rows else "无支座节点"
 
 
 def export_xlsx(solution: Dict[str, Any], material_name: str):
