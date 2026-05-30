@@ -76,6 +76,15 @@ def add_heading(doc, text: str) -> None:
         run.font.color.rgb = THEME_RGB
 
 
+def add_report_note(doc, text: str) -> None:
+    paragraph = doc.add_paragraph()
+    run = paragraph.add_run(text)
+    run.italic = True
+    run.font.size = Pt(9)
+    if THEME_RGB is not None:
+        run.font.color.rgb = THEME_RGB
+
+
 def style_table_header_row(table) -> None:
     if not table.rows:
         return

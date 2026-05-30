@@ -261,6 +261,7 @@ def test_frame_docx_export_smoke(client):
     assert "3.2 节点竖向位移图" not in full_text
     assert "4.1 构件弯矩图（模型叠加）" not in full_text
     assert "计算简图与结果同图显示" not in full_text
+    assert "未收到前端同源模型叠加工程图（构件弯矩图）" in full_text
     assert "4.2 构件剪力" not in full_text
     assert "构件弯矩曲线" not in full_text
     assert "5. 校核结论" in full_text
@@ -296,6 +297,7 @@ def test_frame_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
     assert "4.3 构件局部 y 向挠度图（模型叠加）" in full_text
     assert "4.4 构件轴力图（模型叠加）" in full_text
     assert "图 4-4 构件轴力图（kN，模型叠加工程图）" in full_text
+    assert "未收到前端同源模型叠加工程图" not in full_text
 
 
 def test_frame_exports_include_load_combination_tags(client):

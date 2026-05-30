@@ -8,7 +8,7 @@ import pandas as pd
 
 from backend.common.result_metric_catalog import result_metric_label
 from backend.exporters.common.artifact import ExportArtifact
-from backend.exporters.common.docx_utils import HAS_DOCX, add_df_table, add_heading, add_png_figure, add_report_title, create_document, png_from_report_images
+from backend.exporters.common.docx_utils import HAS_DOCX, add_df_table, add_heading, add_png_figure, add_report_note, add_report_title, create_document, png_from_report_images
 from backend.exporters.common.evidence import build_evidence_tables
 from backend.exporters.common.load_tables import build_load_combination_rows
 from backend.exporters.common.report_figure_catalog import TRUSS_REPORT_OVERLAY_FIGURES, report_figures_for_scope
@@ -132,10 +132,12 @@ def _add_member_figures(doc, solution: Dict[str, Any], report_images: Optional[D
         return
     index = 1
     include_all = include_all_result_figures(options)
+    missing_labels: list[str] = []
     if include_overlay_figures(options) or include_traditional_figures(options):
         for figure in report_figures_for_scope(TRUSS_REPORT_OVERLAY_FIGURES, include_all):
             image = png_from_report_images(report_images, figure.image_key)
             if not image:
+                missing_labels.append(figure.title)
                 continue
             add_heading(doc, f"4.{index} {figure.title}")
             add_png_figure(
@@ -144,6 +146,11 @@ def _add_member_figures(doc, solution: Dict[str, Any], report_images: Optional[D
                 f"图 4-{index} {figure.title}（{figure.unit}，模型叠加工程图）",
             )
             index += 1
+    if missing_labels:
+        add_report_note(
+            doc,
+            f"说明：未收到前端同源模型叠加工程图（{'、'.join(missing_labels)}），已跳过对应插图；请从工作台导出 DOCX 以生成与结果页一致的工程图。",
+        )
 
 
 def _report_or_fallback(report_images: Optional[Dict[str, str]], key: str, fallback: bytes) -> bytes:

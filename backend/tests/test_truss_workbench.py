@@ -131,6 +131,7 @@ def test_truss_docx_export_smoke(client):
     assert "3.2 节点竖向位移图" not in full_text
     assert "4.1 杆件轴力图" not in full_text
     assert "计算简图与结果同图显示" not in full_text
+    assert "未收到前端同源模型叠加工程图（杆件轴力图）" in full_text
     assert "杆件轴力曲线" not in full_text
     assert "5. 校核结论" in full_text
     assert "7. 附录数据" in full_text
@@ -161,6 +162,7 @@ def test_truss_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
     assert "图 4-1 杆件轴力图（kN，模型叠加工程图）" in full_text
     assert "4.2 节点位移图" in full_text
     assert "图 4-2 节点位移图（mm，模型叠加工程图）" in full_text
+    assert "未收到前端同源模型叠加工程图" not in full_text
 
 
 @pytest.mark.parametrize(
