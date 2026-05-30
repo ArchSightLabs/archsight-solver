@@ -261,13 +261,14 @@ export function TrussSketch({ workspace, selection, onSelect }: { workspace: Wor
           const point = nodeMap.get(load.node);
           if (!point) return [];
           const items = [];
+          const selectedStroke = selection?.mode === "truss" && selection.type === "load" && selection.id === `load-${index}` ? "3.2" : "1.9";
           if (load.fxKn) {
             const sign = load.fxKn >= 0 ? 1 : -1;
             const x1 = point.x - sign * 48;
             const x2 = point.x - sign * 10;
             items.push(
-              <g key={`${index}-fx`} {...svgInteractiveProps(`选择桁架荷载 ${index + 1}`, () => onSelect?.({ mode: "truss", type: "load", id: `load-${index}` }))}>
-                <path d={`M${x1} ${point.y} L${x2} ${point.y}`} markerEnd="url(#trussArrow)" strokeWidth={selection?.mode === "truss" && selection.type === "load" && selection.id === `load-${index}` ? "3.2" : "1.9"} />
+              <g key={`${index}-fx`}>
+                <path d={`M${x1} ${point.y} L${x2} ${point.y}`} markerEnd="url(#trussArrow)" strokeWidth={selectedStroke} />
                 <text
                   x={x1}
                   y={point.y - 13}
@@ -290,8 +291,8 @@ export function TrussSketch({ workspace, selection, onSelect }: { workspace: Wor
             const y1 = point.y - sign * 54;
             const y2 = point.y - sign * 12;
             items.push(
-              <g key={`${index}-fy`} {...svgInteractiveProps(`选择桁架荷载 ${index + 1}`, () => onSelect?.({ mode: "truss", type: "load", id: `load-${index}` }))}>
-                <path d={`M${point.x} ${y1} L${point.x} ${y2}`} markerEnd="url(#trussArrow)" strokeWidth={selection?.mode === "truss" && selection.type === "load" && selection.id === `load-${index}` ? "3.2" : "1.9"} />
+              <g key={`${index}-fy`}>
+                <path d={`M${point.x} ${y1} L${point.x} ${y2}`} markerEnd="url(#trussArrow)" strokeWidth={selectedStroke} />
                 <text
                   x={point.x}
                   y={y1 + (sign > 0 ? -12 : 20)}
@@ -309,7 +310,13 @@ export function TrussSketch({ workspace, selection, onSelect }: { workspace: Wor
               </g>
             );
           }
-          return items;
+          return items.length
+            ? [
+                <g key={`${index}-nodal-load`} {...svgInteractiveProps(`选择桁架荷载 ${index + 1}`, () => onSelect?.({ mode: "truss", type: "load", id: `load-${index}` }))}>
+                  {items}
+                </g>,
+              ]
+            : [];
         })}
       </g>
       <defs>
@@ -320,4 +327,3 @@ export function TrussSketch({ workspace, selection, onSelect }: { workspace: Wor
     </svg>
   );
 }
-
