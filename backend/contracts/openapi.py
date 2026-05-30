@@ -387,7 +387,7 @@ def _export_payload_schema() -> Dict[str, Any]:
             },
             "reportImages": {
                 "type": "object",
-                "description": "可选计算书图片资源，例如结构预览、变形图、内力图。",
+                "description": "可选计算书图片资源，例如结构预览、变形图、内力图。平面框架和平面桁架 DOCX 仅使用前端同源结构预览和模型叠加工程图；缺失时跳过对应插图，不插入后端简化兜底图。",
                 "additionalProperties": True,
             },
             "reportOptions": {

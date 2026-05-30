@@ -252,8 +252,9 @@ def test_frame_docx_export_smoke(client):
     assert "1. 项目概况" in full_text
     assert "2. 输入参数" in full_text
     assert "2.1 结构预览图" in full_text
-    assert "图 2-1 结构预览与变形示意（后端兜底示意，仅显示构件、支座、荷载与放大变形线）" in full_text
-    assert "后端兜底图不绘制节点编号、构件编号和尺寸标注" in full_text
+    assert "后端兜底示意" not in full_text
+    assert "已跳过结构预览插图" in full_text
+    assert "带节点编号、构件编号、尺寸与荷载标注" in full_text
     assert "2.2 可审查计算证据链" in full_text
     assert "模型假定与适用范围" in full_text
     assert "边界条件表" in full_text
@@ -267,7 +268,7 @@ def test_frame_docx_export_smoke(client):
     assert "构件弯矩曲线" not in full_text
     assert "5. 校核结论" in full_text
     assert "7. 附录数据" in full_text
-    assert len(doc.inline_shapes) >= 1
+    assert len(doc.inline_shapes) == 0
 
 
 def test_frame_docx_export_uses_ui_overlay_figures_for_complete_scope(client):

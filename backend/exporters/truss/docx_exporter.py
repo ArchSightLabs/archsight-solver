@@ -15,7 +15,6 @@ from backend.exporters.common.report_figure_catalog import TRUSS_REPORT_OVERLAY_
 from backend.exporters.common.report_options import include_all_result_figures, include_figures, include_overlay_figures, include_traditional_figures, normalize_report_options
 from backend.exporters.common.report_figures import (
     sensitivity_chart_png,
-    structure_preview_png,
 )
 from backend.exporters.truss.xlsx_exporter import build_summary_tables
 
@@ -40,19 +39,9 @@ def export_docx(
     add_df_table(doc, df_summary)
     add_heading(doc, "2. 输入参数")
     add_df_table(doc, df_params)
-    preview = solution.get("truss", solution.get("preview", {}))
     if include_figures(options):
         add_heading(doc, "2.1 结构预览图")
-        _add_preview_figure(
-            doc,
-            report_images,
-            structure_preview_png(
-                solution["structure"].get("nodes", []),
-                solution["structure"].get("members", []),
-                preview.get("deformedNodes", []),
-                solution["structure"].get("loads", []),
-            ),
-        )
+        _add_preview_figure(doc, report_images)
     add_heading(doc, "2.2 可审查计算证据链")
     _add_evidence_tables(doc, build_evidence_tables(solution, "truss", material_name))
     _add_load_combination_table(doc, solution, "2.3 荷载组合标签")
@@ -148,7 +137,7 @@ def _add_member_figures(doc, solution: Dict[str, Any], report_images: Optional[D
         )
 
 
-def _add_preview_figure(doc, report_images: Optional[Dict[str, str]], fallback: bytes) -> None:
+def _add_preview_figure(doc, report_images: Optional[Dict[str, str]]) -> None:
     image = png_from_report_images(report_images, "truss.preview")
     if image:
         add_png_figure(
@@ -158,14 +147,9 @@ def _add_preview_figure(doc, report_images: Optional[Dict[str, str]], fallback: 
         )
         return
 
-    add_png_figure(
-        doc,
-        fallback,
-        "图 2-1 桁架结构预览与节点变形示意（后端兜底示意，仅显示杆件、支座、荷载与放大变形线）",
-    )
     add_report_note(
         doc,
-        "说明：未收到前端同源结构预览图，后端兜底图不绘制节点编号、杆件编号和尺寸标注；请从工作台导出 DOCX 以生成与结果页一致的预览图。",
+        "说明：未收到前端同源结构预览图，已跳过结构预览插图；请从工作台导出 DOCX 以生成带节点编号、杆件编号、尺寸与荷载标注的预览图。",
     )
 
 
