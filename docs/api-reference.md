@@ -117,7 +117,7 @@ Content-Type: application/json
     "template": "explicit",
     "nodes": [
       {"id": "N1", "x": 0, "y": 0, "supportType": "fixed"},
-      {"id": "N2", "x": 6, "y": 0, "supportType": "fixed"},
+      {"id": "N2", "x": 6, "y": 0, "supportType": "roller", "supportAngleDeg": 90},
       {"id": "N3", "x": 0, "y": 4, "supportType": "free"},
       {"id": "N4", "x": 6, "y": 4, "supportType": "free"}
     ],
@@ -133,6 +133,8 @@ Content-Type: application/json
   }
 }
 ```
+
+节点字段说明：`supportAngleDeg` 为平面框架滚动支座法向角，单位 °；仅当 `supportType` 为 `roller` 时参与约束方向计算，`90` 表示竖向法向约束。
 
 关键输出：
 

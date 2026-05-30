@@ -29,6 +29,7 @@ def test_schema_registry_contains_api_and_tool_contracts():
     assert "benchmark-submission-input" in registry
     assert "benchmark-submission-response" in registry
     assert registry["asms-frame-model"]["properties"]["structure"]["required"] == ["nodes", "members"]
+    assert "滚动支座法向角" in registry["asms-frame-model"]["properties"]["structure"]["properties"]["nodes"]["items"]["properties"]["supportAngleDeg"]["description"]
     assert registry["asms-truss-model"]["properties"]["structure"]["properties"]["loads"]["items"]["required"] == ["type", "node"]
     assert registry["asms-beam-model"]["properties"]["loadType"]["enum"] == [
         "none",

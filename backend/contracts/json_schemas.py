@@ -55,6 +55,10 @@ NODE_SCHEMA: Dict[str, Any] = {
             "enum": ["free", "pinned", "roller", "fixed"],
             "default": "free",
         },
+        "supportAngleDeg": {
+            "type": "number",
+            "description": "滚动支座法向角，单位度；仅对平面框架 roller 支座生效，90 表示竖向法向约束。",
+        },
         "springs": {
             "type": "array",
             "items": {

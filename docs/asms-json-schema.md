@@ -141,6 +141,7 @@ Schema：`asms-frame-model`
 - `id`：节点唯一编号。
 - `x` / `y`：平面坐标，单位 m。
 - `supportType`：`free`、`pinned`、`roller`、`fixed`。
+- `supportAngleDeg`：滚动支座法向角，单位 °；仅对平面框架 `roller` 支座生效，`90` 表示竖向法向约束。
 - `springs`：节点弹簧，可表达柱脚转动弹簧等边界。
 
 构件：
