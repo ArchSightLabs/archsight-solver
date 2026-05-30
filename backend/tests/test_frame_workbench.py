@@ -245,6 +245,7 @@ def test_frame_docx_export_smoke(client):
     assert "1. 项目概况" in full_text
     assert "2. 输入参数" in full_text
     assert "2.1 结构预览图" in full_text
+    assert "图 2-1 结构预览与变形示意（节点、构件编号、尺寸与荷载标注同图显示；蓝色为放大后的变形线）" in full_text
     assert "2.2 可审查计算证据链" in full_text
     assert "模型假定与适用范围" in full_text
     assert "边界条件表" in full_text
@@ -280,6 +281,7 @@ def test_frame_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
     assert "4.2 构件剪力叠加图" in full_text
     assert "4.3 构件局部 y 向挠度叠加图" in full_text
     assert "4.4 构件轴力叠加图" in full_text
+    assert "图 4-4 构件轴力图（kN，计算简图与结果同图显示）" in full_text
 
 
 def test_frame_exports_include_load_combination_tags(client):

@@ -291,6 +291,7 @@ export async function renderFramePreview(results: FrameCalculationResults) {
   if (!preview) return "";
   return renderStructurePreview({
     systemLabel: "平面框架",
+    memberTerm: "构件",
     nodes: preview.nodes.map((node) => ({ id: node.id, x: node.x, y: node.y, supportType: node.supportType })),
     members: preview.members,
     deformedNodes: preview.deformedNodes.map((node) => ({ id: node.nodeId, x: node.x, y: node.y })),
@@ -305,6 +306,7 @@ export async function renderTrussPreview(results: TrussCalculationResults) {
   if (!preview) return "";
   return renderStructurePreview({
     systemLabel: "平面桁架",
+    memberTerm: "杆件",
     nodes: preview.nodes.map((node) => ({ id: node.id, x: node.x, y: node.y, supportType: node.role === "support" ? "pinned" : "free" })),
     members: preview.members,
     deformedNodes: preview.deformedNodes.map((node) => ({ id: node.id, x: node.x, y: node.y })),
@@ -518,6 +520,7 @@ export async function renderTrussOverlay(results: TrussCalculationResults, metri
 async function renderStructurePreview(
   {
     systemLabel,
+    memberTerm,
     nodes,
     members,
     deformedNodes,
@@ -526,6 +529,7 @@ async function renderStructurePreview(
     renderLoads,
   }: {
     systemLabel: string;
+    memberTerm: string;
     nodes: ReportNode[];
     members: ReportMember[];
     deformedNodes: Array<{ id: string; x: number; y: number }>;
@@ -540,7 +544,7 @@ async function renderStructurePreview(
   const deformedById = new Map(deformedNodes.map((node) => [node.id, node]));
   const graphics: ReportGraphic[] = [];
   addImageBackground(graphics);
-  addReportHeader(graphics, `${systemLabel}结构预览与变形示意`, "蓝色为放大后的变形线；节点、构件/杆件编号与尺寸标注同图显示");
+  addReportHeader(graphics, `${systemLabel}结构预览与变形示意`, `蓝色为放大后的变形线；节点、${memberTerm}编号、尺寸与荷载标注同图显示`);
   addDimensionLegend(graphics, dimensionRows);
   for (const member of members) {
     const start = byId.get(member.start);

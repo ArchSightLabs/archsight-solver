@@ -59,7 +59,7 @@ def export_docx(
                     solution["structure"].get("loads", []),
                 ),
             ),
-            "图 2-1 结构预览与变形示意（蓝色为放大后的变形线）",
+            "图 2-1 结构预览与变形示意（节点、构件编号、尺寸与荷载标注同图显示；蓝色为放大后的变形线）",
         )
     add_heading(doc, "2.2 可审查计算证据链")
     _add_evidence_tables(doc, build_evidence_tables(solution, "frame", material_name))

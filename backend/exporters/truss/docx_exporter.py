@@ -59,7 +59,7 @@ def export_docx(
                     solution["structure"].get("loads", []),
                 ),
             ),
-            "图 2-1 桁架结构预览与节点变形示意（蓝色为放大后的变形线）",
+            "图 2-1 桁架结构预览与节点变形示意（节点、杆件编号、尺寸与荷载标注同图显示；蓝色为放大后的变形线）",
         )
     add_heading(doc, "2.2 可审查计算证据链")
     _add_evidence_tables(doc, build_evidence_tables(solution, "truss", material_name))
@@ -144,7 +144,7 @@ def _add_member_figures(doc, solution: Dict[str, Any], report_images: Optional[D
             add_png_figure(
                 doc,
                 _report_or_fallback(report_images, figure.image_key, line_chart_png(fallback_x, [ChartSeries(figure.series_label, fallback_values, _truss_figure_color(figure.metric))])),
-                f"图 4-{index} {figure.title}（计算简图与结果同图显示）",
+                f"图 4-{index} {figure.title}（{figure.unit}，计算简图与结果同图显示）",
             )
             index += 1
 
