@@ -1,5 +1,5 @@
 import { DropdownSelect } from "./ui/DropdownSelect";
-import { FRAME_SUPPORT_OPTIONS, TRUSS_SUPPORT_OPTIONS, nodeSupportDetail, nodeSupportNote, supportSystemHint, trussSupportDetail, trussSupportNote } from "../lib/support-vocabulary.ts";
+import { FRAME_SUPPORT_OPTIONS, TRUSS_SUPPORT_OPTIONS, nodeSupportDetail, nodeSupportNote, supportChoiceOptions, supportSystemHint, trussSupportDetail, trussSupportNote } from "../lib/support-vocabulary.ts";
 import { cn } from "@/lib/utils";
 import type { SupportType } from "../types/structure.ts";
 
@@ -27,6 +27,7 @@ export function NodeSupportField({
   showHint = false,
 }: NodeSupportFieldProps) {
   const options = mode === "truss" ? TRUSS_SUPPORT_OPTIONS : FRAME_SUPPORT_OPTIONS;
+  const choiceOptions = supportChoiceOptions(options);
   const value = mode === "truss" && supportType === "fixed" ? "pinned" : supportType ?? "free";
   const detail = mode === "truss" ? trussSupportDetail(value as SupportType) : nodeSupportDetail(value as SupportType);
   const note = mode === "truss" ? trussSupportNote(value as SupportType) : nodeSupportNote(value as SupportType);
@@ -37,7 +38,7 @@ export function NodeSupportField({
       <DropdownSelect
         value={value}
         onChange={(nextValue) => onSupportTypeChange(nextValue as SupportType)}
-        options={options}
+        options={choiceOptions}
         className="text-xs font-mono"
         menuClassName="text-xs font-mono"
         ariaLabel={ariaLabel}

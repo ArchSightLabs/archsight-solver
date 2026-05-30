@@ -3,12 +3,16 @@ import test from "node:test";
 import { nodeCoordinateAriaLabel, nodeCoordinateLabel, supportAngleLabel } from "./node-field-vocabulary.ts";
 import {
   BEAM_SUPPORT_DOF_ROWS,
+  FRAME_SUPPORT_OPTIONS,
   SUPPORT_DOF_MODE_OPTIONS,
+  TRUSS_SUPPORT_OPTIONS,
   beamSupportConstraints,
   beamSupportDetail,
   beamSupportNote,
   nodeSupportDetail,
   nodeSupportNote,
+  supportChoiceOptions,
+  supportOptionChoiceLabel,
   supportSystemHint,
   trussSupportDetail,
   trussSupportNote,
@@ -25,6 +29,15 @@ test("框架和桁架支座说明区分转角自由度", () => {
   assert.match(nodeSupportDetail("roller"), /支座角度/u);
   assert.match(trussSupportDetail("pinned"), /ux、uy/u);
   assert.match(supportSystemHint("truss"), /桁架支座不提供转动约束/u);
+});
+
+test("支座选择项显示自由度含义", () => {
+  const frameRoller = FRAME_SUPPORT_OPTIONS.find((option) => option.value === "roller");
+  assert.equal(frameRoller ? supportOptionChoiceLabel(frameRoller) : "", "滚动支座（默认约束 uy、释放 ux 与 rz；设置支座角度时约束法向位移）");
+  assert.deepEqual(
+    supportChoiceOptions(TRUSS_SUPPORT_OPTIONS).map((option) => option.label),
+    ["铰支座（约束 ux、uy）", "滚动支座（约束 uy，释放 ux）", "自由节点（释放 ux、uy）"],
+  );
 });
 
 test("支座单项工程提示来自共享目录", () => {

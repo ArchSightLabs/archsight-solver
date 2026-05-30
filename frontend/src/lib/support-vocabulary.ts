@@ -11,6 +11,11 @@ export interface SupportOption<T extends string> {
   note: string;
 }
 
+export interface SupportChoiceOption<T extends string> {
+  value: T;
+  label: string;
+}
+
 type SupportGroup = "beam" | "frame" | "truss";
 export type SupportDofMode = "fixed" | "spring" | "free";
 
@@ -63,6 +68,17 @@ export const BEAM_SUPPORT_OPTIONS: Array<SupportOption<BeamSupportType>> = suppo
 export const FRAME_SUPPORT_OPTIONS: Array<SupportOption<SupportType>> = supportOptions<SupportType>("frame");
 
 export const TRUSS_SUPPORT_OPTIONS: Array<SupportOption<Exclude<SupportType, "fixed">>> = supportOptions<Exclude<SupportType, "fixed">>("truss");
+
+export function supportOptionChoiceLabel(option: Pick<SupportOption<string>, "label" | "detail">): string {
+  return option.detail ? `${option.label}（${option.detail}）` : option.label;
+}
+
+export function supportChoiceOptions<T extends string>(options: Array<SupportOption<T>>): Array<SupportChoiceOption<T>> {
+  return options.map((option) => ({
+    value: option.value,
+    label: supportOptionChoiceLabel(option),
+  }));
+}
 
 function optionLabel<T extends string>(options: Array<SupportOption<T>>, value: T | undefined, fallback: string): string {
   return options.find((option) => option.value === value)?.label ?? fallback;

@@ -118,10 +118,11 @@ export function BeamSupportEditor({
                 type="button"
                 variant="ghost"
                 aria-pressed={isActive}
-                className={`h-9 rounded-lg border text-[12px] font-semibold ${isActive ? SEGMENTED_OPTION_ACTIVE_CLASS : SEGMENTED_OPTION_IDLE_CLASS}`}
+                className={`flex min-h-12 flex-col items-start justify-center gap-0.5 rounded-lg border px-2.5 py-2 text-left font-semibold ${isActive ? SEGMENTED_OPTION_ACTIVE_CLASS : SEGMENTED_OPTION_IDLE_CLASS}`}
                 onClick={() => updateSupportType(option.value)}
               >
-                {option.label}
+                <span className="text-[12px] leading-tight">{option.label}</span>
+                <span className={`text-[10px] leading-tight ${isActive ? "text-slate-800/75" : "text-muted-foreground"}`}>{option.detail}</span>
               </Button>
             );
           })}
