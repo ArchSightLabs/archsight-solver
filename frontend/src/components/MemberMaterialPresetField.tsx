@@ -31,6 +31,10 @@ export function MemberMaterialPresetField({
   showHint = true,
 }: MemberMaterialPresetFieldProps) {
   const selectedMaterialId = materialIdForYoungModulus(youngModulusGPa);
+  const engineeringHint = [
+    memberMaterialPresetHint(mode, memberLabel),
+    memberMaterialEngineeringNote(selectedMaterialId, youngModulusGPa, memberLabel),
+  ].join(" ");
   return (
     <div className={cn("space-y-1", className)}>
       <div className={fieldLabelClass}>{label}</div>
@@ -44,7 +48,7 @@ export function MemberMaterialPresetField({
       />
       {showHint ? (
         <div className="text-[10px] font-semibold text-muted-foreground">
-          {memberMaterialPresetHint(mode, memberLabel)} {memberMaterialEngineeringNote(selectedMaterialId, youngModulusGPa, memberLabel)}
+          {engineeringHint}
         </div>
       ) : null}
     </div>
