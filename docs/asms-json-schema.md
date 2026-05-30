@@ -142,7 +142,7 @@ Schema：`asms-frame-model`
 - `x` / `y`：平面坐标，单位 m。
 - `supportType`：`free`、`pinned`、`roller`、`fixed`。
 - `supportAngleDeg`：滚动支座法向角，单位 °；仅对平面框架 `roller` 支座生效，`90` 表示竖向法向约束。
-- `springs`：节点弹簧，可表达柱脚转动弹簧等边界。
+- `springs`：节点弹簧，可表达柱脚转动弹簧等边界；`ux` / `uy` 使用 `stiffnessKnPerM`，`rz` 使用 `stiffnessKnMPerRad`。
 
 构件：
 
@@ -150,12 +150,15 @@ Schema：`asms-frame-model`
 - `materialId`：材料库编号，用于保留构件材料语义、前端编辑口径和计算书材料摘要。
 - `E_GPa`、`A_cm2`、`I_cm4`：线弹性求解采用的刚度与截面输入。
 - `kind`：工程语义标签，如 `beam`、`column`。
+- `endReleases`：构件端部释放；当前支持 `start` / `end` 端 `rz` 转角释放。
+- `internalHinges`：构件内部铰；`ratio` 为内部铰相对构件起点的位置比例。
 
 荷载：
 
 - `nodal`：节点荷载。
-- `distributed`：构件分布荷载。
-- `member_point`：构件集中荷载。
+- `distributed`：构件分布荷载；`qStartKnPerM` / `qEndKnPerM` 表示线性强度，`startRatio` / `endRatio` 表示作用范围。
+- `member_point`：构件集中荷载；`forceKn` 为集中力，`positionRatio` 为构件内位置比例。
+- `loadCases` / `loadCombinations`：荷载工况与组合包络；组合 `factors` 按工况 ID 给出系数，`tags` 可标记 ULS、SLS 或包络用途。
 
 ## 二维平面桁架模型
 
@@ -188,7 +191,8 @@ Schema：`asms-truss-model`
 
 - 杆件只承受轴力，不输出弯矩主指标。
 - `members[].materialId` 保留杆件材料编号；桁架刚度计算以 `E_GPa` 与 `A_cm2` 为准。
-- 荷载当前以节点荷载为主；自重和等效节点荷载应在预处理层显式转换。
+- 荷载以节点荷载为主，也支持可等效为节点荷载的杆件荷载；`selfWeightKnPerM` 表示杆件自重线荷载，`distributed` / `member_load` / `member` 可用 `direction`、`wyKnPerM`、`qStartKnPerM`、`qEndKnPerM` 描述线荷载。
+- `loadCases` / `loadCombinations` 支持多工况与组合包络；桁架杆件荷载会先等效为节点荷载再参与求解。
 - 支座不足、零长度杆件、重复 ID、无效节点引用都属于协议级错误。
 
 ## Benchmark 与协议绑定

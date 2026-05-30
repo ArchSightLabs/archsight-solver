@@ -3,7 +3,8 @@ import sys
 
 import pytest
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+sys.path.insert(0, ROOT_DIR)
 
 from app import app
 from backend.contracts.openapi import build_openapi_document
@@ -20,6 +21,29 @@ def _structure_member_properties(schema):
     return schema["properties"]["structure"]["properties"]["members"]["items"]["properties"]
 
 
+def _structure_collection_properties(schema, collection_name):
+    return schema["properties"]["structure"]["properties"][collection_name]
+
+
+def _one_of_branch_by_type(schema, type_name):
+    for branch in schema.get("oneOf", []):
+        type_schema = branch.get("properties", {}).get("type", {})
+        if type_schema.get("const") == type_name or type_name in type_schema.get("enum", []):
+            return branch
+    raise AssertionError(f"schema branch for type={type_name} not found")
+
+
+def _read_repo_text(path):
+    with open(os.path.join(ROOT_DIR, path), encoding="utf-8") as handle:
+        return handle.read()
+
+
+def _assert_source_contains(path, tokens):
+    text = _read_repo_text(path)
+    missing = [token for token in tokens if token not in text]
+    assert not missing, f"{path} 缺少契约字段: {missing}"
+
+
 def test_schema_registry_contains_api_and_tool_contracts():
     registry = schema_registry()
 
@@ -34,7 +58,9 @@ def test_schema_registry_contains_api_and_tool_contracts():
     assert "benchmark-submission-response" in registry
     assert registry["asms-frame-model"]["properties"]["structure"]["required"] == ["nodes", "members"]
     assert "滚动支座法向角" in registry["asms-frame-model"]["properties"]["structure"]["properties"]["nodes"]["items"]["properties"]["supportAngleDeg"]["description"]
-    assert registry["asms-truss-model"]["properties"]["structure"]["properties"]["loads"]["items"]["required"] == ["type", "node"]
+    truss_load_schema = registry["asms-truss-model"]["properties"]["structure"]["properties"]["loads"]["items"]
+    assert _one_of_branch_by_type(truss_load_schema, "nodal")["required"] == ["type", "node"]
+    assert _one_of_branch_by_type(truss_load_schema, "distributed")["properties"]["direction"]["enum"] == ["global_x", "global_y"]
     assert registry["asms-beam-model"]["properties"]["loadType"]["enum"] == [
         "none",
         "uniform",
@@ -56,6 +82,97 @@ def test_frame_and_truss_member_schemas_expose_material_id():
         assert member_properties["materialId"]["type"] == "string"
         assert "材料库编号" in member_properties["materialId"]["description"]
         assert "E_GPa" in member_properties["materialId"]["description"]
+
+
+def test_cross_stack_critical_field_matrix_is_in_sync():
+    registry = schema_registry()
+    openapi = build_openapi_document()
+    frame_schema = registry["asms-frame-model"]
+    truss_schema = registry["asms-truss-model"]
+
+    for schema in (frame_schema, openapi["components"]["schemas"]["asms-frame-model"]):
+        node_properties = _structure_collection_properties(schema, "nodes")["items"]["properties"]
+        assert {"supportAngleDeg", "springs"}.issubset(node_properties)
+        spring_branches = node_properties["springs"]["items"]["oneOf"]
+        spring_fields = {field for branch in spring_branches for field in branch["properties"]}
+        assert {"stiffnessKnPerM", "stiffnessKnMPerRad"}.issubset(spring_fields)
+
+        member_properties = _structure_member_properties(schema)
+        assert {"materialId", "E_GPa", "A_cm2", "I_cm4", "endReleases", "internalHinges"}.issubset(member_properties)
+
+        load_schema = _structure_collection_properties(schema, "loads")["items"]
+        distributed = _one_of_branch_by_type(load_schema, "distributed")["properties"]
+        assert {"qStartKnPerM", "qEndKnPerM", "startRatio", "endRatio"}.issubset(distributed)
+        member_point = _one_of_branch_by_type(load_schema, "member_point")["properties"]
+        assert {"forceKn", "positionRatio"}.issubset(member_point)
+
+        structure_properties = schema["properties"]["structure"]["properties"]
+        assert {"loadCases", "loadCombinations"}.issubset(structure_properties)
+        assert {"id", "loads"}.issubset(structure_properties["loadCases"]["items"]["properties"])
+        assert {"id", "factors", "tags"}.issubset(structure_properties["loadCombinations"]["items"]["properties"])
+
+    for schema in (truss_schema, openapi["components"]["schemas"]["asms-truss-model"]):
+        member_properties = _structure_member_properties(schema)
+        assert {"materialId", "E_GPa", "A_cm2"}.issubset(member_properties)
+
+        load_schema = _structure_collection_properties(schema, "loads")["items"]
+        nodal = _one_of_branch_by_type(load_schema, "nodal")["properties"]
+        assert {"fxKn", "fyKn"}.issubset(nodal)
+        member_load = _one_of_branch_by_type(load_schema, "member_load")["properties"]
+        assert {"direction", "wyKnPerM", "qStartKnPerM", "qEndKnPerM", "selfWeightKnPerM"}.issubset(member_load)
+
+        structure_properties = schema["properties"]["structure"]["properties"]
+        assert {"loadCases", "loadCombinations"}.issubset(structure_properties)
+
+    _assert_source_contains(
+        "frontend/src/types/structure.ts",
+        [
+            "supportAngleDeg?: number",
+            "springs?: FrameSpring[]",
+            "materialId?: string",
+            "endReleases?:",
+            "internalHinges?: FrameInternalHinge[]",
+            "type: \"member_point\"",
+            "startRatio?: number",
+            "endRatio?: number",
+            "loadCases?: FrameLoadCase[]",
+            "loadCombinations?: FrameLoadCombination[]",
+            "selfWeightKnPerM?: number",
+        ],
+    )
+    _assert_source_contains(
+        "frontend/src/solver-payload.ts",
+        [
+            "supportAngleDeg:",
+            "springs:",
+            "materialId:",
+            "endReleases:",
+            "internalHinges:",
+            "startRatio,",
+            "endRatio,",
+            "type: \"member_point\"",
+            "loadCases:",
+            "loadCombinations:",
+            "selfWeightKnPerM:",
+        ],
+    )
+    for doc_path in ("docs/api-reference.md", "docs/asms-json-schema.md"):
+        _assert_source_contains(
+            doc_path,
+            [
+                "supportAngleDeg",
+                "springs",
+                "materialId",
+                "endReleases",
+                "internalHinges",
+                "startRatio",
+                "endRatio",
+                "member_point",
+                "loadCases",
+                "loadCombinations",
+                "selfWeightKnPerM",
+            ],
+        )
 
 
 def test_schema_id_uri_uses_solver_public_domain():

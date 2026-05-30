@@ -44,6 +44,26 @@ MATERIAL_PROPERTY_SCHEMA: Dict[str, Any] = {
     "additionalProperties": True,
 }
 
+FRAME_TRANSLATIONAL_SPRING_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "required": ["dof", "stiffnessKnPerM"],
+    "properties": {
+        "dof": {"type": "string", "enum": ["ux", "uy"]},
+        "stiffnessKnPerM": {"type": "number", "exclusiveMinimum": 0, "description": "平动弹簧刚度，单位 kN/m。"},
+    },
+    "additionalProperties": False,
+}
+
+FRAME_ROTATIONAL_SPRING_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "required": ["dof", "stiffnessKnMPerRad"],
+    "properties": {
+        "dof": {"type": "string", "enum": ["rz"]},
+        "stiffnessKnMPerRad": {"type": "number", "exclusiveMinimum": 0, "description": "转动弹簧刚度，单位 kN·m/rad。"},
+    },
+    "additionalProperties": False,
+}
+
 NODE_SCHEMA: Dict[str, Any] = {
     "type": "object",
     "required": ["id", "x", "y"],
@@ -62,18 +82,35 @@ NODE_SCHEMA: Dict[str, Any] = {
         },
         "springs": {
             "type": "array",
-            "items": {
-                "type": "object",
-                "required": ["dof", "stiffnessKnMPerRad"],
-                "properties": {
-                    "dof": {"type": "string", "enum": ["ux", "uy", "rz"]},
-                    "stiffnessKnMPerRad": {"type": "number"},
-                },
-                "additionalProperties": False,
-            },
+            "description": "节点弹性支座；ux/uy 使用 stiffnessKnPerM，rz 使用 stiffnessKnMPerRad。",
+            "items": {"oneOf": [FRAME_TRANSLATIONAL_SPRING_SCHEMA, FRAME_ROTATIONAL_SPRING_SCHEMA]},
+        },
+        "condensedDofs": {
+            "type": "array",
+            "description": "内部铰等高级建模产生的节点凝聚自由度。",
+            "items": {"type": "string", "enum": ["ux", "uy", "rz"]},
         },
     },
     "additionalProperties": True,
+}
+
+FRAME_END_RELEASES_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "description": "框架构件端部释放；当前仅支持 rz 转角释放。",
+    "properties": {
+        "start": {"type": "array", "items": {"type": "string", "enum": ["rz"]}},
+        "end": {"type": "array", "items": {"type": "string", "enum": ["rz"]}},
+    },
+    "additionalProperties": False,
+}
+
+FRAME_INTERNAL_HINGE_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "required": ["ratio"],
+    "properties": {
+        "ratio": {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1, "description": "内部铰相对构件起点的位置比例。"},
+    },
+    "additionalProperties": False,
 }
 
 FRAME_MEMBER_SCHEMA: Dict[str, Any] = {
@@ -85,6 +122,8 @@ FRAME_MEMBER_SCHEMA: Dict[str, Any] = {
         "end": {"type": "string"},
         "kind": {"type": "string"},
         "elementType": {"type": "string", "enum": ["frame", "beam", "column"]},
+        "endReleases": FRAME_END_RELEASES_SCHEMA,
+        "internalHinges": {"type": "array", "items": FRAME_INTERNAL_HINGE_SCHEMA},
         **MATERIAL_PROPERTY_SCHEMA["properties"],
     },
     "additionalProperties": True,
@@ -127,6 +166,8 @@ MEMBER_DISTRIBUTED_LOAD_SCHEMA: Dict[str, Any] = {
         "wyKnPerM": {"type": "number", "description": "构件均布荷载，单位 kN/m。"},
         "qStartKnPerM": {"type": "number", "description": "线性荷载起点强度，单位 kN/m。"},
         "qEndKnPerM": {"type": "number", "description": "线性荷载终点强度，单位 kN/m。"},
+        "startRatio": {"type": "number", "minimum": 0, "maximum": 1, "description": "荷载起点相对构件起点的位置比例。"},
+        "endRatio": {"type": "number", "minimum": 0, "maximum": 1, "description": "荷载终点相对构件起点的位置比例。"},
     },
     "additionalProperties": True,
 }
@@ -145,6 +186,59 @@ MEMBER_POINT_LOAD_SCHEMA: Dict[str, Any] = {
 
 STRUCTURAL_LOAD_SCHEMA: Dict[str, Any] = {
     "oneOf": [NODAL_LOAD_SCHEMA, MEMBER_DISTRIBUTED_LOAD_SCHEMA, MEMBER_POINT_LOAD_SCHEMA]
+}
+
+TRUSS_MEMBER_LOAD_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "required": ["type", "member"],
+    "properties": {
+        "type": {"type": "string", "enum": ["distributed", "member_load", "member"]},
+        "member": {"type": "string"},
+        "direction": {"type": "string", "enum": ["global_x", "global_y"], "default": "global_y"},
+        "wyKnPerM": {"type": "number", "description": "可等效为节点荷载的杆件均布荷载，单位 kN/m。"},
+        "qStartKnPerM": {"type": "number", "description": "杆件线性荷载起点强度，单位 kN/m。"},
+        "qEndKnPerM": {"type": "number", "description": "杆件线性荷载终点强度，单位 kN/m。"},
+        "selfWeightKnPerM": {"type": "number", "description": "杆件自重线荷载，单位 kN/m，按全局 Y 向下等效。"},
+    },
+    "additionalProperties": True,
+}
+
+TRUSS_LOAD_SCHEMA: Dict[str, Any] = {
+    "oneOf": [NODAL_LOAD_SCHEMA, TRUSS_MEMBER_LOAD_SCHEMA]
+}
+
+FRAME_LOAD_CASE_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "required": ["id", "loads"],
+    "properties": {
+        "id": {"type": "string"},
+        "title": {"type": "string"},
+        "loads": {"type": "array", "items": STRUCTURAL_LOAD_SCHEMA},
+    },
+    "additionalProperties": True,
+}
+
+TRUSS_LOAD_CASE_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "required": ["id", "loads"],
+    "properties": {
+        "id": {"type": "string"},
+        "title": {"type": "string"},
+        "loads": {"type": "array", "items": TRUSS_LOAD_SCHEMA},
+    },
+    "additionalProperties": True,
+}
+
+LOAD_COMBINATION_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "required": ["id", "factors"],
+    "properties": {
+        "id": {"type": "string"},
+        "title": {"type": "string"},
+        "factors": {"type": "object", "additionalProperties": {"type": "number"}},
+        "tags": {"type": "array", "items": {"type": "string"}},
+    },
+    "additionalProperties": True,
 }
 
 ASMS_BEAM_MODEL_SCHEMA: Dict[str, Any] = {
@@ -204,8 +298,8 @@ ASMS_FRAME_MODEL_SCHEMA: Dict[str, Any] = {
                 "nodes": {"type": "array", "items": NODE_SCHEMA},
                 "members": {"type": "array", "items": FRAME_MEMBER_SCHEMA},
                 "loads": {"type": "array", "items": STRUCTURAL_LOAD_SCHEMA},
-                "loadCases": {"type": "array", "items": {"type": "object"}},
-                "loadCombinations": {"type": "array", "items": {"type": "object"}},
+                "loadCases": {"type": "array", "items": FRAME_LOAD_CASE_SCHEMA},
+                "loadCombinations": {"type": "array", "items": LOAD_COMBINATION_SCHEMA},
             },
             "additionalProperties": True,
         },
@@ -230,9 +324,9 @@ ASMS_TRUSS_MODEL_SCHEMA: Dict[str, Any] = {
                 "template": {"type": "string"},
                 "nodes": {"type": "array", "items": NODE_SCHEMA},
                 "members": {"type": "array", "items": TRUSS_MEMBER_SCHEMA},
-                "loads": {"type": "array", "items": NODAL_LOAD_SCHEMA},
-                "loadCases": {"type": "array", "items": {"type": "object"}},
-                "loadCombinations": {"type": "array", "items": {"type": "object"}},
+                "loads": {"type": "array", "items": TRUSS_LOAD_SCHEMA},
+                "loadCases": {"type": "array", "items": TRUSS_LOAD_CASE_SCHEMA},
+                "loadCombinations": {"type": "array", "items": LOAD_COMBINATION_SCHEMA},
             },
             "additionalProperties": True,
         },

@@ -134,9 +134,11 @@ Content-Type: application/json
 }
 ```
 
-节点字段说明：`supportAngleDeg` 为平面框架滚动支座法向角，单位 °；仅当 `supportType` 为 `roller` 时参与约束方向计算，`90` 表示竖向法向约束。
+节点字段说明：`supportAngleDeg` 为平面框架滚动支座法向角，单位 °；仅当 `supportType` 为 `roller` 时参与约束方向计算，`90` 表示竖向法向约束。`springs` 用于节点弹性支座，`ux` / `uy` 使用 `stiffnessKnPerM`，`rz` 使用 `stiffnessKnMPerRad`。
 
-构件字段说明：`members[].materialId` 为材料库编号，用于保留材料语义、计算书材料摘要和前端编辑口径；`E_GPa`、`A_cm2`、`I_cm4` 仍是线弹性求解的刚度与截面输入。
+构件字段说明：`members[].materialId` 为材料库编号，用于保留材料语义、计算书材料摘要和前端编辑口径；`E_GPa`、`A_cm2`、`I_cm4` 仍是线弹性求解的刚度与截面输入。`endReleases` 表示构件端部 `rz` 释放，`internalHinges` 表示构件内部铰，`ratio` 为相对构件起点的位置比例。
+
+荷载字段说明：构件分布荷载可用 `qStartKnPerM` / `qEndKnPerM` 表示线性强度，`startRatio` / `endRatio` 表示作用范围。构件集中荷载使用 `member_point`、`forceKn` 和 `positionRatio`。`loadCases` 与 `loadCombinations` 用于多工况与组合包络。
 
 关键输出：
 
@@ -173,6 +175,8 @@ Content-Type: application/json
 ```
 
 杆件字段说明：`members[].materialId` 为材料库编号，用于保留杆件材料语义；桁架刚度计算仍以 `E_GPa` 与 `A_cm2` 为准。
+
+荷载字段说明：桁架以节点荷载为主，也支持可等效为节点荷载的杆件荷载。`selfWeightKnPerM` 表示杆件自重线荷载，按全局 Y 向下等效；`distributed` / `member_load` / `member` 可使用 `direction`、`wyKnPerM`、`qStartKnPerM`、`qEndKnPerM` 描述杆件线荷载。`loadCases` 与 `loadCombinations` 支持多工况与组合包络。
 
 关键输出：
 
