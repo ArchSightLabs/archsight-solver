@@ -58,6 +58,7 @@ export function TrussCustomModelEditor({
   onSelectionChange,
 }: TrussCustomModelEditorProps) {
   const [selectedObject, setSelectedObject] = useState<TrussSelectedObject>({ type: "node", id: value.nodes[0]?.id ?? "" });
+  const [nodeConnectionTargetId, setNodeConnectionTargetId] = useState("");
   const [advancedSectionId, setAdvancedSectionId] = useState<TrussAdvancedSection>("nodes");
   const visibleSectionId = normalizeModuleSectionId("truss", activeSectionId) ?? "truss-template";
   const isSectionVisible = (sectionId: string) => visibleSectionId === sectionId;
@@ -301,10 +302,15 @@ export function TrussCustomModelEditor({
           node={node}
           nodeIndex={index}
           nodeCount={value.nodes.length}
+          nodeOptions={nodeOptions}
           fieldLabelClass={fieldLabelClass}
           onUpdate={(patch) => updateNode(index, patch)}
           onRemove={() => removeNode(index)}
           variant="selected"
+          connectionTargetId={nodeConnectionTargetId}
+          onConnectionTargetChange={setNodeConnectionTargetId}
+          onAddMemberBetweenNodes={addMemberBetweenNodes}
+          memberConnectionExists={(startId, endId) => trussMemberExists(value.members, startId, endId)}
         />
       );
     }

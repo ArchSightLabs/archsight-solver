@@ -121,7 +121,6 @@ export function FrameTableSection({
                   node={node}
                   nodeIndex={index}
                   nodeCount={nodes.length}
-                  members={members}
                   nodeOptions={nodeOptions}
                   fieldLabelClass={fieldLabelClass}
                   onUpdate={(patch) => onUpdateNode(index, patch)}

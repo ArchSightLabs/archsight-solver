@@ -1,19 +1,17 @@
-import { Plus, Trash2 } from "lucide-react";
-import { frameMemberExists } from "../lib/frame-editor-model.ts";
+import { Trash2 } from "lucide-react";
 import { nodeCoordinateAriaLabel, nodeCoordinateLabel, supportAngleApplies, supportAngleAriaLabel, supportAngleHelpText, supportAngleLabel } from "../lib/node-field-vocabulary.ts";
-import type { StructureMember, StructureNode } from "../types/structure.ts";
+import type { StructureNode } from "../types/structure.ts";
 import { DeferredIdInput } from "./ui/DeferredIdInput";
 import { Button } from "./ui/button";
-import { DropdownSelect } from "./ui/DropdownSelect";
 import { Input } from "./ui/input";
 import { FrameNodeSpringField } from "./FrameNodeSpringField";
 import { NodeSupportField } from "./NodeSupportField";
+import { SelectedNodeConnectionPanel } from "./SelectedNodeConnectionPanel";
 
 interface FrameNodeEditorProps {
   node: StructureNode;
   nodeIndex: number;
   nodeCount: number;
-  members: StructureMember[];
   nodeOptions: Array<{ value: string; label: string }>;
   fieldLabelClass: string;
   onUpdate: (patch: Partial<StructureNode>) => void;
@@ -22,13 +20,13 @@ interface FrameNodeEditorProps {
   connectionTargetId?: string;
   onConnectionTargetChange?: (nextId: string) => void;
   onAddMemberBetweenNodes?: (startId: string, endId: string) => void;
+  memberConnectionExists?: (startId: string, endId: string) => boolean;
 }
 
 export function FrameNodeEditor({
   node,
   nodeIndex,
   nodeCount,
-  members,
   nodeOptions,
   fieldLabelClass,
   onUpdate,
@@ -37,6 +35,7 @@ export function FrameNodeEditor({
   connectionTargetId,
   onConnectionTargetChange,
   onAddMemberBetweenNodes,
+  memberConnectionExists = () => false,
 }: FrameNodeEditorProps) {
   const isSelectedVariant = variant === "selected";
   const labelPrefix = isSelectedVariant ? "节点" : `第 ${nodeIndex + 1} 个节点`;
@@ -44,10 +43,6 @@ export function FrameNodeEditor({
   const yLabel = nodeCoordinateLabel("y");
   const angleLabel = supportAngleLabel();
   const showSupportAngle = supportAngleApplies(node.supportType);
-  const connectableNodeOptions = nodeOptions.filter((option) => option.value !== node.id && !frameMemberExists(members, node.id, option.value));
-  const resolvedConnectionTargetId = connectableNodeOptions.some((option) => option.value === connectionTargetId)
-    ? connectionTargetId ?? ""
-    : connectableNodeOptions[0]?.value ?? "";
   const handleSupportTypeChange = (supportType: StructureNode["supportType"]) => {
     onUpdate({
       supportType,
@@ -138,39 +133,16 @@ export function FrameNodeEditor({
       </div>
 
       {isSelectedVariant ? (
-        <div className="rounded-lg border border-white/8 bg-white/[0.02] p-3">
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-            <div className="space-y-1">
-              <div className={fieldLabelClass}>连接到节点</div>
-              {connectableNodeOptions.length > 0 ? (
-                <DropdownSelect
-                  value={resolvedConnectionTargetId}
-                  onChange={onConnectionTargetChange ?? (() => undefined)}
-                  options={connectableNodeOptions}
-                  className="text-xs font-mono"
-                  menuClassName="text-xs font-mono"
-                  ariaLabel="连接到节点"
-                />
-              ) : (
-                <div className="flex h-10 items-center rounded-md border border-white/8 bg-slate-950/20 px-3 text-xs text-muted-foreground">
-                  无可连接节点
-                </div>
-              )}
-            </div>
-            <div className="flex items-end">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onAddMemberBetweenNodes?.(node.id, resolvedConnectionTargetId)}
-                disabled={!resolvedConnectionTargetId}
-                className="h-10 rounded-lg px-3"
-              >
-                <Plus className="mr-1.5 h-3.5 w-3.5" />
-                新增构件
-              </Button>
-            </div>
-          </div>
-        </div>
+        <SelectedNodeConnectionPanel
+          currentNodeId={node.id}
+          nodeOptions={nodeOptions}
+          connectionTargetId={connectionTargetId}
+          fieldLabelClass={fieldLabelClass}
+          memberTerm="构件"
+          duplicateExists={memberConnectionExists}
+          onConnectionTargetChange={onConnectionTargetChange ?? (() => undefined)}
+          onAddConnection={onAddMemberBetweenNodes ?? (() => undefined)}
+        />
       ) : null}
 
       <FrameNodeSpringField

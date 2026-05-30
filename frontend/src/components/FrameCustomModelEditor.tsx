@@ -450,7 +450,6 @@ export function FrameCustomModelEditor({
           node={node}
           nodeIndex={index}
           nodeCount={value.nodes.length}
-          members={value.members}
           nodeOptions={nodeOptions}
           fieldLabelClass={fieldLabelClass}
           onUpdate={(patch) => updateNode(index, patch)}
@@ -459,6 +458,7 @@ export function FrameCustomModelEditor({
           connectionTargetId={nodeConnectionTargetId}
           onConnectionTargetChange={setNodeConnectionTargetId}
           onAddMemberBetweenNodes={addMemberBetweenNodes}
+          memberConnectionExists={(startId, endId) => frameMemberExists(value.members, startId, endId)}
         />
       );
     }

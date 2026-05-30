@@ -4,6 +4,7 @@ import { Button } from "./ui/button";
 import { DeferredIdInput } from "./ui/DeferredIdInput";
 import { Input } from "./ui/input";
 import { NodeSupportField } from "./NodeSupportField";
+import { SelectedNodeConnectionPanel } from "./SelectedNodeConnectionPanel";
 import { nodeCoordinateAriaLabel, nodeCoordinateLabel } from "../lib/node-field-vocabulary.ts";
 import type { TrussNode } from "../types/structure.ts";
 
@@ -11,20 +12,30 @@ interface TrussNodeEditorProps {
   node: TrussNode;
   nodeIndex: number;
   nodeCount: number;
+  nodeOptions: Array<{ value: string; label: string }>;
   fieldLabelClass: string;
   onUpdate: (patch: Partial<TrussNode>) => void;
   onRemove: () => void;
   variant: "selected" | "table";
+  connectionTargetId?: string;
+  onConnectionTargetChange?: (nextId: string) => void;
+  onAddMemberBetweenNodes?: (startId: string, endId: string) => void;
+  memberConnectionExists?: (startId: string, endId: string) => boolean;
 }
 
 export function TrussNodeEditor({
   node,
   nodeIndex,
   nodeCount,
+  nodeOptions,
   fieldLabelClass,
   onUpdate,
   onRemove,
   variant,
+  connectionTargetId,
+  onConnectionTargetChange,
+  onAddMemberBetweenNodes,
+  memberConnectionExists = () => false,
 }: TrussNodeEditorProps) {
   const isSelectedVariant = variant === "selected";
   const labelPrefix = isSelectedVariant ? "节点" : `第 ${nodeIndex + 1} 个节点`;
@@ -101,6 +112,18 @@ export function TrussNodeEditor({
           </div>
         ) : null}
       </div>
+      {isSelectedVariant ? (
+        <SelectedNodeConnectionPanel
+          currentNodeId={node.id}
+          nodeOptions={nodeOptions}
+          connectionTargetId={connectionTargetId}
+          fieldLabelClass={fieldLabelClass}
+          memberTerm="杆件"
+          duplicateExists={memberConnectionExists}
+          onConnectionTargetChange={onConnectionTargetChange ?? (() => undefined)}
+          onAddConnection={onAddMemberBetweenNodes ?? (() => undefined)}
+        />
+      ) : null}
     </div>
   );
 }

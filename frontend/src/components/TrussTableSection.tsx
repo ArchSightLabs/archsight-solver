@@ -99,6 +99,7 @@ export function TrussTableSection({
                   node={node}
                   nodeIndex={index}
                   nodeCount={nodes.length}
+                  nodeOptions={nodeOptions}
                   fieldLabelClass={fieldLabelClass}
                   onUpdate={(patch) => onUpdateNode(index, patch)}
                   onRemove={() => onRemoveNode(index)}
