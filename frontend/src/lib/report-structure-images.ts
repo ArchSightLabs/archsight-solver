@@ -158,9 +158,15 @@ function addTrussLoadGraphics(
 }
 
 export async function renderFramePreview(results: FrameCalculationResults) {
+  const graphics = buildFramePreviewGraphics(results);
+  if (!graphics.length) return "";
+  return renderReportGraphics(graphics);
+}
+
+export function buildFramePreviewGraphics(results: FrameCalculationResults): ReportGraphic[] {
   const preview = results.frame ?? results.preview;
-  if (!preview) return "";
-  return renderStructurePreview({
+  if (!preview) return [];
+  return buildStructurePreviewGraphics({
     systemLabel: "平面框架",
     memberTerm: "构件",
     nodes: frameReportNodesFromPreview(preview),
@@ -173,9 +179,15 @@ export async function renderFramePreview(results: FrameCalculationResults) {
 }
 
 export async function renderTrussPreview(results: TrussCalculationResults) {
+  const graphics = buildTrussPreviewGraphics(results);
+  if (!graphics.length) return "";
+  return renderReportGraphics(graphics);
+}
+
+export function buildTrussPreviewGraphics(results: TrussCalculationResults): ReportGraphic[] {
   const preview = results.truss ?? results.preview;
-  if (!preview) return "";
-  return renderStructurePreview({
+  if (!preview) return [];
+  return buildStructurePreviewGraphics({
     systemLabel: "平面桁架",
     memberTerm: "杆件",
     nodes: trussReportNodesFromPreview(preview),
@@ -188,8 +200,14 @@ export async function renderTrussPreview(results: TrussCalculationResults) {
 }
 
 export async function renderFrameOverlay(results: FrameCalculationResults, metric: "momentKnM" | "shearKn" | "axialKn" | "deflectionMm") {
+  const graphics = buildFrameOverlayGraphics(results, metric);
+  if (!graphics.length) return "";
+  return renderReportGraphics(graphics);
+}
+
+export function buildFrameOverlayGraphics(results: FrameCalculationResults, metric: "momentKnM" | "shearKn" | "axialKn" | "deflectionMm"): ReportGraphic[] {
   const preview = results.frame ?? results.preview;
-  if (!preview) return "";
+  if (!preview) return [];
   const metricConfig =
     metric === "momentKnM"
       ? { label: "弯矩图", unit: "kN·m", color: "#dc2626" }
@@ -281,12 +299,18 @@ export async function renderFrameOverlay(results: FrameCalculationResults, metri
       clampY: [76, 455],
     });
   }
-  return renderOption({ backgroundColor: REPORT_BG, animation: false, xAxis: { show: false }, yAxis: { show: false }, graphic: graphics }, REPORT_IMAGE_W, REPORT_IMAGE_H);
+  return graphics;
 }
 
 export async function renderTrussOverlay(results: TrussCalculationResults, metric: "axial" | "displacement") {
+  const graphics = buildTrussOverlayGraphics(results, metric);
+  if (!graphics.length) return "";
+  return renderReportGraphics(graphics);
+}
+
+export function buildTrussOverlayGraphics(results: TrussCalculationResults, metric: "axial" | "displacement"): ReportGraphic[] {
   const preview = results.truss ?? results.preview;
-  if (!preview) return "";
+  if (!preview) return [];
   const nodes = trussReportNodesFromPreview(preview);
   const layout = buildReportStructureLayout(nodes, metric === "displacement" ? preview.deformedNodes : []);
   const byId = new Map(nodes.map((node) => [node.id, node]));
@@ -357,10 +381,10 @@ export async function renderTrussOverlay(results: TrussCalculationResults, metri
       color: metric === "axial" ? "#dc2626" : "#22c55e",
     });
   }
-  return renderOption({ backgroundColor: REPORT_BG, animation: false, xAxis: { show: false }, yAxis: { show: false }, graphic: graphics }, REPORT_IMAGE_W, REPORT_IMAGE_H);
+  return graphics;
 }
 
-async function renderStructurePreview(
+function buildStructurePreviewGraphics(
   {
     systemLabel,
     memberTerm,
@@ -412,5 +436,9 @@ async function renderStructurePreview(
     addNode(graphics, node.id, point, layout.center);
   }
   renderLoads?.(graphics, { layout, nodeById: byId, memberById });
+  return graphics;
+}
+
+function renderReportGraphics(graphics: ReportGraphic[]) {
   return renderOption({ backgroundColor: REPORT_BG, animation: false, xAxis: { show: false }, yAxis: { show: false }, graphic: graphics }, REPORT_IMAGE_W, REPORT_IMAGE_H);
 }
