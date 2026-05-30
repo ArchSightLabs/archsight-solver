@@ -247,19 +247,26 @@ export function FrameSketch({ workspace, selection, onSelect }: { workspace: Wor
             const point = nodeMap.get(load.node);
             if (!point) return [];
             const items = [];
+            const selectedStroke = selection?.mode === "frame" && selection.type === "load" && selection.id === `load-${index}` ? FRAME_LOAD_SELECTED_STROKE_WIDTH : FRAME_LOAD_STROKE_WIDTH;
             if (load.fxKn) {
               const sign = load.fxKn >= 0 ? 1 : -1;
               const x1 = point.x - sign * 48;
               const x2 = point.x - sign * 11;
-              items.push(<path key={`${index}-fx`} {...svgInteractiveProps<SVGPathElement>(`选择框架荷载 ${index + 1}`, () => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` }))} d={`M${x1} ${point.y} L${x2} ${point.y}`} markerEnd="url(#frameArrow)" strokeWidth={selection?.mode === "frame" && selection.type === "load" && selection.id === `load-${index}` ? FRAME_LOAD_SELECTED_STROKE_WIDTH : FRAME_LOAD_STROKE_WIDTH} />);
+              items.push(<path key={`${index}-fx`} d={`M${x1} ${point.y} L${x2} ${point.y}`} markerEnd="url(#frameArrow)" strokeWidth={selectedStroke} />);
             }
             if (load.fyKn) {
               const sign = load.fyKn >= 0 ? -1 : 1;
               const y1 = point.y - sign * 54;
               const y2 = point.y - sign * 12;
-              items.push(<path key={`${index}-fy`} {...svgInteractiveProps<SVGPathElement>(`选择框架荷载 ${index + 1}`, () => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` }))} d={`M${point.x} ${y1} L${point.x} ${y2}`} markerEnd="url(#frameArrow)" strokeWidth={selection?.mode === "frame" && selection.type === "load" && selection.id === `load-${index}` ? FRAME_LOAD_SELECTED_STROKE_WIDTH : FRAME_LOAD_STROKE_WIDTH} />);
+              items.push(<path key={`${index}-fy`} d={`M${point.x} ${y1} L${point.x} ${y2}`} markerEnd="url(#frameArrow)" strokeWidth={selectedStroke} />);
             }
-            return items;
+            return items.length
+              ? [
+                  <g key={`${index}-nodal-load`} {...svgInteractiveProps(`选择框架荷载 ${index + 1}`, () => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` }))}>
+                    {items}
+                  </g>,
+                ]
+              : [];
           }
 
           const member = memberMap.get(load.member);
@@ -295,7 +302,6 @@ export function FrameSketch({ workspace, selection, onSelect }: { workspace: Wor
           const items = [
             <line
               key={`${index}-dist-guide`}
-              {...svgInteractiveProps<SVGLineElement>(`选择框架荷载 ${index + 1}`, () => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` }))}
               x1={guideStart.x - guideDirection.x * guideOffset}
               y1={guideStart.y - guideDirection.y * guideOffset}
               x2={guideEnd.x - guideDirection.x * guideOffset}
@@ -318,14 +324,17 @@ export function FrameSketch({ workspace, selection, onSelect }: { workspace: Wor
             items.push(
               <path
                 key={`${index}-dist-${arrowIndex}`}
-                {...svgInteractiveProps<SVGPathElement>(`选择框架荷载 ${index + 1}`, () => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` }))}
                 d={`M${x - direction.x * arrowLength} ${y - direction.y * arrowLength} L${x - direction.x * 9} ${y - direction.y * 9}`}
                 markerEnd="url(#frameArrow)"
                 strokeWidth={selectedStroke}
               />
             );
           }
-          return items;
+          return [
+            <g key={`${index}-dist-load`} {...svgInteractiveProps(`选择框架荷载 ${index + 1}`, () => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` }))}>
+              {items}
+            </g>,
+          ];
         })}
       </g>
       <g fill="var(--model-label)" fontSize="11.5" fontWeight="600" fontFamily={SVG_TEXT_FONT}>
