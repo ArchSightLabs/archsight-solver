@@ -1,10 +1,9 @@
 import type { BeamCalculationResults } from "../types/beam";
-import type { FrameCalculationResults, FrameMemberDiagram, TrussCalculationResults } from "../types/structure";
 import { BEAM_PREVIEW_SVG_HEIGHT, BEAM_PREVIEW_SVG_WIDTH, buildBeamPreviewSvg } from "./beam-preview-svg";
 import { BEAM_RESULT_DIAGRAM_SVG_HEIGHT, BEAM_RESULT_DIAGRAM_SVG_WIDTH, beamReportMetricToDiagramMetric, buildBeamResultDiagramSvg } from "./beam-result-diagram-svg";
 import { assertReportImagesReady } from "./report-image-requirements";
 import { buildReportImagePlan, type ReportImagePlanInput } from "./report-image-plan";
-import type { BeamReportFigure, FrameMemberReportFigure, TrussReportFigure } from "./report-figure-catalog";
+import type { BeamReportFigure } from "./report-figure-catalog";
 import {
   MEMBER_COLORS,
   renderLineChart,
@@ -37,23 +36,11 @@ export async function buildReportImages(input: ReportInput): Promise<ReportImage
       case "frameOverlay":
         if (input.frameResults) images[item.key] = await renderFrameOverlay(input.frameResults, item.figure.metric);
         break;
-      case "frameNodeCurve":
-        if (input.frameResults) images[item.key] = await renderFrameNodeCurve(input.frameResults, item.axis);
-        break;
-      case "frameMemberTraditional":
-        if (input.frameResults) images[item.key] = await renderFrameMemberDiagramImage(input.frameResults.memberDiagrams ?? [], item.figure);
-        break;
       case "trussPreview":
         if (input.trussResults) images[item.key] = await renderTrussPreview(input.trussResults);
         break;
       case "trussOverlay":
         if (input.trussResults) images[item.key] = await renderTrussOverlay(input.trussResults, item.figure.metric);
-        break;
-      case "trussNodeCurve":
-        if (input.trussResults) images[item.key] = await renderTrussNodeCurve(input.trussResults, item.axis);
-        break;
-      case "trussTraditional":
-        if (input.trussResults) images[item.key] = await renderTrussTraditionalImage(input.trussResults, item.figure);
         break;
       case "sensitivity":
         if (input.sensitivityData) images[item.key] = await renderSensitivityImage(input.sensitivityData);
@@ -74,61 +61,6 @@ async function renderBeamTraditionalImage(beam: BeamCalculationResults, figure: 
     yLabel: `${series.name}（${figure.unit}）`,
     unit: figure.unit,
     series: [series],
-  });
-}
-
-async function renderFrameNodeCurve(frame: FrameCalculationResults, axis: "ux" | "uy") {
-  const isUx = axis === "ux";
-  return renderLineChart({
-    xLabels: frame.nodeIds,
-    yLabel: isUx ? "水平位移（mm）" : "竖向位移（mm）",
-    unit: "mm",
-    series: [
-      {
-        name: isUx ? "节点 X 向水平位移" : "节点 Y 向竖向位移",
-        data: isUx ? frame.ux_data : frame.uy_data,
-        color: isUx ? "#22c55e" : "#0ea5e9",
-      },
-    ],
-  });
-}
-
-async function renderFrameMemberDiagramImage(diagrams: FrameMemberDiagram[], figure: FrameMemberReportFigure) {
-  return renderLineChart({
-    xLabels: diagrams[0]?.stationsM.map((value) => value.toFixed(2)) ?? [],
-    yLabel: `${figure.title.replace("图", "")}（${figure.unit}）`,
-    unit: figure.unit,
-    series: diagrams.map((diagram, index) => ({
-      name: diagram.memberId,
-      data: diagram[figure.metric],
-      color: MEMBER_COLORS[index % MEMBER_COLORS.length],
-    })),
-    showLegend: true,
-  });
-}
-
-async function renderTrussNodeCurve(truss: TrussCalculationResults, axis: "ux" | "uy") {
-  const isUx = axis === "ux";
-  return renderLineChart({
-    xLabels: truss.nodeIds,
-    yLabel: isUx ? "水平位移（mm）" : "竖向位移（mm）",
-    unit: "mm",
-    series: [
-      {
-        name: isUx ? "节点 X 向水平位移" : "节点 Y 向竖向位移",
-        data: isUx ? truss.ux_data : truss.uy_data,
-        color: isUx ? "#22c55e" : "#0ea5e9",
-      },
-    ],
-  });
-}
-
-async function renderTrussTraditionalImage(truss: TrussCalculationResults, figure: TrussReportFigure) {
-  return renderLineChart({
-    xLabels: truss.memberIds,
-    yLabel: `${figure.title.replace("曲线", "")}（${figure.unit}）`,
-    unit: figure.unit,
-    series: [{ name: "杆件轴力", data: truss.member_axial_data.map((item) => item.axialForceKn), color: "#f59e0b" }],
   });
 }
 

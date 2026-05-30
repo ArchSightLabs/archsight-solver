@@ -28,12 +28,8 @@ export type ReportImagePlanItem =
   | { key: string; label: string; kind: "beamTraditional"; figure: BeamReportFigure }
   | { key: "frame.preview"; label: string; kind: "framePreview" }
   | { key: string; label: string; kind: "frameOverlay"; figure: FrameMemberReportFigure }
-  | { key: "frame.ux" | "frame.uy"; label: string; kind: "frameNodeCurve"; axis: "ux" | "uy" }
-  | { key: string; label: string; kind: "frameMemberTraditional"; figure: FrameMemberReportFigure }
   | { key: "truss.preview"; label: string; kind: "trussPreview" }
   | { key: string; label: string; kind: "trussOverlay"; figure: TrussReportFigure }
-  | { key: "truss.ux" | "truss.uy"; label: string; kind: "trussNodeCurve"; axis: "ux" | "uy" }
-  | { key: string; label: string; kind: "trussTraditional"; figure: TrussReportFigure }
   | { key: "sensitivity.response"; label: string; kind: "sensitivity" };
 
 export function reportFigureFlags(options: ReportExportOptions) {
