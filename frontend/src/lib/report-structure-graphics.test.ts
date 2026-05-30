@@ -52,7 +52,7 @@ test("计算书控制值标注限制在图面可读范围内", () => {
 test("计算书尺寸说明按固定行距写入图面", () => {
   const graphics: ReportGraphic[] = [];
 
-  addDimensionLegend(graphics, ["C1=C2=4m", "B1=6m"]);
+  addDimensionLegend(graphics, ["C1=C2=4 m", "B1=6 m"]);
 
   assert.equal(graphics.length, 2);
   assert.equal(graphics[0]?.type, "text");

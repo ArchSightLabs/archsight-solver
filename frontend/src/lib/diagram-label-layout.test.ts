@@ -39,7 +39,7 @@ test("placeDiagramLabels lets higher priority labels reserve space first", () =>
       {
         id: "dimension",
         anchor: { x: 20, y: 20 },
-        lines: [{ text: "B1=6m", fontSize: 12 }],
+        lines: [{ text: "B1=6 m", fontSize: 12 }],
         candidates: [{ dx: 0, dy: 0, textAnchor: "start", verticalAnchor: "top" }],
         priority: 100,
         occupiedWeight: 20,

@@ -70,7 +70,7 @@ test("buildTrussMemberLengthDimension uses the rod id as the dimension reference
   const dimension = buildTrussMemberLengthDimension("M1", { x: 100, y: 280 }, { x: 500, y: 280 }, 4);
 
   assert.equal(dimension?.memberId, "M1");
-  assert.equal(dimension?.valueLabel, "4m");
+  assert.equal(dimension?.valueLabel, "4 m");
   assert.equal(dimension?.title, "杆件 M1，长度 4.00 m");
 });
 
@@ -81,8 +81,8 @@ test("buildTrussMemberLengthLegendRows groups equal member dimensions and separa
     buildTrussMemberLengthDimension("M3", { x: 500, y: 280 }, { x: 900, y: 280 }, 4),
   ].filter((dimension): dimension is NonNullable<typeof dimension> => Boolean(dimension));
 
-  assert.deepEqual(buildTrussMemberLengthLegendRows(dimensions, 280, 12), ["M1=M3=4m", "M2=2m"]);
-  assert.deepEqual(buildTrussMemberLengthLegendRows(dimensions, 90, 12), ["M1=M3=4m", "M2=2m"]);
+  assert.deepEqual(buildTrussMemberLengthLegendRows(dimensions, 280, 12), ["M1=M3=4 m", "M2=2 m"]);
+  assert.deepEqual(buildTrussMemberLengthLegendRows(dimensions, 90, 12), ["M1=M3=4 m", "M2=2 m"]);
 });
 
 test("buildTrussMemberLengthDimensions derives member dimensions from node coordinates", () => {
@@ -100,5 +100,5 @@ test("buildTrussMemberLengthDimensions derives member dimensions from node coord
     ],
   );
 
-  assert.deepEqual(buildTrussMemberLengthLegendRows(dimensions, 220, 12), ["M1=M3=4m", "M2=6m"]);
+  assert.deepEqual(buildTrussMemberLengthLegendRows(dimensions, 220, 12), ["M1=M3=4 m", "M2=6 m"]);
 });

@@ -79,7 +79,7 @@ export function buildFrameGeometryDimensions(
 }
 
 function formatFrameDimensionLength(length: number) {
-  return `${length.toFixed(2).replace(/\.?0+$/u, "")}m`;
+  return `${length.toFixed(2).replace(/\.?0+$/u, "")} m`;
 }
 
 export function frameMemberDimensionValueLabel(start: Pick<FramePreviewPoint, "x" | "y">, end: Pick<FramePreviewPoint, "x" | "y">) {
@@ -149,7 +149,7 @@ export function frameLoadMagnitude(value: number) {
 }
 
 export function formatFrameForceLoadLabel(label: string, value: number, unit = "kN") {
-  return `${label}=${frameLoadMagnitude(value)}${unit}`;
+  return `${label}=${frameLoadMagnitude(value)} ${unit}`;
 }
 
 export function formatFrameDistributedLoadLabel(
@@ -165,7 +165,7 @@ export function formatFrameDistributedLoadLabel(
   const rangeLabel = startRatio <= 1e-9 && endRatio >= 1 - 1e-9
     ? ""
     : `@${startRatio.toFixed(2)}-${endRatio.toFixed(2)}L`;
-  return `${label}=${valueLabel}kN/m${rangeLabel}`;
+  return `${label}=${valueLabel} kN/m${rangeLabel}`;
 }
 
 export function buildFrameLoadLabelMap(loads: FrameLoad[]) {

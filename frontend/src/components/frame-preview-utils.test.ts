@@ -19,7 +19,7 @@ test("buildFrameLoadMarkers anchors vertical nodal loads on the node x-coordinat
   assert.equal(markers[0].type, "force");
   assert.equal(markers[0].x1, 480);
   assert.equal(markers[0].x2, 480);
-  assert.equal(markers[0].label, "F1=42.0kN");
+  assert.equal(markers[0].label, "F1=42.0 kN");
   assert.equal(markers[0].labelX, 494);
 });
 
@@ -38,7 +38,7 @@ test("buildFrameLoadMarkers places horizontal nodal load labels outside the arro
 
   assert.equal(markers.length, 1);
   assert.equal(markers[0].type, "force");
-  assert.equal(markers[0].label, "F1=24.0kN");
+  assert.equal(markers[0].label, "F1=24.0 kN");
   assert.equal(markers[0].labelX, 656);
   assert.equal(markers[0].textAnchor, "end");
 });
@@ -61,7 +61,7 @@ test("buildFrameLoadMarkers builds distributed load guide and arrows from the me
 
   assert.equal(markers.length, 13);
   assert.equal(markers[0].type, "distributed-guide");
-  assert.equal(markers[0].label, "q1=18.0kN/m");
+  assert.equal(markers[0].label, "q1=18.0 kN/m");
   assert.equal(markers[1].type, "force");
   assert.equal(markers[1].x1, 100);
   assert.equal(markers[1].x2, 100);
@@ -133,7 +133,7 @@ test("buildFrameDimensionLegendRows groups equal member lengths and separates di
     { memberId: "C2", valueLabel: frameMemberDimensionValueLabel({ x: 6, y: 0 }, { x: 6, y: 4 }) },
   ];
 
-  assert.deepEqual(buildFrameDimensionLegendRows(dimensions, 220, 12), ["C1=C2=4m", "B1=6m"]);
+  assert.deepEqual(buildFrameDimensionLegendRows(dimensions, 220, 12), ["C1=C2=4 m", "B1=6 m"]);
 });
 
 test("buildFrameGeometryDimensions derives frame member dimensions from node coordinates", () => {
@@ -151,5 +151,5 @@ test("buildFrameGeometryDimensions derives frame member dimensions from node coo
     ],
   );
 
-  assert.deepEqual(buildFrameDimensionLegendRows(dimensions, 220, 12), ["C1=C2=4m", "B1=6m"]);
+  assert.deepEqual(buildFrameDimensionLegendRows(dimensions, 220, 12), ["C1=C2=4 m", "B1=6 m"]);
 });

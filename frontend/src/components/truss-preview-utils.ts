@@ -108,7 +108,7 @@ export function scoreTrussSupportedNodeLabelClearance(rect: Pick<DiagramLabelRec
 }
 
 function formatTrussMemberLength(value: number) {
-  return `${value.toFixed(2).replace(/\.?0+$/u, "")}m`;
+  return `${value.toFixed(2).replace(/\.?0+$/u, "")} m`;
 }
 
 export function buildTrussMemberLengthLegendRows(dimensions: TrussMemberLengthDimension[], _maxWidthPx: number, _fontSize = 12) {

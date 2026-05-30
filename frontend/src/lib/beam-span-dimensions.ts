@@ -16,7 +16,7 @@ function formatFullSpanLength(value: number) {
 }
 
 export function formatBeamDimensionLength(value: number) {
-  return `${Math.abs(value).toFixed(2).replace(/\.?0+$/u, "")}m`;
+  return `${Math.abs(value).toFixed(2).replace(/\.?0+$/u, "")} m`;
 }
 
 function beamSpanMemberId(index: number) {
