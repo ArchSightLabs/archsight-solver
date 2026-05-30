@@ -114,6 +114,63 @@ test("serializeBeamTextModel emits importable text", () => {
   assert.deepEqual(result.patch?.supports?.[0]?.springs, [{ dof: "rz", stiffnessKnMPerRad: 12000 }]);
 });
 
+test("serializeBeamTextModel preserves custom support dof modes exactly", () => {
+  const workspace = createDefaultBeamWorkspaceState();
+  workspace.supports = [
+    { id: "A", x: 0, type: "fixed", constraints: [], springs: [{ dof: "rz", stiffnessKnMPerRad: 12000 }] },
+    { id: "B", x: 4, type: "fixed", constraints: ["rz"], springs: [{ dof: "v", stiffnessKnPerM: 50000 }] },
+    { id: "C", x: 8, type: "roller", constraints: ["v"] },
+  ];
+
+  const text = serializeBeamTextModel(workspace);
+  const result = parseBeamTextModel(text);
+
+  assert.match(text, /SUPPORT,A,0,fixed,-/u);
+  assert.match(text, /SUPPORT,B,4,fixed,rz/u);
+  assert.match(text, /SUPPORT,C,8,roller\n/u);
+  assert.deepEqual(result.patch?.supports?.[0], {
+    id: "A",
+    x: 0,
+    type: "free",
+    constraints: [],
+    springs: [{ dof: "rz", stiffnessKnMPerRad: 12000 }],
+  });
+  assert.deepEqual(result.patch?.supports?.[1], {
+    id: "B",
+    x: 4,
+    type: "fixed",
+    constraints: ["rz"],
+    springs: [{ dof: "v", stiffnessKnPerM: 50000 }],
+  });
+  assert.deepEqual(result.patch?.supports?.[2], {
+    id: "C",
+    x: 8,
+    type: "roller",
+    constraints: ["v"],
+  });
+});
+
+test("parseBeamTextModel accepts explicit support constraint tokens", () => {
+  const result = parseBeamTextModel(`
+SPAN,8,210,4500
+SUPPORT,A,0,fixed,-
+SUPPORT,B,4,free,rz
+SUPPORT,C,8,roller,v
+SPRING,A,v,50000
+`);
+
+  assert.ok(result.patch);
+  assert.deepEqual(result.patch?.supports?.[0], {
+    id: "A",
+    x: 0,
+    type: "free",
+    constraints: [],
+    springs: [{ dof: "v", stiffnessKnPerM: 50000 }],
+  });
+  assert.deepEqual(result.patch?.supports?.[1]?.constraints, ["rz"]);
+  assert.deepEqual(result.patch?.supports?.[2]?.constraints, ["v"]);
+});
+
 test("serializeBeamTextModel preserves multiple point loads", () => {
   const workspace = createDefaultBeamWorkspaceState();
   workspace.uniformLoadEnabled = true;
@@ -153,6 +210,7 @@ test("serializeBeamTextModel keeps long format hints as real comment lines", () 
   const text = serializeBeamTextModel(createDefaultBeamWorkspaceState());
 
   assert.match(text, /# 支座类型：fixed=固结支座；pinned=铰支座；roller=滚动支座；free=自由端\/无约束/u);
+  assert.match(text, /# 约束自由度可写 v、rz、v\+rz 或 -；未写时按支座类型默认自由度/u);
   assert.match(text, /# LOAD,uniform,q_kN_per_m,startRatio,endRatio {2}均布荷载，q 为 kN\/m，范围比例默认 0-1\n# LOAD,point,P_kN,ratio {2}集中力，P 为 kN，ratio 为跨全长相对位置 0-1\n# LOAD,linear,q1,q2,startRatio,endRatio {2}线性分布荷载，q1\/q2 为起止强度 kN\/m/u);
   assert.doesNotMatch(text, /\nLOAD,linear,q1,q2,startRatio,endRatio/u);
 });
@@ -226,4 +284,15 @@ LOAD,linear,1,2,0.9,0.1
   assert.match(diagnostics, /均布荷载 LOAD,uniform 必须包含 q_kN_per_m/u);
   assert.match(diagnostics, /集中力 LOAD,point 必须包含 P_kN 和位置比例/u);
   assert.match(diagnostics, /线性荷载范围比例必须满足/u);
+});
+
+test("parseBeamTextModel rejects invalid explicit support constraint tokens", () => {
+  const result = parseBeamTextModel(`
+SPAN,6,210,8000
+SUPPORT,S1,0,fixed,ux
+`);
+
+  assert.ok(result.patch);
+  assert.equal(result.patch?.supports, undefined);
+  assert.match(result.diagnostics.join("\n"), /支座约束自由度必须为 v、rz、v\+rz 或 -/u);
 });

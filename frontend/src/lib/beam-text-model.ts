@@ -25,6 +25,36 @@ function constraintsForType(type: BeamSupportType): BeamSupportDof[] {
   return [];
 }
 
+function supportDof(value: string | undefined): BeamSupportDof | null {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (["v", "uy", "y", "竖向", "竖向位移", "挠度"].includes(normalized)) return "v";
+  if (["rz", "theta", "θz", "rotation", "转角"].includes(normalized)) return "rz";
+  return null;
+}
+
+function parseSupportConstraints(value: string | undefined): BeamSupportDof[] | null {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (!normalized || ["-", "none", "free", "release", "released", "无", "释放"].includes(normalized)) return [];
+  const constraints: BeamSupportDof[] = [];
+  for (const part of normalized.split(/[+|/;；、]+/u).filter(Boolean)) {
+    const dof = supportDof(part);
+    if (!dof) return null;
+    if (!constraints.includes(dof)) constraints.push(dof);
+  }
+  return constraints;
+}
+
+function sameDofs(left: BeamSupportDof[], right: BeamSupportDof[]): boolean {
+  return left.length === right.length && left.every((dof) => right.includes(dof));
+}
+
+function supportConstraintToken(support: BeamSupportConfig): string | null {
+  const constraints = support.constraints ?? constraintsForType(support.type);
+  const defaults = constraintsForType(support.type);
+  if (sameDofs(constraints, defaults)) return null;
+  return constraints.length ? constraints.join("+") : "-";
+}
+
 function defaultBeamSupportTextId(index: number) {
   return `S${index + 1}`;
 }
@@ -213,11 +243,16 @@ export function parseBeamTextModel(text: string): BeamTextParseResult {
         diagnostics.push(`第 ${lineIndex + 1} 行：支座类型必须为 fixed、pinned、roller 或 free。`);
         continue;
       }
+      const parsedConstraints = tokens[4] ? parseSupportConstraints(tokens[4]) : constraintsForType(type);
+      if (tokens[4] && parsedConstraints === null) {
+        diagnostics.push(`第 ${lineIndex + 1} 行：支座约束自由度必须为 v、rz、v+rz 或 -。`);
+        continue;
+      }
       supports.push({
         id,
         x,
         type,
-        constraints: constraintsForType(type),
+        constraints: parsedConstraints ?? constraintsForType(type),
       });
       continue;
     }
@@ -425,9 +460,13 @@ export function serializeBeamTextModel(value: BeamWorkspaceState): string {
     "# SPAN,杆件编号,跨长m,材料编号或E_GPa,I_cm4",
     ...value.spans.map((span, index) => `SPAN,${span.id?.trim() || `(${index + 1})`},${span.length},${spanMaterialToken(span, materials)},${span.I}`),
     "",
-    "# SUPPORT,支座编号,x位置m,支座类型",
+    "# SUPPORT,支座编号,x位置m,支座类型[,约束自由度]",
     "# 支座类型：fixed=固结支座；pinned=铰支座；roller=滚动支座；free=自由端/无约束",
-    ...value.supports.map((support) => `SUPPORT,${support.id},${support.x},${support.type}`),
+    "# 约束自由度可写 v、rz、v+rz 或 -；未写时按支座类型默认自由度",
+    ...value.supports.map((support) => {
+      const constraintToken = supportConstraintToken(support);
+      return `SUPPORT,${support.id},${support.x},${support.type}${constraintToken ? `,${constraintToken}` : ""}`;
+    }),
     ...value.supports.flatMap((support) =>
       (support.springs ?? []).map((spring) =>
         spring.dof === "rz"
