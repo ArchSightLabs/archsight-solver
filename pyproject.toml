@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "archsight-solver"
 version = "1.2.0"
@@ -24,3 +28,7 @@ archsight-solver-mcp = "backend.capabilities.mcp_server:main"
 dev = [
     "debugpy>=1.8.20",
 ]
+
+[tool.setuptools.packages.find]
+include = ["backend*"]
+exclude = ["backend.tests*"]
