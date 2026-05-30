@@ -11,7 +11,7 @@ import {
   type TrussReportFigure,
 } from "./report-figure-catalog.ts";
 import { analysisVocabulary } from "./analysis-vocabulary.ts";
-import { DEFAULT_REPORT_EXPORT_OPTIONS, type ReportExportOptions } from "./report-options.ts";
+import { DEFAULT_REPORT_EXPORT_OPTIONS, reportExportOptionsForMode, type ReportExportOptions } from "./report-options.ts";
 
 export interface ReportImagePlanInput {
   analysisMode: AnalysisMode;
@@ -51,7 +51,7 @@ export function activeResultMissingLabel(input: ReportImagePlanInput, options: R
 }
 
 export function buildReportImagePlan(input: ReportImagePlanInput): ReportImagePlanItem[] {
-  const options = input.reportOptions ?? DEFAULT_REPORT_EXPORT_OPTIONS;
+  const options = reportExportOptionsForMode(input.analysisMode, input.reportOptions ?? DEFAULT_REPORT_EXPORT_OPTIONS);
   const { includeFigures, includeOverlay, includeTraditional, includeAll } = reportFigureFlags(options);
   const plan: ReportImagePlanItem[] = [];
 

@@ -68,6 +68,13 @@ export function reportFigureModeValueForMode(mode: AnalysisMode, value: ReportFi
   return mode === "beam" ? value : "overlay";
 }
 
+export function reportExportOptionsForMode(mode: AnalysisMode, options: ReportExportOptions): ReportExportOptions {
+  return {
+    ...options,
+    figureMode: reportFigureModeValueForMode(mode, options.figureMode),
+  };
+}
+
 export function reportFigureModeHintForMode(mode: AnalysisMode): string {
   if (mode === "beam") {
     return "梁系可导出计算简图叠加图，也可附加传统单项曲线。";

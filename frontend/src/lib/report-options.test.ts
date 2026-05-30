@@ -8,6 +8,7 @@ import {
   REPORT_FIGURE_SCOPE_OPTIONS,
   REPORT_TEMPLATE_OPTIONS,
   normalizeReportExportOptions,
+  reportExportOptionsForMode,
   reportFigureModeHintForMode,
   reportFigureModeOptionsForMode,
   reportFigureModeValueForMode,
@@ -46,6 +47,21 @@ test("计算书图形模式文案按结构体系避免误导传统曲线", () =>
   assert.equal(reportFigureModeValueForMode("beam", "traditional"), "traditional");
   assert.equal(reportFigureModeValueForMode("frame", "traditional"), "overlay");
   assert.equal(reportFigureModeValueForMode("truss", "both"), "overlay");
+  assert.deepEqual(reportExportOptionsForMode("frame", { template: "complete", figureMode: "traditional", figureScope: "all" }), {
+    template: "complete",
+    figureMode: "overlay",
+    figureScope: "all",
+  });
+  assert.deepEqual(reportExportOptionsForMode("truss", { template: "brief", figureMode: "both", figureScope: "control" }), {
+    template: "brief",
+    figureMode: "overlay",
+    figureScope: "control",
+  });
+  assert.deepEqual(reportExportOptionsForMode("beam", { template: "complete", figureMode: "traditional", figureScope: "all" }), {
+    template: "complete",
+    figureMode: "traditional",
+    figureScope: "all",
+  });
   assert.match(reportFigureModeHintForMode("beam"), /传统单项曲线/u);
   assert.match(reportFigureModeHintForMode("frame"), /模型叠加工程图/u);
   assert.match(reportFigureModeHintForMode("truss"), /模型叠加工程图/u);

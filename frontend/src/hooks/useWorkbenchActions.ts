@@ -8,7 +8,7 @@ import type { WorkspaceState } from "../lib/workspace-state";
 import { analysisVocabulary } from "../lib/analysis-vocabulary";
 import { analysisRequestFromResult, apiErrorMessage, beamResultForView, frameResultForView, normalizeAnalysisResponse, trussResultForView } from "../lib/api-envelope";
 import { buildReportImages } from "../lib/report-images";
-import type { ReportExportOptions } from "../lib/report-options";
+import { reportExportOptionsForMode, type ReportExportOptions } from "../lib/report-options";
 import type { BenchmarkCaseSource } from "../lib/solver-project";
 import {
   exportOperationForFormat,
@@ -177,10 +177,11 @@ export function useWorkbenchActions(
     setExportingFormat(format);
     setOperationNotice(operationRunningNotice(exportOperation, workspace.analysisMode));
     try {
+      const effectiveReportOptions = reportExportOptionsForMode(workspace.analysisMode, reportExportOptions);
       const exportPayload =
         format === "docx" && sensitivityData
-          ? { ...payload, format, sensitivityResults: sensitivityData, reportOptions: reportExportOptions, benchmark: activeBenchmark }
-          : { ...payload, format, benchmark: activeBenchmark, ...(format === "docx" ? { reportOptions: reportExportOptions } : {}) };
+          ? { ...payload, format, sensitivityResults: sensitivityData, reportOptions: effectiveReportOptions, benchmark: activeBenchmark }
+          : { ...payload, format, benchmark: activeBenchmark, ...(format === "docx" ? { reportOptions: effectiveReportOptions } : {}) };
       const beamResultsForReport = beamResultForView(analysisData);
       const frameResultsForReport = frameResultForView(analysisData);
       const trussResultsForReport = trussResultForView(analysisData);
@@ -194,7 +195,7 @@ export function useWorkbenchActions(
                 frameResults: workspace.analysisMode === "frame" ? frameResultsForReport : null,
                 trussResults: workspace.analysisMode === "truss" ? trussResultsForReport : null,
                 sensitivityData,
-                reportOptions: reportExportOptions,
+                reportOptions: effectiveReportOptions,
               }),
             }
           : exportPayload;
