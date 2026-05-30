@@ -23,6 +23,7 @@ import {
 import { useFrameTextModel } from "../hooks/useFrameTextModel.ts";
 import { FRAME_MODEL_TEMPLATES, cloneFrameModelTemplate } from "../lib/workbench-model-templates.ts";
 import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
+import { memberElasticityDistributionLabel } from "../lib/material-presets.ts";
 import { frameSupportStabilityWarning } from "../solver-payload.ts";
 import type {
   FrameLoad,
@@ -43,6 +44,7 @@ interface FrameCollections {
 
 interface FrameCustomModelEditorProps {
   value: FrameCollections;
+  materialId: string;
   onChange: (next: FrameCollections) => void;
   onResetToPortal: () => void;
   activeSectionId?: string;
@@ -56,6 +58,7 @@ function canonicalId(value: string | undefined, fallback: string): string {
 
 export function FrameCustomModelEditor({
   value,
+  materialId,
   onChange,
   onResetToPortal,
   activeSectionId,
@@ -101,6 +104,10 @@ export function FrameCustomModelEditor({
       (node.supportType ?? "free") !== "free" ||
       (node.springs ?? []).some((spring) => spring.dof === "rz" ? spring.stiffnessKnMPerRad > 0 : spring.stiffnessKnPerM > 0),
   ).length;
+  const memberElasticitySummary = useMemo(
+    () => memberElasticityDistributionLabel(value.members, "构件"),
+    [value.members],
+  );
   const modelWarnings = useMemo(() => {
     const warnings: string[] = [];
     const nodeIds = new Set(value.nodes.map((node) => node.id));
@@ -459,6 +466,8 @@ export function FrameCustomModelEditor({
     <div className="space-y-5">
       {isSectionVisible("frame-basic") ? (
       <FrameBasicSection
+        materialId={materialId}
+        memberElasticitySummary={memberElasticitySummary}
         nodeCount={value.nodes.length}
         memberCount={value.members.length}
         supportCount={supportCount}

@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import test from "node:test";
-import { materialEngineeringNote, materialOptionLabel, memberMaterialEngineeringNote, youngModulusForMaterial } from "./material-presets.ts";
+import { materialEngineeringNote, materialOptionLabel, memberElasticityDistributionLabel, memberMaterialEngineeringNote, youngModulusForMaterial } from "./material-presets.ts";
 import { memberMaterialPresetHint, memberPropertyLabels } from "./member-property-vocabulary.ts";
 import { PREDEFINED_MATERIALS } from "../types/material.ts";
 
@@ -60,4 +60,12 @@ test("材料预设提示明确只回填 E 且截面参数仍由构件维护", ()
   assert.match(memberMaterialPresetHint("frame", "构件"), /只回填弹性模量 E/u);
   assert.match(memberMaterialPresetHint("frame", "构件"), /截面面积 A 和截面惯性矩 I/u);
   assert.match(memberMaterialPresetHint("truss", "杆件"), /截面面积 A 仍按杆件截面单独维护/u);
+});
+
+test("构件材料摘要按实际 E 分布说明刚度输入", () => {
+  assert.equal(
+    memberElasticityDistributionLabel([{ E_GPa: 210 }, { E_GPa: 30 }, { E_GPa: 210 }], "构件"),
+    "E=30 GPa：1 个构件；E=210 GPa：2 个构件",
+  );
+  assert.equal(memberElasticityDistributionLabel([], "杆件"), "未设置杆件弹性模量");
 });

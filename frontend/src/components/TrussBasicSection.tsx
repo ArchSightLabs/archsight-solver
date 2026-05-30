@@ -4,6 +4,8 @@ import { supportSystemHint } from "../lib/support-vocabulary.ts";
 import { WorkbenchModelBasicSection } from "./WorkbenchModelBasicSection";
 
 interface TrussBasicSectionProps {
+  materialId: string;
+  memberElasticitySummary: string;
   nodeCount: number;
   memberCount: number;
   supportCount: number;
@@ -14,6 +16,8 @@ interface TrussBasicSectionProps {
 }
 
 export function TrussBasicSection({
+  materialId,
+  memberElasticitySummary,
   nodeCount,
   memberCount,
   supportCount,
@@ -37,6 +41,11 @@ export function TrussBasicSection({
       successMessage="当前桁架节点、杆件、荷载引用完整，可继续复核节点位移、杆件轴力与支座反力。"
       detailRows={[
         { label: "支座自由度", value: supportSystemHint("truss") },
+        {
+          label: "默认材料",
+          value: `${materialId.toUpperCase()} 用于项目材料说明；实际刚度按下方杆件 E / A 输入参与整体刚度矩阵。`,
+        },
+        { label: "弹性模量分布", value: memberElasticitySummary },
         {
           label: "材料与截面",
           value: "按杆件维护 E / A；材料预设只回填弹性模量 E，截面面积仍由杆件截面控制。",

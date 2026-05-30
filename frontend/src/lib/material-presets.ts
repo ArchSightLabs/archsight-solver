@@ -50,6 +50,23 @@ export function youngModulusForMaterial(materialId: string, fallback: number, ma
   return materials.find((material) => material.id === materialId)?.youngModulus ?? fallback;
 }
 
+export function memberElasticityDistributionLabel(
+  members: Array<{ E_GPa?: number }>,
+  memberLabel: "构件" | "杆件",
+): string {
+  const counts = new Map<string, number>();
+  members.forEach((member) => {
+    const elasticity = formatMaterialNumber(Number(member.E_GPa));
+    if (elasticity === "—") return;
+    counts.set(elasticity, (counts.get(elasticity) ?? 0) + 1);
+  });
+  if (counts.size === 0) return `未设置${memberLabel}弹性模量`;
+  return Array.from(counts.entries())
+    .sort(([left], [right]) => Number(left) - Number(right))
+    .map(([elasticity, count]) => `E=${elasticity} GPa：${count} 个${memberLabel}`)
+    .join("；");
+}
+
 function formatMaterialNumber(value: number): string {
   return Number.isFinite(value) ? String(Number(value.toFixed(4))) : "—";
 }

@@ -326,6 +326,7 @@ def test_frame_exports_include_load_combination_tags(client):
 def test_frame_exports_describe_support_nodes_instead_of_left_right(client):
     payload = explicit_frame_payload()
     payload["structure"]["nodes"][2]["supportAngleDeg"] = 45.0
+    payload["structure"]["members"][1]["E_GPa"] = 30.0
 
     xlsx_response = client.post("/api/export", json={**payload, "format": "xlsx"})
     assert xlsx_response.status_code == 200
@@ -336,6 +337,9 @@ def test_frame_exports_describe_support_nodes_instead_of_left_right(client):
     assert "N1：固结支座" in model_text
     assert "N2：铰支座" in model_text
     assert "N3：滚动支座，法向角 45°" in model_text
+    assert "材料适用范围" in model_text
+    assert "框架整体刚度按各构件 E_GPa / A_cm2 / I_cm4 输入装配" in model_text
+    assert "E=30 GPa：1 个构件" in model_text
     assert "框架支座按节点 ux / uy / rz 自由度参与整体刚度矩阵" in model_text
     assert "左支座" not in model_text
     assert "右支座" not in model_text
@@ -346,6 +350,7 @@ def test_frame_exports_describe_support_nodes_instead_of_left_right(client):
     table_text = "\n".join(cell.text for table in doc.tables for row in table.rows for cell in row.cells)
 
     assert "N3：滚动支座，法向角 45°" in table_text
+    assert "E=30 GPa：1 个构件" in table_text
     assert "左支座" not in table_text
     assert "右支座" not in table_text
 

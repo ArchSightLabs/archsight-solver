@@ -12,6 +12,7 @@ from backend.exporters.common.artifact import ExportArtifact
 from backend.exporters.common.evidence import build_evidence_tables
 from backend.exporters.common.filenames import export_filename
 from backend.exporters.common.load_tables import build_load_combination_rows
+from backend.exporters.common.member_materials import member_elasticity_summary
 from backend.exporters.common.xlsx_utils import HAS_OPENPYXL, apply_standard_worksheet_style, write_sectioned_sheet
 from backend.normalizers.truss.request_normalizer import node_support_dofs
 
@@ -42,6 +43,8 @@ def build_summary_tables(solution: Dict[str, Any], material_name: str):
             ["项目名称", solution["projectName"]],
             ["材料名称", material_name],
             *material_report_rows(solution.get("materialId")),
+            ["材料适用范围", "材料名称为项目默认材料说明；桁架整体刚度按各杆件 E_GPa / A_cm2 输入装配。"],
+            ["杆件弹性模量分布", member_elasticity_summary(structure.get("members", []), "杆件")],
             ["节点数量", len(structure.get("nodes", []))],
             ["杆件数量", len(structure.get("members", []))],
             ["支座节点", _truss_support_summary(structure.get("nodes", []))],

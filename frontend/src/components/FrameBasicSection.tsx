@@ -4,6 +4,8 @@ import { supportSystemHint } from "../lib/support-vocabulary.ts";
 import { WorkbenchModelBasicSection } from "./WorkbenchModelBasicSection";
 
 interface FrameBasicSectionProps {
+  materialId: string;
+  memberElasticitySummary: string;
   nodeCount: number;
   memberCount: number;
   supportCount: number;
@@ -15,6 +17,8 @@ interface FrameBasicSectionProps {
 }
 
 export function FrameBasicSection({
+  materialId,
+  memberElasticitySummary,
   nodeCount,
   memberCount,
   supportCount,
@@ -39,6 +43,11 @@ export function FrameBasicSection({
       successMessage="当前模型对象引用完整，可继续复核截面、节点约束与荷载参数。"
       detailRows={[
         { label: "支座自由度", value: supportSystemHint("frame") },
+        {
+          label: "默认材料",
+          value: `${materialId.toUpperCase()} 用于项目材料说明；实际刚度按下方构件 E / A / I 输入参与整体刚度矩阵。`,
+        },
+        { label: "弹性模量分布", value: memberElasticitySummary },
         {
           label: "材料与截面",
           value: "按构件维护 E / A / I；材料预设只回填弹性模量 E，截面面积和截面惯性矩仍由构件截面控制。",

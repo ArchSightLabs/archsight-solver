@@ -17,6 +17,7 @@ import {
 import { TRUSS_MODEL_TEMPLATES, cloneTrussModelTemplate } from "../lib/workbench-model-templates.ts";
 import { useTrussTextModel } from "../hooks/useTrussTextModel.ts";
 import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
+import { memberElasticityDistributionLabel } from "../lib/material-presets.ts";
 import { trussSupportStabilityWarning } from "../solver-payload.ts";
 import type { TrussLoad, TrussMember, TrussNode } from "../types/structure.ts";
 import type { TrussWorkbenchSelection, WorkbenchSelectionOptions } from "../types/workbench-selection.ts";
@@ -29,6 +30,7 @@ interface TrussCollections {
 
 interface TrussCustomModelEditorProps {
   value: TrussCollections;
+  materialId: string;
   onChange: (next: TrussCollections) => void;
   onResetToBenchmark: () => void;
   activeSectionId?: string;
@@ -42,6 +44,7 @@ function canonicalId(value: string | undefined, fallback: string): string {
 
 export function TrussCustomModelEditor({
   value,
+  materialId,
   onChange,
   onResetToBenchmark,
   activeSectionId,
@@ -86,6 +89,10 @@ export function TrussCustomModelEditor({
     return { type: "load", id: "load-0" };
   }, [selectedObject, selection, value.loads, value.members, value.nodes]);
   const supportCount = value.nodes.filter((node) => (node.supportType ?? "free") !== "free").length;
+  const memberElasticitySummary = useMemo(
+    () => memberElasticityDistributionLabel(value.members, "杆件"),
+    [value.members],
+  );
   const modelWarnings = useMemo(() => {
     const warnings: string[] = [];
     const nodeIds = new Set(value.nodes.map((node) => node.id));
@@ -283,6 +290,8 @@ export function TrussCustomModelEditor({
     <div className="space-y-5">
       {isSectionVisible("truss-basic") ? (
       <TrussBasicSection
+        materialId={materialId}
+        memberElasticitySummary={memberElasticitySummary}
         nodeCount={value.nodes.length}
         memberCount={value.members.length}
         supportCount={supportCount}
