@@ -3,6 +3,7 @@ import { Plus } from "lucide-react";
 import { Button } from "./ui/button";
 import { MemberConnectionPanel } from "./MemberConnectionPanel";
 import { ModelObjectGuide } from "./ModelObjectGuide";
+import { memberSectionSummary } from "../lib/member-property-vocabulary.ts";
 import { modelObjectLoadLabel, modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
 import { trussSupportSummary } from "../lib/support-vocabulary.ts";
 import type { TrussMember, TrussNode } from "../types/structure.ts";
@@ -41,6 +42,13 @@ function objectChipClass(isActive: boolean) {
 
 function formatCoordinate(value: number) {
   return Number.isInteger(value) ? value.toFixed(0) : value.toFixed(2);
+}
+
+export function trussMemberChipSummary(member: TrussMember): string {
+  return memberSectionSummary("truss", {
+    E_GPa: member.E_GPa,
+    A_cm2: member.A_cm2,
+  });
 }
 
 export function TrussObjectNavigator({
@@ -124,7 +132,8 @@ export function TrussObjectNavigator({
                 onClick={() => onSelectObject({ type: "member", id: member.id })}
                 className={objectChipClass(selectedObject.type === "member" && selectedObject.id === member.id)}
               >
-                {member.id} · {member.start}-{member.end}
+                <span>{member.id} · {member.start}-{member.end}</span>
+                <span className="block pt-0.5 font-mono text-[10px] font-semibold opacity-75">{trussMemberChipSummary(member)}</span>
               </button>
             ))}
             {members.length === 0 ? (

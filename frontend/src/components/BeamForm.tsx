@@ -344,6 +344,7 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
         maxSpans={MAX_BEAM_SPANS}
         fieldLabelClass={FIELD_LABEL_CLASS}
         selectedEditor={renderSelectedEditor()}
+        materialLabelForSpan={(span) => findMaterial(span.materialId)?.id ?? "手动 E"}
         onSelectObject={(next) => selectObject(next)}
         onAddSpan={addSpan}
       />

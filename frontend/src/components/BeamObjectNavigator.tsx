@@ -3,6 +3,7 @@ import { Plus, SlidersHorizontal } from "lucide-react";
 import type { BeamSpanConfig, BeamSupportConfig } from "../types/beam.ts";
 import { Button } from "./ui/button";
 import { ModelObjectGuide } from "./ModelObjectGuide";
+import { memberSectionSummary } from "../lib/member-property-vocabulary";
 import { modelObjectVocabulary } from "../lib/model-object-vocabulary";
 
 export type BeamSelectedObject =
@@ -35,6 +36,10 @@ export function beamSpanChipLabel(index: number, span: BeamSpanConfig) {
   return `${beamSpanMemberId(index, span)} · 节点 ${beamNodeLabel(index)}-${beamNodeLabel(index + 1)}`;
 }
 
+export function beamSpanChipSummary(span: BeamSpanConfig, materialLabel: string) {
+  return memberSectionSummary("beam", { E: span.E, I: span.I, materialLabel });
+}
+
 export function beamSupportChipLabel(support: BeamSupportConfig, index: number) {
   return `${support.id} · 节点 ${beamNodeLabel(index)}`;
 }
@@ -56,6 +61,7 @@ interface BeamObjectNavigatorProps {
   maxSpans: number;
   fieldLabelClass: string;
   selectedEditor: ReactNode;
+  materialLabelForSpan: (span: BeamSpanConfig) => string;
   onSelectObject: (next: BeamSelectedObject) => void;
   onAddSpan: () => void;
 }
@@ -84,6 +90,7 @@ export function BeamObjectNavigator({
   maxSpans,
   fieldLabelClass,
   selectedEditor,
+  materialLabelForSpan,
   onSelectObject,
   onAddSpan,
 }: BeamObjectNavigatorProps) {
@@ -121,7 +128,10 @@ export function BeamObjectNavigator({
                   onClick={() => onSelectObject({ type: "span", id: spanId(index) })}
                   className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold ${objectButtonClass(selectedObject.type === "span" && selectedObject.id === spanId(index))}`}
                 >
-                  {beamSpanChipLabel(index, span)}
+                  <span>{beamSpanChipLabel(index, span)}</span>
+                  <span className="block pt-0.5 font-mono text-[10px] font-semibold opacity-75">
+                    {beamSpanChipSummary(span, materialLabelForSpan(span))}
+                  </span>
                 </button>
               ))}
               <Button variant="outline" size="sm" onClick={onAddSpan} disabled={spans.length >= maxSpans} className="h-8 rounded-lg px-2 text-[10px]">
