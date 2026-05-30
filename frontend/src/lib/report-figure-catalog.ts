@@ -16,7 +16,6 @@ export interface BeamReportFigure extends ScopedReportFigure {
 
 export interface FrameMemberReportFigure extends ScopedReportFigure {
   overlayImageKey: string;
-  traditionalImageKey: string;
   metric: "momentKnM" | "shearKn" | "deflectionMm" | "axialKn";
   label: string;
   title: string;
@@ -41,7 +40,6 @@ interface SharedReportFigureCatalog {
   };
   truss: {
     overlay: TrussReportFigure[];
-    traditional: TrussReportFigure[];
   };
 }
 
@@ -51,7 +49,6 @@ export const BEAM_REPORT_OVERLAY_FIGURES: readonly BeamReportFigure[] = REPORT_F
 export const BEAM_REPORT_TRADITIONAL_FIGURES: readonly BeamReportFigure[] = REPORT_FIGURES.beam.traditional;
 export const FRAME_REPORT_MEMBER_FIGURES: readonly FrameMemberReportFigure[] = REPORT_FIGURES.frame.member;
 export const TRUSS_REPORT_OVERLAY_FIGURES: readonly TrussReportFigure[] = REPORT_FIGURES.truss.overlay;
-export const TRUSS_REPORT_TRADITIONAL_FIGURES: readonly TrussReportFigure[] = REPORT_FIGURES.truss.traditional;
 
 export function reportFiguresForScope<T extends ScopedReportFigure>(figures: readonly T[], includeAll: boolean): T[] {
   return figures.filter((figure) => includeAll || figure.scope === "control");

@@ -24,7 +24,6 @@ class BeamReportFigure:
 @dataclass(frozen=True)
 class FrameMemberReportFigure:
     overlay_image_key: str
-    traditional_image_key: str
     metric_key: Literal["momentKnM", "shearKn", "deflectionMm", "axialKn"]
     label: str
     title: str
@@ -61,7 +60,6 @@ def _beam_figure(row: dict) -> BeamReportFigure:
 def _frame_member_figure(row: dict) -> FrameMemberReportFigure:
     return FrameMemberReportFigure(
         overlay_image_key=str(row["overlayImageKey"]),
-        traditional_image_key=str(row["traditionalImageKey"]),
         metric_key=str(row["metric"]),  # type: ignore[arg-type]
         label=str(row["label"]),
         title=str(row["title"]),
@@ -85,7 +83,6 @@ BEAM_REPORT_OVERLAY_FIGURES: tuple[BeamReportFigure, ...] = tuple(_beam_figure(r
 BEAM_REPORT_TRADITIONAL_FIGURES: tuple[BeamReportFigure, ...] = tuple(_beam_figure(row) for row in _report_figure_catalog()["beam"]["traditional"])
 FRAME_REPORT_MEMBER_FIGURES: tuple[FrameMemberReportFigure, ...] = tuple(_frame_member_figure(row) for row in _report_figure_catalog()["frame"]["member"])
 TRUSS_REPORT_OVERLAY_FIGURES: tuple[TrussReportFigure, ...] = tuple(_truss_figure(row) for row in _report_figure_catalog()["truss"]["overlay"])
-TRUSS_REPORT_TRADITIONAL_FIGURES: tuple[TrussReportFigure, ...] = tuple(_truss_figure(row) for row in _report_figure_catalog()["truss"]["traditional"])
 
 
 def report_figures_for_scope(figures: tuple[TReportFigure, ...], include_all: bool) -> tuple[TReportFigure, ...]:

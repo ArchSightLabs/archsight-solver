@@ -57,7 +57,6 @@
     "member": [
       {
         "overlayImageKey": "frame.overlay.moment",
-        "traditionalImageKey": "frame.moment",
         "metric": "momentKnM",
         "label": "弯矩",
         "title": "弯矩图",
@@ -66,7 +65,6 @@
       },
       {
         "overlayImageKey": "frame.overlay.shear",
-        "traditionalImageKey": "frame.shear",
         "metric": "shearKn",
         "label": "剪力",
         "title": "剪力图",
@@ -75,7 +73,6 @@
       },
       {
         "overlayImageKey": "frame.overlay.memberDeflection",
-        "traditionalImageKey": "frame.memberDeflection",
         "metric": "deflectionMm",
         "label": "局部 y 向挠度",
         "title": "局部 y 向挠度图",
@@ -84,7 +81,6 @@
       },
       {
         "overlayImageKey": "frame.overlay.axial",
-        "traditionalImageKey": "frame.axial",
         "metric": "axialKn",
         "label": "轴力",
         "title": "轴力图",
@@ -110,16 +106,6 @@
         "seriesLabel": "节点位移",
         "unit": "mm",
         "scope": "all"
-      }
-    ],
-    "traditional": [
-      {
-        "imageKey": "truss.axial",
-        "metric": "axial",
-        "title": "杆件轴力曲线",
-        "seriesLabel": "杆件轴力",
-        "unit": "kN",
-        "scope": "control"
       }
     ]
   }
