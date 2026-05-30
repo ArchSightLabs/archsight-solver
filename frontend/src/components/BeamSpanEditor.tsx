@@ -1,6 +1,6 @@
 import { Minus } from "lucide-react";
 import type { BeamSpanConfig } from "../types/beam.ts";
-import { memberPropertyAriaLabel, memberPropertyLabels } from "../lib/member-property-vocabulary.ts";
+import { memberMaterialPresetHint, memberPropertyAriaLabel, memberPropertyLabels } from "../lib/member-property-vocabulary.ts";
 import { Button } from "./ui/button";
 import { DeferredIdInput } from "./ui/DeferredIdInput";
 import { DropdownSelect } from "./ui/DropdownSelect";
@@ -13,6 +13,7 @@ interface BeamSpanEditorProps {
   memberId: string;
   semanticLabel: string;
   materialLabel: string;
+  materialNote: string;
   materialOptions: Array<{ value: string; label: string }>;
   fieldLabelClass: string;
   formControlClass: string;
@@ -31,6 +32,7 @@ export function BeamSpanEditor({
   memberId,
   semanticLabel,
   materialLabel,
+  materialNote,
   materialOptions,
   fieldLabelClass,
   formControlClass,
@@ -81,6 +83,9 @@ export function BeamSpanEditor({
             menuClassName={formSelectMenuClass}
             optionClassName={formSelectOptionClass}
           />
+          <div className="text-[10px] font-semibold leading-relaxed text-muted-foreground">
+            {memberMaterialPresetHint("beam", "杆件")} {materialNote}
+          </div>
         </div>
         <div className="space-y-1">
           <div className={fieldLabelClass}>杆件长度（m）</div>

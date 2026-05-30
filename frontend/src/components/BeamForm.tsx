@@ -18,7 +18,7 @@ import { BeamTableSection } from "./BeamTableSection";
 import { BeamTemplateSection } from "./BeamTemplateSection";
 import { BeamTextModelSection } from "./BeamTextModelSection";
 import { formatBeamLoadSummary } from "../lib/beam-loads.ts";
-import { materialOptionLabel } from "../lib/material-presets.ts";
+import { materialEngineeringNote, materialOptionLabel } from "../lib/material-presets.ts";
 import { PREDEFINED_MATERIALS } from "../types/material.ts";
 import type { BeamSpanConfig, BeamSupportConfig, BeamWorkspaceState } from "../types/beam.ts";
 import type { BeamWorkbenchSelection, WorkbenchSelectionOptions } from "../types/workbench-selection.ts";
@@ -295,6 +295,7 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
         memberId={memberId}
         semanticLabel={beamSpanSemanticLabel(index)}
         materialLabel={findMaterial(span.materialId)?.id ?? "手动 E"}
+        materialNote={materialEngineeringNote(span.materialId, materialLibrary)}
         materialOptions={materialOptions}
         fieldLabelClass={FIELD_LABEL_CLASS}
         formControlClass={FORM_CONTROL_CLASS}

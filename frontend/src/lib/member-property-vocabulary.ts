@@ -31,7 +31,12 @@ export function memberPropertyAriaLabel(subjectLabel: string, propertyLabel: str
   return `${subjectLabel}${propertyLabel}`;
 }
 
-export function memberMaterialPresetHint(mode: Exclude<MemberPropertyMode, "beam">, memberLabel: MemberLabel): string {
-  const sectionFields = mode === "frame" ? "截面面积 A 和截面惯性矩 I" : "截面面积 A";
+export function memberMaterialPresetHint(mode: MemberPropertyMode, memberLabel: MemberLabel): string {
+  const sectionFields =
+    mode === "beam"
+      ? "截面惯性矩 I"
+      : mode === "frame"
+        ? "截面面积 A 和截面惯性矩 I"
+        : "截面面积 A";
   return `材料预设来自统一材料库，只回填弹性模量 E；${sectionFields} 仍按${memberLabel}截面单独维护。`;
 }
