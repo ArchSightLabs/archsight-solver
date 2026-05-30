@@ -1,4 +1,5 @@
 import type { TrussLoad, TrussMember, TrussNode } from "../types/structure.ts";
+import { parseTextModelNumber, splitTextModelTokens } from "./text-model-utils.ts";
 
 export interface TrussTextCollections {
   nodes: TrussNode[];
@@ -11,20 +12,8 @@ export interface TrussTextParseResult {
   diagnostics: string[];
 }
 
-function splitTokens(line: string): string[] {
-  return line
-    .replace(/\/\/.*$/u, "")
-    .replace(/#.*$/u, "")
-    .trim()
-    .split(/[,\t，\s]+/u)
-    .map((token) => token.trim())
-    .filter(Boolean);
-}
-
-function toNumber(value: string | undefined): number | null {
-  const next = Number(value);
-  return Number.isFinite(next) ? next : null;
-}
+const splitTokens = splitTextModelTokens;
+const toNumber = parseTextModelNumber;
 
 function supportType(value: string | undefined): TrussNode["supportType"] {
   const normalized = String(value ?? "free").toLowerCase();

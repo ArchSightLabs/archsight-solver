@@ -1,4 +1,11 @@
 import type { FrameLoad, FrameLoadCase, FrameLoadCombination, StructureMember, StructureNode } from "../types/structure.ts";
+import {
+  parseTextModelNumber,
+  parseTextModelNumericCode,
+  prefixTextModelId,
+  splitTextModelTokens,
+  uniqueTextModelId,
+} from "./text-model-utils.ts";
 
 export interface FrameTextCollections {
   nodes: StructureNode[];
@@ -20,71 +27,12 @@ const DEFAULT_MEMBER: Pick<StructureMember, "E_GPa" | "A_cm2" | "I_cm4" | "kind"
   kind: "generic",
 };
 
-function cleanLine(line: string): string {
-  return line
-    .replace(/\/\/.*$/u, "")
-    .replace(/#.*$/u, "")
-    .replace(/！.*$/u, "")
-    .trim();
-}
-
-function splitTokens(line: string): string[] {
-  return cleanLine(line)
-    .split(/[,\s，]+/u)
-    .map((token) => token.trim())
-    .filter(Boolean);
-}
-
-function toNumber(value: string | undefined): number | null {
-  if (value === undefined || value.trim() === "") {
-    return null;
-  }
-  const normalized = value.replace(/[（）()]/gu, "");
-  const numeric = Number(normalized);
-  return Number.isFinite(numeric) ? numeric : null;
-}
-
-function numericCode(value: string): number | null {
-  const match = value.trim().match(/-?\d+/u);
-  if (!match) {
-    return null;
-  }
-  const next = Number(match[0]);
-  return Number.isFinite(next) ? next : null;
-}
-
-function nodeId(value: string | undefined, fallback: string): string {
-  const raw = String(value ?? "").trim();
-  if (!raw) {
-    return fallback;
-  }
-  if (/^N/i.test(raw)) {
-    return raw.toUpperCase();
-  }
-  return `N${raw}`;
-}
-
-function memberId(value: string | undefined, fallback: string): string {
-  const raw = String(value ?? "").trim();
-  if (!raw) {
-    return fallback;
-  }
-  if (/^[A-Z]/iu.test(raw)) {
-    return raw.toUpperCase();
-  }
-  return `M${raw}`;
-}
-
-function uniqueId(base: string, used: Set<string>): string {
-  let candidate = base.trim() || "ID";
-  let suffix = 2;
-  while (used.has(candidate)) {
-    candidate = `${base}-${suffix}`;
-    suffix += 1;
-  }
-  used.add(candidate);
-  return candidate;
-}
+const splitTokens = (line: string) => splitTextModelTokens(line, { commentMarkers: ["//", "#", "！"] });
+const toNumber = (value: string | undefined) => parseTextModelNumber(value, { stripParentheses: true });
+const numericCode = parseTextModelNumericCode;
+const nodeId = (value: string | undefined, fallback: string) => prefixTextModelId(value, fallback, "N");
+const memberId = (value: string | undefined, fallback: string) => prefixTextModelId(value, fallback, "M", { preserveAnyLeadingAlpha: true });
+const uniqueId = uniqueTextModelId;
 
 function supportType(value: string | undefined, fallback: StructureNode["supportType"] = "free"): StructureNode["supportType"] {
   const normalized = String(value ?? "").trim().toLowerCase();

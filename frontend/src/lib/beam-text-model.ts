@@ -1,30 +1,14 @@
 import type { BeamLinearLoadConfig, BeamPointLoadConfig, BeamSpanConfig, BeamSupportConfig, BeamSupportDof, BeamSupportType, BeamWorkspaceState } from "../types/beam.ts";
 import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
+import { parseTextModelNumber, splitTextModelTokens } from "./text-model-utils.ts";
 
 export interface BeamTextParseResult {
   patch: Partial<BeamWorkspaceState> | null;
   diagnostics: string[];
 }
 
-function cleanLine(line: string): string {
-  return line
-    .replace(/\/\/.*$/u, "")
-    .replace(/#.*$/u, "")
-    .trim();
-}
-
-function splitTokens(line: string): string[] {
-  return cleanLine(line)
-    .split(/[,\t，\s]+/u)
-    .map((token) => token.trim())
-    .filter(Boolean);
-}
-
-function toNumber(value: string | undefined): number | null {
-  if (!value) return null;
-  const next = Number(value);
-  return Number.isFinite(next) ? next : null;
-}
+const splitTokens = splitTextModelTokens;
+const toNumber = parseTextModelNumber;
 
 function supportType(value: string | undefined): BeamSupportType | null {
   const normalized = String(value ?? "").trim().toLowerCase();
