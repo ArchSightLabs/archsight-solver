@@ -6,6 +6,9 @@ export interface MaterialDropdownOption {
 }
 
 export function materialOptionLabel(material: Material): string {
+  if (material.id === "custom") {
+    return "CUSTOM · 自定义 / 手动输入 E（不回填预设）";
+  }
   return `${material.id.toUpperCase()} · ${material.name} · E=${material.youngModulus} GPa · ρ=${material.density} kg/m³`;
 }
 
@@ -43,6 +46,7 @@ export function materialIdForYoungModulus(youngModulus: number, materials: Mater
 }
 
 export function youngModulusForMaterial(materialId: string, fallback: number, materials: Material[] = PREDEFINED_MATERIALS): number {
+  if (materialId === "custom") return fallback;
   return materials.find((material) => material.id === materialId)?.youngModulus ?? fallback;
 }
 

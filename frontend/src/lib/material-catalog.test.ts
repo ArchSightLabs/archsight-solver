@@ -6,11 +6,14 @@ import { PREDEFINED_MATERIALS } from "../types/material.ts";
 
 test("共享材料目录保留结构工程材料名称和 E/密度", () => {
   const q345 = PREDEFINED_MATERIALS.find((material) => material.id === "q345");
+  const custom = PREDEFINED_MATERIALS.find((material) => material.id === "custom");
 
   assert.equal(q345?.name, "Q345 低合金高强度结构钢");
   assert.equal(q345?.youngModulus, 210);
   assert.equal(q345?.density, 7850);
   assert.match(materialOptionLabel(q345!), /E=210 GPa/u);
+  assert.match(materialOptionLabel(custom!), /手动输入 E/u);
+  assert.doesNotMatch(materialOptionLabel(custom!), /E=206 GPa/u);
 });
 
 test("材料说明明确预设不替代强度和规范设计", () => {
@@ -23,6 +26,7 @@ test("材料说明明确预设不替代强度和规范设计", () => {
 
 test("材料预设回填弹性模量而不是覆盖截面参数", () => {
   assert.equal(youngModulusForMaterial("q235", 1), 206);
+  assert.equal(youngModulusForMaterial("custom", 198.5), 198.5);
   assert.equal(youngModulusForMaterial("unknown", 199), 199);
 });
 
