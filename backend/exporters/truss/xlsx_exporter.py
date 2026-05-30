@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import io
-import re
 from typing import Any, Dict
 
 import pandas as pd
@@ -10,6 +9,7 @@ from backend.common.material_catalog import material_report_rows
 from backend.common.result_metric_catalog import result_metric_label
 from backend.exporters.common.artifact import ExportArtifact
 from backend.exporters.common.evidence import build_evidence_tables
+from backend.exporters.common.filenames import export_filename
 from backend.exporters.common.load_tables import build_load_combination_rows
 from backend.exporters.common.xlsx_utils import HAS_OPENPYXL, apply_standard_worksheet_style, write_sectioned_sheet
 from backend.normalizers.truss.request_normalizer import node_support_dofs
@@ -187,9 +187,8 @@ def export_xlsx(solution: Dict[str, Any], material_name: str):
         apply_standard_worksheet_style(writer.book)
 
     output.seek(0)
-    safe_name = re.sub(r"[^\w\u4e00-\u9fa5]+", "_", solution["projectName"])
     return ExportArtifact(
         buffer=output,
-        filename=f"计算报告_{safe_name}.xlsx",
+        filename=export_filename(solution["projectName"], "truss", "xlsx"),
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )

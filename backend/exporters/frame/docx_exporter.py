@@ -9,6 +9,7 @@ from backend.common.result_metric_catalog import result_metric_label
 from backend.exporters.common.artifact import ExportArtifact
 from backend.exporters.common.docx_utils import HAS_DOCX, add_df_table, add_heading, add_png_figure, add_report_note, add_report_title, create_document, png_from_report_images
 from backend.exporters.common.evidence import build_evidence_tables
+from backend.exporters.common.filenames import export_filename
 from backend.exporters.common.load_tables import build_load_combination_rows
 from backend.exporters.common.report_figure_catalog import FRAME_REPORT_MEMBER_FIGURES, report_figures_for_scope
 from backend.exporters.common.report_options import include_all_result_figures, include_figures, include_overlay_figures, include_traditional_figures, normalize_report_options
@@ -97,10 +98,9 @@ def export_docx(
     output = io.BytesIO()
     doc.save(output)
     output.seek(0)
-    filename = f"{solution['projectName']}_二维框架计算书.docx"
     return ExportArtifact(
         buffer=output,
-        filename=filename,
+        filename=export_filename(solution["projectName"], "frame", "docx"),
         mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     )
 

@@ -9,6 +9,7 @@ from backend.common.material_catalog import material_report_rows
 from backend.common.result_metric_catalog import result_metric_label
 from backend.exporters.common.artifact import ExportArtifact
 from backend.exporters.common.evidence import build_evidence_tables
+from backend.exporters.common.filenames import export_filename
 from backend.exporters.common.load_tables import build_load_combination_rows
 from backend.exporters.common.xlsx_utils import HAS_OPENPYXL, apply_standard_worksheet_style, write_sectioned_sheet
 
@@ -216,9 +217,8 @@ def export_xlsx(solution: Dict[str, Any], material_name: str):
         apply_standard_worksheet_style(writer.book)
 
     output.seek(0)
-    filename = f"{solution['projectName']}_二维框架计算书.xlsx"
     return ExportArtifact(
         buffer=output,
-        filename=filename,
+        filename=export_filename(solution["projectName"], "frame", "xlsx"),
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )

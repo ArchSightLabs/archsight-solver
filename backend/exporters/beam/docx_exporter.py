@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import io
-import re
 from typing import Any, Dict, Optional
 
 import pandas as pd
@@ -10,6 +9,7 @@ from backend.common.material_catalog import material_report_rows
 from backend.exporters.common.artifact import ExportArtifact
 from backend.exporters.common.docx_utils import HAS_DOCX, add_df_table, add_heading, add_png_figure, add_report_title, create_document, png_from_report_images, style_table_header_row
 from backend.exporters.common.evidence import build_evidence_tables
+from backend.exporters.common.filenames import export_filename
 from backend.exporters.common.load_tables import build_load_combination_rows
 from backend.exporters.common.report_figure_catalog import BEAM_REPORT_OVERLAY_FIGURES, BEAM_REPORT_TRADITIONAL_FIGURES, report_figures_for_scope
 from backend.exporters.common.report_options import include_all_result_figures, include_figures, include_overlay_figures, include_traditional_figures, normalize_report_options
@@ -188,10 +188,9 @@ def export_docx(
     output = io.BytesIO()
     doc.save(output)
     output.seek(0)
-    safe_name = re.sub(r"[^\w\u4e00-\u9fa5]+", "_", request["project_name"])
     return ExportArtifact(
         buffer=output,
-        filename=f"计算报告_{safe_name}.docx",
+        filename=export_filename(request["project_name"], "beam", "docx"),
         mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     )
 
