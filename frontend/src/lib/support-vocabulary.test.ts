@@ -56,8 +56,8 @@ test("节点坐标和滚动支座角标签显式显示工程单位", () => {
   assert.equal(nodeCoordinateLabel("x"), "横坐标（m）");
   assert.equal(nodeCoordinateLabel("y"), "纵坐标（m）");
   assert.equal(nodeCoordinateAriaLabel("第 2 个节点", "x"), "第 2 个节点横坐标（m）");
-  assert.equal(supportAngleLabel(), "滚动支座法向角（deg）");
+  assert.equal(supportAngleLabel(), "滚动支座法向角（°）");
   assert.equal(supportAngleApplies("roller"), true);
   assert.equal(supportAngleApplies("fixed"), false);
-  assert.match(supportAngleHelpText(), /仅滚动支座生效/u);
+  assert.match(supportAngleHelpText(), /90° 表示竖向法向/u);
 });

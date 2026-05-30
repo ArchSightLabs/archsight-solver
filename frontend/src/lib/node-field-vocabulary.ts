@@ -16,7 +16,7 @@ export function nodeCoordinateAriaLabel(subjectLabel: string, axis: NodeCoordina
 }
 
 export function supportAngleLabel(): string {
-  return "滚动支座法向角（deg）";
+  return "滚动支座法向角（°）";
 }
 
 export function supportAngleAriaLabel(subjectLabel: string): string {
@@ -28,5 +28,5 @@ export function supportAngleApplies(supportType: SupportType | undefined): boole
 }
 
 export function supportAngleHelpText(): string {
-  return "仅滚动支座生效；角度表示被约束的法向位移方向。";
+  return "仅滚动支座生效；角度表示被约束的法向位移方向，90° 表示竖向法向。";
 }
