@@ -10,6 +10,7 @@ import {
   type DiagramPlacedLabel,
 } from "../lib/diagram-label-layout";
 import { formatEngineeringValue } from "../lib/engineering-format";
+import { clamp, svgAreaPath, svgPathFromPoints } from "../lib/result-diagram-geometry";
 import { sensitivityResponseMetricLabel } from "../lib/result-metrics";
 import { ResultDiagramCard, ResultDiagramEmptyState, ResultDiagramMetricBadge, ResultDiagramMetricGallery } from "./ResultDiagramLayout";
 
@@ -83,23 +84,6 @@ const BEAM_DIAGRAM_RESPONSE_METRICS: Record<BeamDiagramMetricKey, string> = {
   shearKn: "max_shear",
   deflectionMm: "max_deflection",
 };
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
-}
-
-function pathFromPoints(points: SvgPoint[]) {
-  return points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(" ");
-}
-
-function areaPath(basePoints: SvgPoint[], resultPoints: SvgPoint[]) {
-  if (basePoints.length < 2 || resultPoints.length < 2) return "";
-  return `${pathFromPoints(resultPoints)} L ${basePoints
-    .slice()
-    .reverse()
-    .map((point) => `${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
-    .join(" L ")} Z`;
-}
 
 function supportMarker(type: BeamSupportType, x: number) {
   if (type === "fixed") {
@@ -302,8 +286,8 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
     return {
       totalLength,
       mapX,
-      resultPath: pathFromPoints(resultPoints),
-      areaPath: areaPath(basePoints, resultPoints),
+      resultPath: svgPathFromPoints(resultPoints),
+      areaPath: svgAreaPath(basePoints, resultPoints),
       resultPoints,
       spanDimensions,
       spanDimensionLegendRows,

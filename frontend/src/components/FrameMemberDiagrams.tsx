@@ -21,6 +21,7 @@ import {
   type DiagramPlacedLabel,
 } from "../lib/diagram-label-layout";
 import { formatEngineeringValue } from "../lib/engineering-format";
+import { clamp, svgAreaPath, svgPathFromPoints } from "../lib/result-diagram-geometry";
 import { summaryMetricLabel } from "../lib/result-metrics";
 import { ResultDiagramCard, ResultDiagramEmptyState, ResultDiagramMetricBadge, ResultDiagramMetricGallery } from "./ResultDiagramLayout";
 import { buildFrameDimensionLegendRows, buildFrameGeometryDimensions, frameMemberLabelPlacement } from "./frame-preview-utils";
@@ -39,25 +40,6 @@ type FrameDiagramSelectionKey = FrameDiagramMetricKey | "all";
 
 const SVG_W = 1000;
 const SVG_H = 540;
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
-}
-
-function pathFromPoints(points: SvgPoint[]) {
-  return points
-    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
-    .join(" ");
-}
-
-function areaPath(basePoints: SvgPoint[], resultPoints: SvgPoint[]) {
-  if (basePoints.length < 2 || resultPoints.length < 2) return "";
-  return `${pathFromPoints(resultPoints)} L ${basePoints
-    .slice()
-    .reverse()
-    .map((point) => `${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
-    .join(" L ")} Z`;
-}
 
 function supportMarker(type: SupportType, x: number, y: number, angleDeg?: number) {
   if (type === "fixed") {
@@ -221,8 +203,8 @@ function FrameStructureDiagram({
         id: member.id,
         basePoints,
         resultPoints,
-        resultPath: pathFromPoints(resultPoints),
-        areaPath: areaPath(basePoints, resultPoints),
+        resultPath: svgPathFromPoints(resultPoints),
+        areaPath: svgAreaPath(basePoints, resultPoints),
       }];
     });
   }, [diagramsByMember, frame.members, layout.nodeMap, metric, offsetScale]);

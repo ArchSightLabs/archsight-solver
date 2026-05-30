@@ -11,6 +11,7 @@ import {
   type DiagramPlacedLabel,
 } from "../lib/diagram-label-layout";
 import { formatEngineeringValue } from "../lib/engineering-format";
+import { clamp } from "../lib/result-diagram-geometry";
 import { summaryMetricLabel } from "../lib/result-metrics";
 import { ResultDiagramCard, ResultDiagramEmptyState, ResultDiagramMetricBadge, ResultDiagramMetricGallery } from "./ResultDiagramLayout";
 import {
@@ -45,10 +46,6 @@ const TRUSS_DIAGRAM_METRICS: TrussDiagramMetric[] = [
   { key: "axialForceKn", title: "杆件轴力图", unit: "kN" },
   { key: "displacementMm", title: "节点位移图", unit: "mm" },
 ];
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
-}
 
 function supportMarker(type: SupportType, x: number, y: number) {
   if (type === "pinned") {
