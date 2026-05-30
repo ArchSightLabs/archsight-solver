@@ -7,6 +7,7 @@ import pandas as pd
 
 from backend.common.material_catalog import material_report_rows
 from backend.common.result_metric_catalog import result_metric_label
+from backend.common.support_catalog import support_label
 from backend.exporters.common.artifact import ExportArtifact
 from backend.exporters.common.evidence import build_evidence_tables
 from backend.exporters.common.filenames import export_filename
@@ -42,8 +43,8 @@ def build_summary_tables(solution: Dict[str, Any], material_name: str):
             *material_report_rows(solution.get("materialId")),
             ["跨度 (m)", round(float(max(node["x"] for node in structure["nodes"]) - min(node["x"] for node in structure["nodes"])), 3)],
             ["层高 (m)", round(float(max(node["y"] for node in structure["nodes"]) - min(node["y"] for node in structure["nodes"])), 3)],
-            ["左支座", structure["nodes"][0]["supportType"]],
-            ["右支座", structure["nodes"][1]["supportType"]],
+            ["支座节点", _frame_support_summary(structure.get("nodes", []))],
+            ["支座说明", "框架支座按节点 ux / uy / rz 自由度参与整体刚度矩阵；滚动支座设置 supportAngleDeg 时按法向位移约束处理。"],
         ],
         columns=["参数", "值"],
     )
@@ -117,6 +118,28 @@ def build_summary_tables(solution: Dict[str, Any], material_name: str):
         columns=["项目", "说明"],
     )
     return df_summary, df_params, df_nodes, df_members, df_member_diagrams, df_conventions
+
+
+def _format_angle(value: Any) -> str:
+    if value is None:
+        return ""
+    try:
+        angle = round(float(value), 4)
+    except (TypeError, ValueError):
+        return str(value)
+    return str(int(angle)) if angle.is_integer() else str(angle)
+
+
+def _frame_support_summary(nodes: list[Dict[str, Any]]) -> str:
+    rows: list[str] = []
+    for node in nodes:
+        support_type = str(node.get("supportType", "free")).strip().lower()
+        if support_type == "free":
+            continue
+        angle = node.get("supportAngleDeg")
+        angle_text = f"，法向角 {_format_angle(angle)}°" if support_type == "roller" and angle is not None else ""
+        rows.append(f"{node.get('id', '—')}：{support_label('frame', support_type)}{angle_text}")
+    return "；".join(rows) if rows else "无支座节点"
 
 
 def export_xlsx(solution: Dict[str, Any], material_name: str):

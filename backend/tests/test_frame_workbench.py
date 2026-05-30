@@ -323,6 +323,33 @@ def test_frame_exports_include_load_combination_tags(client):
     assert "包络" in table_text
 
 
+def test_frame_exports_describe_support_nodes_instead_of_left_right(client):
+    payload = explicit_frame_payload()
+    payload["structure"]["nodes"][2]["supportAngleDeg"] = 45.0
+
+    xlsx_response = client.post("/api/export", json={**payload, "format": "xlsx"})
+    assert xlsx_response.status_code == 200
+    with pd.ExcelFile(io.BytesIO(xlsx_response.data)) as xls:
+        model_text = pd.read_excel(xls, sheet_name="02_输入模型", header=None).to_string()
+
+    assert "支座节点" in model_text
+    assert "N1：固结支座" in model_text
+    assert "N2：铰支座" in model_text
+    assert "N3：滚动支座，法向角 45°" in model_text
+    assert "框架支座按节点 ux / uy / rz 自由度参与整体刚度矩阵" in model_text
+    assert "左支座" not in model_text
+    assert "右支座" not in model_text
+
+    docx_response = client.post("/api/export", json={**payload, "format": "docx"})
+    assert docx_response.status_code == 200
+    doc = Document(io.BytesIO(docx_response.data))
+    table_text = "\n".join(cell.text for table in doc.tables for row in table.rows for cell in row.cells)
+
+    assert "N3：滚动支座，法向角 45°" in table_text
+    assert "左支座" not in table_text
+    assert "右支座" not in table_text
+
+
 def test_frame_calculate_supports_explicit_two_bay_fixture(client, explicit_two_bay_frame_payload):
     response = client.post("/api/calculate", json=explicit_two_bay_frame_payload)
     assert response.status_code == 200
