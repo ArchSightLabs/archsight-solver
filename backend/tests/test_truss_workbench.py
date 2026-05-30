@@ -123,7 +123,8 @@ def test_truss_docx_export_smoke(client):
     assert "1. 项目概况" in full_text
     assert "2. 输入参数" in full_text
     assert "2.1 结构预览图" in full_text
-    assert "图 2-1 桁架结构预览与节点变形示意（节点、杆件编号、尺寸与荷载标注同图显示；蓝色为放大后的变形线）" in full_text
+    assert "图 2-1 桁架结构预览与节点变形示意（后端兜底示意，仅显示杆件、支座、荷载与放大变形线）" in full_text
+    assert "后端兜底图不绘制节点编号、杆件编号和尺寸标注" in full_text
     assert "2.2 可审查计算证据链" in full_text
     assert "桁架" in full_text
     assert "仅承受轴力" in table_text
@@ -147,6 +148,7 @@ def test_truss_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
             "format": "docx",
             "reportOptions": {"template": "complete", "figureMode": "both", "figureScope": "all"},
             "reportImages": {
+                "truss.preview": _report_image(),
                 "truss.overlay.axial": _report_image(),
                 "truss.overlay.displacement": _report_image(),
             },
@@ -159,10 +161,12 @@ def test_truss_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
 
     assert "3.1 节点水平位移图" not in full_text
     assert "杆件轴力曲线" not in full_text
+    assert "图 2-1 桁架结构预览与节点变形示意（节点、杆件编号、尺寸与荷载标注同图显示；蓝色为放大后的变形线）" in full_text
     assert "4.1 杆件轴力图" in full_text
     assert "图 4-1 杆件轴力图（kN，模型叠加工程图）" in full_text
     assert "4.2 节点位移图" in full_text
     assert "图 4-2 节点位移图（mm，模型叠加工程图）" in full_text
+    assert "未收到前端同源结构预览图" not in full_text
     assert "未收到前端同源模型叠加工程图" not in full_text
 
 

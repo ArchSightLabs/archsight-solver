@@ -252,7 +252,8 @@ def test_frame_docx_export_smoke(client):
     assert "1. 项目概况" in full_text
     assert "2. 输入参数" in full_text
     assert "2.1 结构预览图" in full_text
-    assert "图 2-1 结构预览与变形示意（节点、构件编号、尺寸与荷载标注同图显示；蓝色为放大后的变形线）" in full_text
+    assert "图 2-1 结构预览与变形示意（后端兜底示意，仅显示构件、支座、荷载与放大变形线）" in full_text
+    assert "后端兜底图不绘制节点编号、构件编号和尺寸标注" in full_text
     assert "2.2 可审查计算证据链" in full_text
     assert "模型假定与适用范围" in full_text
     assert "边界条件表" in full_text
@@ -277,6 +278,7 @@ def test_frame_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
             "format": "docx",
             "reportOptions": {"template": "complete", "figureMode": "both", "figureScope": "all"},
             "reportImages": {
+                "frame.preview": _report_image(),
                 "frame.overlay.moment": _report_image(),
                 "frame.overlay.shear": _report_image(),
                 "frame.overlay.memberDeflection": _report_image(),
@@ -292,11 +294,13 @@ def test_frame_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
     assert "3.1 节点水平位移图" not in full_text
     assert "构件弯矩曲线" not in full_text
     assert "构件剪力曲线" not in full_text
+    assert "图 2-1 结构预览与变形示意（节点、构件编号、尺寸与荷载标注同图显示；蓝色为放大后的变形线）" in full_text
     assert "4.1 构件弯矩图（模型叠加）" in full_text
     assert "4.2 构件剪力图（模型叠加）" in full_text
     assert "4.3 构件局部 y 向挠度图（模型叠加）" in full_text
     assert "4.4 构件轴力图（模型叠加）" in full_text
     assert "图 4-4 构件轴力图（kN，模型叠加工程图）" in full_text
+    assert "未收到前端同源结构预览图" not in full_text
     assert "未收到前端同源模型叠加工程图" not in full_text
 
 

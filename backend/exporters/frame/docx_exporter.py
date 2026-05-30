@@ -41,19 +41,15 @@ def export_docx(
     add_df_table(doc, df_params)
     if include_figures(options):
         add_heading(doc, "2.1 结构预览图")
-        add_png_figure(
+        _add_preview_figure(
             doc,
-            _report_or_fallback(
-                report_images,
-                "frame.preview",
-                structure_preview_png(
-                    solution["structure"].get("nodes", []),
-                    solution["structure"].get("members", []),
-                    solution.get("frame", solution.get("preview", {})).get("deformedNodes", []),
-                    solution["structure"].get("loads", []),
-                ),
+            report_images,
+            structure_preview_png(
+                solution["structure"].get("nodes", []),
+                solution["structure"].get("members", []),
+                solution.get("frame", solution.get("preview", {})).get("deformedNodes", []),
+                solution["structure"].get("loads", []),
             ),
-            "图 2-1 结构预览与变形示意（节点、构件编号、尺寸与荷载标注同图显示；蓝色为放大后的变形线）",
         )
     add_heading(doc, "2.2 可审查计算证据链")
     _add_evidence_tables(doc, build_evidence_tables(solution, "frame", material_name))
@@ -134,6 +130,27 @@ def _add_member_diagram_figures(doc, solution: Dict[str, Any], report_images: Op
             doc,
             f"说明：未收到前端同源模型叠加工程图（{'、'.join(missing_labels)}），已跳过对应插图；请从工作台导出 DOCX 以生成与结果页一致的工程图。",
         )
+
+
+def _add_preview_figure(doc, report_images: Optional[Dict[str, str]], fallback: bytes) -> None:
+    image = png_from_report_images(report_images, "frame.preview")
+    if image:
+        add_png_figure(
+            doc,
+            image,
+            "图 2-1 结构预览与变形示意（节点、构件编号、尺寸与荷载标注同图显示；蓝色为放大后的变形线）",
+        )
+        return
+
+    add_png_figure(
+        doc,
+        fallback,
+        "图 2-1 结构预览与变形示意（后端兜底示意，仅显示构件、支座、荷载与放大变形线）",
+    )
+    add_report_note(
+        doc,
+        "说明：未收到前端同源结构预览图，后端兜底图不绘制节点编号、构件编号和尺寸标注；请从工作台导出 DOCX 以生成与结果页一致的预览图。",
+    )
 
 
 def _add_evidence_tables(doc, tables: Dict[str, pd.DataFrame]) -> None:
