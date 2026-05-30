@@ -3,7 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any, Dict
 
-API_SCHEMA_VERSION = "2026-05-28"
+API_SCHEMA_VERSION = "2026-05-30"
 SCHEMA_ID_BASE_URI = "https://solver.archsight.cn/schemas"
 
 
@@ -35,6 +35,7 @@ LOAD_SCHEMA: Dict[str, Any] = {
 MATERIAL_PROPERTY_SCHEMA: Dict[str, Any] = {
     "type": "object",
     "properties": {
+        "materialId": {"type": "string", "description": "材料库编号；用于保留材料语义，E_GPa 仍是线弹性刚度计算的权威输入。"},
         "E_GPa": {"type": "number", "description": "弹性模量，单位 GPa。"},
         "E": {"type": "number", "description": "弹性模量兼容字段，单位 GPa。"},
         "A_cm2": {"type": "number", "description": "截面面积，单位 cm^2。"},

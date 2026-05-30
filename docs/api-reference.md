@@ -3,7 +3,7 @@
 ## 版本与边界
 
 - API 版本：`v1`
-- Schema 版本：`2026-05-28`
+- Schema 版本：`2026-05-30`
 - 默认本地地址：`http://127.0.0.1:6240`
 - 核心对象：梁系、二维平面框架、二维平面桁架
 - 计算假定：线弹性、小变形、确定性静力分析；当前开源核心不提供规范设计、施工安全签审或三维杆系分析
@@ -122,9 +122,9 @@ Content-Type: application/json
       {"id": "N4", "x": 6, "y": 4, "supportType": "free"}
     ],
     "members": [
-      {"id": "C1", "start": "N1", "end": "N3", "E_GPa": 210, "A_cm2": 240, "I_cm4": 12000, "kind": "column"},
-      {"id": "B1", "start": "N3", "end": "N4", "E_GPa": 210, "A_cm2": 220, "I_cm4": 15000, "kind": "beam"},
-      {"id": "C2", "start": "N2", "end": "N4", "E_GPa": 210, "A_cm2": 240, "I_cm4": 12000, "kind": "column"}
+      {"id": "C1", "start": "N1", "end": "N3", "materialId": "q345", "E_GPa": 210, "A_cm2": 240, "I_cm4": 12000, "kind": "column"},
+      {"id": "B1", "start": "N3", "end": "N4", "materialId": "q345", "E_GPa": 210, "A_cm2": 220, "I_cm4": 15000, "kind": "beam"},
+      {"id": "C2", "start": "N2", "end": "N4", "materialId": "q345", "E_GPa": 210, "A_cm2": 240, "I_cm4": 12000, "kind": "column"}
     ],
     "loads": [
       {"type": "distributed", "member": "B1", "wyKnPerM": -18},
@@ -135,6 +135,8 @@ Content-Type: application/json
 ```
 
 节点字段说明：`supportAngleDeg` 为平面框架滚动支座法向角，单位 °；仅当 `supportType` 为 `roller` 时参与约束方向计算，`90` 表示竖向法向约束。
+
+构件字段说明：`members[].materialId` 为材料库编号，用于保留材料语义、计算书材料摘要和前端编辑口径；`E_GPa`、`A_cm2`、`I_cm4` 仍是线弹性求解的刚度与截面输入。
 
 关键输出：
 
@@ -159,9 +161,9 @@ Content-Type: application/json
       {"id": "N3", "x": 8, "y": 0, "supportType": "roller"}
     ],
     "members": [
-      {"id": "M1", "start": "N1", "end": "N2", "E_GPa": 200, "A_cm2": 100, "kind": "truss"},
-      {"id": "M2", "start": "N2", "end": "N3", "E_GPa": 200, "A_cm2": 100, "kind": "truss"},
-      {"id": "M3", "start": "N1", "end": "N3", "E_GPa": 200, "A_cm2": 100, "kind": "truss"}
+      {"id": "M1", "start": "N1", "end": "N2", "materialId": "steel-verify", "E_GPa": 200, "A_cm2": 100, "kind": "truss"},
+      {"id": "M2", "start": "N2", "end": "N3", "materialId": "steel-verify", "E_GPa": 200, "A_cm2": 100, "kind": "truss"},
+      {"id": "M3", "start": "N1", "end": "N3", "materialId": "steel-verify", "E_GPa": 200, "A_cm2": 100, "kind": "truss"}
     ],
     "loads": [
       {"type": "nodal", "node": "N2", "fxKn": 50, "fyKn": 0}
@@ -169,6 +171,8 @@ Content-Type: application/json
   }
 }
 ```
+
+杆件字段说明：`members[].materialId` 为材料库编号，用于保留杆件材料语义；桁架刚度计算仍以 `E_GPa` 与 `A_cm2` 为准。
 
 关键输出：
 

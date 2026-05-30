@@ -16,6 +16,10 @@ def client():
     return app.test_client()
 
 
+def _structure_member_properties(schema):
+    return schema["properties"]["structure"]["properties"]["members"]["items"]["properties"]
+
+
 def test_schema_registry_contains_api_and_tool_contracts():
     registry = schema_registry()
 
@@ -41,6 +45,17 @@ def test_schema_registry_contains_api_and_tool_contracts():
     ]
     assert registry["job-request"]["required"] == ["payload"]
     assert registry["beam-deflection-input"]["properties"]["span"]["required"] == ["value", "unit"]
+
+
+def test_frame_and_truss_member_schemas_expose_material_id():
+    registry = schema_registry()
+
+    for schema_id in ("asms-frame-model", "asms-truss-model"):
+        member_properties = _structure_member_properties(registry[schema_id])
+
+        assert member_properties["materialId"]["type"] == "string"
+        assert "材料库编号" in member_properties["materialId"]["description"]
+        assert "E_GPa" in member_properties["materialId"]["description"]
 
 
 def test_schema_id_uri_uses_solver_public_domain():
@@ -88,6 +103,11 @@ def test_openapi_document_reuses_schema_registry():
     assert document["paths"]["/api/contracts/schemas"]["get"]["responses"]["200"]["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/schema-registry-response"
     }
+    for schema_id in ("asms-frame-model", "asms-truss-model"):
+        member_properties = _structure_member_properties(document["components"]["schemas"][schema_id])
+
+        assert member_properties["materialId"]["type"] == "string"
+        assert "材料库编号" in member_properties["materialId"]["description"]
 
 
 def test_openapi_endpoint_exposes_document(client):

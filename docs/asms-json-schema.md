@@ -124,9 +124,9 @@ Schema：`asms-frame-model`
       {"id": "N4", "x": 6, "y": 4, "supportType": "free"}
     ],
     "members": [
-      {"id": "C1", "start": "N1", "end": "N3", "E_GPa": 210, "A_cm2": 240, "I_cm4": 12000, "kind": "column"},
-      {"id": "B1", "start": "N3", "end": "N4", "E_GPa": 210, "A_cm2": 220, "I_cm4": 15000, "kind": "beam"},
-      {"id": "C2", "start": "N2", "end": "N4", "E_GPa": 210, "A_cm2": 240, "I_cm4": 12000, "kind": "column"}
+      {"id": "C1", "start": "N1", "end": "N3", "materialId": "q345", "E_GPa": 210, "A_cm2": 240, "I_cm4": 12000, "kind": "column"},
+      {"id": "B1", "start": "N3", "end": "N4", "materialId": "q345", "E_GPa": 210, "A_cm2": 220, "I_cm4": 15000, "kind": "beam"},
+      {"id": "C2", "start": "N2", "end": "N4", "materialId": "q345", "E_GPa": 210, "A_cm2": 240, "I_cm4": 12000, "kind": "column"}
     ],
     "loads": [
       {"type": "distributed", "member": "B1", "direction": "local_y", "qStartKnPerM": -18, "qEndKnPerM": -18},
@@ -147,7 +147,8 @@ Schema：`asms-frame-model`
 构件：
 
 - `start` / `end`：起止节点 ID。
-- `E_GPa`、`A_cm2`、`I_cm4`：材料与截面参数。
+- `materialId`：材料库编号，用于保留构件材料语义、前端编辑口径和计算书材料摘要。
+- `E_GPa`、`A_cm2`、`I_cm4`：线弹性求解采用的刚度与截面输入。
 - `kind`：工程语义标签，如 `beam`、`column`。
 
 荷载：
@@ -172,9 +173,9 @@ Schema：`asms-truss-model`
       {"id": "N3", "x": 8, "y": 0, "supportType": "roller"}
     ],
     "members": [
-      {"id": "M1", "start": "N1", "end": "N2", "E_GPa": 200, "A_cm2": 100, "kind": "truss"},
-      {"id": "M2", "start": "N2", "end": "N3", "E_GPa": 200, "A_cm2": 100, "kind": "truss"},
-      {"id": "M3", "start": "N1", "end": "N3", "E_GPa": 200, "A_cm2": 100, "kind": "truss"}
+      {"id": "M1", "start": "N1", "end": "N2", "materialId": "steel-verify", "E_GPa": 200, "A_cm2": 100, "kind": "truss"},
+      {"id": "M2", "start": "N2", "end": "N3", "materialId": "steel-verify", "E_GPa": 200, "A_cm2": 100, "kind": "truss"},
+      {"id": "M3", "start": "N1", "end": "N3", "materialId": "steel-verify", "E_GPa": 200, "A_cm2": 100, "kind": "truss"}
     ],
     "loads": [
       {"type": "nodal", "node": "N2", "fxKn": 50, "fyKn": 0}
@@ -186,6 +187,7 @@ Schema：`asms-truss-model`
 桁架协议约束：
 
 - 杆件只承受轴力，不输出弯矩主指标。
+- `members[].materialId` 保留杆件材料编号；桁架刚度计算以 `E_GPa` 与 `A_cm2` 为准。
 - 荷载当前以节点荷载为主；自重和等效节点荷载应在预处理层显式转换。
 - 支座不足、零长度杆件、重复 ID、无效节点引用都属于协议级错误。
 

@@ -85,8 +85,8 @@ N,节点号,x,y
 NODE,节点号,x,y,支座类型
 NSUPT,节点号,支座码,角度deg
 E,起点节点号,终点节点号,...释放参数
-MEMBER,构件号,起点节点号,终点节点号,类型,E_GPa,A_cm2,I_cm4
-PROP,构件序号或范围,E_GPa,A_cm2,I_cm4,类型
+MEMBER,构件号,起点节点号,终点节点号,类型,E_GPa,A_cm2,I_cm4,材料编号
+PROP,构件起号,构件止号,E_GPa,A_cm2,I_cm4,类型,材料编号
 NLOAD,节点号,方向码,荷载值
 LOAD,节点号,Fx_kN,Fy_kN,Mz_kN_m
 DLOAD,构件序号,qStart,qEnd,方向
@@ -94,6 +94,8 @@ ELOAD,构件序号,荷载类型,荷载值,方向
 ```
 
 `N`、`E`、`NSUPT`、`PROP`、`NLOAD`、`DLOAD` 兼容常见结构程序的短命令风格。`MEMBER` 和 `LOAD` 提供更直观的 ArchSight 显式写法。
+
+`材料编号` 可省略；省略时系统会根据 `E_GPa` 尝试匹配材料库，无法匹配时记为 `custom`。求解刚度仍以 `E_GPa`、`A_cm2`、`I_cm4` 为准。
 
 ### 示例
 
@@ -108,7 +110,7 @@ NSUPT,2,6,0
 E,1,3,1,1,1,1,1,1
 E,3,4,1,1,1,1,1,1
 E,2,4,1,1,1,1,1,1
-PROP,2,2,210,220,15000,beam
+PROP,2,2,210,220,15000,beam,q345
 DLOAD,2,-18,-18,global_y
 NLOAD,4,1,24,0
 ```
@@ -130,11 +132,12 @@ NLOAD,4,1,24,0
 
 ```text
 NODE,节点号,x,y,支座类型
-MEMBER,杆件号,起点节点号,终点节点号,E_GPa,A_cm2,类型
+MEMBER,杆件号,起点节点号,终点节点号,E_GPa,A_cm2,类型,材料编号
 LOAD,节点号,Fx_kN,Fy_kN
 ```
 
 支座类型支持 `pinned`、`roller`、`free`，也支持中文常用表达“铰接、铰支、滚动、滑动”。
+`材料编号` 可省略；省略时系统会根据 `E_GPa` 尝试匹配材料库，无法匹配时记为 `custom`。桁架求解刚度仍以 `E_GPa` 与 `A_cm2` 为准。
 
 ### 示例
 
@@ -143,9 +146,9 @@ LOAD,节点号,Fx_kN,Fy_kN
 NODE,N1,0,0,pinned
 NODE,N2,6,0,roller
 NODE,N3,3,3,free
-MEMBER,M1,N1,N3,210,24,upper_chord
-MEMBER,M2,N3,N2,210,24,upper_chord
-MEMBER,M3,N1,N2,210,24,bottom_chord
+MEMBER,M1,N1,N3,210,24,upper_chord,q345
+MEMBER,M2,N3,N2,210,24,upper_chord,q345
+MEMBER,M3,N1,N2,210,24,bottom_chord,q345
 LOAD,N3,0,-50
 ```
 
