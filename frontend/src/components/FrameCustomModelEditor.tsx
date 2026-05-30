@@ -70,6 +70,8 @@ export function FrameCustomModelEditor({
 }: FrameCustomModelEditorProps) {
   const [selectedObject, setSelectedObject] = useState<FrameSelectedObject>({ type: "node", id: value.nodes[0]?.id ?? "" });
   const [nodeConnectionTargetId, setNodeConnectionTargetId] = useState("");
+  const [memberConnectionStartId, setMemberConnectionStartId] = useState(value.nodes[0]?.id ?? "");
+  const [memberConnectionEndId, setMemberConnectionEndId] = useState(value.nodes[1]?.id ?? "");
   const [advancedSectionId, setAdvancedSectionId] = useState<FrameAdvancedSection>("nodes");
   const visibleSectionId = normalizeModuleSectionId("frame", activeSectionId) ?? "frame-template";
   const isSectionVisible = (sectionId: string) => visibleSectionId === sectionId;
@@ -78,6 +80,20 @@ export function FrameCustomModelEditor({
     () => value.nodes.map((node) => ({ value: node.id, label: node.id })),
     [value.nodes]
   );
+  const nodeIds = useMemo(() => value.nodes.map((node) => node.id), [value.nodes]);
+  const resolvedMemberConnectionStartId = nodeIds.includes(memberConnectionStartId) ? memberConnectionStartId : nodeIds[0] ?? "";
+  const resolvedMemberConnectionEndId =
+    nodeIds.includes(memberConnectionEndId) && memberConnectionEndId !== resolvedMemberConnectionStartId
+      ? memberConnectionEndId
+      : nodeIds.find((id) => id !== resolvedMemberConnectionStartId) ?? "";
+  const memberConnectionDisabledReason =
+    value.nodes.length < 2
+      ? "至少需要 2 个节点"
+      : resolvedMemberConnectionStartId === resolvedMemberConnectionEndId
+        ? "起点和终点不能相同"
+        : frameMemberExists(value.members, resolvedMemberConnectionStartId, resolvedMemberConnectionEndId)
+          ? "两节点间已有构件"
+          : undefined;
   const memberOptions = useMemo(
     () => value.members.map((member) => ({ value: member.id, label: member.id })),
     [value.members]
@@ -132,6 +148,20 @@ export function FrameCustomModelEditor({
   const selectObject = (next: FrameSelectedObject, options?: WorkbenchSelectionOptions) => {
     setSelectedObject(next);
     onSelectionChange?.({ mode: "frame", type: next.type, id: next.id }, options);
+  };
+
+  const updateMemberConnectionStart = (nextId: string) => {
+    setMemberConnectionStartId(nextId);
+    if (nextId === resolvedMemberConnectionEndId) {
+      setMemberConnectionEndId(nodeIds.find((id) => id !== nextId) ?? "");
+    }
+  };
+
+  const updateMemberConnectionEnd = (nextId: string) => {
+    setMemberConnectionEndId(nextId);
+    if (nextId === resolvedMemberConnectionStartId) {
+      setMemberConnectionStartId(nodeIds.find((id) => id !== nextId) ?? "");
+    }
   };
 
   const keep = (patch: Partial<FrameCollections> = {}): FrameCollections => ({
@@ -506,10 +536,17 @@ export function FrameCustomModelEditor({
       <FrameObjectNavigator
         nodes={value.nodes}
         members={value.members}
+        nodeOptions={nodeOptions}
         loadOptions={loadOptions}
         selectedObject={resolvedSelectedObject}
         fieldLabelClass={fieldLabelClass}
+        memberConnectionStartId={resolvedMemberConnectionStartId}
+        memberConnectionEndId={resolvedMemberConnectionEndId}
+        memberConnectionDisabledReason={memberConnectionDisabledReason}
         onSelectObject={(next) => selectObject(next)}
+        onMemberConnectionStartChange={updateMemberConnectionStart}
+        onMemberConnectionEndChange={updateMemberConnectionEnd}
+        onAddMemberConnection={() => addMemberBetweenNodes(resolvedMemberConnectionStartId, resolvedMemberConnectionEndId)}
         onAddLoad={addLoad}
       />
       ) : null}

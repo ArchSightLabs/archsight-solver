@@ -1,0 +1,49 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+
+import { createConnectedFrameMember, frameMemberExists } from "./frame-editor-model.ts";
+import { createConnectedTrussMember, trussMemberExists } from "./truss-editor-model.ts";
+import type { StructureMember, StructureNode, TrussMember, TrussNode } from "../types/structure.ts";
+
+test("框架按选定起终节点新增构件并按几何关系推断构件类型", () => {
+  const nodes: StructureNode[] = [
+    { id: "N1", x: 0, y: 0, supportType: "fixed" },
+    { id: "N2", x: 4, y: 0, supportType: "fixed" },
+    { id: "N3", x: 4, y: 3, supportType: "free" },
+  ];
+  const members: StructureMember[] = [
+    { id: "C1", start: "N1", end: "N3", elementType: "frame", E_GPa: 200, A_cm2: 240, I_cm4: 12000, kind: "column" },
+  ];
+
+  const beam = createConnectedFrameMember(nodes[0], nodes[1], members, members.map((member) => member.id), 210);
+  const brace = createConnectedFrameMember(nodes[0], nodes[2], [...members, beam], ["C1", beam.id], 210);
+
+  assert.equal(beam.start, "N1");
+  assert.equal(beam.end, "N2");
+  assert.equal(beam.kind, "beam");
+  assert.equal(brace.start, "N1");
+  assert.equal(brace.end, "N3");
+  assert.equal(brace.kind, "brace");
+  assert.equal(frameMemberExists([beam], "N2", "N1"), true);
+});
+
+test("桁架按选定起终节点新增杆件并阻止同一节点对重复连接", () => {
+  const nodes: TrussNode[] = [
+    { id: "N1", x: 0, y: 0, supportType: "pinned" },
+    { id: "N2", x: 4, y: 0, supportType: "roller" },
+    { id: "N3", x: 2, y: 3, supportType: "free" },
+  ];
+  const members: TrussMember[] = [
+    { id: "M1", start: "N1", end: "N2", elementType: "truss", E_GPa: 200, A_cm2: 30, kind: "lower_chord" },
+  ];
+
+  const diagonal = createConnectedTrussMember(nodes[0], nodes[2], members, members.map((member) => member.id), 210);
+
+  assert.equal(diagonal.start, "N1");
+  assert.equal(diagonal.end, "N3");
+  assert.equal(diagonal.kind, "diagonal");
+  assert.equal(diagonal.A_cm2, 30);
+  assert.equal(diagonal.E_GPa, 210);
+  assert.equal(trussMemberExists([...members, diagonal], "N3", "N1"), true);
+  assert.equal(trussMemberExists([...members, diagonal], "N2", "N3"), false);
+});

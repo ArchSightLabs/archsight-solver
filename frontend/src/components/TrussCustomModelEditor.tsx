@@ -9,10 +9,12 @@ import { TrussObjectNavigator, type TrussSelectedObject } from "./TrussObjectNav
 import { TrussTableSection, type TrussAdvancedSection } from "./TrussTableSection";
 import { TrussTextModelSection } from "./TrussTextModelSection";
 import {
+  createConnectedTrussMember,
   createTrussMemberDraft,
   createTrussMemberLoadDraft,
   createTrussNodalLoadDraft,
   createTrussNodeDraft,
+  trussMemberExists,
 } from "../lib/truss-editor-model.ts";
 import { TRUSS_MODEL_TEMPLATES, cloneTrussModelTemplate } from "../lib/workbench-model-templates.ts";
 import { useTrussTextModel } from "../hooks/useTrussTextModel.ts";
@@ -55,6 +57,8 @@ export function TrussCustomModelEditor({
   onSelectionChange,
 }: TrussCustomModelEditorProps) {
   const [selectedObject, setSelectedObject] = useState<TrussSelectedObject>({ type: "node", id: value.nodes[0]?.id ?? "" });
+  const [memberConnectionStartId, setMemberConnectionStartId] = useState(value.nodes[0]?.id ?? "");
+  const [memberConnectionEndId, setMemberConnectionEndId] = useState(value.nodes[1]?.id ?? "");
   const [advancedSectionId, setAdvancedSectionId] = useState<TrussAdvancedSection>("nodes");
   const visibleSectionId = normalizeModuleSectionId("truss", activeSectionId) ?? "truss-template";
   const isSectionVisible = (sectionId: string) => visibleSectionId === sectionId;
@@ -70,6 +74,20 @@ export function TrussCustomModelEditor({
     () => value.nodes.map((node) => ({ value: node.id, label: node.id })),
     [value.nodes]
   );
+  const nodeIds = useMemo(() => value.nodes.map((node) => node.id), [value.nodes]);
+  const resolvedMemberConnectionStartId = nodeIds.includes(memberConnectionStartId) ? memberConnectionStartId : nodeIds[0] ?? "";
+  const resolvedMemberConnectionEndId =
+    nodeIds.includes(memberConnectionEndId) && memberConnectionEndId !== resolvedMemberConnectionStartId
+      ? memberConnectionEndId
+      : nodeIds.find((id) => id !== resolvedMemberConnectionStartId) ?? "";
+  const memberConnectionDisabledReason =
+    value.nodes.length < 2
+      ? "至少需要 2 个节点"
+      : resolvedMemberConnectionStartId === resolvedMemberConnectionEndId
+        ? "起点和终点不能相同"
+        : trussMemberExists(value.members, resolvedMemberConnectionStartId, resolvedMemberConnectionEndId)
+          ? "两节点间已有杆件"
+          : undefined;
   const memberOptions = useMemo(
     () => value.members.map((member) => ({ value: member.id, label: member.id })),
     [value.members]
@@ -118,6 +136,20 @@ export function TrussCustomModelEditor({
   const selectObject = (next: TrussSelectedObject, options?: WorkbenchSelectionOptions) => {
     setSelectedObject(next);
     onSelectionChange?.({ mode: "truss", type: next.type, id: next.id }, options);
+  };
+
+  const updateMemberConnectionStart = (nextId: string) => {
+    setMemberConnectionStartId(nextId);
+    if (nextId === resolvedMemberConnectionEndId) {
+      setMemberConnectionEndId(nodeIds.find((id) => id !== nextId) ?? "");
+    }
+  };
+
+  const updateMemberConnectionEnd = (nextId: string) => {
+    setMemberConnectionEndId(nextId);
+    if (nextId === resolvedMemberConnectionStartId) {
+      setMemberConnectionStartId(nodeIds.find((id) => id !== nextId) ?? "");
+    }
   };
 
   const applyTypicalCase = (templateId: string) => {
@@ -171,8 +203,24 @@ export function TrussCustomModelEditor({
     if (value.nodes.length < 2) {
       return;
     }
-    const nextMembers = [...value.members, createTrussMemberDraft(value.members.length, value.nodes, value.members.map((member) => member.id), defaultMemberElasticityGPa)];
+    const nextMember = createTrussMemberDraft(value.members.length, value.nodes, value.members.map((member) => member.id), defaultMemberElasticityGPa);
+    const nextMembers = [...value.members, nextMember];
     commit({ nodes: value.nodes, members: nextMembers, loads: value.loads });
+    selectObject({ type: "member", id: nextMember.id }, { openEditor: false });
+  };
+
+  const addMemberBetweenNodes = (startId: string, endId: string) => {
+    if (!startId || !endId || startId === endId || trussMemberExists(value.members, startId, endId)) {
+      return;
+    }
+    const start = value.nodes.find((node) => node.id === startId);
+    const end = value.nodes.find((node) => node.id === endId);
+    if (!start || !end) {
+      return;
+    }
+    const nextMember = createConnectedTrussMember(start, end, value.members, value.members.map((member) => member.id), defaultMemberElasticityGPa);
+    commit({ nodes: value.nodes, members: [...value.members, nextMember], loads: value.loads });
+    selectObject({ type: "member", id: nextMember.id }, { openEditor: false });
   };
 
   const updateMember = (index: number, patch: Partial<TrussMember>) => {
@@ -360,11 +408,18 @@ export function TrussCustomModelEditor({
       <TrussObjectNavigator
         nodes={value.nodes}
         members={value.members}
+        nodeOptions={nodeOptions}
         loadOptions={loadOptions}
         selectedObject={resolvedSelectedObject}
         supportCount={supportCount}
         fieldLabelClass={fieldLabelClass}
+        memberConnectionStartId={resolvedMemberConnectionStartId}
+        memberConnectionEndId={resolvedMemberConnectionEndId}
+        memberConnectionDisabledReason={memberConnectionDisabledReason}
         onSelectObject={(next) => selectObject(next)}
+        onMemberConnectionStartChange={updateMemberConnectionStart}
+        onMemberConnectionEndChange={updateMemberConnectionEnd}
+        onAddMemberConnection={() => addMemberBetweenNodes(resolvedMemberConnectionStartId, resolvedMemberConnectionEndId)}
         onAddNodalLoad={addNodalLoad}
         onAddMemberLoad={addMemberLoad}
       />

@@ -57,6 +57,45 @@ export function createTrussMemberDraft(index: number, nodes: TrussNode[], existi
   };
 }
 
+function memberKindBetween(start: TrussNode | undefined, end: TrussNode | undefined): TrussMember["kind"] {
+  if (!start || !end) return "generic";
+  if (Math.abs(start.y - end.y) < 1e-9) return start.y <= 0 && end.y <= 0 ? "lower_chord" : "upper_chord";
+  return "diagonal";
+}
+
+function templateForKind(members: TrussMember[], kind: TrussMember["kind"]): Pick<TrussMember, "E_GPa" | "A_cm2" | "kind"> {
+  const template = members.find((member) => member.kind === kind) ?? members[0];
+  return {
+    E_GPa: template?.E_GPa ?? 210,
+    A_cm2: template?.A_cm2 ?? 24,
+    kind: template?.kind ?? kind ?? "generic",
+  };
+}
+
+export function trussMemberExists(members: TrussMember[], start: string, end: string): boolean {
+  return members.some((member) => (member.start === start && member.end === end) || (member.start === end && member.end === start));
+}
+
+export function createConnectedTrussMember(
+  start: TrussNode,
+  end: TrussNode,
+  members: TrussMember[],
+  existingIds: string[],
+  defaultYoungModulusGPa = 210,
+): TrussMember {
+  const kind = memberKindBetween(start, end);
+  const template = templateForKind(members, kind);
+  return {
+    id: nextTrussDraftId("M", existingIds),
+    start: start.id,
+    end: end.id,
+    elementType: "truss",
+    ...template,
+    E_GPa: defaultYoungModulusGPa,
+    kind,
+  };
+}
+
 export function createTrussNodalLoadDraft(nodes: TrussNode[]): TrussLoad {
   return {
     type: "nodal",

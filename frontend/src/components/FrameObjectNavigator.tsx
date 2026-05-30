@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react";
 
 import { Button } from "./ui/button";
+import { MemberConnectionPanel } from "./MemberConnectionPanel";
 import { ModelObjectGuide } from "./ModelObjectGuide";
 import { modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
 import { nodeSupportSummary } from "../lib/support-vocabulary.ts";
@@ -14,10 +15,17 @@ export type FrameSelectedObject =
 interface FrameObjectNavigatorProps {
   nodes: StructureNode[];
   members: StructureMember[];
+  nodeOptions: Array<{ value: string; label: string }>;
   loadOptions: Array<{ value: string; label: string }>;
   selectedObject: FrameSelectedObject;
   fieldLabelClass: string;
+  memberConnectionStartId: string;
+  memberConnectionEndId: string;
+  memberConnectionDisabledReason?: string;
   onSelectObject: (next: FrameSelectedObject) => void;
+  onMemberConnectionStartChange: (nextId: string) => void;
+  onMemberConnectionEndChange: (nextId: string) => void;
+  onAddMemberConnection: () => void;
   onAddLoad: () => void;
 }
 
@@ -36,10 +44,17 @@ function formatCoordinate(value: number) {
 export function FrameObjectNavigator({
   nodes,
   members,
+  nodeOptions,
   loadOptions,
   selectedObject,
   fieldLabelClass,
+  memberConnectionStartId,
+  memberConnectionEndId,
+  memberConnectionDisabledReason,
   onSelectObject,
+  onMemberConnectionStartChange,
+  onMemberConnectionEndChange,
+  onAddMemberConnection,
   onAddLoad,
 }: FrameObjectNavigatorProps) {
   const supportNodes = nodes.filter((node) => (node.supportType ?? "free") !== "free");
@@ -84,6 +99,17 @@ export function FrameObjectNavigator({
         </div>
         <div className="space-y-2">
           <div className={fieldLabelClass}>{vocabulary.memberGroupLabel}</div>
+          <MemberConnectionPanel
+            fieldLabelClass={fieldLabelClass}
+            memberTerm="构件"
+            nodeOptions={nodeOptions}
+            startNodeId={memberConnectionStartId}
+            endNodeId={memberConnectionEndId}
+            disabledReason={memberConnectionDisabledReason}
+            onStartNodeChange={onMemberConnectionStartChange}
+            onEndNodeChange={onMemberConnectionEndChange}
+            onAddConnection={onAddMemberConnection}
+          />
           <div className="flex flex-wrap gap-2">
             {members.map((member) => (
               <button

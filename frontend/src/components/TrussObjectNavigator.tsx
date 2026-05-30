@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react";
 
 import { Button } from "./ui/button";
+import { MemberConnectionPanel } from "./MemberConnectionPanel";
 import { ModelObjectGuide } from "./ModelObjectGuide";
 import { modelObjectLoadLabel, modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
 import { trussSupportSummary } from "../lib/support-vocabulary.ts";
@@ -14,11 +15,18 @@ export type TrussSelectedObject =
 interface TrussObjectNavigatorProps {
   nodes: TrussNode[];
   members: TrussMember[];
+  nodeOptions: Array<{ value: string; label: string }>;
   loadOptions: Array<{ value: string; label: string }>;
   selectedObject: TrussSelectedObject;
   supportCount: number;
   fieldLabelClass: string;
+  memberConnectionStartId: string;
+  memberConnectionEndId: string;
+  memberConnectionDisabledReason?: string;
   onSelectObject: (next: TrussSelectedObject) => void;
+  onMemberConnectionStartChange: (nextId: string) => void;
+  onMemberConnectionEndChange: (nextId: string) => void;
+  onAddMemberConnection: () => void;
   onAddNodalLoad: () => void;
   onAddMemberLoad: () => void;
 }
@@ -38,11 +46,18 @@ function formatCoordinate(value: number) {
 export function TrussObjectNavigator({
   nodes,
   members,
+  nodeOptions,
   loadOptions,
   selectedObject,
   supportCount,
   fieldLabelClass,
+  memberConnectionStartId,
+  memberConnectionEndId,
+  memberConnectionDisabledReason,
   onSelectObject,
+  onMemberConnectionStartChange,
+  onMemberConnectionEndChange,
+  onAddMemberConnection,
   onAddNodalLoad,
   onAddMemberLoad,
 }: TrussObjectNavigatorProps) {
@@ -90,6 +105,17 @@ export function TrussObjectNavigator({
         </div>
         <div className="space-y-2">
           <div className={fieldLabelClass}>{vocabulary.memberGroupLabel}</div>
+          <MemberConnectionPanel
+            fieldLabelClass={fieldLabelClass}
+            memberTerm="杆件"
+            nodeOptions={nodeOptions}
+            startNodeId={memberConnectionStartId}
+            endNodeId={memberConnectionEndId}
+            disabledReason={memberConnectionDisabledReason}
+            onStartNodeChange={onMemberConnectionStartChange}
+            onEndNodeChange={onMemberConnectionEndChange}
+            onAddConnection={onAddMemberConnection}
+          />
           <div className="flex flex-wrap gap-2">
             {members.map((member) => (
               <button
