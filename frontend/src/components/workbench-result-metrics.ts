@@ -1,7 +1,7 @@
 import type { BeamCalculationResults } from "../types/beam";
 import type { FrameCalculationResults, TrussCalculationResults } from "../types/structure";
-import { formatEngineeringValue } from "../lib/engineering-format";
-import { summaryMetricLabel } from "../lib/result-metrics";
+import { formatEngineeringValue } from "../lib/engineering-format.ts";
+import { summaryMetricLabel } from "../lib/result-metrics.ts";
 
 export type SummaryRow = {
   label: string;
@@ -142,6 +142,15 @@ export function frameDataCurveOptions(results: FrameCalculationResults): DataCur
   ];
 }
 
+function frameControlMomentMemberId(results: FrameCalculationResults): string | null {
+  const control = results.memberResults.reduce<{ memberId: string; value: number } | null>((current, member) => {
+    const value = member.maxAbsMomentKnM ?? Math.max(Math.abs(member.momentStartKnM), Math.abs(member.momentEndKnM));
+    if (!current || value > current.value) return { memberId: member.memberId, value };
+    return current;
+  }, null);
+  return control?.memberId ?? null;
+}
+
 export function beamSummaryRows(results: BeamCalculationResults): SummaryRow[] {
   return [
     {
@@ -177,6 +186,7 @@ export function trussSummaryRows(results: TrussCalculationResults): SummaryRow[]
 }
 
 export function frameSummaryRows(results: FrameCalculationResults): SummaryRow[] {
+  const controlMomentMemberId = frameControlMomentMemberId(results);
   return [
     {
       label: summaryMetricLabel("frame", "allowable_displacement", "允许位移"),
@@ -191,7 +201,7 @@ export function frameSummaryRows(results: FrameCalculationResults): SummaryRow[]
     {
       label: summaryMetricLabel("frame", "max_member_moment", "最大构件弯矩"),
       value: formatEngineeringValue(results.summary.maxMomentKnM, "kN·m"),
-      detail: `节点 ${results.nodeIds.length} 个 · 构件 ${results.memberIds.length} 个`,
+      detail: `控制构件 ${controlMomentMemberId ?? "—"} · 弯矩校核`,
     },
     {
       label: summaryMetricLabel("frame", "calculation_status", "计算结论"),
