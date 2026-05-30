@@ -19,6 +19,15 @@ import {
 import { TRUSS_MODEL_TEMPLATES, cloneTrussModelTemplate } from "../lib/workbench-model-templates.ts";
 import { useTrussTextModel } from "../hooks/useTrussTextModel.ts";
 import { useNodePairConnection } from "../hooks/useNodePairConnection.ts";
+import {
+  removeTrussLoadCollections,
+  removeTrussMemberCollections,
+  removeTrussNodeCollections,
+  updateTrussLoadCollections,
+  updateTrussMemberCollections,
+  updateTrussNodeCollections,
+  type TrussEditorCollections,
+} from "../lib/truss-model-edits.ts";
 import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
 import { memberElasticityDistributionLabel, youngModulusForMaterial } from "../lib/material-presets.ts";
 import { trussSupportStabilityWarning } from "../solver-payload.ts";
@@ -26,11 +35,7 @@ import { PREDEFINED_MATERIALS } from "../types/material.ts";
 import type { TrussLoad, TrussMember, TrussNode } from "../types/structure.ts";
 import type { TrussWorkbenchSelection, WorkbenchSelectionOptions } from "../types/workbench-selection.ts";
 
-interface TrussCollections {
-  nodes: TrussNode[];
-  members: TrussMember[];
-  loads: TrussLoad[];
-}
+type TrussCollections = TrussEditorCollections;
 
 interface TrussCustomModelEditorProps {
   value: TrussCollections;
@@ -41,10 +46,6 @@ interface TrussCustomModelEditorProps {
   activeSectionId?: string;
   selection?: TrussWorkbenchSelection | null;
   onSelectionChange?: (next: TrussWorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
-}
-
-function canonicalId(value: string | undefined, fallback: string): string {
-  return value?.trim() || fallback;
 }
 
 export function TrussCustomModelEditor({
@@ -149,25 +150,11 @@ export function TrussCustomModelEditor({
   };
 
   const updateNode = (index: number, patch: Partial<TrussNode>) => {
-    const current = value.nodes[index];
-    if (!current) return;
-    const nextId = patch.id !== undefined ? canonicalId(patch.id, current.id) : current.id;
-    const nextPatch = patch.id !== undefined ? { ...patch, id: nextId } : patch;
-    const isRenaming = nextId !== current.id;
-    const nextNodes = value.nodes.map((node, nodeIndex) => (nodeIndex === index ? { ...node, ...nextPatch } : node));
-    const nextMembers = value.members.map((member) => {
-      if (isRenaming && current.id === member.start) {
-        return { ...member, start: nextId };
-      }
-      if (isRenaming && current.id === member.end) {
-        return { ...member, end: nextId };
-      }
-      return member;
-    });
-    const nextLoads = value.loads.map((load) => (isRenaming && load.type === "nodal" && load.node === current.id ? { ...load, node: nextId } : load));
-    commit({ nodes: nextNodes, members: nextMembers, loads: nextLoads });
-    if (isRenaming && resolvedSelectedObject.type === "node" && resolvedSelectedObject.id === current.id) {
-      selectObject({ type: "node", id: nextId }, { openEditor: false });
+    const result = updateTrussNodeCollections(value, index, patch);
+    if (!result) return;
+    commit(result.next);
+    if (result.renamed && resolvedSelectedObject.type === "node" && resolvedSelectedObject.id === result.previousId) {
+      selectObject({ type: "node", id: result.nextId }, { openEditor: false });
     }
   };
 
@@ -191,13 +178,8 @@ export function TrussCustomModelEditor({
   };
 
   const removeNode = (index: number) => {
-    const removed = value.nodes[index];
-    if (!removed) return;
-    commit({
-      nodes: value.nodes.filter((_, nodeIndex) => nodeIndex !== index),
-      members: value.members.filter((member) => member.start !== removed.id && member.end !== removed.id),
-      loads: value.loads.filter((load) => load.type !== "nodal" || load.node !== removed.id),
-    });
+    const next = removeTrussNodeCollections(value, index);
+    if (next) commit(next);
   };
 
   const addMember = () => {
@@ -232,32 +214,17 @@ export function TrussCustomModelEditor({
   };
 
   const updateMember = (index: number, patch: Partial<TrussMember>) => {
-    const current = value.members[index];
-    if (!current) return;
-    const nextId = patch.id !== undefined ? canonicalId(patch.id, current.id) : current.id;
-    const nextPatch = patch.id !== undefined ? { ...patch, id: nextId } : patch;
-    const isRenaming = nextId !== current.id;
-    const nextMembers = value.members.map((member, memberIndex) => (memberIndex === index ? { ...member, ...nextPatch } : member));
-    const nextLoads = value.loads.map((load) => {
-      if (isRenaming && load.type !== "nodal" && load.member === current.id) {
-        return { ...load, member: nextId } as TrussLoad;
-      }
-      return load;
-    });
-    commit({ nodes: value.nodes, members: nextMembers, loads: nextLoads });
-    if (isRenaming && resolvedSelectedObject.type === "member" && resolvedSelectedObject.id === current.id) {
-      selectObject({ type: "member", id: nextId }, { openEditor: false });
+    const result = updateTrussMemberCollections(value, index, patch);
+    if (!result) return;
+    commit(result.next);
+    if (result.renamed && resolvedSelectedObject.type === "member" && resolvedSelectedObject.id === result.previousId) {
+      selectObject({ type: "member", id: result.nextId }, { openEditor: false });
     }
   };
 
   const removeMember = (index: number) => {
-    const removed = value.members[index];
-    if (!removed) return;
-    commit({
-      nodes: value.nodes,
-      members: value.members.filter((_, memberIndex) => memberIndex !== index),
-      loads: value.loads.filter((load) => load.type === "nodal" || load.member !== removed.id),
-    });
+    const next = removeTrussMemberCollections(value, index);
+    if (next) commit(next);
   };
 
   const addNodalLoad = () => {
@@ -277,18 +244,12 @@ export function TrussCustomModelEditor({
   };
 
   const updateLoad = (index: number, patch: Partial<TrussLoad>) => {
-    const current = value.loads[index];
-    if (!current) return;
-    const nextLoads = value.loads.map((load, loadIndex) => (loadIndex === index ? ({ ...load, ...patch } as TrussLoad) : load));
-    commit({ nodes: value.nodes, members: value.members, loads: nextLoads });
+    const next = updateTrussLoadCollections(value, index, patch);
+    if (next) commit(next);
   };
 
   const removeLoad = (index: number) => {
-    commit({
-      nodes: value.nodes,
-      members: value.members,
-      loads: value.loads.filter((_, loadIndex) => loadIndex !== index),
-    });
+    commit(removeTrussLoadCollections(value, index));
   };
 
   const fieldLabelClass = "text-[10px] font-black tracking-widest text-muted-foreground";

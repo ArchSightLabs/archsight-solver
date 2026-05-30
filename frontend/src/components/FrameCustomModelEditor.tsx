@@ -22,6 +22,19 @@ import {
 } from "../lib/frame-editor-model.ts";
 import { useFrameTextModel } from "../hooks/useFrameTextModel.ts";
 import { useNodePairConnection } from "../hooks/useNodePairConnection.ts";
+import {
+  removeFrameLoadCaseCollections,
+  removeFrameLoadCollections,
+  removeFrameLoadCombinationCollections,
+  removeFrameMemberCollections,
+  removeFrameNodeCollections,
+  updateFrameLoadCaseCollections,
+  updateFrameLoadCollections,
+  updateFrameLoadCombinationCollections,
+  updateFrameMemberCollections,
+  updateFrameNodeCollections,
+  type FrameEditorCollections,
+} from "../lib/frame-model-edits.ts";
 import { FRAME_MODEL_TEMPLATES, cloneFrameModelTemplate } from "../lib/workbench-model-templates.ts";
 import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
 import { memberElasticityDistributionLabel, youngModulusForMaterial } from "../lib/material-presets.ts";
@@ -36,13 +49,7 @@ import type {
 } from "../types/structure.ts";
 import type { FrameWorkbenchSelection, WorkbenchSelectionOptions } from "../types/workbench-selection.ts";
 
-interface FrameCollections {
-  nodes: StructureNode[];
-  members: StructureMember[];
-  loads: FrameLoad[];
-  loadCases: FrameLoadCase[];
-  loadCombinations: FrameLoadCombination[];
-}
+type FrameCollections = FrameEditorCollections;
 
 interface FrameCustomModelEditorProps {
   value: FrameCollections;
@@ -53,10 +60,6 @@ interface FrameCustomModelEditorProps {
   activeSectionId?: string;
   selection?: FrameWorkbenchSelection | null;
   onSelectionChange?: (next: FrameWorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
-}
-
-function canonicalId(value: string | undefined, fallback: string): string {
-  return value?.trim() || fallback;
 }
 
 export function FrameCustomModelEditor({
@@ -181,39 +184,11 @@ export function FrameCustomModelEditor({
   };
 
   const updateNode = (index: number, patch: Partial<StructureNode>) => {
-    const current = value.nodes[index];
-    if (!current) return;
-    const nextId = patch.id !== undefined ? canonicalId(patch.id, current.id) : current.id;
-    const nextPatch = patch.id !== undefined ? { ...patch, id: nextId } : patch;
-    const isRenaming = nextId !== current.id;
-    const nextNodes = value.nodes.map((node, nodeIndex) => (nodeIndex === index ? { ...node, ...nextPatch } : node));
-    const nextMembers = value.members.map((member) => {
-      if (isRenaming && current.id === member.start) {
-        return { ...member, start: nextId };
-      }
-      if (isRenaming && current.id === member.end) {
-        return { ...member, end: nextId };
-      }
-      return member;
-    });
-    const nextLoads = value.loads.map((load) => {
-      if (isRenaming && load.type === "nodal" && load.node === current.id) {
-        return { ...load, node: nextId };
-      }
-      return load;
-    });
-    const nextLoadCases = value.loadCases.map((loadCase) => ({
-      ...loadCase,
-      loads: loadCase.loads.map((load) => {
-        if (isRenaming && load.type === "nodal" && load.node === current.id) {
-          return { ...load, node: nextId };
-        }
-        return load;
-      }),
-    }));
-    commit(keep({ nodes: nextNodes, members: nextMembers, loads: nextLoads, loadCases: nextLoadCases }));
-    if (isRenaming && resolvedSelectedObject.type === "node" && resolvedSelectedObject.id === current.id) {
-      selectObject({ type: "node", id: nextId }, { openEditor: false });
+    const result = updateFrameNodeCollections(value, index, patch);
+    if (!result) return;
+    commit(result.next);
+    if (result.renamed && resolvedSelectedObject.type === "node" && resolvedSelectedObject.id === result.previousId) {
+      selectObject({ type: "node", id: result.nextId }, { openEditor: false });
     }
   };
 
@@ -266,16 +241,8 @@ export function FrameCustomModelEditor({
   };
 
   const removeNode = (index: number) => {
-    const removed = value.nodes[index];
-    if (!removed) return;
-    const nextNodes = value.nodes.filter((_, nodeIndex) => nodeIndex !== index);
-    const nextMembers = value.members.filter((member) => member.start !== removed.id && member.end !== removed.id);
-    const nextLoads = value.loads.filter((load) => load.type !== "nodal" || load.node !== removed.id);
-    const nextLoadCases = value.loadCases.map((loadCase) => ({
-      ...loadCase,
-      loads: loadCase.loads.filter((load) => load.type !== "nodal" || load.node !== removed.id),
-    }));
-    commit(keep({ nodes: nextNodes, members: nextMembers, loads: nextLoads, loadCases: nextLoadCases }));
+    const next = removeFrameNodeCollections(value, index);
+    if (next) commit(next);
   };
 
   const addMember = () => {
@@ -310,43 +277,17 @@ export function FrameCustomModelEditor({
   };
 
   const updateMember = (index: number, patch: Partial<StructureMember>) => {
-    const current = value.members[index];
-    if (!current) return;
-    const nextId = patch.id !== undefined ? canonicalId(patch.id, current.id) : current.id;
-    const nextPatch = patch.id !== undefined ? { ...patch, id: nextId } : patch;
-    const isRenaming = nextId !== current.id;
-    const nextMembers = value.members.map((member, memberIndex) => (memberIndex === index ? { ...member, ...nextPatch } : member));
-    const nextLoads = value.loads.map((load) => {
-      if (isRenaming && (load.type === "distributed" || load.type === "member_point") && load.member === current.id) {
-        return { ...load, member: nextId };
-      }
-      return load;
-    });
-    const nextLoadCases = value.loadCases.map((loadCase) => ({
-      ...loadCase,
-      loads: loadCase.loads.map((load) => {
-        if (isRenaming && (load.type === "distributed" || load.type === "member_point") && load.member === current.id) {
-          return { ...load, member: nextId };
-        }
-        return load;
-      }),
-    }));
-    commit(keep({ members: nextMembers, loads: nextLoads, loadCases: nextLoadCases }));
-    if (isRenaming && resolvedSelectedObject.type === "member" && resolvedSelectedObject.id === current.id) {
-      selectObject({ type: "member", id: nextId }, { openEditor: false });
+    const result = updateFrameMemberCollections(value, index, patch);
+    if (!result) return;
+    commit(result.next);
+    if (result.renamed && resolvedSelectedObject.type === "member" && resolvedSelectedObject.id === result.previousId) {
+      selectObject({ type: "member", id: result.nextId }, { openEditor: false });
     }
   };
 
   const removeMember = (index: number) => {
-    const removed = value.members[index];
-    if (!removed) return;
-    const nextMembers = value.members.filter((_, memberIndex) => memberIndex !== index);
-    const nextLoads = value.loads.filter((load) => load.type === "nodal" || load.member !== removed.id);
-    const nextLoadCases = value.loadCases.map((loadCase) => ({
-      ...loadCase,
-      loads: loadCase.loads.filter((load) => load.type === "nodal" || load.member !== removed.id),
-    }));
-    commit(keep({ members: nextMembers, loads: nextLoads, loadCases: nextLoadCases }));
+    const next = removeFrameMemberCollections(value, index);
+    if (next) commit(next);
   };
 
   const addLoad = () => {
@@ -355,14 +296,12 @@ export function FrameCustomModelEditor({
   };
 
   const updateLoad = (index: number, patch: Partial<FrameLoad>) => {
-    const current = value.loads[index];
-    if (!current) return;
-    const nextLoads = value.loads.map((load, loadIndex) => (loadIndex === index ? { ...load, ...patch } as FrameLoad : load));
-    commit(keep({ loads: nextLoads }));
+    const next = updateFrameLoadCollections(value, index, patch);
+    if (next) commit(next);
   };
 
   const removeLoad = (index: number) => {
-    commit(keep({ loads: value.loads.filter((_, loadIndex) => loadIndex !== index) }));
+    commit(removeFrameLoadCollections(value, index));
   };
 
   const addLoadCase = () => {
@@ -374,33 +313,13 @@ export function FrameCustomModelEditor({
   };
 
   const updateLoadCase = (index: number, patch: Partial<FrameLoadCase>) => {
-    const current = value.loadCases[index];
-    if (!current) return;
-    const nextId = canonicalId(patch.id, current.id);
-    const nextPatch = patch.id !== undefined ? { ...patch, id: nextId } : patch;
-    const nextLoadCases = value.loadCases.map((loadCase, loadCaseIndex) => (loadCaseIndex === index ? { ...loadCase, ...nextPatch } : loadCase));
-    const nextLoadCombinations =
-      patch.id !== undefined && nextId !== current.id
-        ? value.loadCombinations.map((combination) => {
-            if (!(current.id in combination.factors)) return combination;
-            const { [current.id]: factor, ...rest } = combination.factors;
-            return { ...combination, factors: { ...rest, [nextId]: factor } };
-          })
-        : value.loadCombinations;
-    commit(keep({ loadCases: nextLoadCases, loadCombinations: nextLoadCombinations }));
+    const result = updateFrameLoadCaseCollections(value, index, patch);
+    if (result) commit(result.next);
   };
 
   const removeLoadCase = (index: number) => {
-    const removed = value.loadCases[index];
-    if (!removed) return;
-    commit(keep({
-      loadCases: value.loadCases.filter((_, loadCaseIndex) => loadCaseIndex !== index),
-      loadCombinations: value.loadCombinations.map((combination) => {
-        const factors = { ...combination.factors };
-        delete factors[removed.id];
-        return { ...combination, factors };
-      }).filter((combination) => Object.keys(combination.factors).length > 0),
-    }));
+    const next = removeFrameLoadCaseCollections(value, index);
+    if (next) commit(next);
   };
 
   const addLoadToCase = (loadCaseIndex: number) => {
@@ -432,11 +351,8 @@ export function FrameCustomModelEditor({
   };
 
   const updateLoadCombination = (index: number, patch: Partial<FrameLoadCombination>) => {
-    const combination = value.loadCombinations[index];
-    if (!combination) return;
-    const nextPatch = patch.id !== undefined ? { ...patch, id: canonicalId(patch.id, combination.id) } : patch;
-    const nextCombinations = value.loadCombinations.map((item, itemIndex) => (itemIndex === index ? { ...item, ...nextPatch } : item));
-    commit(keep({ loadCombinations: nextCombinations }));
+    const next = updateFrameLoadCombinationCollections(value, index, patch);
+    if (next) commit(next);
   };
 
   const fieldLabelClass = "text-[10px] font-black tracking-widest text-muted-foreground";
@@ -598,7 +514,7 @@ export function FrameCustomModelEditor({
         onAddLoadCombination={addLoadCombination}
         onUpdateLoadCombination={updateLoadCombination}
         onRemoveLoadCombination={(combinationIndex) =>
-          commit(keep({ loadCombinations: value.loadCombinations.filter((_, index) => index !== combinationIndex) }))
+          commit(removeFrameLoadCombinationCollections(value, combinationIndex))
         }
       />
       ) : null}
