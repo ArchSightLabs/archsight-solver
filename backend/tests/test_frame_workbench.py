@@ -10,12 +10,23 @@ from docx import Document
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from app import app
+from backend.exporters.common.report_figure_catalog import FRAME_REPORT_MEMBER_FIGURES, report_figures_for_scope
 from backend.exporters.common.report_figures import BLUE, ChartSeries, line_chart_png
 
 
 def _report_image() -> str:
     png = line_chart_png([0, 1], [ChartSeries("占位", [0, 1], BLUE)])
     return f"data:image/png;base64,{base64.b64encode(png).decode('ascii')}"
+
+
+def _frame_report_images_for_scope(*, include_all: bool) -> dict[str, str]:
+    return {
+        "frame.preview": _report_image(),
+        **{
+            figure.overlay_image_key: _report_image()
+            for figure in report_figures_for_scope(FRAME_REPORT_MEMBER_FIGURES, include_all=include_all)
+        },
+    }
 
 
 def frame_payload():
@@ -272,19 +283,16 @@ def test_frame_docx_export_smoke(client):
 
 
 def test_frame_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
+    figures = report_figures_for_scope(FRAME_REPORT_MEMBER_FIGURES, include_all=True)
+    report_images = _frame_report_images_for_scope(include_all=True)
+
     response = client.post(
         "/api/export",
         json={
             **frame_payload(),
             "format": "docx",
             "reportOptions": {"template": "complete", "figureMode": "both", "figureScope": "all"},
-            "reportImages": {
-                "frame.preview": _report_image(),
-                "frame.overlay.moment": _report_image(),
-                "frame.overlay.shear": _report_image(),
-                "frame.overlay.memberDeflection": _report_image(),
-                "frame.overlay.axial": _report_image(),
-            },
+            "reportImages": report_images,
         },
     )
 
@@ -296,14 +304,13 @@ def test_frame_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
     assert "构件弯矩曲线" not in full_text
     assert "构件剪力曲线" not in full_text
     assert "图 2-1 结构预览与变形示意（节点、构件编号、尺寸与荷载标注同图显示；蓝色为放大后的变形线）" in full_text
-    assert "4.1 构件弯矩图（模型叠加）" in full_text
-    assert "4.2 构件剪力图（模型叠加）" in full_text
-    assert "4.3 构件局部 y 向挠度图（模型叠加）" in full_text
-    assert "4.4 构件轴力图（模型叠加）" in full_text
-    assert "图 4-4 构件轴力图（kN，模型叠加工程图）" in full_text
+    assert list(report_images) == ["frame.preview", *(figure.overlay_image_key for figure in figures)]
+    for index, figure in enumerate(figures, start=1):
+        assert f"4.{index} 构件{figure.title}（模型叠加）" in full_text
+        assert f"图 4-{index} 构件{figure.title}（{figure.unit}，模型叠加工程图）" in full_text
     assert "未收到前端同源结构预览图" not in full_text
     assert "未收到前端同源模型叠加工程图" not in full_text
-    assert len(doc.inline_shapes) == 5
+    assert len(doc.inline_shapes) == 1 + len(figures)
 
 
 def test_frame_exports_include_load_combination_tags(client):

@@ -11,6 +11,7 @@ from docx import Document
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from app import app
+from backend.exporters.common.report_figure_catalog import TRUSS_REPORT_OVERLAY_FIGURES, report_figures_for_scope
 from backend.exporters.common.report_figures import BLUE, ChartSeries, line_chart_png
 from backend.tests.benchmark_catalog import load_benchmark_catalog
 
@@ -21,6 +22,16 @@ BENCHMARK_CASES = [case for case in load_benchmark_catalog()["cases"] if case["c
 def _report_image() -> str:
     png = line_chart_png([0, 1], [ChartSeries("占位", [0, 1], BLUE)])
     return f"data:image/png;base64,{base64.b64encode(png).decode('ascii')}"
+
+
+def _truss_report_images_for_scope(*, include_all: bool) -> dict[str, str]:
+    return {
+        "truss.preview": _report_image(),
+        **{
+            figure.image_key: _report_image()
+            for figure in report_figures_for_scope(TRUSS_REPORT_OVERLAY_FIGURES, include_all=include_all)
+        },
+    }
 
 
 def _base_payload():
@@ -142,17 +153,16 @@ def test_truss_docx_export_smoke(client):
 
 
 def test_truss_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
+    figures = report_figures_for_scope(TRUSS_REPORT_OVERLAY_FIGURES, include_all=True)
+    report_images = _truss_report_images_for_scope(include_all=True)
+
     response = client.post(
         "/api/export",
         json={
             **_base_payload(),
             "format": "docx",
             "reportOptions": {"template": "complete", "figureMode": "both", "figureScope": "all"},
-            "reportImages": {
-                "truss.preview": _report_image(),
-                "truss.overlay.axial": _report_image(),
-                "truss.overlay.displacement": _report_image(),
-            },
+            "reportImages": report_images,
         },
     )
 
@@ -163,13 +173,13 @@ def test_truss_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
     assert "3.1 节点水平位移图" not in full_text
     assert "杆件轴力曲线" not in full_text
     assert "图 2-1 桁架结构预览与节点变形示意（节点、杆件编号、尺寸与荷载标注同图显示；蓝色为放大后的变形线）" in full_text
-    assert "4.1 杆件轴力图" in full_text
-    assert "图 4-1 杆件轴力图（kN，模型叠加工程图）" in full_text
-    assert "4.2 节点位移图" in full_text
-    assert "图 4-2 节点位移图（mm，模型叠加工程图）" in full_text
+    assert list(report_images) == ["truss.preview", *(figure.image_key for figure in figures)]
+    for index, figure in enumerate(figures, start=1):
+        assert f"4.{index} {figure.title}" in full_text
+        assert f"图 4-{index} {figure.title}（{figure.unit}，模型叠加工程图）" in full_text
     assert "未收到前端同源结构预览图" not in full_text
     assert "未收到前端同源模型叠加工程图" not in full_text
-    assert len(doc.inline_shapes) == 3
+    assert len(doc.inline_shapes) == 1 + len(figures)
 
 
 @pytest.mark.parametrize(
