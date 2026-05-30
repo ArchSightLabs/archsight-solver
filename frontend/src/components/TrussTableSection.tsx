@@ -4,6 +4,7 @@ import { Button } from "./ui/button";
 import { TrussLoadEditor } from "./TrussLoadEditor";
 import { TrussMemberEditor } from "./TrussMemberEditor";
 import { TrussNodeEditor } from "./TrussNodeEditor";
+import { MemberConnectionPanel } from "./MemberConnectionPanel";
 import { modelObjectLoadLabel, modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
 
 export type TrussAdvancedSection = "nodes" | "members" | "loads";
@@ -18,7 +19,12 @@ interface TrussTableSectionProps {
   memberOptions: TrussSelectOption[];
   fieldLabelClass: string;
   activeSectionId: TrussAdvancedSection;
+  memberConnectionStartId: string;
+  memberConnectionEndId: string;
+  memberConnectionDisabledReason?: string;
   onSectionChange: (next: TrussAdvancedSection) => void;
+  onMemberConnectionStartChange: (nextId: string) => void;
+  onMemberConnectionEndChange: (nextId: string) => void;
   onUpdateNode: (index: number, patch: Partial<TrussNode>) => void;
   onRemoveNode: (index: number) => void;
   onAddMember: () => void;
@@ -38,7 +44,12 @@ export function TrussTableSection({
   memberOptions,
   fieldLabelClass,
   activeSectionId,
+  memberConnectionStartId,
+  memberConnectionEndId,
+  memberConnectionDisabledReason,
   onSectionChange,
+  onMemberConnectionStartChange,
+  onMemberConnectionEndChange,
   onUpdateNode,
   onRemoveNode,
   onAddMember,
@@ -117,11 +128,18 @@ export function TrussTableSection({
                 <Triangle className="h-3.5 w-3.5 text-primary" />
                 {vocabulary.memberGroupLabel}
               </div>
-              <Button variant="outline" size="sm" onClick={onAddMember} className="h-8 rounded-xl" disabled={nodes.length < 2}>
-                <Plus className="mr-1.5 h-3.5 w-3.5" />
-                {vocabulary.addMemberLabel}
-              </Button>
             </div>
+            <MemberConnectionPanel
+              fieldLabelClass={fieldLabelClass}
+              memberTerm="杆件"
+              nodeOptions={nodeOptions}
+              startNodeId={memberConnectionStartId}
+              endNodeId={memberConnectionEndId}
+              disabledReason={memberConnectionDisabledReason}
+              onStartNodeChange={onMemberConnectionStartChange}
+              onEndNodeChange={onMemberConnectionEndChange}
+              onAddConnection={onAddMember}
+            />
             <div className="space-y-3">
               {members.map((member, index) => (
                 <TrussMemberEditor

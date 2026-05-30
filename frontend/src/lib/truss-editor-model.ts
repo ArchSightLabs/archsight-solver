@@ -101,6 +101,32 @@ export function createConnectedTrussMember(
   };
 }
 
+export function createConnectedTrussMemberByNodeId(
+  startNodeId: string,
+  endNodeId: string,
+  nodes: TrussNode[],
+  members: TrussMember[],
+  defaultYoungModulusGPa = 210,
+  defaultMaterialId = materialIdForYoungModulus(defaultYoungModulusGPa),
+): TrussMember | undefined {
+  if (!startNodeId || !endNodeId || startNodeId === endNodeId || trussMemberExists(members, startNodeId, endNodeId)) {
+    return undefined;
+  }
+  const start = nodes.find((node) => node.id === startNodeId);
+  const end = nodes.find((node) => node.id === endNodeId);
+  if (!start || !end) {
+    return undefined;
+  }
+  return createConnectedTrussMember(
+    start,
+    end,
+    members,
+    members.map((member) => member.id),
+    defaultYoungModulusGPa,
+    defaultMaterialId,
+  );
+}
+
 export function createTrussNodalLoadDraft(nodes: TrussNode[]): TrussLoad {
   return {
     type: "nodal",

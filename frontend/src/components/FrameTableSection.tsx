@@ -6,6 +6,7 @@ import { FrameLoadCombinationSection } from "./FrameLoadCombinationSection";
 import { FrameLoadEditor } from "./FrameLoadEditor";
 import { FrameMemberEditor } from "./FrameMemberEditor";
 import { FrameNodeEditor } from "./FrameNodeEditor";
+import { MemberConnectionPanel } from "./MemberConnectionPanel";
 import { modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
 
 export type FrameAdvancedSection = "nodes" | "members" | "loads" | "loadCases" | "loadCombinations";
@@ -22,7 +23,12 @@ interface FrameTableSectionProps {
   memberOptions: FrameSelectOption[];
   fieldLabelClass: string;
   activeSectionId: FrameAdvancedSection;
+  memberConnectionStartId: string;
+  memberConnectionEndId: string;
+  memberConnectionDisabledReason?: string;
   onSectionChange: (next: FrameAdvancedSection) => void;
+  onMemberConnectionStartChange: (nextId: string) => void;
+  onMemberConnectionEndChange: (nextId: string) => void;
   onAddMember: () => void;
   onUpdateNode: (index: number, patch: Partial<StructureNode>) => void;
   onRemoveNode: (index: number) => void;
@@ -52,7 +58,12 @@ export function FrameTableSection({
   memberOptions,
   fieldLabelClass,
   activeSectionId,
+  memberConnectionStartId,
+  memberConnectionEndId,
+  memberConnectionDisabledReason,
   onSectionChange,
+  onMemberConnectionStartChange,
+  onMemberConnectionEndChange,
   onAddMember,
   onUpdateNode,
   onRemoveNode,
@@ -139,11 +150,18 @@ export function FrameTableSection({
                 <Layers3 className="h-3.5 w-3.5 text-primary" />
                 {vocabulary.memberGroupLabel}
               </div>
-              <Button variant="outline" size="sm" onClick={onAddMember} className="h-8 rounded-xl" disabled={nodes.length < 2}>
-                <Plus className="mr-1.5 h-3.5 w-3.5" />
-                {vocabulary.addMemberLabel}
-              </Button>
             </div>
+            <MemberConnectionPanel
+              fieldLabelClass={fieldLabelClass}
+              memberTerm="构件"
+              nodeOptions={nodeOptions}
+              startNodeId={memberConnectionStartId}
+              endNodeId={memberConnectionEndId}
+              disabledReason={memberConnectionDisabledReason}
+              onStartNodeChange={onMemberConnectionStartChange}
+              onEndNodeChange={onMemberConnectionEndChange}
+              onAddConnection={onAddMember}
+            />
             <div className="space-y-3">
               {members.map((member, index) => (
                 <FrameMemberEditor

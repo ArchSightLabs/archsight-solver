@@ -11,10 +11,10 @@ import { FrameTextModelSection } from "./FrameTextModelSection";
 import { Plus, Layers3 } from "lucide-react";
 import {
   createConnectedFrameMember,
+  createConnectedFrameMemberByNodeId,
   createFrameCombinationDraft,
   createFrameLoadCaseDraft,
   createFrameLoadDraft,
-  createFrameMemberDraft,
   distanceBetweenFrameNodes,
   frameDistributedLoadKindLabel,
   frameMemberExists,
@@ -246,25 +246,17 @@ export function FrameCustomModelEditor({
   };
 
   const addMember = () => {
-    if (value.nodes.length < 2) {
+    if (value.nodes.length < 2 || memberConnection.disabledReason) {
       return;
     }
-    const nextMember = createFrameMemberDraft(value.members.length, value.nodes, value.members.map((member) => member.id), defaultMemberElasticityGPa, materialId);
-    const nextMembers = [...value.members, nextMember];
-    commit(keep({ members: nextMembers }));
-    selectObject({ type: "member", id: nextMember.id }, { openEditor: false });
+    addMemberBetweenNodes(memberConnection.startNodeId, memberConnection.endNodeId);
   };
 
   const addMemberBetweenNodes = (startId: string, endId: string) => {
-    if (!startId || !endId || startId === endId || frameMemberExists(value.members, startId, endId)) {
+    const nextMember = createConnectedFrameMemberByNodeId(startId, endId, value.nodes, value.members, defaultMemberElasticityGPa, materialId);
+    if (!nextMember) {
       return;
     }
-    const start = value.nodes.find((node) => node.id === startId);
-    const end = value.nodes.find((node) => node.id === endId);
-    if (!start || !end) {
-      return;
-    }
-    const nextMember = createConnectedFrameMember(start, end, value.members, value.members.map((member) => member.id), defaultMemberElasticityGPa, materialId);
     const nextMembers = [...value.members, nextMember];
     memberConnection.advanceAfterConnection({
       nodeIds,
@@ -496,7 +488,12 @@ export function FrameCustomModelEditor({
         memberOptions={memberOptions}
         fieldLabelClass={fieldLabelClass}
         activeSectionId={advancedSectionId}
+        memberConnectionStartId={memberConnection.startNodeId}
+        memberConnectionEndId={memberConnection.endNodeId}
+        memberConnectionDisabledReason={memberConnection.disabledReason}
         onSectionChange={setAdvancedSectionId}
+        onMemberConnectionStartChange={memberConnection.updateStartNodeId}
+        onMemberConnectionEndChange={memberConnection.updateEndNodeId}
         onAddMember={addMember}
         onUpdateNode={updateNode}
         onRemoveNode={removeNode}

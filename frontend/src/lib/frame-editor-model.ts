@@ -139,6 +139,32 @@ export function createConnectedFrameMember(
   };
 }
 
+export function createConnectedFrameMemberByNodeId(
+  startNodeId: string,
+  endNodeId: string,
+  nodes: StructureNode[],
+  members: StructureMember[],
+  defaultYoungModulusGPa = 210,
+  defaultMaterialId = materialIdForYoungModulus(defaultYoungModulusGPa),
+): StructureMember | undefined {
+  if (!startNodeId || !endNodeId || startNodeId === endNodeId || frameMemberExists(members, startNodeId, endNodeId)) {
+    return undefined;
+  }
+  const start = nodes.find((node) => node.id === startNodeId);
+  const end = nodes.find((node) => node.id === endNodeId);
+  if (!start || !end) {
+    return undefined;
+  }
+  return createConnectedFrameMember(
+    start,
+    end,
+    members,
+    members.map((member) => member.id),
+    defaultYoungModulusGPa,
+    defaultMaterialId,
+  );
+}
+
 export function createFrameMemberDraft(index: number, nodes: StructureNode[], existingIds: string[], defaultYoungModulusGPa = 210, defaultMaterialId = materialIdForYoungModulus(defaultYoungModulusGPa)): StructureMember {
   const start = nodes[index]?.id ?? nodes[0]?.id ?? "N1";
   const end = nodes[index + 1]?.id ?? nodes[nodes.length - 1]?.id ?? start;

@@ -9,8 +9,7 @@ import { TrussObjectNavigator, type TrussSelectedObject } from "./TrussObjectNav
 import { TrussTableSection, type TrussAdvancedSection } from "./TrussTableSection";
 import { TrussTextModelSection } from "./TrussTextModelSection";
 import {
-  createConnectedTrussMember,
-  createTrussMemberDraft,
+  createConnectedTrussMemberByNodeId,
   createTrussMemberLoadDraft,
   createTrussNodalLoadDraft,
   createTrussNodeDraft,
@@ -183,25 +182,17 @@ export function TrussCustomModelEditor({
   };
 
   const addMember = () => {
-    if (value.nodes.length < 2) {
+    if (value.nodes.length < 2 || memberConnection.disabledReason) {
       return;
     }
-    const nextMember = createTrussMemberDraft(value.members.length, value.nodes, value.members.map((member) => member.id), defaultMemberElasticityGPa, materialId);
-    const nextMembers = [...value.members, nextMember];
-    commit({ nodes: value.nodes, members: nextMembers, loads: value.loads });
-    selectObject({ type: "member", id: nextMember.id }, { openEditor: false });
+    addMemberBetweenNodes(memberConnection.startNodeId, memberConnection.endNodeId);
   };
 
   const addMemberBetweenNodes = (startId: string, endId: string) => {
-    if (!startId || !endId || startId === endId || trussMemberExists(value.members, startId, endId)) {
+    const nextMember = createConnectedTrussMemberByNodeId(startId, endId, value.nodes, value.members, defaultMemberElasticityGPa, materialId);
+    if (!nextMember) {
       return;
     }
-    const start = value.nodes.find((node) => node.id === startId);
-    const end = value.nodes.find((node) => node.id === endId);
-    if (!start || !end) {
-      return;
-    }
-    const nextMember = createConnectedTrussMember(start, end, value.members, value.members.map((member) => member.id), defaultMemberElasticityGPa, materialId);
     const nextMembers = [...value.members, nextMember];
     memberConnection.advanceAfterConnection({
       nodeIds,
@@ -424,7 +415,12 @@ export function TrussCustomModelEditor({
         memberOptions={memberOptions}
         fieldLabelClass={fieldLabelClass}
         activeSectionId={advancedSectionId}
+        memberConnectionStartId={memberConnection.startNodeId}
+        memberConnectionEndId={memberConnection.endNodeId}
+        memberConnectionDisabledReason={memberConnection.disabledReason}
         onSectionChange={setAdvancedSectionId}
+        onMemberConnectionStartChange={memberConnection.updateStartNodeId}
+        onMemberConnectionEndChange={memberConnection.updateEndNodeId}
         onUpdateNode={updateNode}
         onRemoveNode={removeNode}
         onAddMember={addMember}
