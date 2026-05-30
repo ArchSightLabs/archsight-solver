@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { buildBeamPayload, buildFramePayload, buildTrussPayload, validateCustomFrameWorkspace, validateCustomTrussWorkspace } from "../solver-payload.ts";
 import { MAX_FRAME_MEMBERS, MAX_FRAME_NODES, MAX_TRUSS_MEMBERS, MAX_TRUSS_NODES } from "./solver-limits.ts";
-import { cloneFrameWorkspaceState, createDefaultBeamWorkspaceState, createDefaultFrameWorkspaceState, createDefaultTrussWorkspaceState, normalizeFrameWorkspaceState } from "./workspace-state.ts";
+import { cloneFrameWorkspaceState, createDefaultBeamWorkspaceState, createDefaultFrameWorkspaceState, createDefaultTrussWorkspaceState, normalizeFrameWorkspaceState, normalizeTrussWorkspaceState } from "./workspace-state.ts";
 import type { FrameWorkspaceState, TrussWorkspaceState } from "../types/structure.ts";
 
 test("buildBeamPayload serializes configurable load inputs", () => {
@@ -249,7 +249,7 @@ test("normalizeFrameWorkspaceState canonicalizes load case ids and preserves adv
       { id: "N2", x: 4, y: 0, supportType: "roller", supportAngleDeg: 45, springs: [{ dof: "uy", stiffnessKnPerM: 12000 }] },
     ],
     customMembers: [
-      { id: "B1", start: "N1", end: "N2", E_GPa: 210, A_cm2: 220, I_cm4: 15000, kind: "beam", endReleases: { end: ["rz"] }, internalHinges: [{ ratio: 0.5 }] },
+      { id: "B1", start: "N1", end: "N2", materialId: "q235", E_GPa: 206, A_cm2: 220, I_cm4: 15000, kind: "beam", endReleases: { end: ["rz"] }, internalHinges: [{ ratio: 0.5 }] },
     ],
     customLoads: [{ type: "member_point", member: "B1", direction: "global_y", forceKn: -8, positionRatio: 1.2 }],
     customLoadCases: [{ id: " DL ", title: "恒载", loads: [{ type: "nodal", node: "N2", fxKn: 0, fyKn: -10, mzKnM: 0 }] }],
@@ -259,6 +259,7 @@ test("normalizeFrameWorkspaceState canonicalizes load case ids and preserves adv
 
   assert.equal(cloned.customNodes[1].supportAngleDeg, 45);
   assert.deepEqual(cloned.customNodes[1].springs, [{ dof: "uy", stiffnessKnPerM: 12000 }]);
+  assert.equal(cloned.customMembers[0].materialId, "q235");
   assert.deepEqual(cloned.customMembers[0].endReleases?.end, ["rz"]);
   assert.deepEqual(cloned.customMembers[0].internalHinges, [{ ratio: 0.5 }]);
   assert.deepEqual(cloned.customLoads[0], { type: "member_point", member: "B1", direction: "global_y", forceKn: -8, positionRatio: 1 });
@@ -281,6 +282,24 @@ test("buildFramePayload uses canonical load case ids for combinations", () => {
   assert.equal(payload.structure.loadCombinations?.[0]?.id, "ULS1");
   assert.deepEqual(payload.structure.loadCombinations?.[0]?.factors, { DL: 1.2 });
   assert.deepEqual(payload.structure.loadCombinations?.[0]?.tags, ["ULS", "包络"]);
+});
+
+test("buildFramePayload preserves member material ids while keeping E_GPa authoritative", () => {
+  const workspace = createDefaultFrameWorkspaceState();
+  workspace.frameMode = "custom";
+  workspace.customMembers = [
+    { ...workspace.customMembers[0], id: "C1", materialId: "q235", E_GPa: 206 },
+    { ...workspace.customMembers[1], id: "B1", materialId: "custom", E_GPa: 198.5 },
+    { ...workspace.customMembers[2], id: "C2", E_GPa: 210 },
+  ];
+
+  const payload = buildFramePayload(workspace);
+
+  assert.ok(payload);
+  assert.equal(payload.structure.members[0]?.materialId, "q235");
+  assert.equal(payload.structure.members[0]?.E_GPa, 206);
+  assert.equal(payload.structure.members[1]?.materialId, "custom");
+  assert.equal(payload.structure.members[2]?.materialId, "q345");
 });
 
 test("validateCustomTrussWorkspace rejects invalid references", () => {
@@ -367,4 +386,22 @@ test("buildTrussPayload treats legacy fixed support as pinned instead of free", 
 
   assert.equal(payload?.structure.nodes[0]?.supportType, "pinned");
   assert.equal(validateCustomTrussWorkspace(workspace), null);
+});
+
+test("normalizeTrussWorkspaceState and buildTrussPayload preserve rod material ids", () => {
+  const workspace = normalizeTrussWorkspaceState({
+    ...createDefaultTrussWorkspaceState(),
+    customMembers: [
+      { id: "M1", start: "N1", end: "N2", materialId: "q235", E_GPa: 206, A_cm2: 24, kind: "generic" },
+      { id: "M2", start: "N2", end: "N3", E_GPa: 210, A_cm2: 24, kind: "diagonal" },
+    ],
+  });
+
+  const payload = buildTrussPayload(workspace);
+
+  assert.equal(workspace.customMembers[0]?.materialId, "q235");
+  assert.equal(workspace.customMembers[1]?.materialId, "q345");
+  assert.ok(payload);
+  assert.equal(payload.structure.members[0]?.materialId, "q235");
+  assert.equal(payload.structure.members[1]?.materialId, "q345");
 });

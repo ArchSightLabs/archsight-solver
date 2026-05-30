@@ -28,6 +28,7 @@ NLOAD,4,2,5
   assert.equal(result.collections.nodes[1]?.supportType, "pinned");
   assert.equal(result.collections.nodes[2]?.supportType, "free");
   assert.equal(result.collections.members[1]?.kind, "beam");
+  assert.equal(result.collections.members[1]?.materialId, "q345");
   assert.equal(result.collections.members[1]?.I_cm4, 15000);
   assert.deepEqual(result.collections.loads[0], {
     type: "distributed",
@@ -79,6 +80,7 @@ LOAD,2,0,-10,0
   assert.equal(restored.collections.members.length, 1);
   assert.equal(restored.collections.loads.length, 1);
   assert.deepEqual(restored.collections.members[0]?.endReleases?.start, ["rz"]);
+  assert.equal(restored.collections.members[0]?.materialId, "q345");
 });
 
 test("serializeFrameTextModel uses sequential SM element numbers for named members", () => {
@@ -98,8 +100,8 @@ test("serializeFrameTextModel uses sequential SM element numbers for named membe
     ],
   });
 
-  assert.match(text, /PROP,1,1,210,240,12000,column/u);
-  assert.match(text, /PROP,2,2,210,220,15000,beam/u);
+  assert.match(text, /PROP,1,1,210,240,12000,column,q345/u);
+  assert.match(text, /PROP,2,2,210,220,15000,beam,q345/u);
   assert.match(text, /DLOAD,2,-18,-18,global_y,0.15,0.85/u);
   assert.match(text, /PLOAD,2,-12,0.5,global_y/u);
 });

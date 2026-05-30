@@ -204,7 +204,7 @@ export function TrussCustomModelEditor({
     if (value.nodes.length < 2) {
       return;
     }
-    const nextMember = createTrussMemberDraft(value.members.length, value.nodes, value.members.map((member) => member.id), defaultMemberElasticityGPa);
+    const nextMember = createTrussMemberDraft(value.members.length, value.nodes, value.members.map((member) => member.id), defaultMemberElasticityGPa, materialId);
     const nextMembers = [...value.members, nextMember];
     commit({ nodes: value.nodes, members: nextMembers, loads: value.loads });
     selectObject({ type: "member", id: nextMember.id }, { openEditor: false });
@@ -219,7 +219,7 @@ export function TrussCustomModelEditor({
     if (!start || !end) {
       return;
     }
-    const nextMember = createConnectedTrussMember(start, end, value.members, value.members.map((member) => member.id), defaultMemberElasticityGPa);
+    const nextMember = createConnectedTrussMember(start, end, value.members, value.members.map((member) => member.id), defaultMemberElasticityGPa, materialId);
     const nextMembers = [...value.members, nextMember];
     memberConnection.advanceAfterConnection({
       nodeIds,

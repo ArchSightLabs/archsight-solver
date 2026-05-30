@@ -58,6 +58,31 @@ def test_shared_structural_model_preserves_frame_contract_shape():
     }
 
 
+def test_shared_structural_model_preserves_member_material_id():
+    model = build_structural_model(
+        analysis_type="frame",
+        template="explicit",
+        raw_nodes=[
+            {"id": "N1", "x": 0, "y": 0, "supportType": "fixed"},
+            {"id": "N2", "x": 4, "y": 0, "supportType": "roller"},
+        ],
+        raw_members=[
+            {"id": "B1", "start": "N1", "end": "N2", "materialId": " Q235 ", "E_GPa": 206, "A_cm2": 120, "I_cm4": 8000},
+        ],
+        raw_loads=[],
+        labels=FRAME_SUPPORT_LABELS,
+        include_bending=True,
+        allow_distributed=True,
+        min_nodes_error="框架至少需要 2 个节点",
+        min_members_error="框架至少需要 1 个构件",
+    )
+
+    member = model.to_structure_contract(include_bending=True)["members"][0]
+
+    assert member["materialId"] == "q235"
+    assert member["E_GPa"] == 206.0
+
+
 def test_shared_structural_model_preserves_springs_releases_and_load_direction():
     model = build_structural_model(
         analysis_type="frame",

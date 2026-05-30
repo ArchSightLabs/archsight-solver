@@ -45,6 +45,7 @@ class StructuralMember:
     start: str
     end: str
     element_type: str
+    material_id: Optional[str]
     E_GPa: float
     A_cm2: float
     I_cm4: Optional[float] = None
@@ -61,6 +62,8 @@ class StructuralMember:
             "E_GPa": self.E_GPa,
             "A_cm2": self.A_cm2,
         }
+        if self.material_id:
+            data["materialId"] = self.material_id
         if include_bending:
             data["I_cm4"] = self.I_cm4 if self.I_cm4 is not None else 8000.0
             if self.end_releases:
@@ -339,6 +342,7 @@ def parse_members(
                 start=start,
                 end=end,
                 element_type=parse_element_type(member.get("elementType"), expected=expected_element_type, member_id=member_id),
+                material_id=parse_member_material_id(member.get("materialId")),
                 E_GPa=e_gpa,
                 A_cm2=a_cm2,
                 I_cm4=i_cm4,
@@ -352,6 +356,13 @@ def parse_members(
     if max_count is not None and len(members) > max_count:
         raise ValueError(max_count_error or f"构件数量超出系统限制 (最大 {max_count} 个)")
     return members
+
+
+def parse_member_material_id(value: Any) -> Optional[str]:
+    if value in (None, ""):
+        return None
+    material_id = str(value).strip().lower()
+    return material_id or None
 
 
 def expand_member_internal_hinges(

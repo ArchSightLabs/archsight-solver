@@ -23,9 +23,11 @@ const trussNodes: TrussNode[] = [
 test("框架新增构件使用当前默认材料弹性模量并保留截面模板", () => {
   const direct = createFrameMemberDraft(0, frameNodes, [], 32.5);
   assert.equal(direct.E_GPa, 32.5);
+  assert.equal(direct.materialId, "c40");
 
-  const connected = createConnectedFrameMember(frameNodes[0], frameNodes[2], frameTemplateMembers, ["C1"], 30);
+  const connected = createConnectedFrameMember(frameNodes[0], frameNodes[2], frameTemplateMembers, ["C1"], 30, "c30");
   assert.equal(connected.E_GPa, 30);
+  assert.equal(connected.materialId, "c30");
   assert.equal(connected.A_cm2, 260);
   assert.equal(connected.I_cm4, 14000);
   assert.equal(connected.kind, "column");
@@ -35,5 +37,6 @@ test("桁架新增杆件使用当前默认材料弹性模量", () => {
   const member = createTrussMemberDraft(0, trussNodes, [], 206);
 
   assert.equal(member.E_GPa, 206);
+  assert.equal(member.materialId, "q235");
   assert.equal(member.A_cm2, 24);
 });

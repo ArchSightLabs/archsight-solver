@@ -51,8 +51,34 @@ export function materialLabelForYoungModulus(youngModulus: number, materials: Ma
   return materialId.toUpperCase();
 }
 
+export function materialLabelForId(materialId: string | undefined, materials: Material[] = PREDEFINED_MATERIALS): string {
+  const normalizedId = String(materialId ?? "").trim().toLowerCase();
+  if (!normalizedId || normalizedId === "custom") return "自定义";
+  return materials.some((material) => material.id === normalizedId) ? normalizedId.toUpperCase() : normalizedId;
+}
+
+export function materialIdForMember(
+  member: { materialId?: string; E_GPa?: number },
+  materials: Material[] = PREDEFINED_MATERIALS,
+): string {
+  const explicitId = String(member.materialId ?? "").trim().toLowerCase();
+  if (explicitId) return explicitId;
+  return materialIdForYoungModulus(Number(member.E_GPa), materials);
+}
+
 export function materialElasticityLabelForYoungModulus(youngModulus: number, materials: Material[] = PREDEFINED_MATERIALS): string {
   const materialLabel = materialLabelForYoungModulus(youngModulus, materials);
+  return materialLabel === "自定义"
+    ? `自定义 E=${formatMaterialNumber(youngModulus)} GPa`
+    : `${materialLabel} · E=${formatMaterialNumber(youngModulus)} GPa`;
+}
+
+export function materialElasticityLabelForMember(
+  member: { materialId?: string; E_GPa?: number },
+  materials: Material[] = PREDEFINED_MATERIALS,
+): string {
+  const youngModulus = Number(member.E_GPa);
+  const materialLabel = materialLabelForId(materialIdForMember(member, materials), materials);
   return materialLabel === "自定义"
     ? `自定义 E=${formatMaterialNumber(youngModulus)} GPa`
     : `${materialLabel} · E=${formatMaterialNumber(youngModulus)} GPa`;
@@ -64,19 +90,19 @@ export function youngModulusForMaterial(materialId: string, fallback: number, ma
 }
 
 export function memberElasticityDistributionLabel(
-  members: Array<{ E_GPa?: number }>,
+  members: Array<{ materialId?: string; E_GPa?: number }>,
   memberLabel: "构件" | "杆件",
 ): string {
   const counts = new Map<string, number>();
   members.forEach((member) => {
-    const elasticity = formatMaterialNumber(Number(member.E_GPa));
-    if (elasticity === "—") return;
-    counts.set(elasticity, (counts.get(elasticity) ?? 0) + 1);
+    if (!Number.isFinite(Number(member.E_GPa))) return;
+    const label = materialElasticityLabelForMember(member);
+    counts.set(label, (counts.get(label) ?? 0) + 1);
   });
   if (counts.size === 0) return `未设置${memberLabel}弹性模量`;
   return Array.from(counts.entries())
-    .sort(([left], [right]) => Number(left) - Number(right))
-    .map(([elasticity, count]) => `${materialElasticityLabelForYoungModulus(Number(elasticity))}：${count} 个${memberLabel}`)
+    .sort(([left], [right]) => left.localeCompare(right, "zh-Hans-CN"))
+    .map(([label, count]) => `${label}：${count} 个${memberLabel}`)
     .join("；");
 }
 

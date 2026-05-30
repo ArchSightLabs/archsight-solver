@@ -6,6 +6,7 @@ import {
   splitTextModelTokens,
   uniqueTextModelId,
 } from "./text-model-utils.ts";
+import { materialIdForYoungModulus } from "./material-presets.ts";
 
 export interface FrameTextCollections {
   nodes: StructureNode[];
@@ -26,6 +27,10 @@ const DEFAULT_MEMBER: Pick<StructureMember, "E_GPa" | "A_cm2" | "I_cm4" | "kind"
   I_cm4: 8000,
   kind: "generic",
 };
+
+function normalizedMaterialId(value: string | undefined, youngModulusGPa: number): string {
+  return String(value ?? materialIdForYoungModulus(youngModulusGPa)).trim().toLowerCase() || "custom";
+}
 
 const splitTokens = (line: string) => splitTextModelTokens(line, { commentMarkers: ["//", "#", "！"] });
 const toNumber = (value: string | undefined) => parseTextModelNumber(value, { stripParentheses: true });
@@ -284,11 +289,13 @@ export function parseFrameTextModel(text: string): FrameTextParseResult {
       const start = nodeId(tokens[2], "N1");
       const end = nodeId(tokens[3], "N2");
       const nodeLookup = nodeMap(rawNodes);
+      const E_GPa = toNumber(tokens[5]) ?? DEFAULT_MEMBER.E_GPa;
       members.push(defaultMember(id, start, end, {
         kind: tokens[4] ?? inferMemberKind(nodeLookup.get(start), nodeLookup.get(end)),
-        E_GPa: toNumber(tokens[5]) ?? DEFAULT_MEMBER.E_GPa,
+        E_GPa,
         A_cm2: toNumber(tokens[6]) ?? DEFAULT_MEMBER.A_cm2,
         I_cm4: toNumber(tokens[7]) ?? DEFAULT_MEMBER.I_cm4,
+        materialId: normalizedMaterialId(tokens[8], E_GPa),
       }));
       continue;
     }
@@ -341,12 +348,14 @@ export function parseFrameTextModel(text: string): FrameTextParseResult {
       }
       const tokenOffset = usesRange ? 3 : 2;
       for (let index = startIndex; index <= endIndex; index += 1) {
+        const E_GPa = toNumber(tokens[tokenOffset]) ?? members[index].E_GPa;
         members[index] = {
           ...members[index],
-          E_GPa: toNumber(tokens[tokenOffset]) ?? members[index].E_GPa,
+          E_GPa,
           A_cm2: toNumber(tokens[tokenOffset + 1]) ?? members[index].A_cm2,
           I_cm4: toNumber(tokens[tokenOffset + 2]) ?? members[index].I_cm4,
           kind: tokens[tokenOffset + 3] ?? members[index].kind,
+          materialId: normalizedMaterialId(tokens[tokenOffset + 4], E_GPa),
         };
       }
       continue;
@@ -567,8 +576,8 @@ export function serializeFrameTextModel(collections: FrameTextCollections): stri
       return `E,${nodeNumbers.get(member.start) ?? 1},${nodeNumbers.get(member.end) ?? 1},1,1,${releaseStart},1,1,${releaseEnd}`;
     }),
     "",
-    "# 截面属性扩展：PROP,构件起号,构件止号,E_GPa,A_cm2,I_cm4,类型",
-    ...collections.members.map((member, index) => `PROP,${memberNumber(member.id, index)},${memberNumber(member.id, index)},${member.E_GPa},${member.A_cm2},${member.I_cm4},${member.kind ?? "generic"}`),
+    "# 截面属性扩展：PROP,构件起号,构件止号,E_GPa,A_cm2,I_cm4,类型,材料编号",
+    ...collections.members.map((member, index) => `PROP,${memberNumber(member.id, index)},${memberNumber(member.id, index)},${member.E_GPa},${member.A_cm2},${member.I_cm4},${member.kind ?? "generic"},${normalizedMaterialId(member.materialId, member.E_GPa)}`),
     "",
     "# 荷载",
     ...collections.loads.flatMap((load) => frameLoadLine(load, nodeNumbers, memberNumbers)),

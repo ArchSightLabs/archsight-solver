@@ -225,7 +225,7 @@ export function FrameCustomModelEditor({
       return distanceBetweenFrameNodes(node, nextNode) < distanceBetweenFrameNodes(candidate, nextNode) ? node : candidate;
     }, null);
     const nextMembers = nearest && !frameMemberExists(value.members, nearest.id, nextNode.id)
-      ? [...value.members, createConnectedFrameMember(nearest, nextNode, value.members, value.members.map((member) => member.id), defaultMemberElasticityGPa)]
+      ? [...value.members, createConnectedFrameMember(nearest, nextNode, value.members, value.members.map((member) => member.id), defaultMemberElasticityGPa, materialId)]
       : value.members;
     commit(keep({ nodes: nextNodes, members: nextMembers }));
     memberConnection.selectAvailablePairForNode({
@@ -260,7 +260,7 @@ export function FrameCustomModelEditor({
       if (!nodeById.has(start.id) || !nodeById.has(end.id) || frameMemberExists(nextMembers, start.id, end.id)) {
         continue;
       }
-      nextMembers = [...nextMembers, createConnectedFrameMember(start, end, nextMembers, nextMembers.map((member) => member.id), defaultMemberElasticityGPa)];
+      nextMembers = [...nextMembers, createConnectedFrameMember(start, end, nextMembers, nextMembers.map((member) => member.id), defaultMemberElasticityGPa, materialId)];
     }
     commit(keep({ members: nextMembers }));
   };
@@ -282,7 +282,7 @@ export function FrameCustomModelEditor({
     if (value.nodes.length < 2) {
       return;
     }
-    const nextMember = createFrameMemberDraft(value.members.length, value.nodes, value.members.map((member) => member.id), defaultMemberElasticityGPa);
+    const nextMember = createFrameMemberDraft(value.members.length, value.nodes, value.members.map((member) => member.id), defaultMemberElasticityGPa, materialId);
     const nextMembers = [...value.members, nextMember];
     commit(keep({ members: nextMembers }));
     selectObject({ type: "member", id: nextMember.id }, { openEditor: false });
@@ -297,7 +297,7 @@ export function FrameCustomModelEditor({
     if (!start || !end) {
       return;
     }
-    const nextMember = createConnectedFrameMember(start, end, value.members, value.members.map((member) => member.id), defaultMemberElasticityGPa);
+    const nextMember = createConnectedFrameMember(start, end, value.members, value.members.map((member) => member.id), defaultMemberElasticityGPa, materialId);
     const nextMembers = [...value.members, nextMember];
     memberConnection.advanceAfterConnection({
       nodeIds,

@@ -1,4 +1,5 @@
 import type { TrussLoad, TrussMember, TrussNode } from "../types/structure.ts";
+import { materialIdForYoungModulus } from "./material-presets.ts";
 
 export const TRUSS_MEMBER_KIND_OPTIONS = [
   { value: "upper_chord", label: "上弦杆" },
@@ -43,7 +44,7 @@ export function createTrussNodeDraft(index: number, existingIds: string[]): Trus
   };
 }
 
-export function createTrussMemberDraft(index: number, nodes: TrussNode[], existingIds: string[], defaultYoungModulusGPa = 210): TrussMember {
+export function createTrussMemberDraft(index: number, nodes: TrussNode[], existingIds: string[], defaultYoungModulusGPa = 210, defaultMaterialId = materialIdForYoungModulus(defaultYoungModulusGPa)): TrussMember {
   const start = nodes[index]?.id ?? nodes[0]?.id ?? "N1";
   const end = nodes[index + 1]?.id ?? nodes[nodes.length - 1]?.id ?? start;
   return {
@@ -51,6 +52,7 @@ export function createTrussMemberDraft(index: number, nodes: TrussNode[], existi
     start,
     end,
     elementType: "truss",
+    materialId: defaultMaterialId,
     E_GPa: defaultYoungModulusGPa,
     A_cm2: 24,
     kind: "generic",
@@ -63,9 +65,10 @@ function memberKindBetween(start: TrussNode | undefined, end: TrussNode | undefi
   return "diagonal";
 }
 
-function templateForKind(members: TrussMember[], kind: TrussMember["kind"]): Pick<TrussMember, "E_GPa" | "A_cm2" | "kind"> {
+function templateForKind(members: TrussMember[], kind: TrussMember["kind"]): Pick<TrussMember, "materialId" | "E_GPa" | "A_cm2" | "kind"> {
   const template = members.find((member) => member.kind === kind) ?? members[0];
   return {
+    materialId: template?.materialId ?? materialIdForYoungModulus(template?.E_GPa ?? 210),
     E_GPa: template?.E_GPa ?? 210,
     A_cm2: template?.A_cm2 ?? 24,
     kind: template?.kind ?? kind ?? "generic",
@@ -82,6 +85,7 @@ export function createConnectedTrussMember(
   members: TrussMember[],
   existingIds: string[],
   defaultYoungModulusGPa = 210,
+  defaultMaterialId = materialIdForYoungModulus(defaultYoungModulusGPa),
 ): TrussMember {
   const kind = memberKindBetween(start, end);
   const template = templateForKind(members, kind);
@@ -91,6 +95,7 @@ export function createConnectedTrussMember(
     end: end.id,
     elementType: "truss",
     ...template,
+    materialId: defaultMaterialId,
     E_GPa: defaultYoungModulusGPa,
     kind,
   };

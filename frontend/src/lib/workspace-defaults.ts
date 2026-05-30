@@ -70,9 +70,9 @@ export function createPortalFrameCollections(config: PortalFrameConfig): FrameCo
     { id: "N4", x: config.span, y: config.height, supportType: "free" },
   ];
   const members: StructureMember[] = [
-    { id: "C1", start: "N1", end: "N3", elementType: "frame", E_GPa: config.columnE, A_cm2: config.columnA, I_cm4: config.columnI, kind: "column" },
-    { id: "B1", start: "N3", end: "N4", elementType: "frame", E_GPa: config.beamE, A_cm2: config.beamA, I_cm4: config.beamI, kind: "beam" },
-    { id: "C2", start: "N2", end: "N4", elementType: "frame", E_GPa: config.columnE, A_cm2: config.columnA, I_cm4: config.columnI, kind: "column" },
+    { id: "C1", start: "N1", end: "N3", elementType: "frame", materialId: "q345", E_GPa: config.columnE, A_cm2: config.columnA, I_cm4: config.columnI, kind: "column" },
+    { id: "B1", start: "N3", end: "N4", elementType: "frame", materialId: "q345", E_GPa: config.beamE, A_cm2: config.beamA, I_cm4: config.beamI, kind: "beam" },
+    { id: "C2", start: "N2", end: "N4", elementType: "frame", materialId: "q345", E_GPa: config.columnE, A_cm2: config.columnA, I_cm4: config.columnI, kind: "column" },
   ];
   const loads: FrameLoad[] = [
     { type: "distributed", member: "B1", wyKnPerM: -config.beamLoadKnPerM },
@@ -164,11 +164,11 @@ export function createDefaultTrussCollections(): TrussCollections {
       { id: "N4", x: 4, y: 3, supportType: "free" },
     ],
     members: [
-      { id: "M1", start: "N1", end: "N3", elementType: "truss", E_GPa: 210, A_cm2: 24, kind: "upper_chord" },
-      { id: "M2", start: "N3", end: "N4", elementType: "truss", E_GPa: 210, A_cm2: 24, kind: "upper_chord" },
-      { id: "M3", start: "N4", end: "N2", elementType: "truss", E_GPa: 210, A_cm2: 24, kind: "upper_chord" },
-      { id: "M4", start: "N3", end: "N2", elementType: "truss", E_GPa: 210, A_cm2: 24, kind: "diagonal" },
-      { id: "M5", start: "N1", end: "N4", elementType: "truss", E_GPa: 210, A_cm2: 24, kind: "diagonal" },
+      { id: "M1", start: "N1", end: "N3", elementType: "truss", materialId: "q345", E_GPa: 210, A_cm2: 24, kind: "upper_chord" },
+      { id: "M2", start: "N3", end: "N4", elementType: "truss", materialId: "q345", E_GPa: 210, A_cm2: 24, kind: "upper_chord" },
+      { id: "M3", start: "N4", end: "N2", elementType: "truss", materialId: "q345", E_GPa: 210, A_cm2: 24, kind: "upper_chord" },
+      { id: "M4", start: "N3", end: "N2", elementType: "truss", materialId: "q345", E_GPa: 210, A_cm2: 24, kind: "diagonal" },
+      { id: "M5", start: "N1", end: "N4", elementType: "truss", materialId: "q345", E_GPa: 210, A_cm2: 24, kind: "diagonal" },
     ],
     loads: [
       { type: "nodal", node: "N3", fxKn: 0, fyKn: -50 },

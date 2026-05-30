@@ -6,8 +6,10 @@ import { cn } from "@/lib/utils";
 type MemberMaterialMode = "frame" | "truss";
 
 interface MemberMaterialPresetFieldProps {
+  materialId?: string;
   youngModulusGPa: number;
   onYoungModulusChange: (nextYoungModulusGPa: number) => void;
+  onMaterialChange?: (nextMaterialId: string, nextYoungModulusGPa: number) => void;
   fieldLabelClass: string;
   memberLabel: "构件" | "杆件";
   mode: MemberMaterialMode;
@@ -20,8 +22,10 @@ interface MemberMaterialPresetFieldProps {
 const MATERIAL_OPTIONS = materialDropdownOptions();
 
 export function MemberMaterialPresetField({
+  materialId,
   youngModulusGPa,
   onYoungModulusChange,
+  onMaterialChange,
   fieldLabelClass,
   memberLabel,
   mode,
@@ -30,7 +34,7 @@ export function MemberMaterialPresetField({
   ariaLabel = `${memberLabel}材料预设（回填弹性模量 E）`,
   showHint = true,
 }: MemberMaterialPresetFieldProps) {
-  const selectedMaterialId = materialIdForYoungModulus(youngModulusGPa);
+  const selectedMaterialId = materialId ?? materialIdForYoungModulus(youngModulusGPa);
   const engineeringHint = [
     memberMaterialPresetHint(mode, memberLabel),
     memberMaterialEngineeringNote(selectedMaterialId, youngModulusGPa, memberLabel),
@@ -40,7 +44,14 @@ export function MemberMaterialPresetField({
       <div className={fieldLabelClass}>{label}</div>
       <DropdownSelect
         value={selectedMaterialId}
-        onChange={(nextValue) => onYoungModulusChange(youngModulusForMaterial(nextValue, youngModulusGPa))}
+        onChange={(nextValue) => {
+          const nextYoungModulusGPa = youngModulusForMaterial(nextValue, youngModulusGPa);
+          if (onMaterialChange) {
+            onMaterialChange(nextValue, nextYoungModulusGPa);
+          } else {
+            onYoungModulusChange(nextYoungModulusGPa);
+          }
+        }}
         options={MATERIAL_OPTIONS}
         className="text-xs font-mono"
         menuClassName="text-xs font-mono"

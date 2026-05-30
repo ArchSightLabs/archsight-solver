@@ -1,5 +1,6 @@
 import { createPortalFrameModelFromState } from "./lib/workspace-state.ts";
 import { MAX_FRAME_MEMBERS, MAX_FRAME_NODES, MAX_TRUSS_MEMBERS, MAX_TRUSS_NODES } from "./lib/solver-limits.ts";
+import { materialIdForYoungModulus } from "./lib/material-presets.ts";
 import type { BeamApiPayload, BeamLinearLoadConfig, BeamSpanConfig, BeamWorkspaceState } from "./types/beam.ts";
 import type {
   FrameFormPayload,
@@ -273,6 +274,7 @@ function normalizeCustomFrameCollections(value: FrameWorkspaceState) {
       start: String(member.start ?? "N1").trim() || "N1",
       end: String(member.end ?? "N2").trim() || "N2",
       elementType: "frame" as const,
+      materialId: String(member.materialId ?? materialIdForYoungModulus(member.E_GPa)).trim().toLowerCase() || "custom",
       E_GPa: Number.isFinite(member.E_GPa) ? Number(member.E_GPa) : 210,
       A_cm2: Number.isFinite(member.A_cm2) ? Number(member.A_cm2) : 120,
       I_cm4: Number.isFinite(member.I_cm4) ? Number(member.I_cm4) : 8000,
@@ -292,6 +294,7 @@ function normalizeCustomTrussCollections(value: TrussWorkspaceState) {
     start: String(member.start ?? "N1").trim() || "N1",
     end: String(member.end ?? "N2").trim() || "N2",
     elementType: "truss" as const,
+    materialId: String(member.materialId ?? materialIdForYoungModulus(member.E_GPa)).trim().toLowerCase() || "custom",
     E_GPa: Number.isFinite(member.E_GPa) ? Number(member.E_GPa) : 210,
     A_cm2: Number.isFinite(member.A_cm2) ? Number(member.A_cm2) : 24,
     kind: String(member.kind ?? "generic").trim() || "generic",

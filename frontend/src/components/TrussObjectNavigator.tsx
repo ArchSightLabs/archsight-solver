@@ -3,7 +3,7 @@ import { Plus } from "lucide-react";
 import { Button } from "./ui/button";
 import { MemberConnectionPanel } from "./MemberConnectionPanel";
 import { ModelObjectGuide } from "./ModelObjectGuide";
-import { materialLabelForYoungModulus } from "../lib/material-presets.ts";
+import { materialLabelForId, materialIdForMember } from "../lib/material-presets.ts";
 import { memberSectionSummary } from "../lib/member-property-vocabulary.ts";
 import { modelObjectLoadLabel, modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
 import { trussSupportSummary } from "../lib/support-vocabulary.ts";
@@ -49,7 +49,7 @@ export function trussMemberChipSummary(member: TrussMember): string {
   return memberSectionSummary("truss", {
     E_GPa: member.E_GPa,
     A_cm2: member.A_cm2,
-    materialLabel: materialLabelForYoungModulus(member.E_GPa),
+    materialLabel: materialLabelForId(materialIdForMember(member)),
   });
 }
 

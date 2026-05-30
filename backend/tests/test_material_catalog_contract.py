@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from backend.api.analysis_types import get_material_name
 from backend.common.material_catalog import material_catalog_by_id, material_report_rows
+from backend.exporters.common.member_materials import member_elasticity_summary
 
 
 def test_shared_material_catalog_preserves_engineering_names() -> None:
@@ -28,3 +29,18 @@ def test_material_report_rows_explain_calculation_scope() -> None:
 
     unknown_rows = material_report_rows("steel-verify")
     assert any(row == ["材料库状态", "未命中共享材料库"] for row in unknown_rows)
+
+
+def test_member_elasticity_summary_uses_explicit_member_material_ids() -> None:
+    summary = member_elasticity_summary(
+        [
+            {"id": "M1", "materialId": "q235", "E_GPa": 206},
+            {"id": "M2", "materialId": "custom", "E_GPa": 198.5},
+            {"id": "M3", "E_GPa": 210},
+        ],
+        "杆件",
+    )
+
+    assert "Q235 · E=206 GPa：1 个杆件" in summary
+    assert "E=198.5 GPa：1 个杆件" in summary
+    assert "E=210 GPa：1 个杆件" in summary

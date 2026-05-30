@@ -5,6 +5,7 @@ import {
 } from "./workspace-defaults.ts";
 import { MAX_TRUSS_MEMBERS, MAX_TRUSS_NODES } from "./solver-limits.ts";
 import { normalizeTextId, pickExistingId } from "./workspace-normalizer-utils.ts";
+import { materialIdForYoungModulus } from "./material-presets.ts";
 
 function normalizeSupportType(value: unknown, fallback: SupportType = "free"): SupportType {
   const normalized = String(value ?? fallback).trim().toLowerCase();
@@ -59,12 +60,15 @@ function normalizeTrussMembers(
     const id = normalizeTextId(candidate.id, fallback.id || `M${index + 1}`, seen, "M", index);
     const start = pickExistingId(candidate.start, nodeIds, fallback.start);
     const end = pickExistingId(candidate.end, nodeIds, fallback.end);
+    const E_GPa = Number.isFinite(candidate.E_GPa) ? Number(candidate.E_GPa) : fallback.E_GPa;
+    const materialId = String(candidate.materialId ?? fallback.materialId ?? materialIdForYoungModulus(E_GPa)).trim().toLowerCase() || "custom";
     return {
       id,
       start,
       end,
       elementType: "truss",
-      E_GPa: Number.isFinite(candidate.E_GPa) ? Number(candidate.E_GPa) : fallback.E_GPa,
+      materialId,
+      E_GPa,
       A_cm2: Number.isFinite(candidate.A_cm2) ? Number(candidate.A_cm2) : fallback.A_cm2,
       kind: String(candidate.kind ?? fallback.kind ?? "generic") || "generic",
     };

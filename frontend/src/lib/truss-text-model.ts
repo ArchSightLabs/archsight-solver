@@ -1,5 +1,6 @@
 import type { TrussLoad, TrussMember, TrussNode } from "../types/structure.ts";
 import { parseTextModelNumber, splitTextModelTokens } from "./text-model-utils.ts";
+import { materialIdForYoungModulus } from "./material-presets.ts";
 
 export interface TrussTextCollections {
   nodes: TrussNode[];
@@ -14,6 +15,10 @@ export interface TrussTextParseResult {
 
 const splitTokens = splitTextModelTokens;
 const toNumber = parseTextModelNumber;
+
+function normalizedMaterialId(value: string | undefined, youngModulusGPa: number): string {
+  return String(value ?? materialIdForYoungModulus(youngModulusGPa)).trim().toLowerCase() || "custom";
+}
 
 function supportType(value: string | undefined): TrussNode["supportType"] {
   const normalized = String(value ?? "free").toLowerCase();
@@ -46,12 +51,14 @@ export function parseTrussTextModel(text: string): TrussTextParseResult {
     }
 
     if (command === "MEMBER" || command === "M" || command === "杆件") {
+      const E_GPa = toNumber(tokens[4]) ?? 210;
       members.push({
         id: tokens[1] || `M${members.length + 1}`,
         start: tokens[2] || "N1",
         end: tokens[3] || "N2",
         elementType: "truss",
-        E_GPa: toNumber(tokens[4]) ?? 210,
+        materialId: normalizedMaterialId(tokens[7], E_GPa),
+        E_GPa,
         A_cm2: toNumber(tokens[5]) ?? 24,
         kind: tokens[6] || "generic",
       });
@@ -82,8 +89,8 @@ export function serializeTrussTextModel(collections: TrussTextCollections): stri
     "# NODE,节点号,x,y,支座类型（pinned=铰支座；roller=滚动支座；free=自由节点）",
     ...collections.nodes.map((node) => `NODE,${node.id},${node.x},${node.y},${node.supportType ?? "free"}`),
     "",
-    "# MEMBER,杆件号,起点,终点,E_GPa,A_cm2,类型",
-    ...collections.members.map((member) => `MEMBER,${member.id},${member.start},${member.end},${member.E_GPa},${member.A_cm2},${member.kind ?? "generic"}`),
+    "# MEMBER,杆件号,起点,终点,E_GPa,A_cm2,类型,材料编号",
+    ...collections.members.map((member) => `MEMBER,${member.id},${member.start},${member.end},${member.E_GPa},${member.A_cm2},${member.kind ?? "generic"},${normalizedMaterialId(member.materialId, member.E_GPa)}`),
     "",
     "# LOAD,节点号,Fx_kN,Fy_kN",
     ...collections.loads.flatMap((load) => load.type === "nodal" ? [`LOAD,${load.node},${load.fxKn ?? 0},${load.fyKn ?? 0}`] : []),

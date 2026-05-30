@@ -7,6 +7,7 @@ import type {
   StructureMember,
   StructureNode,
 } from "../types/structure.ts";
+import { materialIdForYoungModulus } from "./material-presets.ts";
 
 export const FRAME_MEMBER_KIND_OPTIONS = [
   { value: "column", label: "柱" },
@@ -105,9 +106,10 @@ export function frameMemberExists(members: StructureMember[], start: string, end
   return members.some((member) => (member.start === start && member.end === end) || (member.start === end && member.end === start));
 }
 
-function templateForKind(members: StructureMember[], kind: string): Pick<StructureMember, "E_GPa" | "A_cm2" | "I_cm4" | "kind"> {
+function templateForKind(members: StructureMember[], kind: string): Pick<StructureMember, "materialId" | "E_GPa" | "A_cm2" | "I_cm4" | "kind"> {
   const template = members.find((member) => member.kind === kind) ?? members[0];
   return {
+    materialId: template?.materialId ?? materialIdForYoungModulus(template?.E_GPa ?? 210),
     E_GPa: template?.E_GPa ?? 210,
     A_cm2: template?.A_cm2 ?? 120,
     I_cm4: template?.I_cm4 ?? 8000,
@@ -121,6 +123,7 @@ export function createConnectedFrameMember(
   members: StructureMember[],
   existingIds: string[],
   defaultYoungModulusGPa = 210,
+  defaultMaterialId = materialIdForYoungModulus(defaultYoungModulusGPa),
 ): StructureMember {
   const kind = memberKindBetween(start, end);
   const template = templateForKind(members, kind);
@@ -130,12 +133,13 @@ export function createConnectedFrameMember(
     end: end.id,
     elementType: "frame",
     ...template,
+    materialId: defaultMaterialId,
     E_GPa: defaultYoungModulusGPa,
     kind,
   };
 }
 
-export function createFrameMemberDraft(index: number, nodes: StructureNode[], existingIds: string[], defaultYoungModulusGPa = 210): StructureMember {
+export function createFrameMemberDraft(index: number, nodes: StructureNode[], existingIds: string[], defaultYoungModulusGPa = 210, defaultMaterialId = materialIdForYoungModulus(defaultYoungModulusGPa)): StructureMember {
   const start = nodes[index]?.id ?? nodes[0]?.id ?? "N1";
   const end = nodes[index + 1]?.id ?? nodes[nodes.length - 1]?.id ?? start;
   return {
@@ -143,6 +147,7 @@ export function createFrameMemberDraft(index: number, nodes: StructureNode[], ex
     start,
     end,
     elementType: "frame",
+    materialId: defaultMaterialId,
     E_GPa: defaultYoungModulusGPa,
     A_cm2: 120,
     I_cm4: 8000,

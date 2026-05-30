@@ -17,6 +17,7 @@ import {
 import type { FrameCollections } from "./workspace-defaults.ts";
 import { MAX_FRAME_MEMBERS, MAX_FRAME_NODES } from "./solver-limits.ts";
 import { normalizeTextId, pickExistingId } from "./workspace-normalizer-utils.ts";
+import { materialIdForYoungModulus } from "./material-presets.ts";
 
 function normalizeSupportType(value: unknown, fallback: SupportType = "free"): SupportType {
   const normalized = String(value ?? fallback).trim().toLowerCase();
@@ -116,11 +117,14 @@ function normalizeStructureMembers(rawMembers: unknown, nodes: StructureNode[], 
     const id = normalizeTextId(candidate.id, fallback.id || `M${index + 1}`, seen, "M", index);
     const start = pickExistingId(candidate.start, nodeIds, fallback.start);
     const end = pickExistingId(candidate.end, nodeIds, fallback.end);
+    const E_GPa = Number.isFinite(candidate.E_GPa) ? Number(candidate.E_GPa) : fallback.E_GPa;
+    const materialId = String(candidate.materialId ?? fallback.materialId ?? materialIdForYoungModulus(E_GPa)).trim().toLowerCase() || "custom";
     return {
       id,
       start,
       end,
-      E_GPa: Number.isFinite(candidate.E_GPa) ? Number(candidate.E_GPa) : fallback.E_GPa,
+      materialId,
+      E_GPa,
       A_cm2: Number.isFinite(candidate.A_cm2) ? Number(candidate.A_cm2) : fallback.A_cm2,
       I_cm4: Number.isFinite(candidate.I_cm4) ? Number(candidate.I_cm4) : fallback.I_cm4,
       elementType: "frame",

@@ -28,6 +28,7 @@ export interface StructureMember {
   start: string;
   end: string;
   elementType?: "frame";
+  materialId?: string;
   E_GPa: number;
   A_cm2: number;
   I_cm4: number;
@@ -260,6 +261,7 @@ export interface TrussMember {
   start: string;
   end: string;
   elementType?: "truss";
+  materialId?: string;
   E_GPa: number;
   A_cm2: number;
   kind?: string;

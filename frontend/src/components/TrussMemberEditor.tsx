@@ -5,6 +5,7 @@ import { DeferredIdInput } from "./ui/DeferredIdInput";
 import { DropdownSelect } from "./ui/DropdownSelect";
 import { Input } from "./ui/input";
 import { MemberMaterialPresetField } from "./MemberMaterialPresetField";
+import { materialIdForYoungModulus } from "../lib/material-presets.ts";
 import { memberPropertyAriaLabel, memberPropertyLabels } from "../lib/member-property-vocabulary.ts";
 import { TRUSS_MEMBER_KIND_OPTIONS } from "../lib/truss-editor-model.ts";
 import type { TrussMember } from "../types/structure.ts";
@@ -91,8 +92,10 @@ export function TrussMemberEditor({
           </>
         ) : null}
         <MemberMaterialPresetField
+          materialId={member.materialId}
           youngModulusGPa={member.E_GPa}
           onYoungModulusChange={(E_GPa) => onUpdate({ E_GPa })}
+          onMaterialChange={(materialId, E_GPa) => onUpdate({ materialId, E_GPa })}
           fieldLabelClass={fieldLabelClass}
           memberLabel="杆件"
           mode="truss"
@@ -115,7 +118,16 @@ export function TrussMemberEditor({
         ) : null}
         <div className="space-y-1">
           <div className={fieldLabelClass}>{propertyLabels.youngModulus}</div>
-          <Input aria-label={memberPropertyAriaLabel(labelPrefix, propertyLabels.youngModulus)} type="number" value={member.E_GPa} onChange={(event) => onUpdate({ E_GPa: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+          <Input
+            aria-label={memberPropertyAriaLabel(labelPrefix, propertyLabels.youngModulus)}
+            type="number"
+            value={member.E_GPa}
+            onChange={(event) => {
+              const E_GPa = Number(event.target.value) || 0;
+              onUpdate({ E_GPa, materialId: materialIdForYoungModulus(E_GPa) });
+            }}
+            className="h-10 min-w-0 font-mono text-xs"
+          />
         </div>
         <div className="space-y-1">
           <div className={fieldLabelClass}>{propertyLabels.sectionArea}</div>

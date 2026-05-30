@@ -1,5 +1,6 @@
 import { Trash2 } from "lucide-react";
 import { FRAME_MEMBER_KIND_OPTIONS } from "../lib/frame-editor-model.ts";
+import { materialIdForYoungModulus } from "../lib/material-presets.ts";
 import { memberPropertyAriaLabel, memberPropertyLabels } from "../lib/member-property-vocabulary.ts";
 import type { StructureMember } from "../types/structure.ts";
 import { DeferredIdInput } from "./ui/DeferredIdInput";
@@ -112,8 +113,10 @@ export function FrameMemberEditor({
           </>
         ) : null}
         <MemberMaterialPresetField
+          materialId={member.materialId}
           youngModulusGPa={member.E_GPa}
           onYoungModulusChange={(E_GPa) => onUpdate({ E_GPa })}
+          onMaterialChange={(materialId, E_GPa) => onUpdate({ materialId, E_GPa })}
           fieldLabelClass={fieldLabelClass}
           memberLabel="构件"
           mode="frame"
@@ -155,7 +158,10 @@ export function FrameMemberEditor({
             name={`${member.id}-E-GPa`}
             type="number"
             value={member.E_GPa}
-            onChange={(event) => onUpdate({ E_GPa: Number(event.target.value) || 0 })}
+            onChange={(event) => {
+              const E_GPa = Number(event.target.value) || 0;
+              onUpdate({ E_GPa, materialId: materialIdForYoungModulus(E_GPa) });
+            }}
             className="h-10 min-w-0 font-mono text-xs"
           />
         </div>

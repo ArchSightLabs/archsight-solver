@@ -15,6 +15,7 @@ LOAD,N3,0,-50
   assert.ok(result.collections);
   assert.equal(result.collections?.nodes.length, 3);
   assert.equal(result.collections?.members.length, 2);
+  assert.equal(result.collections?.members[0]?.materialId, "q345");
   assert.deepEqual(result.collections?.loads, [{ type: "nodal", node: "N3", fxKn: 0, fyKn: -50 }]);
 });
 
@@ -30,6 +31,7 @@ LOAD,N2,0,-10
 
   assert.ok(result.collections);
   assert.equal(result.collections?.members[0]?.start, "N1");
+  assert.equal(result.collections?.members[0]?.materialId, "q345");
   const load = result.collections?.loads[0];
   assert.equal(load?.type, "nodal");
   assert.equal(load?.type === "nodal" ? load.node : "", "N2");
