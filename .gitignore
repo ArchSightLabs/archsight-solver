@@ -39,6 +39,10 @@ venv.bak/
 # Project specifics
 *.xlsx
 .DS_Store
+.pytest_cache/
+.tmp-pytest/
+.tmp-pytest-cache/
+.tmp-pytest-basetemp/
 .playwright-mcp/
 .idea/
 *.log
