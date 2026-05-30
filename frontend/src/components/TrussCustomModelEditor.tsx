@@ -21,6 +21,7 @@ import { useTrussTextModel } from "../hooks/useTrussTextModel.ts";
 import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
 import { memberElasticityDistributionLabel, youngModulusForMaterial } from "../lib/material-presets.ts";
 import {
+  findAvailableNodePairForNode,
   findNextAvailableNodePair,
   resolveNodePairAfterEndChange,
   resolveNodePairAfterStartChange,
@@ -211,8 +212,28 @@ export function TrussCustomModelEditor({
   };
 
   const addNode = () => {
-    const nextNodes = [...value.nodes, createTrussNodeDraft(value.nodes.length, value.nodes.map((node) => node.id))];
+    const nextNode = createTrussNodeDraft(value.nodes.length, value.nodes.map((node) => node.id));
+    const nextNodes = [...value.nodes, nextNode];
+    const nearest = value.nodes.reduce<TrussNode | null>((candidate, node) => {
+      if (!candidate) return node;
+      const candidateDistance = Math.hypot(candidate.x - nextNode.x, candidate.y - nextNode.y);
+      const nodeDistance = Math.hypot(node.x - nextNode.x, node.y - nextNode.y);
+      return nodeDistance < candidateDistance ? node : candidate;
+    }, null);
     commit({ nodes: nextNodes, members: value.members, loads: value.loads });
+    const nextConnection = findAvailableNodePairForNode({
+      nodeIds: nextNodes.map((node) => node.id),
+      nodeId: nextNode.id,
+      preferredNeighborId: nearest?.id,
+      duplicateExists: (nextStartId, nextEndId) => trussMemberExists(value.members, nextStartId, nextEndId),
+    });
+    if (nextConnection) {
+      setMemberConnectionStartId(nextConnection.startNodeId);
+      setMemberConnectionEndId(nextConnection.endNodeId);
+    } else {
+      resetMemberConnectionToAvailablePair(nextNodes, value.members);
+    }
+    selectObject({ type: "node", id: nextNode.id }, { openEditor: false });
   };
 
   const removeNode = (index: number) => {

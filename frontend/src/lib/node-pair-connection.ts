@@ -28,6 +28,13 @@ interface FindNextAvailableNodePairOptions extends NodePairConnectionSelection {
   duplicateExists: (startNodeId: string, endNodeId: string) => boolean;
 }
 
+interface FindAvailableNodePairForNodeOptions {
+  nodeIds: string[];
+  nodeId: string;
+  preferredNeighborId?: string;
+  duplicateExists: (startNodeId: string, endNodeId: string) => boolean;
+}
+
 export interface NodePairConnectionState extends NodePairConnectionSelection {
   disabledReason?: string;
 }
@@ -100,6 +107,33 @@ export function findNextAvailableNodePair({
     const pair = pairs[((currentIndex >= 0 ? currentIndex : -1) + offset) % pairs.length];
     if (!duplicateExists(pair.startNodeId, pair.endNodeId)) {
       return pair;
+    }
+  }
+
+  return undefined;
+}
+
+export function findAvailableNodePairForNode({
+  nodeIds,
+  nodeId,
+  preferredNeighborId,
+  duplicateExists,
+}: FindAvailableNodePairForNodeOptions): NodePairConnectionSelection | undefined {
+  if (!nodeIds.includes(nodeId)) {
+    return undefined;
+  }
+
+  const neighborIds = nodeIds.filter((candidate) => candidate !== nodeId);
+  const orderedNeighborIds = preferredNeighborId && neighborIds.includes(preferredNeighborId)
+    ? [preferredNeighborId, ...neighborIds.filter((candidate) => candidate !== preferredNeighborId)]
+    : neighborIds;
+
+  for (const neighborId of orderedNeighborIds) {
+    const [startNodeId, endNodeId] = nodeIds.indexOf(neighborId) < nodeIds.indexOf(nodeId)
+      ? [neighborId, nodeId]
+      : [nodeId, neighborId];
+    if (!duplicateExists(startNodeId, endNodeId)) {
+      return { startNodeId, endNodeId };
     }
   }
 

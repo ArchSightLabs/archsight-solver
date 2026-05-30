@@ -25,6 +25,7 @@ import { FRAME_MODEL_TEMPLATES, cloneFrameModelTemplate } from "../lib/workbench
 import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
 import { memberElasticityDistributionLabel, youngModulusForMaterial } from "../lib/material-presets.ts";
 import {
+  findAvailableNodePairForNode,
   findNextAvailableNodePair,
   resolveNodePairAfterEndChange,
   resolveNodePairAfterStartChange,
@@ -269,6 +270,19 @@ export function FrameCustomModelEditor({
       ? [...value.members, createConnectedFrameMember(nearest, nextNode, value.members, value.members.map((member) => member.id), defaultMemberElasticityGPa)]
       : value.members;
     commit(keep({ nodes: nextNodes, members: nextMembers }));
+    const nextConnection = findAvailableNodePairForNode({
+      nodeIds: nextNodes.map((node) => node.id),
+      nodeId: nextNode.id,
+      preferredNeighborId: nearest?.id,
+      duplicateExists: (nextStartId, nextEndId) => frameMemberExists(nextMembers, nextStartId, nextEndId),
+    });
+    if (nextConnection) {
+      setMemberConnectionStartId(nextConnection.startNodeId);
+      setMemberConnectionEndId(nextConnection.endNodeId);
+    } else {
+      resetMemberConnectionToAvailablePair(nextNodes, nextMembers);
+    }
+    selectObject({ type: "node", id: nextNode.id }, { openEditor: false });
   };
 
   const completeAxisMembers = () => {

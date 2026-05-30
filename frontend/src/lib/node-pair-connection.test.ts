@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  findAvailableNodePairForNode,
   findNextAvailableNodePair,
   resolveNodePairAfterEndChange,
   resolveNodePairAfterStartChange,
@@ -126,4 +127,32 @@ test("所有节点对均已连接时不再强行选择下一组连接", () => {
   });
 
   assert.equal(next, undefined);
+});
+
+test("新增节点后优先选择新节点和指定邻近节点形成的可用节点对", () => {
+  const next = findAvailableNodePairForNode({
+    nodeIds: ["N1", "N2", "N3"],
+    nodeId: "N3",
+    preferredNeighborId: "N2",
+    duplicateExists: () => false,
+  });
+
+  assert.deepEqual(next, {
+    startNodeId: "N2",
+    endNodeId: "N3",
+  });
+});
+
+test("新增节点的指定邻近节点已连接时，会选择该新节点的下一组可用节点对", () => {
+  const next = findAvailableNodePairForNode({
+    nodeIds: ["N1", "N2", "N3"],
+    nodeId: "N3",
+    preferredNeighborId: "N2",
+    duplicateExists: (startNodeId, endNodeId) => startNodeId === "N2" && endNodeId === "N3",
+  });
+
+  assert.deepEqual(next, {
+    startNodeId: "N1",
+    endNodeId: "N3",
+  });
 });
