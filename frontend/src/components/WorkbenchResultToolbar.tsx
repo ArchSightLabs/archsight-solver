@@ -3,18 +3,21 @@ import { ChevronDown, FileText, Play, RotateCw, Settings2, Table2 } from "lucide
 import { Button } from "./ui/button";
 import type { ExportFormat } from "../hooks/useWorkbenchActions";
 import {
-  REPORT_FIGURE_MODE_OPTIONS,
   REPORT_FIGURE_SCOPE_OPTIONS,
   REPORT_TEMPLATE_OPTIONS,
+  reportFigureModeHintForMode,
+  reportFigureModeOptionsForMode,
   type ReportExportOptions,
   type ReportFigureMode,
   type ReportFigureScope,
   type ReportTemplate,
 } from "../lib/report-options";
+import type { AnalysisMode } from "../types/structure";
 import { exportToolbarLabel } from "../lib/workbench-operation-status";
 import { ReportOptionSelect } from "./workbench-result-panels";
 
 interface WorkbenchResultToolbarProps {
+  analysisMode: AnalysisMode;
   compact: boolean;
   hasResults: boolean;
   isSolving: boolean;
@@ -27,6 +30,7 @@ interface WorkbenchResultToolbarProps {
 }
 
 export function WorkbenchResultToolbar({
+  analysisMode,
   compact,
   hasResults,
   isSolving,
@@ -42,6 +46,8 @@ export function WorkbenchResultToolbar({
   const exportMenuRef = useRef<HTMLDivElement | null>(null);
   const isExportingAny = exportingFormat !== null;
   const exportLabel = exportToolbarLabel(exportingFormat);
+  const figureModeOptions = reportFigureModeOptionsForMode(analysisMode);
+  const figureModeHint = reportFigureModeHintForMode(analysisMode);
 
   const updateReportExportOption = <K extends keyof ReportExportOptions>(key: K, value: ReportExportOptions[K]) => {
     onReportExportOptionsChange({ ...reportExportOptions, [key]: value });
@@ -178,8 +184,9 @@ export function WorkbenchResultToolbar({
                     id="report-figure-mode"
                     name="reportFigureMode"
                     label="图形模式"
+                    hint={figureModeHint}
                     value={reportExportOptions.figureMode}
-                    options={REPORT_FIGURE_MODE_OPTIONS}
+                    options={figureModeOptions}
                     onChange={(value) => updateReportExportOption("figureMode", value as ReportFigureMode)}
                   />
                   <ReportOptionSelect

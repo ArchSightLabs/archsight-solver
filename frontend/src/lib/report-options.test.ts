@@ -8,6 +8,8 @@ import {
   REPORT_FIGURE_SCOPE_OPTIONS,
   REPORT_TEMPLATE_OPTIONS,
   normalizeReportExportOptions,
+  reportFigureModeHintForMode,
+  reportFigureModeOptionsForMode,
 } from "./report-options.ts";
 
 test("计算书导出选项读取 shared 契约默认值", () => {
@@ -28,4 +30,19 @@ test("计算书导出选项归一化使用现代默认值回退", () => {
     }),
     sharedReportOptions.default,
   );
+});
+
+test("计算书图形模式文案按结构体系避免误导传统曲线", () => {
+  assert.deepEqual(reportFigureModeOptionsForMode("beam"), sharedReportOptions.figureModes);
+  assert.deepEqual(
+    reportFigureModeOptionsForMode("frame").map((item) => item.label),
+    ["模型叠加图", "模型叠加图（传统项映射）", "模型叠加图（合并项映射）"],
+  );
+  assert.deepEqual(
+    reportFigureModeOptionsForMode("truss").map((item) => item.label),
+    ["模型叠加图", "模型叠加图（传统项映射）", "模型叠加图（合并项映射）"],
+  );
+  assert.match(reportFigureModeHintForMode("beam"), /传统单项曲线/u);
+  assert.match(reportFigureModeHintForMode("frame"), /模型叠加图/u);
+  assert.match(reportFigureModeHintForMode("truss"), /模型叠加图/u);
 });

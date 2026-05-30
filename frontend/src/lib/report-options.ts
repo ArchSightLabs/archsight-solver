@@ -1,4 +1,5 @@
 import sharedReportOptions from "../../../shared/report-options.json" with { type: "json" };
+import type { AnalysisMode } from "../types/structure.ts";
 
 export type ReportTemplate = "standard" | "complete" | "brief";
 export type ReportFigureMode = "overlay" | "traditional" | "both";
@@ -31,6 +32,12 @@ export const REPORT_TEMPLATE_OPTIONS: readonly ReportOptionItem<ReportTemplate>[
 export const REPORT_FIGURE_MODE_OPTIONS: readonly ReportOptionItem<ReportFigureMode>[] = REPORT_OPTIONS.figureModes.map((option) => ({ ...option }));
 export const REPORT_FIGURE_SCOPE_OPTIONS: readonly ReportOptionItem<ReportFigureScope>[] = REPORT_OPTIONS.figureScopes.map((option) => ({ ...option }));
 
+const STRUCTURE_OVERLAY_ONLY_FIGURE_MODE_OPTIONS: readonly ReportOptionItem<ReportFigureMode>[] = [
+  { value: "overlay", label: "模型叠加图" },
+  { value: "traditional", label: "模型叠加图（传统项映射）" },
+  { value: "both", label: "模型叠加图（合并项映射）" },
+];
+
 const REPORT_TEMPLATE_VALUES = new Set(REPORT_TEMPLATE_OPTIONS.map((option) => option.value));
 const REPORT_FIGURE_MODE_VALUES = new Set(REPORT_FIGURE_MODE_OPTIONS.map((option) => option.value));
 const REPORT_FIGURE_SCOPE_VALUES = new Set(REPORT_FIGURE_SCOPE_OPTIONS.map((option) => option.value));
@@ -53,4 +60,18 @@ export function normalizeReportExportOptions(raw: Partial<ReportExportOptions> |
     figureMode: isReportFigureMode(raw?.figureMode) ? raw.figureMode : DEFAULT_REPORT_EXPORT_OPTIONS.figureMode,
     figureScope: isReportFigureScope(raw?.figureScope) ? raw.figureScope : DEFAULT_REPORT_EXPORT_OPTIONS.figureScope,
   };
+}
+
+export function reportFigureModeOptionsForMode(mode: AnalysisMode): readonly ReportOptionItem<ReportFigureMode>[] {
+  return mode === "beam" ? REPORT_FIGURE_MODE_OPTIONS : STRUCTURE_OVERLAY_ONLY_FIGURE_MODE_OPTIONS;
+}
+
+export function reportFigureModeHintForMode(mode: AnalysisMode): string {
+  if (mode === "beam") {
+    return "梁系可导出计算简图叠加图，也可附加传统单项曲线。";
+  }
+  if (mode === "frame") {
+    return "平面框架计算书仅导出与工程图同源的模型叠加图。";
+  }
+  return "平面桁架计算书仅导出与工程图同源的模型叠加图。";
 }

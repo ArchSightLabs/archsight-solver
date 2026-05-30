@@ -14,12 +14,13 @@ type ReportOptionSelectProps = {
   id: string;
   name: string;
   label: string;
+  hint?: string;
   value: string;
   options: readonly { value: string; label: string }[];
   onChange: (value: string) => void;
 };
 
-export function ReportOptionSelect({ id, name, label, value, options, onChange }: ReportOptionSelectProps) {
+export function ReportOptionSelect({ id, name, label, hint, value, options, onChange }: ReportOptionSelectProps) {
   return (
     <label className="block">
       <span className="mb-1 block text-[10px] font-bold text-slate-500 dark:text-slate-400">{label}</span>
@@ -37,6 +38,7 @@ export function ReportOptionSelect({ id, name, label, value, options, onChange }
           </option>
         ))}
       </select>
+      {hint ? <span className="mt-1 block text-[10px] leading-snug text-slate-500 dark:text-slate-400">{hint}</span> : null}
     </label>
   );
 }

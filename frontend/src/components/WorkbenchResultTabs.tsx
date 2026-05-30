@@ -108,6 +108,7 @@ export function WorkbenchResultTabs({
           </div>
 
           <WorkbenchResultToolbar
+            analysisMode={analysisMode}
             compact={compact}
             hasResults={hasResults}
             isSolving={isSolving}
