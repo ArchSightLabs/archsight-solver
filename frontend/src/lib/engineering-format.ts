@@ -23,3 +23,17 @@ export function formatEngineeringValue(value: number | null | undefined, unit = 
   }
   return `${formatEngineeringNumber(numeric, decimals)}${suffix}`;
 }
+
+export function formatLimitRatio(value: number | null | undefined) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return "限值 L/--";
+  const decimals = Number.isInteger(numeric) ? 0 : 2;
+  return `限值 L/${formatEngineeringNumber(numeric, decimals)}`;
+}
+
+export function formatUtilizationPercent(demand: number | null | undefined, capacity: number | null | undefined) {
+  const demandValue = Math.abs(Number(demand ?? 0));
+  const capacityValue = Number(capacity ?? 0);
+  if (!Number.isFinite(demandValue) || !Number.isFinite(capacityValue) || capacityValue <= 0) return "--";
+  return `${formatEngineeringNumber(demandValue / capacityValue * 100, 2)}%`;
+}

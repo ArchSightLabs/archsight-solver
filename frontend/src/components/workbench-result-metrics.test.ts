@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import type { FrameCalculationResults } from "../types/structure.ts";
-import { frameSummaryRows } from "./workbench-result-metrics.ts";
+import type { BeamCalculationResults } from "../types/beam.ts";
+import type { FrameCalculationResults, TrussCalculationResults } from "../types/structure.ts";
+import { beamSummaryRows, frameSummaryRows, trussSummaryRows } from "./workbench-result-metrics.ts";
 
 function frameResultsWithMembers(memberResults: FrameCalculationResults["memberResults"]): FrameCalculationResults {
   return {
@@ -66,4 +67,55 @@ test("框架结果摘要为最大构件弯矩显示控制构件", () => {
   ]));
 
   assert.equal(rows.find((row) => row.label === "最大构件弯矩")?.detail, "控制构件 B1 · 弯矩校核");
+});
+
+test("梁系和桁架结果摘要不把 L/250 限值显示成当前控制比", () => {
+  const beamRows = beamSummaryRows({
+    x_data: [],
+    v_data: [],
+    moment_data: [],
+    shear_data: [],
+    t_data: [],
+    q_t_data: [],
+    summary: {
+      allowableMm: 20,
+      allowableRatio: 250,
+      maxDeflectionMm: 5,
+      maxDeflectionPositionM: 2,
+      status: "合格",
+      statusCode: "PASS",
+      method: "梁单元法",
+    },
+  } satisfies BeamCalculationResults);
+  const trussRows = trussSummaryRows({
+    analysisType: "truss",
+    summary: {
+      allowableMm: 24,
+      allowableRatio: 250,
+      maxDisplacementMm: 8.8209,
+      maxDisplacementNodeId: "N2",
+      maxAxialForceKn: 133.3333,
+      maxAxialForceMemberId: "M2",
+      status: "合格",
+      statusCode: "PASS",
+      method: "二维平面桁架杆单元法",
+    },
+    payload: {
+      analysisType: "truss",
+      projectName: "测试桁架",
+      materialId: "q235",
+      structure: { template: "explicit", nodes: [], members: [], loads: [] },
+    },
+    structure: { template: "explicit", nodes: [], members: [], loads: [] },
+    nodeResults: [],
+    memberResults: [],
+    nodeIds: [],
+    memberIds: [],
+    ux_data: [],
+    uy_data: [],
+    member_axial_data: [],
+  } satisfies TrussCalculationResults);
+
+  assert.equal(beamRows.find((row) => row.label === "允许挠度")?.detail, "限值 L/250 · 利用率 25% · PASS");
+  assert.equal(trussRows.find((row) => row.label === "允许位移")?.detail, "限值 L/250 · 利用率 36.75% · PASS");
 });

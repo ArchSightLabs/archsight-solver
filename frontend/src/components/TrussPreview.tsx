@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { GlassCard } from "./ui/GlassCard";
 import type { SupportType, TrussPreviewData } from "../types/structure";
 import { buildTrussLoadMarkers, buildTrussMemberLengthDimensions, buildTrussMemberLengthLegendRows } from "./truss-preview-utils";
-import { formatEngineeringValue } from "../lib/engineering-format";
+import { formatEngineeringValue, formatLimitRatio, formatUtilizationPercent } from "../lib/engineering-format";
 
 interface TrussPreviewProps {
   truss: TrussPreviewData | null;
@@ -305,7 +305,7 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
           {
             label: "位移控制",
             main: formatEngineeringValue(truss.summary.maxDisplacementMm, "mm"),
-            sub: `节点 ${truss.summary.maxDisplacementNodeId ?? "—"} · 允许 ${formatEngineeringValue(truss.summary.allowableMm, "mm")} · 比值 ${truss.summary.allowableRatio.toFixed(2)} ×`,
+            sub: `节点 ${truss.summary.maxDisplacementNodeId ?? "—"} · 利用率 ${formatUtilizationPercent(truss.summary.maxDisplacementMm, truss.summary.allowableMm)} · ${formatLimitRatio(truss.summary.allowableRatio)}`,
           },
           {
             label: "轴力控制",

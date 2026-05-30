@@ -5,7 +5,7 @@ import type { BeamCalculationResults, BeamPreviewData } from "../types/beam.ts";
 import type { FrameCalculationResults, TrussCalculationResults } from "../types/structure.ts";
 import { buildBeamResultDiagramSvg } from "./beam-result-diagram-svg.ts";
 import { buildBeamPreviewSvg } from "./beam-preview-svg.ts";
-import { formatEngineeringValue } from "./engineering-format.ts";
+import { formatEngineeringValue, formatLimitRatio, formatUtilizationPercent } from "./engineering-format.ts";
 import { buildReportImagePlan } from "./report-image-plan.ts";
 import { assertReportImagesReady, reportImageRequirements } from "./report-image-requirements.ts";
 
@@ -15,6 +15,13 @@ test("formatEngineeringValue uses up to four decimals and trims trailing zeros",
   assert.equal(formatEngineeringValue(0.162, "mm"), "0.162 mm");
   assert.equal(formatEngineeringValue(1, "mm"), "1 mm");
   assert.equal(formatEngineeringValue(0.00001, "mm"), "<0.0001 mm");
+});
+
+test("serviceability ratio formatting distinguishes limit ratio from utilization", () => {
+  assert.equal(formatLimitRatio(250), "限值 L/250");
+  assert.equal(formatLimitRatio(300.5), "限值 L/300.5");
+  assert.equal(formatUtilizationPercent(8.8209, 24), "36.75%");
+  assert.equal(formatUtilizationPercent(null, 0), "--");
 });
 
 test("buildBeamPreviewSvg follows the workbench beam preview sign convention", () => {

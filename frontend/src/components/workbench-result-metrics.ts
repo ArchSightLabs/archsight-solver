@@ -1,6 +1,6 @@
 import type { BeamCalculationResults } from "../types/beam";
 import type { FrameCalculationResults, TrussCalculationResults } from "../types/structure";
-import { formatEngineeringValue } from "../lib/engineering-format.ts";
+import { formatEngineeringValue, formatLimitRatio, formatUtilizationPercent } from "../lib/engineering-format.ts";
 import { summaryMetricLabel } from "../lib/result-metrics.ts";
 
 export type SummaryRow = {
@@ -156,7 +156,7 @@ export function beamSummaryRows(results: BeamCalculationResults): SummaryRow[] {
     {
       label: summaryMetricLabel("beam", "allowable_deflection", "允许挠度"),
       value: formatEngineeringValue(results.summary?.allowableMm, "mm"),
-      detail: `控制比 ${results.summary?.allowableRatio ?? 250} × · ${results.summary?.statusCode ?? "PENDING"}`,
+      detail: `${formatLimitRatio(results.summary?.allowableRatio)} · 利用率 ${formatUtilizationPercent(results.summary?.maxDeflectionMm, results.summary?.allowableMm)} · ${results.summary?.statusCode ?? "PENDING"}`,
     },
     {
       label: summaryMetricLabel("beam", "max_deflection", "最大挠度"),
@@ -178,7 +178,7 @@ export function beamSummaryRows(results: BeamCalculationResults): SummaryRow[] {
 
 export function trussSummaryRows(results: TrussCalculationResults): SummaryRow[] {
   return [
-    { label: summaryMetricLabel("truss", "allowable_displacement", "允许位移"), value: formatEngineeringValue(results.summary.allowableMm, "mm"), detail: `控制比 ${results.summary.allowableRatio.toFixed(2)} × · ${results.summary.statusCode}` },
+    { label: summaryMetricLabel("truss", "allowable_displacement", "允许位移"), value: formatEngineeringValue(results.summary.allowableMm, "mm"), detail: `${formatLimitRatio(results.summary.allowableRatio)} · 利用率 ${formatUtilizationPercent(results.summary.maxDisplacementMm, results.summary.allowableMm)} · ${results.summary.statusCode}` },
     { label: summaryMetricLabel("truss", "max_node_displacement", "最大节点位移"), value: formatEngineeringValue(results.summary.maxDisplacementMm, "mm"), detail: `控制节点 ${results.summary.maxDisplacementNodeId ?? "—"} · 位移校核` },
     { label: summaryMetricLabel("truss", "max_member_axial", "最大杆件轴力"), value: formatEngineeringValue(results.summary.maxAxialForceKn, "kN"), detail: `控制杆件 ${results.summary.maxAxialForceMemberId ?? "—"} · 轴力校核` },
     { label: summaryMetricLabel("truss", "calculation_status", "计算结论"), value: results.summary.status, detail: results.summary.method },
