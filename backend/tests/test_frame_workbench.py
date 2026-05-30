@@ -303,6 +303,7 @@ def test_frame_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
     assert "图 4-4 构件轴力图（kN，模型叠加工程图）" in full_text
     assert "未收到前端同源结构预览图" not in full_text
     assert "未收到前端同源模型叠加工程图" not in full_text
+    assert len(doc.inline_shapes) == 5
 
 
 def test_frame_exports_include_load_combination_tags(client):

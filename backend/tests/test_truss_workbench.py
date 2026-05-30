@@ -169,6 +169,7 @@ def test_truss_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
     assert "图 4-2 节点位移图（mm，模型叠加工程图）" in full_text
     assert "未收到前端同源结构预览图" not in full_text
     assert "未收到前端同源模型叠加工程图" not in full_text
+    assert len(doc.inline_shapes) == 3
 
 
 @pytest.mark.parametrize(
