@@ -57,6 +57,7 @@ export function FrameForm({ value, onChange, activeSectionId, selection, onSelec
         loadCombinations: value.customLoadCombinations,
       }}
       materialId={value.materialId}
+      onMaterialChange={(nextMaterialId) => onChange({ ...value, materialId: nextMaterialId })}
       onChange={commitCollections}
       onResetToPortal={resetToDefaultFrame}
       selection={selection}

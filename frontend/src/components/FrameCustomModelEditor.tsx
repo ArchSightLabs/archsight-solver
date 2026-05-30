@@ -23,8 +23,9 @@ import {
 import { useFrameTextModel } from "../hooks/useFrameTextModel.ts";
 import { FRAME_MODEL_TEMPLATES, cloneFrameModelTemplate } from "../lib/workbench-model-templates.ts";
 import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
-import { memberElasticityDistributionLabel } from "../lib/material-presets.ts";
+import { memberElasticityDistributionLabel, youngModulusForMaterial } from "../lib/material-presets.ts";
 import { frameSupportStabilityWarning } from "../solver-payload.ts";
+import { PREDEFINED_MATERIALS } from "../types/material.ts";
 import type {
   FrameLoad,
   FrameLoadCase,
@@ -46,6 +47,7 @@ interface FrameCustomModelEditorProps {
   value: FrameCollections;
   materialId: string;
   onChange: (next: FrameCollections) => void;
+  onMaterialChange: (nextMaterialId: string) => void;
   onResetToPortal: () => void;
   activeSectionId?: string;
   selection?: FrameWorkbenchSelection | null;
@@ -60,6 +62,7 @@ export function FrameCustomModelEditor({
   value,
   materialId,
   onChange,
+  onMaterialChange,
   onResetToPortal,
   activeSectionId,
   selection,
@@ -108,6 +111,7 @@ export function FrameCustomModelEditor({
     () => memberElasticityDistributionLabel(value.members, "构件"),
     [value.members],
   );
+  const defaultMemberElasticityGPa = youngModulusForMaterial(materialId, 210);
   const modelWarnings = useMemo(() => {
     const warnings: string[] = [];
     const nodeIds = new Set(value.nodes.map((node) => node.id));
@@ -203,7 +207,7 @@ export function FrameCustomModelEditor({
       return distanceBetweenFrameNodes(node, nextNode) < distanceBetweenFrameNodes(candidate, nextNode) ? node : candidate;
     }, null);
     const nextMembers = nearest && !frameMemberExists(value.members, nearest.id, nextNode.id)
-      ? [...value.members, createConnectedFrameMember(nearest, nextNode, value.members, value.members.map((member) => member.id))]
+      ? [...value.members, createConnectedFrameMember(nearest, nextNode, value.members, value.members.map((member) => member.id), defaultMemberElasticityGPa)]
       : value.members;
     commit(keep({ nodes: nextNodes, members: nextMembers }));
   };
@@ -231,7 +235,7 @@ export function FrameCustomModelEditor({
       if (!nodeById.has(start.id) || !nodeById.has(end.id) || frameMemberExists(nextMembers, start.id, end.id)) {
         continue;
       }
-      nextMembers = [...nextMembers, createConnectedFrameMember(start, end, nextMembers, nextMembers.map((member) => member.id))];
+      nextMembers = [...nextMembers, createConnectedFrameMember(start, end, nextMembers, nextMembers.map((member) => member.id), defaultMemberElasticityGPa)];
     }
     commit(keep({ members: nextMembers }));
   };
@@ -253,7 +257,7 @@ export function FrameCustomModelEditor({
     if (value.nodes.length < 2) {
       return;
     }
-    const nextMember = createFrameMemberDraft(value.members.length, value.nodes, value.members.map((member) => member.id));
+    const nextMember = createFrameMemberDraft(value.members.length, value.nodes, value.members.map((member) => member.id), defaultMemberElasticityGPa);
     const nextMembers = [...value.members, nextMember];
     commit(keep({ members: nextMembers }));
     selectObject({ type: "member", id: nextMember.id }, { openEditor: false });
@@ -268,7 +272,7 @@ export function FrameCustomModelEditor({
     if (!start || !end) {
       return;
     }
-    const nextMember = createConnectedFrameMember(start, end, value.members, value.members.map((member) => member.id));
+    const nextMember = createConnectedFrameMember(start, end, value.members, value.members.map((member) => member.id), defaultMemberElasticityGPa);
     commit(keep({ members: [...value.members, nextMember] }));
     selectObject({ type: "member", id: nextMember.id }, { openEditor: false });
   };
@@ -467,6 +471,7 @@ export function FrameCustomModelEditor({
       {isSectionVisible("frame-basic") ? (
       <FrameBasicSection
         materialId={materialId}
+        materialLibrary={PREDEFINED_MATERIALS}
         memberElasticitySummary={memberElasticitySummary}
         nodeCount={value.nodes.length}
         memberCount={value.members.length}
@@ -476,6 +481,7 @@ export function FrameCustomModelEditor({
         onResetToPortal={onResetToPortal}
         onCompleteAxisMembers={completeAxisMembers}
         onAddNode={addNode}
+        onMaterialChange={onMaterialChange}
       />
       ) : null}
 

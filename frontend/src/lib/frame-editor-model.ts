@@ -119,20 +119,23 @@ export function createConnectedFrameMember(
   start: StructureNode,
   end: StructureNode,
   members: StructureMember[],
-  existingIds: string[]
+  existingIds: string[],
+  defaultYoungModulusGPa = 210,
 ): StructureMember {
   const kind = memberKindBetween(start, end);
+  const template = templateForKind(members, kind);
   return {
     id: nextFrameDraftId(kind === "beam" ? "B" : kind === "column" ? "C" : "M", existingIds),
     start: start.id,
     end: end.id,
     elementType: "frame",
-    ...templateForKind(members, kind),
+    ...template,
+    E_GPa: defaultYoungModulusGPa,
     kind,
   };
 }
 
-export function createFrameMemberDraft(index: number, nodes: StructureNode[], existingIds: string[]): StructureMember {
+export function createFrameMemberDraft(index: number, nodes: StructureNode[], existingIds: string[], defaultYoungModulusGPa = 210): StructureMember {
   const start = nodes[index]?.id ?? nodes[0]?.id ?? "N1";
   const end = nodes[index + 1]?.id ?? nodes[nodes.length - 1]?.id ?? start;
   return {
@@ -140,7 +143,7 @@ export function createFrameMemberDraft(index: number, nodes: StructureNode[], ex
     start,
     end,
     elementType: "frame",
-    E_GPa: 210,
+    E_GPa: defaultYoungModulusGPa,
     A_cm2: 120,
     I_cm4: 8000,
     kind: "generic",

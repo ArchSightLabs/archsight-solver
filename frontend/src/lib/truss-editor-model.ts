@@ -43,7 +43,7 @@ export function createTrussNodeDraft(index: number, existingIds: string[]): Trus
   };
 }
 
-export function createTrussMemberDraft(index: number, nodes: TrussNode[], existingIds: string[]): TrussMember {
+export function createTrussMemberDraft(index: number, nodes: TrussNode[], existingIds: string[], defaultYoungModulusGPa = 210): TrussMember {
   const start = nodes[index]?.id ?? nodes[0]?.id ?? "N1";
   const end = nodes[index + 1]?.id ?? nodes[nodes.length - 1]?.id ?? start;
   return {
@@ -51,7 +51,7 @@ export function createTrussMemberDraft(index: number, nodes: TrussNode[], existi
     start,
     end,
     elementType: "truss",
-    E_GPa: 210,
+    E_GPa: defaultYoungModulusGPa,
     A_cm2: 24,
     kind: "generic",
   };

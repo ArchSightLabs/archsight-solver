@@ -17,8 +17,9 @@ import {
 import { TRUSS_MODEL_TEMPLATES, cloneTrussModelTemplate } from "../lib/workbench-model-templates.ts";
 import { useTrussTextModel } from "../hooks/useTrussTextModel.ts";
 import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
-import { memberElasticityDistributionLabel } from "../lib/material-presets.ts";
+import { memberElasticityDistributionLabel, youngModulusForMaterial } from "../lib/material-presets.ts";
 import { trussSupportStabilityWarning } from "../solver-payload.ts";
+import { PREDEFINED_MATERIALS } from "../types/material.ts";
 import type { TrussLoad, TrussMember, TrussNode } from "../types/structure.ts";
 import type { TrussWorkbenchSelection, WorkbenchSelectionOptions } from "../types/workbench-selection.ts";
 
@@ -32,6 +33,7 @@ interface TrussCustomModelEditorProps {
   value: TrussCollections;
   materialId: string;
   onChange: (next: TrussCollections) => void;
+  onMaterialChange: (nextMaterialId: string) => void;
   onResetToBenchmark: () => void;
   activeSectionId?: string;
   selection?: TrussWorkbenchSelection | null;
@@ -46,6 +48,7 @@ export function TrussCustomModelEditor({
   value,
   materialId,
   onChange,
+  onMaterialChange,
   onResetToBenchmark,
   activeSectionId,
   selection,
@@ -93,6 +96,7 @@ export function TrussCustomModelEditor({
     () => memberElasticityDistributionLabel(value.members, "杆件"),
     [value.members],
   );
+  const defaultMemberElasticityGPa = youngModulusForMaterial(materialId, 210);
   const modelWarnings = useMemo(() => {
     const warnings: string[] = [];
     const nodeIds = new Set(value.nodes.map((node) => node.id));
@@ -167,7 +171,7 @@ export function TrussCustomModelEditor({
     if (value.nodes.length < 2) {
       return;
     }
-    const nextMembers = [...value.members, createTrussMemberDraft(value.members.length, value.nodes, value.members.map((member) => member.id))];
+    const nextMembers = [...value.members, createTrussMemberDraft(value.members.length, value.nodes, value.members.map((member) => member.id), defaultMemberElasticityGPa)];
     commit({ nodes: value.nodes, members: nextMembers, loads: value.loads });
   };
 
@@ -291,6 +295,7 @@ export function TrussCustomModelEditor({
       {isSectionVisible("truss-basic") ? (
       <TrussBasicSection
         materialId={materialId}
+        materialLibrary={PREDEFINED_MATERIALS}
         memberElasticitySummary={memberElasticitySummary}
         nodeCount={value.nodes.length}
         memberCount={value.members.length}
@@ -299,6 +304,7 @@ export function TrussCustomModelEditor({
         modelWarnings={modelWarnings}
         onResetToBenchmark={onResetToBenchmark}
         onAddNode={addNode}
+        onMaterialChange={onMaterialChange}
       />
       ) : null}
 

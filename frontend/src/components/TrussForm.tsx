@@ -24,6 +24,7 @@ export function TrussForm({ value, onChange, activeSectionId, selection, onSelec
         loads: value.customLoads,
       }}
       materialId={value.materialId}
+      onMaterialChange={(nextMaterialId) => onChange({ ...value, materialId: nextMaterialId })}
       onChange={(next) =>
         onChange({
           ...value,
