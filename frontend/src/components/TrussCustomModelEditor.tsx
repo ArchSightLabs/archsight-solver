@@ -17,6 +17,7 @@ import {
 import { TRUSS_MODEL_TEMPLATES, cloneTrussModelTemplate } from "../lib/workbench-model-templates.ts";
 import { useTrussTextModel } from "../hooks/useTrussTextModel.ts";
 import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
+import { trussSupportStabilityWarning } from "../solver-payload.ts";
 import type { TrussLoad, TrussMember, TrussNode } from "../types/structure.ts";
 import type { TrussWorkbenchSelection, WorkbenchSelectionOptions } from "../types/workbench-selection.ts";
 
@@ -89,7 +90,12 @@ export function TrussCustomModelEditor({
     const warnings: string[] = [];
     const nodeIds = new Set(value.nodes.map((node) => node.id));
     const memberIds = new Set(value.members.map((member) => member.id));
-    if (supportCount === 0) warnings.push("尚未设置支座约束。");
+    const supportWarning = trussSupportStabilityWarning(value.nodes);
+    if (supportCount === 0) {
+      warnings.push("尚未设置支座约束。");
+    } else if (supportWarning) {
+      warnings.push(supportWarning);
+    }
     if (value.members.some((member) => !nodeIds.has(member.start) || !nodeIds.has(member.end))) warnings.push("存在引用缺失节点的杆件。");
     if (value.loads.some((load) => load.type === "nodal" ? !nodeIds.has(load.node) : !memberIds.has(load.member))) warnings.push("存在引用缺失对象的荷载。");
     if (value.loads.length === 0) warnings.push("尚未设置节点荷载或杆件荷载。");

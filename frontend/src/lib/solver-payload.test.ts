@@ -215,6 +215,31 @@ test("normalizeFrameWorkspaceState preserves invalid combinations for validation
   assert.equal(validateCustomFrameWorkspace(workspace), "荷载组合 factors 不能全部为 0。");
 });
 
+test("validateCustomFrameWorkspace rejects insufficient rigid-body restraints", () => {
+  const workspace = createDefaultFrameWorkspaceState();
+  workspace.frameMode = "custom";
+  workspace.customNodes = [
+    { id: "N1", x: 0, y: 0, supportType: "pinned" },
+    { id: "N2", x: 4, y: 0, supportType: "free" },
+  ];
+  workspace.customMembers = [
+    { id: "B1", start: "N1", end: "N2", E_GPa: 210, A_cm2: 120, I_cm4: 8000, kind: "beam" },
+  ];
+  workspace.customLoads = [];
+
+  assert.equal(
+    validateCustomFrameWorkspace(workspace),
+    "平面框架支座约束不足：至少需要 3 个独立约束（例如一个铰支座加一个滚动支座，或一个固结支座）。",
+  );
+
+  workspace.customNodes = [
+    { id: "N1", x: 0, y: 0, supportType: "roller" },
+    { id: "N2", x: 4, y: 0, supportType: "roller" },
+  ];
+
+  assert.equal(validateCustomFrameWorkspace(workspace), "平面框架支座约束不足：缺少 X 向刚体位移约束。");
+});
+
 test("normalizeFrameWorkspaceState canonicalizes load case ids and preserves advanced fields", () => {
   const workspace = normalizeFrameWorkspaceState({
     ...createDefaultFrameWorkspaceState(),
@@ -301,4 +326,45 @@ test("validateCustomTrussWorkspace rejects configured model size limits", () => 
     kind: "generic",
   }));
   assert.equal(validateCustomTrussWorkspace(tooManyMembers), `桁架杆件数量超出系统限制（最大 ${MAX_TRUSS_MEMBERS} 根）。`);
+});
+
+test("validateCustomTrussWorkspace rejects insufficient rigid-body restraints", () => {
+  const workspace = createDefaultTrussWorkspaceState();
+  workspace.customNodes = [
+    { id: "N1", x: 0, y: 0, supportType: "pinned" },
+    { id: "N2", x: 4, y: 0, supportType: "free" },
+  ];
+  workspace.customMembers = [
+    { id: "M1", start: "N1", end: "N2", E_GPa: 210, A_cm2: 24, kind: "generic" },
+  ];
+  workspace.customLoads = [];
+
+  assert.equal(
+    validateCustomTrussWorkspace(workspace),
+    "平面桁架支座约束不足：至少需要 3 个独立平动约束（例如一个铰支座加一个滚动支座）。",
+  );
+
+  workspace.customNodes = [
+    { id: "N1", x: 0, y: 0, supportType: "roller" },
+    { id: "N2", x: 4, y: 0, supportType: "roller" },
+  ];
+
+  assert.equal(validateCustomTrussWorkspace(workspace), "平面桁架支座约束不足：缺少 X 向刚体位移约束。");
+});
+
+test("buildTrussPayload treats legacy fixed support as pinned instead of free", () => {
+  const workspace = createDefaultTrussWorkspaceState();
+  workspace.customNodes = [
+    { id: "N1", x: 0, y: 0, supportType: "fixed" },
+    { id: "N2", x: 4, y: 0, supportType: "roller" },
+  ];
+  workspace.customMembers = [
+    { id: "M1", start: "N1", end: "N2", E_GPa: 210, A_cm2: 24, kind: "generic" },
+  ];
+  workspace.customLoads = [];
+
+  const payload = buildTrussPayload(workspace);
+
+  assert.equal(payload?.structure.nodes[0]?.supportType, "pinned");
+  assert.equal(validateCustomTrussWorkspace(workspace), null);
 });

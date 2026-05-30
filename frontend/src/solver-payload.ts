@@ -10,6 +10,7 @@ import type {
   StructureNode,
   TrussFormPayload,
   TrussLoad,
+  TrussNode,
   TrussWorkspaceState,
 } from "./types/structure.ts";
 
@@ -300,7 +301,7 @@ function normalizeCustomTrussCollections(value: TrussWorkspaceState) {
       id: String(node.id ?? `N${index + 1}`).trim() || `N${index + 1}`,
       x: Number.isFinite(node.x) ? Number(node.x) : 0,
       y: Number.isFinite(node.y) ? Number(node.y) : 0,
-      supportType: node.supportType === "pinned" || node.supportType === "roller" || node.supportType === "free" ? node.supportType : "free",
+      supportType: normalizeTrussSupportType(node.supportType),
     })),
     members,
     loads: value.customLoads.map((load) => {
@@ -324,6 +325,90 @@ function normalizeCustomTrussCollections(value: TrussWorkspaceState) {
       };
     }) as TrussLoad[],
   };
+}
+
+function normalizeTrussSupportType(supportType: TrussNode["supportType"]): Exclude<TrussNode["supportType"], "fixed"> {
+  if (supportType === "fixed") return "pinned";
+  if (supportType === "pinned" || supportType === "roller" || supportType === "free") return supportType;
+  return "free";
+}
+
+function rollerNormalComponents(angleDeg: number | undefined) {
+  const angleRad = ((Number.isFinite(angleDeg) ? Number(angleDeg) : 90) * Math.PI) / 180;
+  return {
+    x: Math.abs(Math.cos(angleRad)),
+    y: Math.abs(Math.sin(angleRad)),
+  };
+}
+
+function positiveFrameSpringDof(node: StructureNode, dof: "ux" | "uy" | "rz"): boolean {
+  return (node.springs ?? []).some((spring) => {
+    if (spring.dof !== dof) return false;
+    return spring.dof === "rz" ? spring.stiffnessKnMPerRad > 0 : spring.stiffnessKnPerM > 0;
+  });
+}
+
+export function frameSupportStabilityWarning(nodes: StructureNode[]): string | null {
+  let independentConstraintCount = 0;
+  let hasXRestraint = false;
+  let hasYRestraint = false;
+
+  for (const node of nodes) {
+    if (node.supportType === "fixed") {
+      independentConstraintCount += 3;
+      hasXRestraint = true;
+      hasYRestraint = true;
+    } else if (node.supportType === "pinned") {
+      independentConstraintCount += 2;
+      hasXRestraint = true;
+      hasYRestraint = true;
+    } else if (node.supportType === "roller") {
+      independentConstraintCount += 1;
+      const normal = rollerNormalComponents(node.supportAngleDeg);
+      hasXRestraint = hasXRestraint || normal.x > 1e-6;
+      hasYRestraint = hasYRestraint || normal.y > 1e-6;
+    }
+
+    if (positiveFrameSpringDof(node, "ux")) {
+      independentConstraintCount += 1;
+      hasXRestraint = true;
+    }
+    if (positiveFrameSpringDof(node, "uy")) {
+      independentConstraintCount += 1;
+      hasYRestraint = true;
+    }
+    if (positiveFrameSpringDof(node, "rz")) {
+      independentConstraintCount += 1;
+    }
+  }
+
+  if (!hasXRestraint) return "平面框架支座约束不足：缺少 X 向刚体位移约束。";
+  if (!hasYRestraint) return "平面框架支座约束不足：缺少 Y 向刚体位移约束。";
+  if (independentConstraintCount < 3) return "平面框架支座约束不足：至少需要 3 个独立约束（例如一个铰支座加一个滚动支座，或一个固结支座）。";
+  return null;
+}
+
+export function trussSupportStabilityWarning(nodes: TrussNode[]): string | null {
+  let independentConstraintCount = 0;
+  let hasXRestraint = false;
+  let hasYRestraint = false;
+
+  for (const node of nodes) {
+    const supportType = normalizeTrussSupportType(node.supportType);
+    if (supportType === "pinned") {
+      independentConstraintCount += 2;
+      hasXRestraint = true;
+      hasYRestraint = true;
+    } else if (supportType === "roller") {
+      independentConstraintCount += 1;
+      hasYRestraint = true;
+    }
+  }
+
+  if (!hasXRestraint) return "平面桁架支座约束不足：缺少 X 向刚体位移约束。";
+  if (!hasYRestraint) return "平面桁架支座约束不足：缺少 Y 向刚体位移约束。";
+  if (independentConstraintCount < 3) return "平面桁架支座约束不足：至少需要 3 个独立平动约束（例如一个铰支座加一个滚动支座）。";
+  return null;
 }
 
 export function validateCustomFrameWorkspace(value: FrameWorkspaceState): string | null {
@@ -380,6 +465,11 @@ export function validateCustomFrameWorkspace(value: FrameWorkspaceState): string
 
   if (members.length < 1) {
     return "自定义二维框架至少需要 1 个构件。";
+  }
+
+  const supportWarning = frameSupportStabilityWarning(nodes);
+  if (supportWarning) {
+    return supportWarning;
   }
 
   return null;
@@ -461,6 +551,11 @@ export function validateCustomTrussWorkspace(value: TrussWorkspaceState): string
     loads.some((load) => load.type !== "nodal" && !availableMemberIds.has(load.member))
   ) {
     return "荷载引用了不存在的节点或杆件。";
+  }
+
+  const supportWarning = trussSupportStabilityWarning(nodes);
+  if (supportWarning) {
+    return supportWarning;
   }
 
   return null;

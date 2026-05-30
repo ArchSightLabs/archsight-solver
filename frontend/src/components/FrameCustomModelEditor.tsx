@@ -23,6 +23,7 @@ import {
 import { useFrameTextModel } from "../hooks/useFrameTextModel.ts";
 import { FRAME_MODEL_TEMPLATES, cloneFrameModelTemplate } from "../lib/workbench-model-templates.ts";
 import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
+import { frameSupportStabilityWarning } from "../solver-payload.ts";
 import type {
   FrameLoad,
   FrameLoadCase,
@@ -95,11 +96,20 @@ export function FrameCustomModelEditor({
     if (value.members[0]) return { type: "member", id: value.members[0].id };
     return { type: "load", id: "load-0" };
   }, [selectedObject, selection, value.loads, value.members, value.nodes]);
-  const supportCount = value.nodes.filter((node) => (node.supportType ?? "free") !== "free").length;
+  const supportCount = value.nodes.filter(
+    (node) =>
+      (node.supportType ?? "free") !== "free" ||
+      (node.springs ?? []).some((spring) => spring.dof === "rz" ? spring.stiffnessKnMPerRad > 0 : spring.stiffnessKnPerM > 0),
+  ).length;
   const modelWarnings = useMemo(() => {
     const warnings: string[] = [];
     const nodeIds = new Set(value.nodes.map((node) => node.id));
-    if (supportCount === 0) warnings.push("尚未设置支座约束。");
+    const supportWarning = frameSupportStabilityWarning(value.nodes);
+    if (supportCount === 0) {
+      warnings.push("尚未设置支座约束。");
+    } else if (supportWarning) {
+      warnings.push(supportWarning);
+    }
     if (value.members.some((member) => !nodeIds.has(member.start) || !nodeIds.has(member.end))) warnings.push("存在引用缺失节点的构件。");
     if (value.loads.length === 0) warnings.push("尚未设置基本荷载。");
     if (value.members.length === 0) warnings.push("尚未设置构件。");
