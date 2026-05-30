@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import test from "node:test";
-import { materialEngineeringNote, materialOptionLabel, youngModulusForMaterial } from "./material-presets.ts";
+import { materialEngineeringNote, materialOptionLabel, memberMaterialEngineeringNote, youngModulusForMaterial } from "./material-presets.ts";
 import { memberMaterialPresetHint, memberPropertyLabels } from "./member-property-vocabulary.ts";
 import { PREDEFINED_MATERIALS } from "../types/material.ts";
 
@@ -24,6 +24,14 @@ test("材料说明明确预设不替代强度和规范设计", () => {
 test("材料预设回填弹性模量而不是覆盖截面参数", () => {
   assert.equal(youngModulusForMaterial("q235", 1), 206);
   assert.equal(youngModulusForMaterial("unknown", 199), 199);
+});
+
+test("构件自定义弹性模量提示使用当前输入值而不是材料库默认值", () => {
+  const note = memberMaterialEngineeringNote("custom", 198.5, "构件");
+
+  assert.match(note, /当前构件使用自定义弹性模量 E=198\.5 GPa/u);
+  assert.doesNotMatch(note, /E=206 GPa/u);
+  assert.match(memberMaterialEngineeringNote("q345", 210, "杆件"), /Q345 低合金高强度结构钢/u);
 });
 
 test("构件和杆件材料截面字段显式保留工程单位", () => {

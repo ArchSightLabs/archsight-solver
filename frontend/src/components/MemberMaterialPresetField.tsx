@@ -1,5 +1,5 @@
 import { DropdownSelect } from "./ui/DropdownSelect";
-import { materialDropdownOptions, materialEngineeringNote, materialIdForYoungModulus, youngModulusForMaterial } from "../lib/material-presets.ts";
+import { materialDropdownOptions, materialIdForYoungModulus, memberMaterialEngineeringNote, youngModulusForMaterial } from "../lib/material-presets.ts";
 import { memberMaterialPresetHint } from "../lib/member-property-vocabulary.ts";
 import { cn } from "@/lib/utils";
 
@@ -44,7 +44,7 @@ export function MemberMaterialPresetField({
       />
       {showHint ? (
         <div className="text-[10px] font-semibold text-muted-foreground">
-          {memberMaterialPresetHint(mode, memberLabel)} {materialEngineeringNote(selectedMaterialId)}
+          {memberMaterialPresetHint(mode, memberLabel)} {memberMaterialEngineeringNote(selectedMaterialId, youngModulusGPa, memberLabel)}
         </div>
       ) : null}
     </div>

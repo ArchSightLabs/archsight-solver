@@ -18,6 +18,19 @@ export function materialEngineeringNote(materialId: string | undefined, material
   return `${base}${material.note ?? "材料参数用于线弹性刚度计算；强度、稳定、连接和规范设计仍需单独复核。"}`;
 }
 
+export function memberMaterialEngineeringNote(
+  materialId: string | undefined,
+  youngModulusGPa: number,
+  memberLabel: "构件" | "杆件",
+  materials: Material[] = PREDEFINED_MATERIALS,
+): string {
+  const material = materials.find((item) => item.id === materialId);
+  if (!material || material.id === "custom") {
+    return `当前${memberLabel}使用自定义弹性模量 E=${formatMaterialNumber(youngModulusGPa)} GPa；材料库未指定强度、稳定、连接和规范设计参数。`;
+  }
+  return materialEngineeringNote(material.id, materials);
+}
+
 export function materialDropdownOptions(materials: Material[] = PREDEFINED_MATERIALS): MaterialDropdownOption[] {
   return materials.map((material) => ({
     value: material.id,
@@ -31,4 +44,8 @@ export function materialIdForYoungModulus(youngModulus: number, materials: Mater
 
 export function youngModulusForMaterial(materialId: string, fallback: number, materials: Material[] = PREDEFINED_MATERIALS): number {
   return materials.find((material) => material.id === materialId)?.youngModulus ?? fallback;
+}
+
+function formatMaterialNumber(value: number): string {
+  return Number.isFinite(value) ? String(Number(value.toFixed(4))) : "—";
 }
