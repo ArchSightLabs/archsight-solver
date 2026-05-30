@@ -25,26 +25,26 @@ export type FrameDisplayOption = {
 };
 
 const BEAM_TABS: ResultTab[] = [
-  { id: "overview", label: "全部结果", description: "一次查看结构预览、工程图、数据曲线和摘要", icon: Activity },
-  { id: "preview", label: "结构预览", description: "查看支座、荷载和挠度形态", icon: Network },
-  { id: "diagrams", label: "工程图", description: "在梁轴线上叠加查看挠度、弯矩和剪力", icon: BarChart3 },
-  { id: "curves", label: "数据曲线", description: "查看挠度、弯矩和剪力数据曲线", icon: LineChart },
+  { id: "overview", label: "全部结果", description: "一次查看结构预览、模型叠加工程图、数据曲线和校核摘要", icon: Activity },
+  { id: "preview", label: "结构预览", description: "查看节点、杆件、支座、荷载和挠度形态", icon: Network },
+  { id: "diagrams", label: "工程图", description: "在梁轴线上查看挠度、弯矩和剪力的模型叠加工程图", icon: BarChart3 },
+  { id: "curves", label: "数据曲线", description: "按梁轴坐标查看挠度、弯矩和剪力数据曲线", icon: LineChart },
   { id: "summary", label: "结果摘要", description: "查看计算结论与状态", icon: FileText },
 ];
 
 const FRAME_TABS: ResultTab[] = [
-  { id: "overview", label: "全部结果", description: "一次查看结构预览、工程图、数据曲线和摘要", icon: Activity },
-  { id: "preview", label: "结构预览", description: "查看节点、构件与变形", icon: Network },
-  { id: "diagrams", label: "工程图", description: "在结构坐标系中查看弯矩、剪力、轴力和局部 y 向挠度", icon: BarChart3 },
-  { id: "curves", label: "数据曲线", description: "查看节点 X/Y 向位移曲线", icon: LineChart },
+  { id: "overview", label: "全部结果", description: "一次查看结构预览、模型叠加工程图、数据曲线和校核摘要", icon: Activity },
+  { id: "preview", label: "结构预览", description: "查看节点、构件、支座、荷载、编号与变形", icon: Network },
+  { id: "diagrams", label: "工程图", description: "在结构坐标系中查看弯矩、剪力、轴力和局部 y 向挠度的模型叠加工程图", icon: BarChart3 },
+  { id: "curves", label: "数据曲线", description: "按节点序列查看 X/Y 向位移数据曲线", icon: LineChart },
   { id: "summary", label: "结果摘要", description: "查看计算结论与状态", icon: FileText },
 ];
 
 const TRUSS_TABS: ResultTab[] = [
-  { id: "overview", label: "全部结果", description: "一次查看结构预览、工程图、数据曲线和摘要", icon: Activity },
-  { id: "preview", label: "结构预览", description: "查看节点、杆件与变形", icon: Network },
-  { id: "diagrams", label: "工程图", description: "在桁架坐标系中查看杆件轴力和节点位移", icon: BarChart3 },
-  { id: "curves", label: "数据曲线", description: "查看节点 X/Y 向位移曲线和杆件轴力曲线", icon: LineChart },
+  { id: "overview", label: "全部结果", description: "一次查看结构预览、模型叠加工程图、数据曲线和校核摘要", icon: Activity },
+  { id: "preview", label: "结构预览", description: "查看节点、杆件、支座、荷载、编号与变形", icon: Network },
+  { id: "diagrams", label: "工程图", description: "在桁架坐标系中查看杆件轴力和节点位移的模型叠加工程图", icon: BarChart3 },
+  { id: "curves", label: "数据曲线", description: "按节点与杆件序列查看位移和轴力数据曲线", icon: LineChart },
   { id: "summary", label: "结果摘要", description: "查看计算结论与状态", icon: FileText },
 ];
 
