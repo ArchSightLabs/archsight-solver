@@ -334,7 +334,7 @@ export interface TrussPreviewData {
   analysisType: "truss";
   structureType: string;
   structureTypeLabel: string;
-  nodes: Array<{ id: string; x: number; y: number; role: string }>;
+  nodes: Array<{ id: string; x: number; y: number; role: string; supportType?: SupportType }>;
   members: Array<Pick<TrussMember, "id" | "start" | "end">>;
   loads: TrussLoad[];
   nodeResults: TrussNodeResult[];

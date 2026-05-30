@@ -75,6 +75,7 @@ def build_truss_solution_response(
                 "id": node["id"],
                 "x": float(node["x"]),
                 "y": float(node["y"]),
+                "supportType": node["supportType"],
                 "role": "support" if node["supportType"] != "free" else "free",
             }
             for node in nodes

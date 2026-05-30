@@ -79,6 +79,7 @@ def test_truss_preview_endpoint_returns_deformed_shape(client):
     assert len(data["preview"]["members"]) == 5
     assert len(data["preview"]["loads"]) == 2
     assert len(data["preview"]["deformedNodes"]) == 4
+    assert [node["supportType"] for node in data["preview"]["nodes"][:2]] == ["pinned", "roller"]
     assert data["summary"]["statusCode"] == "PASS"
 
 

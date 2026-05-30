@@ -1,11 +1,11 @@
-import type { FrameCalculationResults, TrussCalculationResults } from "../types/structure";
+import type { FrameCalculationResults, TrussCalculationResults } from "../types/structure.ts";
 import {
   buildFrameDimensionLegendRows,
   buildFrameGeometryDimensions,
   buildFrameLoadLabelMap,
   buildFrameLoadMarkers,
-} from "../components/frame-preview-utils";
-import { buildTrussLoadMarkers, buildTrussMemberLengthDimensions, buildTrussMemberLengthLegendRows, buildTrussSupportMarkerGeometry } from "../components/truss-preview-utils";
+} from "../components/frame-preview-utils.ts";
+import { buildTrussLoadMarkers, buildTrussMemberLengthDimensions, buildTrussMemberLengthLegendRows, buildTrussSupportMarkerGeometry } from "../components/truss-preview-utils.ts";
 import {
   BASE_MEMBER_LIGHT_STROKE,
   BASE_MEMBER_STROKE,
@@ -27,10 +27,10 @@ import {
   type ReportNode,
   type ReportPoint,
   type ReportStructureLayout,
-} from "./report-structure-graphics";
+} from "./report-structure-graphics.ts";
 import {
   renderOption,
-} from "./report-rendering";
+} from "./report-rendering.ts";
 
 type ReportStructureLoadRenderer = (
   graphics: ReportGraphic[],
@@ -40,6 +40,15 @@ type ReportStructureLoadRenderer = (
     memberById: Map<string, ReportMember>;
   },
 ) => void;
+
+export function trussReportNodesFromPreview(preview: TrussCalculationResults["truss"] | TrussCalculationResults["preview"]): ReportNode[] {
+  return (preview?.nodes ?? []).map((node) => ({
+    id: node.id,
+    x: node.x,
+    y: node.y,
+    supportType: node.supportType ?? (node.role === "support" ? "pinned" : "free"),
+  }));
+}
 
 function addFrameSupportMarker(graphics: ReportGraphic[], type: string | undefined, point: ReportPoint) {
   if (!type || type === "free") return;
@@ -143,7 +152,7 @@ export async function renderTrussPreview(results: TrussCalculationResults) {
   return renderStructurePreview({
     systemLabel: "平面桁架",
     memberTerm: "杆件",
-    nodes: preview.nodes.map((node) => ({ id: node.id, x: node.x, y: node.y, supportType: node.role === "support" ? "pinned" : "free" })),
+    nodes: trussReportNodesFromPreview(preview),
     members: preview.members,
     deformedNodes: preview.deformedNodes.map((node) => ({ id: node.id, x: node.x, y: node.y })),
     supportMarker: addTrussSupportMarker,
@@ -252,7 +261,7 @@ export async function renderFrameOverlay(results: FrameCalculationResults, metri
 export async function renderTrussOverlay(results: TrussCalculationResults, metric: "axial" | "displacement") {
   const preview = results.truss ?? results.preview;
   if (!preview) return "";
-  const nodes = preview.nodes.map((node) => ({ id: node.id, x: node.x, y: node.y, supportType: node.role === "support" ? "pinned" : "free" }));
+  const nodes = trussReportNodesFromPreview(preview);
   const layout = buildReportStructureLayout(nodes, metric === "displacement" ? preview.deformedNodes : []);
   const byId = new Map(nodes.map((node) => [node.id, node]));
   const memberResultById = new Map(results.memberResults.map((member) => [member.memberId, member]));
