@@ -21,16 +21,10 @@ import {
   inferFrameNodeDraft,
 } from "../lib/frame-editor-model.ts";
 import { useFrameTextModel } from "../hooks/useFrameTextModel.ts";
+import { useNodePairConnection } from "../hooks/useNodePairConnection.ts";
 import { FRAME_MODEL_TEMPLATES, cloneFrameModelTemplate } from "../lib/workbench-model-templates.ts";
 import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
 import { memberElasticityDistributionLabel, youngModulusForMaterial } from "../lib/material-presets.ts";
-import {
-  findAvailableNodePairForNode,
-  findNextAvailableNodePair,
-  resolveNodePairAfterEndChange,
-  resolveNodePairAfterStartChange,
-  resolveNodePairConnection,
-} from "../lib/node-pair-connection.ts";
 import { frameSupportStabilityWarning } from "../solver-payload.ts";
 import { PREDEFINED_MATERIALS } from "../types/material.ts";
 import type {
@@ -77,8 +71,6 @@ export function FrameCustomModelEditor({
 }: FrameCustomModelEditorProps) {
   const [selectedObject, setSelectedObject] = useState<FrameSelectedObject>({ type: "node", id: value.nodes[0]?.id ?? "" });
   const [nodeConnectionTargetId, setNodeConnectionTargetId] = useState("");
-  const [memberConnectionStartId, setMemberConnectionStartId] = useState(value.nodes[0]?.id ?? "");
-  const [memberConnectionEndId, setMemberConnectionEndId] = useState(value.nodes[1]?.id ?? "");
   const [advancedSectionId, setAdvancedSectionId] = useState<FrameAdvancedSection>("nodes");
   const visibleSectionId = normalizeModuleSectionId("frame", activeSectionId) ?? "frame-template";
   const isSectionVisible = (sectionId: string) => visibleSectionId === sectionId;
@@ -88,19 +80,11 @@ export function FrameCustomModelEditor({
     [value.nodes]
   );
   const nodeIds = useMemo(() => value.nodes.map((node) => node.id), [value.nodes]);
-  const memberConnection = useMemo(
-    () => resolveNodePairConnection({
-      nodeIds,
-      startNodeId: memberConnectionStartId,
-      endNodeId: memberConnectionEndId,
-      duplicateExists: (startNodeId, endNodeId) => frameMemberExists(value.members, startNodeId, endNodeId),
-      duplicateReason: "两节点间已有构件",
-    }),
-    [memberConnectionEndId, memberConnectionStartId, nodeIds, value.members],
-  );
-  const resolvedMemberConnectionStartId = memberConnection.startNodeId;
-  const resolvedMemberConnectionEndId = memberConnection.endNodeId;
-  const memberConnectionDisabledReason = memberConnection.disabledReason;
+  const memberConnection = useNodePairConnection({
+    nodeIds,
+    duplicateExists: (startNodeId, endNodeId) => frameMemberExists(value.members, startNodeId, endNodeId),
+    duplicateReason: "两节点间已有构件",
+  });
   const memberOptions = useMemo(
     () => value.members.map((member) => ({ value: member.id, label: member.id })),
     [value.members]
@@ -157,38 +141,6 @@ export function FrameCustomModelEditor({
     onSelectionChange?.({ mode: "frame", type: next.type, id: next.id }, options);
   };
 
-  const updateMemberConnectionStart = (nextId: string) => {
-    const next = resolveNodePairAfterStartChange({
-      nodeIds,
-      nextStartNodeId: nextId,
-      currentEndNodeId: resolvedMemberConnectionEndId,
-    });
-    setMemberConnectionStartId(next.startNodeId);
-    setMemberConnectionEndId(next.endNodeId);
-  };
-
-  const updateMemberConnectionEnd = (nextId: string) => {
-    const next = resolveNodePairAfterEndChange({
-      nodeIds,
-      currentStartNodeId: resolvedMemberConnectionStartId,
-      nextEndNodeId: nextId,
-    });
-    setMemberConnectionStartId(next.startNodeId);
-    setMemberConnectionEndId(next.endNodeId);
-  };
-
-  const resetMemberConnectionToAvailablePair = (nodes: StructureNode[], members: StructureMember[]) => {
-    const nextNodeIds = nodes.map((node) => node.id);
-    const nextConnection = findNextAvailableNodePair({
-      nodeIds: nextNodeIds,
-      startNodeId: "",
-      endNodeId: "",
-      duplicateExists: (nextStartId, nextEndId) => frameMemberExists(members, nextStartId, nextEndId),
-    });
-    setMemberConnectionStartId(nextConnection?.startNodeId ?? nextNodeIds[0] ?? "");
-    setMemberConnectionEndId(nextConnection?.endNodeId ?? nextNodeIds.find((id) => id !== nextNodeIds[0]) ?? "");
-  };
-
   const keep = (patch: Partial<FrameCollections> = {}): FrameCollections => ({
     nodes: patch.nodes ?? value.nodes,
     members: patch.members ?? value.members,
@@ -202,7 +154,10 @@ export function FrameCustomModelEditor({
     onApplyCollections: (next) => {
       const nextCollections = keep(next);
       commit(nextCollections);
-      resetMemberConnectionToAvailablePair(nextCollections.nodes, nextCollections.members);
+      memberConnection.resetToAvailablePair({
+        nodeIds: nextCollections.nodes.map((node) => node.id),
+        duplicateExists: (nextStartId, nextEndId) => frameMemberExists(nextCollections.members, nextStartId, nextEndId),
+      });
     },
   });
 
@@ -217,7 +172,10 @@ export function FrameCustomModelEditor({
       loadCases: [],
       loadCombinations: [],
     });
-    resetMemberConnectionToAvailablePair(collections.nodes, collections.members);
+    memberConnection.resetToAvailablePair({
+      nodeIds: collections.nodes.map((node) => node.id),
+      duplicateExists: (nextStartId, nextEndId) => frameMemberExists(collections.members, nextStartId, nextEndId),
+    });
     selectObject({ type: "node", id: collections.nodes[0]?.id ?? "" }, { openEditor: false });
     frameTextModel.noteTemplateApplied(template.title);
   };
@@ -270,18 +228,12 @@ export function FrameCustomModelEditor({
       ? [...value.members, createConnectedFrameMember(nearest, nextNode, value.members, value.members.map((member) => member.id), defaultMemberElasticityGPa)]
       : value.members;
     commit(keep({ nodes: nextNodes, members: nextMembers }));
-    const nextConnection = findAvailableNodePairForNode({
+    memberConnection.selectAvailablePairForNode({
       nodeIds: nextNodes.map((node) => node.id),
       nodeId: nextNode.id,
       preferredNeighborId: nearest?.id,
       duplicateExists: (nextStartId, nextEndId) => frameMemberExists(nextMembers, nextStartId, nextEndId),
     });
-    if (nextConnection) {
-      setMemberConnectionStartId(nextConnection.startNodeId);
-      setMemberConnectionEndId(nextConnection.endNodeId);
-    } else {
-      resetMemberConnectionToAvailablePair(nextNodes, nextMembers);
-    }
     selectObject({ type: "node", id: nextNode.id }, { openEditor: false });
   };
 
@@ -347,17 +299,13 @@ export function FrameCustomModelEditor({
     }
     const nextMember = createConnectedFrameMember(start, end, value.members, value.members.map((member) => member.id), defaultMemberElasticityGPa);
     const nextMembers = [...value.members, nextMember];
-    const nextConnection = findNextAvailableNodePair({
+    memberConnection.advanceAfterConnection({
       nodeIds,
       startNodeId: startId,
       endNodeId: endId,
       duplicateExists: (nextStartId, nextEndId) => frameMemberExists(nextMembers, nextStartId, nextEndId),
     });
     commit(keep({ members: nextMembers }));
-    if (nextConnection) {
-      setMemberConnectionStartId(nextConnection.startNodeId);
-      setMemberConnectionEndId(nextConnection.endNodeId);
-    }
     selectObject({ type: "member", id: nextMember.id }, { openEditor: false });
   };
 
@@ -594,13 +542,13 @@ export function FrameCustomModelEditor({
         loadOptions={loadOptions}
         selectedObject={resolvedSelectedObject}
         fieldLabelClass={fieldLabelClass}
-        memberConnectionStartId={resolvedMemberConnectionStartId}
-        memberConnectionEndId={resolvedMemberConnectionEndId}
-        memberConnectionDisabledReason={memberConnectionDisabledReason}
+        memberConnectionStartId={memberConnection.startNodeId}
+        memberConnectionEndId={memberConnection.endNodeId}
+        memberConnectionDisabledReason={memberConnection.disabledReason}
         onSelectObject={(next) => selectObject(next)}
-        onMemberConnectionStartChange={updateMemberConnectionStart}
-        onMemberConnectionEndChange={updateMemberConnectionEnd}
-        onAddMemberConnection={() => addMemberBetweenNodes(resolvedMemberConnectionStartId, resolvedMemberConnectionEndId)}
+        onMemberConnectionStartChange={memberConnection.updateStartNodeId}
+        onMemberConnectionEndChange={memberConnection.updateEndNodeId}
+        onAddMemberConnection={() => addMemberBetweenNodes(memberConnection.startNodeId, memberConnection.endNodeId)}
         onAddLoad={addLoad}
       />
       ) : null}
