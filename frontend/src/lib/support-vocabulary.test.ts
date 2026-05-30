@@ -11,11 +11,13 @@ import {
   beamSupportNote,
   nodeSupportDetail,
   nodeSupportNote,
+  nodeSupportSummary,
   supportChoiceOptions,
   supportOptionChoiceLabel,
   supportSystemHint,
   trussSupportDetail,
   trussSupportNote,
+  trussSupportSummary,
 } from "./support-vocabulary.ts";
 
 test("梁系支座约束来自共享目录并保留 v / θz 口径", () => {
@@ -38,6 +40,13 @@ test("支座选择项显示自由度含义", () => {
     supportChoiceOptions(TRUSS_SUPPORT_OPTIONS).map((option) => option.label),
     ["铰支座（约束 ux、uy）", "滚动支座（约束 uy，释放 ux）", "自由节点（释放 ux、uy）"],
   );
+});
+
+test("对象导航支座概览同时显示支座类型和自由度约束", () => {
+  assert.equal(nodeSupportSummary("fixed"), "固结支座 · 约束 ux、uy、rz");
+  assert.equal(nodeSupportSummary("roller"), "滚动支座 · 默认约束 uy、释放 ux 与 rz；设置支座角度时约束法向位移");
+  assert.equal(trussSupportSummary("pinned"), "铰支座 · 约束 ux、uy");
+  assert.equal(trussSupportSummary("roller"), "滚动支座 · 约束 uy，释放 ux");
 });
 
 test("支座单项工程提示来自共享目录", () => {

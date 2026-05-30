@@ -3,7 +3,7 @@ import { Plus } from "lucide-react";
 import { Button } from "./ui/button";
 import { ModelObjectGuide } from "./ModelObjectGuide";
 import { modelObjectLoadLabel, modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
-import { trussSupportLabel } from "../lib/support-vocabulary.ts";
+import { trussSupportSummary } from "../lib/support-vocabulary.ts";
 import type { TrussMember, TrussNode } from "../types/structure.ts";
 
 export type TrussSelectedObject =
@@ -80,7 +80,7 @@ export function TrussObjectNavigator({
                 onClick={() => onSelectObject({ type: "node", id: node.id })}
                 className={objectChipClass(selectedObject.type === "node" && selectedObject.id === node.id)}
               >
-                {node.id} · {trussSupportLabel(node.supportType)}
+                {node.id} · {trussSupportSummary(node.supportType)}
               </button>
             ))}
             {supportCount === 0 ? (

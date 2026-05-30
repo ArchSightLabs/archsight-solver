@@ -116,6 +116,14 @@ export function trussSupportDetail(type: SupportType | undefined): string {
   return optionDetail(TRUSS_SUPPORT_OPTIONS, (type === "fixed" ? "pinned" : type ?? "free") as Exclude<SupportType, "fixed">, "释放 ux、uy");
 }
 
+export function nodeSupportSummary(type: SupportType | undefined): string {
+  return `${nodeSupportLabel(type)} · ${nodeSupportDetail(type)}`;
+}
+
+export function trussSupportSummary(type: SupportType | undefined): string {
+  return `${trussSupportLabel(type)} · ${trussSupportDetail(type)}`;
+}
+
 export function beamSupportNote(type: BeamSupportType | undefined): string {
   return optionNote(BEAM_SUPPORT_OPTIONS, type ?? "pinned", "梁系支座按 v / θz 自由度参与整体刚度矩阵。");
 }

@@ -3,7 +3,7 @@ import { Plus } from "lucide-react";
 import { Button } from "./ui/button";
 import { ModelObjectGuide } from "./ModelObjectGuide";
 import { modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
-import { nodeSupportLabel } from "../lib/support-vocabulary.ts";
+import { nodeSupportSummary } from "../lib/support-vocabulary.ts";
 import type { StructureMember, StructureNode } from "../types/structure.ts";
 
 export type FrameSelectedObject =
@@ -74,7 +74,7 @@ export function FrameObjectNavigator({
                 onClick={() => onSelectObject({ type: "node", id: node.id })}
                 className={objectChipClass(selectedObject.type === "node" && selectedObject.id === node.id)}
               >
-                {node.id} · {nodeSupportLabel(node.supportType)}
+                {node.id} · {nodeSupportSummary(node.supportType)}
               </button>
             ))}
             {supportNodes.length === 0 ? (
