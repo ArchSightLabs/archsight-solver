@@ -20,7 +20,12 @@ import { TRUSS_MODEL_TEMPLATES, cloneTrussModelTemplate } from "../lib/workbench
 import { useTrussTextModel } from "../hooks/useTrussTextModel.ts";
 import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
 import { memberElasticityDistributionLabel, youngModulusForMaterial } from "../lib/material-presets.ts";
-import { resolveNodePairAfterEndChange, resolveNodePairAfterStartChange, resolveNodePairConnection } from "../lib/node-pair-connection.ts";
+import {
+  findNextAvailableNodePair,
+  resolveNodePairAfterEndChange,
+  resolveNodePairAfterStartChange,
+  resolveNodePairConnection,
+} from "../lib/node-pair-connection.ts";
 import { trussSupportStabilityWarning } from "../solver-payload.ts";
 import { PREDEFINED_MATERIALS } from "../types/material.ts";
 import type { TrussLoad, TrussMember, TrussNode } from "../types/structure.ts";
@@ -67,6 +72,7 @@ export function TrussCustomModelEditor({
     value,
     onApplyCollections: (next) => {
       onChange(next);
+      resetMemberConnectionToAvailablePair(next.nodes, next.members);
       setSelectedObject({ type: "node", id: next.nodes[0]?.id ?? "" });
     },
   });
@@ -159,11 +165,24 @@ export function TrussCustomModelEditor({
     setMemberConnectionEndId(next.endNodeId);
   };
 
+  function resetMemberConnectionToAvailablePair(nodes: TrussNode[], members: TrussMember[]) {
+    const nextNodeIds = nodes.map((node) => node.id);
+    const nextConnection = findNextAvailableNodePair({
+      nodeIds: nextNodeIds,
+      startNodeId: "",
+      endNodeId: "",
+      duplicateExists: (nextStartId, nextEndId) => trussMemberExists(members, nextStartId, nextEndId),
+    });
+    setMemberConnectionStartId(nextConnection?.startNodeId ?? nextNodeIds[0] ?? "");
+    setMemberConnectionEndId(nextConnection?.endNodeId ?? nextNodeIds.find((id) => id !== nextNodeIds[0]) ?? "");
+  }
+
   const applyTypicalCase = (templateId: string) => {
     const template = TRUSS_MODEL_TEMPLATES.find((item) => item.id === templateId);
     if (!template) return;
     const collections = cloneTrussModelTemplate(template);
     commit(collections);
+    resetMemberConnectionToAvailablePair(collections.nodes, collections.members);
     selectObject({ type: "node", id: collections.nodes[0]?.id ?? "" }, { openEditor: false });
     trussTextModel.noteTemplateApplied(template.title);
   };
@@ -226,7 +245,18 @@ export function TrussCustomModelEditor({
       return;
     }
     const nextMember = createConnectedTrussMember(start, end, value.members, value.members.map((member) => member.id), defaultMemberElasticityGPa);
-    commit({ nodes: value.nodes, members: [...value.members, nextMember], loads: value.loads });
+    const nextMembers = [...value.members, nextMember];
+    const nextConnection = findNextAvailableNodePair({
+      nodeIds,
+      startNodeId: startId,
+      endNodeId: endId,
+      duplicateExists: (nextStartId, nextEndId) => trussMemberExists(nextMembers, nextStartId, nextEndId),
+    });
+    commit({ nodes: value.nodes, members: nextMembers, loads: value.loads });
+    if (nextConnection) {
+      setMemberConnectionStartId(nextConnection.startNodeId);
+      setMemberConnectionEndId(nextConnection.endNodeId);
+    }
     selectObject({ type: "member", id: nextMember.id }, { openEditor: false });
   };
 

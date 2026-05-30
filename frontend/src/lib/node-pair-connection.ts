@@ -23,12 +23,34 @@ interface ResolveNodePairAfterEndChangeOptions {
   nextEndNodeId: string;
 }
 
+interface FindNextAvailableNodePairOptions extends NodePairConnectionSelection {
+  nodeIds: string[];
+  duplicateExists: (startNodeId: string, endNodeId: string) => boolean;
+}
+
 export interface NodePairConnectionState extends NodePairConnectionSelection {
   disabledReason?: string;
 }
 
 function firstDifferentNodeId(nodeIds: string[], nodeId: string): string {
   return nodeIds.find((candidate) => candidate !== nodeId) ?? "";
+}
+
+function nodePairKey(startNodeId: string, endNodeId: string): string {
+  return [startNodeId, endNodeId].sort().join("\u0000");
+}
+
+function listNodePairs(nodeIds: string[]): NodePairConnectionSelection[] {
+  const pairs: NodePairConnectionSelection[] = [];
+  for (let startIndex = 0; startIndex < nodeIds.length; startIndex += 1) {
+    for (let endIndex = startIndex + 1; endIndex < nodeIds.length; endIndex += 1) {
+      pairs.push({
+        startNodeId: nodeIds[startIndex],
+        endNodeId: nodeIds[endIndex],
+      });
+    }
+  }
+  return pairs;
 }
 
 export function resolveNodePairConnection({
@@ -59,6 +81,29 @@ export function resolveNodePairConnection({
     endNodeId: resolvedEndNodeId,
     disabledReason,
   };
+}
+
+export function findNextAvailableNodePair({
+  nodeIds,
+  startNodeId,
+  endNodeId,
+  duplicateExists,
+}: FindNextAvailableNodePairOptions): NodePairConnectionSelection | undefined {
+  const pairs = listNodePairs(nodeIds);
+  if (pairs.length === 0) {
+    return undefined;
+  }
+  const currentPairKey = nodePairKey(startNodeId, endNodeId);
+  const currentIndex = pairs.findIndex((pair) => nodePairKey(pair.startNodeId, pair.endNodeId) === currentPairKey);
+
+  for (let offset = 1; offset <= pairs.length; offset += 1) {
+    const pair = pairs[((currentIndex >= 0 ? currentIndex : -1) + offset) % pairs.length];
+    if (!duplicateExists(pair.startNodeId, pair.endNodeId)) {
+      return pair;
+    }
+  }
+
+  return undefined;
 }
 
 export function resolveNodePairAfterStartChange({

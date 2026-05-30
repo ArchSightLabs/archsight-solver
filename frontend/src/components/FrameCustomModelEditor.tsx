@@ -24,7 +24,12 @@ import { useFrameTextModel } from "../hooks/useFrameTextModel.ts";
 import { FRAME_MODEL_TEMPLATES, cloneFrameModelTemplate } from "../lib/workbench-model-templates.ts";
 import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
 import { memberElasticityDistributionLabel, youngModulusForMaterial } from "../lib/material-presets.ts";
-import { resolveNodePairAfterEndChange, resolveNodePairAfterStartChange, resolveNodePairConnection } from "../lib/node-pair-connection.ts";
+import {
+  findNextAvailableNodePair,
+  resolveNodePairAfterEndChange,
+  resolveNodePairAfterStartChange,
+  resolveNodePairConnection,
+} from "../lib/node-pair-connection.ts";
 import { frameSupportStabilityWarning } from "../solver-payload.ts";
 import { PREDEFINED_MATERIALS } from "../types/material.ts";
 import type {
@@ -171,6 +176,18 @@ export function FrameCustomModelEditor({
     setMemberConnectionEndId(next.endNodeId);
   };
 
+  const resetMemberConnectionToAvailablePair = (nodes: StructureNode[], members: StructureMember[]) => {
+    const nextNodeIds = nodes.map((node) => node.id);
+    const nextConnection = findNextAvailableNodePair({
+      nodeIds: nextNodeIds,
+      startNodeId: "",
+      endNodeId: "",
+      duplicateExists: (nextStartId, nextEndId) => frameMemberExists(members, nextStartId, nextEndId),
+    });
+    setMemberConnectionStartId(nextConnection?.startNodeId ?? nextNodeIds[0] ?? "");
+    setMemberConnectionEndId(nextConnection?.endNodeId ?? nextNodeIds.find((id) => id !== nextNodeIds[0]) ?? "");
+  };
+
   const keep = (patch: Partial<FrameCollections> = {}): FrameCollections => ({
     nodes: patch.nodes ?? value.nodes,
     members: patch.members ?? value.members,
@@ -181,7 +198,11 @@ export function FrameCustomModelEditor({
 
   const frameTextModel = useFrameTextModel({
     value,
-    onApplyCollections: (next) => commit(keep(next)),
+    onApplyCollections: (next) => {
+      const nextCollections = keep(next);
+      commit(nextCollections);
+      resetMemberConnectionToAvailablePair(nextCollections.nodes, nextCollections.members);
+    },
   });
 
   const applyTypicalCase = (templateId: string) => {
@@ -195,6 +216,7 @@ export function FrameCustomModelEditor({
       loadCases: [],
       loadCombinations: [],
     });
+    resetMemberConnectionToAvailablePair(collections.nodes, collections.members);
     selectObject({ type: "node", id: collections.nodes[0]?.id ?? "" }, { openEditor: false });
     frameTextModel.noteTemplateApplied(template.title);
   };
@@ -310,7 +332,18 @@ export function FrameCustomModelEditor({
       return;
     }
     const nextMember = createConnectedFrameMember(start, end, value.members, value.members.map((member) => member.id), defaultMemberElasticityGPa);
-    commit(keep({ members: [...value.members, nextMember] }));
+    const nextMembers = [...value.members, nextMember];
+    const nextConnection = findNextAvailableNodePair({
+      nodeIds,
+      startNodeId: startId,
+      endNodeId: endId,
+      duplicateExists: (nextStartId, nextEndId) => frameMemberExists(nextMembers, nextStartId, nextEndId),
+    });
+    commit(keep({ members: nextMembers }));
+    if (nextConnection) {
+      setMemberConnectionStartId(nextConnection.startNodeId);
+      setMemberConnectionEndId(nextConnection.endNodeId);
+    }
     selectObject({ type: "member", id: nextMember.id }, { openEditor: false });
   };
 
