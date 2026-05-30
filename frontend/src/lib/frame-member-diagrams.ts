@@ -1,4 +1,5 @@
 import type { FrameMemberDiagram } from "../types/structure";
+import { FRAME_REPORT_MEMBER_FIGURES } from "./report-figure-catalog.ts";
 
 export type FrameDiagramMetricKey = "axialKn" | "shearKn" | "momentKnM" | "deflectionMm";
 
@@ -30,12 +31,19 @@ export interface FrameDiagramExtreme {
   absValue: number;
 }
 
-export const FRAME_DIAGRAM_METRICS: FrameDiagramMetric[] = [
-  { key: "momentKnM", title: "弯矩图", unit: "kN·m", color: "#dc2626", fillColor: "rgba(220, 38, 38, 0.18)", diagramType: "area" },
-  { key: "shearKn", title: "剪力图", unit: "kN", color: "#2563eb", fillColor: "rgba(37, 99, 235, 0.16)", diagramType: "area" },
-  { key: "deflectionMm", title: "局部 y 向挠度图", unit: "mm", color: "#7c3aed", fillColor: "rgba(124, 58, 237, 0.14)", diagramType: "line" },
-  { key: "axialKn", title: "轴力图", unit: "kN", color: "#059669", fillColor: "rgba(5, 150, 105, 0.14)", diagramType: "area" },
-];
+const FRAME_DIAGRAM_STYLES: Record<FrameDiagramMetricKey, Pick<FrameDiagramMetric, "color" | "fillColor" | "diagramType">> = {
+  momentKnM: { color: "#dc2626", fillColor: "rgba(220, 38, 38, 0.18)", diagramType: "area" },
+  shearKn: { color: "#2563eb", fillColor: "rgba(37, 99, 235, 0.16)", diagramType: "area" },
+  deflectionMm: { color: "#7c3aed", fillColor: "rgba(124, 58, 237, 0.14)", diagramType: "line" },
+  axialKn: { color: "#059669", fillColor: "rgba(5, 150, 105, 0.14)", diagramType: "area" },
+};
+
+export const FRAME_DIAGRAM_METRICS: FrameDiagramMetric[] = FRAME_REPORT_MEMBER_FIGURES.map((figure) => ({
+  key: figure.metric,
+  title: figure.title,
+  unit: figure.unit,
+  ...FRAME_DIAGRAM_STYLES[figure.metric],
+}));
 
 export const DEFAULT_FRAME_DIAGRAM_METRIC_KEY: FrameDiagramMetricKey = "momentKnM";
 

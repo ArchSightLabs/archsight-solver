@@ -65,6 +65,14 @@ test("框架计算书插图顺序与界面工程图顺序一致", () => {
     FRAME_DIAGRAM_METRICS.map((metric) => metric.key),
   );
   assert.deepEqual(
+    FRAME_REPORT_MEMBER_FIGURES.map((figure) => figure.title),
+    FRAME_DIAGRAM_METRICS.map((metric) => metric.title),
+  );
+  assert.deepEqual(
+    FRAME_REPORT_MEMBER_FIGURES.map((figure) => figure.unit),
+    FRAME_DIAGRAM_METRICS.map((metric) => metric.unit),
+  );
+  assert.deepEqual(
     reportFiguresForScope(FRAME_REPORT_MEMBER_FIGURES, false).map((figure) => figure.metric),
     ["momentKnM"],
   );

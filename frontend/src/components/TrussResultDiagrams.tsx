@@ -13,6 +13,12 @@ import {
 import { formatEngineeringValue } from "../lib/engineering-format";
 import { clamp } from "../lib/result-diagram-geometry";
 import { summaryMetricLabel } from "../lib/result-metrics";
+import {
+  DEFAULT_TRUSS_DIAGRAM_METRIC_KEY,
+  getTrussDiagramMetric,
+  TRUSS_DIAGRAM_METRICS,
+  type TrussDiagramMetricKey,
+} from "../lib/truss-result-diagrams";
 import { ResultDiagramCard, ResultDiagramEmptyState, ResultDiagramMetricBadge, ResultDiagramMetricGallery } from "./ResultDiagramLayout";
 import {
   buildTrussMemberLengthDimensions,
@@ -21,7 +27,6 @@ import {
   scoreTrussSupportedNodeLabelClearance,
 } from "./truss-preview-utils";
 
-type TrussDiagramMetricKey = "axialForceKn" | "displacementMm";
 type TrussDiagramSelectionKey = TrussDiagramMetricKey | "all";
 
 interface TrussResultDiagramsProps {
@@ -32,20 +37,10 @@ interface TrussResultDiagramsProps {
   heading?: string;
 }
 
-interface TrussDiagramMetric {
-  key: TrussDiagramMetricKey;
-  title: string;
-  unit: string;
-}
-
 const SVG_W = 1000;
 const SVG_H = 540;
 const PADDING = 72;
 const svgTextFont = "Inter, Microsoft YaHei, system-ui, sans-serif";
-const TRUSS_DIAGRAM_METRICS: TrussDiagramMetric[] = [
-  { key: "axialForceKn", title: "杆件轴力图", unit: "kN" },
-  { key: "displacementMm", title: "节点位移图", unit: "mm" },
-];
 
 function supportMarker(type: SupportType, x: number, y: number) {
   if (type === "pinned") {
@@ -115,7 +110,7 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
   const [selectedMetricState, setSelectedMetricState] = useState<TrussDiagramSelectionKey>("all");
   const [manualDisplacementScale, setManualDisplacementScale] = useState<number | null>(null);
   const selectedMetricKey = metricKey ?? selectedMetricState;
-  const selectedMetric = TRUSS_DIAGRAM_METRICS.find((metric) => metric.key === selectedMetricKey) ?? TRUSS_DIAGRAM_METRICS[0];
+  const selectedMetric = getTrussDiagramMetric(selectedMetricKey === "all" ? DEFAULT_TRUSS_DIAGRAM_METRIC_KEY : selectedMetricKey);
   const padding = compact ? 54 : PADDING;
 
   const layout = useMemo(() => {
