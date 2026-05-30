@@ -1,5 +1,5 @@
 import type { BeamSupportConfig, BeamSupportDof, BeamSupportSpring, BeamSupportType } from "../types/beam.ts";
-import type { SupportType } from "../types/structure.ts";
+import type { FrameSpring, StructureNode, SupportType } from "../types/structure.ts";
 import sharedSupports from "../../../shared/supports.json" with { type: "json" };
 
 export interface SupportOption<T extends string> {
@@ -18,6 +18,9 @@ export interface SupportChoiceOption<T extends string> {
 
 type SupportGroup = "beam" | "frame" | "truss";
 export type SupportDofMode = "fixed" | "spring" | "free";
+type FrameSupportDof = "ux" | "uy" | "rz";
+
+type FrameNodeSupportState = Pick<StructureNode, "supportType" | "supportAngleDeg" | "springs">;
 
 export interface BeamSupportDofRow {
   dof: BeamSupportDof;
@@ -152,6 +155,66 @@ export function trussSupportDetail(type: SupportType | undefined): string {
 
 export function nodeSupportSummary(type: SupportType | undefined): string {
   return `${nodeSupportLabel(type)} · ${nodeSupportDetail(type)}`;
+}
+
+function frameSpringStiffness(spring: FrameSpring): number {
+  return spring.dof === "rz" ? spring.stiffnessKnMPerRad : spring.stiffnessKnPerM;
+}
+
+function isPositiveFrameSpring(spring: FrameSpring): boolean {
+  return frameSpringStiffness(spring) > 0;
+}
+
+function frameSpringSummary(spring: FrameSpring): string {
+  const unit = spring.dof === "rz" ? "kN·m/rad" : "kN/m";
+  return `${spring.dof} 弹簧 ${compactSupportNumber(frameSpringStiffness(spring))} ${unit}`;
+}
+
+function frameSupportConstraintDofs(type: SupportType | undefined): FrameSupportDof[] {
+  if (type === "fixed") return ["ux", "uy", "rz"];
+  if (type === "pinned") return ["ux", "uy"];
+  if (type === "roller") return ["uy"];
+  return [];
+}
+
+function formatSupportAngle(value: number): string {
+  return compactSupportNumber(value);
+}
+
+export function hasFrameSupportBoundary(node: FrameNodeSupportState): boolean {
+  return (node.supportType ?? "free") !== "free" || (node.springs ?? []).some(isPositiveFrameSpring);
+}
+
+export function frameNodeSupportStateDetail(node: FrameNodeSupportState): string {
+  const supportType = node.supportType ?? "free";
+  const activeSprings = (node.springs ?? []).filter(isPositiveFrameSpring);
+  const constrainedDofs = new Set<FrameSupportDof>(frameSupportConstraintDofs(supportType));
+  const springDofs = new Set<FrameSupportDof>(activeSprings.map((spring) => spring.dof));
+  const parts: string[] = [];
+
+  if (supportType === "roller" && Number.isFinite(node.supportAngleDeg)) {
+    parts.push(`约束法向位移（${formatSupportAngle(Number(node.supportAngleDeg))}°）`);
+    constrainedDofs.clear();
+  } else if (constrainedDofs.size > 0) {
+    parts.push(`约束 ${Array.from(constrainedDofs).join("、")}`);
+  }
+
+  parts.push(...activeSprings.map(frameSpringSummary));
+
+  if (supportType === "roller" && Number.isFinite(node.supportAngleDeg)) {
+    parts.push(springDofs.has("rz") ? "释放切向位移" : "释放切向位移、rz");
+  } else {
+    const released = (["ux", "uy", "rz"] as FrameSupportDof[]).filter((dof) => !constrainedDofs.has(dof) && !springDofs.has(dof));
+    if (released.length) parts.push(`释放 ${released.join("、")}`);
+  }
+
+  return parts.length ? parts.join("，") : "释放 ux、uy、rz";
+}
+
+export function frameNodeSupportSummary(node: FrameNodeSupportState): string {
+  const activeSprings = (node.springs ?? []).some(isPositiveFrameSpring);
+  const label = (node.supportType ?? "free") === "free" && activeSprings ? "弹性支座" : nodeSupportLabel(node.supportType);
+  return `${label} · ${frameNodeSupportStateDetail(node)}`;
 }
 
 export function trussSupportSummary(type: SupportType | undefined): string {

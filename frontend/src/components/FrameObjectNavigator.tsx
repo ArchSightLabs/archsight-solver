@@ -5,7 +5,7 @@ import { MemberConnectionPanel } from "./MemberConnectionPanel";
 import { ModelObjectGuide } from "./ModelObjectGuide";
 import { memberSectionSummary } from "../lib/member-property-vocabulary.ts";
 import { modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
-import { nodeSupportSummary } from "../lib/support-vocabulary.ts";
+import { frameNodeSupportSummary, hasFrameSupportBoundary } from "../lib/support-vocabulary.ts";
 import type { StructureMember, StructureNode } from "../types/structure.ts";
 
 export type FrameSelectedObject =
@@ -66,7 +66,7 @@ export function FrameObjectNavigator({
   onAddMemberConnection,
   onAddLoad,
 }: FrameObjectNavigatorProps) {
-  const supportNodes = nodes.filter((node) => (node.supportType ?? "free") !== "free");
+  const supportNodes = nodes.filter(hasFrameSupportBoundary);
   const vocabulary = modelObjectVocabulary("frame");
 
   return (
@@ -98,7 +98,7 @@ export function FrameObjectNavigator({
                 onClick={() => onSelectObject({ type: "node", id: node.id })}
                 className={objectChipClass(selectedObject.type === "node" && selectedObject.id === node.id)}
               >
-                {node.id} · {nodeSupportSummary(node.supportType)}
+                {node.id} · {frameNodeSupportSummary(node)}
               </button>
             ))}
             {supportNodes.length === 0 ? (

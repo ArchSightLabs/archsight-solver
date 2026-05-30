@@ -11,6 +11,9 @@ import {
   beamSupportNote,
   beamSupportStateDetail,
   beamSupportSummary,
+  frameNodeSupportStateDetail,
+  frameNodeSupportSummary,
+  hasFrameSupportBoundary,
   nodeSupportDetail,
   nodeSupportNote,
   nodeSupportSummary,
@@ -51,6 +54,26 @@ test("对象导航支座概览同时显示支座类型和自由度约束", () =>
   assert.equal(nodeSupportSummary("roller"), "滚动支座 · 默认约束 uy、释放 ux 与 rz；设置支座角度时约束法向位移");
   assert.equal(trussSupportSummary("pinned"), "铰支座 · 约束 ux、uy");
   assert.equal(trussSupportSummary("roller"), "滚动支座 · 约束 uy，释放 ux");
+});
+
+test("框架支座概览显示滚动支座角度、弹簧和实际释放自由度", () => {
+  assert.equal(frameNodeSupportSummary({ supportType: "fixed" }), "固结支座 · 约束 ux、uy、rz");
+  assert.equal(
+    frameNodeSupportSummary({ supportType: "roller", supportAngleDeg: 45, springs: [{ dof: "rz", stiffnessKnMPerRad: 12000 }] }),
+    "滚动支座 · 约束法向位移（45°），rz 弹簧 12000 kN·m/rad，释放切向位移",
+  );
+  assert.equal(
+    frameNodeSupportSummary({ supportType: "free", springs: [{ dof: "uy", stiffnessKnPerM: 5000 }] }),
+    "弹性支座 · uy 弹簧 5000 kN/m，释放 ux、rz",
+  );
+  assert.equal(frameNodeSupportStateDetail({ supportType: "pinned", springs: [{ dof: "rz", stiffnessKnMPerRad: 12500.5 }] }), "约束 ux、uy，rz 弹簧 12500.5 kN·m/rad");
+});
+
+test("框架支座节点列表包含弹簧边界并忽略零刚度弹簧", () => {
+  assert.equal(hasFrameSupportBoundary({ supportType: "free" }), false);
+  assert.equal(hasFrameSupportBoundary({ supportType: "free", springs: [{ dof: "uy", stiffnessKnPerM: 0 }] }), false);
+  assert.equal(hasFrameSupportBoundary({ supportType: "free", springs: [{ dof: "uy", stiffnessKnPerM: 1 }] }), true);
+  assert.equal(hasFrameSupportBoundary({ supportType: "roller" }), true);
 });
 
 test("梁系支座概览优先显示实际自由度和弹簧状态", () => {
