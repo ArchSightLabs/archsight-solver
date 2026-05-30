@@ -45,6 +45,19 @@ export function materialIdForYoungModulus(youngModulus: number, materials: Mater
   return materials.find((material) => material.id !== "custom" && Math.abs(material.youngModulus - youngModulus) < 1e-9)?.id ?? "custom";
 }
 
+export function materialLabelForYoungModulus(youngModulus: number, materials: Material[] = PREDEFINED_MATERIALS): string {
+  const materialId = materialIdForYoungModulus(youngModulus, materials);
+  if (materialId === "custom") return "自定义";
+  return materialId.toUpperCase();
+}
+
+export function materialElasticityLabelForYoungModulus(youngModulus: number, materials: Material[] = PREDEFINED_MATERIALS): string {
+  const materialLabel = materialLabelForYoungModulus(youngModulus, materials);
+  return materialLabel === "自定义"
+    ? `自定义 E=${formatMaterialNumber(youngModulus)} GPa`
+    : `${materialLabel} · E=${formatMaterialNumber(youngModulus)} GPa`;
+}
+
 export function youngModulusForMaterial(materialId: string, fallback: number, materials: Material[] = PREDEFINED_MATERIALS): number {
   if (materialId === "custom") return fallback;
   return materials.find((material) => material.id === materialId)?.youngModulus ?? fallback;
@@ -63,7 +76,7 @@ export function memberElasticityDistributionLabel(
   if (counts.size === 0) return `未设置${memberLabel}弹性模量`;
   return Array.from(counts.entries())
     .sort(([left], [right]) => Number(left) - Number(right))
-    .map(([elasticity, count]) => `E=${elasticity} GPa：${count} 个${memberLabel}`)
+    .map(([elasticity, count]) => `${materialElasticityLabelForYoungModulus(Number(elasticity))}：${count} 个${memberLabel}`)
     .join("；");
 }
 

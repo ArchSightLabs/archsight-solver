@@ -3,6 +3,7 @@ import { Plus } from "lucide-react";
 import { Button } from "./ui/button";
 import { MemberConnectionPanel } from "./MemberConnectionPanel";
 import { ModelObjectGuide } from "./ModelObjectGuide";
+import { materialLabelForYoungModulus } from "../lib/material-presets.ts";
 import { memberSectionSummary } from "../lib/member-property-vocabulary.ts";
 import { modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
 import { frameNodeSupportSummary, hasFrameSupportBoundary } from "../lib/support-vocabulary.ts";
@@ -47,6 +48,7 @@ export function frameMemberChipSummary(member: StructureMember): string {
     E_GPa: member.E_GPa,
     A_cm2: member.A_cm2,
     I_cm4: member.I_cm4,
+    materialLabel: materialLabelForYoungModulus(member.E_GPa),
   });
 }
 

@@ -9,8 +9,8 @@ test("构件材料截面摘要按结构体系显示必要工程参数", () => {
     "材料 Q235 · E=206 GPa · I=85000 cm⁴",
   );
   assert.equal(
-    memberSectionSummary("frame", { E_GPa: 210, A_cm2: 220, I_cm4: 15000 }),
-    "E=210 GPa · A=220 cm² · I=15000 cm⁴",
+    memberSectionSummary("frame", { E_GPa: 210, A_cm2: 220, I_cm4: 15000, materialLabel: "Q345" }),
+    "材料 Q345 · E=210 GPa · A=220 cm² · I=15000 cm⁴",
   );
   assert.equal(
     memberSectionSummary("truss", { E_GPa: 200.5, A_cm2: 24.25 }),

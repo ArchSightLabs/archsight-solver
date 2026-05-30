@@ -1,6 +1,14 @@
 import { strict as assert } from "node:assert";
 import test from "node:test";
-import { materialEngineeringNote, materialOptionLabel, memberElasticityDistributionLabel, memberMaterialEngineeringNote, youngModulusForMaterial } from "./material-presets.ts";
+import {
+  materialEngineeringNote,
+  materialElasticityLabelForYoungModulus,
+  materialLabelForYoungModulus,
+  materialOptionLabel,
+  memberElasticityDistributionLabel,
+  memberMaterialEngineeringNote,
+  youngModulusForMaterial,
+} from "./material-presets.ts";
 import { memberMaterialPresetHint, memberPropertyLabels } from "./member-property-vocabulary.ts";
 import { PREDEFINED_MATERIALS } from "../types/material.ts";
 
@@ -28,6 +36,14 @@ test("材料预设回填弹性模量而不是覆盖截面参数", () => {
   assert.equal(youngModulusForMaterial("q235", 1), 206);
   assert.equal(youngModulusForMaterial("custom", 198.5), 198.5);
   assert.equal(youngModulusForMaterial("unknown", 199), 199);
+});
+
+test("构件材料标签按实际 E 匹配预设或标记为自定义", () => {
+  assert.equal(materialLabelForYoungModulus(210), "Q345");
+  assert.equal(materialLabelForYoungModulus(30), "C30");
+  assert.equal(materialLabelForYoungModulus(198.5), "自定义");
+  assert.equal(materialElasticityLabelForYoungModulus(210), "Q345 · E=210 GPa");
+  assert.equal(materialElasticityLabelForYoungModulus(198.5), "自定义 E=198.5 GPa");
 });
 
 test("构件自定义弹性模量提示使用当前输入值而不是材料库默认值", () => {
@@ -65,7 +81,7 @@ test("材料预设提示明确只回填 E 且截面参数仍由构件维护", ()
 test("构件材料摘要按实际 E 分布说明刚度输入", () => {
   assert.equal(
     memberElasticityDistributionLabel([{ E_GPa: 210 }, { E_GPa: 30 }, { E_GPa: 210 }], "构件"),
-    "E=30 GPa：1 个构件；E=210 GPa：2 个构件",
+    "C30 · E=30 GPa：1 个构件；Q345 · E=210 GPa：2 个构件",
   );
   assert.equal(memberElasticityDistributionLabel([], "杆件"), "未设置杆件弹性模量");
 });
