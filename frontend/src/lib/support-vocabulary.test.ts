@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import test from "node:test";
-import { nodeCoordinateAriaLabel, nodeCoordinateLabel, supportAngleLabel } from "./node-field-vocabulary.ts";
+import { nodeCoordinateAriaLabel, nodeCoordinateLabel, supportAngleApplies, supportAngleHelpText, supportAngleLabel } from "./node-field-vocabulary.ts";
 import {
   BEAM_SUPPORT_DOF_ROWS,
   FRAME_SUPPORT_OPTIONS,
@@ -56,5 +56,8 @@ test("节点坐标和滚动支座角标签显式显示工程单位", () => {
   assert.equal(nodeCoordinateLabel("x"), "横坐标（m）");
   assert.equal(nodeCoordinateLabel("y"), "纵坐标（m）");
   assert.equal(nodeCoordinateAriaLabel("第 2 个节点", "x"), "第 2 个节点横坐标（m）");
-  assert.equal(supportAngleLabel(), "滚动约束角（deg）");
+  assert.equal(supportAngleLabel(), "滚动支座法向角（deg）");
+  assert.equal(supportAngleApplies("roller"), true);
+  assert.equal(supportAngleApplies("fixed"), false);
+  assert.match(supportAngleHelpText(), /仅滚动支座生效/u);
 });

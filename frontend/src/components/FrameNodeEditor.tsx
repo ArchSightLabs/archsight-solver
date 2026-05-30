@@ -1,6 +1,6 @@
 import { Plus, Trash2 } from "lucide-react";
 import { frameMemberExists } from "../lib/frame-editor-model.ts";
-import { nodeCoordinateAriaLabel, nodeCoordinateLabel, supportAngleAriaLabel, supportAngleLabel } from "../lib/node-field-vocabulary.ts";
+import { nodeCoordinateAriaLabel, nodeCoordinateLabel, supportAngleApplies, supportAngleAriaLabel, supportAngleHelpText, supportAngleLabel } from "../lib/node-field-vocabulary.ts";
 import type { StructureMember, StructureNode } from "../types/structure.ts";
 import { DeferredIdInput } from "./ui/DeferredIdInput";
 import { Button } from "./ui/button";
@@ -43,10 +43,17 @@ export function FrameNodeEditor({
   const xLabel = nodeCoordinateLabel("x");
   const yLabel = nodeCoordinateLabel("y");
   const angleLabel = supportAngleLabel();
+  const showSupportAngle = supportAngleApplies(node.supportType);
   const connectableNodeOptions = nodeOptions.filter((option) => option.value !== node.id && !frameMemberExists(members, node.id, option.value));
   const resolvedConnectionTargetId = connectableNodeOptions.some((option) => option.value === connectionTargetId)
     ? connectionTargetId ?? ""
     : connectableNodeOptions[0]?.value ?? "";
+  const handleSupportTypeChange = (supportType: StructureNode["supportType"]) => {
+    onUpdate({
+      supportType,
+      supportAngleDeg: supportAngleApplies(supportType) ? node.supportAngleDeg : undefined,
+    });
+  };
 
   return (
     <div className={`space-y-3 border border-white/8 bg-slate-950/20 p-3 ${isSelectedVariant ? "rounded-xl" : "rounded-2xl"}`}>
@@ -76,7 +83,7 @@ export function FrameNodeEditor({
         <NodeSupportField
           mode="frame"
           supportType={node.supportType}
-          onSupportTypeChange={(supportType) => onUpdate({ supportType })}
+          onSupportTypeChange={handleSupportTypeChange}
           fieldLabelClass={fieldLabelClass}
           ariaLabel={`${labelPrefix}支座约束`}
           showHint={isSelectedVariant}
@@ -105,19 +112,22 @@ export function FrameNodeEditor({
             className="h-10 min-w-0 font-mono text-xs"
           />
         </div>
-        <div className="space-y-1">
-          <div className={fieldLabelClass}>{angleLabel}</div>
-          <Input
-            aria-label={supportAngleAriaLabel(labelPrefix)}
-            name={`${node.id}-support-angle`}
-            type="number"
-            step="1"
-            value={node.supportAngleDeg ?? ""}
-            onChange={(event) => onUpdate({ supportAngleDeg: event.target.value === "" ? undefined : Number(event.target.value) || 0 })}
-            className="h-10 min-w-0 font-mono text-xs"
-            placeholder="90"
-          />
-        </div>
+        {showSupportAngle ? (
+          <div className="space-y-1">
+            <div className={fieldLabelClass}>{angleLabel}</div>
+            <Input
+              aria-label={supportAngleAriaLabel(labelPrefix)}
+              name={`${node.id}-support-angle`}
+              type="number"
+              step="1"
+              value={node.supportAngleDeg ?? ""}
+              onChange={(event) => onUpdate({ supportAngleDeg: event.target.value === "" ? undefined : Number(event.target.value) || 0 })}
+              className="h-10 min-w-0 font-mono text-xs"
+              placeholder="90"
+            />
+            {isSelectedVariant ? <div className="text-[10px] font-semibold leading-relaxed text-muted-foreground">{supportAngleHelpText()}</div> : null}
+          </div>
+        ) : null}
         {!isSelectedVariant ? (
           <div className="col-span-2 flex justify-end">
             <Button variant="ghost" size="icon" className="h-9 w-9" onClick={onRemove} disabled={nodeCount <= 1} aria-label={`删除第 ${nodeIndex + 1} 个节点`}>
