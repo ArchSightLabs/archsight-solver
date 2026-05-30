@@ -22,6 +22,7 @@ import {
   addNode,
   addReportHeader,
   buildReportStructureLayout,
+  rotateReportPoint,
   type ReportGraphic,
   type ReportMember,
   type ReportNode,
@@ -50,29 +51,54 @@ export function trussReportNodesFromPreview(preview: TrussCalculationResults["tr
   }));
 }
 
-function addFrameSupportMarker(graphics: ReportGraphic[], type: string | undefined, point: ReportPoint) {
-  if (!type || type === "free") return;
+export function frameReportNodesFromPreview(preview: FrameCalculationResults["frame"] | FrameCalculationResults["preview"]): ReportNode[] {
+  return (preview?.nodes ?? []).map((node) => ({
+    id: node.id,
+    x: node.x,
+    y: node.y,
+    supportType: node.supportType,
+    supportAngleDeg: node.supportAngleDeg,
+  }));
+}
+
+export function buildFrameSupportMarkerGraphics(type: string | undefined, point: ReportPoint, supportAngleDeg?: number): ReportGraphic[] {
+  if (!type || type === "free") return [];
   if (type === "fixed") {
-    graphics.push(
+    return [
       { type: "rect", shape: { x: point.x - 16, y: point.y + 7, width: 32, height: 8, r: 2 }, style: { fill: "#e2e8f0", stroke: "#475569", lineWidth: 1 } },
       ...[-12, -4, 4, 12].map((offset) => ({
         type: "line",
         shape: { x1: point.x + offset - 5, y1: point.y + 24, x2: point.x + offset + 5, y2: point.y + 14 },
         style: { stroke: "#64748b", lineWidth: 1.6 },
       })),
-    );
-    return;
+    ];
   }
-  graphics.push(
-    { type: "polygon", shape: { points: [[point.x - 16, point.y + 24], [point.x + 16, point.y + 24], [point.x, point.y + 2]] }, style: { fill: "#e2e8f0", stroke: "#475569", lineWidth: 1 } },
-    { type: "line", shape: { x1: point.x - 18, y1: point.y + 28, x2: point.x + 18, y2: point.y + 28 }, style: { stroke: "#64748b", lineWidth: 2 } },
-  );
+  const rotationDeg = type === "roller" && Number.isFinite(supportAngleDeg) ? 90 - Number(supportAngleDeg) : 0;
+  const rotate = (x: number, y: number) => rotateReportPoint({ x, y }, point, rotationDeg);
+  const triangle = [
+    rotate(point.x - 16, point.y + 24),
+    rotate(point.x + 16, point.y + 24),
+    rotate(point.x, point.y + 2),
+  ];
+  const baseStart = rotate(point.x - 18, point.y + 28);
+  const baseEnd = rotate(point.x + 18, point.y + 28);
+  const marker: ReportGraphic[] = [
+    { type: "polygon", shape: { points: triangle.map((item) => [item.x, item.y]) }, style: { fill: "#e2e8f0", stroke: "#475569", lineWidth: 1 } },
+    { type: "line", shape: { x1: baseStart.x, y1: baseStart.y, x2: baseEnd.x, y2: baseEnd.y }, style: { stroke: "#64748b", lineWidth: 2 } },
+  ];
   if (type === "roller") {
-    graphics.push(
-      { type: "circle", shape: { cx: point.x - 8, cy: point.y + 33, r: 3 }, style: { fill: "#64748b" } },
-      { type: "circle", shape: { cx: point.x + 8, cy: point.y + 33, r: 3 }, style: { fill: "#64748b" } },
+    marker.push(
+      ...[
+        rotate(point.x - 8, point.y + 33),
+        rotate(point.x + 8, point.y + 33),
+      ].map((roller) => ({ type: "circle", shape: { cx: roller.x, cy: roller.y, r: 3 }, style: { fill: "#64748b" } })),
     );
   }
+  return marker;
+}
+
+function addFrameSupportMarker(graphics: ReportGraphic[], type: string | undefined, point: ReportPoint, supportAngleDeg?: number) {
+  graphics.push(...buildFrameSupportMarkerGraphics(type, point, supportAngleDeg));
 }
 
 function addTrussSupportMarker(graphics: ReportGraphic[], type: string | undefined, point: ReportPoint) {
@@ -137,7 +163,7 @@ export async function renderFramePreview(results: FrameCalculationResults) {
   return renderStructurePreview({
     systemLabel: "平面框架",
     memberTerm: "构件",
-    nodes: preview.nodes.map((node) => ({ id: node.id, x: node.x, y: node.y, supportType: node.supportType })),
+    nodes: frameReportNodesFromPreview(preview),
     members: preview.members,
     deformedNodes: preview.deformedNodes.map((node) => ({ id: node.nodeId, x: node.x, y: node.y })),
     supportMarker: addFrameSupportMarker,
@@ -172,7 +198,7 @@ export async function renderFrameOverlay(results: FrameCalculationResults, metri
         : metric === "axialKn"
           ? { label: "轴力图", unit: "kN", color: "#059669" }
           : { label: "局部 y 向挠度图", unit: "mm", color: "#7c3aed" };
-  const nodes = preview.nodes.map((node) => ({ id: node.id, x: node.x, y: node.y, supportType: node.supportType }));
+  const nodes = frameReportNodesFromPreview(preview);
   const members = preview.members;
   const diagrams = results.memberDiagrams ?? [];
   const allValues = diagrams.flatMap((diagram) => diagram[metric].map((value) => Math.abs(value)));
@@ -242,7 +268,7 @@ export async function renderFrameOverlay(results: FrameCalculationResults, metri
   }
   for (const node of nodes) {
     const point = layout.map(node);
-    addFrameSupportMarker(graphics, node.supportType, point);
+    addFrameSupportMarker(graphics, node.supportType, point, node.supportAngleDeg);
     addNode(graphics, node.id, point, layout.center);
   }
   if (extreme && extremePoint) {
@@ -350,7 +376,7 @@ async function renderStructurePreview(
     nodes: ReportNode[];
     members: ReportMember[];
     deformedNodes: Array<{ id: string; x: number; y: number }>;
-    supportMarker: (graphics: ReportGraphic[], type: string | undefined, point: ReportPoint) => void;
+    supportMarker: (graphics: ReportGraphic[], type: string | undefined, point: ReportPoint, supportAngleDeg?: number) => void;
     dimensionRows: string[];
     renderLoads?: ReportStructureLoadRenderer;
   },
@@ -382,7 +408,7 @@ async function renderStructurePreview(
   }
   for (const node of nodes) {
     const point = layout.map(node);
-    supportMarker(graphics, node.supportType, point);
+    supportMarker(graphics, node.supportType, point, node.supportAngleDeg);
     addNode(graphics, node.id, point, layout.center);
   }
   renderLoads?.(graphics, { layout, nodeById: byId, memberById });

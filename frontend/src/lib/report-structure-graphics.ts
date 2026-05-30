@@ -22,7 +22,7 @@ const LABEL_HALO = "#ffffff";
 const DIMENSION_TEXT = "#475569";
 const LOAD_LABEL = "#b91c1c";
 
-export type ReportNode = { id: string; x: number; y: number; supportType?: string };
+export type ReportNode = { id: string; x: number; y: number; supportType?: string; supportAngleDeg?: number };
 export type ReportMember = { id?: string; start: string; end: string };
 export type ReportGraphic = Record<string, unknown>;
 export type ReportPoint = { x: number; y: number };
@@ -148,6 +148,17 @@ export function addMemberLabel(graphics: ReportGraphic[], id: string | undefined
       lineWidth: 4,
     },
   });
+}
+
+export function rotateReportPoint(point: ReportPoint, origin: ReportPoint, angleDeg: number): ReportPoint {
+  if (!Number.isFinite(angleDeg) || Math.abs(angleDeg) < 1e-9) return point;
+  const angleRad = (angleDeg * Math.PI) / 180;
+  const dx = point.x - origin.x;
+  const dy = point.y - origin.y;
+  return {
+    x: origin.x + dx * Math.cos(angleRad) - dy * Math.sin(angleRad),
+    y: origin.y + dx * Math.sin(angleRad) + dy * Math.cos(angleRad),
+  };
 }
 
 export function addArrow(graphics: ReportGraphic[], x1: number, y1: number, x2: number, y2: number, color = LOAD_STROKE, width = 2.2) {
