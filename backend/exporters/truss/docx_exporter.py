@@ -14,10 +14,6 @@ from backend.exporters.common.load_tables import build_load_combination_rows
 from backend.exporters.common.report_figure_catalog import TRUSS_REPORT_OVERLAY_FIGURES, report_figures_for_scope
 from backend.exporters.common.report_options import include_all_result_figures, include_figures, include_overlay_figures, include_traditional_figures, normalize_report_options
 from backend.exporters.common.report_figures import (
-    AMBER,
-    BLUE,
-    ChartSeries,
-    line_chart_png,
     sensitivity_chart_png,
     structure_preview_png,
 )
@@ -138,31 +134,16 @@ def _add_member_figures(doc, solution: Dict[str, Any], report_images: Optional[D
     include_all = include_all_result_figures(options)
     if include_overlay_figures(options) or include_traditional_figures(options):
         for figure in report_figures_for_scope(TRUSS_REPORT_OVERLAY_FIGURES, include_all):
-            fallback_values = _truss_series(solution, figure.metric)
-            fallback_x = _ordinal_x(solution["memberResults"] if figure.metric == "axial" else solution["nodeResults"])
+            image = png_from_report_images(report_images, figure.image_key)
+            if not image:
+                continue
             add_heading(doc, f"4.{index} {figure.title}")
             add_png_figure(
                 doc,
-                _report_or_fallback(report_images, figure.image_key, line_chart_png(fallback_x, [ChartSeries(figure.series_label, fallback_values, _truss_figure_color(figure.metric))])),
-                f"图 4-{index} {figure.title}（{figure.unit}，计算简图与结果同图显示）",
+                image,
+                f"图 4-{index} {figure.title}（{figure.unit}，模型叠加工程图）",
             )
             index += 1
-
-
-def _ordinal_x(items: Any) -> list[int]:
-    return list(range(1, len(items) + 1))
-
-
-def _truss_series(solution: Dict[str, Any], metric: str) -> list[float]:
-    if metric == "displacement":
-        return [item["displacementMm"] for item in solution["nodeResults"]]
-    return [item["axialForceKn"] for item in solution["memberResults"]]
-
-
-def _truss_figure_color(metric: str) -> str:
-    if metric == "displacement":
-        return BLUE
-    return AMBER
 
 
 def _report_or_fallback(report_images: Optional[Dict[str, str]], key: str, fallback: bytes) -> bytes:

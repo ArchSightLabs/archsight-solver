@@ -1,3 +1,4 @@
+import base64
 import copy
 import io
 import os
@@ -10,10 +11,16 @@ from docx import Document
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from app import app
+from backend.exporters.common.report_figures import BLUE, ChartSeries, line_chart_png
 from backend.tests.benchmark_catalog import load_benchmark_catalog
 
 
 BENCHMARK_CASES = [case for case in load_benchmark_catalog()["cases"] if case["category"] == "truss"]
+
+
+def _report_image() -> str:
+    png = line_chart_png([0, 1], [ChartSeries("占位", [0, 1], BLUE)])
+    return f"data:image/png;base64,{base64.b64encode(png).decode('ascii')}"
 
 
 def _base_payload():
@@ -122,12 +129,12 @@ def test_truss_docx_export_smoke(client):
     assert "校核证据" in full_text
     assert "3.1 节点水平位移图" not in full_text
     assert "3.2 节点竖向位移图" not in full_text
-    assert "4.1 杆件轴力图" in full_text
-    assert "图 4-1 杆件轴力图（kN，计算简图与结果同图显示）" in full_text
+    assert "4.1 杆件轴力图" not in full_text
+    assert "计算简图与结果同图显示" not in full_text
     assert "杆件轴力曲线" not in full_text
     assert "5. 校核结论" in full_text
     assert "7. 附录数据" in full_text
-    assert len(doc.inline_shapes) >= 2
+    assert len(doc.inline_shapes) >= 1
 
 
 def test_truss_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
@@ -137,6 +144,10 @@ def test_truss_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
             **_base_payload(),
             "format": "docx",
             "reportOptions": {"template": "complete", "figureMode": "both", "figureScope": "all"},
+            "reportImages": {
+                "truss.overlay.axial": _report_image(),
+                "truss.overlay.displacement": _report_image(),
+            },
         },
     )
 
@@ -147,9 +158,9 @@ def test_truss_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
     assert "3.1 节点水平位移图" not in full_text
     assert "杆件轴力曲线" not in full_text
     assert "4.1 杆件轴力图" in full_text
-    assert "图 4-1 杆件轴力图（kN，计算简图与结果同图显示）" in full_text
+    assert "图 4-1 杆件轴力图（kN，模型叠加工程图）" in full_text
     assert "4.2 节点位移图" in full_text
-    assert "图 4-2 节点位移图（mm，计算简图与结果同图显示）" in full_text
+    assert "图 4-2 节点位移图（mm，模型叠加工程图）" in full_text
 
 
 @pytest.mark.parametrize(

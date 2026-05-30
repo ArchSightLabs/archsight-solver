@@ -27,6 +27,7 @@ class FrameMemberReportFigure:
     traditional_image_key: str
     metric_key: Literal["momentKnM", "shearKn", "deflectionMm", "axialKn"]
     label: str
+    title: str
     unit: str
     scope: ReportFigureScope
 
@@ -63,6 +64,7 @@ def _frame_member_figure(row: dict) -> FrameMemberReportFigure:
         traditional_image_key=str(row["traditionalImageKey"]),
         metric_key=str(row["metric"]),  # type: ignore[arg-type]
         label=str(row["label"]),
+        title=str(row["title"]),
         unit=str(row["unit"]),
         scope=str(row["scope"]),  # type: ignore[arg-type]
     )

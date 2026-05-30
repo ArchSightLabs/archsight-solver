@@ -1,3 +1,4 @@
+import base64
 import io
 import os
 import sys
@@ -9,6 +10,12 @@ from docx import Document
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from app import app
+from backend.exporters.common.report_figures import BLUE, ChartSeries, line_chart_png
+
+
+def _report_image() -> str:
+    png = line_chart_png([0, 1], [ChartSeries("占位", [0, 1], BLUE)])
+    return f"data:image/png;base64,{base64.b64encode(png).decode('ascii')}"
 
 
 def frame_payload():
@@ -252,12 +259,13 @@ def test_frame_docx_export_smoke(client):
     assert "校核证据" in full_text
     assert "3.1 节点水平位移图" not in full_text
     assert "3.2 节点竖向位移图" not in full_text
-    assert "4.1 构件弯矩叠加图" in full_text
+    assert "4.1 构件弯矩图（模型叠加）" not in full_text
+    assert "计算简图与结果同图显示" not in full_text
     assert "4.2 构件剪力" not in full_text
     assert "构件弯矩曲线" not in full_text
     assert "5. 校核结论" in full_text
     assert "7. 附录数据" in full_text
-    assert len(doc.inline_shapes) >= 2
+    assert len(doc.inline_shapes) >= 1
 
 
 def test_frame_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
@@ -267,6 +275,12 @@ def test_frame_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
             **frame_payload(),
             "format": "docx",
             "reportOptions": {"template": "complete", "figureMode": "both", "figureScope": "all"},
+            "reportImages": {
+                "frame.overlay.moment": _report_image(),
+                "frame.overlay.shear": _report_image(),
+                "frame.overlay.memberDeflection": _report_image(),
+                "frame.overlay.axial": _report_image(),
+            },
         },
     )
 
@@ -277,11 +291,11 @@ def test_frame_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
     assert "3.1 节点水平位移图" not in full_text
     assert "构件弯矩曲线" not in full_text
     assert "构件剪力曲线" not in full_text
-    assert "4.1 构件弯矩叠加图" in full_text
-    assert "4.2 构件剪力叠加图" in full_text
-    assert "4.3 构件局部 y 向挠度叠加图" in full_text
-    assert "4.4 构件轴力叠加图" in full_text
-    assert "图 4-4 构件轴力图（kN，计算简图与结果同图显示）" in full_text
+    assert "4.1 构件弯矩图（模型叠加）" in full_text
+    assert "4.2 构件剪力图（模型叠加）" in full_text
+    assert "4.3 构件局部 y 向挠度图（模型叠加）" in full_text
+    assert "4.4 构件轴力图（模型叠加）" in full_text
+    assert "图 4-4 构件轴力图（kN，模型叠加工程图）" in full_text
 
 
 def test_frame_exports_include_load_combination_tags(client):

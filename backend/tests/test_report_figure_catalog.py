@@ -61,6 +61,7 @@ def _frame_backend_items(figures):
             "traditionalImageKey": figure.traditional_image_key,
             "metric": figure.metric_key,
             "label": figure.label,
+            "title": figure.title,
             "unit": figure.unit,
             "scope": figure.scope,
         }
@@ -92,6 +93,7 @@ def _shared_frame_items(rows):
             "traditionalImageKey": row["traditionalImageKey"],
             "metric": row["metric"],
             "label": row["label"],
+            "title": row["title"],
             "unit": row["unit"],
             "scope": row["scope"],
         }

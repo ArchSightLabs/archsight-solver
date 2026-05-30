@@ -13,12 +13,6 @@ from backend.exporters.common.load_tables import build_load_combination_rows
 from backend.exporters.common.report_figure_catalog import FRAME_REPORT_MEMBER_FIGURES, report_figures_for_scope
 from backend.exporters.common.report_options import include_all_result_figures, include_figures, include_overlay_figures, include_traditional_figures, normalize_report_options
 from backend.exporters.common.report_figures import (
-    AMBER,
-    CYAN,
-    GREEN,
-    PURPLE,
-    ChartSeries,
-    line_chart_png,
     sensitivity_chart_png,
     structure_preview_png,
 )
@@ -123,13 +117,14 @@ def _add_member_diagram_figures(doc, solution: Dict[str, Any], report_images: Op
     include_all = include_all_result_figures(options)
     if include_overlay_figures(options) or include_traditional_figures(options):
         for figure in report_figures_for_scope(FRAME_REPORT_MEMBER_FIGURES, include_all):
-            x_values = diagrams[0].get("stations", [])
-            series = [ChartSeries(str(diagram.get("memberId", "")), diagram.get(figure.metric_key, []), _frame_figure_color(figure.metric_key)) for diagram in diagrams]
-            add_heading(doc, f"4.{index} 构件{figure.label}叠加图")
+            image = png_from_report_images(report_images, figure.overlay_image_key)
+            if not image:
+                continue
+            add_heading(doc, f"4.{index} 构件{figure.title}（模型叠加）")
             add_png_figure(
                 doc,
-                _report_or_fallback(report_images, figure.overlay_image_key, line_chart_png(x_values, series)),
-                f"图 4-{index} 构件{figure.label}图（{figure.unit}，计算简图与结果同图显示）",
+                image,
+                f"图 4-{index} 构件{figure.title}（{figure.unit}，模型叠加工程图）",
             )
             index += 1
 
@@ -146,16 +141,6 @@ def _add_load_combination_table(doc, solution: Dict[str, Any], title: str) -> No
         return
     add_heading(doc, title)
     add_df_table(doc, pd.DataFrame(rows))
-
-
-def _frame_figure_color(metric_key: str) -> str:
-    if metric_key == "shearKn":
-        return GREEN
-    if metric_key == "deflectionMm":
-        return PURPLE
-    if metric_key == "axialKn":
-        return CYAN
-    return AMBER
 
 
 def _report_or_fallback(report_images: Optional[Dict[str, str]], key: str, fallback: bytes) -> bytes:
