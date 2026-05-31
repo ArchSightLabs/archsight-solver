@@ -20,6 +20,14 @@ npm --prefix frontend run test:visual:update
 
 首次建立或有意更新视觉基线时使用 `test:visual:update`。常规回归使用 `test:visual`。
 
+计算书 DOCX 图形导出链路需要覆盖 Chromium / Firefox / WebKit 三个浏览器项目，使用专用矩阵入口：
+
+```bash
+npm --prefix frontend run test:visual:export-docx
+```
+
+该入口按单 worker 顺序运行 `workbench-export-docx.spec.ts`，验证框架与桁架导出请求携带前端同源的结构预览图和模型叠加工程图。
+
 若本地尚未安装 Playwright 浏览器二进制，先执行：
 
 ```powershell

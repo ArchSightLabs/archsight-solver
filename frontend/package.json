@@ -12,6 +12,7 @@
     "lint": "eslint src && tsc --noEmit",
     "test:unit": "node scripts/run-unit-tests.mjs",
     "test:visual": "playwright test",
+    "test:visual:export-docx": "playwright test workbench-export-docx.spec.ts --workers=1",
     "test:visual:update": "playwright test --update-snapshots"
   },
   "dependencies": {
