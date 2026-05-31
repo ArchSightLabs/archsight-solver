@@ -12,7 +12,7 @@ def test_beam_text_model_docs_explain_support_dof_override():
         "SUPPORT,支座编号,x位置m,类型[,约束自由度]",
         "`SUPPORT` 第 5 列可显式覆盖支座自由度",
         "`v`、`rz`、`v+rz` 或 `-`",
-        "`SPRING` 会把对应自由度从固定约束中释放",
+        "`SPRING` 会把对应自由度从刚性约束中释放",
         "SPRING,S2,rz,12000",
     ]
 

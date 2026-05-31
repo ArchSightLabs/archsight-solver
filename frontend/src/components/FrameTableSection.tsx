@@ -123,7 +123,7 @@ export function FrameTableSection({
                 <MapPin className="h-3.5 w-3.5 text-primary" />
                 {vocabulary.nodeGroupLabel}
               </div>
-              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">节点编号 / 横坐标 / 纵坐标 / 支座约束</span>
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">节点编号 / 横坐标 / 纵坐标 / 支座类型</span>
             </div>
             <div className="space-y-3">
               {nodes.map((node, index) => (

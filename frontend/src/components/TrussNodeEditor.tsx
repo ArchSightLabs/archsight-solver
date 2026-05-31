@@ -80,7 +80,7 @@ export function TrussNodeEditor({
           fieldLabelClass={fieldLabelClass}
           showHint={isSelectedVariant}
           className={isSelectedVariant ? undefined : "sm:col-span-2 xl:col-span-1"}
-          ariaLabel={`${labelPrefix}支座约束`}
+          ariaLabel={`${labelPrefix}支座类型`}
         />
         <div className="space-y-1">
           <div className={fieldLabelClass}>{xLabel}</div>

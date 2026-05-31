@@ -20,7 +20,7 @@ GROUPS = [
     {
         "id": "frame-public-validation",
         "title": "二维平面框架公开验证工程",
-        "description": "由公开验证集中的二维平面框架和框架梁退化算例组成，覆盖门式刚架、框架梁、弹簧约束和构件荷载。",
+        "description": "由公开验证集中的二维平面框架和框架梁退化算例组成，覆盖门式刚架、框架梁、弹性约束和构件荷载。",
         "analysisTypes": {"frame"},
         "caseCategories": {"frame", "frame-beam-verify"},
         "projectType": "公开验证 / 平面框架",

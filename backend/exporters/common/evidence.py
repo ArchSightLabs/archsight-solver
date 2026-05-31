@@ -250,11 +250,11 @@ def _beam_boundary_table(support_specs: List[Mapping[str, Any]], support_positio
                 "位置": f"x={round(float(position), 6)} m",
                 "支座类型": support_label("beam", support_type),
                 "约束自由度": _format_dofs(constraints),
-                "弹簧刚度": _format_springs(springs),
+                "弹性约束刚度": _format_springs(springs),
                 "释放/内铰": "梁单元端部释放见结构模型；未设置则为连续转角",
             }
         )
-    return pd.DataFrame(rows or [{"支座/节点": "—", "位置": "—", "支座类型": "—", "约束自由度": "—", "弹簧刚度": "—", "释放/内铰": "—"}])
+    return pd.DataFrame(rows or [{"支座/节点": "—", "位置": "—", "支座类型": "—", "约束自由度": "—", "弹性约束刚度": "—", "释放/内铰": "—"}])
 
 
 def _node_boundary_table(nodes: Iterable[Mapping[str, Any]], analysis_type: str) -> pd.DataFrame:
@@ -273,11 +273,11 @@ def _node_boundary_table(nodes: Iterable[Mapping[str, Any]], analysis_type: str)
                 "位置": f"({round(float(node.get('x', 0.0)), 6)}, {round(float(node.get('y', 0.0)), 6)}) m",
                 "支座类型": support_label(analysis_type, support_type),  # type: ignore[arg-type]
                 "约束自由度": _format_frame_constraint_text(node, constraints),
-                "弹簧刚度": _format_springs(node.get("springs", [])),
+                "弹性约束刚度": _format_springs(node.get("springs", [])),
                 "释放/内铰": _format_frame_release_text(node, support_type),
             }
         )
-    return pd.DataFrame(rows or [{"节点": "—", "位置": "—", "支座类型": "—", "约束自由度": "—", "弹簧刚度": "—", "释放/内铰": "—"}])
+    return pd.DataFrame(rows or [{"节点": "—", "位置": "—", "支座类型": "—", "约束自由度": "—", "弹性约束刚度": "—", "释放/内铰": "—"}])
 
 
 def _truss_boundary_table(nodes: Iterable[Mapping[str, Any]]) -> pd.DataFrame:

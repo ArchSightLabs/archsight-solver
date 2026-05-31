@@ -46,7 +46,7 @@ test("框架和桁架支座说明区分转角自由度", () => {
   assert.match(nodeSupportDetail("roller"), /支座角度/u);
   assert.match(trussSupportDetail("pinned"), /ux、uy/u);
   assert.match(supportSystemHint("truss"), /桁架支座不提供转动约束/u);
-  assert.match(supportSystemHint("truss"), /不接收节点弹簧/u);
+  assert.match(supportSystemHint("truss"), /不接收节点弹性约束/u);
 });
 
 test("支座选择项用简短名称承载主控面板显示", () => {
@@ -76,31 +76,31 @@ test("对象导航支座概览同时显示支座类型和自由度约束", () =>
   assert.equal(trussSupportSummary("roller"), "滚动支座 · 约束 uy，释放 ux");
 });
 
-test("框架支座概览显示滚动支座角度、弹簧和实际释放自由度", () => {
+test("框架支座概览显示滚动支座角度、弹性约束和实际释放自由度", () => {
   assert.equal(frameNodeSupportSummary({ supportType: "fixed" }), "固结支座 · 约束 ux、uy、rz");
   assert.equal(
     frameNodeSupportSummary({ supportType: "roller", supportAngleDeg: 45, springs: [{ dof: "rz", stiffnessKnMPerRad: 12000 }] }),
-    "滚动支座 · 约束法向位移（45°），rz 弹簧 12000 kN·m/rad，释放切向位移",
+    "滚动支座 · 约束法向位移（45°），rz 弹性约束 12000 kN·m/rad，释放切向位移",
   );
   assert.equal(
     frameNodeSupportSummary({ supportType: "free", springs: [{ dof: "uy", stiffnessKnPerM: 5000 }] }),
-    "弹性约束节点 · uy 弹簧 5000 kN/m，释放 ux、rz",
+    "弹性约束节点 · uy 弹性约束 5000 kN/m，释放 ux、rz",
   );
-  assert.equal(frameNodeSupportStateDetail({ supportType: "pinned", springs: [{ dof: "rz", stiffnessKnMPerRad: 12500.5 }] }), "约束 ux、uy，rz 弹簧 12500.5 kN·m/rad");
+  assert.equal(frameNodeSupportStateDetail({ supportType: "pinned", springs: [{ dof: "rz", stiffnessKnMPerRad: 12500.5 }] }), "约束 ux、uy，rz 弹性约束 12500.5 kN·m/rad");
 });
 
-test("框架支座节点列表包含弹簧边界并忽略零刚度弹簧", () => {
+test("框架支座节点列表包含弹性约束边界并忽略零刚度弹性约束", () => {
   assert.equal(hasFrameSupportBoundary({ supportType: "free" }), false);
   assert.equal(hasFrameSupportBoundary({ supportType: "free", springs: [{ dof: "uy", stiffnessKnPerM: 0 }] }), false);
   assert.equal(hasFrameSupportBoundary({ supportType: "free", springs: [{ dof: "uy", stiffnessKnPerM: 1 }] }), true);
   assert.equal(hasFrameSupportBoundary({ supportType: "roller" }), true);
 });
 
-test("梁系支座概览优先显示实际自由度和弹簧状态", () => {
-  assert.equal(beamSupportStateDetail({ type: "free", springs: [{ dof: "v", stiffnessKnPerM: 50000 }] }), "v 弹簧 50000 kN/m，释放 θz");
+test("梁系支座概览优先显示实际自由度和弹性约束状态", () => {
+  assert.equal(beamSupportStateDetail({ type: "free", springs: [{ dof: "v", stiffnessKnPerM: 50000 }] }), "v 弹性约束 50000 kN/m，释放 θz");
   assert.equal(
     beamSupportStateDetail({ type: "fixed", constraints: ["v"], springs: [{ dof: "rz", stiffnessKnMPerRad: 12500.5 }] }),
-    "约束 v，θz 弹簧 12500.5 kN·m/rad",
+    "约束 v，θz 弹性约束 12500.5 kN·m/rad",
   );
 });
 
@@ -110,10 +110,10 @@ test("支座单项工程提示来自共享目录", () => {
   assert.match(trussSupportNote("roller"), /允许水平滑移/u);
 });
 
-test("梁系支座自由度编辑行统一声明标签、模式和默认弹簧刚度", () => {
-  assert.deepEqual(SUPPORT_DOF_MODE_OPTIONS.map((option) => option.label), ["约束", "弹簧", "释放"]);
+test("梁系支座自由度编辑行统一声明标签、模式和默认弹性约束刚度", () => {
+  assert.deepEqual(SUPPORT_DOF_MODE_OPTIONS.map((option) => option.label), ["约束", "弹性", "释放"]);
   assert.deepEqual(BEAM_SUPPORT_DOF_ROWS.map((row) => row.label), ["竖向位移 v", "转角 θz"]);
-  assert.deepEqual(BEAM_SUPPORT_DOF_ROWS.map((row) => row.springLabel), ["竖向弹簧刚度（kN/m）", "转动弹簧刚度（kN·m/rad）"]);
+  assert.deepEqual(BEAM_SUPPORT_DOF_ROWS.map((row) => row.springLabel), ["竖向弹性约束刚度（kN/m）", "转动弹性约束刚度（kN·m/rad）"]);
 });
 
 test("框架和桁架节点边界显式拆成自由度状态", () => {
@@ -121,7 +121,7 @@ test("框架和桁架节点边界显式拆成自由度状态", () => {
   assert.deepEqual(TRUSS_SUPPORT_DOF_ROWS.map((row) => row.label), ["水平位移 ux", "竖向位移 uy"]);
   assert.deepEqual(
     frameNodeSupportDofStates({ supportType: "pinned", springs: [{ dof: "rz", stiffnessKnMPerRad: 12000 }] }).map((state) => [state.dof, state.mode, state.detail]),
-    [["ux", "fixed", "约束"], ["uy", "fixed", "约束"], ["rz", "spring", "弹性 12000 kN·m/rad"]],
+    [["ux", "fixed", "约束"], ["uy", "fixed", "约束"], ["rz", "spring", "弹性约束 12000 kN·m/rad"]],
   );
   assert.deepEqual(
     frameNodeSupportDofStates({ supportType: "roller", supportAngleDeg: 45 }).map((state) => [state.label, state.mode, state.detail]),
@@ -134,14 +134,14 @@ test("框架和桁架节点边界显式拆成自由度状态", () => {
 });
 
 test("框架节点弹性约束入口使用共享短文案", () => {
-  assert.equal(supportConstraintFieldLabel(), "支座约束");
+  assert.equal(supportConstraintFieldLabel(), "支座类型");
   assert.equal(supportDofStateLabel(), "自由度状态");
-  assert.equal(frameSpringBoundaryTitle(), "附加弹性约束");
+  assert.equal(frameSpringBoundaryTitle(), "自由度弹性约束");
   assert.match(frameSpringBoundaryHint(), /ux、uy 或 rz/u);
-  assert.match(frameSpringBoundaryHint(), /上方支座约束/u);
+  assert.match(frameSpringBoundaryHint(), /支座类型/u);
   assert.match(frameSpringBoundaryHint(), /0 刚度不作为有效边界/u);
-  assert.equal(frameSpringBoundaryEmptyHint(), "未设置附加弹性约束；普通边界使用上方支座约束。");
-  assert.equal(frameSpringBoundaryAddLabel(), "添加弹性约束");
+  assert.equal(frameSpringBoundaryEmptyHint(), "未设置自由度弹性约束；节点仅按上方支座类型提供刚性边界。");
+  assert.equal(frameSpringBoundaryAddLabel(), "添加自由度弹性约束");
 });
 
 test("节点坐标和滚动支座角标签显式显示工程单位", () => {

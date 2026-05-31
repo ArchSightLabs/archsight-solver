@@ -9,6 +9,8 @@ import {
   beamSupportDetail,
   beamSupportLabel,
   beamSupportNote,
+  supportConstraintFieldLabel,
+  supportDofStateLabel,
   supportSystemHint,
   type SupportDofMode,
 } from "../lib/support-vocabulary.ts";
@@ -108,7 +110,7 @@ export function BeamSupportEditor({
         </span>
       </div>
       <div className="space-y-2">
-        <div className={fieldLabelClass}>支座约束</div>
+        <div className={fieldLabelClass}>{supportConstraintFieldLabel()}</div>
         <div className="grid grid-cols-2 gap-2">
           {BEAM_SUPPORT_OPTIONS.map((option) => {
             const isActive = support.type === option.value;
@@ -129,7 +131,7 @@ export function BeamSupportEditor({
         </div>
       </div>
       <div className="space-y-3 rounded-xl border border-white/8 bg-background/20 p-3">
-        <div className={fieldLabelClass}>自由度约束</div>
+        <div className={fieldLabelClass}>{supportDofStateLabel()}</div>
         {BEAM_SUPPORT_DOF_ROWS.map((item) => {
           const mode = dofMode(support, item.dof);
           const spring = support.springs?.find((candidate) => candidate.dof === item.dof);

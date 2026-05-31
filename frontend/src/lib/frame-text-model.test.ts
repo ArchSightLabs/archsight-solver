@@ -203,7 +203,7 @@ NSPRING,2,uy,100
   assert.ok(result.collections);
   assert.equal(result.collections.nodes[0]?.springs, undefined);
   const diagnostics = result.diagnostics.join("\n");
-  assert.match(diagnostics, /节点弹簧自由度必须为 ux、uy 或 rz/u);
-  assert.match(diagnostics, /节点弹簧刚度必须大于 0/u);
-  assert.match(diagnostics, /节点弹簧引用了不存在的节点 N2/u);
+  assert.match(diagnostics, /节点弹性约束自由度必须为 ux、uy 或 rz/u);
+  assert.match(diagnostics, /节点弹性约束刚度必须大于 0/u);
+  assert.match(diagnostics, /节点弹性约束引用了不存在的节点 N2/u);
 });

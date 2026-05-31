@@ -49,7 +49,7 @@ FRAME_TRANSLATIONAL_SPRING_SCHEMA: Dict[str, Any] = {
     "required": ["dof", "stiffnessKnPerM"],
     "properties": {
         "dof": {"type": "string", "enum": ["ux", "uy"]},
-        "stiffnessKnPerM": {"type": "number", "exclusiveMinimum": 0, "description": "平动弹簧刚度，单位 kN/m。"},
+        "stiffnessKnPerM": {"type": "number", "exclusiveMinimum": 0, "description": "平动弹性约束刚度，单位 kN/m。"},
     },
     "additionalProperties": False,
 }
@@ -59,7 +59,7 @@ FRAME_ROTATIONAL_SPRING_SCHEMA: Dict[str, Any] = {
     "required": ["dof", "stiffnessKnMPerRad"],
     "properties": {
         "dof": {"type": "string", "enum": ["rz"]},
-        "stiffnessKnMPerRad": {"type": "number", "exclusiveMinimum": 0, "description": "转动弹簧刚度，单位 kN·m/rad。"},
+        "stiffnessKnMPerRad": {"type": "number", "exclusiveMinimum": 0, "description": "转动弹性约束刚度，单位 kN·m/rad。"},
     },
     "additionalProperties": False,
 }

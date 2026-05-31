@@ -42,7 +42,7 @@ export function NodeSupportField({
   fieldLabelClass,
   className,
   label = supportConstraintFieldLabel(),
-  ariaLabel = "支座约束",
+  ariaLabel = "支座类型",
   showHint = false,
 }: NodeSupportFieldProps) {
   const options = mode === "truss" ? TRUSS_SUPPORT_OPTIONS : FRAME_SUPPORT_OPTIONS;

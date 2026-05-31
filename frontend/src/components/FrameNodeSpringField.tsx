@@ -29,7 +29,7 @@ const DEFAULT_FRAME_SPRING: FrameSpring = {
 const FALLBACK_FRAME_SPRING_DOF = FRAME_SUPPORT_DOF_ROWS.find((row) => row.dof === "uy") ?? {
   dof: "uy" as const,
   label: "竖向位移 uy",
-  springLabel: "竖向弹簧刚度（kN/m）",
+  springLabel: "竖向弹性约束刚度（kN/m）",
   defaultStiffness: 10000,
 };
 

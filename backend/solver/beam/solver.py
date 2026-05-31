@@ -139,7 +139,7 @@ def build_symbolic_check(
         "reactionKn": round(from_si(abs(q) * length / 2.0, "force", "kN"), 6),
         "maxMomentKnM": round(from_si(abs(q) * length**2 / 8.0, "moment", "kN.m"), 6),
         "maxDeflectionMm": round(from_si(max_deflection_m, "deflection", "mm"), 6),
-        "limitations": "该校核用于教学解释和量级复核，不替代多跨连续梁、弹簧支座或组合工况有限元结果。",
+        "limitations": "该校核用于教学解释和量级复核，不替代多跨连续梁、支座弹性约束或组合工况有限元结果。",
     }
 
 

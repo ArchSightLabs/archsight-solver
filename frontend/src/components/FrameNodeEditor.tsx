@@ -83,7 +83,7 @@ export function FrameNodeEditor({
           springs={node.springs}
           onSupportTypeChange={handleSupportTypeChange}
           fieldLabelClass={fieldLabelClass}
-          ariaLabel={`${labelPrefix}支座约束`}
+          ariaLabel={`${labelPrefix}支座类型`}
           showHint={isSelectedVariant}
         />
         <div className="space-y-1">

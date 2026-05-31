@@ -136,18 +136,18 @@ def _parse_beam_support_springs(raw_springs: Any) -> List[Dict[str, Any]]:
     if raw_springs in (None, ""):
         return []
     if not isinstance(raw_springs, Sequence) or isinstance(raw_springs, (str, bytes)):
-        raise ValueError("梁弹簧支座必须使用 springs 数组定义")
+        raise ValueError("梁系支座弹性约束必须使用 springs 数组定义")
     springs: List[Dict[str, Any]] = []
     for spring in raw_springs:
         if not isinstance(spring, Mapping):
-            raise ValueError("梁弹簧支座必须使用对象定义")
+            raise ValueError("梁系支座弹性约束必须使用对象定义")
         dof = str(spring.get("dof") or "v").strip().lower()
         if dof in {"uy", "y"}:
             dof = "v"
         if dof in {"theta", "rotation", "m"}:
             dof = "rz"
         if dof not in {"v", "rz"}:
-            raise ValueError("梁弹簧支座自由度必须为 v 或 rz")
+            raise ValueError("梁系支座弹性约束自由度必须为 v 或 rz")
         if dof == "rz":
             stiffness = to_float(spring.get("stiffnessKnMPerRad", spring.get("stiffness", spring.get("k"))), 0.0)
             key = "stiffnessKnMPerRad"
@@ -155,7 +155,7 @@ def _parse_beam_support_springs(raw_springs: Any) -> List[Dict[str, Any]]:
             stiffness = to_float(spring.get("stiffnessKnPerM", spring.get("stiffness", spring.get("k"))), 0.0)
             key = "stiffnessKnPerM"
         if stiffness <= 0:
-            raise ValueError("梁弹簧支座刚度必须大于 0")
+            raise ValueError("梁系支座弹性约束刚度必须大于 0")
         springs.append({"dof": dof, key: stiffness})
     return springs
 

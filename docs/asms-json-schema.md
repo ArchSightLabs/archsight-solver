@@ -143,7 +143,7 @@ Schema：`asms-frame-model`
 - `x` / `y`：平面坐标，单位 m。
 - `supportType`：`free`、`pinned`、`roller`、`fixed`。
 - `supportAngleDeg`：滚动支座法向角，单位 °；仅对平面框架 `roller` 支座生效，`90` 表示竖向法向约束。
-- `springs`：框架节点弹性约束，可表达柱脚转动弹簧等边界；`ux` / `uy` 使用 `stiffnessKnPerM`，`rz` 使用 `stiffnessKnMPerRad`。
+- `springs`：框架节点弹性约束，可表达柱脚转动有限刚度等边界；`ux` / `uy` 使用 `stiffnessKnPerM`，`rz` 使用 `stiffnessKnMPerRad`。
 
 构件：
 

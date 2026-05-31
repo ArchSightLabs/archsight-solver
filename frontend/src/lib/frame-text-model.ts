@@ -356,17 +356,17 @@ export function parseFrameTextModel(text: string): FrameTextParseResult {
       const id = nodeId(tokens[1], "N1");
       const node = rawNodes.find((item) => item.id === id);
       if (!node) {
-        diagnostics.push(`第 ${lineIndex + 1} 行：节点弹簧引用了不存在的节点 ${id}。`);
+        diagnostics.push(`第 ${lineIndex + 1} 行：节点弹性约束引用了不存在的节点 ${id}。`);
         continue;
       }
       const dof = frameSpringDof(tokens[2]);
       if (!dof) {
-        diagnostics.push(`第 ${lineIndex + 1} 行：节点弹簧自由度必须为 ux、uy 或 rz。`);
+        diagnostics.push(`第 ${lineIndex + 1} 行：节点弹性约束自由度必须为 ux、uy 或 rz。`);
         continue;
       }
       const stiffness = toNumber(tokens[3]);
       if (stiffness === null || stiffness <= 0) {
-        diagnostics.push(`第 ${lineIndex + 1} 行：节点弹簧刚度必须大于 0。`);
+        diagnostics.push(`第 ${lineIndex + 1} 行：节点弹性约束刚度必须大于 0。`);
         continue;
       }
       node.springs = [

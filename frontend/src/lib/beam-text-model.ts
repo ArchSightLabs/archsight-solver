@@ -265,22 +265,22 @@ export function parseBeamTextModel(text: string): BeamTextParseResult {
       const supportReference = normalizeBeamSupportTextId(tokens[1], 0);
       const support = supports.find((item) => item.id === supportReference || item.id === tokens[1]);
       if (!support) {
-        diagnostics.push(`第 ${lineIndex + 1} 行：弹簧引用了不存在的支座 ${tokens[1] ?? ""}。`);
+        diagnostics.push(`第 ${lineIndex + 1} 行：弹性约束引用了不存在的支座 ${tokens[1] ?? ""}。`);
         continue;
       }
       const rawDof = String(tokens[2] ?? "").toLowerCase();
       if (rawDof !== "v" && rawDof !== "rz") {
-        diagnostics.push(`第 ${lineIndex + 1} 行：弹簧自由度必须为 v 或 rz。`);
+        diagnostics.push(`第 ${lineIndex + 1} 行：弹性约束自由度必须为 v 或 rz。`);
         continue;
       }
       const dof = rawDof as BeamSupportDof;
       const stiffness = toNumber(tokens[3]);
       if (stiffness === null) {
-        diagnostics.push(`第 ${lineIndex + 1} 行：弹簧刚度不能为空。`);
+        diagnostics.push(`第 ${lineIndex + 1} 行：弹性约束刚度不能为空。`);
         continue;
       }
       if (stiffness <= 0) {
-        diagnostics.push(`第 ${lineIndex + 1} 行：弹簧刚度必须大于 0。`);
+        diagnostics.push(`第 ${lineIndex + 1} 行：弹性约束刚度必须大于 0。`);
         continue;
       }
       support.constraints = (support.constraints ?? []).filter((item) => item !== dof);

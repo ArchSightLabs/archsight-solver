@@ -68,19 +68,19 @@ const SUPPORT_CATALOG = sharedSupports as SharedSupportCatalog;
 
 export const SUPPORT_DOF_MODE_OPTIONS: Array<{ label: string; value: SupportDofMode }> = [
   { label: "约束", value: "fixed" },
-  { label: "弹簧", value: "spring" },
+  { label: "弹性", value: "spring" },
   { label: "释放", value: "free" },
 ];
 
 export const BEAM_SUPPORT_DOF_ROWS: BeamSupportDofRow[] = [
-  { dof: "v", label: "竖向位移 v", springLabel: "竖向弹簧刚度（kN/m）", defaultStiffness: 50000 },
-  { dof: "rz", label: "转角 θz", springLabel: "转动弹簧刚度（kN·m/rad）", defaultStiffness: 10000 },
+  { dof: "v", label: "竖向位移 v", springLabel: "竖向弹性约束刚度（kN/m）", defaultStiffness: 50000 },
+  { dof: "rz", label: "转角 θz", springLabel: "转动弹性约束刚度（kN·m/rad）", defaultStiffness: 10000 },
 ];
 
 export const FRAME_SUPPORT_DOF_ROWS: FrameSupportDofRow[] = [
-  { dof: "ux", label: "水平位移 ux", springLabel: "水平弹簧刚度（kN/m）", defaultStiffness: 10000 },
-  { dof: "uy", label: "竖向位移 uy", springLabel: "竖向弹簧刚度（kN/m）", defaultStiffness: 10000 },
-  { dof: "rz", label: "转角 rz", springLabel: "转动弹簧刚度（kN·m/rad）", defaultStiffness: 10000 },
+  { dof: "ux", label: "水平位移 ux", springLabel: "水平弹性约束刚度（kN/m）", defaultStiffness: 10000 },
+  { dof: "uy", label: "竖向位移 uy", springLabel: "竖向弹性约束刚度（kN/m）", defaultStiffness: 10000 },
+  { dof: "rz", label: "转角 rz", springLabel: "转动弹性约束刚度（kN·m/rad）", defaultStiffness: 10000 },
 ];
 
 export const TRUSS_SUPPORT_DOF_ROWS: TrussSupportDofRow[] = [
@@ -89,7 +89,7 @@ export const TRUSS_SUPPORT_DOF_ROWS: TrussSupportDofRow[] = [
 ];
 
 export function supportConstraintFieldLabel(): string {
-  return "支座约束";
+  return "支座类型";
 }
 
 export function supportDofStateLabel(): string {
@@ -97,19 +97,19 @@ export function supportDofStateLabel(): string {
 }
 
 export function frameSpringBoundaryTitle(): string {
-  return "附加弹性约束";
+  return "自由度弹性约束";
 }
 
 export function frameSpringBoundaryHint(): string {
-  return "在上方支座约束之外，为框架节点 ux、uy 或 rz 附加有限刚度；0 刚度不作为有效边界。";
+  return "在支座类型之外，为框架节点 ux、uy 或 rz 附加有限刚度边界；0 刚度不作为有效边界。";
 }
 
 export function frameSpringBoundaryEmptyHint(): string {
-  return "未设置附加弹性约束；普通边界使用上方支座约束。";
+  return "未设置自由度弹性约束；节点仅按上方支座类型提供刚性边界。";
 }
 
 export function frameSpringBoundaryAddLabel(): string {
-  return "添加弹性约束";
+  return "添加自由度弹性约束";
 }
 
 function supportOptions<T extends string>(group: SupportGroup): Array<SupportOption<T>> {
@@ -181,8 +181,8 @@ function beamDofLabel(dof: BeamSupportDof): string {
 }
 
 function beamSpringSummary(spring: BeamSupportSpring): string {
-  if (spring.dof === "rz") return `${beamDofLabel(spring.dof)} 弹簧 ${compactSupportNumber(spring.stiffnessKnMPerRad)} kN·m/rad`;
-  return `${beamDofLabel(spring.dof)} 弹簧 ${compactSupportNumber(spring.stiffnessKnPerM)} kN/m`;
+  if (spring.dof === "rz") return `${beamDofLabel(spring.dof)} 弹性约束 ${compactSupportNumber(spring.stiffnessKnMPerRad)} kN·m/rad`;
+  return `${beamDofLabel(spring.dof)} 弹性约束 ${compactSupportNumber(spring.stiffnessKnPerM)} kN/m`;
 }
 
 export function beamSupportStateDetail(support: Pick<BeamSupportConfig, "type" | "constraints" | "springs">): string {
@@ -226,7 +226,7 @@ function isPositiveFrameSpring(spring: FrameSpring): boolean {
 
 function frameSpringSummary(spring: FrameSpring): string {
   const unit = spring.dof === "rz" ? "kN·m/rad" : "kN/m";
-  return `${spring.dof} 弹簧 ${compactSupportNumber(frameSpringStiffness(spring))} ${unit}`;
+  return `${spring.dof} 弹性约束 ${compactSupportNumber(frameSpringStiffness(spring))} ${unit}`;
 }
 
 function frameSupportConstraintDofs(type: SupportType | undefined): FrameSupportDof[] {
@@ -286,7 +286,7 @@ function springStateDetail(spring: FrameSpring): string {
 }
 
 function supportDofState(label: string, dof: string, mode: SupportDofMode, detail?: string): SupportDofState {
-  return { dof, label, mode, detail: detail ?? (mode === "fixed" ? "约束" : mode === "spring" ? "弹性" : "释放") };
+  return { dof, label, mode, detail: detail ?? (mode === "fixed" ? "约束" : mode === "spring" ? "弹性约束" : "释放") };
 }
 
 export function frameNodeSupportDofStates(node: FrameNodeSupportState): SupportDofState[] {
@@ -300,7 +300,7 @@ export function frameNodeSupportDofStates(node: FrameNodeSupportState): SupportD
       supportDofState("法向位移 n", "n", "fixed", `约束 ${angle}° 法向`),
       supportDofState("切向位移 t", "t", "free", "释放切向"),
       rzSpring
-        ? supportDofState("转角 rz", "rz", "spring", `弹性 ${springStateDetail(rzSpring)}`)
+        ? supportDofState("转角 rz", "rz", "spring", `弹性约束 ${springStateDetail(rzSpring)}`)
         : supportDofState("转角 rz", "rz", "free"),
     ];
   }
@@ -310,7 +310,7 @@ export function frameNodeSupportDofStates(node: FrameNodeSupportState): SupportD
   return FRAME_SUPPORT_DOF_ROWS.map((row) => {
     if (constrainedDofs.has(row.dof)) return supportDofState(row.label, row.dof, "fixed");
     const spring = springByDof.get(row.dof);
-    if (spring) return supportDofState(row.label, row.dof, "spring", `弹性 ${springStateDetail(spring)}`);
+    if (spring) return supportDofState(row.label, row.dof, "spring", `弹性约束 ${springStateDetail(spring)}`);
     return supportDofState(row.label, row.dof, "free");
   });
 }
