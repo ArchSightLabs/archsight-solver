@@ -40,14 +40,14 @@
 
 ```text
 SPAN,杆件编号,跨长m,E_GPa或材料编号,I_cm4
-SUPPORT,支座编号,x位置m,类型
+SUPPORT,支座编号,x位置m,类型[,约束自由度]
 SPRING,支座编号,自由度,刚度
 LOAD,uniform,q_kN_per_m
 LOAD,linear,q1,q2,startRatio,endRatio
 LOAD,point,P_kN,ratio
 ```
 
-梁系默认按主流结构力学软件表达：杆件编号为 `(1)`、`(2)`，节点图面标注为圆圈数字 `1`、`2`，支座对象编号为 `S1`、`S2`。杆件编号和支座编号都可以手动改名；旧版 `NODE,N1,...` 写法仍可兼容导入，但推荐使用 `SUPPORT,S1,...`。支座类型支持 `fixed`、`pinned`、`roller`、`free`，也支持中文常用表达“固定、固结、滚动、滑动、自由”。弹簧自由度支持 `v` 和 `rz`。
+梁系默认按主流结构力学软件表达：杆件编号为 `(1)`、`(2)`，节点图面标注为圆圈数字 `1`、`2`，支座对象编号为 `S1`、`S2`。杆件编号和支座编号都可以手动改名；旧版 `NODE,N1,...` 写法仍可兼容导入，但推荐使用 `SUPPORT,S1,...`。支座类型支持 `fixed`、`pinned`、`roller`、`free`，也支持中文常用表达“固定、固结、滚动、滑动、自由”。`SUPPORT` 第 5 列可显式覆盖支座自由度，可写 `v`、`rz`、`v+rz` 或 `-`；未写时按支座类型默认约束。`SPRING` 会把对应自由度从固定约束中释放，并改为弹簧刚度。弹簧自由度支持 `v` 和 `rz`。
 
 ### 示例
 
@@ -56,8 +56,9 @@ LOAD,point,P_kN,ratio
 SPAN,(1),4,210,4500
 SPAN,(2),4,210,4500
 SUPPORT,S1,0,pinned
-SUPPORT,S2,4,pinned
+SUPPORT,S2,4,pinned,v
 SUPPORT,S3,8,roller
+SPRING,S2,rz,12000
 LOAD,uniform,10
 LOAD,point,12,0.75
 ```
