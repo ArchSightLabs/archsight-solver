@@ -127,7 +127,7 @@ def build_frame_solution_response(
             "maxDisplacementNodeId": max_disp_node["nodeId"] if max_disp_node else None,
             "status": status,
             "statusCode": "PASS" if status == "合格" else "REVIEW",
-            "method": "二维框架刚度法 + 平面梁柱单元",
+            "method": "二维平面框架刚度法 + 平面梁柱单元",
         },
         "diagnostics": {
             "equilibrium": {
@@ -148,7 +148,7 @@ def build_frame_solution_response(
         "preview": {
             "analysisType": "frame",
             "structureType": "portal_frame" if structure.get("template") == "portal_frame" else "explicit",
-            "structureTypeLabel": "二维框架",
+            "structureTypeLabel": "二维平面框架",
             "nodes": nodes,
             "members": preview_members,
             "loads": preview_loads,
@@ -169,7 +169,7 @@ def build_frame_solution_response(
         },
         "diagram": {
             "analysisType": "frame",
-            "structureTypeLabel": "二维框架",
+            "structureTypeLabel": "二维平面框架",
             "nodes": nodes,
             "members": preview_members,
             "loads": preview_loads,

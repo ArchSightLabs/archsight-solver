@@ -110,11 +110,16 @@ def test_truss_xlsx_export_contains_core_sheets(client):
             "99_原始数据",
         ]
         overview_text = pd.read_excel(xls, sheet_name="01_复核总览", header=None).to_string()
+        boundary_text = pd.read_excel(xls, sheet_name="04_边界条件", header=None).to_string()
         evidence_text = pd.read_excel(xls, sheet_name="05_校核证据", header=None).to_string()
         result_text = pd.read_excel(xls, sheet_name="06_结果明细", header=None).to_string()
 
     assert "关键控制项" in overview_text
+    assert "仅 ux/uy 平动支座约束" in boundary_text
+    assert "弹簧刚度" not in boundary_text
     assert "模型假定与适用范围" in evidence_text
+    assert "施加 ux / uy 平动支座约束后求解节点位移" in evidence_text
+    assert "施加支座约束与弹性支座刚度" not in evidence_text
     assert "校核证据" in evidence_text
     assert "节点结果" in result_text
     assert "杆件结果" in result_text
@@ -140,6 +145,9 @@ def test_truss_docx_export_smoke(client):
     assert "2.2 可审查计算证据链" in full_text
     assert "桁架" in full_text
     assert "仅承受轴力" in table_text
+    assert "施加 ux / uy 平动支座约束后求解节点位移" in table_text
+    assert "弹簧刚度" not in table_text
+    assert "施加支座约束与弹性支座刚度" not in table_text
     assert "校核证据" in full_text
     assert "3.1 节点水平位移图" not in full_text
     assert "3.2 节点竖向位移图" not in full_text

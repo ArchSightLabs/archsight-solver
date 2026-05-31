@@ -159,7 +159,7 @@
       "id": "frame-portal-benchmark",
       "category": "frame",
       "title": "门式刚架标准算例",
-      "purpose": "验证二维框架刚度法、节点输出和整体位移控制。",
+      "purpose": "验证二维平面框架刚度法、节点输出和整体位移控制。",
       "payload": {
         "analysisType": "frame",
         "projectName": "Benchmark Portal Frame",

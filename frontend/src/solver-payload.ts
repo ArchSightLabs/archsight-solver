@@ -418,7 +418,7 @@ export function validateCustomFrameWorkspace(value: FrameWorkspaceState): string
   const { nodes, members, loads } = normalizeCustomFrameCollections(value);
 
   if (nodes.length < 2) {
-    return "自定义二维框架至少需要 2 个节点。";
+    return "自定义平面框架至少需要 2 个节点。";
   }
   if (nodes.length > MAX_FRAME_NODES) {
     return `框架节点数量超出系统限制（最大 ${MAX_FRAME_NODES} 个）。`;
@@ -467,7 +467,7 @@ export function validateCustomFrameWorkspace(value: FrameWorkspaceState): string
   }
 
   if (members.length < 1) {
-    return "自定义二维框架至少需要 1 个构件。";
+    return "自定义平面框架至少需要 1 个构件。";
   }
 
   const supportWarning = frameSupportStabilityWarning(nodes);

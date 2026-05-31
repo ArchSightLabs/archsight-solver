@@ -26,7 +26,7 @@
 
 | Case ID | 名称 | 目的 | 验证来源 | 校核指标 | 标准值 | 容许误差 |
 |---|---|---|---|---|---|---|
-| `frame-portal-benchmark` | 门式刚架标准算例 | 验证二维框架刚度法、节点输出和整体位移控制。 | 独立刚度法基准 | 最大节点位移、构件弯矩、节点数量、构件数量 | maxDisplacementMm=3.8141；maxMomentKnM=58.1043；statusCode=PASS；nodeCount=4；memberCount=3 | maxDisplacementMm=0.01；maxMomentKnM=0.01 |
+| `frame-portal-benchmark` | 门式刚架标准算例 | 验证二维平面框架刚度法、节点输出和整体位移控制。 | 独立刚度法基准 | 最大节点位移、构件弯矩、节点数量、构件数量 | maxDisplacementMm=3.8141；maxMomentKnM=58.1043；statusCode=PASS；nodeCount=4；memberCount=3 | maxDisplacementMm=0.01；maxMomentKnM=0.01 |
 | `frame-portal-rotational-spring` | 转动弹簧门式刚架 | 验证柱脚转动弹簧刚度进入框架整体刚度矩阵，并对最大节点位移与支座弯矩形成稳定回归。 | 独立刚度法基准 | 最大节点位移、构件弯矩、节点数量、构件数量 | statusCode=PASS；nodeCount=4；memberCount=3；maxDisplacementMm=1.6422；maxMomentKnM=22.1652 | maxDisplacementMm=0.01；maxMomentKnM=0.01 |
 | `frame-explicit-two-bay` | 显式双跨单层框架 | 验证多跨框架的节点/构件组织、两跨梁分布荷载、混合支座和侧向节点荷载回归。 | 独立刚度法基准 | 最大节点位移、构件弯矩、节点数量、构件数量 | statusCode=PASS；nodeCount=6；memberCount=5；maxDisplacementMm=11.8027；maxMomentKnM=56.3701 | maxDisplacementMm=0.01；maxMomentKnM=0.01 |
 | `frame-portal-light-load` | 轻载门式刚架 | 扩展门式刚架低荷载回归，覆盖较小水平荷载下的最大节点位移与构件弯矩。 | 内部回归算例 | 最大节点位移、构件弯矩、节点数量、构件数量 | statusCode=PASS；nodeCount=4；memberCount=3；maxDisplacementMm=1.5297；maxMomentKnM=23.4271 | maxDisplacementMm=0.01；maxMomentKnM=0.01 |

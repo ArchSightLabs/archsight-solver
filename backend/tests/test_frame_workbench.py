@@ -118,7 +118,7 @@ def frame_payload_with_combination_tags():
 EXPLICIT_TWO_BAY_EXPECTED = {
     "node_count": 6,
     "member_count": 5,
-    "method": "二维框架刚度法 + 平面梁柱单元",
+    "method": "二维平面框架刚度法 + 平面梁柱单元",
     "expected_upgrade_condition": "取得手算、教材或可信工具复核值后升级为数值基准",
 }
 
@@ -149,6 +149,9 @@ def test_frame_calculate_returns_frame_results(client):
     assert len(data["member_moment_data"]) == 3
     assert data["summary"]["maxDisplacementMm"] > 0
     assert data["summary"]["status"] in ("合格", "需校核")
+    assert data["summary"]["method"] == "二维平面框架刚度法 + 平面梁柱单元"
+    assert data["preview"]["structureTypeLabel"] == "二维平面框架"
+    assert data["diagram"]["structureTypeLabel"] == "二维平面框架"
 
 
 def test_frame_distributed_load_negative_wy_deflects_downward(client):
@@ -240,6 +243,8 @@ def test_frame_xlsx_export_contains_core_sheets(client):
         raw_text = pd.read_excel(xls, sheet_name="99_原始数据", header=None).to_string()
 
     assert "关键控制项" in overview_text
+    assert "二维平面框架" in overview_text
+    assert "二维平面框架" in model_text
     assert "节点模型" in model_text
     assert "构件模型" in model_text
     assert "模型假定与适用范围" in evidence_text

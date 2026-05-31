@@ -143,7 +143,7 @@ def _frame_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str
         "边界条件表": _node_boundary_table(structure.get("nodes", []), "frame"),
         "计算方法说明": pd.DataFrame(
             [
-                ["1", "按节点与构件生成二维框架单元"],
+                ["1", "按节点与构件生成二维平面框架单元"],
                 ["2", "计算构件局部刚度矩阵并转换至全局坐标"],
                 ["3", "装配整体刚度矩阵 K 与荷载向量 F"],
                 ["4", "施加支座约束、弹性支座刚度、端部释放和内部铰"],
@@ -202,7 +202,7 @@ def _truss_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str
                 ["1", "按节点与杆件生成二维桁架杆单元"],
                 ["2", "由杆件方向余弦形成轴向刚度矩阵"],
                 ["3", "装配整体平衡方程 K·u=F"],
-                ["4", "施加支座约束与弹性支座刚度后求解节点位移"],
+                ["4", "施加 ux / uy 平动支座约束后求解节点位移"],
                 ["5", "由杆件两端位移恢复轴力与轴应力"],
             ],
             columns=["步骤", "说明"],
@@ -251,6 +251,9 @@ def _beam_boundary_table(support_specs: List[Mapping[str, Any]], support_positio
 
 
 def _node_boundary_table(nodes: Iterable[Mapping[str, Any]], analysis_type: str) -> pd.DataFrame:
+    if analysis_type == "truss":
+        return _truss_boundary_table(nodes)
+
     rows = []
     for node in nodes:
         support_type = str(node.get("supportType", "free"))
@@ -268,6 +271,23 @@ def _node_boundary_table(nodes: Iterable[Mapping[str, Any]], analysis_type: str)
             }
         )
     return pd.DataFrame(rows or [{"节点": "—", "位置": "—", "支座类型": "—", "约束自由度": "—", "弹簧刚度": "—", "释放/内铰": "—"}])
+
+
+def _truss_boundary_table(nodes: Iterable[Mapping[str, Any]]) -> pd.DataFrame:
+    rows = []
+    for node in nodes:
+        support_type = str(node.get("supportType", "free"))
+        constraints = support_constraint_dofs("truss", support_type)
+        rows.append(
+            {
+                "节点": node.get("id", "—"),
+                "位置": f"({round(float(node.get('x', 0.0)), 6)}, {round(float(node.get('y', 0.0)), 6)}) m",
+                "支座类型": support_label("truss", support_type),
+                "约束自由度": _format_dofs(constraints),
+                "边界口径": "仅 ux/uy 平动支座约束；不含节点转角与弹性支座",
+            }
+        )
+    return pd.DataFrame(rows or [{"节点": "—", "位置": "—", "支座类型": "—", "约束自由度": "—", "边界口径": "—"}])
 
 
 def _member_unit_table(*, include_inertia: bool) -> pd.DataFrame:

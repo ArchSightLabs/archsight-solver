@@ -24,7 +24,7 @@ def build_summary_tables(solution: Dict[str, Any], material_name: str):
         [
             ["项目名称", solution["projectName"]],
             ["计算日期", pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")],
-            ["结构类型", "二维框架"],
+            ["结构类型", "二维平面框架"],
             ["材料名称", material_name],
             ["节点数量", len(structure.get("nodes", []))],
             ["构件数量", len(structure.get("members", []))],
@@ -38,7 +38,7 @@ def build_summary_tables(solution: Dict[str, Any], material_name: str):
 
     df_params = pd.DataFrame(
         [
-            ["分析类型", "二维框架"],
+            ["分析类型", "二维平面框架"],
             ["项目名称", solution["projectName"]],
             ["材料名称", material_name],
             *material_report_rows(solution.get("materialId")),

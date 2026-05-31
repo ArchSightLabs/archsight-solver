@@ -13,7 +13,7 @@ from backend.normalizers.structural_model import (
 from backend.solver.linear_system import normalize_solver_backend
 
 
-DEFAULT_PROJECT_NAME = "默认二维框架项目"
+DEFAULT_PROJECT_NAME = "默认平面框架项目"
 DEFAULT_MATERIAL_NAME = "自定义材料"
 
 SUPPORT_LABELS = FRAME_SUPPORT_LABELS

@@ -129,7 +129,7 @@ def solve_frame_displacement(arguments: Mapping[str, Any]) -> Dict[str, Any]:
             "capabilityVersion": CAPABILITY_VERSION,
             "status": "pass" if status_code == "PASS" else "fail",
             "inputValidated": True,
-            "method": summary.get("method", "二维框架刚度法 + 平面梁柱单元"),
+            "method": summary.get("method", "二维平面框架刚度法 + 平面梁柱单元"),
             "maxDisplacement": {
                 "value": float(summary.get("maxDisplacementMm", 0.0)),
                 "unit": "mm",
