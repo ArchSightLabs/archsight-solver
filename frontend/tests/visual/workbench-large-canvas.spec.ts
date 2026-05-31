@@ -71,6 +71,23 @@ function frameGridTextModel() {
   return lines.join("\n");
 }
 
+function beamLongTextModel() {
+  const spanCount = 16;
+  const spanLength = 4;
+  const lines: string[] = ["# 16 跨连续梁，验证梁系主控建模画布扩展", "BEAM,continuous", "MATERIAL,q345"];
+
+  for (let index = 0; index < spanCount; index += 1) {
+    lines.push(`SPAN,(${index + 1}),${spanLength},q345,85000`);
+  }
+
+  for (let index = 0; index <= spanCount; index += 1) {
+    const type = index === 0 ? "pinned" : index === spanCount ? "roller" : "pinned";
+    lines.push(`SUPPORT,S${index + 1},${index * spanLength},${type}`);
+  }
+
+  return lines.join("\n");
+}
+
 function trussGridTextModel() {
   const lines: string[] = ["# 10x2 桁架网格，验证主控建模画布扩展"];
   const cols = 10;
@@ -99,6 +116,17 @@ function trussGridTextModel() {
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => window.localStorage.clear());
   await page.goto("/");
+});
+
+test("梁系跨段支座增多后主控建模画布扩展并触发滚动", async ({ page }) => {
+  await importTextModel(page, "梁系文本模型", beamLongTextModel());
+
+  const metrics = await canvasMetrics(page);
+
+  expect(metrics.viewBoxWidth).toBeGreaterThan(900);
+  expect(metrics.viewBoxHeight).toBeGreaterThanOrEqual(300);
+  expect(metrics.scrollWidth).toBeGreaterThan(metrics.scrollClientWidth);
+  expect(metrics.boardWidth).toBeGreaterThan(metrics.scrollClientWidth);
 });
 
 test("平面框架节点构件增多后主控建模画布扩展并触发滚动", async ({ page }) => {

@@ -8,6 +8,7 @@ const packageJson = JSON.parse(readFileSync(new URL("../../package.json", import
 };
 const playwrightConfig = readFileSync(new URL("../../playwright.config.ts", import.meta.url), "utf-8");
 const exportDocxSpec = readFileSync(new URL("../../tests/visual/workbench-export-docx.spec.ts", import.meta.url), "utf-8");
+const largeCanvasSpec = readFileSync(new URL("../../tests/visual/workbench-large-canvas.spec.ts", import.meta.url), "utf-8");
 const visualRegressionDoc = readFileSync(new URL("../../../docs/verification/visual-regression.md", import.meta.url), "utf-8");
 
 
@@ -33,4 +34,17 @@ test("计算书图形导出测试锁定共享图形目录和前端同源图片",
   assert.match(exportDocxSpec, /shared\/report-figures\.json/u);
   assert.match(exportDocxSpec, /Object\.keys\(payload\?\.reportImages \?\? \{\}\)\)\.toEqual\(MODE_LABELS\[mode\]\.imageKeys\)/u);
   assert.match(exportDocxSpec, /\^data:image\\\/png;base64,/u);
+});
+
+test("主控大模型画布视觉回归覆盖三类分析对象", () => {
+  for (const modelName of ["梁系", "平面框架", "平面桁架"]) {
+    assert.match(largeCanvasSpec, new RegExp(`${modelName}.*主控建模画布扩展`, "u"));
+  }
+
+  assert.match(largeCanvasSpec, /const spanCount = 16/u);
+  assert.match(largeCanvasSpec, /const spanLength = 4/u);
+  assert.match(largeCanvasSpec, /SUPPORT,S\$\{index \+ 1\},\$\{index \* spanLength\},\$\{type\}/u);
+  assert.match(largeCanvasSpec, /5x4 节点网格/u);
+  assert.match(largeCanvasSpec, /10x2 桁架网格/u);
+  assert.equal((largeCanvasSpec.match(/scrollWidth\)\.toBeGreaterThan\(metrics\.scrollClientWidth\)/gu) ?? []).length, 3);
 });
