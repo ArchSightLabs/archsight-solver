@@ -1,5 +1,6 @@
 import { createPortalFrameModelFromState, type WorkspaceState } from "../../lib/workspace-state";
 import { nodeSupportLabel } from "../../lib/support-vocabulary";
+import { modelCanvasLabelPolicy, shouldShowSteppedLabel } from "../../lib/model-canvas-label-policy";
 import { FRAME_MODEL_CANVAS_BASE_SIZE, type ModelCanvasSize } from "../../lib/model-canvas-sizing";
 import { STRUCTURE_NODE_RADII, STRUCTURE_VISUAL_STROKES } from "../../lib/structure-visual-tokens";
 import { buildFrameDimensionLegendRows, buildFrameLoadLabelMap, formatFrameDistributedLoadLabel, formatFrameForceLoadLabel, frameMemberDimensionValueLabel, type FrameGeometryDimension } from "../frame-preview-utils";
@@ -183,6 +184,12 @@ export function FrameSketch({
     }];
   });
   const frameDimensionLegendRows = buildFrameDimensionLegendRows(frameDimensions, 220, 12);
+  const labelPolicy = modelCanvasLabelPolicy({
+    nodeCount: nodes.length,
+    memberCount: members.length,
+    nodeVisibleTarget: 12,
+    memberVisibleTarget: 14,
+  });
   const nodeLabel = (node: StructureNode) => {
     const point = nodeMap.get(node.id);
     if (!point) return null;
@@ -209,7 +216,7 @@ export function FrameSketch({
   });
 
   return (
-    <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} className="h-full w-full">
+    <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} className="h-full w-full" data-model-canvas="frame" data-label-density={labelPolicy.density}>
       <g fontFamily={SVG_TEXT_FONT} fill="var(--model-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
         {frameDimensionLegendRows.map((row, index) => (
           <text key={`frame-dimension-legend-${index}`} x={frameDimensionLegendX} y={22 + index * 16} fontSize="12" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT}>
@@ -218,31 +225,41 @@ export function FrameSketch({
         ))}
       </g>
       <g stroke="var(--model-member)" strokeLinecap="round" strokeLinejoin="round">
-        {members.map((member) => {
+        {members.map((member, index) => {
           const start = nodeMap.get(member.start);
           const end = nodeMap.get(member.end);
           if (!start || !end) return null;
           const selected = selection?.mode === "frame" && selection.type === "member" && selection.id === member.id;
           const label = frameMemberLabelPlacement(start, end, frameCenter);
+          const showLabel = shouldShowSteppedLabel({
+            index,
+            total: members.length,
+            step: labelPolicy.memberLabelStep,
+            selected,
+          });
           return (
             <g key={member.id} {...svgInteractiveProps(`选择框架构件 ${member.id}`, () => onSelect?.({ mode: "frame", type: "member", id: member.id }))}>
+              <title>{`框架构件 ${member.id}`}</title>
               <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="transparent" strokeWidth="18" />
               <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} strokeWidth={selected ? STRUCTURE_VISUAL_STROKES.modelSelectedMember : STRUCTURE_VISUAL_STROKES.modelMember} stroke={selected ? "var(--model-load)" : "var(--model-member)"} opacity={selected ? "0.85" : "1"} />
-              <text
-                x={label.x}
-                y={label.y}
-                textAnchor={label.anchor}
-                dominantBaseline="middle"
-                fill={selected ? "var(--model-load)" : "var(--model-label)"}
-                stroke="var(--model-label-halo)"
-                strokeWidth="4"
-                paintOrder="stroke"
-                fontSize="11"
-                fontWeight="800"
-                fontFamily={SVG_TEXT_FONT}
-              >
-                {member.id}
-              </text>
+              {showLabel ? (
+                <text
+                  x={label.x}
+                  y={label.y}
+                  textAnchor={label.anchor}
+                  dominantBaseline="middle"
+                  fill={selected ? "var(--model-load)" : "var(--model-label)"}
+                  stroke="var(--model-label-halo)"
+                  strokeWidth="4"
+                  paintOrder="stroke"
+                  fontSize="11"
+                  fontWeight="800"
+                  fontFamily={SVG_TEXT_FONT}
+                  data-model-label="member"
+                >
+                  {member.id}
+                </text>
+              ) : null}
             </g>
           );
         })}
@@ -253,6 +270,7 @@ export function FrameSketch({
           const selected = selection?.mode === "frame" && selection.type === "node" && selection.id === node.id;
           return point ? (
             <g key={node.id} {...svgInteractiveProps(`选择框架节点 ${node.id}`, () => onSelect?.({ mode: "frame", type: "node", id: node.id }))}>
+              <title>{`框架节点 ${node.id}`}</title>
               <FrameSupportMarker type={node.supportType} x={point.x} y={point.y} selected={Boolean(selected)} angleDeg={node.supportAngleDeg} />
               <circle cx={point.x} cy={point.y} r={selected ? "11" : "8"} fill="transparent" />
               <circle cx={point.x} cy={point.y} r={selected ? STRUCTURE_NODE_RADII.modelSelected : STRUCTURE_NODE_RADII.model} fill={selected ? "var(--model-load)" : "var(--model-node)"} />
@@ -357,10 +375,19 @@ export function FrameSketch({
         })}
       </g>
       <g fill="var(--model-label)" fontSize="11.5" fontWeight="600" fontFamily={SVG_TEXT_FONT}>
-        {nodes.map((node) => {
+        {nodes.map((node, index) => {
           const label = nodeLabel(node);
-          return label ? (
-            <text key={node.id} x={label.x} y={label.y} textAnchor={label.anchor}>
+          const selected = selection?.mode === "frame" && selection.type === "node" && selection.id === node.id;
+          const pinned = Boolean(node.supportType && node.supportType !== "free");
+          const showLabel = shouldShowSteppedLabel({
+            index,
+            total: nodes.length,
+            step: labelPolicy.nodeLabelStep,
+            selected,
+            pinned,
+          });
+          return label && showLabel ? (
+            <text key={node.id} x={label.x} y={label.y} textAnchor={label.anchor} data-model-label="node">
               {node.id}
             </text>
           ) : null;

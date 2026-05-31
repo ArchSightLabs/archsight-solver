@@ -1,5 +1,6 @@
 import { type CSSProperties } from "react";
 import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments, formatBeamDimensionLength } from "../../lib/beam-span-dimensions";
+import { modelCanvasLabelPolicy, shouldShowSteppedLabel } from "../../lib/model-canvas-label-policy";
 import { BEAM_MODEL_CANVAS_BASE_SIZE, type ModelCanvasSize } from "../../lib/model-canvas-sizing";
 import { STRUCTURE_NODE_RADII, STRUCTURE_VISUAL_STROKES } from "../../lib/structure-visual-tokens";
 import type { WorkspaceState } from "../../lib/workspace-state";
@@ -174,6 +175,12 @@ export function BeamSketch({
   const pointLoads = beam.pointLoads ?? [];
   const pointLoadXs = pointLoads.map((load) => beamStart + (beamEnd - beamStart) * clampRatio(load.positionRatio, 0.5));
   const nodeLabels = buildBeamNodeLabels(nodeLabelXs, pointLoadXs, beamStart, beamEnd);
+  const labelPolicy = modelCanvasLabelPolicy({
+    nodeCount: nodeLabels.length,
+    memberCount: segments.length,
+    nodeVisibleTarget: Math.max(14, Math.floor(beamDrawableWidth / 72)),
+    memberVisibleTarget: Math.max(14, Math.floor(beamDrawableWidth / 80)),
+  });
   const hasMultipleLinearLoads = linearRanges.length > 1;
   const linearArrows = linearRanges.map((range, rangeIndex) => {
     const arrowCount = hasMultipleLinearLoads
@@ -222,7 +229,7 @@ export function BeamSketch({
     : undefined;
 
   return (
-    <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} className="h-full w-full" style={beamSketchStyle}>
+    <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} className="h-full w-full" style={beamSketchStyle} data-model-canvas="beam" data-label-density={labelPolicy.density}>
       <g fontFamily={SVG_TEXT_FONT} fill="var(--beam-sketch-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
         {beamDimensionLegendRows.map((row, index) => (
           <text key={`span-dimension-legend-${index}`} x={beamStart} y={34 + index * 16} fontSize="12" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT}>
@@ -234,13 +241,19 @@ export function BeamSketch({
       {segments.map((segment) => {
         const selected = selection?.mode === "beam" && selection.type === "span" && selection.id === `span-${segment.index}`;
         const dimension = spanDimensions[segment.index];
+        const showLabel = shouldShowSteppedLabel({
+          index: segment.index,
+          total: segments.length,
+          step: labelPolicy.memberLabelStep,
+          selected,
+        });
         return (
           <g key={segment.index} {...svgInteractiveProps(`选择梁系杆件 ${beamMemberIds[segment.index]}`, () => onSelect?.({ mode: "beam", type: "span", id: `span-${segment.index}` }))}>
             {dimension ? <title>{dimension.title}</title> : null}
             <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="transparent" strokeWidth="20" strokeLinecap="round" />
             {selected ? <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="var(--beam-sketch-selected)" strokeWidth={STRUCTURE_VISUAL_STROKES.modelSelectedMember} strokeLinecap="round" opacity="0.45" /> : null}
-            {dimension?.label ? (
-              <text x={(segment.start + segment.end) / 2} y="176" textAnchor="middle" fontSize="13" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT} fill="var(--beam-sketch-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
+            {dimension?.label && showLabel ? (
+              <text x={(segment.start + segment.end) / 2} y="176" textAnchor="middle" fontSize="13" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT} fill="var(--beam-sketch-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke" data-model-label="member">
                 {dimension.label}
               </text>
             ) : null}
@@ -258,6 +271,7 @@ export function BeamSketch({
         const selected = selection?.mode === "beam" && selection.type === "support" && selection.id === `support-${index}`;
         return (
           <g key={support.id} {...svgInteractiveProps(`选择梁系支座 ${support.id}`, () => onSelect?.({ mode: "beam", type: "support", id: `support-${index}` }))}>
+            <title>{`梁系支座 ${support.id}`}</title>
             <rect x={x - 24} y="148" width="48" height="58" rx="12" fill={selected ? "var(--beam-sketch-selected)" : "transparent"} opacity={selected ? "0.1" : "0"} />
             {support.type === "fixed" ? (
               <rect x={x - 12} y={BEAM_SKETCH_AXIS_Y} width="24" height="36" rx="2" fill="var(--beam-sketch-support-fill)" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
@@ -375,12 +389,19 @@ export function BeamSketch({
       </g>
       <g fontFamily={SVG_TEXT_FONT}>
         {nodeLabels.map((label) => (
-          <g key={`node-label-${label.index}`}>
-            <circle cx={label.labelX} cy={BEAM_NODE_BADGE_Y} r="8.5" fill="var(--beam-sketch-badge-fill)" stroke="var(--beam-sketch-badge-stroke)" strokeWidth="1.5" />
-            <text x={label.labelX} y={BEAM_NODE_BADGE_Y + 0.5} textAnchor="middle" dominantBaseline="middle" fontSize="10" fontWeight="800" fill="var(--beam-sketch-badge-text)">
-              {beamNodeIds[label.index] ?? `${label.index + 1}`}
-            </text>
-          </g>
+          shouldShowSteppedLabel({
+            index: label.index,
+            total: nodeLabels.length,
+            step: labelPolicy.nodeLabelStep,
+            selected: selection?.mode === "beam" && selection.type === "support" && selection.id === `support-${label.index}`,
+          }) ? (
+            <g key={`node-label-${label.index}`}>
+              <circle cx={label.labelX} cy={BEAM_NODE_BADGE_Y} r="8.5" fill="var(--beam-sketch-badge-fill)" stroke="var(--beam-sketch-badge-stroke)" strokeWidth="1.5" />
+              <text x={label.labelX} y={BEAM_NODE_BADGE_Y + 0.5} textAnchor="middle" dominantBaseline="middle" fontSize="10" fontWeight="800" fill="var(--beam-sketch-badge-text)" data-model-label="node">
+                {beamNodeIds[label.index] ?? `${label.index + 1}`}
+              </text>
+            </g>
+          ) : null
         ))}
       </g>
       <defs>

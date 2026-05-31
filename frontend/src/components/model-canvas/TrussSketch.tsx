@@ -1,4 +1,5 @@
 import { buildTrussMemberLengthDimension, buildTrussMemberLengthLegendRows, buildTrussSupportMarkerGeometry } from "../truss-preview-utils";
+import { modelCanvasLabelPolicy, shouldShowSteppedLabel } from "../../lib/model-canvas-label-policy";
 import { TRUSS_MODEL_CANVAS_BASE_SIZE, type ModelCanvasSize } from "../../lib/model-canvas-sizing";
 import { STRUCTURE_NODE_RADII, STRUCTURE_VISUAL_STROKES } from "../../lib/structure-visual-tokens";
 import type { WorkspaceState } from "../../lib/workspace-state";
@@ -152,6 +153,12 @@ export function TrussSketch({
   });
   const memberLengthDimensionById = new Map(memberLengthDimensions.map((dimension) => [dimension.memberId, dimension]));
   const memberLengthLegendRows = buildTrussMemberLengthLegendRows(memberLengthDimensions, 190, 12);
+  const labelPolicy = modelCanvasLabelPolicy({
+    nodeCount: nodes.length,
+    memberCount: members.length,
+    nodeVisibleTarget: 12,
+    memberVisibleTarget: 14,
+  });
 
   const getNodeLabel = (point: { x: number; y: number }) => {
     const isLeftSide = point.x < trussCenterX;
@@ -163,7 +170,7 @@ export function TrussSketch({
   };
 
   return (
-    <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} className="h-full w-full">
+    <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} className="h-full w-full" data-model-canvas="truss" data-label-density={labelPolicy.density}>
       <g fontFamily={SVG_TEXT_FONT} fill="var(--model-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
         {memberLengthLegendRows.map((row, index) => (
           <text key={`truss-member-length-legend-${index}`} x={memberLengthLegendX} y={34 + index * 16} fontSize="12" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT}>
@@ -171,49 +178,69 @@ export function TrussSketch({
           </text>
         ))}
       </g>
-      {members.map((member) => {
+      {members.map((member, index) => {
         const start = nodeMap.get(member.start);
         const end = nodeMap.get(member.end);
         if (!start || !end) return null;
         const selected = selection?.mode === "truss" && selection.type === "member" && selection.id === member.id;
         const label = trussMemberLabelPlacement(start, end, { x: trussCenterX, y: trussMidY });
         const dimension = memberLengthDimensionById.get(member.id);
+        const showLabel = shouldShowSteppedLabel({
+          index,
+          total: members.length,
+          step: labelPolicy.memberLabelStep,
+          selected,
+        });
         return (
           <g key={member.id} {...svgInteractiveProps(`选择桁架杆件 ${member.id}`, () => onSelect?.({ mode: "truss", type: "member", id: member.id }))}>
-            {dimension ? <title>{dimension.title}</title> : null}
+            <title>{dimension?.title ?? `桁架杆件 ${member.id}`}</title>
             <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="transparent" strokeWidth="18" strokeLinecap="round" />
             <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke={selected ? "var(--model-load)" : "var(--model-member)"} strokeWidth={selected ? STRUCTURE_VISUAL_STROKES.modelSelectedMember : STRUCTURE_VISUAL_STROKES.modelMember} strokeLinecap="round" opacity={selected ? "0.85" : "1"} />
-            <text
-              x={label.x}
-              y={label.y}
-              transform={`rotate(${label.angle} ${label.x} ${label.y})`}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fill={selected ? "var(--model-load)" : "var(--model-label)"}
-              stroke="var(--model-label-halo)"
-              strokeWidth="4"
-              paintOrder="stroke"
-              fontSize="10.5"
-              fontWeight="700"
-              fontFamily={SVG_TEXT_FONT}
-            >
-              {member.id}
-            </text>
+            {showLabel ? (
+              <text
+                x={label.x}
+                y={label.y}
+                transform={`rotate(${label.angle} ${label.x} ${label.y})`}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fill={selected ? "var(--model-load)" : "var(--model-label)"}
+                stroke="var(--model-label-halo)"
+                strokeWidth="4"
+                paintOrder="stroke"
+                fontSize="10.5"
+                fontWeight="700"
+                fontFamily={SVG_TEXT_FONT}
+                data-model-label="member"
+              >
+                {member.id}
+              </text>
+            ) : null}
           </g>
         );
       })}
-      {nodes.map((node) => {
+      {nodes.map((node, index) => {
         const point = nodeMap.get(node.id);
         if (!point) return null;
         const label = getNodeLabel(point);
         const selected = selection?.mode === "truss" && selection.type === "node" && selection.id === node.id;
+        const pinned = node.supportType === "pinned" || node.supportType === "roller";
+        const showLabel = shouldShowSteppedLabel({
+          index,
+          total: nodes.length,
+          step: labelPolicy.nodeLabelStep,
+          selected,
+          pinned,
+        });
         return (
           <g key={node.id} {...svgInteractiveProps(`选择桁架节点 ${node.id}`, () => onSelect?.({ mode: "truss", type: "node", id: node.id }))}>
+            <title>{`桁架节点 ${node.id}`}</title>
             <TrussSupportMarker type={node.supportType} x={point.x} y={point.y} selected={selected} />
             <circle cx={point.x} cy={point.y} r={selected ? STRUCTURE_NODE_RADII.modelSelected : STRUCTURE_NODE_RADII.model} fill={selected ? "var(--model-load)" : "var(--model-node)"} />
-            <text x={label.x} y={label.y} textAnchor={label.anchor} fill="var(--model-label)" fontSize="10.5" fontWeight="400">
-              {node.id}
-            </text>
+            {showLabel ? (
+              <text x={label.x} y={label.y} textAnchor={label.anchor} fill="var(--model-label)" fontSize="10.5" fontWeight="400" data-model-label="node">
+                {node.id}
+              </text>
+            ) : null}
           </g>
         );
       })}

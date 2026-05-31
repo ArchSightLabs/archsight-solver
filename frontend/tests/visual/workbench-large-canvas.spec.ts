@@ -39,6 +39,27 @@ async function canvasMetrics(page: Page) {
   });
 }
 
+async function canvasLabelMetrics(page: Page) {
+  const board = page.locator(".model-canvas-board").first();
+  await expect(board).toBeVisible();
+  return board.evaluate((element) => {
+    const svg = element.querySelector("svg");
+    const textValues = (label: string) => Array.from(svg?.querySelectorAll<SVGTextElement>(`text[data-model-label="${label}"]`) ?? [])
+      .map((item) => item.textContent?.trim() ?? "")
+      .filter(Boolean);
+
+    const nodeLabels = textValues("node");
+    const memberLabels = textValues("member");
+    return {
+      density: svg?.getAttribute("data-label-density") ?? "",
+      nodeLabelCount: nodeLabels.length,
+      memberLabelCount: memberLabels.length,
+      nodeLabels,
+      memberLabels,
+    };
+  });
+}
+
 function frameGridTextModel() {
   const lines: string[] = ["# 5x4 节点网格，验证主控建模画布扩展"];
   const cols = 5;
@@ -122,11 +143,15 @@ test("梁系跨段支座增多后主控建模画布扩展并触发滚动", async
   await importTextModel(page, "梁系文本模型", beamLongTextModel());
 
   const metrics = await canvasMetrics(page);
+  const labelMetrics = await canvasLabelMetrics(page);
 
   expect(metrics.viewBoxWidth).toBeGreaterThan(900);
   expect(metrics.viewBoxHeight).toBeGreaterThanOrEqual(300);
   expect(metrics.scrollWidth).toBeGreaterThan(metrics.scrollClientWidth);
   expect(metrics.boardWidth).toBeGreaterThan(metrics.scrollClientWidth);
+  expect(labelMetrics.density).toBe("normal");
+  expect(labelMetrics.nodeLabelCount).toBe(17);
+  expect(labelMetrics.memberLabelCount).toBe(16);
 });
 
 test("平面框架节点构件增多后主控建模画布扩展并触发滚动", async ({ page }) => {
@@ -134,11 +159,21 @@ test("平面框架节点构件增多后主控建模画布扩展并触发滚动",
   await importTextModel(page, "平面框架文本模型", frameGridTextModel());
 
   const metrics = await canvasMetrics(page);
+  const labelMetrics = await canvasLabelMetrics(page);
 
   expect(metrics.viewBoxWidth).toBeGreaterThan(900);
   expect(metrics.viewBoxHeight).toBeGreaterThan(360);
   expect(metrics.scrollWidth).toBeGreaterThan(metrics.scrollClientWidth);
   expect(metrics.boardWidth).toBeGreaterThan(metrics.scrollClientWidth);
+  expect(labelMetrics.density).toBe("dense");
+  expect(labelMetrics.nodeLabelCount).toBeGreaterThan(0);
+  expect(labelMetrics.nodeLabelCount).toBeLessThan(20);
+  expect(labelMetrics.memberLabelCount).toBeGreaterThan(0);
+  expect(labelMetrics.memberLabelCount).toBeLessThan(31);
+  expect(labelMetrics.nodeLabels).toContain("N1");
+  expect(labelMetrics.nodeLabels).toContain("N20");
+  expect(labelMetrics.memberLabels).toContain("F1");
+  expect(labelMetrics.memberLabels).toContain("F31");
 });
 
 test("平面桁架节点杆件增多后主控建模画布扩展并触发滚动", async ({ page }) => {
@@ -146,9 +181,19 @@ test("平面桁架节点杆件增多后主控建模画布扩展并触发滚动",
   await importTextModel(page, "平面桁架文本模型", trussGridTextModel());
 
   const metrics = await canvasMetrics(page);
+  const labelMetrics = await canvasLabelMetrics(page);
 
   expect(metrics.viewBoxWidth).toBeGreaterThan(900);
   expect(metrics.viewBoxHeight).toBeGreaterThanOrEqual(360);
   expect(metrics.scrollWidth).toBeGreaterThan(metrics.scrollClientWidth);
   expect(metrics.boardWidth).toBeGreaterThan(metrics.scrollClientWidth);
+  expect(labelMetrics.density).toBe("dense");
+  expect(labelMetrics.nodeLabelCount).toBeGreaterThan(0);
+  expect(labelMetrics.nodeLabelCount).toBeLessThan(20);
+  expect(labelMetrics.memberLabelCount).toBeGreaterThan(0);
+  expect(labelMetrics.memberLabelCount).toBeLessThan(27);
+  expect(labelMetrics.nodeLabels).toContain("N1");
+  expect(labelMetrics.nodeLabels).toContain("N20");
+  expect(labelMetrics.memberLabels).toContain("T1");
+  expect(labelMetrics.memberLabels).toContain("T27");
 });
