@@ -95,19 +95,19 @@ export function supportDofStateLabel(): string {
 }
 
 export function frameSpringBoundaryTitle(): string {
-  return "自由度弹性约束";
+  return "弹性边界";
 }
 
 export function frameSpringBoundaryHint(): string {
-  return "在支座类型之外，为框架节点 ux、uy 或 rz 附加有限刚度边界；0 刚度不作为有效边界。";
+  return "可选：为框架节点 ux、uy 或 rz 设置有限刚度；0 刚度不计入支座节点。";
 }
 
 export function frameSpringBoundaryEmptyHint(): string {
-  return "未设置自由度弹性约束；节点仅按上方支座类型提供刚性边界。";
+  return "未设置弹性边界；仅按支座类型形成刚性边界。";
 }
 
 export function frameSpringBoundaryAddLabel(): string {
-  return "添加自由度弹性约束";
+  return "添加边界";
 }
 
 function supportOptions<T extends string>(group: SupportGroup): Array<SupportOption<T>> {
@@ -270,7 +270,7 @@ export function frameNodeSupportStateDetail(node: FrameNodeSupportState): string
 
 export function frameNodeSupportSummary(node: FrameNodeSupportState): string {
   const activeSprings = (node.springs ?? []).some(isPositiveFrameSpring);
-  const label = (node.supportType ?? "free") === "free" && activeSprings ? "弹性约束节点" : nodeSupportLabel(node.supportType);
+  const label = (node.supportType ?? "free") === "free" && activeSprings ? "弹性边界节点" : nodeSupportLabel(node.supportType);
   return `${label} · ${frameNodeSupportStateDetail(node)}`;
 }
 
