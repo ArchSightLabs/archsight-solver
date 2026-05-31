@@ -42,9 +42,14 @@ test("主控大模型画布视觉回归覆盖三类分析对象", () => {
   }
 
   assert.match(largeCanvasSpec, /const spanCount = 16/u);
+  assert.match(largeCanvasSpec, /const spanCount = 96/u);
+  assert.match(largeCanvasSpec, /const nodeCount = 120/u);
   assert.match(largeCanvasSpec, /const spanLength = 4/u);
   assert.match(largeCanvasSpec, /SUPPORT,S\$\{index \+ 1\},\$\{index \* spanLength\},\$\{type\}/u);
   assert.match(largeCanvasSpec, /5x4 节点网格/u);
   assert.match(largeCanvasSpec, /10x2 桁架网格/u);
-  assert.equal((largeCanvasSpec.match(/scrollWidth\)\.toBeGreaterThan\(metrics\.scrollClientWidth\)/gu) ?? []).length, 3);
+  assert.match(largeCanvasSpec, /96 跨连续梁/u);
+  assert.match(largeCanvasSpec, /120 节点长排框架/u);
+  assert.match(largeCanvasSpec, /120 节点长排桁架/u);
+  assert.ok((largeCanvasSpec.match(/scrollWidth\)\.toBeGreaterThan\(/gu) ?? []).length >= 5);
 });

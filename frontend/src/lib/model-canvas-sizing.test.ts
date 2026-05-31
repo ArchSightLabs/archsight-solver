@@ -7,6 +7,7 @@ import {
   modelCanvasBoardStyle,
   workbenchModelCanvasSize,
 } from "./model-canvas-sizing.ts";
+import { MAX_BEAM_SPANS, MAX_FRAME_MEMBERS, MAX_FRAME_NODES, MAX_TRUSS_MEMBERS, MAX_TRUSS_NODES } from "./solver-limits.ts";
 import { createDefaultWorkspaceState } from "./workspace-state.ts";
 
 test("默认三类模型保持基准画布尺寸", () => {
@@ -93,6 +94,83 @@ test("桁架杆件数量增多时扩大主控画布", () => {
 
   assert.ok(size.width > TRUSS_MODEL_CANVAS_BASE_SIZE.width);
   assert.ok(size.height > TRUSS_MODEL_CANVAS_BASE_SIZE.height);
+});
+
+test("接近系统上限的梁系长排模型继续扩大主控画布", () => {
+  const workspace = createDefaultWorkspaceState();
+  workspace.beam.spans = Array.from({ length: MAX_BEAM_SPANS }, (_, index) => ({
+    id: `B${index + 1}`,
+    length: 4,
+    E: 210,
+    I: 4500,
+    materialId: "q345",
+  }));
+  workspace.beam.supports = Array.from({ length: MAX_BEAM_SPANS + 1 }, (_, index) => ({
+    id: `S${index + 1}`,
+    x: index * 4,
+    type: index === MAX_BEAM_SPANS ? "roller" : "pinned",
+    constraints: ["v"],
+  }));
+
+  const size = workbenchModelCanvasSize(workspace, "beam");
+
+  assert.ok(size.width > 20000);
+  assert.equal(size.height, BEAM_MODEL_CANVAS_BASE_SIZE.height);
+});
+
+test("接近系统上限的框架和桁架长排模型继续扩大主控画布", () => {
+  const workspace = createDefaultWorkspaceState();
+  workspace.frame.frameMode = "custom";
+  workspace.frame.customNodes = Array.from({ length: MAX_FRAME_NODES }, (_, index) => ({
+    id: `N${index + 1}`,
+    x: index * 3,
+    y: 0,
+    supportType: index === 0 ? ("pinned" as const) : index === MAX_FRAME_NODES - 1 ? ("roller" as const) : ("free" as const),
+  }));
+  workspace.frame.customMembers = Array.from({ length: MAX_FRAME_MEMBERS }, (_, index) => {
+    const startIndex = index % MAX_FRAME_NODES;
+    const endIndex = (startIndex + 1) % MAX_FRAME_NODES;
+    return {
+      id: `M${index + 1}`,
+      start: `N${startIndex + 1}`,
+      end: `N${endIndex + 1}`,
+      elementType: "frame" as const,
+      materialId: "q345",
+      E_GPa: 210,
+      A_cm2: 240,
+      I_cm4: 12000,
+      kind: "beam",
+    };
+  });
+
+  workspace.truss.customNodes = Array.from({ length: MAX_TRUSS_NODES }, (_, index) => ({
+    id: `N${index + 1}`,
+    x: index * 3,
+    y: 0,
+    supportType: index === 0 ? ("pinned" as const) : index === MAX_TRUSS_NODES - 1 ? ("roller" as const) : ("free" as const),
+  }));
+  workspace.truss.customMembers = Array.from({ length: MAX_TRUSS_MEMBERS }, (_, index) => {
+    const startIndex = index % MAX_TRUSS_NODES;
+    const endIndex = (startIndex + 1) % MAX_TRUSS_NODES;
+    return {
+      id: `M${index + 1}`,
+      start: `N${startIndex + 1}`,
+      end: `N${endIndex + 1}`,
+      elementType: "truss" as const,
+      materialId: "q345",
+      E_GPa: 210,
+      A_cm2: 24,
+      kind: "web",
+    };
+  });
+
+  const frameSize = workbenchModelCanvasSize(workspace, "frame");
+  const trussSize = workbenchModelCanvasSize(workspace, "truss");
+
+  assert.ok(frameSize.width > 20000);
+  assert.ok(frameSize.height > FRAME_MODEL_CANVAS_BASE_SIZE.height);
+  assert.ok(trussSize.width > 20000);
+  assert.ok(trussSize.height > TRUSS_MODEL_CANVAS_BASE_SIZE.height);
 });
 
 test("画布缩放样式使用实际像素尺寸", () => {

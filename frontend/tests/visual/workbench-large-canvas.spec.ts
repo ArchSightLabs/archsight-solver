@@ -116,6 +116,23 @@ function beamLongTextModel() {
   return lines.join("\n");
 }
 
+function beamHighSpanTextModel() {
+  const spanCount = 96;
+  const spanLength = 4;
+  const lines: string[] = ["# 96 跨连续梁，验证高跨数主控建模画布继续扩展", "BEAM,continuous", "MATERIAL,q345"];
+
+  for (let index = 0; index < spanCount; index += 1) {
+    lines.push(`SPAN,B${index + 1},${spanLength},q345,85000`);
+  }
+
+  for (let index = 0; index <= spanCount; index += 1) {
+    const type = index === 0 ? "pinned" : index === spanCount ? "roller" : "pinned";
+    lines.push(`SUPPORT,S${index + 1},${index * spanLength},${type}`);
+  }
+
+  return lines.join("\n");
+}
+
 function trussGridTextModel() {
   const lines: string[] = ["# 10x2 桁架网格，验证主控建模画布扩展"];
   const cols = 10;
@@ -136,6 +153,38 @@ function trussGridTextModel() {
     memberIndex += 1;
     lines.push(`MEMBER,T${memberIndex},N${col + 1},N${cols + col + 2},210,24,web,q345`);
     memberIndex += 1;
+  }
+
+  return lines.join("\n");
+}
+
+function frameLongRowTextModel() {
+  const nodeCount = 120;
+  const lines: string[] = ["# 120 节点长排框架，验证主控建模画布继续扩展"];
+
+  for (let index = 0; index < nodeCount; index += 1) {
+    const support = index === 0 ? "pinned" : index === nodeCount - 1 ? "roller" : "free";
+    lines.push(`NODE,N${index + 1},${index * 3},0,${support}`);
+  }
+
+  for (let index = 0; index < nodeCount - 1; index += 1) {
+    lines.push(`MEMBER,F${index + 1},N${index + 1},N${index + 2},beam,210,240,12000,q345`);
+  }
+
+  return lines.join("\n");
+}
+
+function trussLongRowTextModel() {
+  const nodeCount = 120;
+  const lines: string[] = ["# 120 节点长排桁架，验证主控建模画布继续扩展"];
+
+  for (let index = 0; index < nodeCount; index += 1) {
+    const support = index === 0 ? "pinned" : index === nodeCount - 1 ? "roller" : "free";
+    lines.push(`NODE,N${index + 1},${index * 3},0,${support}`);
+  }
+
+  for (let index = 0; index < nodeCount - 1; index += 1) {
+    lines.push(`MEMBER,T${index + 1},N${index + 1},N${index + 2},210,24,bottom_chord,q345`);
   }
 
   return lines.join("\n");
@@ -202,6 +251,21 @@ test("超长梁系缩小到 25% 后仍可拖动画布平移", async ({ page }) =
   expect(after).toBeLessThan(before);
 });
 
+test("高跨数梁系主控建模画布继续扩展到可滚动长画布", async ({ page }) => {
+  await importTextModel(page, "梁系文本模型", beamHighSpanTextModel());
+
+  const metrics = await canvasMetrics(page);
+  const labelMetrics = await canvasLabelMetrics(page);
+
+  expect(metrics.viewBoxWidth).toBeGreaterThan(10000);
+  expect(metrics.scrollWidth).toBeGreaterThan(metrics.scrollClientWidth);
+  expect(metrics.boardWidth).toBeGreaterThan(10000);
+  expect(labelMetrics.nodeLabels).toContain("1");
+  expect(labelMetrics.nodeLabels).toContain("97");
+  expect(labelMetrics.memberLabels).toContain("B1");
+  expect(labelMetrics.memberLabels).toContain("B96");
+});
+
 test("平面框架节点构件增多后主控建模画布扩展并触发滚动", async ({ page }) => {
   await selectObject(page, /平面框架-1/);
   await importTextModel(page, "平面框架文本模型", frameGridTextModel());
@@ -222,6 +286,36 @@ test("平面框架节点构件增多后主控建模画布扩展并触发滚动",
   expect(labelMetrics.nodeLabels).toContain("N20");
   expect(labelMetrics.memberLabels).toContain("F1");
   expect(labelMetrics.memberLabels).toContain("F31");
+});
+
+test("长排框架和桁架主控建模画布继续扩展到可滚动长画布", async ({ page }) => {
+  await selectObject(page, /平面框架-1/);
+  await importTextModel(page, "平面框架文本模型", frameLongRowTextModel());
+
+  const frameMetrics = await canvasMetrics(page);
+  const frameLabels = await canvasLabelMetrics(page);
+
+  expect(frameMetrics.viewBoxWidth).toBeGreaterThan(10000);
+  expect(frameMetrics.scrollWidth).toBeGreaterThan(frameMetrics.scrollClientWidth);
+  expect(frameMetrics.boardWidth).toBeGreaterThan(10000);
+  expect(frameLabels.nodeLabels).toContain("N1");
+  expect(frameLabels.nodeLabels).toContain("N120");
+  expect(frameLabels.memberLabels).toContain("F1");
+  expect(frameLabels.memberLabels).toContain("F119");
+
+  await selectObject(page, /平面桁架-1/);
+  await importTextModel(page, "平面桁架文本模型", trussLongRowTextModel());
+
+  const trussMetrics = await canvasMetrics(page);
+  const trussLabels = await canvasLabelMetrics(page);
+
+  expect(trussMetrics.viewBoxWidth).toBeGreaterThan(10000);
+  expect(trussMetrics.scrollWidth).toBeGreaterThan(trussMetrics.scrollClientWidth);
+  expect(trussMetrics.boardWidth).toBeGreaterThan(10000);
+  expect(trussLabels.nodeLabels).toContain("N1");
+  expect(trussLabels.nodeLabels).toContain("N120");
+  expect(trussLabels.memberLabels).toContain("T1");
+  expect(trussLabels.memberLabels).toContain("T119");
 });
 
 test("平面桁架节点杆件增多后主控建模画布扩展并触发滚动", async ({ page }) => {

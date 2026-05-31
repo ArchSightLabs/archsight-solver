@@ -12,8 +12,8 @@ export const BEAM_MODEL_CANVAS_BASE_SIZE: ModelCanvasSize = { width: 900, height
 export const FRAME_MODEL_CANVAS_BASE_SIZE: ModelCanvasSize = { width: 900, height: 360 };
 export const TRUSS_MODEL_CANVAS_BASE_SIZE: ModelCanvasSize = { width: 900, height: 360 };
 
-const MODEL_CANVAS_MAX_WIDTH = 3600;
-const MODEL_CANVAS_MAX_HEIGHT = 1800;
+const MODEL_CANVAS_MAX_WIDTH = 24000;
+const MODEL_CANVAS_MAX_HEIGHT = 18000;
 const MODEL_CANVAS_RESPONSIVE_MAX_WIDTH = 900;
 const MODEL_CANVAS_RESPONSIVE_MAX_HEIGHT = 360;
 
