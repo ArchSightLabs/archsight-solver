@@ -264,7 +264,7 @@ Content-Type: application/json
 
 ## POST /api/jobs
 
-提交异步作业，适合批量计算、Agent 自动调用和未来 SaaS 长任务。
+提交本地轻量异步作业，适合本机批量计算、Agent 自动调用和避免同步请求阻塞。当前开源实现不是生产级分布式任务队列：计算在当前服务进程的 `ThreadPoolExecutor` 中执行，状态和结果默认写入本地 SQLite；多容器、多主机、高吞吐或需要幂等重试的部署，应接入共享数据库、Redis 或专用任务队列。
 
 ```json
 {
@@ -306,7 +306,7 @@ Content-Type: application/json
 
 ## DELETE /api/jobs/{jobId}
 
-请求取消排队或运行中的作业。当前开源实现使用进程内线程池执行计算，并用本地 SQLite 记录作业状态和结果；同一容器内多 Gunicorn worker 可共享提交、轮询和结果读取状态。已开始执行的短任务可能在取消请求前完成。
+请求取消排队或运行中的作业。当前开源实现只跟踪当前服务进程内的 `ThreadPoolExecutor` future，并用本地 SQLite 记录作业状态和结果；同一容器内多 Gunicorn worker 可共享提交、轮询和结果读取状态，但执行调度仍不是跨进程、跨容器的分布式队列。已开始执行的短任务可能在取消请求前完成。
 
 ## GET /api/contracts/schemas
 
@@ -496,6 +496,6 @@ Prompts：
 
 ## 生产化注意事项
 
-- 当前异步作业状态默认写入本地 SQLite，可覆盖 `ARCHSIGHT_SOLVER_JOB_DB_PATH`；多容器、多主机或高吞吐企业部署应迁移到共享数据库 / Redis / 专用任务队列。
+- 当前异步作业是本地轻量队列：状态默认写入本地 SQLite，可覆盖 `ARCHSIGHT_SOLVER_JOB_DB_PATH`；执行由当前服务进程的 `ThreadPoolExecutor` 承担。多容器、多主机或高吞吐企业部署应迁移到共享数据库 / Redis / 专用任务队列。
 - 当前开源核心不内置认证；私有部署应由网关或宿主平台提供身份、权限和审计。
 - Agent 调用必须保留输入、Schema 版本、工具版本和 benchmark 证据，不得把 LLM 估算值包装成求解器结果。
