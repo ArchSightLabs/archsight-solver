@@ -22,3 +22,13 @@ test("平面桁架结果页不把工程图描述成弯矩或剪力图", () => {
   assert.doesNotMatch(trussDescriptions, /弯矩|剪力/u);
   assert.match(tabDescription("truss", "diagrams"), /杆件轴力和节点位移/u);
 });
+
+test("结果页结构预览说明沿用共享对象词表的支座节点口径", () => {
+  assert.equal(tabDescription("beam", "preview"), "查看支座节点、杆件、荷载和挠度形态");
+  assert.equal(tabDescription("frame", "preview"), "查看节点、构件、支座节点、荷载、编号与变形");
+  assert.equal(tabDescription("truss", "preview"), "查看节点、杆件、支座节点、荷载、编号与变形");
+  assert.doesNotMatch(
+    ["beam", "frame", "truss"].map((mode) => tabDescription(mode as Parameters<typeof resultTabsForMode>[0], "preview")).join("\n"),
+    /节点、(?:杆件|构件)、支座、/u,
+  );
+});
