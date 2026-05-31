@@ -1,4 +1,5 @@
 import { strict as assert } from "node:assert";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { nodeCoordinateAriaLabel, nodeCoordinateLabel, supportAngleApplies, supportAngleHelpText, supportAngleLabel } from "./node-field-vocabulary.ts";
 import {
@@ -34,6 +35,16 @@ import {
   trussSupportNote,
   trussSupportSummary,
 } from "./support-vocabulary.ts";
+import { BEAM_SUPPORT_TYPE_VALUES, FRAME_SUPPORT_TYPE_VALUES, TRUSS_SUPPORT_TYPE_VALUES } from "../types/supports.ts";
+
+const SHARED_SUPPORTS = JSON.parse(readFileSync(new URL("../../../shared/supports.json", import.meta.url), "utf-8")) as Record<string, Array<{ value: string }>>;
+
+test("前端支座类型常量与共享目录一致并区分桁架 fixed", () => {
+  assert.deepEqual([...BEAM_SUPPORT_TYPE_VALUES], SHARED_SUPPORTS.beam.map((item) => item.value));
+  assert.deepEqual([...FRAME_SUPPORT_TYPE_VALUES], SHARED_SUPPORTS.frame.map((item) => item.value));
+  assert.deepEqual([...TRUSS_SUPPORT_TYPE_VALUES], SHARED_SUPPORTS.truss.map((item) => item.value));
+  assert.equal(TRUSS_SUPPORT_TYPE_VALUES.includes("fixed" as never), false);
+});
 
 test("梁系支座约束来自共享目录并保留 v / θz 口径", () => {
   assert.deepEqual(beamSupportConstraints("fixed"), ["v", "rz"]);

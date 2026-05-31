@@ -1,5 +1,6 @@
 import { outwardLabelCandidates, type DiagramLabelCandidate, type DiagramLabelRect } from "../lib/diagram-label-layout.ts";
 import { trussSupportLabel } from "../lib/support-vocabulary.ts";
+import type { TrussSupportType } from "../types/supports.ts";
 
 export interface TrussPreviewPoint {
   x: number;
@@ -11,7 +12,7 @@ export interface TrussPreviewLoad {
   fyKn?: number;
 }
 
-export type TrussSupportType = "pinned" | "roller" | "free";
+export type { TrussSupportType } from "../types/supports.ts";
 
 export interface TrussLoadMarker {
   type: "force";

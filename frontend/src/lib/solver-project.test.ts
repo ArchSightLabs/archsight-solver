@@ -13,6 +13,7 @@ import {
 } from "./solver-project.ts";
 import { MAX_BEAM_SPANS, MAX_FRAME_MEMBERS, MAX_FRAME_NODES, MAX_TRUSS_MEMBERS, MAX_TRUSS_NODES } from "./solver-limits.ts";
 import { normalizeBeamWorkspaceState, normalizeFrameWorkspaceState, normalizeTrussWorkspaceState } from "./workspace-state.ts";
+import type { TrussWorkspaceState } from "../types/structure.ts";
 
 test("默认求解器项目包含三类分析对象并激活梁系", () => {
   const project = createDefaultSolverProject(new Date("2026-05-21T12:00:00.000Z"));
@@ -238,7 +239,7 @@ test("规范化桁架工作台时将旧 fixed 支座映射为铰支座", () => {
     customNodes: [
       { id: "N1", x: 0, y: 0, supportType: "fixed" },
       { id: "N2", x: 4, y: 0, supportType: "roller" },
-    ],
+    ] as unknown as TrussWorkspaceState["customNodes"],
     customMembers: [
       { id: "M1", start: "N1", end: "N2", E_GPa: 210, A_cm2: 24, kind: "generic" },
     ],

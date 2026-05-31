@@ -1,8 +1,12 @@
+import type { FrameSupportDof, FrameSupportType, TrussSupportType } from "./supports.ts";
+
+export type { FrameSupportDof, FrameSupportType, TrussSupportDof, TrussSupportType } from "./supports.ts";
+
 export type AnalysisType = "beam" | "frame" | "truss";
 export type AnalysisMode = "beam" | "frame" | "truss";
 export type FrameModelMode = "portal_frame" | "custom";
 
-export type SupportType = "fixed" | "pinned" | "roller" | "free";
+export type SupportType = FrameSupportType;
 export type FrameLoadDirection = "local_y" | "global_y";
 
 export type FrameSpring =
@@ -15,7 +19,7 @@ export interface StructureNode {
   y: number;
   supportType?: SupportType;
   supportAngleDeg?: number;
-  condensedDofs?: Array<"ux" | "uy" | "rz">;
+  condensedDofs?: FrameSupportDof[];
   springs?: FrameSpring[];
 }
 
@@ -253,7 +257,7 @@ export interface TrussNode {
   id: string;
   x: number;
   y: number;
-  supportType?: SupportType;
+  supportType?: TrussSupportType;
 }
 
 export interface TrussMember {
@@ -318,7 +322,7 @@ export interface TrussNodeResult {
   displacementMm: number;
   rxKn: number;
   ryKn: number;
-  supportType: SupportType;
+  supportType: TrussSupportType;
 }
 
 export interface TrussMemberResult {
@@ -336,7 +340,7 @@ export interface TrussPreviewData {
   analysisType: "truss";
   structureType: string;
   structureTypeLabel: string;
-  nodes: Array<{ id: string; x: number; y: number; role: string; supportType?: SupportType }>;
+  nodes: Array<{ id: string; x: number; y: number; role: string; supportType?: TrussSupportType }>;
   members: Array<Pick<TrussMember, "id" | "start" | "end">>;
   loads: TrussLoad[];
   nodeResults: TrussNodeResult[];

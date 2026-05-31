@@ -1,5 +1,5 @@
 import type { BeamSupportConfig, BeamSupportDof, BeamSupportSpring, BeamSupportType } from "../types/beam.ts";
-import type { FrameSpring, StructureNode, SupportType } from "../types/structure.ts";
+import type { FrameSpring, FrameSupportDof, StructureNode, SupportType, TrussSupportDof, TrussSupportType } from "../types/structure.ts";
 import sharedSupports from "../../../shared/supports.json" with { type: "json" };
 
 export interface SupportOption<T extends string> {
@@ -20,8 +20,6 @@ export interface SupportChoiceOption<T extends string> {
 
 type SupportGroup = "beam" | "frame" | "truss";
 export type SupportDofMode = "fixed" | "spring" | "free";
-export type FrameSupportDof = "ux" | "uy" | "rz";
-type TrussSupportDof = "ux" | "uy";
 
 type FrameNodeSupportState = Pick<StructureNode, "supportType" | "supportAngleDeg" | "springs">;
 
@@ -127,7 +125,7 @@ export const BEAM_SUPPORT_OPTIONS: Array<SupportOption<BeamSupportType>> = suppo
 
 export const FRAME_SUPPORT_OPTIONS: Array<SupportOption<SupportType>> = supportOptions<SupportType>("frame");
 
-export const TRUSS_SUPPORT_OPTIONS: Array<SupportOption<Exclude<SupportType, "fixed">>> = supportOptions<Exclude<SupportType, "fixed">>("truss");
+export const TRUSS_SUPPORT_OPTIONS: Array<SupportOption<TrussSupportType>> = supportOptions<TrussSupportType>("truss");
 
 export function supportOptionChoiceLabel(option: Pick<SupportOption<string>, "label" | "detail">): string {
   return option.detail ? `${option.label}（${option.detail}）` : option.label;
@@ -155,7 +153,11 @@ export function nodeSupportLabel(type: SupportType | undefined): string {
 }
 
 export function trussSupportLabel(type: SupportType | undefined): string {
-  return optionLabel(TRUSS_SUPPORT_OPTIONS, (type === "fixed" ? "pinned" : type ?? "free") as Exclude<SupportType, "fixed">, "自由节点");
+  return optionLabel(TRUSS_SUPPORT_OPTIONS, normalizeTrussSupportForDisplay(type), "自由节点");
+}
+
+function normalizeTrussSupportForDisplay(type: SupportType | TrussSupportType | undefined): TrussSupportType {
+  return type === "fixed" ? "pinned" : type ?? "free";
 }
 
 function optionDetail<T extends string>(options: Array<SupportOption<T>>, value: T | undefined, fallback: string): string {
@@ -209,7 +211,7 @@ export function nodeSupportDetail(type: SupportType | undefined): string {
 }
 
 export function trussSupportDetail(type: SupportType | undefined): string {
-  return optionDetail(TRUSS_SUPPORT_OPTIONS, (type === "fixed" ? "pinned" : type ?? "free") as Exclude<SupportType, "fixed">, "释放 ux、uy");
+  return optionDetail(TRUSS_SUPPORT_OPTIONS, normalizeTrussSupportForDisplay(type), "释放 ux、uy");
 }
 
 export function nodeSupportSummary(type: SupportType | undefined): string {
@@ -336,7 +338,7 @@ export function nodeSupportNote(type: SupportType | undefined): string {
 }
 
 export function trussSupportNote(type: SupportType | undefined): string {
-  return optionNote(TRUSS_SUPPORT_OPTIONS, (type === "fixed" ? "pinned" : type ?? "free") as Exclude<SupportType, "fixed">, "桁架支座只约束节点平动自由度。");
+  return optionNote(TRUSS_SUPPORT_OPTIONS, normalizeTrussSupportForDisplay(type), "桁架支座只约束节点平动自由度。");
 }
 
 function optionConstraints<T extends string>(options: Array<SupportOption<T>>, value: T | undefined): string[] {

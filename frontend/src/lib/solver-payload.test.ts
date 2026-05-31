@@ -376,7 +376,7 @@ test("buildTrussPayload treats legacy fixed support as pinned instead of free", 
   workspace.customNodes = [
     { id: "N1", x: 0, y: 0, supportType: "fixed" },
     { id: "N2", x: 4, y: 0, supportType: "roller" },
-  ];
+  ] as unknown as TrussWorkspaceState["customNodes"];
   workspace.customMembers = [
     { id: "M1", start: "N1", end: "N2", E_GPa: 210, A_cm2: 24, kind: "generic" },
   ];

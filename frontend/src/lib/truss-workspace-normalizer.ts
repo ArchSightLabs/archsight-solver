@@ -1,4 +1,4 @@
-import type { SupportType, TrussLoad, TrussMember, TrussWorkspaceState } from "../types/structure.ts";
+import type { TrussLoad, TrussMember, TrussSupportType, TrussWorkspaceState } from "../types/structure.ts";
 import {
   createDefaultTrussCollections,
   createDefaultTrussWorkspaceState,
@@ -7,7 +7,9 @@ import { MAX_TRUSS_MEMBERS, MAX_TRUSS_NODES } from "./solver-limits.ts";
 import { normalizeTextId, pickExistingId } from "./workspace-normalizer-utils.ts";
 import { materialIdForYoungModulus } from "./material-presets.ts";
 
-function normalizeSupportType(value: unknown, fallback: SupportType = "free"): SupportType {
+type LegacyTrussSupportType = TrussSupportType | "fixed";
+
+function normalizeSupportType(value: unknown, fallback: LegacyTrussSupportType = "free"): LegacyTrussSupportType {
   const normalized = String(value ?? fallback).trim().toLowerCase();
   if (normalized === "fixed" || normalized === "pinned" || normalized === "roller" || normalized === "free") {
     return normalized;
@@ -15,7 +17,7 @@ function normalizeSupportType(value: unknown, fallback: SupportType = "free"): S
   return fallback;
 }
 
-function normalizeTrussSupportType(value: unknown, fallback: SupportType = "free"): SupportType {
+function normalizeTrussSupportType(value: unknown, fallback: TrussSupportType = "free"): TrussSupportType {
   const normalized = normalizeSupportType(value, fallback);
   if (normalized === "fixed") {
     return "pinned";

@@ -12,6 +12,7 @@ import type {
   TrussFormPayload,
   TrussLoad,
   TrussNode,
+  TrussSupportType,
   TrussWorkspaceState,
 } from "./types/structure.ts";
 
@@ -330,7 +331,7 @@ function normalizeCustomTrussCollections(value: TrussWorkspaceState) {
   };
 }
 
-function normalizeTrussSupportType(supportType: TrussNode["supportType"]): Exclude<TrussNode["supportType"], "fixed"> {
+function normalizeTrussSupportType(supportType: TrussNode["supportType"] | "fixed" | undefined): TrussSupportType {
   if (supportType === "fixed") return "pinned";
   if (supportType === "pinned" || supportType === "roller" || supportType === "free") return supportType;
   return "free";

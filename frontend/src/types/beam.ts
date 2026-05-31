@@ -1,7 +1,9 @@
 import type { Material } from "./material.ts";
+import type { BeamSupportDof, BeamSupportType } from "./supports.ts";
 
 export type { Material } from "./material.ts";
 export { PREDEFINED_MATERIALS } from "./material.ts";
+export type { BeamSupportDof, BeamSupportType } from "./supports.ts";
 
 export interface BeamForm {
   analysisType: 'beam';
@@ -28,9 +30,6 @@ export interface BeamSpanConfig {
   I: number;
   materialId?: string;
 }
-
-export type BeamSupportType = 'pinned' | 'roller' | 'fixed' | 'free';
-export type BeamSupportDof = 'v' | 'rz';
 
 export type BeamSupportSpring =
   | { dof: 'v'; stiffnessKnPerM: number }
