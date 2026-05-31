@@ -187,6 +187,12 @@ def parse_nodes(
     min_count_error: str,
     max_count: int | None = None,
     max_count_error: str | None = None,
+    allow_springs: bool = True,
+    allow_support_angle: bool = True,
+    allow_condensed_dofs: bool = True,
+    unsupported_springs_error: str = "当前结构对象不支持节点弹性支座",
+    unsupported_support_angle_error: str = "当前结构对象不支持滚动支座法向角",
+    unsupported_condensed_dofs_error: str = "当前结构对象不支持节点凝聚自由度",
 ) -> List[StructuralNode]:
     nodes: List[StructuralNode] = []
     seen_ids: set[str] = set()
@@ -195,6 +201,12 @@ def parse_nodes(
         if node_id in seen_ids:
             raise ValueError(f"节点 ID 重复: {node_id}")
         seen_ids.add(node_id)
+        if not allow_springs and node.get("springs") not in (None, "", []):
+            raise ValueError(unsupported_springs_error)
+        if not allow_support_angle and (node.get("supportAngleDeg") not in (None, "") or node.get("rollerAngleDeg") not in (None, "")):
+            raise ValueError(unsupported_support_angle_error)
+        if not allow_condensed_dofs and node.get("condensedDofs") not in (None, "", []):
+            raise ValueError(unsupported_condensed_dofs_error)
         springs = parse_node_springs(node.get("springs", []))
         support_angle_deg = parse_support_angle(node.get("supportAngleDeg", node.get("rollerAngleDeg")))
         nodes.append(
@@ -817,6 +829,12 @@ def build_structural_model(
         min_count_error=min_nodes_error,
         max_count=max_nodes,
         max_count_error=max_nodes_error,
+        allow_springs=include_bending,
+        allow_support_angle=include_bending,
+        allow_condensed_dofs=include_bending,
+        unsupported_springs_error="桁架节点不支持弹性支座；当前桁架支座仅使用 pinned、roller、free 刚性平动约束",
+        unsupported_support_angle_error="桁架节点不支持滚动支座法向角；当前 roller 固定约束 uy、释放 ux",
+        unsupported_condensed_dofs_error="桁架节点不支持凝聚/转角释放自由度；桁架节点仅含 ux、uy 平动自由度",
     )
     members = parse_members(
         raw_members,

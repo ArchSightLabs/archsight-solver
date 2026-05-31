@@ -40,6 +40,7 @@ test("框架和桁架支座说明区分转角自由度", () => {
   assert.match(nodeSupportDetail("roller"), /支座角度/u);
   assert.match(trussSupportDetail("pinned"), /ux、uy/u);
   assert.match(supportSystemHint("truss"), /桁架支座不提供转动约束/u);
+  assert.match(supportSystemHint("truss"), /不接收节点弹簧/u);
 });
 
 test("支座选择项显示自由度含义", () => {

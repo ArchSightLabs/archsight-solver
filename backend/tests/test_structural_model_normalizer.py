@@ -242,6 +242,45 @@ def test_truss_normalizer_maps_legacy_fixed_support_to_pinned():
     assert request["structure"]["nodes"][1]["supportType"] == "roller"
 
 
+@pytest.mark.parametrize(
+    ("node_patch", "expected_error"),
+    [
+        (
+            {"springs": [{"dof": "uy", "stiffnessKnPerM": 12000}]},
+            "桁架节点不支持弹性支座",
+        ),
+        (
+            {"supportAngleDeg": 45},
+            "桁架节点不支持滚动支座法向角",
+        ),
+        (
+            {"rollerAngleDeg": 45},
+            "桁架节点不支持滚动支座法向角",
+        ),
+        (
+            {"condensedDofs": ["rz"]},
+            "桁架节点不支持凝聚/转角释放自由度",
+        ),
+    ],
+)
+def test_truss_normalizer_rejects_frame_only_node_boundary_fields(node_patch, expected_error):
+    payload = {
+        "analysisType": "truss",
+        "structure": {
+            "template": "explicit",
+            "nodes": [
+                {"id": "N1", "x": 0, "y": 0, "supportType": "pinned", **node_patch},
+                {"id": "N2", "x": 4, "y": 0, "supportType": "roller"},
+            ],
+            "members": [{"id": "M1", "start": "N1", "end": "N2", "E_GPa": 210, "A_cm2": 24}],
+            "loads": [],
+        },
+    }
+
+    with pytest.raises(ValueError, match=expected_error):
+        normalize_truss_request(payload)
+
+
 def test_shared_structural_model_preserves_load_combination_tags():
     model = build_structural_model(
         analysis_type="frame",

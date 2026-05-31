@@ -136,13 +136,13 @@ Schema：`asms-frame-model`
 }
 ```
 
-节点：
+框架节点：
 
 - `id`：节点唯一编号。
 - `x` / `y`：平面坐标，单位 m。
 - `supportType`：`free`、`pinned`、`roller`、`fixed`。
 - `supportAngleDeg`：滚动支座法向角，单位 °；仅对平面框架 `roller` 支座生效，`90` 表示竖向法向约束。
-- `springs`：节点弹簧，可表达柱脚转动弹簧等边界；`ux` / `uy` 使用 `stiffnessKnPerM`，`rz` 使用 `stiffnessKnMPerRad`。
+- `springs`：框架节点弹性支座，可表达柱脚转动弹簧等边界；`ux` / `uy` 使用 `stiffnessKnPerM`，`rz` 使用 `stiffnessKnMPerRad`。
 
 构件：
 
@@ -190,6 +190,7 @@ Schema：`asms-truss-model`
 桁架协议约束：
 
 - 杆件只承受轴力，不输出弯矩主指标。
+- 节点仅含 `ux`、`uy` 平动自由度；`supportType` 使用 `pinned`、`roller`、`free`，不支持 `supportAngleDeg`、`springs` 或 `condensedDofs`。
 - `members[].materialId` 保留杆件材料编号；桁架刚度计算以 `E_GPa` 与 `A_cm2` 为准。
 - 荷载以节点荷载为主，也支持可等效为节点荷载的杆件荷载；`selfWeightKnPerM` 表示杆件自重线荷载，`distributed` / `member_load` / `member` 可用 `direction`、`wyKnPerM`、`qStartKnPerM`、`qEndKnPerM` 描述线荷载。
 - `loadCases` / `loadCombinations` 支持多工况与组合包络；桁架杆件荷载会先等效为节点荷载再参与求解。

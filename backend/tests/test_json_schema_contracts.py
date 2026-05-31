@@ -112,6 +112,13 @@ def test_cross_stack_critical_field_matrix_is_in_sync():
         assert {"id", "factors", "tags"}.issubset(structure_properties["loadCombinations"]["items"]["properties"])
 
     for schema in (truss_schema, openapi["components"]["schemas"]["asms-truss-model"]):
+        node_schema = _structure_collection_properties(schema, "nodes")["items"]
+        node_properties = node_schema["properties"]
+        assert node_properties["supportType"]["enum"] == ["free", "pinned", "roller"]
+        assert {"supportAngleDeg", "springs", "condensedDofs"}.isdisjoint(node_properties)
+        forbidden_node_fields = {tuple(branch["required"]) for branch in node_schema["not"]["anyOf"]}
+        assert {("supportAngleDeg",), ("rollerAngleDeg",), ("springs",), ("condensedDofs",)}.issubset(forbidden_node_fields)
+
         member_properties = _structure_member_properties(schema)
         assert {"materialId", "E_GPa", "A_cm2"}.issubset(member_properties)
 

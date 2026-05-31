@@ -94,6 +94,31 @@ NODE_SCHEMA: Dict[str, Any] = {
     "additionalProperties": True,
 }
 
+TRUSS_NODE_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "required": ["id", "x", "y"],
+    "properties": {
+        "id": {"type": "string"},
+        "x": {"type": "number", "description": "节点 X 坐标，单位 m。"},
+        "y": {"type": "number", "description": "节点 Y 坐标，单位 m。"},
+        "supportType": {
+            "type": "string",
+            "enum": ["free", "pinned", "roller"],
+            "default": "free",
+            "description": "桁架节点仅含 ux/uy 平动自由度；fixed 会在旧版兼容层归并为 pinned，但新模型应使用 pinned、roller 或 free。",
+        },
+    },
+    "not": {
+        "anyOf": [
+            {"required": ["supportAngleDeg"]},
+            {"required": ["rollerAngleDeg"]},
+            {"required": ["springs"]},
+            {"required": ["condensedDofs"]},
+        ],
+    },
+    "additionalProperties": True,
+}
+
 FRAME_END_RELEASES_SCHEMA: Dict[str, Any] = {
     "type": "object",
     "description": "框架构件端部释放；当前仅支持 rz 转角释放。",
@@ -322,7 +347,7 @@ ASMS_TRUSS_MODEL_SCHEMA: Dict[str, Any] = {
             "required": ["nodes", "members"],
             "properties": {
                 "template": {"type": "string"},
-                "nodes": {"type": "array", "items": NODE_SCHEMA},
+                "nodes": {"type": "array", "items": TRUSS_NODE_SCHEMA},
                 "members": {"type": "array", "items": TRUSS_MEMBER_SCHEMA},
                 "loads": {"type": "array", "items": TRUSS_LOAD_SCHEMA},
                 "loadCases": {"type": "array", "items": TRUSS_LOAD_CASE_SCHEMA},

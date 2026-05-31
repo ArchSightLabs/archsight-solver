@@ -134,7 +134,7 @@ Content-Type: application/json
 }
 ```
 
-节点字段说明：`supportAngleDeg` 为平面框架滚动支座法向角，单位 °；仅当 `supportType` 为 `roller` 时参与约束方向计算，`90` 表示竖向法向约束。`springs` 用于节点弹性支座，`ux` / `uy` 使用 `stiffnessKnPerM`，`rz` 使用 `stiffnessKnMPerRad`。
+框架节点字段说明：`supportAngleDeg` 为平面框架滚动支座法向角，单位 °；仅当 `supportType` 为 `roller` 时参与约束方向计算，`90` 表示竖向法向约束。`springs` 用于框架节点弹性支座，`ux` / `uy` 使用 `stiffnessKnPerM`，`rz` 使用 `stiffnessKnMPerRad`。
 
 构件字段说明：`members[].materialId` 为材料库编号，用于保留材料语义、计算书材料摘要和前端编辑口径；`E_GPa`、`A_cm2`、`I_cm4` 仍是线弹性求解的刚度与截面输入。`endReleases` 表示构件端部 `rz` 释放，`internalHinges` 表示构件内部铰，`ratio` 为相对构件起点的位置比例。
 
@@ -173,6 +173,8 @@ Content-Type: application/json
   }
 }
 ```
+
+节点字段说明：平面桁架节点仅含 `ux`、`uy` 平动自由度；`supportType` 使用 `pinned`、`roller`、`free`，不支持 `supportAngleDeg`、`springs` 或 `condensedDofs`。旧版 `fixed` 输入会归并为 `pinned`，新模型应直接使用 `pinned`。
 
 杆件字段说明：`members[].materialId` 为材料库编号，用于保留杆件材料语义；桁架刚度计算仍以 `E_GPa` 与 `A_cm2` 为准。
 
