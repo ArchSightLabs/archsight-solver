@@ -9,6 +9,7 @@ import {
   createTrussMemberLoadDraft,
   createTrussNodalLoadDraft,
 } from "../lib/truss-editor-model.ts";
+import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import type { TrussLoad, TrussMember, TrussNode } from "../types/structure.ts";
 
 interface TrussLoadEditorProps {
@@ -38,6 +39,7 @@ export function TrussLoadEditor({
 }: TrussLoadEditorProps) {
   const isMemberLoad = load.type !== "nodal";
   const isSelectedVariant = variant === "selected";
+  const memberTerm = modelObjectMemberTerm("truss");
 
   return (
     <div className={`space-y-3 border border-white/8 bg-slate-950/20 p-3 ${isSelectedVariant ? "rounded-xl" : "rounded-2xl"}`}>
@@ -60,9 +62,9 @@ export function TrussLoadEditor({
           />
         </div>
         <div className="space-y-1">
-          <div className={fieldLabelClass}>{isMemberLoad ? "作用杆件" : "作用节点"}</div>
+          <div className={fieldLabelClass}>{isMemberLoad ? `作用${memberTerm}` : "作用节点"}</div>
           {isMemberLoad ? (
-            <DropdownSelect value={load.member} onChange={(nextValue) => onUpdate({ member: nextValue } as Partial<TrussLoad>)} options={memberOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${index + 1} 条荷载作用杆件`} />
+            <DropdownSelect value={load.member} onChange={(nextValue) => onUpdate({ member: nextValue } as Partial<TrussLoad>)} options={memberOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${index + 1} 条荷载作用${memberTerm}`} />
           ) : (
             <DropdownSelect value={load.node} onChange={(nextValue) => onUpdate({ node: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${index + 1} 条荷载作用节点`} />
           )}

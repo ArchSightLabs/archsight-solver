@@ -147,3 +147,16 @@ test("结果页和计算书选项成员术语从共享模型对象词表派生",
     assert.doesNotMatch(source, /(?:最大|控制|查看|中的|与|tooltipXLabel:\s*")(?:(?:构件)|(?:杆件))/u, `${fileName} 不应在结果文案中硬编码成员术语`);
   }
 });
+
+test("荷载编辑器成员和荷载标签从共享模型对象词表派生", () => {
+  const sources = [
+    ["FrameLoadEditor.tsx", readFileSync(new URL("../components/FrameLoadEditor.tsx", import.meta.url), "utf-8")],
+    ["TrussLoadEditor.tsx", readFileSync(new URL("../components/TrussLoadEditor.tsx", import.meta.url), "utf-8")],
+    ["truss-editor-model.ts", readFileSync(new URL("./truss-editor-model.ts", import.meta.url), "utf-8")],
+  ];
+
+  for (const [fileName, source] of sources) {
+    assert.match(source, /modelObject(?:MemberTerm|LoadLabel)/u, `${fileName} 应从共享词表取得荷载作用对象术语`);
+    assert.doesNotMatch(source, /作用(?:构件|杆件)|(?:构件|杆件)荷载/u, `${fileName} 不应硬编码荷载作用对象术语`);
+  }
+});

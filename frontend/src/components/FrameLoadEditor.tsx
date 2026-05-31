@@ -8,6 +8,7 @@ import {
   FRAME_LOAD_TYPE_OPTIONS,
   frameDistributedLoadKindLabel,
 } from "../lib/frame-editor-model.ts";
+import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import type { FrameLoad, FrameLoadDirection, StructureMember, StructureNode } from "../types/structure.ts";
 
 interface FrameLoadEditorProps {
@@ -37,6 +38,7 @@ export function FrameLoadEditor({
   onUpdate,
   onRemove,
 }: FrameLoadEditorProps) {
+  const memberTerm = modelObjectMemberTerm("frame");
   const loadTypeOptions =
     load.type === "distributed"
       ? FRAME_LOAD_TYPE_OPTIONS.map((option) => option.value === "distributed" ? { ...option, label: frameDistributedLoadKindLabel(load) } : option)
@@ -93,8 +95,8 @@ export function FrameLoadEditor({
           </div>
         ) : (
           <div className="space-y-1">
-            <div className={fieldLabelClass}>作用构件</div>
-            <DropdownSelect value={load.member} onChange={(nextValue) => onUpdate({ member: nextValue })} options={memberOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${index + 1} 条荷载作用构件`} />
+            <div className={fieldLabelClass}>作用{memberTerm}</div>
+            <DropdownSelect value={load.member} onChange={(nextValue) => onUpdate({ member: nextValue })} options={memberOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${index + 1} 条荷载作用${memberTerm}`} />
           </div>
         )}
         <div className="flex items-end">

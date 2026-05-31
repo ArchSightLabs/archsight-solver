@@ -1,5 +1,6 @@
 import type { TrussLoad, TrussMember, TrussNode } from "../types/structure.ts";
 import { materialIdForYoungModulus } from "./material-presets.ts";
+import { modelObjectLoadLabel } from "./model-object-vocabulary.ts";
 
 export const TRUSS_MEMBER_KIND_OPTIONS = [
   { value: "upper_chord", label: "上弦杆" },
@@ -9,8 +10,8 @@ export const TRUSS_MEMBER_KIND_OPTIONS = [
 ];
 
 export const TRUSS_LOAD_TYPE_OPTIONS = [
-  { value: "nodal", label: "节点荷载" },
-  { value: "distributed", label: "杆件荷载" },
+  { value: "nodal", label: modelObjectLoadLabel("truss", "node") },
+  { value: "distributed", label: modelObjectLoadLabel("truss", "member") },
 ];
 
 export const TRUSS_MEMBER_LOAD_DIRECTION_OPTIONS = [
