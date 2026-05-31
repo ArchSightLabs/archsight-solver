@@ -43,12 +43,21 @@ test("框架和桁架支座说明区分转角自由度", () => {
   assert.match(supportSystemHint("truss"), /不接收节点弹簧/u);
 });
 
-test("支座选择项显示自由度含义", () => {
+test("支座选择项用简短名称承载主控面板显示", () => {
   const frameRoller = FRAME_SUPPORT_OPTIONS.find((option) => option.value === "roller");
   assert.equal(frameRoller ? supportOptionChoiceLabel(frameRoller) : "", "滚动支座（默认约束 uy、释放 ux 与 rz；设置支座角度时约束法向位移）");
   assert.deepEqual(
-    supportChoiceOptions(TRUSS_SUPPORT_OPTIONS).map((option) => option.label),
-    ["铰支座（约束 ux、uy）", "滚动支座（约束 uy，释放 ux）", "自由节点（释放 ux、uy）"],
+    supportChoiceOptions(FRAME_SUPPORT_OPTIONS).map((option) => [option.label, option.selectedLabel, option.description]),
+    [
+      ["固结支座", "固结支座", "约束 ux、uy、rz"],
+      ["铰支座", "铰支座", "约束 ux、uy，释放 rz"],
+      ["滚动支座", "滚动支座", "默认约束 uy、释放 ux 与 rz；设置支座角度时约束法向位移"],
+      ["自由节点", "自由节点", "释放 ux、uy、rz"],
+    ],
+  );
+  assert.deepEqual(
+    supportChoiceOptions(TRUSS_SUPPORT_OPTIONS).map((option) => [option.label, option.description]),
+    [["铰支座", "约束 ux、uy"], ["滚动支座", "约束 uy，释放 ux"], ["自由节点", "释放 ux、uy"]],
   );
 });
 

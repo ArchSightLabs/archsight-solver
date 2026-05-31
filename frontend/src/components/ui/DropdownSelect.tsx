@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 export interface DropdownOption {
   value: string;
   label: string;
+  selectedLabel?: string;
+  description?: string;
 }
 
 interface DropdownSelectProps {
@@ -37,6 +39,8 @@ export function DropdownSelect({
   const [menuStyle, setMenuStyle] = React.useState<React.CSSProperties | null>(null);
 
   const selected = options.find((option) => option.value === value) ?? null;
+  const selectedDisplayLabel = selected?.selectedLabel ?? selected?.label ?? placeholder;
+  const hasOptionDescriptions = options.some((option) => option.description);
 
   React.useLayoutEffect(() => {
     if (!open || !rootRef.current) {
@@ -54,7 +58,7 @@ export function DropdownSelect({
       const opensAbove = spaceBelow < 160 && spaceAbove > spaceBelow;
       const maxHeight = Math.max(120, Math.min(320, Math.max(spaceBelow, spaceAbove)));
       const availableWidth = window.innerWidth - viewportPadding * 2;
-      const width = Math.min(Math.max(rect.width, 160), availableWidth);
+      const width = Math.min(Math.max(rect.width, hasOptionDescriptions ? 260 : 160), availableWidth);
       const left = Math.min(Math.max(rect.left, viewportPadding), window.innerWidth - width - viewportPadding);
       setMenuStyle({
         position: "fixed",
@@ -78,7 +82,7 @@ export function DropdownSelect({
       window.removeEventListener("resize", updateMenuStyle);
       window.removeEventListener("scroll", updateMenuStyle, true);
     };
-  }, [open, value, options.length]);
+  }, [hasOptionDescriptions, open, value, options.length]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -127,7 +131,7 @@ export function DropdownSelect({
           className
         )}
       >
-        <span className="truncate">{selected?.label ?? placeholder}</span>
+        <span className="truncate">{selectedDisplayLabel}</span>
         <ChevronDown size={16} className={cn("shrink-0 opacity-70 transition-transform", open && "rotate-180")} />
       </button>
 
@@ -163,7 +167,14 @@ export function DropdownSelect({
                       optionClassName
                     )}
                   >
-                    <span className="truncate">{option.label}</span>
+                    <span className="min-w-0">
+                      <span className="block truncate">{option.label}</span>
+                      {option.description ? (
+                        <span className="mt-0.5 block whitespace-normal text-xs font-normal leading-snug text-slate-500 dark:text-slate-400">
+                          {option.description}
+                        </span>
+                      ) : null}
+                    </span>
                     {isSelected ? <Check size={14} className="shrink-0" /> : <span className="w-3.5" />}
                   </button>
                 );

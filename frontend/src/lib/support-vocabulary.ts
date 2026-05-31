@@ -14,6 +14,8 @@ export interface SupportOption<T extends string> {
 export interface SupportChoiceOption<T extends string> {
   value: T;
   label: string;
+  selectedLabel?: string;
+  description?: string;
 }
 
 type SupportGroup = "beam" | "frame" | "truss";
@@ -110,7 +112,9 @@ export function supportOptionChoiceLabel(option: Pick<SupportOption<string>, "la
 export function supportChoiceOptions<T extends string>(options: Array<SupportOption<T>>): Array<SupportChoiceOption<T>> {
   return options.map((option) => ({
     value: option.value,
-    label: supportOptionChoiceLabel(option),
+    label: option.label,
+    selectedLabel: option.label,
+    description: option.detail,
   }));
 }
 
