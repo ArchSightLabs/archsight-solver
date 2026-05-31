@@ -1,5 +1,6 @@
 import type { WorkspaceState } from "./workspace-state.ts";
 import type { AnalysisMode } from "../types/structure.ts";
+import { hasFrameSupportBoundary } from "./support-vocabulary.ts";
 
 export interface ModelObjectVocabulary {
   navigatorTitle: string;
@@ -84,6 +85,18 @@ export function modelObjectLoadLabel(mode: AnalysisMode, targetKind?: "node" | "
   return targetKind ? `${modelObjectLabel(mode, targetKind)}${modelObjectLabel(mode, "load")}` : modelObjectLabel(mode, "load");
 }
 
+function frameSupportNodeCount(workspace: WorkspaceState): number {
+  if (workspace.frame.frameMode === "custom") {
+    return workspace.frame.customNodes.filter(hasFrameSupportBoundary).length;
+  }
+
+  return [workspace.frame.leftSupport, workspace.frame.rightSupport].filter((supportType) => supportType !== "free").length;
+}
+
+function trussSupportNodeCount(workspace: WorkspaceState): number {
+  return workspace.truss.customNodes.filter((node) => (node.supportType ?? "free") !== "free").length;
+}
+
 export function modelObjectMetricRows(workspace: WorkspaceState, mode: AnalysisMode): ModelMetricRow[] {
   if (mode === "beam") {
     const length = workspace.beam.spans.reduce((sum, span) => sum + span.length, 0);
@@ -97,10 +110,12 @@ export function modelObjectMetricRows(workspace: WorkspaceState, mode: AnalysisM
   if (mode === "frame") {
     const nodeCount = workspace.frame.frameMode === "custom" ? workspace.frame.customNodes.length : 4;
     const memberCount = workspace.frame.frameMode === "custom" ? workspace.frame.customMembers.length : 3;
+    const supportCount = frameSupportNodeCount(workspace);
     const loadCount = workspace.frame.frameMode === "custom" ? workspace.frame.customLoads.length : 2;
     return [
       { label: modelObjectVocabulary("frame").nodeGroupLabel, value: `${nodeCount}` },
       { label: modelObjectVocabulary("frame").memberGroupLabel, value: `${memberCount}` },
+      { label: modelObjectVocabulary("frame").supportGroupLabel, value: `${supportCount}` },
       { label: modelObjectVocabulary("frame").loadGroupLabel, value: `${loadCount}` },
     ];
   }
@@ -108,6 +123,7 @@ export function modelObjectMetricRows(workspace: WorkspaceState, mode: AnalysisM
   return [
     { label: modelObjectVocabulary("truss").nodeGroupLabel, value: `${workspace.truss.customNodes.length}` },
     { label: modelObjectVocabulary("truss").memberGroupLabel, value: `${workspace.truss.customMembers.length}` },
+    { label: modelObjectVocabulary("truss").supportGroupLabel, value: `${trussSupportNodeCount(workspace)}` },
     { label: modelObjectVocabulary("truss").loadGroupLabel, value: `${workspace.truss.customLoads.length}` },
   ];
 }

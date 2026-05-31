@@ -46,6 +46,7 @@ export function WorkbenchModelCanvas({ workspace, mode, compact = false, modelPr
   const metrics = modelObjectMetricRows(workspace, mode);
   const canvasSize = workbenchModelCanvasSize(workspace, mode);
   const boardStyle = modelCanvasBoardStyle(canvasSize, zoomPercent);
+  const metricGridClass = metrics.length > 3 ? "sm:grid-cols-2 xl:grid-cols-4" : "sm:grid-cols-3";
 
   return (
     <GlassCard className="overflow-hidden">
@@ -151,7 +152,7 @@ export function WorkbenchModelCanvas({ workspace, mode, compact = false, modelPr
           </div>
         </div>
       </div>
-      <div className="grid gap-px border-t border-slate-200/70 bg-slate-200/70 dark:border-slate-700/70 dark:bg-slate-700/70 sm:grid-cols-3">
+      <div className={`grid gap-px border-t border-slate-200/70 bg-slate-200/70 dark:border-slate-700/70 dark:bg-slate-700/70 ${metricGridClass}`}>
         {metrics.map((item) => (
           <div key={item.label} className="bg-white/[0.82] px-4 py-3 sm:px-5 sm:py-4 dark:bg-slate-900/[0.62]">
             <div className="eyebrow mb-1 text-slate-500 dark:text-slate-400">{item.label}</div>
