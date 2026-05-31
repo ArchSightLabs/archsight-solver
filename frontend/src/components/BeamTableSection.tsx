@@ -1,5 +1,4 @@
 import {
-  beamNodeLabel,
   beamSpanMemberId,
   beamSpanSemanticLabel,
   spanId,
@@ -47,7 +46,7 @@ export function BeamTableSection({
           <div className="space-y-2">
             {supports.map((support, index) => (
               <div key={supportId(index)} className="grid grid-cols-3 gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 text-xs">
-                <span className="font-bold">{support.id} / 节点 {beamNodeLabel(index)}</span>
+                <span className="font-bold">{support.id}</span>
                 <span>{beamSupportLabel(support.type)}</span>
                 <span className="font-mono">x = {support.x.toFixed(2)} m</span>
               </div>

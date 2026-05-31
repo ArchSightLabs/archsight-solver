@@ -21,7 +21,7 @@ export interface ModelMetricRow {
 }
 
 export type ModelObjectKind = "node" | "support" | "member" | "load";
-export type ModelObjectMemberTerm = "构件" | "杆件";
+export type ModelObjectMemberTerm = "跨段" | "构件" | "杆件";
 
 const MODEL_OBJECT_LABEL_FIELDS: Record<ModelObjectKind, keyof ModelObjectVocabulary> = {
   node: "nodeGroupLabel",
@@ -32,15 +32,15 @@ const MODEL_OBJECT_LABEL_FIELDS: Record<ModelObjectKind, keyof ModelObjectVocabu
 
 const MODEL_OBJECT_VOCABULARY: Record<AnalysisMode, ModelObjectVocabulary> = {
   beam: {
-    navigatorTitle: "模型对象",
-    navigatorDescription: "梁系按支座节点自动分跨；杆件为相邻节点之间的梁单元，支座控制 v / θz 约束，荷载作用于梁轴线。",
-    nodeGroupLabel: "支座节点",
-    supportGroupLabel: "支座节点",
-    memberGroupLabel: "杆件",
+    navigatorTitle: "跨段、支座与荷载",
+    navigatorDescription: "梁系按支座位置和跨长组织模型；跨段维护长度、E、I 和材料，支座控制 v / θz 约束，荷载作用于梁轴线。",
+    nodeGroupLabel: "支座",
+    supportGroupLabel: "支座",
+    memberGroupLabel: "跨段",
     loadGroupLabel: "荷载",
-    noSupportLabel: "暂无支座节点",
-    noMemberLabel: "暂无杆件",
-    addMemberLabel: "新增杆件",
+    noSupportLabel: "暂无支座",
+    noMemberLabel: "暂无跨段",
+    addMemberLabel: "新增跨段",
     addLoadLabel: "新增荷载",
   },
   frame: {
@@ -82,6 +82,9 @@ export function modelObjectMemberTerm(mode: AnalysisMode): ModelObjectMemberTerm
 }
 
 export function modelObjectCountPhrase(mode: AnalysisMode, kind: ModelObjectKind, count: number, classifier?: string): string {
+  if (mode === "beam" && kind === "member" && classifier === undefined) {
+    return `${count} 跨`;
+  }
   const defaultClassifier = kind === "load" ? "条" : kind === "member" && mode === "truss" ? "根" : "个";
   return `${count} ${classifier ?? defaultClassifier}${modelObjectLabel(mode, kind)}`;
 }

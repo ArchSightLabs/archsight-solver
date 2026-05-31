@@ -25,24 +25,20 @@ export function beamSpanMemberId(index: number, span?: BeamSpanConfig) {
   return span?.id?.trim() || `(${index + 1})`;
 }
 
-export function beamNodeLabel(index: number) {
-  return `${index + 1}`;
-}
-
 export function beamSpanSemanticLabel(index: number) {
-  return `第 ${index + 1} 跨 · 节点 ${beamNodeLabel(index)}-${beamNodeLabel(index + 1)}`;
+  return `第 ${index + 1} 跨`;
 }
 
 export function beamSpanChipLabel(index: number, span: BeamSpanConfig) {
-  return `${beamSpanMemberId(index, span)} · 节点 ${beamNodeLabel(index)}-${beamNodeLabel(index + 1)}`;
+  return `${beamSpanMemberId(index, span)} · 第 ${index + 1} 跨`;
 }
 
 export function beamSpanChipSummary(span: BeamSpanConfig, materialLabel: string) {
   return memberSectionSummary("beam", { E: span.E, I: span.I, materialLabel });
 }
 
-export function beamSupportChipLabel(support: BeamSupportConfig, index: number) {
-  return `${support.id} · 节点 ${beamNodeLabel(index)} · ${beamSupportSummary(support)}`;
+export function beamSupportChipLabel(support: BeamSupportConfig, _index: number) {
+  return `${support.id} · x=${support.x.toFixed(2)} m · ${beamSupportSummary(support)}`;
 }
 
 export function supportId(index: number) {

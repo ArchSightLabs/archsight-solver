@@ -3,7 +3,6 @@ import { BeamBasicSection } from "./BeamBasicSection";
 import { BeamLoadEditor } from "./BeamLoadEditor";
 import {
   BeamObjectNavigator,
-  beamNodeLabel,
   beamSpanMemberId,
   beamSpanSemanticLabel,
   spanId,
@@ -273,7 +272,6 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
         <BeamSupportEditor
           support={support}
           supportIndex={index}
-          nodeLabel={beamNodeLabel(index)}
           totalLength={totalLength}
           fieldLabelClass={FIELD_LABEL_CLASS}
           onUpdate={(patch) => updateSupport(index, patch)}

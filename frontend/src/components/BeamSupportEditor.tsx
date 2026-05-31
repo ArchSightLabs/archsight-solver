@@ -52,7 +52,6 @@ function defaultSpring(dof: BeamSupportDof): BeamSupportSpring {
 interface BeamSupportEditorProps {
   support: BeamSupportConfig;
   supportIndex: number;
-  nodeLabel: string;
   totalLength: number;
   fieldLabelClass: string;
   onUpdate: (patch: Partial<BeamSupportConfig>) => void;
@@ -62,7 +61,6 @@ interface BeamSupportEditorProps {
 export function BeamSupportEditor({
   support,
   supportIndex,
-  nodeLabel,
   totalLength,
   fieldLabelClass,
   onUpdate,
@@ -102,7 +100,7 @@ export function BeamSupportEditor({
           <div className={fieldLabelClass}>当前支座</div>
           <div className="mt-1 text-sm font-bold">{support.id}</div>
           <div className="mt-1 text-[10px] font-semibold text-muted-foreground">
-            节点 {nodeLabel} · {beamSupportLabel(support.type)} · {beamSupportDetail(support.type)}
+            {beamSupportLabel(support.type)} · {beamSupportDetail(support.type)}
           </div>
         </div>
         <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 font-mono text-[10px] text-muted-foreground">
@@ -180,9 +178,9 @@ export function BeamSupportEditor({
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1">
-          <div className={fieldLabelClass}>节点位置 x（m）</div>
+          <div className={fieldLabelClass}>支座位置 x（m）</div>
           <Input
-            aria-label="节点位置 x（m）"
+            aria-label="支座位置 x（m）"
             name={`${support.id}-x`}
             type="number"
             step="0.1"

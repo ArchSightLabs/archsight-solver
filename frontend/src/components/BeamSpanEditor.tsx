@@ -67,7 +67,7 @@ export function BeamSpanEditor({
           <div className={fieldLabelClass}>{memberTerm}编号</div>
           <DeferredIdInput
             key={`beam-member-id-${memberId}`}
-            ariaLabel={`第 ${spanIndex + 1} 跨${memberTerm}编号`}
+            ariaLabel={`${spanLabel}编号`}
             value={memberId}
             onCommit={onUpdateId}
             className="h-10 min-w-0 font-mono text-xs"
@@ -80,7 +80,7 @@ export function BeamSpanEditor({
             onChange={onUpdateMaterial}
             options={materialOptions}
             placeholder="手动输入 E"
-            ariaLabel={`第 ${spanIndex + 1} 跨${memberTerm}材料编号`}
+            ariaLabel={`${spanLabel}材料编号`}
             className={formControlClass}
             menuClassName={formSelectMenuClass}
             optionClassName={formSelectOptionClass}
@@ -92,7 +92,7 @@ export function BeamSpanEditor({
         <div className="space-y-1">
           <div className={fieldLabelClass}>{memberTerm}长度（m）</div>
           <Input
-            aria-label={`第 ${spanIndex + 1} 跨${memberTerm}长度（m）`}
+            aria-label={`${spanLabel}长度（m）`}
             name={`${memberId}-length`}
             type="number"
             step="0.1"

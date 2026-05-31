@@ -12,7 +12,7 @@ interface SelectedNodeConnectionPanelProps {
   nodeOptions: NodeConnectionOption[];
   connectionTargetId?: string;
   fieldLabelClass: string;
-  memberTerm: "构件" | "杆件";
+  memberTerm: "跨段" | "构件" | "杆件";
   duplicateExists: (startNodeId: string, endNodeId: string) => boolean;
   onConnectionTargetChange: (nextId: string) => void;
   onAddConnection: (startNodeId: string, endNodeId: string) => void;

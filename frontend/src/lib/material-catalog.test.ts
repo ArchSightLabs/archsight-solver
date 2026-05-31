@@ -104,8 +104,8 @@ test("构件和杆件材料截面字段显式保留工程单位", () => {
 });
 
 test("材料预设提示明确只回填 E 且截面参数仍由构件维护", () => {
-  assert.match(memberMaterialPresetHint("beam", "杆件"), /只回填弹性模量 E/u);
-  assert.match(memberMaterialPresetHint("beam", "杆件"), /截面惯性矩 I 仍按杆件截面单独维护/u);
+  assert.match(memberMaterialPresetHint("beam", "跨段"), /只回填弹性模量 E/u);
+  assert.match(memberMaterialPresetHint("beam", "跨段"), /截面惯性矩 I 仍按跨段截面单独维护/u);
   assert.match(memberMaterialPresetHint("frame", "构件"), /只回填弹性模量 E/u);
   assert.match(memberMaterialPresetHint("frame", "构件"), /截面面积 A 和截面惯性矩 I/u);
   assert.match(memberMaterialPresetHint("truss", "杆件"), /截面面积 A 仍按杆件截面单独维护/u);

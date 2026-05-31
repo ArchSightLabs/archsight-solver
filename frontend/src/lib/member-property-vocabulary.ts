@@ -1,5 +1,5 @@
 export type MemberPropertyMode = "beam" | "frame" | "truss";
-export type MemberLabel = "杆件" | "构件";
+export type MemberLabel = "跨段" | "杆件" | "构件";
 
 export interface MemberPropertyLabels {
   youngModulus: string;

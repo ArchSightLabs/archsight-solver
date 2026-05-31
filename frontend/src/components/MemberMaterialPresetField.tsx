@@ -11,7 +11,7 @@ interface MemberMaterialPresetFieldProps {
   onYoungModulusChange: (nextYoungModulusGPa: number) => void;
   onMaterialChange?: (nextMaterialId: string, nextYoungModulusGPa: number) => void;
   fieldLabelClass: string;
-  memberLabel: "构件" | "杆件";
+  memberLabel: "跨段" | "构件" | "杆件";
   mode: MemberMaterialMode;
   className?: string;
   label?: string;

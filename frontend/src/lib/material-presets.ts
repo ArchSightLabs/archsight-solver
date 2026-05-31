@@ -39,7 +39,7 @@ export function materialEngineeringNote(materialId: string | undefined, material
 export function memberMaterialEngineeringNote(
   materialId: string | undefined,
   youngModulusGPa: number,
-  memberLabel: "构件" | "杆件",
+  memberLabel: "跨段" | "构件" | "杆件",
   materials: Material[] = PREDEFINED_MATERIALS,
 ): string {
   const material = materials.find((item) => item.id === materialId);
@@ -108,7 +108,7 @@ export function youngModulusForMaterial(materialId: string, fallback: number, ma
 
 export function memberElasticityDistributionLabel(
   members: Array<{ materialId?: string; E_GPa?: number }>,
-  memberLabel: "构件" | "杆件",
+  memberLabel: "跨段" | "构件" | "杆件",
 ): string {
   const counts = new Map<string, number>();
   members.forEach((member) => {
