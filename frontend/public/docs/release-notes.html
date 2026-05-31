@@ -116,11 +116,28 @@
       </button>
     </div>
     <header>
-      <span class="tag">当前版本 v1.2.0</span>
+      <span class="tag">当前版本 v1.3.0</span>
       <h1>版本发布记录</h1>
     </header>
 
     <section class="release-list" aria-label="版本发布记录">
+      <article class="release">
+        <div class="release-head">
+          <h2>v1.3.0</h2>
+          <span class="date">发布时间：2026-05-31</span>
+        </div>
+          <p class="section-label">主要变化</p>
+          <ul>
+            <li>重构结构力学工作台，统一梁系、平面框架、平面桁架的工程树对象命名、参数页签和结果页信息架构。</li>
+            <li>修复框架与桁架计算书图形口径，导出报告继续使用前端同源工程图，并保留节点、构件/杆件、支座、荷载、尺寸和控制结果标注。</li>
+            <li>增强大模型图形可读性，结构预览和模型叠加图按节点规模自适应画布，超宽计算书插图自动切换横向页面，降低固定画布导致的裁切、压缩和图例拥挤风险。</li>
+            <li>收敛框架/桁架对象编辑、节点连接、材料截面、支座自由度和文本模型解析逻辑，减少专业对象语义漂移。</li>
+            <li>收紧桁架节点输入契约，拒绝弹性支座、滚动支座法向角和凝聚/转角释放自由度等不符合桁架假定的高级框架字段。</li>
+            <li>补充材料、支座、结果指标、计算假定和报告图形的共享目录契约，并扩展后端、前端单元测试和 Playwright 浏览器链路。</li>
+            <li>新增部署脚本与 Docker 部署说明，完善公开发布后的镜像构建和远程推送入口。</li>
+          </ul>
+      </article>
+
       <article class="release">
         <div class="release-head">
           <h2>v1.2.0</h2>

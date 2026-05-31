@@ -1,6 +1,6 @@
 services:
   app:
-    image: ${IMAGE_REPOSITORY:-registry.cn-hangzhou.aliyuncs.com/your-namespace/archsight-solver}:${IMAGE_TAG:-v1.2.0}
+    image: ${IMAGE_REPOSITORY:-registry.cn-hangzhou.aliyuncs.com/your-namespace/archsight-solver}:${IMAGE_TAG:-v1.3.0}
     container_name: archsight-solver-app
     restart: unless-stopped
     environment:

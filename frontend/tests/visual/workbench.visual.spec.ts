@@ -11,9 +11,9 @@ const screenshotOptions = {
 };
 
 const moduleCases = [
-  { key: "beam", dialogButton: null, objectName: "连续梁-1 梁", parameterTitle: "梁系参数" },
-  { key: "frame", dialogButton: /平面框架/, objectName: "平面框架-1 框架", parameterTitle: "框架参数" },
-  { key: "truss", dialogButton: /平面桁架/, objectName: "平面桁架-1 桁架", parameterTitle: "桁架参数" },
+  { key: "beam", dialogButton: null, objectName: "梁系-1 梁系", parameterTitle: "梁系参数" },
+  { key: "frame", dialogButton: /平面框架/, objectName: "平面框架-1 平面框架", parameterTitle: "平面框架参数" },
+  { key: "truss", dialogButton: /平面桁架/, objectName: "平面桁架-1 平面桁架", parameterTitle: "平面桁架参数" },
 ];
 
 async function stabilizeWorkbench(page: Page) {
@@ -74,8 +74,8 @@ test("移动端结构体系入口与建模主场视觉基线", async ({ page }) 
   await expect(page).toHaveTitle("ArchSight 结构力学求解器");
   await expect(page.getByRole("heading", { name: "ArchSight 结构力学求解器" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "工作台模式" })).toHaveCount(0);
-  await expect(page.getByText("跨段数量")).toBeVisible();
   await expect(page.getByText("梁系参数")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "模板", exact: true })).toBeVisible();
   await expect(page.getByRole("tab", { name: /参数建模/ })).toBeVisible();
   await expect(page).toHaveScreenshot("mobile-beam-model.png", screenshotOptions);
 });

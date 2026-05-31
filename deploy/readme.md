@@ -30,7 +30,7 @@ cp docker-compose.yml.example docker-compose.yml
 主要变量：
 
 - `IMAGE_REPOSITORY`：应用镜像仓库地址，不包含 TAG。
-- `IMAGE_TAG`：应用镜像 TAG，默认 `v1.2.0`。
+- `IMAGE_TAG`：应用镜像 TAG，默认 `v1.3.0`。
 - `APP_HOST_BIND`：宿主机监听地址，默认 `127.0.0.1`，避免直接暴露容器端口。
 - `APP_HOST_PORT`：宿主机本地监听端口，默认 `6280`，仅绑定 `127.0.0.1`，供公共 Nginx 反向代理。
 - `ARCHSIGHT_GUNICORN_WORKERS`：Gunicorn worker 数量，默认 `4`。
@@ -46,19 +46,19 @@ cp docker-compose.yml.example docker-compose.yml
 如需部署指定镜像 TAG，可修改 `.env`：
 
 ```env
-IMAGE_TAG=v1.2.0
+IMAGE_TAG=v1.3.0
 ```
 
 也可以用部署脚本临时覆盖，不会改写 `.env`：
 
 ```bash
-./deploy.sh v1.2.0
+./deploy.sh v1.3.0
 ```
 
 构建镜像时同样使用该 TAG：
 
 ```powershell
-..\scripts\build-image.ps1 -Tag v1.2.0 -Push
+..\scripts\build-image.ps1 -Tag v1.3.0 -Push
 ```
 
 若不传 `-Tag`，构建脚本会读取 `deploy/.env` 中的 `IMAGE_TAG`。
@@ -66,13 +66,13 @@ IMAGE_TAG=v1.2.0
 在 Windows 本地可以通过 SSH 远程触发服务器部署：
 
 ```powershell
-.\scripts\remote-deploy.ps1 -Server your-server -User root -DeployPath /opt/archsight-solver/deploy -Tag v1.2.0
+.\scripts\remote-deploy.ps1 -Server your-server -User root -DeployPath /opt/archsight-solver/deploy -Tag v1.3.0
 ```
 
 如果需要本地先构建并推送镜像，再远程更新服务器：
 
 ```powershell
-.\scripts\remote-deploy.ps1 -Server your-server -User root -DeployPath /opt/archsight-solver/deploy -Tag v1.2.0 -BuildAndPush
+.\scripts\remote-deploy.ps1 -Server your-server -User root -DeployPath /opt/archsight-solver/deploy -Tag v1.3.0 -BuildAndPush
 ```
 
 部署脚本会自动兼容新版 Compose 与旧版 Compose：
