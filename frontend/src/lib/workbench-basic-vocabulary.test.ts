@@ -1,4 +1,5 @@
 import { strict as assert } from "node:assert";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
@@ -17,6 +18,15 @@ test("基本页文案使用三类对象共享的短句结构", () => {
   assert.equal(workbenchBasicDescription("truss"), "先定默认材料；节点、杆件、支座节点、荷载在对象页维护，批量参数在表格页复核。");
   assert.doesNotMatch(workbenchBasicDescription("frame"), /属性检查器|先套用参数模板/u);
   assert.doesNotMatch(workbenchBasicSuccessMessage("beam"), /可继续复核/u);
+});
+
+test("基本页对象术语从共享对象词表派生", () => {
+  const source = readFileSync(new URL("./workbench-basic-vocabulary.ts", import.meta.url), "utf-8");
+
+  assert.match(source, /modelObjectVocabulary/u);
+  assert.match(source, /modelObjectMemberTerm/u);
+  assert.doesNotMatch(source, /memberTerm:\s*"(?:构件|杆件)"/u);
+  assert.doesNotMatch(source, /(?:description|successMessage|materialFieldLabel|materialAriaLabel|materialSectionDetail):\s*"/u);
 });
 
 test("基本页默认材料说明统一区分材料编号和刚度输入", () => {
