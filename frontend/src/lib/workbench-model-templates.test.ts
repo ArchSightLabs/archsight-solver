@@ -72,6 +72,11 @@ test("内置模板的 benchmark 引用只从数据事实源注入", () => {
   assert.doesNotMatch(TEMPLATE_SOURCE, /validationRefs:\s*\[/u);
 });
 
+test("内置模板描述的成员术语从共享模型对象词表派生", () => {
+  assert.match(TEMPLATE_SOURCE, /modelObjectMemberTerm/u);
+  assert.doesNotMatch(TEMPLATE_SOURCE, /斜撑构件|拉压杆件/u);
+});
+
 test("默认连续梁工作区包含中间支座", () => {
   const workspace = createDefaultBeamWorkspaceState();
 

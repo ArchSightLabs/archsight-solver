@@ -2,6 +2,7 @@ import type { BeamWorkspaceState } from "../types/beam.ts";
 import { PREDEFINED_MATERIALS } from "../types/material.ts";
 import type { FrameLoad, FrameWorkspaceState, StructureMember, StructureNode, TrussLoad, TrussMember, TrussNode, TrussWorkspaceState } from "../types/structure.ts";
 import templateBenchmarkMap from "../../../data/verification/template_benchmark_map.json" with { type: "json" };
+import { modelObjectMemberTerm } from "./model-object-vocabulary.ts";
 
 export interface TemplateValidationRef {
   caseId: string;
@@ -54,6 +55,8 @@ interface TemplateBenchmarkMap {
 }
 
 const TEMPLATE_BENCHMARK_MAP = templateBenchmarkMap as TemplateBenchmarkMap;
+const FRAME_MEMBER_TERM = modelObjectMemberTerm("frame");
+const TRUSS_MEMBER_TERM = modelObjectMemberTerm("truss");
 
 function validationRefsForTemplate(module: TemplateModule, templateId: string): TemplateValidationRef[] {
   const mapping = TEMPLATE_BENCHMARK_MAP.templates.find((item) => item.module === module && item.templateId === templateId);
@@ -332,7 +335,7 @@ export const FRAME_MODEL_TEMPLATES: FrameModelTemplate[] = withValidationRefs<Ra
   {
     id: "braced-frame",
     title: "带斜撑框架",
-    description: "单跨框架含交叉斜撑，用于比较斜撑构件对水平位移和构件轴力的影响。",
+    description: `单跨框架含交叉斜撑，用于比较斜撑${FRAME_MEMBER_TERM}对水平位移和${FRAME_MEMBER_TERM}轴力的影响。`,
     tags: ["斜撑", "抗侧", "轴力"],
     nodes: [
       { id: "N1", x: 0, y: 0, supportType: "fixed" },
@@ -417,7 +420,7 @@ export const TRUSS_MODEL_TEMPLATES: TrussModelTemplate[] = withValidationRefs<Ra
   {
     id: "warren-truss",
     title: "Warren 桁架",
-    description: "等距三角腹杆布置，适合比较拉压杆件交替分布。",
+    description: `等距三角腹杆布置，适合比较拉压${TRUSS_MEMBER_TERM}交替分布。`,
     tags: ["Warren", "等距", "桥式"],
     nodes: [
       { id: "N1", x: 0, y: 0, supportType: "pinned" },

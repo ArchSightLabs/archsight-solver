@@ -161,3 +161,10 @@ test("荷载编辑器成员和荷载标签从共享模型对象词表派生", ()
     assert.doesNotMatch(source, /作用(?:构件|杆件)|(?:构件|杆件)荷载/u, `${fileName} 不应硬编码荷载作用对象术语`);
   }
 });
+
+test("框架构件类型标签从共享模型对象词表派生", () => {
+  const source = readFileSync(new URL("./frame-editor-model.ts", import.meta.url), "utf-8");
+
+  assert.match(source, /modelObjectMemberTerm/u);
+  assert.doesNotMatch(source, /斜撑构件/u);
+});

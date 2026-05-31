@@ -8,11 +8,14 @@ import type {
   StructureNode,
 } from "../types/structure.ts";
 import { materialIdForYoungModulus } from "./material-presets.ts";
+import { modelObjectMemberTerm } from "./model-object-vocabulary.ts";
+
+const FRAME_MEMBER_TERM = modelObjectMemberTerm("frame");
 
 export const FRAME_MEMBER_KIND_OPTIONS = [
   { value: "column", label: "柱" },
   { value: "beam", label: "梁" },
-  { value: "brace", label: "斜撑构件" },
+  { value: "brace", label: `斜撑${FRAME_MEMBER_TERM}` },
   { value: "generic", label: "通用" },
 ];
 
