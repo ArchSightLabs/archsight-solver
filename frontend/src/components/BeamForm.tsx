@@ -258,7 +258,6 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
     selectObject({ type: "span", id: spanId(0) }, { openEditor: false });
   };
 
-  const derivedNodeCount = value.beamType === "continuous" ? value.spans.length + 1 : 2;
   const totalLength = value.spans.reduce((sum, span) => sum + span.length, 0);
   const loadSummary = formatBeamLoadSummary(value);
 
@@ -317,7 +316,6 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
         materialId={value.materialId}
         materialLibrary={materialLibrary}
         materialOptions={materialOptions}
-        nodeCount={derivedNodeCount}
         spanCount={value.spans.length}
         supportCount={value.supports.length}
         totalLength={totalLength}

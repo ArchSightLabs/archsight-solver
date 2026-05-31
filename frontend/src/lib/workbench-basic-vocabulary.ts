@@ -14,8 +14,8 @@ interface WorkbenchBasicCopy {
 
 const WORKBENCH_BASIC_COPY: Record<AnalysisMode, WorkbenchBasicCopy> = {
   beam: {
-    description: "先定梁型和默认材料；杆件、支座、荷载在对象页维护，批量参数在表格页复核。",
-    successMessage: "当前梁系杆件、支座与荷载完整，可复核挠度、弯矩、剪力和支座反力。",
+    description: "先定梁型和默认材料；杆件、支座节点、荷载在对象页维护，批量参数在表格页复核。",
+    successMessage: "当前梁系杆件、支座节点与荷载完整，可复核挠度、弯矩、剪力和支座反力。",
     memberTerm: "杆件",
     stiffnessInputs: "E/I",
     materialFieldLabel: "默认材料编号（新增杆件 E）",
@@ -23,8 +23,8 @@ const WORKBENCH_BASIC_COPY: Record<AnalysisMode, WorkbenchBasicCopy> = {
     materialSectionDetail: "材料编号保留工程语义；截面惯性矩 I 按杆件维护。",
   },
   frame: {
-    description: "先定默认材料；节点、构件、支座、荷载在对象页维护，批量参数在表格页复核。",
-    successMessage: "当前框架节点、构件、支座与荷载完整，可复核节点位移、构件内力和支座反力。",
+    description: "先定默认材料；节点、构件、支座节点、荷载在对象页维护，批量参数在表格页复核。",
+    successMessage: "当前框架节点、构件、支座节点与荷载完整，可复核节点位移、构件内力和支座反力。",
     memberTerm: "构件",
     stiffnessInputs: "E/A/I",
     materialFieldLabel: "默认材料编号（新增构件 E）",
@@ -32,8 +32,8 @@ const WORKBENCH_BASIC_COPY: Record<AnalysisMode, WorkbenchBasicCopy> = {
     materialSectionDetail: "材料编号保留工程语义；截面面积 A 和截面惯性矩 I 按构件维护。",
   },
   truss: {
-    description: "先定默认材料；节点、杆件、支座、荷载在对象页维护，批量参数在表格页复核。",
-    successMessage: "当前桁架节点、杆件、支座与荷载完整，可复核节点位移、杆件轴力和支座反力。",
+    description: "先定默认材料；节点、杆件、支座节点、荷载在对象页维护，批量参数在表格页复核。",
+    successMessage: "当前桁架节点、杆件、支座节点与荷载完整，可复核节点位移、杆件轴力和支座反力。",
     memberTerm: "杆件",
     stiffnessInputs: "E/A",
     materialFieldLabel: "默认材料编号（新增杆件 E）",

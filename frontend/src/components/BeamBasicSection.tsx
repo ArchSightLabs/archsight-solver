@@ -1,6 +1,7 @@
 import { CheckCircle2, RotateCcw } from "lucide-react";
 
 import type { MaterialDropdownOption } from "../lib/material-presets.ts";
+import { modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
 import { supportSystemHint } from "../lib/support-vocabulary.ts";
 import {
   defaultMaterialAriaLabel,
@@ -28,7 +29,6 @@ interface BeamBasicSectionProps {
   materialId: string;
   materialLibrary: Material[];
   materialOptions: MaterialDropdownOption[];
-  nodeCount: number;
   spanCount: number;
   supportCount: number;
   totalLength: number;
@@ -46,7 +46,6 @@ export function BeamBasicSection({
   materialId,
   materialLibrary,
   materialOptions,
-  nodeCount,
   spanCount,
   supportCount,
   totalLength,
@@ -58,16 +57,17 @@ export function BeamBasicSection({
   onMaterialChange,
   onReset,
 }: BeamBasicSectionProps) {
+  const objectVocabulary = modelObjectVocabulary("beam");
+
   return (
     <WorkbenchModelBasicSection
       id="beam-basic"
       title="参数化梁系建模"
       description={workbenchBasicDescription("beam")}
       metrics={[
-        { label: "节点", value: nodeCount },
-        { label: "杆件", value: spanCount },
-        { label: "支座", value: supportCount },
+        { label: objectVocabulary.memberGroupLabel, value: spanCount },
         { label: "总长", value: `${totalLength.toFixed(2)} m` },
+        { label: objectVocabulary.supportGroupLabel, value: supportCount },
       ]}
       modelWarnings={supportCount === 0 ? ["尚未设置支座约束。"] : []}
       successMessage={workbenchBasicSuccessMessage("beam")}

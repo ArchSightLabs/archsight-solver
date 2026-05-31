@@ -12,9 +12,9 @@ import {
 } from "./workbench-basic-vocabulary.ts";
 
 test("基本页文案使用三类对象共享的短句结构", () => {
-  assert.equal(workbenchBasicDescription("beam"), "先定梁型和默认材料；杆件、支座、荷载在对象页维护，批量参数在表格页复核。");
-  assert.equal(workbenchBasicDescription("frame"), "先定默认材料；节点、构件、支座、荷载在对象页维护，批量参数在表格页复核。");
-  assert.equal(workbenchBasicDescription("truss"), "先定默认材料；节点、杆件、支座、荷载在对象页维护，批量参数在表格页复核。");
+  assert.equal(workbenchBasicDescription("beam"), "先定梁型和默认材料；杆件、支座节点、荷载在对象页维护，批量参数在表格页复核。");
+  assert.equal(workbenchBasicDescription("frame"), "先定默认材料；节点、构件、支座节点、荷载在对象页维护，批量参数在表格页复核。");
+  assert.equal(workbenchBasicDescription("truss"), "先定默认材料；节点、杆件、支座节点、荷载在对象页维护，批量参数在表格页复核。");
   assert.doesNotMatch(workbenchBasicDescription("frame"), /属性检查器|先套用参数模板/u);
   assert.doesNotMatch(workbenchBasicSuccessMessage("beam"), /可继续复核/u);
 });

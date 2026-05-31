@@ -1,6 +1,7 @@
 import { Plus, RotateCw, Wand2 } from "lucide-react";
 
 import { materialDropdownOptions, type MaterialDropdownOption } from "../lib/material-presets.ts";
+import { modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
 import { supportSystemHint } from "../lib/support-vocabulary.ts";
 import {
   defaultMaterialAriaLabel,
@@ -47,6 +48,7 @@ export function FrameBasicSection({
   onMaterialChange,
 }: FrameBasicSectionProps) {
   const formLabelClass = "text-[10px] font-black tracking-widest text-muted-foreground";
+  const objectVocabulary = modelObjectVocabulary("frame");
 
   return (
     <WorkbenchModelBasicSection
@@ -54,10 +56,10 @@ export function FrameBasicSection({
       title="自定义平面框架建模"
       description={workbenchBasicDescription("frame")}
       metrics={[
-        { label: "节点", value: nodeCount },
-        { label: "构件", value: memberCount },
-        { label: "支座", value: supportCount },
-        { label: "荷载", value: loadCount },
+        { label: objectVocabulary.nodeGroupLabel, value: nodeCount },
+        { label: objectVocabulary.memberGroupLabel, value: memberCount },
+        { label: objectVocabulary.supportGroupLabel, value: supportCount },
+        { label: objectVocabulary.loadGroupLabel, value: loadCount },
       ]}
       modelWarnings={modelWarnings}
       successMessage={workbenchBasicSuccessMessage("frame")}

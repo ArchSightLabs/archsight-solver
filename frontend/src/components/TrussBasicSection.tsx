@@ -1,6 +1,7 @@
 import { Plus, RotateCw } from "lucide-react";
 
 import { materialDropdownOptions, type MaterialDropdownOption } from "../lib/material-presets.ts";
+import { modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
 import { supportSystemHint } from "../lib/support-vocabulary.ts";
 import {
   defaultMaterialAriaLabel,
@@ -45,6 +46,7 @@ export function TrussBasicSection({
   onMaterialChange,
 }: TrussBasicSectionProps) {
   const formLabelClass = "text-[10px] font-black tracking-widest text-muted-foreground";
+  const objectVocabulary = modelObjectVocabulary("truss");
 
   return (
     <WorkbenchModelBasicSection
@@ -52,10 +54,10 @@ export function TrussBasicSection({
       title="自定义平面桁架建模"
       description={workbenchBasicDescription("truss")}
       metrics={[
-        { label: "节点", value: nodeCount },
-        { label: "杆件", value: memberCount },
-        { label: "支座", value: supportCount },
-        { label: "荷载", value: loadCount },
+        { label: objectVocabulary.nodeGroupLabel, value: nodeCount },
+        { label: objectVocabulary.memberGroupLabel, value: memberCount },
+        { label: objectVocabulary.supportGroupLabel, value: supportCount },
+        { label: objectVocabulary.loadGroupLabel, value: loadCount },
       ]}
       modelWarnings={modelWarnings}
       successMessage={workbenchBasicSuccessMessage("truss")}
