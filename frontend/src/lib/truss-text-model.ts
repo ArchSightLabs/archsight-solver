@@ -1,6 +1,7 @@
 import type { TrussLoad, TrussMember, TrussNode } from "../types/structure.ts";
 import { parseTextModelNumber, splitTextModelTokens } from "./text-model-utils.ts";
 import { materialIdForYoungModulus } from "./material-presets.ts";
+import { parseTrussTextSupportType } from "./support-text-model.ts";
 
 export interface TrussTextCollections {
   nodes: TrussNode[];
@@ -20,13 +21,7 @@ function normalizedMaterialId(value: string | undefined, youngModulusGPa: number
   return String(value ?? materialIdForYoungModulus(youngModulusGPa)).trim().toLowerCase() || "custom";
 }
 
-function supportType(value: string | undefined): TrussNode["supportType"] {
-  const normalized = String(value ?? "free").toLowerCase();
-  if (["fixed", "fix", "固结", "固结支座", "固定", "固定支座"].includes(normalized)) return "pinned";
-  if (["pinned", "pin", "铰接", "铰支", "铰支座"].includes(normalized)) return "pinned";
-  if (["roller", "roll", "滚动", "滚动支座", "滑动"].includes(normalized)) return "roller";
-  return "free";
-}
+const supportType = parseTrussTextSupportType;
 
 export function parseTrussTextModel(text: string): TrussTextParseResult {
   const diagnostics: string[] = [];

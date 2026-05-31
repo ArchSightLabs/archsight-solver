@@ -1,6 +1,7 @@
-import type { BeamLinearLoadConfig, BeamPointLoadConfig, BeamSpanConfig, BeamSupportConfig, BeamSupportDof, BeamSupportType, BeamWorkspaceState } from "../types/beam.ts";
+import type { BeamLinearLoadConfig, BeamPointLoadConfig, BeamSpanConfig, BeamSupportConfig, BeamSupportDof, BeamWorkspaceState } from "../types/beam.ts";
 import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
 import { parseTextModelNumber, splitTextModelTokens } from "./text-model-utils.ts";
+import { beamTextSupportConstraintsForType, parseBeamTextSupportType } from "./support-text-model.ts";
 
 export interface BeamTextParseResult {
   patch: Partial<BeamWorkspaceState> | null;
@@ -10,20 +11,8 @@ export interface BeamTextParseResult {
 const splitTokens = splitTextModelTokens;
 const toNumber = parseTextModelNumber;
 
-function supportType(value: string | undefined): BeamSupportType | null {
-  const normalized = String(value ?? "").trim().toLowerCase();
-  if (["fixed", "fix", "固结", "固结支座", "固定", "固定支座"].includes(normalized)) return "fixed";
-  if (["pinned", "pin", "铰支", "铰支座", "铰接"].includes(normalized)) return "pinned";
-  if (["roller", "roll", "滚动", "滑动"].includes(normalized)) return "roller";
-  if (["free", "自由"].includes(normalized)) return "free";
-  return null;
-}
-
-function constraintsForType(type: BeamSupportType): BeamSupportDof[] {
-  if (type === "fixed") return ["v", "rz"];
-  if (type === "pinned" || type === "roller") return ["v"];
-  return [];
-}
+const supportType = parseBeamTextSupportType;
+const constraintsForType = beamTextSupportConstraintsForType;
 
 function supportDof(value: string | undefined): BeamSupportDof | null {
   const normalized = String(value ?? "").trim().toLowerCase();

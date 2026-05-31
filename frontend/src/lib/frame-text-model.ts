@@ -7,6 +7,7 @@ import {
   uniqueTextModelId,
 } from "./text-model-utils.ts";
 import { materialIdForYoungModulus } from "./material-presets.ts";
+import { parseFrameTextSupportType } from "./support-text-model.ts";
 
 export interface FrameTextCollections {
   nodes: StructureNode[];
@@ -39,36 +40,7 @@ const nodeId = (value: string | undefined, fallback: string) => prefixTextModelI
 const memberId = (value: string | undefined, fallback: string) => prefixTextModelId(value, fallback, "M", { preserveAnyLeadingAlpha: true });
 const uniqueId = uniqueTextModelId;
 
-function supportType(value: string | undefined, fallback: StructureNode["supportType"] = "free"): StructureNode["supportType"] {
-  const normalized = String(value ?? "").trim().toLowerCase();
-  if (!normalized) {
-    return fallback;
-  }
-  if (["fixed", "fix", "固结", "固结支座", "固定", "固定支座", "刚接"].includes(normalized)) {
-    return "fixed";
-  }
-  if (["pinned", "pin", "hinge", "铰接", "铰支", "铰支座"].includes(normalized)) {
-    return "pinned";
-  }
-  if (["roller", "roll", "滑动", "滚动", "滚动支座"].includes(normalized)) {
-    return "roller";
-  }
-  if (["free", "自由", "自由节点"].includes(normalized)) {
-    return "free";
-  }
-
-  const code = numericCode(normalized);
-  if (code === 6) {
-    return "fixed";
-  }
-  if (code === 4) {
-    return "pinned";
-  }
-  if (code === 0) {
-    return "free";
-  }
-  return fallback;
-}
+const supportType = parseFrameTextSupportType;
 
 function frameSpringDof(value: string | undefined): FrameSpring["dof"] | null {
   const normalized = String(value ?? "").trim().toLowerCase();
