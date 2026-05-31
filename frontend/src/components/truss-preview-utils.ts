@@ -1,4 +1,5 @@
 import { outwardLabelCandidates, type DiagramLabelCandidate, type DiagramLabelRect } from "../lib/diagram-label-layout.ts";
+import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import { trussSupportLabel } from "../lib/support-vocabulary.ts";
 import type { TrussSupportType } from "../types/supports.ts";
 
@@ -169,7 +170,7 @@ export function buildTrussMemberLengthDimension(
   return {
     memberId,
     valueLabel,
-    title: `杆件 ${memberId}，长度 ${lengthM.toFixed(2)} m`,
+    title: `${modelObjectMemberTerm("truss")} ${memberId}，长度 ${lengthM.toFixed(2)} m`,
   };
 }
 

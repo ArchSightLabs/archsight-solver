@@ -116,3 +116,19 @@ test("主控校核和基本页成员术语从共享模型对象词表派生", ()
     assert.doesNotMatch(source, /构件|杆件/u, `${fileName} 不应在主控文案中硬编码成员术语`);
   }
 });
+
+test("结构预览和主控画布成员术语从共享模型对象词表派生", () => {
+  const sources = [
+    ["FramePreview.tsx", readFileSync(new URL("../components/FramePreview.tsx", import.meta.url), "utf-8")],
+    ["TrussPreview.tsx", readFileSync(new URL("../components/TrussPreview.tsx", import.meta.url), "utf-8")],
+    ["BeamSketch.tsx", readFileSync(new URL("../components/model-canvas/BeamSketch.tsx", import.meta.url), "utf-8")],
+    ["FrameSketch.tsx", readFileSync(new URL("../components/model-canvas/FrameSketch.tsx", import.meta.url), "utf-8")],
+    ["TrussSketch.tsx", readFileSync(new URL("../components/model-canvas/TrussSketch.tsx", import.meta.url), "utf-8")],
+    ["truss-preview-utils.ts", readFileSync(new URL("../components/truss-preview-utils.ts", import.meta.url), "utf-8")],
+  ];
+
+  for (const [fileName, source] of sources) {
+    assert.match(source, /modelObject(?:MemberTerm|Vocabulary)/u, `${fileName} 应从共享词表取得成员术语`);
+    assert.doesNotMatch(source, /构件|杆件/u, `${fileName} 不应在图形文案中硬编码成员术语`);
+  }
+});

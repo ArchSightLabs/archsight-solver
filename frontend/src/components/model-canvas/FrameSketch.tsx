@@ -1,4 +1,5 @@
 import { createPortalFrameModelFromState, type WorkspaceState } from "../../lib/workspace-state";
+import { modelObjectMemberTerm } from "../../lib/model-object-vocabulary";
 import { nodeSupportLabel } from "../../lib/support-vocabulary";
 import { modelCanvasLabelPolicy, shouldShowSteppedLabel } from "../../lib/model-canvas-label-policy";
 import { FRAME_MODEL_CANVAS_BASE_SIZE, type ModelCanvasSize } from "../../lib/model-canvas-sizing";
@@ -152,6 +153,7 @@ export function FrameSketch({
   const nodes = model.nodes;
   const members = model.members;
   const loads = model.loads;
+  const memberTerm = modelObjectMemberTerm("frame");
   const xs = nodes.map((node) => node.x);
   const ys = nodes.map((node) => node.y);
   const minX = Math.min(...xs, 0);
@@ -238,8 +240,8 @@ export function FrameSketch({
             selected,
           });
           return (
-            <g key={member.id} {...svgInteractiveProps(`选择框架构件 ${member.id}`, () => onSelect?.({ mode: "frame", type: "member", id: member.id }))}>
-              <title>{`框架构件 ${member.id}`}</title>
+            <g key={member.id} {...svgInteractiveProps(`选择框架${memberTerm} ${member.id}`, () => onSelect?.({ mode: "frame", type: "member", id: member.id }))}>
+              <title>{`框架${memberTerm} ${member.id}`}</title>
               <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="transparent" strokeWidth="18" />
               <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} strokeWidth={selected ? STRUCTURE_VISUAL_STROKES.modelSelectedMember : STRUCTURE_VISUAL_STROKES.modelMember} stroke={selected ? "var(--model-load)" : "var(--model-member)"} opacity={selected ? "0.85" : "1"} />
               {showLabel ? (

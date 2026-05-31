@@ -2,6 +2,7 @@ import { type CSSProperties } from "react";
 import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments, formatBeamDimensionLength } from "../../lib/beam-span-dimensions";
 import { modelCanvasLabelPolicy, shouldShowSteppedLabel } from "../../lib/model-canvas-label-policy";
 import { BEAM_MODEL_CANVAS_BASE_SIZE, type ModelCanvasSize } from "../../lib/model-canvas-sizing";
+import { modelObjectMemberTerm } from "../../lib/model-object-vocabulary";
 import { STRUCTURE_NODE_RADII, STRUCTURE_VISUAL_STROKES } from "../../lib/structure-visual-tokens";
 import type { WorkspaceState } from "../../lib/workspace-state";
 import type { ModelPreviewStyle } from "../../types/beam";
@@ -150,6 +151,7 @@ export function BeamSketch({
   onSelect?: (next: WorkbenchSelection) => void;
 }) {
   const total = Math.max(1, beam.spans.reduce((sum, span) => sum + span.length, 0));
+  const memberTerm = modelObjectMemberTerm("beam");
   const beamDrawableWidth = Math.max(220, canvasSize.width - BEAM_SKETCH_SIDE_PAD * 2);
   const segments = beam.spans.reduce<Array<{ index: number; length: number; start: number; end: number }>>((items, span, index) => {
     const start = items[index - 1]?.end ?? BEAM_SKETCH_SIDE_PAD;
@@ -248,7 +250,7 @@ export function BeamSketch({
           selected,
         });
         return (
-          <g key={segment.index} {...svgInteractiveProps(`选择梁系杆件 ${beamMemberIds[segment.index]}`, () => onSelect?.({ mode: "beam", type: "span", id: `span-${segment.index}` }))}>
+          <g key={segment.index} {...svgInteractiveProps(`选择梁系${memberTerm} ${beamMemberIds[segment.index]}`, () => onSelect?.({ mode: "beam", type: "span", id: `span-${segment.index}` }))}>
             {dimension ? <title>{dimension.title}</title> : null}
             <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="transparent" strokeWidth="20" strokeLinecap="round" />
             {selected ? <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="var(--beam-sketch-selected)" strokeWidth={STRUCTURE_VISUAL_STROKES.modelSelectedMember} strokeLinecap="round" opacity="0.45" /> : null}

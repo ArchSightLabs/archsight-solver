@@ -1,6 +1,7 @@
 import { buildTrussMemberLengthDimension, buildTrussMemberLengthLegendRows, buildTrussSupportMarkerGeometry } from "../truss-preview-utils";
 import { modelCanvasLabelPolicy, shouldShowSteppedLabel } from "../../lib/model-canvas-label-policy";
 import { TRUSS_MODEL_CANVAS_BASE_SIZE, type ModelCanvasSize } from "../../lib/model-canvas-sizing";
+import { modelObjectMemberTerm } from "../../lib/model-object-vocabulary";
 import { STRUCTURE_NODE_RADII, STRUCTURE_VISUAL_STROKES } from "../../lib/structure-visual-tokens";
 import type { WorkspaceState } from "../../lib/workspace-state";
 import type { TrussLoad } from "../../types/structure";
@@ -121,6 +122,7 @@ export function TrussSketch({
   const nodes = workspace.truss.customNodes;
   const members = workspace.truss.customMembers;
   const loads = workspace.truss.customLoads;
+  const memberTerm = modelObjectMemberTerm("truss");
   const xs = nodes.map((node) => node.x);
   const ys = nodes.map((node) => node.y);
   const minX = Math.min(...xs, 0);
@@ -192,8 +194,8 @@ export function TrussSketch({
           selected,
         });
         return (
-          <g key={member.id} {...svgInteractiveProps(`选择桁架杆件 ${member.id}`, () => onSelect?.({ mode: "truss", type: "member", id: member.id }))}>
-            <title>{dimension?.title ?? `桁架杆件 ${member.id}`}</title>
+          <g key={member.id} {...svgInteractiveProps(`选择桁架${memberTerm} ${member.id}`, () => onSelect?.({ mode: "truss", type: "member", id: member.id }))}>
+            <title>{dimension?.title ?? `桁架${memberTerm} ${member.id}`}</title>
             <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="transparent" strokeWidth="18" strokeLinecap="round" />
             <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke={selected ? "var(--model-load)" : "var(--model-member)"} strokeWidth={selected ? STRUCTURE_VISUAL_STROKES.modelSelectedMember : STRUCTURE_VISUAL_STROKES.modelMember} strokeLinecap="round" opacity={selected ? "0.85" : "1"} />
             {showLabel ? (
@@ -298,7 +300,7 @@ export function TrussSketch({
                   fontWeight="700"
                   fontFamily={SVG_TEXT_FONT}
                 >
-                  杆件荷载 {formatSignedMagnitude(qStart)}{Math.abs(qStart - qEnd) > 1e-9 ? `→${formatSignedMagnitude(qEnd)}` : ""} kN/m
+                  {memberTerm}荷载 {formatSignedMagnitude(qStart)}{Math.abs(qStart - qEnd) > 1e-9 ? `→${formatSignedMagnitude(qEnd)}` : ""} kN/m
                 </text>
               </g>,
             ];

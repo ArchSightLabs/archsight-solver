@@ -3,6 +3,7 @@ import { GlassCard } from "./ui/GlassCard";
 import type { FramePreviewData, SupportType } from "../types/structure";
 import { buildFrameDimensionLegendRows, buildFrameGeometryDimensions, buildFrameLoadLabelMap, buildFrameLoadMarkers, frameMemberLabelPlacement, type FrameLoadMarker } from "./frame-preview-utils";
 import { formatEngineeringValue } from "../lib/engineering-format";
+import { modelObjectMemberTerm, modelObjectVocabulary } from "../lib/model-object-vocabulary";
 import { RESULT_PREVIEW_BASE_SIZE, resultPreviewCanvasSize, resultPreviewSvgStyle } from "../lib/result-preview-sizing";
 import { summaryMetricLabel } from "../lib/result-metrics";
 import { STRUCTURE_NODE_RADII, STRUCTURE_STATE_COLORS, STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
@@ -97,6 +98,8 @@ function hingeMarker(x: number, y: number, key: string) {
 }
 
 export function FramePreview({ frame, compact = false }: FramePreviewProps) {
+  const objectVocabulary = modelObjectVocabulary("frame");
+  const memberTerm = modelObjectMemberTerm("frame");
   const padding = compact ? 52 : PADDING;
   const canvasSize = useMemo(
     () => frame ? resultPreviewCanvasSize(frame.nodes, frame.members.length) : RESULT_PREVIEW_BASE_SIZE,
@@ -209,7 +212,7 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
       : prev;
   }, "");
   const maxNodeDisplacementLabel = summaryMetricLabel("frame", "max_node_displacement", "最大节点位移");
-  const maxMemberMomentLabel = summaryMetricLabel("frame", "max_member_moment", "最大构件弯矩");
+  const maxMemberMomentLabel = summaryMetricLabel("frame", "max_member_moment", `最大${memberTerm}弯矩`);
 
   return (
     <GlassCard className="overflow-hidden">
@@ -364,7 +367,7 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
         {[
           {
             label: "模型摘要",
-            main: `${frame.nodes.length} 节点 · ${frame.members.length} 构件`,
+            main: `${frame.nodes.length} ${objectVocabulary.nodeGroupLabel} · ${frame.members.length} ${memberTerm}`,
             sub: frame.structureTypeLabel,
           },
           {

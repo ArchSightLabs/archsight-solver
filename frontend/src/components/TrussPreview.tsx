@@ -3,6 +3,7 @@ import { GlassCard } from "./ui/GlassCard";
 import type { SupportType, TrussPreviewData } from "../types/structure";
 import { buildTrussLoadMarkers, buildTrussMemberLengthDimensions, buildTrussMemberLengthLegendRows } from "./truss-preview-utils";
 import { formatEngineeringValue, formatLimitRatio, formatUtilizationPercent } from "../lib/engineering-format";
+import { modelObjectMemberTerm, modelObjectVocabulary } from "../lib/model-object-vocabulary";
 import { RESULT_PREVIEW_BASE_SIZE, resultPreviewCanvasSize, resultPreviewSvgStyle, type ResultPreviewCanvasSize } from "../lib/result-preview-sizing";
 import { STRUCTURE_NODE_RADII, STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
 
@@ -71,6 +72,8 @@ function memberLabelPlacement(start: { x: number; y: number }, end: { x: number;
 }
 
 export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
+  const objectVocabulary = modelObjectVocabulary("truss");
+  const memberTerm = modelObjectMemberTerm("truss");
   const padding = compact ? 54 : PADDING;
   const canvasSize = useMemo(
     () => truss ? resultPreviewCanvasSize(truss.nodes, truss.members.length) : RESULT_PREVIEW_BASE_SIZE,
@@ -169,7 +172,7 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
             节点 {truss.nodes.length}
           </span>
           <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-600 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300">
-            杆件 {truss.members.length}
+            {memberTerm} {truss.members.length}
           </span>
           <span className="rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-[10px] font-bold text-teal-700 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-300">
             允许位移 {formatEngineeringValue(truss.summary.allowableMm, "mm")}
@@ -303,7 +306,7 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
         {[
           {
             label: "模型摘要",
-            main: `${truss.nodes.length} 节点 · ${truss.members.length} 杆件`,
+            main: `${truss.nodes.length} ${objectVocabulary.nodeGroupLabel} · ${truss.members.length} ${memberTerm}`,
             sub: truss.structureTypeLabel,
           },
           {
@@ -314,7 +317,7 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
           {
             label: "轴力控制",
             main: formatEngineeringValue(truss.summary.maxAxialForceKn, "kN"),
-            sub: `杆件 ${truss.summary.maxAxialForceMemberId ?? "—"} · 状态：${truss.summary.status}`,
+            sub: `${memberTerm} ${truss.summary.maxAxialForceMemberId ?? "—"} · 状态：${truss.summary.status}`,
             highlight: true,
           },
         ].map((item, index) => (
