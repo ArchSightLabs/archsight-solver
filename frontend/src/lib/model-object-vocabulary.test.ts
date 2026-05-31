@@ -70,9 +70,11 @@ test("对象编辑器成员术语从共享模型对象词表派生", () => {
 
   const editorFiles = [
     "BeamSpanEditor.tsx",
+    "FrameCustomModelEditor.tsx",
     "FrameObjectNavigator.tsx",
     "FrameTableSection.tsx",
     "FrameMemberEditor.tsx",
+    "TrussCustomModelEditor.tsx",
     "TrussMemberEditor.tsx",
     "TrussObjectNavigator.tsx",
     "TrussTableSection.tsx",
@@ -84,6 +86,7 @@ test("对象编辑器成员术语从共享模型对象词表派生", () => {
     const source = readFileSync(new URL(`../components/${fileName}`, import.meta.url), "utf-8");
     assert.match(source, /modelObject(?:MemberTerm|Vocabulary)/u, `${fileName} 应从共享词表取得成员术语`);
     assert.doesNotMatch(source, /member(?:Term|Label)="(?:构件|杆件)"/u, `${fileName} 不应向共享子组件传入硬编码成员术语`);
+    assert.doesNotMatch(source, /memberElasticityDistributionLabel\([^)]*,\s*"(?:构件|杆件)"/u, `${fileName} 不应向材料摘要传入硬编码成员术语`);
   }
 });
 

@@ -29,6 +29,7 @@ import {
 } from "../lib/truss-model-edits.ts";
 import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
 import { memberElasticityDistributionLabel, youngModulusForMaterial } from "../lib/material-presets.ts";
+import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import { trussSupportStabilityWarning } from "../solver-payload.ts";
 import { PREDEFINED_MATERIALS } from "../types/material.ts";
 import type { TrussLoad, TrussMember, TrussNode } from "../types/structure.ts";
@@ -107,9 +108,10 @@ export function TrussCustomModelEditor({
     return { type: "load", id: "load-0" };
   }, [selectedObject, selection, value.loads, value.members, value.nodes]);
   const supportCount = value.nodes.filter((node) => (node.supportType ?? "free") !== "free").length;
+  const memberTerm = modelObjectMemberTerm("truss");
   const memberElasticitySummary = useMemo(
-    () => memberElasticityDistributionLabel(value.members, "杆件"),
-    [value.members],
+    () => memberElasticityDistributionLabel(value.members, memberTerm),
+    [memberTerm, value.members],
   );
   const defaultMemberElasticityGPa = youngModulusForMaterial(materialId, 210);
   const modelWarnings = useMemo(() => {

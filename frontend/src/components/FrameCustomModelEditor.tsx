@@ -38,6 +38,7 @@ import {
 import { FRAME_MODEL_TEMPLATES, cloneFrameModelTemplate } from "../lib/workbench-model-templates.ts";
 import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
 import { memberElasticityDistributionLabel, youngModulusForMaterial } from "../lib/material-presets.ts";
+import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import { frameSupportStabilityWarning } from "../solver-payload.ts";
 import { PREDEFINED_MATERIALS } from "../types/material.ts";
 import type {
@@ -117,9 +118,10 @@ export function FrameCustomModelEditor({
       (node.supportType ?? "free") !== "free" ||
       (node.springs ?? []).some((spring) => spring.dof === "rz" ? spring.stiffnessKnMPerRad > 0 : spring.stiffnessKnPerM > 0),
   ).length;
+  const memberTerm = modelObjectMemberTerm("frame");
   const memberElasticitySummary = useMemo(
-    () => memberElasticityDistributionLabel(value.members, "构件"),
-    [value.members],
+    () => memberElasticityDistributionLabel(value.members, memberTerm),
+    [memberTerm, value.members],
   );
   const defaultMemberElasticityGPa = youngModulusForMaterial(materialId, 210);
   const modelWarnings = useMemo(() => {
