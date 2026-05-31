@@ -11,6 +11,7 @@ import {
   type TrussReportFigure,
 } from "./report-figure-catalog.ts";
 import { analysisVocabulary } from "./analysis-vocabulary.ts";
+import { modelObjectMemberTerm } from "./model-object-vocabulary.ts";
 import { DEFAULT_REPORT_EXPORT_OPTIONS, reportExportOptionsForMode, type ReportExportOptions } from "./report-options.ts";
 
 export interface ReportImagePlanInput {
@@ -80,7 +81,7 @@ export function buildReportImagePlan(input: ReportImagePlanInput): ReportImagePl
     if (includeOverlay || includeTraditional) {
       plan.push(...reportFiguresForScope(FRAME_REPORT_MEMBER_FIGURES, includeAll).map((figure) => ({
         key: figure.overlayImageKey,
-        label: `构件${figure.title}`,
+        label: `${modelObjectMemberTerm("frame")}${figure.title}`,
         kind: "frameOverlay" as const,
         figure,
       })));

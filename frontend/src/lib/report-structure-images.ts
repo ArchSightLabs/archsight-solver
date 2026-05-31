@@ -32,6 +32,7 @@ import {
 import {
   renderOption,
 } from "./report-rendering.ts";
+import { modelObjectMemberTerm } from "./model-object-vocabulary.ts";
 import { RESULT_PREVIEW_BASE_SIZE, resultPreviewCanvasSize } from "./result-preview-sizing.ts";
 import { STRUCTURE_REPORT_COLORS, STRUCTURE_RESULT_COLORS, STRUCTURE_VISUAL_STROKES } from "./structure-visual-tokens.ts";
 
@@ -212,7 +213,7 @@ export function buildFramePreviewGraphics(results: FrameCalculationResults, canv
   const effectiveCanvasSize = canvasSize ?? frameReportCanvasSize(preview);
   return buildStructurePreviewGraphics({
     systemLabel: "平面框架",
-    memberTerm: "构件",
+    memberTerm: modelObjectMemberTerm("frame"),
     nodes: frameReportNodesFromPreview(preview),
     members: preview.members,
     deformedNodes: preview.deformedNodes.map((node) => ({ id: node.nodeId, x: node.x, y: node.y })),
@@ -237,7 +238,7 @@ export function buildTrussPreviewGraphics(results: TrussCalculationResults, canv
   const effectiveCanvasSize = canvasSize ?? trussReportCanvasSize(preview);
   return buildStructurePreviewGraphics({
     systemLabel: "平面桁架",
-    memberTerm: "杆件",
+    memberTerm: modelObjectMemberTerm("truss"),
     nodes: trussReportNodesFromPreview(preview),
     members: preview.members,
     deformedNodes: preview.deformedNodes.map((node) => ({ id: node.id, x: node.x, y: node.y })),
@@ -264,6 +265,7 @@ export function buildFrameOverlayGraphics(
   const preview = results.frame ?? results.preview;
   if (!preview) return [];
   const effectiveCanvasSize = canvasSize ?? frameReportCanvasSize(preview);
+  const memberTerm = modelObjectMemberTerm("frame");
   const metricConfig =
     metric === "momentKnM"
       ? { label: "弯矩图", unit: "kN·m", color: STRUCTURE_RESULT_COLORS.frameMoment }
@@ -294,7 +296,7 @@ export function buildFrameOverlayGraphics(
   addReportHeader(
     graphics,
     `平面框架 ${metricConfig.label}（模型叠加）`,
-    extreme ? `控制值 ${extreme.value.toFixed(3)} ${metricConfig.unit}，构件 ${extreme.memberId}，s=${extreme.stationM.toFixed(2)} m` : "无构件测站数据",
+    extreme ? `控制值 ${extreme.value.toFixed(3)} ${metricConfig.unit}，${memberTerm} ${extreme.memberId}，s=${extreme.stationM.toFixed(2)} m` : `无${memberTerm}测站数据`,
   );
   addDimensionLegend(graphics, buildFrameDimensionLegendRows(buildFrameGeometryDimensions(nodes, members), 240, 12));
   for (const member of members) {
@@ -369,6 +371,7 @@ export async function renderTrussOverlay(results: TrussCalculationResults, metri
 export function buildTrussOverlayGraphics(results: TrussCalculationResults, metric: "axial" | "displacement", canvasSize?: ReportCanvasSize): ReportGraphic[] {
   const preview = results.truss ?? results.preview;
   if (!preview) return [];
+  const memberTerm = modelObjectMemberTerm("truss");
   const nodes = trussReportNodesFromPreview(preview);
   const effectiveCanvasSize = canvasSize ?? trussReportCanvasSize(preview);
   const layout = buildReportStructureLayout(nodes, metric === "displacement" ? preview.deformedNodes : [], effectiveCanvasSize.width, effectiveCanvasSize.height);
@@ -384,8 +387,8 @@ export function buildTrussOverlayGraphics(results: TrussCalculationResults, metr
   addImageBackground(graphics, effectiveCanvasSize);
   addReportHeader(
     graphics,
-    metric === "axial" ? "平面桁架 杆件轴力图（模型叠加）" : "平面桁架 节点位移图（模型叠加）",
-    metric === "axial" && controlAxial ? `控制轴力 ${controlAxial.axialForceKn.toFixed(3)} kN，杆件 ${controlAxial.memberId}` : controlNode ? `控制位移 ${controlNode.displacementMm.toFixed(3)} mm，节点 ${controlNode.nodeId}` : "",
+    metric === "axial" ? `平面桁架 ${memberTerm}轴力图（模型叠加）` : "平面桁架 节点位移图（模型叠加）",
+    metric === "axial" && controlAxial ? `控制轴力 ${controlAxial.axialForceKn.toFixed(3)} kN，${memberTerm} ${controlAxial.memberId}` : controlNode ? `控制位移 ${controlNode.displacementMm.toFixed(3)} mm，节点 ${controlNode.nodeId}` : "",
   );
   addDimensionLegend(graphics, buildTrussMemberLengthLegendRows(buildTrussMemberLengthDimensions(preview.nodes, preview.members), 240, 12));
   for (const member of preview.members) {

@@ -86,3 +86,15 @@ test("对象编辑器成员术语从共享模型对象词表派生", () => {
     assert.doesNotMatch(source, /member(?:Term|Label)="(?:构件|杆件)"/u, `${fileName} 不应向共享子组件传入硬编码成员术语`);
   }
 });
+
+test("计算书图形和导出计划成员术语从共享模型对象词表派生", () => {
+  const reportFiles = ["report-structure-images.ts", "report-image-plan.ts"];
+
+  for (const fileName of reportFiles) {
+    const source = readFileSync(new URL(`./${fileName}`, import.meta.url), "utf-8");
+    assert.match(source, /modelObjectMemberTerm/u, `${fileName} 应从共享词表取得成员术语`);
+    assert.doesNotMatch(source, /memberTerm:\s*"(?:构件|杆件)"/u, `${fileName} 不应硬编码报告图形成员术语`);
+    assert.doesNotMatch(source, /label:\s*`构件/u, `${fileName} 不应硬编码框架导出图形成员标签`);
+    assert.doesNotMatch(source, /(?:构件|杆件) \$\{(?:extreme|controlAxial)\.memberId\}/u, `${fileName} 不应硬编码控制成员编号前缀`);
+  }
+});
