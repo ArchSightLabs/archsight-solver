@@ -1,6 +1,7 @@
 import type { BeamWorkspaceState } from "../types/beam.ts";
 import { PREDEFINED_MATERIALS } from "../types/material.ts";
 import type { FrameLoad, FrameWorkspaceState, StructureMember, StructureNode, TrussLoad, TrussMember, TrussNode, TrussWorkspaceState } from "../types/structure.ts";
+import templateBenchmarkMap from "../../../data/verification/template_benchmark_map.json" with { type: "json" };
 
 export interface TemplateValidationRef {
   caseId: string;
@@ -37,6 +38,39 @@ export interface TrussModelTemplate {
   nodes: TrussNode[];
   members: TrussMember[];
   loads: TrussLoad[];
+}
+
+type TemplateModule = "beam" | "frame" | "truss";
+type RawBeamModelTemplate = Omit<BeamModelTemplate, "validationRefs">;
+type RawFrameModelTemplate = Omit<FrameModelTemplate, "validationRefs">;
+type RawTrussModelTemplate = Omit<TrussModelTemplate, "validationRefs">;
+
+interface TemplateBenchmarkMap {
+  templates: Array<{
+    module: TemplateModule;
+    templateId: string;
+    validationRefs: TemplateValidationRef[];
+  }>;
+}
+
+const TEMPLATE_BENCHMARK_MAP = templateBenchmarkMap as TemplateBenchmarkMap;
+
+function validationRefsForTemplate(module: TemplateModule, templateId: string): TemplateValidationRef[] {
+  const mapping = TEMPLATE_BENCHMARK_MAP.templates.find((item) => item.module === module && item.templateId === templateId);
+  if (!mapping) {
+    throw new Error(`模板 ${module}:${templateId} 缺少公开验证集映射。`);
+  }
+  return mapping.validationRefs.map((ref) => ({ ...ref }));
+}
+
+function withValidationRefs<TTemplate extends { id: string }, TResult extends TTemplate & { validationRefs: TemplateValidationRef[] }>(
+  module: TemplateModule,
+  templates: TTemplate[],
+): TResult[] {
+  return templates.map((template) => ({
+    ...template,
+    validationRefs: validationRefsForTemplate(module, template.id),
+  })) as TResult[];
 }
 
 function cloneFrameNodes(nodes: StructureNode[]): StructureNode[] {
@@ -76,19 +110,12 @@ function cloneTrussLoads(loads: TrussLoad[]): TrussLoad[] {
   return loads.map((load) => ({ ...load })) as TrussLoad[];
 }
 
-export const BEAM_MODEL_TEMPLATES: BeamModelTemplate[] = [
+export const BEAM_MODEL_TEMPLATES: BeamModelTemplate[] = withValidationRefs<RawBeamModelTemplate, BeamModelTemplate>("beam", [
   {
     id: "simple-span-uniform",
     title: "简支梁均布荷载",
     description: "单跨简支梁承受全跨均布荷载，适合校核跨中挠度与支座反力。",
     tags: ["简支梁", "均布荷载", "单跨"],
-    validationRefs: [
-      {
-        caseId: "beam-simply-supported-uniform",
-        relation: "对应",
-        note: "同为单跨简支梁全跨均布荷载，主要复核最大挠度与峰值位置。",
-      },
-    ],
     state: {
       projectName: "简支梁均布荷载",
       materialId: "q345",
@@ -121,13 +148,6 @@ export const BEAM_MODEL_TEMPLATES: BeamModelTemplate[] = [
     title: "悬臂梁端部集中力",
     description: "左端固结、自由端集中荷载，适合验证悬臂梁端位移与固定端弯矩。",
     tags: ["悬臂梁", "集中荷载", "位移"],
-    validationRefs: [
-      {
-        caseId: "beam-cantilever-end-point",
-        relation: "对应",
-        note: "同为悬臂梁自由端集中荷载，主要复核自由端挠度。",
-      },
-    ],
     state: {
       projectName: "悬臂梁端部集中力",
       materialId: "q235",
@@ -157,13 +177,6 @@ export const BEAM_MODEL_TEMPLATES: BeamModelTemplate[] = [
     title: "两跨连续梁",
     description: "两跨等截面连续梁承受均布荷载，适合复核中间支座负弯矩。",
     tags: ["连续梁", "两跨", "均布荷载"],
-    validationRefs: [
-      {
-        caseId: "beam-continuous-two-span-uniform",
-        relation: "对应",
-        note: "同为两跨连续梁均布荷载，主要复核连续梁变形控制值。",
-      },
-    ],
     state: {
       projectName: "两跨连续梁",
       materialId: "q345",
@@ -200,13 +213,6 @@ export const BEAM_MODEL_TEMPLATES: BeamModelTemplate[] = [
     title: "三跨连续梁线性分布荷载",
     description: "三跨连续梁局部线性分布荷载，适合观察荷载范围变化对变形响应的影响。",
     tags: ["连续梁", "三跨", "线性分布"],
-    validationRefs: [
-      {
-        caseId: "beam-continuous-three-span-uniform",
-        relation: "相近",
-        note: "验证对象同为三跨连续梁；公开 benchmark 采用均布荷载，模板采用线性分布荷载。",
-      },
-    ],
     state: {
       projectName: "三跨连续梁线性分布荷载",
       materialId: "c40",
@@ -240,21 +246,14 @@ export const BEAM_MODEL_TEMPLATES: BeamModelTemplate[] = [
       ],
     },
   },
-];
+]);
 
-export const FRAME_MODEL_TEMPLATES: FrameModelTemplate[] = [
+export const FRAME_MODEL_TEMPLATES: FrameModelTemplate[] = withValidationRefs<RawFrameModelTemplate, FrameModelTemplate>("frame", [
   {
     id: "portal-single-bay",
     title: "单跨单层刚架",
     description: "固定柱脚、梁面均布荷载和右上节点竖向荷载，适合门式刚架起算。",
     tags: ["刚架", "单跨", "均布荷载"],
-    validationRefs: [
-      {
-        caseId: "frame-portal-benchmark",
-        relation: "相近",
-        note: "同为单跨门式刚架；荷载组合略有差异，主要复核位移与构件弯矩口径。",
-      },
-    ],
     nodes: [
       { id: "N1", x: 0, y: 0, supportType: "fixed" },
       { id: "N2", x: 6, y: 0, supportType: "fixed" },
@@ -276,13 +275,6 @@ export const FRAME_MODEL_TEMPLATES: FrameModelTemplate[] = [
     title: "两跨单层框架",
     description: "三榀柱、两跨梁，适合连续梁柱体系和跨中荷载校核。",
     tags: ["框架", "两跨", "连续梁"],
-    validationRefs: [
-      {
-        caseId: "frame-explicit-two-bay",
-        relation: "对应",
-        note: "同为显式两跨单层框架，主要复核节点位移、构件弯矩与对象数量。",
-      },
-    ],
     nodes: [
       { id: "N1", x: 0, y: 0, supportType: "fixed" },
       { id: "N2", x: 5, y: 0, supportType: "fixed" },
@@ -308,13 +300,6 @@ export const FRAME_MODEL_TEMPLATES: FrameModelTemplate[] = [
     title: "两层两跨框架",
     description: "两层两跨规则框架，适合节点水平位移与梁柱内力分布演示。",
     tags: ["框架", "两层", "侧向荷载"],
-    validationRefs: [
-      {
-        caseId: "frame-explicit-two-bay",
-        relation: "相近",
-        note: "公开 benchmark 覆盖显式两跨单层框架；该模板扩展到两层，需另补专门 benchmark。",
-      },
-    ],
     nodes: [
       { id: "N1", x: 0, y: 0, supportType: "fixed" },
       { id: "N2", x: 5, y: 0, supportType: "fixed" },
@@ -349,13 +334,6 @@ export const FRAME_MODEL_TEMPLATES: FrameModelTemplate[] = [
     title: "带斜撑框架",
     description: "单跨框架含交叉斜撑，用于比较斜撑构件对水平位移和构件轴力的影响。",
     tags: ["斜撑", "抗侧", "轴力"],
-    validationRefs: [
-      {
-        caseId: "frame-portal-benchmark",
-        relation: "相关",
-        note: "共享门式刚架基本边界；斜撑端部释放与抗侧效果仍需新增专项 benchmark。",
-      },
-    ],
     nodes: [
       { id: "N1", x: 0, y: 0, supportType: "fixed" },
       { id: "N2", x: 6, y: 0, supportType: "fixed" },
@@ -374,21 +352,14 @@ export const FRAME_MODEL_TEMPLATES: FrameModelTemplate[] = [
       { type: "nodal", node: "N4", fxKn: 20, fyKn: 0, mzKnM: 0 },
     ],
   },
-];
+]);
 
-export const TRUSS_MODEL_TEMPLATES: TrussModelTemplate[] = [
+export const TRUSS_MODEL_TEMPLATES: TrussModelTemplate[] = withValidationRefs<RawTrussModelTemplate, TrussModelTemplate>("truss", [
   {
     id: "simple-roof-truss",
     title: "简支三角屋架",
     description: "两端简支、上弦受竖向节点荷载，适合作为平面桁架基础案例。",
     tags: ["屋架", "简支", "节点荷载"],
-    validationRefs: [
-      {
-        caseId: "truss-simple-roof",
-        relation: "对应",
-        note: "同为简支屋架节点荷载，主要复核节点位移与杆件轴力。",
-      },
-    ],
     nodes: [
       { id: "N1", x: 0, y: 0, supportType: "pinned" },
       { id: "N2", x: 6, y: 0, supportType: "roller" },
@@ -412,13 +383,6 @@ export const TRUSS_MODEL_TEMPLATES: TrussModelTemplate[] = [
     title: "Pratt 桁架",
     description: "下弦连续、腹杆向跨中倾斜，适合桥式桁架轴力教学。",
     tags: ["Pratt", "桥式", "腹杆"],
-    validationRefs: [
-      {
-        caseId: "truss-pratt-bridge",
-        relation: "对应",
-        note: "同为 Pratt 桁架，主要复核节点位移、杆件轴力和控制杆件。",
-      },
-    ],
     nodes: [
       { id: "N1", x: 0, y: 0, supportType: "pinned" },
       { id: "N2", x: 3, y: 0, supportType: "free" },
@@ -455,13 +419,6 @@ export const TRUSS_MODEL_TEMPLATES: TrussModelTemplate[] = [
     title: "Warren 桁架",
     description: "等距三角腹杆布置，适合比较拉压杆件交替分布。",
     tags: ["Warren", "等距", "桥式"],
-    validationRefs: [
-      {
-        caseId: "truss-warren-roof",
-        relation: "对应",
-        note: "同为 Warren 桁架，主要复核节点位移与杆件轴力。",
-      },
-    ],
     nodes: [
       { id: "N1", x: 0, y: 0, supportType: "pinned" },
       { id: "N2", x: 4, y: 0, supportType: "free" },
@@ -495,13 +452,6 @@ export const TRUSS_MODEL_TEMPLATES: TrussModelTemplate[] = [
     title: "悬臂桁架",
     description: "左端双节点铰约束等效固定边界、右端节点竖向荷载，适合观察悬臂体系位移。",
     tags: ["悬臂", "位移", "支座反力"],
-    validationRefs: [
-      {
-        caseId: "truss-cantilever-panel",
-        relation: "对应",
-        note: "同为悬挑桁架体系，主要复核自由端节点位移与杆件轴力。",
-      },
-    ],
     nodes: [
       { id: "N1", x: 0, y: 0, supportType: "pinned" },
       { id: "N2", x: 0, y: 3, supportType: "pinned" },
@@ -526,7 +476,7 @@ export const TRUSS_MODEL_TEMPLATES: TrussModelTemplate[] = [
       { type: "nodal", node: "N6", fxKn: 0, fyKn: -30 },
     ],
   },
-];
+]);
 
 export function cloneFrameModelTemplate(template: FrameModelTemplate) {
   return {

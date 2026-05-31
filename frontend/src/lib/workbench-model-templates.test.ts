@@ -23,6 +23,7 @@ interface TemplateBenchmarkMap {
 const TEMPLATE_BENCHMARK_MAP = JSON.parse(
   readFileSync(new URL("../../../data/verification/template_benchmark_map.json", import.meta.url), "utf-8")
 ) as TemplateBenchmarkMap;
+const TEMPLATE_SOURCE = readFileSync(new URL("./workbench-model-templates.ts", import.meta.url), "utf-8");
 
 test("内置梁系典型案例可导入并构造求解载荷", () => {
   assert.ok(BEAM_MODEL_TEMPLATES.length >= 4);
@@ -46,6 +47,7 @@ test("内置模板均标注公开验证集映射", () => {
     ...FRAME_MODEL_TEMPLATES.map((template) => ({ module: "frame", template })),
     ...TRUSS_MODEL_TEMPLATES.map((template) => ({ module: "truss", template })),
   ];
+  const templateKeys = new Set(templates.map(({ module, template }) => `${module}:${template.id}`));
   const mappingByTemplate = new Map(TEMPLATE_BENCHMARK_MAP.templates.map((item) => [`${item.module}:${item.templateId}`, item]));
 
   for (const { module, template } of templates) {
@@ -61,6 +63,13 @@ test("内置模板均标注公开验证集映射", () => {
       mapped.validationRefs.map((ref) => ref.caseId)
     );
   }
+  assert.deepEqual(new Set(mappingByTemplate.keys()), templateKeys);
+});
+
+test("内置模板的 benchmark 引用只从数据事实源注入", () => {
+  assert.match(TEMPLATE_SOURCE, /template_benchmark_map\.json/u);
+  assert.doesNotMatch(TEMPLATE_SOURCE, /caseId:\s*["']/u);
+  assert.doesNotMatch(TEMPLATE_SOURCE, /validationRefs:\s*\[/u);
 });
 
 test("默认连续梁工作区包含中间支座", () => {
