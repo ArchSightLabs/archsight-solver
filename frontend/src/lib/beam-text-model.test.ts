@@ -209,6 +209,8 @@ test("serializeBeamTextModel preserves multiple linear loads", () => {
 test("serializeBeamTextModel keeps long format hints as real comment lines", () => {
   const text = serializeBeamTextModel(createDefaultBeamWorkspaceState());
 
+  assert.match(text, /# SPAN,跨段编号,跨长m,材料编号或E_GPa,I_cm4/u);
+  assert.doesNotMatch(text, /杆件编号/u);
   assert.match(text, /# 支座类型：fixed=固结支座；pinned=铰支座；roller=滚动支座；free=自由端\/无约束/u);
   assert.match(text, /# 约束自由度可写 v、rz、v\+rz 或 -；未写时按支座类型默认自由度/u);
   assert.match(text, /# LOAD,uniform,q_kN_per_m,startRatio,endRatio {2}均布荷载，q 为 kN\/m，范围比例默认 0-1\n# LOAD,point,P_kN,ratio {2}集中力，P 为 kN，ratio 为跨全长相对位置 0-1\n# LOAD,linear,q1,q2,startRatio,endRatio {2}线性分布荷载，q1\/q2 为起止强度 kN\/m/u);
@@ -237,7 +239,7 @@ SUPPORT,S1,0,pinned
 
   assert.ok(result.patch);
   assert.equal(result.patch?.spans, undefined);
-  assert.match(result.diagnostics.join("\n"), /SPAN 必须包含杆件编号（可选）、跨长、材料编号或 E_GPa、I_cm4/u);
+  assert.match(result.diagnostics.join("\n"), /SPAN 必须包含跨段编号（可选）、跨长、材料编号或 E_GPa、I_cm4/u);
 });
 
 test("parseBeamTextModel rejects undefined material ids", () => {
@@ -260,7 +262,7 @@ SPAN,6,steelx,8000
 
   assert.ok(result.patch);
   assert.equal(result.patch?.spans, undefined);
-  assert.match(result.diagnostics.join("\n"), /杆件材料编号 steelx 未在材料库中定义/u);
+  assert.match(result.diagnostics.join("\n"), /跨段材料编号 steelx 未在材料库中定义/u);
 });
 
 test("parseBeamTextModel rejects incomplete supports loads and springs", () => {
