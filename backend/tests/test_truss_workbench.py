@@ -13,25 +13,24 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 from app import app
 from backend.exporters.common.report_figure_catalog import TRUSS_REPORT_OVERLAY_FIGURES, report_figures_for_scope
 from backend.exporters.common.report_figures import BLUE, ChartSeries, line_chart_png
+from backend.tests.docx_assertions import assert_docx_embeds_report_images
 from backend.tests.benchmark_catalog import load_benchmark_catalog
 
 
 BENCHMARK_CASES = [case for case in load_benchmark_catalog()["cases"] if case["category"] == "truss"]
 
 
-def _report_image() -> str:
-    png = line_chart_png([0, 1], [ChartSeries("占位", [0, 1], BLUE)])
+def _report_image(seed: int = 1) -> str:
+    png = line_chart_png([0, 1], [ChartSeries("占位", [0, 1], BLUE)], width=900 + seed, height=480)
     return f"data:image/png;base64,{base64.b64encode(png).decode('ascii')}"
 
 
 def _truss_report_images_for_scope(*, include_all: bool) -> dict[str, str]:
-    return {
-        "truss.preview": _report_image(),
-        **{
-            figure.image_key: _report_image()
-            for figure in report_figures_for_scope(TRUSS_REPORT_OVERLAY_FIGURES, include_all=include_all)
-        },
-    }
+    keys = [
+        "truss.preview",
+        *(figure.image_key for figure in report_figures_for_scope(TRUSS_REPORT_OVERLAY_FIGURES, include_all=include_all)),
+    ]
+    return {key: _report_image(index) for index, key in enumerate(keys, start=1)}
 
 
 def _base_payload():
@@ -188,14 +187,19 @@ def test_truss_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
     assert "未收到前端同源结构预览图" not in full_text
     assert "未收到前端同源模型叠加工程图" not in full_text
     assert len(doc.inline_shapes) == 1 + len(figures)
+    assert_docx_embeds_report_images(
+        response.data,
+        report_images,
+        ["truss.preview", *(figure.image_key for figure in figures)],
+    )
 
 
 def test_truss_docx_export_control_scope_uses_only_preview_and_control_figure(client):
     figures = report_figures_for_scope(TRUSS_REPORT_OVERLAY_FIGURES, include_all=False)
     assert [figure.image_key for figure in figures] == ["truss.overlay.axial"]
     report_images = {
-        "truss.preview": _report_image(),
-        figures[0].image_key: _report_image(),
+        "truss.preview": _report_image(1),
+        figures[0].image_key: _report_image(2),
     }
 
     response = client.post(
@@ -218,6 +222,7 @@ def test_truss_docx_export_control_scope_uses_only_preview_and_control_figure(cl
     assert "节点位移图" not in full_text
     assert "未收到前端同源模型叠加工程图" not in full_text
     assert len(doc.inline_shapes) == 2
+    assert_docx_embeds_report_images(response.data, report_images, ["truss.preview", figures[0].image_key])
 
 
 @pytest.mark.parametrize(

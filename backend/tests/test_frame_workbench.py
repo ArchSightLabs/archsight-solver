@@ -12,21 +12,20 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 from app import app
 from backend.exporters.common.report_figure_catalog import FRAME_REPORT_MEMBER_FIGURES, report_figures_for_scope
 from backend.exporters.common.report_figures import BLUE, ChartSeries, line_chart_png
+from backend.tests.docx_assertions import assert_docx_embeds_report_images
 
 
-def _report_image() -> str:
-    png = line_chart_png([0, 1], [ChartSeries("占位", [0, 1], BLUE)])
+def _report_image(seed: int = 1) -> str:
+    png = line_chart_png([0, 1], [ChartSeries("占位", [0, 1], BLUE)], width=900 + seed, height=480)
     return f"data:image/png;base64,{base64.b64encode(png).decode('ascii')}"
 
 
 def _frame_report_images_for_scope(*, include_all: bool) -> dict[str, str]:
-    return {
-        "frame.preview": _report_image(),
-        **{
-            figure.overlay_image_key: _report_image()
-            for figure in report_figures_for_scope(FRAME_REPORT_MEMBER_FIGURES, include_all=include_all)
-        },
-    }
+    keys = [
+        "frame.preview",
+        *(figure.overlay_image_key for figure in report_figures_for_scope(FRAME_REPORT_MEMBER_FIGURES, include_all=include_all)),
+    ]
+    return {key: _report_image(index) for index, key in enumerate(keys, start=1)}
 
 
 def frame_payload():
@@ -316,14 +315,19 @@ def test_frame_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
     assert "未收到前端同源结构预览图" not in full_text
     assert "未收到前端同源模型叠加工程图" not in full_text
     assert len(doc.inline_shapes) == 1 + len(figures)
+    assert_docx_embeds_report_images(
+        response.data,
+        report_images,
+        ["frame.preview", *(figure.overlay_image_key for figure in figures)],
+    )
 
 
 def test_frame_docx_export_control_scope_uses_only_preview_and_control_figure(client):
     figures = report_figures_for_scope(FRAME_REPORT_MEMBER_FIGURES, include_all=False)
     assert [figure.overlay_image_key for figure in figures] == ["frame.overlay.moment"]
     report_images = {
-        "frame.preview": _report_image(),
-        figures[0].overlay_image_key: _report_image(),
+        "frame.preview": _report_image(1),
+        figures[0].overlay_image_key: _report_image(2),
     }
 
     response = client.post(
@@ -348,6 +352,7 @@ def test_frame_docx_export_control_scope_uses_only_preview_and_control_figure(cl
     assert "构件轴力图" not in full_text
     assert "未收到前端同源模型叠加工程图" not in full_text
     assert len(doc.inline_shapes) == 2
+    assert_docx_embeds_report_images(response.data, report_images, ["frame.preview", figures[0].overlay_image_key])
 
 
 def test_frame_exports_include_load_combination_tags(client):
