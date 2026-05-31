@@ -7,11 +7,13 @@ import {
   buildFrameSupportMarkerGraphics,
   buildTrussOverlayGraphics,
   buildTrussPreviewGraphics,
+  frameReportCanvasSize,
   frameReportNodesFromPreview,
+  trussReportCanvasSize,
   trussReportNodesFromPreview,
 } from "./report-structure-images.ts";
 import type { FrameCalculationResults, FramePreviewData, TrussCalculationResults, TrussPreviewData } from "../types/structure.ts";
-import type { ReportGraphic } from "./report-structure-graphics.ts";
+import { REPORT_IMAGE_BASE_SIZE, type ReportGraphic } from "./report-structure-graphics.ts";
 
 function graphicTexts(graphics: ReportGraphic[]): string[] {
   return graphics.flatMap((graphic) => {
@@ -34,6 +36,14 @@ function assertSomeGraphicText(graphics: ReportGraphic[], pattern: RegExp): void
     texts.some((text) => pattern.test(text)),
     `缺少匹配图形文字：${pattern}\n实际文字：${texts.join(" | ")}`,
   );
+}
+
+function backgroundShape(graphics: ReportGraphic[]): { width: number; height: number } {
+  const shape = graphics[0]?.shape as { width?: unknown; height?: unknown } | undefined;
+  return {
+    width: Number(shape?.width ?? 0),
+    height: Number(shape?.height ?? 0),
+  };
 }
 
 test("桁架计算书图形节点保留铰支座与滚动支座差异", () => {
@@ -159,6 +169,54 @@ test("框架计算书预览图保留节点构件编号尺寸和荷载标注", ()
   assertSomeGraphicText(graphics, /F\d+=24\.0 kN/u);
 });
 
+test("框架计算书预览图随大模型扩展画布并压缩等长构件图例", () => {
+  const cols = 10;
+  const rows = 3;
+  const nodes = Array.from({ length: cols * rows }, (_, index) => ({
+    id: `N${index + 1}`,
+    x: (index % cols) * 3,
+    y: Math.floor(index / cols) * 3,
+    supportType: index < cols ? "pinned" : "free",
+  }));
+  const members = [
+    ...Array.from({ length: rows }).flatMap((_, row) =>
+      Array.from({ length: cols - 1 }, (_, col) => ({
+        id: `M${row * (cols - 1) + col + 1}`,
+        start: `N${row * cols + col + 1}`,
+        end: `N${row * cols + col + 2}`,
+      })),
+    ),
+    ...Array.from({ length: rows - 1 }).flatMap((_, row) =>
+      Array.from({ length: cols }, (_, col) => {
+        const id = rows * (cols - 1) + row * cols + col + 1;
+        return {
+          id: `M${id}`,
+          start: `N${row * cols + col + 1}`,
+          end: `N${(row + 1) * cols + col + 1}`,
+        };
+      }),
+    ),
+  ];
+  const frame = {
+    analysisType: "frame",
+    structureType: "explicit",
+    structureTypeLabel: "二维平面框架",
+    nodes,
+    members,
+    loads: [],
+    deformedNodes: nodes.map((node) => ({ nodeId: node.id, x: node.x, y: node.y })),
+  };
+  const results = { analysisType: "frame", frame } as unknown as FrameCalculationResults;
+
+  const canvasSize = frameReportCanvasSize(frame as unknown as NonNullable<FrameCalculationResults["frame"]>);
+  const graphics = buildFramePreviewGraphics(results);
+
+  assert.ok(canvasSize.width > REPORT_IMAGE_BASE_SIZE.width);
+  assert.ok(canvasSize.height > REPORT_IMAGE_BASE_SIZE.height);
+  assert.deepEqual(backgroundShape(graphics), canvasSize);
+  assertGraphicText(graphics, "M1等47根=3 m");
+});
+
 test("框架计算书叠加图保留结果图名称控制值和模型编号", () => {
   const results = {
     analysisType: "frame",
@@ -247,4 +305,66 @@ test("桁架计算书图形保留节点杆件编号尺寸和轴力控制标注",
   assertGraphicText(previewGraphics, "竖向荷载 20.0 kN");
   assertGraphicText(overlayGraphics, "平面桁架 杆件轴力图（模型叠加）");
   assertGraphicText(overlayGraphics, "-25.00 kN\nR2");
+});
+
+test("桁架计算书预览图随大模型扩展画布并压缩等长杆件图例", () => {
+  const cols = 10;
+  const rows = 3;
+  const nodes = Array.from({ length: cols * rows }, (_, index) => ({
+    id: `N${index + 1}`,
+    x: (index % cols) * 3,
+    y: Math.floor(index / cols) * 3,
+    role: index < cols ? "support" : "free",
+    supportType: index < cols ? "pinned" : "free",
+  }));
+  const members = [
+    ...Array.from({ length: rows }).flatMap((_, row) =>
+      Array.from({ length: cols - 1 }, (_, col) => ({
+        id: `M${row * (cols - 1) + col + 1}`,
+        start: `N${row * cols + col + 1}`,
+        end: `N${row * cols + col + 2}`,
+      })),
+    ),
+    ...Array.from({ length: rows - 1 }).flatMap((_, row) =>
+      Array.from({ length: cols }, (_, col) => {
+        const id = rows * (cols - 1) + row * cols + col + 1;
+        return {
+          id: `M${id}`,
+          start: `N${row * cols + col + 1}`,
+          end: `N${(row + 1) * cols + col + 1}`,
+        };
+      }),
+    ),
+  ];
+  const truss = {
+    analysisType: "truss",
+    structureType: "explicit",
+    structureTypeLabel: "二维平面桁架",
+    nodes,
+    members,
+    loads: [],
+    nodeResults: [],
+    memberResults: [],
+    deformedNodes: nodes.map((node) => ({ id: node.id, x: node.x, y: node.y, uxMm: 0, uyMm: 0 })),
+    deformationScale: 1,
+    summary: {
+      allowableMm: 24,
+      allowableRatio: 250,
+      maxDisplacementMm: 0,
+      maxAxialForceKn: 0,
+      statusCode: "PASS",
+      status: "合格",
+      method: "二维平面桁架杆单元法",
+    },
+    warnings: [],
+  };
+  const results = { analysisType: "truss", truss, preview: truss, nodeResults: [], memberResults: [] } as unknown as TrussCalculationResults;
+
+  const canvasSize = trussReportCanvasSize(truss as unknown as NonNullable<TrussCalculationResults["truss"]>);
+  const graphics = buildTrussPreviewGraphics(results);
+
+  assert.ok(canvasSize.width > REPORT_IMAGE_BASE_SIZE.width);
+  assert.ok(canvasSize.height > REPORT_IMAGE_BASE_SIZE.height);
+  assert.deepEqual(backgroundShape(graphics), canvasSize);
+  assertGraphicText(graphics, "M1等47根=3 m");
 });

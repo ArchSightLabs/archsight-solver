@@ -8,8 +8,11 @@ import {
 
 export { REPORT_BG };
 
+export type ReportCanvasSize = { width: number; height: number };
+
 export const REPORT_IMAGE_W = 900;
 export const REPORT_IMAGE_H = 520;
+export const REPORT_IMAGE_BASE_SIZE: ReportCanvasSize = { width: REPORT_IMAGE_W, height: REPORT_IMAGE_H };
 export const BASE_MEMBER_STROKE = "rgba(51,65,85,0.62)";
 export const BASE_MEMBER_LIGHT_STROKE = "rgba(51,65,85,0.48)";
 export const LOAD_STROKE = "#dc2626";
@@ -78,8 +81,8 @@ export function buildReportStructureLayout(
   };
 }
 
-export function addImageBackground(graphics: ReportGraphic[]) {
-  graphics.push({ type: "rect", shape: { x: 0, y: 0, width: REPORT_IMAGE_W, height: REPORT_IMAGE_H }, style: { fill: REPORT_BG } });
+export function addImageBackground(graphics: ReportGraphic[], canvasSize: ReportCanvasSize = REPORT_IMAGE_BASE_SIZE) {
+  graphics.push({ type: "rect", shape: { x: 0, y: 0, width: canvasSize.width, height: canvasSize.height }, style: { fill: REPORT_BG } });
 }
 
 export function addReportHeader(graphics: ReportGraphic[], title: string, subtitle?: string) {

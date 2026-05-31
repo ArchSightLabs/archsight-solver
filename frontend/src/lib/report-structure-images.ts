@@ -9,9 +9,8 @@ import { buildTrussLoadMarkers, buildTrussMemberLengthDimensions, buildTrussMemb
 import {
   BASE_MEMBER_LIGHT_STROKE,
   BASE_MEMBER_STROKE,
+  REPORT_IMAGE_BASE_SIZE,
   REPORT_BG,
-  REPORT_IMAGE_H,
-  REPORT_IMAGE_W,
   LOAD_STROKE,
   addArrow,
   addControlCallout,
@@ -23,6 +22,7 @@ import {
   addReportHeader,
   buildReportStructureLayout,
   rotateReportPoint,
+  type ReportCanvasSize,
   type ReportGraphic,
   type ReportMember,
   type ReportNode,
@@ -32,6 +32,7 @@ import {
 import {
   renderOption,
 } from "./report-rendering.ts";
+import { RESULT_PREVIEW_BASE_SIZE, resultPreviewCanvasSize } from "./result-preview-sizing.ts";
 
 type ReportStructureLoadRenderer = (
   graphics: ReportGraphic[],
@@ -42,7 +43,46 @@ type ReportStructureLoadRenderer = (
   },
 ) => void;
 
-export function trussReportNodesFromPreview(preview: TrussCalculationResults["truss"] | TrussCalculationResults["preview"]): ReportNode[] {
+type FrameReportPreview = NonNullable<FrameCalculationResults["frame"] | FrameCalculationResults["preview"]>;
+type TrussReportPreview = NonNullable<TrussCalculationResults["truss"] | TrussCalculationResults["preview"]>;
+
+export function reportStructureCanvasSize(
+  nodes: Array<{ x: number; y: number }>,
+  memberCount: number,
+  extra: Array<{ x: number; y: number }> = [],
+): ReportCanvasSize {
+  const previewSize = resultPreviewCanvasSize([...nodes, ...extra], memberCount);
+  return {
+    width: Math.max(REPORT_IMAGE_BASE_SIZE.width, Math.round((previewSize.width / RESULT_PREVIEW_BASE_SIZE.width) * REPORT_IMAGE_BASE_SIZE.width)),
+    height: Math.max(REPORT_IMAGE_BASE_SIZE.height, Math.round((previewSize.height / RESULT_PREVIEW_BASE_SIZE.height) * REPORT_IMAGE_BASE_SIZE.height)),
+  };
+}
+
+function reportCalloutClampX(canvasSize: ReportCanvasSize): [number, number] {
+  return [30, Math.max(30, canvasSize.width - 185)];
+}
+
+function reportCalloutClampY(canvasSize: ReportCanvasSize): [number, number] {
+  return [74, Math.max(74, canvasSize.height - 65)];
+}
+
+function framePreviewExtraNodes(preview: FrameReportPreview) {
+  return preview.deformedNodes.map((node) => ({ x: node.x, y: node.y }));
+}
+
+function trussPreviewExtraNodes(preview: TrussReportPreview) {
+  return preview.deformedNodes.map((node) => ({ x: node.x, y: node.y }));
+}
+
+export function frameReportCanvasSize(preview: FrameReportPreview): ReportCanvasSize {
+  return reportStructureCanvasSize(preview.nodes, preview.members.length, framePreviewExtraNodes(preview));
+}
+
+export function trussReportCanvasSize(preview: TrussReportPreview): ReportCanvasSize {
+  return reportStructureCanvasSize(preview.nodes, preview.members.length, trussPreviewExtraNodes(preview));
+}
+
+export function trussReportNodesFromPreview(preview: TrussReportPreview): ReportNode[] {
   return (preview?.nodes ?? []).map((node) => ({
     id: node.id,
     x: node.x,
@@ -51,7 +91,7 @@ export function trussReportNodesFromPreview(preview: TrussCalculationResults["tr
   }));
 }
 
-export function frameReportNodesFromPreview(preview: FrameCalculationResults["frame"] | FrameCalculationResults["preview"]): ReportNode[] {
+export function frameReportNodesFromPreview(preview: FrameReportPreview): ReportNode[] {
   return (preview?.nodes ?? []).map((node) => ({
     id: node.id,
     x: node.x,
@@ -158,20 +198,24 @@ function addTrussLoadGraphics(
 }
 
 export async function renderFramePreview(results: FrameCalculationResults) {
-  const graphics = buildFramePreviewGraphics(results);
+  const preview = results.frame ?? results.preview;
+  const canvasSize = preview ? frameReportCanvasSize(preview) : REPORT_IMAGE_BASE_SIZE;
+  const graphics = buildFramePreviewGraphics(results, canvasSize);
   if (!graphics.length) return "";
-  return renderReportGraphics(graphics);
+  return renderReportGraphics(graphics, canvasSize);
 }
 
-export function buildFramePreviewGraphics(results: FrameCalculationResults): ReportGraphic[] {
+export function buildFramePreviewGraphics(results: FrameCalculationResults, canvasSize?: ReportCanvasSize): ReportGraphic[] {
   const preview = results.frame ?? results.preview;
   if (!preview) return [];
+  const effectiveCanvasSize = canvasSize ?? frameReportCanvasSize(preview);
   return buildStructurePreviewGraphics({
     systemLabel: "平面框架",
     memberTerm: "构件",
     nodes: frameReportNodesFromPreview(preview),
     members: preview.members,
     deformedNodes: preview.deformedNodes.map((node) => ({ id: node.nodeId, x: node.x, y: node.y })),
+    canvasSize: effectiveCanvasSize,
     supportMarker: addFrameSupportMarker,
     dimensionRows: buildFrameDimensionLegendRows(buildFrameGeometryDimensions(preview.nodes, preview.members), 240, 12),
     renderLoads: (graphics, context) => addFrameLoadGraphics(graphics, preview.loads, context),
@@ -179,20 +223,24 @@ export function buildFramePreviewGraphics(results: FrameCalculationResults): Rep
 }
 
 export async function renderTrussPreview(results: TrussCalculationResults) {
-  const graphics = buildTrussPreviewGraphics(results);
+  const preview = results.truss ?? results.preview;
+  const canvasSize = preview ? trussReportCanvasSize(preview) : REPORT_IMAGE_BASE_SIZE;
+  const graphics = buildTrussPreviewGraphics(results, canvasSize);
   if (!graphics.length) return "";
-  return renderReportGraphics(graphics);
+  return renderReportGraphics(graphics, canvasSize);
 }
 
-export function buildTrussPreviewGraphics(results: TrussCalculationResults): ReportGraphic[] {
+export function buildTrussPreviewGraphics(results: TrussCalculationResults, canvasSize?: ReportCanvasSize): ReportGraphic[] {
   const preview = results.truss ?? results.preview;
   if (!preview) return [];
+  const effectiveCanvasSize = canvasSize ?? trussReportCanvasSize(preview);
   return buildStructurePreviewGraphics({
     systemLabel: "平面桁架",
     memberTerm: "杆件",
     nodes: trussReportNodesFromPreview(preview),
     members: preview.members,
     deformedNodes: preview.deformedNodes.map((node) => ({ id: node.id, x: node.x, y: node.y })),
+    canvasSize: effectiveCanvasSize,
     supportMarker: addTrussSupportMarker,
     dimensionRows: buildTrussMemberLengthLegendRows(buildTrussMemberLengthDimensions(preview.nodes, preview.members), 240, 12),
     renderLoads: (graphics, context) => addTrussLoadGraphics(graphics, preview.loads, context),
@@ -200,14 +248,21 @@ export function buildTrussPreviewGraphics(results: TrussCalculationResults): Rep
 }
 
 export async function renderFrameOverlay(results: FrameCalculationResults, metric: "momentKnM" | "shearKn" | "axialKn" | "deflectionMm") {
-  const graphics = buildFrameOverlayGraphics(results, metric);
+  const preview = results.frame ?? results.preview;
+  const canvasSize = preview ? frameReportCanvasSize(preview) : REPORT_IMAGE_BASE_SIZE;
+  const graphics = buildFrameOverlayGraphics(results, metric, canvasSize);
   if (!graphics.length) return "";
-  return renderReportGraphics(graphics);
+  return renderReportGraphics(graphics, canvasSize);
 }
 
-export function buildFrameOverlayGraphics(results: FrameCalculationResults, metric: "momentKnM" | "shearKn" | "axialKn" | "deflectionMm"): ReportGraphic[] {
+export function buildFrameOverlayGraphics(
+  results: FrameCalculationResults,
+  metric: "momentKnM" | "shearKn" | "axialKn" | "deflectionMm",
+  canvasSize?: ReportCanvasSize,
+): ReportGraphic[] {
   const preview = results.frame ?? results.preview;
   if (!preview) return [];
+  const effectiveCanvasSize = canvasSize ?? frameReportCanvasSize(preview);
   const metricConfig =
     metric === "momentKnM"
       ? { label: "弯矩图", unit: "kN·m", color: "#dc2626" }
@@ -221,7 +276,7 @@ export function buildFrameOverlayGraphics(results: FrameCalculationResults, metr
   const diagrams = results.memberDiagrams ?? [];
   const allValues = diagrams.flatMap((diagram) => diagram[metric].map((value) => Math.abs(value)));
   const maxAbs = Math.max(...allValues, 1e-9);
-  const layout = buildReportStructureLayout(nodes);
+  const layout = buildReportStructureLayout(nodes, [], effectiveCanvasSize.width, effectiveCanvasSize.height);
   const byId = new Map(nodes.map((node) => [node.id, node]));
   const diagramById = new Map(diagrams.map((diagram) => [diagram.memberId, diagram]));
   const extreme = diagrams.reduce<{ memberId: string; stationM: number; stationRatio: number; value: number } | null>((current, diagram) => {
@@ -234,7 +289,7 @@ export function buildFrameOverlayGraphics(results: FrameCalculationResults, metr
   }, null);
   let extremePoint: { x: number; y: number } | null = null;
   const graphics: ReportGraphic[] = [];
-  addImageBackground(graphics);
+  addImageBackground(graphics, effectiveCanvasSize);
   addReportHeader(
     graphics,
     `平面框架 ${metricConfig.label}（模型叠加）`,
@@ -295,24 +350,27 @@ export function buildFrameOverlayGraphics(results: FrameCalculationResults, metr
       text: `${extreme.value.toFixed(2)} ${metricConfig.unit}\n${extreme.memberId} / ${extreme.stationM.toFixed(2)} m`,
       color: metricConfig.color,
       offsetY: -42,
-      clampX: [30, 710],
-      clampY: [76, 455],
+      clampX: reportCalloutClampX(effectiveCanvasSize),
+      clampY: reportCalloutClampY(effectiveCanvasSize),
     });
   }
   return graphics;
 }
 
 export async function renderTrussOverlay(results: TrussCalculationResults, metric: "axial" | "displacement") {
-  const graphics = buildTrussOverlayGraphics(results, metric);
+  const preview = results.truss ?? results.preview;
+  const canvasSize = preview ? trussReportCanvasSize(preview) : REPORT_IMAGE_BASE_SIZE;
+  const graphics = buildTrussOverlayGraphics(results, metric, canvasSize);
   if (!graphics.length) return "";
-  return renderReportGraphics(graphics);
+  return renderReportGraphics(graphics, canvasSize);
 }
 
-export function buildTrussOverlayGraphics(results: TrussCalculationResults, metric: "axial" | "displacement"): ReportGraphic[] {
+export function buildTrussOverlayGraphics(results: TrussCalculationResults, metric: "axial" | "displacement", canvasSize?: ReportCanvasSize): ReportGraphic[] {
   const preview = results.truss ?? results.preview;
   if (!preview) return [];
   const nodes = trussReportNodesFromPreview(preview);
-  const layout = buildReportStructureLayout(nodes, metric === "displacement" ? preview.deformedNodes : []);
+  const effectiveCanvasSize = canvasSize ?? trussReportCanvasSize(preview);
+  const layout = buildReportStructureLayout(nodes, metric === "displacement" ? preview.deformedNodes : [], effectiveCanvasSize.width, effectiveCanvasSize.height);
   const byId = new Map(nodes.map((node) => [node.id, node]));
   const memberResultById = new Map(results.memberResults.map((member) => [member.memberId, member]));
   const maxAbsAxial = Math.max(...results.memberResults.map((member) => Math.abs(member.axialForceKn)), 1e-9);
@@ -322,7 +380,7 @@ export function buildTrussOverlayGraphics(results: TrussCalculationResults, metr
   let controlPoint: { x: number; y: number } | null = null;
   let controlText = "";
   const graphics: ReportGraphic[] = [];
-  addImageBackground(graphics);
+  addImageBackground(graphics, effectiveCanvasSize);
   addReportHeader(
     graphics,
     metric === "axial" ? "平面桁架 杆件轴力图（模型叠加）" : "平面桁架 节点位移图（模型叠加）",
@@ -379,6 +437,8 @@ export function buildTrussOverlayGraphics(results: TrussCalculationResults, metr
       point: controlPoint,
       text: controlText,
       color: metric === "axial" ? "#dc2626" : "#22c55e",
+      clampX: reportCalloutClampX(effectiveCanvasSize),
+      clampY: reportCalloutClampY(effectiveCanvasSize),
     });
   }
   return graphics;
@@ -391,6 +451,7 @@ function buildStructurePreviewGraphics(
     nodes,
     members,
     deformedNodes,
+    canvasSize,
     supportMarker,
     dimensionRows,
     renderLoads,
@@ -400,17 +461,18 @@ function buildStructurePreviewGraphics(
     nodes: ReportNode[];
     members: ReportMember[];
     deformedNodes: Array<{ id: string; x: number; y: number }>;
+    canvasSize: ReportCanvasSize;
     supportMarker: (graphics: ReportGraphic[], type: string | undefined, point: ReportPoint, supportAngleDeg?: number) => void;
     dimensionRows: string[];
     renderLoads?: ReportStructureLoadRenderer;
   },
 ) {
-  const layout = buildReportStructureLayout(nodes, deformedNodes);
+  const layout = buildReportStructureLayout(nodes, deformedNodes, canvasSize.width, canvasSize.height);
   const byId = new Map(nodes.map((node) => [node.id, node]));
   const memberById = new Map(members.flatMap((member) => (member.id ? [[member.id, member]] : [])));
   const deformedById = new Map(deformedNodes.map((node) => [node.id, node]));
   const graphics: ReportGraphic[] = [];
-  addImageBackground(graphics);
+  addImageBackground(graphics, canvasSize);
   addReportHeader(graphics, `${systemLabel}结构预览与变形示意`, `蓝色为放大后的变形线；节点、${memberTerm}编号、尺寸与荷载标注同图显示`);
   addDimensionLegend(graphics, dimensionRows);
   for (const member of members) {
@@ -439,6 +501,6 @@ function buildStructurePreviewGraphics(
   return graphics;
 }
 
-function renderReportGraphics(graphics: ReportGraphic[]) {
-  return renderOption({ backgroundColor: REPORT_BG, animation: false, xAxis: { show: false }, yAxis: { show: false }, graphic: graphics }, REPORT_IMAGE_W, REPORT_IMAGE_H);
+function renderReportGraphics(graphics: ReportGraphic[], canvasSize: ReportCanvasSize) {
+  return renderOption({ backgroundColor: REPORT_BG, animation: false, xAxis: { show: false }, yAxis: { show: false }, graphic: graphics }, canvasSize.width, canvasSize.height);
 }
