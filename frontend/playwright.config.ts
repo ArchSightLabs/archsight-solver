@@ -3,6 +3,18 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const configDir = dirname(fileURLToPath(import.meta.url));
+const loopbackNoProxyHosts = ["127.0.0.1", "localhost", "::1"];
+
+function mergeNoProxyHosts(currentValue: string | undefined) {
+  const hosts = new Set((currentValue ?? "").split(",").map((host) => host.trim()).filter(Boolean));
+  for (const host of loopbackNoProxyHosts) {
+    hosts.add(host);
+  }
+  return Array.from(hosts).join(",");
+}
+
+process.env.NO_PROXY = mergeNoProxyHosts(process.env.NO_PROXY);
+process.env.no_proxy = mergeNoProxyHosts(process.env.no_proxy);
 
 export default defineConfig({
   testDir: "./tests/visual",

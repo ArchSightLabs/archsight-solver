@@ -26,7 +26,7 @@ npm --prefix frontend run test:visual:update
 npm --prefix frontend run test:visual:export-docx
 ```
 
-该入口按单 worker 顺序运行 `workbench-export-docx.spec.ts`，验证框架与桁架导出请求携带前端同源的结构预览图和模型叠加工程图。
+该入口按 Chromium、Firefox、WebKit 三个子命令顺序运行 `workbench-export-docx.spec.ts`，验证框架与桁架导出请求携带前端同源的结构预览图和模型叠加工程图。
 
 若本地尚未安装 Playwright 浏览器二进制，先执行：
 
