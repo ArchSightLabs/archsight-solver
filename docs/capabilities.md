@@ -57,7 +57,8 @@
 ### 异步作业边界
 
 - `/api/jobs` 是本地轻量异步求解入口，用于本机批量计算、Agent 自动调用和避免同步请求阻塞。
-- 状态与结果默认写入本地 SQLite，可通过 `ARCHSIGHT_SOLVER_JOB_DB_PATH` 覆盖；执行仍由当前服务进程的 `ThreadPoolExecutor` 承担。
+- 状态与结果默认写入本地 SQLite，可通过 `ARCHSIGHT_SOLVER_JOB_DB_PATH` 覆盖；执行仍由当前服务进程的 `ThreadPoolExecutor` 承担，并记录执行进程 ID。
+- 进程重启或线程句柄丢失后，旧的 `queued` / `running` 记录会在查询时标记为 `COMMON_ASYNC_JOB_ORPHANED` 失败，避免永久挂起；调用方应重新提交作业。
 - 该入口不承诺生产级多实例队列、幂等重试、跨主机调度或高吞吐任务编排；生产化部署应接入共享数据库、Redis 或专用任务队列。
 
 ## 身份与访问边界

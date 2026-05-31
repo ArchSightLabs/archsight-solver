@@ -268,7 +268,7 @@ Content-Type: application/json
 
 ## POST /api/jobs
 
-提交本地轻量异步作业，适合本机批量计算、Agent 自动调用和避免同步请求阻塞。当前开源实现不是生产级分布式任务队列：计算在当前服务进程的 `ThreadPoolExecutor` 中执行，状态和结果默认写入本地 SQLite；多容器、多主机、高吞吐或需要幂等重试的部署，应接入共享数据库、Redis 或专用任务队列。
+提交本地轻量异步作业，适合本机批量计算、Agent 自动调用和避免同步请求阻塞。当前开源实现不是生产级分布式任务队列：计算在当前服务进程的 `ThreadPoolExecutor` 中执行，状态和结果默认写入本地 SQLite，并记录执行进程 ID；多容器、多主机、高吞吐或需要幂等重试的部署，应接入共享数据库、Redis 或专用任务队列。
 
 ```json
 {
@@ -295,6 +295,8 @@ Content-Type: application/json
 ## GET /api/jobs/{jobId}
 
 查询异步作业状态。
+
+如果 SQLite 中的 `queued` / `running` 记录已经失去本地执行进程或线程句柄，接口会把该作业标记为 `failed`，错误码为 `COMMON_ASYNC_JOB_ORPHANED`，提示重新提交作业，避免旧记录永久停留在运行中状态。
 
 状态枚举：
 

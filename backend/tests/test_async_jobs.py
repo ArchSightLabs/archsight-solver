@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 
 from app import app
 from backend.api.jobs import _futures, _load_job
+from backend.services.job_store import store_job
 
 
 @pytest.fixture
@@ -77,6 +78,92 @@ def test_async_job_result_is_read_from_shared_store_not_future_memory(client):
     assert status_response.get_json()["result"]["analysisType"] == "beam"
     assert result_response.status_code == 200
     assert result_response.get_json()["summary"]["statusCode"] == "PASS"
+
+
+def test_async_job_marks_orphaned_running_job_failed_after_process_restart(client):
+    now = "2026-05-31T00:00:00+00:00"
+    store_job(
+        {
+            "jobId": "orphaned-running",
+            "clientJobId": "lost-worker",
+            "operation": "calculate",
+            "payload": _beam_payload(),
+            "status": "running",
+            "createdAt": now,
+            "updatedAt": now,
+            "startedAt": now,
+            "warnings": [],
+            "infos": [],
+        }
+    )
+    _futures.clear()
+
+    status_response = client.get("/api/jobs/orphaned-running")
+    result_response = client.get("/api/jobs/orphaned-running/result")
+
+    assert status_response.status_code == 200
+    status_payload = status_response.get_json()
+    assert status_payload["status"] == "failed"
+    assert status_payload["error"]["code"] == "COMMON_ASYNC_JOB_ORPHANED"
+    assert "重新提交作业" in status_payload["error"]["message"]
+    assert result_response.status_code == 409
+    assert result_response.get_json()["error"]["code"] == "COMMON_ASYNC_JOB_ORPHANED"
+
+
+def test_async_job_cancel_reconciles_orphaned_running_job(client):
+    now = "2026-05-31T00:00:00+00:00"
+    store_job(
+        {
+            "jobId": "orphaned-cancel",
+            "clientJobId": "lost-worker",
+            "operation": "calculate",
+            "payload": _beam_payload(),
+            "status": "running",
+            "createdAt": now,
+            "updatedAt": now,
+            "startedAt": now,
+            "warnings": [],
+            "infos": [],
+        }
+    )
+    _futures.clear()
+
+    cancel_response = client.delete("/api/jobs/orphaned-cancel")
+
+    assert cancel_response.status_code == 200
+    payload = cancel_response.get_json()
+    assert payload["status"] == "failed"
+    assert payload["error"]["code"] == "COMMON_ASYNC_JOB_ORPHANED"
+
+
+def test_async_job_keeps_active_job_owned_by_alive_process_pending(client, monkeypatch):
+    owner_pid = os.getpid()
+    now = "2026-05-31T00:00:00+00:00"
+    store_job(
+        {
+            "jobId": "other-worker-running",
+            "clientJobId": "other-worker",
+            "operation": "calculate",
+            "payload": _beam_payload(),
+            "status": "running",
+            "workerProcessId": owner_pid,
+            "createdAt": now,
+            "updatedAt": now,
+            "startedAt": now,
+            "warnings": [],
+            "infos": [],
+        }
+    )
+    _futures.clear()
+    monkeypatch.setattr("backend.api.jobs.os.getpid", lambda: owner_pid + 100000)
+
+    status_response = client.get("/api/jobs/other-worker-running")
+    result_response = client.get("/api/jobs/other-worker-running/result")
+
+    assert status_response.status_code == 200
+    assert status_response.get_json()["status"] == "running"
+    assert result_response.status_code == 202
+    assert result_response.get_json()["status"] == "running"
 
 
 def test_async_job_rejects_unsupported_operation(client):

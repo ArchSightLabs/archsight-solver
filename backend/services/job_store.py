@@ -23,6 +23,7 @@ JOB_COLUMNS = {
     "updatedAt": "updated_at",
     "startedAt": "started_at",
     "completedAt": "completed_at",
+    "workerProcessId": "worker_process_id",
 }
 
 JSON_FIELDS = {"payload", "result", "error", "warnings", "infos"}
@@ -71,10 +72,14 @@ def _connect() -> sqlite3.Connection:
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
             started_at TEXT,
-            completed_at TEXT
+            completed_at TEXT,
+            worker_process_id INTEGER
         )
         """
     )
+    existing_columns = {row["name"] for row in connection.execute("PRAGMA table_info(solver_jobs)").fetchall()}
+    if "worker_process_id" not in existing_columns:
+        connection.execute("ALTER TABLE solver_jobs ADD COLUMN worker_process_id INTEGER")
     return connection
 
 
@@ -96,6 +101,7 @@ def _row_to_record(row: sqlite3.Row | None) -> Dict[str, Any] | None:
         "updatedAt": row["updated_at"],
         "startedAt": row["started_at"],
         "completedAt": row["completed_at"],
+        "workerProcessId": row["worker_process_id"],
     }
 
 
@@ -106,9 +112,9 @@ def store_job(record: Mapping[str, Any]) -> None:
             INSERT INTO solver_jobs (
                 job_id, client_job_id, operation, payload_json, status,
                 result_json, error_json, warnings_json, infos_json,
-                cancel_requested, created_at, updated_at, started_at, completed_at
+                cancel_requested, created_at, updated_at, started_at, completed_at, worker_process_id
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 record["jobId"],
@@ -125,6 +131,7 @@ def store_job(record: Mapping[str, Any]) -> None:
                 record["updatedAt"],
                 record.get("startedAt"),
                 record.get("completedAt"),
+                record.get("workerProcessId"),
             ),
         )
 
