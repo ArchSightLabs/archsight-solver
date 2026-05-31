@@ -47,6 +47,7 @@ export function TrussBasicSection({
 }: TrussBasicSectionProps) {
   const formLabelClass = "text-[10px] font-black tracking-widest text-muted-foreground";
   const objectVocabulary = modelObjectVocabulary("truss");
+  const memberTerm = objectVocabulary.memberGroupLabel;
 
   return (
     <WorkbenchModelBasicSection
@@ -66,7 +67,7 @@ export function TrussBasicSection({
         { label: "默认材料", value: defaultMaterialBasicDetail("truss", materialId, materialLibrary) },
         { label: "弹性模量分布", value: memberElasticitySummary },
         { label: "材料与截面", value: materialSectionBasicDetail("truss") },
-        { label: "主要结果", value: "节点位移、杆件轴力、杆件轴应力、支座反力" },
+        { label: "主要结果", value: `节点位移、${memberTerm}轴力、${memberTerm}轴应力、支座反力` },
       ]}
       actions={[
         { label: "恢复默认屋架", icon: <RotateCw className="h-3.5 w-3.5" />, onClick: onResetToBenchmark },

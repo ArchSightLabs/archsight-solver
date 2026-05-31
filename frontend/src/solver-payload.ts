@@ -1,6 +1,7 @@
 import { createPortalFrameModelFromState } from "./lib/workspace-state.ts";
 import { MAX_FRAME_MEMBERS, MAX_FRAME_NODES, MAX_TRUSS_MEMBERS, MAX_TRUSS_NODES } from "./lib/solver-limits.ts";
 import { materialIdForYoungModulus } from "./lib/material-presets.ts";
+import { modelObjectCountPhrase, modelObjectMemberTerm } from "./lib/model-object-vocabulary.ts";
 import type { BeamApiPayload, BeamLinearLoadConfig, BeamSpanConfig, BeamWorkspaceState } from "./types/beam.ts";
 import type {
   FrameFormPayload,
@@ -417,6 +418,7 @@ export function trussSupportStabilityWarning(nodes: TrussNode[]): string | null 
 
 export function validateCustomFrameWorkspace(value: FrameWorkspaceState): string | null {
   const { nodes, members, loads } = normalizeCustomFrameCollections(value);
+  const memberTerm = modelObjectMemberTerm("frame");
 
   if (nodes.length < 2) {
     return "自定义平面框架至少需要 2 个节点。";
@@ -432,14 +434,14 @@ export function validateCustomFrameWorkspace(value: FrameWorkspaceState): string
 
   const memberIds = members.map((member) => member.id);
   if (members.length > 0 && new Set(memberIds).size !== memberIds.length) {
-    return "构件 ID 不能重复。";
+    return `${memberTerm} ID 不能重复。`;
   }
   if (members.length > MAX_FRAME_MEMBERS) {
-    return `框架构件数量超出系统限制（最大 ${MAX_FRAME_MEMBERS} 个）。`;
+    return `框架${memberTerm}数量超出系统限制（最大 ${modelObjectCountPhrase("frame", "member", MAX_FRAME_MEMBERS)}）。`;
   }
 
   if (members.some((member) => !nodeIds.includes(member.start) || !nodeIds.includes(member.end))) {
-    return "构件起止节点必须存在于当前节点列表中。";
+    return `${memberTerm}起止节点必须存在于当前节点列表中。`;
   }
 
   const availableMemberIds = new Set(memberIds);
@@ -449,7 +451,7 @@ export function validateCustomFrameWorkspace(value: FrameWorkspaceState): string
       loadCase.loads.some((load) => frameLoadReferenceMissing(load, nodeIds, availableMemberIds))
     )
   ) {
-    return "荷载引用了不存在的节点或构件。";
+    return `荷载引用了不存在的节点或${memberTerm}。`;
   }
 
   const loadCaseIds = (value.customLoadCases ?? []).map((loadCase) => loadCase.id.trim());
@@ -468,7 +470,7 @@ export function validateCustomFrameWorkspace(value: FrameWorkspaceState): string
   }
 
   if (members.length < 1) {
-    return "自定义平面框架至少需要 1 个构件。";
+    return `自定义平面框架至少需要 1 个${memberTerm}。`;
   }
 
   const supportWarning = frameSupportStabilityWarning(nodes);
@@ -519,6 +521,7 @@ export function buildFramePayload(value: FrameWorkspaceState, projectName = valu
 
 export function validateCustomTrussWorkspace(value: TrussWorkspaceState): string | null {
   const { nodes, members, loads } = normalizeCustomTrussCollections(value);
+  const memberTerm = modelObjectMemberTerm("truss");
 
   if (nodes.length < 2) {
     return "自定义二维平面桁架至少需要 2 个节点。";
@@ -534,18 +537,18 @@ export function validateCustomTrussWorkspace(value: TrussWorkspaceState): string
 
   const memberIds = members.map((member) => member.id);
   if (members.length > 0 && new Set(memberIds).size !== memberIds.length) {
-    return "杆件 ID 不能重复。";
+    return `${memberTerm} ID 不能重复。`;
   }
   if (members.length > MAX_TRUSS_MEMBERS) {
-    return `桁架杆件数量超出系统限制（最大 ${MAX_TRUSS_MEMBERS} 根）。`;
+    return `桁架${memberTerm}数量超出系统限制（最大 ${modelObjectCountPhrase("truss", "member", MAX_TRUSS_MEMBERS)}）。`;
   }
 
   if (members.some((member) => !nodeIds.includes(member.start) || !nodeIds.includes(member.end))) {
-    return "杆件起止节点必须存在于当前节点列表中。";
+    return `${memberTerm}起止节点必须存在于当前节点列表中。`;
   }
 
   if (members.length < 1) {
-    return "自定义二维平面桁架至少需要 1 个杆件。";
+    return `自定义二维平面桁架至少需要 1 个${memberTerm}。`;
   }
 
   const availableNodeIds = new Set(nodeIds);
@@ -554,7 +557,7 @@ export function validateCustomTrussWorkspace(value: TrussWorkspaceState): string
     loads.some((load) => load.type === "nodal" && !availableNodeIds.has(load.node)) ||
     loads.some((load) => load.type !== "nodal" && !availableMemberIds.has(load.member))
   ) {
-    return "荷载引用了不存在的节点或杆件。";
+    return `荷载引用了不存在的节点或${memberTerm}。`;
   }
 
   const supportWarning = trussSupportStabilityWarning(nodes);

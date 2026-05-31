@@ -62,6 +62,7 @@ export function TrussCustomModelEditor({
   const [nodeConnectionTargetId, setNodeConnectionTargetId] = useState("");
   const [advancedSectionId, setAdvancedSectionId] = useState<TrussAdvancedSection>("nodes");
   const visibleSectionId = normalizeModuleSectionId("truss", activeSectionId) ?? "truss-template";
+  const memberTerm = modelObjectMemberTerm("truss");
   const isSectionVisible = (sectionId: string) => visibleSectionId === sectionId;
 
   const nodeOptions = useMemo(
@@ -72,7 +73,7 @@ export function TrussCustomModelEditor({
   const memberConnection = useNodePairConnection({
     nodeIds,
     duplicateExists: (startNodeId, endNodeId) => trussMemberExists(value.members, startNodeId, endNodeId),
-    duplicateReason: "两节点间已有杆件",
+    duplicateReason: `两节点间已有${memberTerm}`,
   });
 
   const trussTextModel = useTrussTextModel({
@@ -93,9 +94,9 @@ export function TrussCustomModelEditor({
   const loadOptions = useMemo(
     () => value.loads.map((load, index) => ({
       value: `load-${index}`,
-      label: load.type === "nodal" ? `节点荷载 ${index + 1}（${load.node}）` : `杆件荷载 ${index + 1}（${load.member}）`,
+      label: load.type === "nodal" ? `节点荷载 ${index + 1}（${load.node}）` : `${memberTerm}荷载 ${index + 1}（${load.member}）`,
     })),
-    [value.loads]
+    [memberTerm, value.loads]
   );
 
   const resolvedSelectedObject = useMemo<TrussSelectedObject>(() => {
@@ -108,7 +109,6 @@ export function TrussCustomModelEditor({
     return { type: "load", id: "load-0" };
   }, [selectedObject, selection, value.loads, value.members, value.nodes]);
   const supportCount = value.nodes.filter((node) => (node.supportType ?? "free") !== "free").length;
-  const memberTerm = modelObjectMemberTerm("truss");
   const memberElasticitySummary = useMemo(
     () => memberElasticityDistributionLabel(value.members, memberTerm),
     [memberTerm, value.members],
@@ -124,11 +124,11 @@ export function TrussCustomModelEditor({
     } else if (supportWarning) {
       warnings.push(supportWarning);
     }
-    if (value.members.some((member) => !nodeIds.has(member.start) || !nodeIds.has(member.end))) warnings.push("存在引用缺失节点的杆件。");
+    if (value.members.some((member) => !nodeIds.has(member.start) || !nodeIds.has(member.end))) warnings.push(`存在引用缺失节点的${memberTerm}。`);
     if (value.loads.some((load) => load.type === "nodal" ? !nodeIds.has(load.node) : !memberIds.has(load.member))) warnings.push("存在引用缺失对象的荷载。");
-    if (value.loads.length === 0) warnings.push("尚未设置节点荷载或杆件荷载。");
+    if (value.loads.length === 0) warnings.push(`尚未设置节点荷载或${memberTerm}荷载。`);
     return warnings;
-  }, [supportCount, value.loads, value.members, value.nodes]);
+  }, [memberTerm, supportCount, value.loads, value.members, value.nodes]);
 
   const commit = (next: TrussCollections) => onChange(next);
 
@@ -358,7 +358,7 @@ export function TrussCustomModelEditor({
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1.5">
                   <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] text-muted-foreground">
-                    {template.members.length} 杆件
+                    {template.members.length} {memberTerm}
                   </span>
                   <span className="rounded border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
                     套用

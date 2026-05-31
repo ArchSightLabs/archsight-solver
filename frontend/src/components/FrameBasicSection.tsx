@@ -49,6 +49,7 @@ export function FrameBasicSection({
 }: FrameBasicSectionProps) {
   const formLabelClass = "text-[10px] font-black tracking-widest text-muted-foreground";
   const objectVocabulary = modelObjectVocabulary("frame");
+  const memberTerm = objectVocabulary.memberGroupLabel;
 
   return (
     <WorkbenchModelBasicSection
@@ -68,11 +69,11 @@ export function FrameBasicSection({
         { label: "默认材料", value: defaultMaterialBasicDetail("frame", materialId, materialLibrary) },
         { label: "弹性模量分布", value: memberElasticitySummary },
         { label: "材料与截面", value: materialSectionBasicDetail("frame") },
-        { label: "主要结果", value: "节点位移、构件轴力 / 剪力 / 弯矩、支座反力" },
+        { label: "主要结果", value: `节点位移、${memberTerm}轴力 / 剪力 / 弯矩、支座反力` },
       ]}
       actions={[
         { label: "恢复单跨刚架", icon: <RotateCw className="h-3.5 w-3.5" />, onClick: onResetToPortal },
-        { label: "补全同轴构件", icon: <Wand2 className="h-3.5 w-3.5" />, onClick: onCompleteAxisMembers },
+        { label: `补全同轴${memberTerm}`, icon: <Wand2 className="h-3.5 w-3.5" />, onClick: onCompleteAxisMembers },
         { label: "新增节点并连接", icon: <Plus className="h-3.5 w-3.5" />, onClick: onAddNode, variant: "default" },
       ]}
       controls={

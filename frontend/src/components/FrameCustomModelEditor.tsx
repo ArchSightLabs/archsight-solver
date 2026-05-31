@@ -77,6 +77,7 @@ export function FrameCustomModelEditor({
   const [nodeConnectionTargetId, setNodeConnectionTargetId] = useState("");
   const [advancedSectionId, setAdvancedSectionId] = useState<FrameAdvancedSection>("nodes");
   const visibleSectionId = normalizeModuleSectionId("frame", activeSectionId) ?? "frame-template";
+  const memberTerm = modelObjectMemberTerm("frame");
   const isSectionVisible = (sectionId: string) => visibleSectionId === sectionId;
 
   const nodeOptions = useMemo(
@@ -87,7 +88,7 @@ export function FrameCustomModelEditor({
   const memberConnection = useNodePairConnection({
     nodeIds,
     duplicateExists: (startNodeId, endNodeId) => frameMemberExists(value.members, startNodeId, endNodeId),
-    duplicateReason: "两节点间已有构件",
+    duplicateReason: `两节点间已有${memberTerm}`,
   });
   const memberOptions = useMemo(
     () => value.members.map((member) => ({ value: member.id, label: member.id })),
@@ -118,7 +119,6 @@ export function FrameCustomModelEditor({
       (node.supportType ?? "free") !== "free" ||
       (node.springs ?? []).some((spring) => spring.dof === "rz" ? spring.stiffnessKnMPerRad > 0 : spring.stiffnessKnPerM > 0),
   ).length;
-  const memberTerm = modelObjectMemberTerm("frame");
   const memberElasticitySummary = useMemo(
     () => memberElasticityDistributionLabel(value.members, memberTerm),
     [memberTerm, value.members],
@@ -133,11 +133,11 @@ export function FrameCustomModelEditor({
     } else if (supportWarning) {
       warnings.push(supportWarning);
     }
-    if (value.members.some((member) => !nodeIds.has(member.start) || !nodeIds.has(member.end))) warnings.push("存在引用缺失节点的构件。");
+    if (value.members.some((member) => !nodeIds.has(member.start) || !nodeIds.has(member.end))) warnings.push(`存在引用缺失节点的${memberTerm}。`);
     if (value.loads.length === 0) warnings.push("尚未设置基本荷载。");
-    if (value.members.length === 0) warnings.push("尚未设置构件。");
+    if (value.members.length === 0) warnings.push(`尚未设置${memberTerm}。`);
     return warnings;
-  }, [supportCount, value.loads.length, value.members, value.nodes]);
+  }, [memberTerm, supportCount, value.loads.length, value.members, value.nodes]);
 
   const commit = (next: FrameCollections) => onChange(next);
 

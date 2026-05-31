@@ -200,7 +200,7 @@ test("validateCustomFrameWorkspace rejects configured model size limits", () => 
     I_cm4: 8000,
     kind: "generic",
   }));
-  assert.equal(validateCustomFrameWorkspace(tooManyMembers), `框架构件数量超出系统限制（最大 ${MAX_FRAME_MEMBERS} 个）。`);
+  assert.equal(validateCustomFrameWorkspace(tooManyMembers), `框架构件数量超出系统限制（最大 ${MAX_FRAME_MEMBERS} 个构件）。`);
 });
 
 test("normalizeFrameWorkspaceState preserves invalid combinations for validation", () => {
@@ -344,7 +344,7 @@ test("validateCustomTrussWorkspace rejects configured model size limits", () => 
     A_cm2: 24,
     kind: "generic",
   }));
-  assert.equal(validateCustomTrussWorkspace(tooManyMembers), `桁架杆件数量超出系统限制（最大 ${MAX_TRUSS_MEMBERS} 根）。`);
+  assert.equal(validateCustomTrussWorkspace(tooManyMembers), `桁架杆件数量超出系统限制（最大 ${MAX_TRUSS_MEMBERS} 根杆件）。`);
 });
 
 test("validateCustomTrussWorkspace rejects insufficient rigid-body restraints", () => {
