@@ -3,6 +3,7 @@ import { GlassCard } from "./ui/GlassCard";
 import type { FramePreviewData, SupportType } from "../types/structure";
 import { buildFrameDimensionLegendRows, buildFrameGeometryDimensions, buildFrameLoadLabelMap, buildFrameLoadMarkers, frameMemberLabelPlacement, type FrameLoadMarker } from "./frame-preview-utils";
 import { formatEngineeringValue } from "../lib/engineering-format";
+import { RESULT_PREVIEW_BASE_SIZE, resultPreviewCanvasSize, resultPreviewSvgStyle } from "../lib/result-preview-sizing";
 import { summaryMetricLabel } from "../lib/result-metrics";
 
 interface FramePreviewProps {
@@ -10,8 +11,6 @@ interface FramePreviewProps {
   compact?: boolean;
 }
 
-const SVG_W = 1000;
-const SVG_H = 540;
 const PADDING = 70;
 const FRAME_PREVIEW_LOAD_STROKE_WIDTH = 1.55;
 const FRAME_PREVIEW_LOAD_GUIDE_STROKE_WIDTH = 1.2;
@@ -98,6 +97,10 @@ function hingeMarker(x: number, y: number, key: string) {
 
 export function FramePreview({ frame, compact = false }: FramePreviewProps) {
   const padding = compact ? 52 : PADDING;
+  const canvasSize = useMemo(
+    () => frame ? resultPreviewCanvasSize(frame.nodes, frame.members.length) : RESULT_PREVIEW_BASE_SIZE,
+    [frame],
+  );
   const layout = useMemo(() => {
     if (!frame) return null;
 
@@ -110,11 +113,11 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
     const maxY = Math.max(...ys, 1);
     const width = Math.max(1, maxX - minX);
     const height = Math.max(1, maxY - minY);
-    const scale = Math.min((SVG_W - padding * 2) / width, (SVG_H - padding * 2) / height);
+    const scale = Math.min((canvasSize.width - padding * 2) / width, (canvasSize.height - padding * 2) / height);
 
     const map = (point: { x: number; y: number }) => ({
       x: padding + (point.x - minX) * scale,
-      y: SVG_H - padding - (point.y - minY) * scale,
+      y: canvasSize.height - padding - (point.y - minY) * scale,
     });
 
     const mappedNodes = frame.nodes.map((node) => map(node));
@@ -131,9 +134,9 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
       y: (bounds.top + bounds.bottom) / 2,
     };
     const nodeMap = new Map(frame.nodes.map((node, index) => [node.id, mappedNodes[index]]));
-    const dimensionLegendX = clamp(bounds.left - (compact ? 148 : 170), 8, SVG_W - 260);
+    const dimensionLegendX = clamp(bounds.left - (compact ? 148 : 170), 8, canvasSize.width - 260);
     return { map, nodeMap, scale, center, bounds, dimensionLegendX };
-  }, [frame, padding, compact]);
+  }, [frame, padding, compact, canvasSize]);
 
   const deformationDrawScale = frame ? Math.min(frame.deformationScale, 60) : 0;
   const deformationScaleRatio = frame && frame.deformationScale > 1e-9 ? deformationDrawScale / frame.deformationScale : 0;
@@ -224,8 +227,8 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
         </div>
       </div>
 
-      <div className="structure-preview-surface frame-structure-preview-surface relative">
-        <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} className={`block w-full ${compact ? "h-[200px] sm:h-[280px]" : "h-[240px] sm:h-[340px]"}`}>
+      <div className="structure-preview-surface frame-structure-preview-surface relative overflow-auto">
+        <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} className="block" style={resultPreviewSvgStyle(canvasSize)}>
           <defs>
             <linearGradient id="frameBaseGrad" x1="0%" x2="100%">
               <stop offset="0%" stopColor="var(--structure-preview-base-start)" stopOpacity="0.95" />

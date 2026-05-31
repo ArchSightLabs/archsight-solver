@@ -3,14 +3,13 @@ import { GlassCard } from "./ui/GlassCard";
 import type { SupportType, TrussPreviewData } from "../types/structure";
 import { buildTrussLoadMarkers, buildTrussMemberLengthDimensions, buildTrussMemberLengthLegendRows } from "./truss-preview-utils";
 import { formatEngineeringValue, formatLimitRatio, formatUtilizationPercent } from "../lib/engineering-format";
+import { RESULT_PREVIEW_BASE_SIZE, resultPreviewCanvasSize, resultPreviewSvgStyle, type ResultPreviewCanvasSize } from "../lib/result-preview-sizing";
 
 interface TrussPreviewProps {
   truss: TrussPreviewData | null;
   compact?: boolean;
 }
 
-const SVG_W = 1000;
-const SVG_H = 540;
 const PADDING = 72;
 const svgTextFont = "Inter, Microsoft YaHei, system-ui, sans-serif";
 
@@ -49,7 +48,7 @@ function supportMarker(type: SupportType, x: number, y: number) {
   return null;
 }
 
-function memberLabelPlacement(start: { x: number; y: number }, end: { x: number; y: number }) {
+function memberLabelPlacement(start: { x: number; y: number }, end: { x: number; y: number }, canvasSize: ResultPreviewCanvasSize) {
   const midX = (start.x + end.x) / 2;
   const midY = (start.y + end.y) / 2;
   const dx = end.x - start.x;
@@ -57,8 +56,8 @@ function memberLabelPlacement(start: { x: number; y: number }, end: { x: number;
   const length = Math.hypot(dx, dy) || 1;
   const normalX = -dy / length;
   const normalY = dx / length;
-  const centerX = SVG_W / 2;
-  const centerY = SVG_H / 2;
+  const centerX = canvasSize.width / 2;
+  const centerY = canvasSize.height / 2;
   const outward = (midX - centerX) * normalX + (midY - centerY) * normalY >= 0 ? 1 : -1;
   let angle = (Math.atan2(dy, dx) * 180) / Math.PI;
   if (angle > 90 || angle < -90) angle += 180;
@@ -72,6 +71,10 @@ function memberLabelPlacement(start: { x: number; y: number }, end: { x: number;
 
 export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
   const padding = compact ? 54 : PADDING;
+  const canvasSize = useMemo(
+    () => truss ? resultPreviewCanvasSize(truss.nodes, truss.members.length) : RESULT_PREVIEW_BASE_SIZE,
+    [truss],
+  );
   const layout = useMemo(() => {
     if (!truss) return null;
 
@@ -83,11 +86,11 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
     const maxY = Math.max(...ys, 1);
     const width = Math.max(1, maxX - minX);
     const height = Math.max(1, maxY - minY);
-    const scale = Math.min((SVG_W - padding * 2) / width, (SVG_H - padding * 2) / height);
+    const scale = Math.min((canvasSize.width - padding * 2) / width, (canvasSize.height - padding * 2) / height);
 
     const map = (point: { x: number; y: number }) => ({
       x: padding + (point.x - minX) * scale,
-      y: SVG_H - padding - (point.y - minY) * scale,
+      y: canvasSize.height - padding - (point.y - minY) * scale,
     });
 
     const mappedNodes = truss.nodes.map((node) => map(node));
@@ -100,9 +103,9 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
       bottom: Math.max(...mappedYs),
     };
     const nodeMap = new Map(truss.nodes.map((node, index) => [node.id, mappedNodes[index]]));
-    const dimensionLegendX = clamp(bounds.left - (compact ? 112 : 126), 28, SVG_W - 260);
+    const dimensionLegendX = clamp(bounds.left - (compact ? 112 : 126), 28, canvasSize.width - 260);
     return { map, nodeMap, scale, bounds, dimensionLegendX };
-  }, [truss, padding, compact]);
+  }, [truss, padding, compact, canvasSize]);
 
   const deformationDrawScale = truss ? Math.min(truss.deformationScale, 64) : 0;
   const deformationScaleRatio = truss && truss.deformationScale > 1e-9 ? deformationDrawScale / truss.deformationScale : 0;
@@ -176,14 +179,14 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
         </div>
       </div>
 
-      <div className="structure-preview-surface relative">
-        <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} className={`block w-full ${compact ? "h-[200px] sm:h-[280px]" : "h-[240px] sm:h-[340px]"}`}>
+      <div className="structure-preview-surface relative overflow-auto">
+        <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} className="block" style={resultPreviewSvgStyle(canvasSize)}>
           <defs>
-            <linearGradient id="trussBaseGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={SVG_W} y2="0">
+            <linearGradient id="trussBaseGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={canvasSize.width} y2="0">
               <stop offset="0%" stopColor="var(--structure-preview-base-start)" stopOpacity="0.95" />
               <stop offset="100%" stopColor="var(--structure-preview-base-end)" stopOpacity="0.95" />
             </linearGradient>
-            <linearGradient id="trussDeformedGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={SVG_W} y2="0">
+            <linearGradient id="trussDeformedGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={canvasSize.width} y2="0">
               <stop offset="0%" stopColor="var(--structure-preview-deformed-start)" stopOpacity="0.95" />
               <stop offset="100%" stopColor="var(--structure-preview-deformed-end)" stopOpacity="0.95" />
             </linearGradient>
@@ -206,7 +209,7 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
             const start = layout.nodeMap.get(member.start);
             const end = layout.nodeMap.get(member.end);
             if (!start || !end) return null;
-            const label = memberLabelPlacement(start, end);
+            const label = memberLabelPlacement(start, end, canvasSize);
             return (
               <g key={member.id}>
                 <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="url(#trussBaseGrad)" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />

@@ -92,6 +92,13 @@ export function frameMemberDimensionValueLabel(start: Pick<FramePreviewPoint, "x
   return formatFrameDimensionLength(length);
 }
 
+function formatFrameDimensionMemberIds(memberIds: string[]) {
+  if (memberIds.length <= 6) {
+    return memberIds.join("=");
+  }
+  return `${memberIds[0]}等${memberIds.length}根`;
+}
+
 export function buildFrameDimensionLegendRows(dimensions: FrameGeometryDimension[], _maxWidthPx: number, _fontSize = 12) {
   const groupedDimensions = Array.from(
     dimensions.reduce((groups, dimension) => {
@@ -103,7 +110,7 @@ export function buildFrameDimensionLegendRows(dimensions: FrameGeometryDimension
       .values(),
   );
 
-  return groupedDimensions.map((dimension) => `${dimension.memberIds.join("=")}=${dimension.valueLabel}`);
+  return groupedDimensions.map((dimension) => `${formatFrameDimensionMemberIds(dimension.memberIds)}=${dimension.valueLabel}`);
 }
 
 function memberLoadDirection(

@@ -85,6 +85,14 @@ test("buildTrussMemberLengthLegendRows groups equal member dimensions and separa
   assert.deepEqual(buildTrussMemberLengthLegendRows(dimensions, 90, 12), ["M1=M3=4 m", "M2=2 m"]);
 });
 
+test("buildTrussMemberLengthLegendRows summarizes long equal-length member groups", () => {
+  const dimensions = Array.from({ length: 8 }, (_, index) =>
+    buildTrussMemberLengthDimension(`M${index + 1}`, { x: 0, y: 0 }, { x: 3, y: 0 }, 3),
+  ).filter((dimension): dimension is NonNullable<typeof dimension> => Boolean(dimension));
+
+  assert.deepEqual(buildTrussMemberLengthLegendRows(dimensions, 220, 12), ["M1等8根=3 m"]);
+});
+
 test("buildTrussMemberLengthDimensions derives member dimensions from node coordinates", () => {
   const dimensions = buildTrussMemberLengthDimensions(
     [

@@ -11,6 +11,7 @@ import {
   type DiagramPlacedLabel,
 } from "../lib/diagram-label-layout";
 import { formatEngineeringValue } from "../lib/engineering-format";
+import { RESULT_PREVIEW_BASE_SIZE, resultPreviewCanvasSize, resultPreviewSvgStyle, type ResultPreviewCanvasSize } from "../lib/result-preview-sizing";
 import { clamp } from "../lib/result-diagram-geometry";
 import { summaryMetricLabel } from "../lib/result-metrics";
 import {
@@ -37,8 +38,6 @@ interface TrussResultDiagramsProps {
   heading?: string;
 }
 
-const SVG_W = 1000;
-const SVG_H = 540;
 const PADDING = 72;
 const svgTextFont = "Inter, Microsoft YaHei, system-ui, sans-serif";
 
@@ -74,7 +73,7 @@ function trussDiagramControlLabel(key: TrussDiagramSelectionKey): string {
   return "控制值";
 }
 
-function memberLabelPlacement(start: { x: number; y: number }, end: { x: number; y: number }, offset: number) {
+function memberLabelPlacement(start: { x: number; y: number }, end: { x: number; y: number }, offset: number, canvasSize: ResultPreviewCanvasSize) {
   const midX = (start.x + end.x) / 2;
   const midY = (start.y + end.y) / 2;
   const dx = end.x - start.x;
@@ -82,8 +81,8 @@ function memberLabelPlacement(start: { x: number; y: number }, end: { x: number;
   const length = Math.hypot(dx, dy) || 1;
   const normalX = -dy / length;
   const normalY = dx / length;
-  const centerX = SVG_W / 2;
-  const centerY = SVG_H / 2;
+  const centerX = canvasSize.width / 2;
+  const centerY = canvasSize.height / 2;
   const outward = (midX - centerX) * normalX + (midY - centerY) * normalY >= 0 ? 1 : -1;
   return {
     x: midX + normalX * outward * offset,
@@ -112,6 +111,10 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
   const selectedMetricKey = metricKey ?? selectedMetricState;
   const selectedMetric = getTrussDiagramMetric(selectedMetricKey === "all" ? DEFAULT_TRUSS_DIAGRAM_METRIC_KEY : selectedMetricKey);
   const padding = compact ? 54 : PADDING;
+  const canvasSize = useMemo(
+    () => truss ? resultPreviewCanvasSize(truss.nodes, truss.members.length) : RESULT_PREVIEW_BASE_SIZE,
+    [truss],
+  );
 
   const layout = useMemo(() => {
     if (!truss) return null;
@@ -123,10 +126,10 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
     const maxY = Math.max(...ys, 1);
     const width = Math.max(1, maxX - minX);
     const height = Math.max(1, maxY - minY);
-    const scale = Math.min((SVG_W - padding * 2) / width, (SVG_H - padding * 2) / height);
+    const scale = Math.min((canvasSize.width - padding * 2) / width, (canvasSize.height - padding * 2) / height);
     const map = (point: { x: number; y: number }) => ({
       x: padding + (point.x - minX) * scale,
-      y: SVG_H - padding - (point.y - minY) * scale,
+      y: canvasSize.height - padding - (point.y - minY) * scale,
     });
     const mappedNodes = truss.nodes.map((node) => map(node));
     const mappedXs = mappedNodes.map((point) => point.x);
@@ -141,7 +144,7 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
         bottom: Math.max(...mappedYs),
       },
     };
-  }, [padding, truss]);
+  }, [canvasSize, padding, truss]);
 
   const supportTypeById = useMemo(() => {
     const map = new Map<string, SupportType>();
@@ -199,7 +202,7 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
       x: (layout.bounds.left + layout.bounds.right) / 2,
       y: (layout.bounds.top + layout.bounds.bottom) / 2,
     };
-    const bounds = { left: 10, top: 16, right: SVG_W - 10, bottom: SVG_H - 16 };
+    const bounds = { left: 10, top: 16, right: canvasSize.width - 10, bottom: canvasSize.height - 16 };
     const baseBlockers: DiagramLabelBlocker[] = [
       ...truss.members.flatMap((member) => {
         const start = layout.nodeMap.get(member.start);
@@ -228,7 +231,7 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
         id: "dimension-legend",
         anchor: { x: compact ? 18 : 24, y: 18 },
         lines: dimensionLegendRows.map((row) => ({ text: row, fontSize: compact ? 10 : 12 })),
-        candidates: legendLabelCandidates(SVG_W - (compact ? 36 : 48), SVG_H - 36),
+        candidates: legendLabelCandidates(canvasSize.width - (compact ? 36 : 48), canvasSize.height - 36),
         priority: 100,
         occupiedWeight: 12,
         paddingX: 0,
@@ -261,7 +264,7 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
       if (!start || !end) return;
       const result = memberResultsById.get(member.id);
       const value = result?.axialForceKn ?? 0;
-      const preferred = memberLabelPlacement(start, end, selectedMetricKey === "axialForceKn" ? 22 : 14);
+      const preferred = memberLabelPlacement(start, end, selectedMetricKey === "axialForceKn" ? 22 : 14, canvasSize);
       labels.push({
         id: `member-${member.id}`,
         anchor: preferred,
@@ -300,6 +303,7 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
     return placedById(placeDiagramLabels(labels, { baseBlockers, bounds }));
   }, [
     compact,
+    canvasSize,
     dimensionLegendRows,
     layout,
     maxDisplacementNode,
@@ -395,10 +399,10 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
         </div>
       ) : null}
 
-      <div className="structure-preview-surface overflow-hidden rounded-lg border border-slate-200/80 bg-white/90 dark:border-slate-700/80 dark:bg-slate-900/45">
-        <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} className={compact ? "block h-[250px] w-full sm:h-[330px]" : "block h-[360px] w-full"}>
+      <div className="structure-preview-surface overflow-auto rounded-lg border border-slate-200/80 bg-white/90 dark:border-slate-700/80 dark:bg-slate-900/45">
+        <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} className="block" style={resultPreviewSvgStyle(canvasSize)}>
           {[0.25, 0.5, 0.75].map((ratio) => (
-            <line key={ratio} x1="42" y1={SVG_H * ratio} x2={SVG_W - 42} y2={SVG_H * ratio} stroke="var(--frame-diagram-grid)" strokeDasharray="6 8" />
+            <line key={ratio} x1="42" y1={canvasSize.height * ratio} x2={canvasSize.width - 42} y2={canvasSize.height * ratio} stroke="var(--frame-diagram-grid)" strokeDasharray="6 8" />
           ))}
           {dimensionLegendRows.length ? (
             <g fontFamily={svgTextFont} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke">

@@ -111,6 +111,13 @@ function formatTrussMemberLength(value: number) {
   return `${value.toFixed(2).replace(/\.?0+$/u, "")} m`;
 }
 
+function formatTrussDimensionMemberIds(memberIds: string[]) {
+  if (memberIds.length <= 6) {
+    return memberIds.join("=");
+  }
+  return `${memberIds[0]}等${memberIds.length}根`;
+}
+
 export function buildTrussMemberLengthLegendRows(dimensions: TrussMemberLengthDimension[], _maxWidthPx: number, _fontSize = 12) {
   const groupedDimensions = Array.from(
     dimensions.reduce((groups, dimension) => {
@@ -122,7 +129,7 @@ export function buildTrussMemberLengthLegendRows(dimensions: TrussMemberLengthDi
       .values(),
   );
 
-  return groupedDimensions.map((dimension) => `${dimension.memberIds.join("=")}=${dimension.valueLabel}`);
+  return groupedDimensions.map((dimension) => `${formatTrussDimensionMemberIds(dimension.memberIds)}=${dimension.valueLabel}`);
 }
 
 export function buildTrussMemberLengthDimensions(

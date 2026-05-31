@@ -136,6 +136,15 @@ test("buildFrameDimensionLegendRows groups equal member lengths and separates di
   assert.deepEqual(buildFrameDimensionLegendRows(dimensions, 220, 12), ["C1=C2=4 m", "B1=6 m"]);
 });
 
+test("buildFrameDimensionLegendRows summarizes long equal-length member groups", () => {
+  const dimensions = Array.from({ length: 8 }, (_, index) => ({
+    memberId: `B${index + 1}`,
+    valueLabel: "3 m",
+  }));
+
+  assert.deepEqual(buildFrameDimensionLegendRows(dimensions, 220, 12), ["B1等8根=3 m"]);
+});
+
 test("buildFrameGeometryDimensions derives frame member dimensions from node coordinates", () => {
   const dimensions = buildFrameGeometryDimensions(
     [
