@@ -20,7 +20,7 @@ def build_openapi_document() -> Dict[str, Any]:
                     "success": {"type": "boolean", "const": False},
                     "operation": {"type": "string"},
                     "version": {"type": "string"},
-                    "analysisType": {"type": "string", "enum": ["beam", "frame", "truss"]},
+                    "analysisType": {"type": "string", "enum": ["beam", "truss", "frame"]},
                     "error": {
                         "type": "object",
                         "required": ["code", "message"],
@@ -49,7 +49,7 @@ def build_openapi_document() -> Dict[str, Any]:
                     "success": {"type": "boolean", "const": True},
                     "operation": {"type": "string"},
                     "version": {"type": "string"},
-                    "analysisType": {"type": "string", "enum": ["beam", "frame", "truss"]},
+                    "analysisType": {"type": "string", "enum": ["beam", "truss", "frame"]},
                     "request": {"type": "object"},
                     "model": {"type": "object"},
                     "results": {"type": "object"},
@@ -73,7 +73,7 @@ def build_openapi_document() -> Dict[str, Any]:
             "title": "ArchSight Solver API",
             "version": API_SCHEMA_VERSION,
             "description": (
-                "梁系、二维平面框架和二维平面桁架的线弹性静力分析 API。"
+                "梁系、二维平面桁架和二维平面框架的线弹性静力分析 API。"
                 "结构安全结论仍需工程师复核。"
             ),
         },
@@ -387,7 +387,7 @@ def _export_payload_schema() -> Dict[str, Any]:
             },
             "reportImages": {
                 "type": "object",
-                "description": "可选计算书图片资源，例如结构预览、变形图、内力图。平面框架和平面桁架 DOCX 仅使用前端同源结构预览和模型叠加工程图；缺失时跳过对应插图，不插入后端简化兜底图。",
+                "description": "可选计算书图片资源，例如结构预览、变形图、内力图。平面桁架和平面框架 DOCX 仅使用前端同源结构预览和模型叠加工程图；缺失时跳过对应插图，不插入后端简化兜底图。",
                 "additionalProperties": True,
             },
             "reportOptions": {
@@ -465,7 +465,7 @@ def _public_example_projects_response_schema() -> Dict[str, Any]:
         "properties": {
             "id": {"type": "string"},
             "name": {"type": "string"},
-            "type": {"type": "string", "enum": ["beam", "frame", "truss"]},
+            "type": {"type": "string", "enum": ["beam", "truss", "frame"]},
             "state": {"type": "object", "additionalProperties": True},
             "benchmark": benchmark_meta,
         },

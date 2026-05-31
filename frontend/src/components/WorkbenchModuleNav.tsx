@@ -26,16 +26,16 @@ const MODULES: Array<{
     icon: Layers,
   },
   {
-    mode: "frame",
-    title: analysisVocabulary("frame").systemLabel,
-    ariaLabel: analysisVocabulary("frame").analysisLabel,
-    icon: Building2,
-  },
-  {
     mode: "truss",
     title: analysisVocabulary("truss").systemLabel,
     ariaLabel: analysisVocabulary("truss").analysisLabel,
     icon: Triangle,
+  },
+  {
+    mode: "frame",
+    title: analysisVocabulary("frame").systemLabel,
+    ariaLabel: analysisVocabulary("frame").analysisLabel,
+    icon: Building2,
   },
 ];
 

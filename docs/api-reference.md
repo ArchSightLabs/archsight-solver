@@ -5,14 +5,14 @@
 - API 版本：`v1`
 - Schema 版本：`2026-05-30`
 - 默认本地地址：`http://127.0.0.1:6240`
-- 核心对象：梁系、二维平面框架、二维平面桁架
+- 核心对象：梁系、二维平面桁架、二维平面框架
 - 计算假定：线弹性、小变形、确定性静力分析；当前开源核心不提供规范设计、施工安全签审或三维杆系分析
 
 本 API Reference 面向二次开发者、AI Agent Runtime、企业内网系统和教学验证场景。所有结构安全结论仍需工程师复核。
 
 ## ASMS-JSON 契约入口
 
-ASMS-JSON 是 ArchSight Solver 的结构力学数据入口标准，用同一份 JSON 描述梁系、二维平面框架和二维平面桁架模型。API、CLI、MCP、benchmark 与计算书导出围绕同一模型工作，避免出现“前端一套、Agent 一套、测试一套”的契约漂移。
+ASMS-JSON 是 ArchSight Solver 的结构力学数据入口标准，用同一份 JSON 描述梁系、二维平面桁架和二维平面框架模型。API、CLI、MCP、benchmark 与计算书导出围绕同一模型工作，避免出现“前端一套、Agent 一套、测试一套”的契约漂移。
 
 对集成方而言，核心关系如下：
 
@@ -108,6 +108,46 @@ Content-Type: application/json
 
 梁系逐跨参数：`spanProperties[].materialId` 为跨段材料库编号，用于保留材料语义；`E` / `I` 仍是梁单元刚度计算输入。
 
+### 二维平面桁架示例
+
+```json
+{
+  "analysisType": "truss",
+  "projectName": "三杆静定桁架",
+  "materialId": "steel-verify",
+  "structure": {
+    "template": "explicit",
+    "nodes": [
+      {"id": "N1", "x": 0, "y": 0, "supportType": "pinned"},
+      {"id": "N2", "x": 4, "y": 3, "supportType": "free"},
+      {"id": "N3", "x": 8, "y": 0, "supportType": "roller"}
+    ],
+    "members": [
+      {"id": "M1", "start": "N1", "end": "N2", "materialId": "steel-verify", "E_GPa": 200, "A_cm2": 100, "kind": "truss"},
+      {"id": "M2", "start": "N2", "end": "N3", "materialId": "steel-verify", "E_GPa": 200, "A_cm2": 100, "kind": "truss"},
+      {"id": "M3", "start": "N1", "end": "N3", "materialId": "steel-verify", "E_GPa": 200, "A_cm2": 100, "kind": "truss"}
+    ],
+    "loads": [
+      {"type": "nodal", "node": "N2", "fxKn": 50, "fyKn": 0}
+    ]
+  }
+}
+```
+
+节点字段说明：平面桁架节点仅含 `ux`、`uy` 平动自由度；`supportType` 使用 `pinned`、`roller`、`free`，不支持 `supportAngleDeg`、`springs` 或 `condensedDofs`。旧版 `fixed` 输入会归并为 `pinned`，新模型应直接使用 `pinned`。
+
+杆件字段说明：`members[].materialId` 为材料库编号，用于保留杆件材料语义；桁架刚度计算仍以 `E_GPa` 与 `A_cm2` 为准。
+
+荷载字段说明：桁架以节点荷载为主，也支持可等效为节点荷载的杆件荷载。`selfWeightKnPerM` 表示杆件自重线荷载，按全局 Y 向下等效；`distributed` / `member_load` / `member` 可使用 `direction`、`wyKnPerM`、`qStartKnPerM`、`qEndKnPerM` 描述杆件线荷载。`loadCases` 与 `loadCombinations` 支持多工况与组合包络。
+
+关键输出：
+
+- `summary.maxDisplacementMm`：最大节点位移，单位 mm。
+- `summary.maxAxialForceKn`：最大杆件轴力绝对值，单位 kN。
+- `memberResults[].axialForceKn`：杆件轴力，拉为正、压为负。
+- `memberResults[].forceState`：`tension` 或 `compression`。
+- `nodeResults[].rxKn / ryKn`：支座反力。
+
 ### 二维平面框架示例
 
 ```json
@@ -150,53 +190,13 @@ Content-Type: application/json
 - `memberResults[].axialStartKn / shearStartKn / momentStartKnM`：杆端内力。
 - `equilibriumRmsRelativeError`：整体平衡残差指标。
 
-### 二维平面桁架示例
-
-```json
-{
-  "analysisType": "truss",
-  "projectName": "三杆静定桁架",
-  "materialId": "steel-verify",
-  "structure": {
-    "template": "explicit",
-    "nodes": [
-      {"id": "N1", "x": 0, "y": 0, "supportType": "pinned"},
-      {"id": "N2", "x": 4, "y": 3, "supportType": "free"},
-      {"id": "N3", "x": 8, "y": 0, "supportType": "roller"}
-    ],
-    "members": [
-      {"id": "M1", "start": "N1", "end": "N2", "materialId": "steel-verify", "E_GPa": 200, "A_cm2": 100, "kind": "truss"},
-      {"id": "M2", "start": "N2", "end": "N3", "materialId": "steel-verify", "E_GPa": 200, "A_cm2": 100, "kind": "truss"},
-      {"id": "M3", "start": "N1", "end": "N3", "materialId": "steel-verify", "E_GPa": 200, "A_cm2": 100, "kind": "truss"}
-    ],
-    "loads": [
-      {"type": "nodal", "node": "N2", "fxKn": 50, "fyKn": 0}
-    ]
-  }
-}
-```
-
-节点字段说明：平面桁架节点仅含 `ux`、`uy` 平动自由度；`supportType` 使用 `pinned`、`roller`、`free`，不支持 `supportAngleDeg`、`springs` 或 `condensedDofs`。旧版 `fixed` 输入会归并为 `pinned`，新模型应直接使用 `pinned`。
-
-杆件字段说明：`members[].materialId` 为材料库编号，用于保留杆件材料语义；桁架刚度计算仍以 `E_GPa` 与 `A_cm2` 为准。
-
-荷载字段说明：桁架以节点荷载为主，也支持可等效为节点荷载的杆件荷载。`selfWeightKnPerM` 表示杆件自重线荷载，按全局 Y 向下等效；`distributed` / `member_load` / `member` 可使用 `direction`、`wyKnPerM`、`qStartKnPerM`、`qEndKnPerM` 描述杆件线荷载。`loadCases` 与 `loadCombinations` 支持多工况与组合包络。
-
-关键输出：
-
-- `summary.maxDisplacementMm`：最大节点位移，单位 mm。
-- `summary.maxAxialForceKn`：最大杆件轴力绝对值，单位 kN。
-- `memberResults[].axialForceKn`：杆件轴力，拉为正、压为负。
-- `memberResults[].forceState`：`tension` 或 `compression`。
-- `nodeResults[].rxKn / ryKn`：支座反力。
-
 ## POST /api/preview
 
 与 `/api/calculate` 使用同一输入契约，返回 `operation: "preview"`。适用于前端实时预览、Agent 预检和模型导入后的结构图校验。
 
 ## POST /api/sensitivity
 
-执行单因素参数敏感性分析。该接口已覆盖梁系、二维平面框架和二维平面桁架，用于教学演示、趋势解释和方案比选；不用于基础求解以外的校核、设计或工程签审。
+执行单因素参数敏感性分析。该接口已覆盖梁系、二维平面桁架和二维平面框架，用于教学演示、趋势解释和方案比选；不用于基础求解以外的校核、设计或工程签审。
 
 输入为任一求解 payload，附加：
 
@@ -258,7 +258,7 @@ Content-Type: application/json
 
 - `format`：`docx` 或 `xlsx`，默认 `xlsx`。
 - `sensitivityResults`：可选敏感性分析结果，仅作为计算书附录资料写入。
-- `reportImages`：可选结构图、变形图、内力图等图片资源。平面框架和平面桁架 DOCX 仅使用前端同源结构预览和模型叠加工程图，必需 key 由 `shared/report-figures.json` 约束；缺失时跳过对应插图，不插入后端简化兜底图。
+- `reportImages`：可选结构图、变形图、内力图等图片资源。平面桁架和平面框架 DOCX 仅使用前端同源结构预览和模型叠加工程图，必需 key 由 `shared/report-figures.json` 约束；缺失时跳过对应插图，不插入后端简化兜底图。
 - `reportOptions`：可选计算书图形范围与排版配置。
 - `benchmark`：可选验证来源元数据；公开案例导出的计算书会写入 `caseId`、标准值和容许误差。
 
@@ -354,8 +354,8 @@ GET /api/contracts/schemas/asms-frame-model
 当前返回三个工程：
 
 - `beam-public-validation`：梁系公开验证工程，12 个梁系算例。
-- `frame-public-validation`：二维平面框架公开验证工程，13 个框架与框架梁退化算例。
 - `truss-public-validation`：二维平面桁架公开验证工程，8 个桁架算例。
+- `frame-public-validation`：二维平面框架公开验证工程，13 个框架与框架梁退化算例。
 
 ```http
 GET /api/examples/projects

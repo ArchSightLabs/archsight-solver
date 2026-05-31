@@ -5,8 +5,8 @@ import { analysisVocabulary, defaultAnalysisObjectNameForMode } from "./analysis
 
 test("分析目标词表保持三类结构体系的专业命名", () => {
   assert.deepEqual(
-    (["beam", "frame", "truss"] as const).map((mode) => analysisVocabulary(mode).systemLabel),
-    ["梁系", "平面框架", "平面桁架"],
+    (["beam", "truss", "frame"] as const).map((mode) => analysisVocabulary(mode).systemLabel),
+    ["梁系", "平面桁架", "平面框架"],
   );
   assert.equal(analysisVocabulary("beam").runLabel, "运行梁系计算");
   assert.equal(analysisVocabulary("frame").resultLabel, "平面框架计算结果");

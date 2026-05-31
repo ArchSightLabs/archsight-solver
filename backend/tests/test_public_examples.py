@@ -31,12 +31,17 @@ def test_public_validation_projects_group_by_analysis_object():
     examples = build_public_validation_projects()
     projects = {project["id"]: project for project in examples["projects"]}
 
+    assert [project["id"] for project in examples["projects"]] == [
+        "beam-public-validation",
+        "truss-public-validation",
+        "frame-public-validation",
+    ]
     assert projects["beam-public-validation"]["caseCount"] == 12
-    assert projects["frame-public-validation"]["caseCount"] == 13
     assert projects["truss-public-validation"]["caseCount"] == 8
+    assert projects["frame-public-validation"]["caseCount"] == 13
     assert {obj["type"] for obj in projects["beam-public-validation"]["project"]["objects"]} == {"beam"}
-    assert {obj["type"] for obj in projects["frame-public-validation"]["project"]["objects"]} == {"frame"}
     assert {obj["type"] for obj in projects["truss-public-validation"]["project"]["objects"]} == {"truss"}
+    assert {obj["type"] for obj in projects["frame-public-validation"]["project"]["objects"]} == {"frame"}
 
 
 def test_public_validation_project_objects_use_continuous_number_prefixes():

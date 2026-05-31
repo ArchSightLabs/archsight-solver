@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Dict, Iterable, Literal, Tuple
 
 
-AnalysisType = Literal["beam", "frame", "truss"]
+AnalysisType = Literal["beam", "truss", "frame"]
 
 
 @dataclass(frozen=True)

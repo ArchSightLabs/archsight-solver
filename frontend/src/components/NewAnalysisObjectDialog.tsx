@@ -13,8 +13,8 @@ interface NewAnalysisObjectDialogProps {
 
 const TYPE_OPTIONS = [
   { type: "beam" as const, label: analysisVocabulary("beam").analysisLabel, icon: Ruler },
-  { type: "frame" as const, label: analysisVocabulary("frame").analysisLabel, icon: Network },
   { type: "truss" as const, label: analysisVocabulary("truss").analysisLabel, icon: Triangle },
+  { type: "frame" as const, label: analysisVocabulary("frame").analysisLabel, icon: Network },
 ];
 
 export function NewAnalysisObjectDialog({ existingCountByType, onCreate, onClose }: NewAnalysisObjectDialogProps) {

@@ -18,8 +18,8 @@ import type { TrussWorkspaceState } from "../types/structure.ts";
 test("默认求解器项目包含三类分析对象并激活梁系", () => {
   const project = createDefaultSolverProject(new Date("2026-05-21T12:00:00.000Z"));
   assert.equal(project.objects.length, 3);
-  assert.deepEqual(project.objects.map((object) => object.type), ["beam", "frame", "truss"]);
-  assert.deepEqual(project.objects.map((object) => object.name), ["梁系-1", "平面框架-1", "平面桁架-1"]);
+  assert.deepEqual(project.objects.map((object) => object.type), ["beam", "truss", "frame"]);
+  assert.deepEqual(project.objects.map((object) => object.name), ["梁系-1", "平面桁架-1", "平面框架-1"]);
   assert.equal(project.activeObjectId, project.objects[0].id);
   assert.equal(getActiveAnalysisObject(project).name, "梁系-1");
   assert.equal(project.settings.projectInfo.name, "新建结构分析项目");
@@ -56,8 +56,8 @@ test("新建项目可一次性写入项目级工程信息", () => {
 
 test("可创建不同类型的独立分析对象", () => {
   assert.equal(createAnalysisObject("beam", "").name, "梁系-1");
-  assert.equal(createAnalysisObject("frame", "").name, "平面框架-1");
   assert.equal(createAnalysisObject("truss", "").name, "平面桁架-1");
+  assert.equal(createAnalysisObject("frame", "").name, "平面框架-1");
 });
 
 test("添加分析对象后自动激活新对象并保留原对象", () => {

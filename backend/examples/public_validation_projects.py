@@ -18,15 +18,6 @@ GROUPS = [
         "scale": "12 个梁系分析对象",
     },
     {
-        "id": "frame-public-validation",
-        "title": "二维平面框架公开验证工程",
-        "description": "由公开验证集中的二维平面框架和框架梁退化算例组成，覆盖门式刚架、框架梁、弹性约束和构件荷载。",
-        "analysisTypes": {"frame"},
-        "caseCategories": {"frame", "frame-beam-verify"},
-        "projectType": "公开验证 / 平面框架",
-        "scale": "13 个框架分析对象",
-    },
-    {
         "id": "truss-public-validation",
         "title": "二维平面桁架公开验证工程",
         "description": "由公开验证集中的桁架算例组成，覆盖 Pratt、Warren、Howe、悬挑桁架和杆件自重等场景。",
@@ -34,6 +25,15 @@ GROUPS = [
         "caseCategories": {"truss", "truss-verify"},
         "projectType": "公开验证 / 平面桁架",
         "scale": "8 个桁架分析对象",
+    },
+    {
+        "id": "frame-public-validation",
+        "title": "二维平面框架公开验证工程",
+        "description": "由公开验证集中的二维平面框架和框架梁退化算例组成，覆盖门式刚架、框架梁、弹性约束和构件荷载。",
+        "analysisTypes": {"frame"},
+        "caseCategories": {"frame", "frame-beam-verify"},
+        "projectType": "公开验证 / 平面框架",
+        "scale": "13 个框架分析对象",
     },
 ]
 

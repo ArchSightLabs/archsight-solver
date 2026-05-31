@@ -81,16 +81,24 @@
 | 模块 | 模板 | 对应 benchmark | 关系 | 说明 |
 |---|---|---|---|---|
 | beam | `simple-span-uniform` / 简支梁均布荷载 | `beam-simply-supported-uniform` | 对应 | 同为单跨简支梁全跨均布荷载，主要复核最大挠度与峰值位置。 |
-| beam | `cantilever-tip-load` / 悬臂梁端部集中力 | `beam-cantilever-end-point` | 对应 | 同为悬臂梁自由端集中荷载，主要复核自由端挠度。 |
-| beam | `two-span-continuous` / 两跨连续梁 | `beam-continuous-two-span-uniform` | 对应 | 同为两跨连续梁均布荷载，主要复核连续梁变形控制值。 |
+| beam | `simple-span-center-point` / 简支梁跨中集中荷载 | `beam-simply-supported-center-point` | 对应 | 同为单跨简支梁跨中集中荷载，主要复核跨中最大挠度、峰值位置与两端支座反力。 |
+| beam | `cantilever-uniform` / 悬臂梁均布荷载 | `beam-cantilever-uniform` | 对应 | 同为悬臂梁全跨均布荷载，主要复核自由端挠度与固定端边界。 |
+| beam | `cantilever-tip-load` / 悬臂梁自由端集中力 | `beam-cantilever-end-point` | 对应 | 同为悬臂梁自由端集中荷载，主要复核自由端挠度。 |
+| beam | `two-span-continuous` / 两跨连续梁均布荷载 | `beam-continuous-two-span-uniform` | 对应 | 同为两跨连续梁均布荷载，主要复核连续梁变形控制值。 |
+| beam | `three-span-continuous-uniform` / 三跨连续梁均布荷载 | `beam-continuous-three-span-uniform` | 对应 | 同为三跨连续梁全跨均布荷载，主要复核多内支座连续梁的变形控制值。 |
 | beam | `three-span-linear` / 三跨连续梁线性分布荷载 | `beam-continuous-three-span-uniform` | 相近 | 验证对象同为三跨连续梁；公开 benchmark 采用均布荷载，模板采用线性分布荷载。 |
+| beam | `unequal-span-continuous-point` / 不等跨连续梁集中荷载 | `beam-continuous-unequal-span-point` | 对应 | 同为不等跨连续梁集中荷载，主要复核非对称跨长下的峰值位置与支座数量。 |
 | frame | `portal-single-bay` / 单跨单层刚架 | `frame-portal-benchmark` | 相近 | 同为单跨门式刚架；荷载组合略有差异，主要复核位移与构件弯矩口径。 |
+| frame | `portal-rotational-spring` / 弹性柱脚门式刚架 | `frame-portal-rotational-spring` | 对应 | 同为柱脚转动弹簧门式刚架，主要复核半刚性边界对节点位移和支座弯矩的影响。 |
 | frame | `frame-two-bay` / 两跨单层框架 | `frame-explicit-two-bay` | 对应 | 同为显式两跨单层框架，主要复核节点位移、构件弯矩与对象数量。 |
 | frame | `frame-two-story` / 两层两跨框架 | `frame-explicit-two-bay` | 相近 | 公开 benchmark 覆盖显式两跨单层框架；该模板扩展到两层，需另补专门 benchmark。 |
 | frame | `braced-frame` / 带斜撑框架 | `frame-portal-benchmark` | 相关 | 共享门式刚架基本边界；斜撑端部释放与抗侧效果仍需新增专项 benchmark。 |
+| frame | `inclined-member-local-load` / 斜梁门式刚架局部荷载 | `frame-inclined-member-load` | 对应 | 同为斜构件局部坐标分布荷载，主要复核 local_y 荷载转换和斜构件杆端力。 |
+| frame | `frame-member-point-load` / 框架梁构件内集中荷载 | `frame-member-point-load` | 对应 | 同为框架梁构件内集中荷载，主要复核构件内集中力转换与杆端内力。 |
 | truss | `simple-roof-truss` / 简支三角屋架 | `truss-simple-roof` | 对应 | 同为简支屋架节点荷载，主要复核节点位移与杆件轴力。 |
 | truss | `pratt-truss` / Pratt 桁架 | `truss-pratt-bridge` | 对应 | 同为 Pratt 桁架，主要复核节点位移、杆件轴力和控制杆件。 |
 | truss | `warren-truss` / Warren 桁架 | `truss-warren-roof` | 对应 | 同为 Warren 桁架，主要复核节点位移与杆件轴力。 |
+| truss | `howe-roof-truss` / Howe 型屋架 | `truss-howe-roof` | 对应 | 同为 Howe 型屋架，主要复核反向斜腹杆布置下的节点位移与杆件轴力。 |
 | truss | `cantilever-truss` / 悬臂桁架 | `truss-cantilever-panel` | 对应 | 同为悬挑桁架体系，主要复核自由端节点位移与杆件轴力。 |
 
 ## 使用说明

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Dict, Literal, Tuple
 
 
-AnalysisType = Literal["beam", "frame", "truss"]
+AnalysisType = Literal["beam", "truss", "frame"]
 
 
 @dataclass(frozen=True)
@@ -50,14 +50,14 @@ def support_labels(analysis_type: AnalysisType) -> Dict[str, str]:
 def support_constraint_dof_map() -> Dict[str, Dict[str, list[str]]]:
     return {
         analysis_type: {spec.value: list(spec.constraints) for spec in support_specs(analysis_type)}  # type: ignore[arg-type]
-        for analysis_type in ("beam", "frame", "truss")
+        for analysis_type in ("beam", "truss", "frame")
     }
 
 
 def support_released_dof_map() -> Dict[str, Dict[str, list[str]]]:
     return {
         analysis_type: {spec.value: list(spec.released) for spec in support_specs(analysis_type)}  # type: ignore[arg-type]
-        for analysis_type in ("beam", "frame", "truss")
+        for analysis_type in ("beam", "truss", "frame")
     }
 
 

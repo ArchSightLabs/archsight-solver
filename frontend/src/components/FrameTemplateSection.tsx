@@ -15,7 +15,7 @@ export function FrameTemplateSection({ onApplyTemplate }: FrameTemplateSectionPr
         </div>
       </div>
       <div className="grid grid-cols-1 gap-2">
-        {FRAME_MODEL_TEMPLATES.map((template) => (
+        {FRAME_MODEL_TEMPLATES.map((template, index) => (
           <button
             key={template.id}
             type="button"
@@ -23,8 +23,20 @@ export function FrameTemplateSection({ onApplyTemplate }: FrameTemplateSectionPr
             className="rounded-xl border border-white/8 bg-slate-950/20 p-3 text-left transition-colors hover:border-primary/35 hover:bg-primary/5"
           >
             <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="text-sm font-bold">{template.title}</div>
+              <div className="flex min-w-0 items-start gap-2">
+                <span className="mt-0.5 shrink-0 rounded border border-white/8 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-muted-foreground">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <div className="min-w-0">
+                  <div className="text-sm font-bold leading-snug">{template.title}</div>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {template.tags.slice(0, 3).map((tag) => (
+                      <span key={tag} className="rounded border border-white/8 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1.5">
                 <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] text-muted-foreground">

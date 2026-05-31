@@ -431,7 +431,7 @@ ASMS_MODEL_SCHEMA: Dict[str, Any] = {
     "$id": _schema_id("asms-model"),
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "ArchSight Structural Model Schema (ASMS-JSON)",
-    "description": "用于描述梁系、二维平面框架和二维平面桁架的开放 JSON 力学数据协议。",
+    "description": "用于描述梁系、二维平面桁架和二维平面框架的开放 JSON 力学数据协议。",
     "oneOf": [ASMS_BEAM_MODEL_SCHEMA, ASMS_FRAME_MODEL_SCHEMA, ASMS_TRUSS_MODEL_SCHEMA],
 }
 
@@ -592,7 +592,7 @@ BENCHMARK_CASE_LIST_INPUT_SCHEMA: Dict[str, Any] = {
     "properties": {
         "category": {
             "type": "string",
-            "enum": ["beam", "frame", "truss", "frame-beam-verify", "truss-verify"],
+            "enum": ["beam", "truss", "frame", "truss-verify", "frame-beam-verify"],
         }
     },
     "additionalProperties": False,
@@ -617,7 +617,7 @@ BENCHMARK_SUBMISSION_CASE_SCHEMA: Dict[str, Any] = {
         "id": {"type": "string", "description": "建议使用稳定短横线 caseId。"},
         "category": {
             "type": "string",
-            "enum": ["beam", "frame", "truss", "frame-beam-verify", "truss-verify"],
+            "enum": ["beam", "truss", "frame", "truss-verify", "frame-beam-verify"],
         },
         "title": {"type": "string"},
         "purpose": {"type": "string", "description": "说明该算例验证的结构体系、边界或荷载特征。"},

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-05-28",
+  "updatedAt": "2026-05-31",
   "templates": [
     {
       "module": "beam",
@@ -16,8 +16,32 @@
     },
     {
       "module": "beam",
+      "templateId": "simple-span-center-point",
+      "templateTitle": "简支梁跨中集中荷载",
+      "validationRefs": [
+        {
+          "caseId": "beam-simply-supported-center-point",
+          "relation": "对应",
+          "note": "同为单跨简支梁跨中集中荷载，主要复核跨中最大挠度、峰值位置与两端支座反力。"
+        }
+      ]
+    },
+    {
+      "module": "beam",
+      "templateId": "cantilever-uniform",
+      "templateTitle": "悬臂梁均布荷载",
+      "validationRefs": [
+        {
+          "caseId": "beam-cantilever-uniform",
+          "relation": "对应",
+          "note": "同为悬臂梁全跨均布荷载，主要复核自由端挠度与固定端边界。"
+        }
+      ]
+    },
+    {
+      "module": "beam",
       "templateId": "cantilever-tip-load",
-      "templateTitle": "悬臂梁端部集中力",
+      "templateTitle": "悬臂梁自由端集中力",
       "validationRefs": [
         {
           "caseId": "beam-cantilever-end-point",
@@ -29,12 +53,24 @@
     {
       "module": "beam",
       "templateId": "two-span-continuous",
-      "templateTitle": "两跨连续梁",
+      "templateTitle": "两跨连续梁均布荷载",
       "validationRefs": [
         {
           "caseId": "beam-continuous-two-span-uniform",
           "relation": "对应",
           "note": "同为两跨连续梁均布荷载，主要复核连续梁变形控制值。"
+        }
+      ]
+    },
+    {
+      "module": "beam",
+      "templateId": "three-span-continuous-uniform",
+      "templateTitle": "三跨连续梁均布荷载",
+      "validationRefs": [
+        {
+          "caseId": "beam-continuous-three-span-uniform",
+          "relation": "对应",
+          "note": "同为三跨连续梁全跨均布荷载，主要复核多内支座连续梁的变形控制值。"
         }
       ]
     },
@@ -51,6 +87,18 @@
       ]
     },
     {
+      "module": "beam",
+      "templateId": "unequal-span-continuous-point",
+      "templateTitle": "不等跨连续梁集中荷载",
+      "validationRefs": [
+        {
+          "caseId": "beam-continuous-unequal-span-point",
+          "relation": "对应",
+          "note": "同为不等跨连续梁集中荷载，主要复核非对称跨长下的峰值位置与支座数量。"
+        }
+      ]
+    },
+    {
       "module": "frame",
       "templateId": "portal-single-bay",
       "templateTitle": "单跨单层刚架",
@@ -59,6 +107,18 @@
           "caseId": "frame-portal-benchmark",
           "relation": "相近",
           "note": "同为单跨门式刚架；荷载组合略有差异，主要复核位移与构件弯矩口径。"
+        }
+      ]
+    },
+    {
+      "module": "frame",
+      "templateId": "portal-rotational-spring",
+      "templateTitle": "弹性柱脚门式刚架",
+      "validationRefs": [
+        {
+          "caseId": "frame-portal-rotational-spring",
+          "relation": "对应",
+          "note": "同为柱脚转动弹簧门式刚架，主要复核半刚性边界对节点位移和支座弯矩的影响。"
         }
       ]
     },
@@ -99,6 +159,30 @@
       ]
     },
     {
+      "module": "frame",
+      "templateId": "inclined-member-local-load",
+      "templateTitle": "斜梁门式刚架局部荷载",
+      "validationRefs": [
+        {
+          "caseId": "frame-inclined-member-load",
+          "relation": "对应",
+          "note": "同为斜构件局部坐标分布荷载，主要复核 local_y 荷载转换和斜构件杆端力。"
+        }
+      ]
+    },
+    {
+      "module": "frame",
+      "templateId": "frame-member-point-load",
+      "templateTitle": "框架梁构件内集中荷载",
+      "validationRefs": [
+        {
+          "caseId": "frame-member-point-load",
+          "relation": "对应",
+          "note": "同为框架梁构件内集中荷载，主要复核构件内集中力转换与杆端内力。"
+        }
+      ]
+    },
+    {
       "module": "truss",
       "templateId": "simple-roof-truss",
       "templateTitle": "简支三角屋架",
@@ -131,6 +215,18 @@
           "caseId": "truss-warren-roof",
           "relation": "对应",
           "note": "同为 Warren 桁架，主要复核节点位移与杆件轴力。"
+        }
+      ]
+    },
+    {
+      "module": "truss",
+      "templateId": "howe-roof-truss",
+      "templateTitle": "Howe 型屋架",
+      "validationRefs": [
+        {
+          "caseId": "truss-howe-roof",
+          "relation": "对应",
+          "note": "同为 Howe 型屋架，主要复核反向斜腹杆布置下的节点位移与杆件轴力。"
         }
       ]
     },

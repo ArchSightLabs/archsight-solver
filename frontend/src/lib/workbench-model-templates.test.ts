@@ -16,6 +16,7 @@ interface TemplateBenchmarkMap {
   templates: {
     module: "beam" | "frame" | "truss";
     templateId: string;
+    templateTitle: string;
     validationRefs: { caseId: string; relation: string; note: string }[];
   }[];
 }
@@ -26,10 +27,11 @@ const TEMPLATE_BENCHMARK_MAP = JSON.parse(
 const TEMPLATE_SOURCE = readFileSync(new URL("./workbench-model-templates.ts", import.meta.url), "utf-8");
 
 test("内置梁系典型案例可导入并构造求解载荷", () => {
-  assert.ok(BEAM_MODEL_TEMPLATES.length >= 4);
+  assert.ok(BEAM_MODEL_TEMPLATES.length >= 8);
 
   for (const template of BEAM_MODEL_TEMPLATES) {
     assert.ok(template.state.spans.length >= 1, `${template.title} 应包含跨段`);
+    assert.doesNotMatch(template.title, /^\d{2}\s/u, `${template.title} 不应把列表编号写入模板名称`);
 
     const workspace = applyBeamModelTemplate(createDefaultBeamWorkspaceState(), template);
     assert.equal(workspace.projectName, template.state.projectName);
@@ -39,6 +41,26 @@ test("内置梁系典型案例可导入并构造求解载荷", () => {
     assert.equal(payload.analysisType, "beam");
     assert.equal(payload.spans.length, template.state.spans.length);
   }
+});
+
+test("梁系公共模板覆盖公开验证课程中的通用工况", () => {
+  assert.deepEqual(BEAM_MODEL_TEMPLATES.map((template) => template.id), [
+    "simple-span-uniform",
+    "simple-span-center-point",
+    "cantilever-uniform",
+    "cantilever-tip-load",
+    "two-span-continuous",
+    "three-span-continuous-uniform",
+    "three-span-linear",
+    "unequal-span-continuous-point",
+  ]);
+
+  const byId = new Map(BEAM_MODEL_TEMPLATES.map((template) => [template.id, template]));
+  assert.equal(byId.get("simple-span-center-point")?.state.loadType, "point");
+  assert.equal(byId.get("cantilever-uniform")?.state.loadType, "uniform");
+  assert.equal(byId.get("three-span-continuous-uniform")?.state.spans.length, 3);
+  assert.equal(byId.get("unequal-span-continuous-point")?.state.spans.length, 3);
+  assert.doesNotMatch(BEAM_MODEL_TEMPLATES.map((template) => template.title).join("，"), /\b(?:4|6|8)m\b/iu);
 });
 
 test("内置模板均标注公开验证集映射", () => {
@@ -58,6 +80,7 @@ test("内置模板均标注公开验证集映射", () => {
     }
     const mapped = mappingByTemplate.get(`${module}:${template.id}`);
     assert.ok(mapped, `${template.id} 应写入 docs/verification 的模板映射事实源`);
+    assert.equal(mapped.templateTitle, template.title, `${template.id} 的 benchmark 映射标题应与模板标题一致`);
     assert.deepEqual(
       template.validationRefs.map((ref) => ref.caseId),
       mapped.validationRefs.map((ref) => ref.caseId)
@@ -87,12 +110,13 @@ test("默认连续梁工作区包含中间支座", () => {
 });
 
 test("内置框架典型案例提供可计算的显式模型", () => {
-  assert.ok(FRAME_MODEL_TEMPLATES.length >= 4);
+  assert.ok(FRAME_MODEL_TEMPLATES.length >= 7);
 
   for (const template of FRAME_MODEL_TEMPLATES) {
     assert.ok(template.nodes.length >= 2, `${template.title} 应包含节点`);
     assert.ok(template.members.length >= 1, `${template.title} 应包含构件`);
     assert.ok(template.loads.length >= 1, `${template.title} 应包含荷载`);
+    assert.doesNotMatch(template.title, /^\d{2}\s/u, `${template.title} 不应把列表编号写入模板名称`);
 
     const workspace = applyFrameModelTemplate(createDefaultFrameWorkspaceState(), template);
     assert.equal(workspace.frameMode, "custom");
@@ -105,8 +129,32 @@ test("内置框架典型案例提供可计算的显式模型", () => {
   }
 });
 
+test("平面框架公共模板覆盖公开验证课程中的通用工况", () => {
+  assert.deepEqual(FRAME_MODEL_TEMPLATES.map((template) => template.id), [
+    "portal-single-bay",
+    "portal-rotational-spring",
+    "frame-two-bay",
+    "frame-two-story",
+    "braced-frame",
+    "inclined-member-local-load",
+    "frame-member-point-load",
+  ]);
+
+  const byId = new Map(FRAME_MODEL_TEMPLATES.map((template) => [template.id, template]));
+  assert.ok(byId.get("portal-rotational-spring")?.nodes.some((node) => node.springs?.some((spring) => spring.dof === "rz")));
+  assert.ok(byId.get("inclined-member-local-load")?.loads.every((load) => load.type === "distributed" && load.direction === "local_y"));
+  assert.ok(byId.get("frame-member-point-load")?.loads.some((load) => load.type === "member_point"));
+  assert.doesNotMatch(FRAME_MODEL_TEMPLATES.map((template) => template.title).join("，"), /退化梁|简支梁|悬臂梁/u);
+});
+
 test("内置桁架典型案例提供可计算的显式模型", () => {
-  assert.ok(TRUSS_MODEL_TEMPLATES.length >= 4);
+  assert.deepEqual(TRUSS_MODEL_TEMPLATES.map((template) => template.id), [
+    "simple-roof-truss",
+    "pratt-truss",
+    "warren-truss",
+    "howe-roof-truss",
+    "cantilever-truss",
+  ]);
 
   for (const template of TRUSS_MODEL_TEMPLATES) {
     assert.ok(template.nodes.length >= 2, `${template.title} 应包含节点`);

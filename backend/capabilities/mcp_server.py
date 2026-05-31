@@ -81,7 +81,7 @@ TOOL_DEFINITIONS = [
     {
         "name": "calculate",
         "title": "通用结构求解",
-        "description": "调用 /api/calculate 同源计算链路，支持梁系、平面框架和平面桁架 payload。",
+        "description": "调用 /api/calculate 同源计算链路，支持梁系、平面桁架和平面框架 payload。",
         "inputSchema": CALCULATE_TOOL_INPUT_SCHEMA,
         "outputSchema": CAPABILITY_RESULT_SCHEMA,
         "annotations": {**READ_ONLY_ANNOTATIONS, "title": "通用结构求解"},
@@ -126,7 +126,7 @@ RESOURCE_DEFINITIONS = [
         "uri": "archsight://docs/asms-json",
         "name": "asms-json-protocol",
         "title": "ASMS-JSON 结构力学数据协议",
-        "description": "梁系、二维平面框架和二维平面桁架的公开结构模型协议说明。",
+        "description": "梁系、二维平面桁架和二维平面框架的公开结构模型协议说明。",
         "mimeType": "text/markdown",
     },
     {
@@ -140,7 +140,7 @@ RESOURCE_DEFINITIONS = [
         "uri": "archsight://benchmark/catalog",
         "name": "benchmark-catalog",
         "title": "公开验证集算例目录",
-        "description": "梁系、平面框架、平面桁架基准算例及验证元数据。",
+        "description": "梁系、平面桁架、平面框架基准算例及验证元数据。",
         "mimeType": "application/json",
     },
     {

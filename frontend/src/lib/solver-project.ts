@@ -152,8 +152,8 @@ export function createAnalysisObject(type: AnalysisObjectType, name?: string, no
 function createDefaultAnalysisObjects(now = new Date()): AnalysisObject[] {
   return [
     createAnalysisObject("beam", defaultAnalysisObjectName("beam"), now),
-    createAnalysisObject("frame", defaultAnalysisObjectName("frame"), now),
     createAnalysisObject("truss", defaultAnalysisObjectName("truss"), now),
+    createAnalysisObject("frame", defaultAnalysisObjectName("frame"), now),
   ];
 }
 

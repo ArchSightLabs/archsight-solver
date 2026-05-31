@@ -25,7 +25,7 @@ test("创建 ArchSight Solver 项目文件时写入专属 schema 和 .slv 文件
   assert.equal(projectFile.schemaVersion, "2.0.0");
   assert.equal(projectFile.project.name, "门式刚架: 方案 A");
   assert.equal(projectFile.project.objects.length, 3);
-  assert.deepEqual(projectFile.project.objects.map((object) => object.type), ["beam", "frame", "truss"]);
+  assert.deepEqual(projectFile.project.objects.map((object) => object.type), ["beam", "truss", "frame"]);
   assert.equal(ARCHSIGHT_SOLVER_PROJECT_EXTENSION, ".slv");
   assert.deepEqual([...ARCHSIGHT_SOLVER_LEGACY_PROJECT_EXTENSIONS], [".aslv.json", ".json"]);
   assert.equal(getArchSightSolverProjectFileName(project), `门式刚架- 方案 A${ARCHSIGHT_SOLVER_PROJECT_EXTENSION}`);

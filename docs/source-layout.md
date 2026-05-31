@@ -26,7 +26,7 @@
 | `backend/contracts/` | JSON Schema Registry 与 OpenAPI 文档生成。 |
 | `backend/examples/` | 可导入工作台的公开工程案例生成逻辑。 |
 | `backend/exporters/` | WORD / XLSX 计算书导出。 |
-| `backend/normalizers/` | 梁系、框架、桁架输入归一化和 ASMS-JSON 预处理。 |
+| `backend/normalizers/` | 梁系、桁架、框架输入归一化和 ASMS-JSON 预处理。 |
 | `backend/presenters/` | 面向 API 或前端的结果表达转换。 |
 | `backend/services/` | 求解服务、导出服务和工作台适配层。 |
 | `backend/solver/` | 结构力学求解核心，包括梁、框架、桁架计算。 |
@@ -51,6 +51,9 @@
 | `data/verification/template_benchmark_map.json` | 前端内置模板到公开 benchmark 的对应/相近映射。 |
 | `docs/asms-json-schema.md` | ASMS-JSON / Model Schema 字段语义、单位口径和结构体系边界。 |
 | `docs/api-reference.md` | REST API、CLI、MCP 和错误码说明。 |
+| `docs/agent-integration.md` | REST API、CLI、MCP 三类 Agent/自动化集成入口和安全边界。 |
+| `docs/learning/` | 梁系、平面桁架、平面框架的结构力学入门文档。 |
+| `docs/verification/benchmark-methodology.md` | 公开验证集分层、指标选择、投稿校验和宣传边界。 |
 | `docs/verification/benchmark-validation-report.md` | 当前公开验证集自动生成报告。 |
 | `docs/verification/benchmark-catalog-summary.md` | 自动生成的 benchmark 人工阅读目录，包含算例标准值、容许误差和模板映射。 |
 

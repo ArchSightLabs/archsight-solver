@@ -14,7 +14,7 @@
 
 每个样例都包含自然语言工况、缺失输入处理规则、ASMS-JSON、CLI 调用模板、MCP 调用模板、benchmark caseId、导出配置和验收检查。
 
-本文是 ASMS-JSON 的调用流程说明，不重复定义字段全集。字段语义、单位、梁系/二维平面框架/二维平面桁架差异、版本策略和协议级错误，以 `docs/asms-json-schema.md` 为准。
+本文是 ASMS-JSON 的调用流程说明，不重复定义字段全集。字段语义、单位、梁系/二维平面桁架/二维平面框架差异、版本策略和协议级错误，以 `docs/asms-json-schema.md` 为准。
 
 在 Agent 语境中，应把 ASMS-JSON 视为第一层稳定输出，而不是某个接口的临时请求体：
 
@@ -26,14 +26,14 @@
 ## 标准流程
 
 1. **抽取工程输入**
-   - 识别结构类型：梁系、二维平面框架、二维平面桁架。
+   - 识别结构类型：梁系、二维平面桁架、二维平面框架。
    - 抽取几何、材料、截面、支座、荷载、输出指标。
    - 若缺少跨度、节点、构件、支座、E、I、A 或荷载，Agent 应停止并列出缺失输入，不应静默补默认值。
 
 2. **生成 ASMS-JSON**
    - 梁系使用 `analysisType: "beam"`、`beamType`、`loadType`、`spans`、`E`、`I`、荷载字段。
-   - 二维平面框架使用 `analysisType: "frame"` 和 `structure.nodes/members/loads`。
    - 二维平面桁架使用 `analysisType: "truss"` 和 `structure.nodes/members/loads`，不得把桁架杆件当作受弯构件。
+   - 二维平面框架使用 `analysisType: "frame"` 和 `structure.nodes/members/loads`。
 
 3. **执行确定性求解**
    - REST：`POST /api/calculate`
@@ -56,7 +56,7 @@
 你是结构力学求解 Agent。请把用户工况转换为 ArchSight Solver 的 ASMS-JSON。
 
 必须遵守：
-1. 只生成梁系、二维平面框架或二维平面桁架模型。
+1. 只生成梁系、二维平面桁架或二维平面框架模型。
 2. 单位使用 m、GPa、cm^4、cm^2、kN、kN/m、kN.m。
 3. 缺少关键工程输入时输出 missingInputs，不要自行假设截面、支座或荷载。
 4. 输出 JSON 后，调用 calculate 工具求解。

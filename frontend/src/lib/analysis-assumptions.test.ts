@@ -26,7 +26,7 @@ test("平面桁架计算假定明确只传递轴力且不引入弯矩主指标",
 });
 
 test("三类分析目标都显式声明适用边界", () => {
-  for (const mode of ["beam", "frame", "truss"] as const) {
+  for (const mode of ["beam", "truss", "frame"] as const) {
     assert.match(rowValue(mode, "适用边界"), /线弹性、小变形、确定性静力分析/u);
     assert.match(rowValue(mode, "适用边界"), /不替代规范设计/u);
   }

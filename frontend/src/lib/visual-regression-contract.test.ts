@@ -37,7 +37,7 @@ test("计算书图形导出测试锁定共享图形目录和前端同源图片",
 });
 
 test("主控大模型画布视觉回归覆盖三类分析对象", () => {
-  for (const modelName of ["梁系", "平面框架", "平面桁架"]) {
+  for (const modelName of ["梁系", "平面桁架", "平面框架"]) {
     assert.match(largeCanvasSpec, new RegExp(`${modelName}.*主控建模画布扩展`, "u"));
   }
 
