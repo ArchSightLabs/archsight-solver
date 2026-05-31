@@ -72,7 +72,7 @@ def _beam_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str,
                 ["1", "按跨段、支座和荷载位置生成梁单元网格"],
                 ["2", "采用 Hermite 位移插值形成梁单元刚度矩阵"],
                 ["3", "组装整体刚度矩阵 K 与等效节点荷载向量 F"],
-                ["4", "施加支座约束、弹性支座刚度与端部释放后求解节点位移"],
+                ["4", "施加支座约束、弹性约束刚度与端部释放后求解节点位移"],
                 ["5", "由单元位移恢复弯矩、剪力、支座反力和控制挠度"],
             ],
             columns=["步骤", "说明"],
@@ -150,7 +150,7 @@ def _frame_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str
                 ["1", "按节点与构件生成二维平面框架单元"],
                 ["2", "计算构件局部刚度矩阵并转换至全局坐标"],
                 ["3", "装配整体刚度矩阵 K 与荷载向量 F"],
-                ["4", "施加支座约束、弹性支座刚度、端部释放和内部铰"],
+                ["4", "施加支座约束、弹性约束刚度、端部释放和内部铰"],
                 ["5", "求解节点位移，并恢复构件轴力、剪力、弯矩与支座反力"],
             ],
             columns=["步骤", "说明"],
@@ -291,7 +291,7 @@ def _truss_boundary_table(nodes: Iterable[Mapping[str, Any]]) -> pd.DataFrame:
                 "位置": f"({round(float(node.get('x', 0.0)), 6)}, {round(float(node.get('y', 0.0)), 6)}) m",
                 "支座类型": support_label("truss", support_type),
                 "约束自由度": _format_dofs(constraints),
-                "边界口径": "仅 ux/uy 平动支座约束；不含节点转角与弹性支座",
+                "边界口径": "仅 ux/uy 平动支座约束；不含节点转角与弹性约束",
             }
         )
     return pd.DataFrame(rows or [{"节点": "—", "位置": "—", "支座类型": "—", "约束自由度": "—", "边界口径": "—"}])

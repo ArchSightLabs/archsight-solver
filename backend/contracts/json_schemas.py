@@ -82,7 +82,7 @@ NODE_SCHEMA: Dict[str, Any] = {
         },
         "springs": {
             "type": "array",
-            "description": "节点弹性支座；ux/uy 使用 stiffnessKnPerM，rz 使用 stiffnessKnMPerRad。",
+            "description": "节点弹性约束；ux/uy 使用 stiffnessKnPerM，rz 使用 stiffnessKnMPerRad。",
             "items": {"oneOf": [FRAME_TRANSLATIONAL_SPRING_SCHEMA, FRAME_ROTATIONAL_SPRING_SCHEMA]},
         },
         "condensedDofs": {

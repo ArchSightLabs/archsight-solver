@@ -247,7 +247,7 @@ def test_truss_normalizer_maps_legacy_fixed_support_to_pinned():
     [
         (
             {"springs": [{"dof": "uy", "stiffnessKnPerM": 12000}]},
-            "桁架节点不支持弹性支座",
+            "桁架节点不支持节点弹性约束",
         ),
         (
             {"supportAngleDeg": 45},
@@ -315,7 +315,7 @@ def test_shared_structural_model_preserves_load_combination_tags():
     [
         (
             {"nodes": [{"id": "N1", "x": 0, "y": 0, "supportType": "fixed", "springs": [{"dof": "uz", "stiffnessKnPerM": 1}]}]},
-            "弹性支座自由度必须为 ux、uy 或 rz",
+            "节点弹性约束自由度必须为 ux、uy 或 rz",
         ),
         (
             {"members": [{"id": "M1", "start": "N1", "end": "N2", "endReleases": {"start": ["uy"]}}]},

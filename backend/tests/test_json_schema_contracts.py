@@ -130,6 +130,7 @@ def test_cross_stack_critical_field_matrix_is_in_sync():
         node_properties = _structure_collection_properties(schema, "nodes")["items"]["properties"]
         assert {"supportAngleDeg", "springs"}.issubset(node_properties)
         spring_branches = node_properties["springs"]["items"]["oneOf"]
+        assert node_properties["springs"]["description"].startswith("节点弹性约束")
         spring_fields = {field for branch in spring_branches for field in branch["properties"]}
         assert {"stiffnessKnPerM", "stiffnessKnMPerRad"}.issubset(spring_fields)
 
@@ -205,6 +206,7 @@ def test_cross_stack_critical_field_matrix_is_in_sync():
             [
                 "supportAngleDeg",
                 "springs",
+                "节点弹性约束",
                 "materialId",
                 "endReleases",
                 "internalHinges",

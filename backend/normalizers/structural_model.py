@@ -190,7 +190,7 @@ def parse_nodes(
     allow_springs: bool = True,
     allow_support_angle: bool = True,
     allow_condensed_dofs: bool = True,
-    unsupported_springs_error: str = "当前结构对象不支持节点弹性支座",
+    unsupported_springs_error: str = "当前结构对象不支持节点弹性约束",
     unsupported_support_angle_error: str = "当前结构对象不支持滚动支座法向角",
     unsupported_condensed_dofs_error: str = "当前结构对象不支持节点凝聚自由度",
 ) -> List[StructuralNode]:
@@ -256,14 +256,14 @@ def parse_node_springs(raw_springs: Any) -> List[Dict[str, Any]]:
     if raw_springs in (None, ""):
         return []
     if not isinstance(raw_springs, Sequence) or isinstance(raw_springs, (str, bytes)):
-        raise ValueError("弹性支座必须使用 springs 数组定义")
+        raise ValueError("节点弹性约束必须使用 springs 数组定义")
     springs: List[Dict[str, Any]] = []
     for spring in raw_springs:
         if not isinstance(spring, Mapping):
-            raise ValueError("弹性支座必须使用对象定义")
+            raise ValueError("节点弹性约束必须使用对象定义")
         dof = str(spring.get("dof") or "").strip().lower()
         if dof not in {"ux", "uy", "rz"}:
-            raise ValueError("弹性支座自由度必须为 ux、uy 或 rz")
+            raise ValueError("节点弹性约束自由度必须为 ux、uy 或 rz")
         if dof == "rz":
             stiffness = to_float(
                 spring.get("stiffnessKnMPerRad", spring.get("stiffness", spring.get("k"))),
@@ -277,7 +277,7 @@ def parse_node_springs(raw_springs: Any) -> List[Dict[str, Any]]:
             )
             key = "stiffnessKnPerM"
         if stiffness <= 0:
-            raise ValueError("弹性支座刚度必须大于 0")
+            raise ValueError("节点弹性约束刚度必须大于 0")
         springs.append({"dof": dof, key: stiffness})
     return springs
 
@@ -832,7 +832,7 @@ def build_structural_model(
         allow_springs=include_bending,
         allow_support_angle=include_bending,
         allow_condensed_dofs=include_bending,
-        unsupported_springs_error="桁架节点不支持弹性支座；当前桁架支座仅使用 pinned、roller、free 刚性平动约束",
+        unsupported_springs_error="桁架节点不支持节点弹性约束；当前桁架支座仅使用 pinned、roller、free 刚性平动约束",
         unsupported_support_angle_error="桁架节点不支持滚动支座法向角；当前 roller 固定约束 uy、释放 ux",
         unsupported_condensed_dofs_error="桁架节点不支持凝聚/转角释放自由度；桁架节点仅含 ux、uy 平动自由度",
     )
