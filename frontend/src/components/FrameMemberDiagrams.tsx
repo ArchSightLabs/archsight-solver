@@ -23,6 +23,7 @@ import {
 import { formatEngineeringValue } from "../lib/engineering-format";
 import { resultPreviewCanvasSize, resultPreviewSvgStyle, type ResultPreviewCanvasSize } from "../lib/result-preview-sizing";
 import { clamp, svgAreaPath, svgPathFromPoints } from "../lib/result-diagram-geometry";
+import { modelObjectMemberTerm } from "../lib/model-object-vocabulary";
 import { summaryMetricLabel } from "../lib/result-metrics";
 import { STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
 import { ResultDiagramCard, ResultDiagramEmptyState, ResultDiagramMetricBadge, ResultDiagramMetricGallery } from "./ResultDiagramLayout";
@@ -117,9 +118,10 @@ function valueText(value: number, unit: string) {
 }
 
 function frameDiagramPeakLabel(metric: FrameDiagramMetric): string {
-  if (metric.key === "momentKnM") return summaryMetricLabel("frame", "max_member_moment", "最大构件弯矩");
-  if (metric.key === "shearKn") return "最大构件剪力";
-  if (metric.key === "axialKn") return "最大构件轴力";
+  const memberTerm = modelObjectMemberTerm("frame");
+  if (metric.key === "momentKnM") return summaryMetricLabel("frame", "max_member_moment", `最大${memberTerm}弯矩`);
+  if (metric.key === "shearKn") return `最大${memberTerm}剪力`;
+  if (metric.key === "axialKn") return `最大${memberTerm}轴力`;
   return "最大局部 y 向挠度";
 }
 

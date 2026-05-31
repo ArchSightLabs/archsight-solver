@@ -132,3 +132,18 @@ test("结构预览和主控画布成员术语从共享模型对象词表派生",
     assert.doesNotMatch(source, /构件|杆件/u, `${fileName} 不应在图形文案中硬编码成员术语`);
   }
 });
+
+test("结果页和计算书选项成员术语从共享模型对象词表派生", () => {
+  const sources = [
+    ["FrameMemberDiagrams.tsx", readFileSync(new URL("../components/FrameMemberDiagrams.tsx", import.meta.url), "utf-8")],
+    ["TrussResultDiagrams.tsx", readFileSync(new URL("../components/TrussResultDiagrams.tsx", import.meta.url), "utf-8")],
+    ["workbench-result-metrics.ts", readFileSync(new URL("../components/workbench-result-metrics.ts", import.meta.url), "utf-8")],
+    ["workbench-result-model.ts", readFileSync(new URL("../components/workbench-result-model.ts", import.meta.url), "utf-8")],
+    ["report-options.ts", readFileSync(new URL("./report-options.ts", import.meta.url), "utf-8")],
+  ];
+
+  for (const [fileName, source] of sources) {
+    assert.match(source, /modelObjectMemberTerm/u, `${fileName} 应从共享词表取得成员术语`);
+    assert.doesNotMatch(source, /(?:最大|控制|查看|中的|与|tooltipXLabel:\s*")(?:(?:构件)|(?:杆件))/u, `${fileName} 不应在结果文案中硬编码成员术语`);
+  }
+});

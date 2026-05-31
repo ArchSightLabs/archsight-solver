@@ -1,4 +1,5 @@
 import sharedReportOptions from "../../../shared/report-options.json" with { type: "json" };
+import { modelObjectMemberTerm } from "./model-object-vocabulary.ts";
 import type { AnalysisMode } from "../types/structure.ts";
 
 export type ReportTemplate = "standard" | "complete" | "brief";
@@ -95,11 +96,13 @@ export function reportFigureScopeHintForMode(mode: AnalysisMode, scope: ReportFi
       : "插入结构预览图，并按图形模式导出弯矩、剪力、挠度图。";
   }
   if (mode === "frame") {
+    const memberTerm = modelObjectMemberTerm("frame");
     return scope === "control"
-      ? "插入结构预览图和控制构件弯矩图；如需剪力、轴力和局部 y 向挠度图，选择“全部结果图”。"
-      : "插入结果页工程图廊中的构件弯矩、剪力、局部 y 向挠度和轴力模型叠加图。";
+      ? `插入结构预览图和控制${memberTerm}弯矩图；如需剪力、轴力和局部 y 向挠度图，选择“全部结果图”。`
+      : `插入结果页工程图廊中的${memberTerm}弯矩、剪力、局部 y 向挠度和轴力模型叠加图。`;
   }
+  const memberTerm = modelObjectMemberTerm("truss");
   return scope === "control"
-    ? "插入结构预览图和控制杆件轴力图；如需节点位移图，选择“全部结果图”。"
-    : "插入结果页工程图廊中的杆件轴力和节点位移模型叠加图。";
+    ? `插入结构预览图和控制${memberTerm}轴力图；如需节点位移图，选择“全部结果图”。`
+    : `插入结果页工程图廊中的${memberTerm}轴力和节点位移模型叠加图。`;
 }

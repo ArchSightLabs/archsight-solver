@@ -13,6 +13,7 @@ import {
 import { formatEngineeringValue } from "../lib/engineering-format";
 import { RESULT_PREVIEW_BASE_SIZE, resultPreviewCanvasSize, resultPreviewSvgStyle, type ResultPreviewCanvasSize } from "../lib/result-preview-sizing";
 import { clamp } from "../lib/result-diagram-geometry";
+import { modelObjectMemberTerm } from "../lib/model-object-vocabulary";
 import { summaryMetricLabel } from "../lib/result-metrics";
 import { STRUCTURE_RESULT_COLORS, STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
 import {
@@ -70,7 +71,7 @@ function valueText(value: number, unit: string) {
 
 function trussDiagramControlLabel(key: TrussDiagramSelectionKey): string {
   if (key === "displacementMm") return summaryMetricLabel("truss", "max_node_displacement", "最大节点位移");
-  if (key === "axialForceKn") return summaryMetricLabel("truss", "max_member_axial", "最大杆件轴力");
+  if (key === "axialForceKn") return summaryMetricLabel("truss", "max_member_axial", `最大${modelObjectMemberTerm("truss")}轴力`);
   return "控制值";
 }
 

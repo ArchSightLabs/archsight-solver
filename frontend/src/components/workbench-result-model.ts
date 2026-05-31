@@ -1,5 +1,5 @@
 import { Activity, BarChart3, FileText, LineChart, Network } from "lucide-react";
-import { modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
+import { modelObjectMemberTerm, modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
 import type {
   AnalysisMode,
   FrameCalculationResults,
@@ -49,11 +49,13 @@ const FRAME_TABS: ResultTab[] = [
   { id: "summary", label: "结果摘要", description: "查看计算结论与状态", icon: FileText },
 ];
 
+const TRUSS_MEMBER_TERM = modelObjectMemberTerm("truss");
+
 const TRUSS_TABS: ResultTab[] = [
   { id: "overview", label: "全部结果", description: "一次查看结构预览、模型叠加工程图、数据曲线和校核摘要", icon: Activity },
   { id: "preview", label: "结构预览", description: resultPreviewDescription("truss"), icon: Network },
-  { id: "diagrams", label: "工程图", description: "在桁架坐标系中查看杆件轴力和节点位移的模型叠加工程图", icon: BarChart3 },
-  { id: "curves", label: "数据曲线", description: "按节点与杆件序列查看位移和轴力数据曲线", icon: LineChart },
+  { id: "diagrams", label: "工程图", description: `在桁架坐标系中查看${TRUSS_MEMBER_TERM}轴力和节点位移的模型叠加工程图`, icon: BarChart3 },
+  { id: "curves", label: "数据曲线", description: `按节点与${TRUSS_MEMBER_TERM}序列查看位移和轴力数据曲线`, icon: LineChart },
   { id: "summary", label: "结果摘要", description: "查看计算结论与状态", icon: FileText },
 ];
 

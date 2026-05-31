@@ -1,6 +1,7 @@
 import type { BeamCalculationResults } from "../types/beam";
 import type { FrameCalculationResults, TrussCalculationResults } from "../types/structure";
 import { formatEngineeringValue, formatLimitRatio, formatUtilizationPercent } from "../lib/engineering-format.ts";
+import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import { summaryMetricLabel } from "../lib/result-metrics.ts";
 
 export type SummaryRow = {
@@ -65,6 +66,7 @@ export function beamDataCurveOptions(results: BeamCalculationResults): DataCurve
 }
 
 export function trussDataCurveOptions(results: TrussCalculationResults): DataCurveOption[] {
+  const memberTerm = modelObjectMemberTerm("truss");
   const nodeX = results.nodeIds.map((_, index) => index + 1);
   const memberX = results.memberIds.map((_, index) => index + 1);
   return [
@@ -96,15 +98,15 @@ export function trussDataCurveOptions(results: TrussCalculationResults): DataCur
     },
     {
       id: "axial",
-      title: "杆件轴力曲线",
+      title: `${memberTerm}轴力曲线`,
       unit: "kN",
-      yLabel: "杆件轴力（kN）",
+      yLabel: `${memberTerm}轴力（kN）`,
       color: "#f59e0b",
       xData: memberX,
       xLabels: results.memberIds,
       yData: results.member_axial_data.map((item) => item.axialForceKn),
       xAxisLabel: "",
-      tooltipXLabel: "杆件",
+      tooltipXLabel: memberTerm,
       valueScale: 1,
     },
   ];
@@ -177,15 +179,17 @@ export function beamSummaryRows(results: BeamCalculationResults): SummaryRow[] {
 }
 
 export function trussSummaryRows(results: TrussCalculationResults): SummaryRow[] {
+  const memberTerm = modelObjectMemberTerm("truss");
   return [
     { label: summaryMetricLabel("truss", "allowable_displacement", "允许位移"), value: formatEngineeringValue(results.summary.allowableMm, "mm"), detail: `${formatLimitRatio(results.summary.allowableRatio)} · 利用率 ${formatUtilizationPercent(results.summary.maxDisplacementMm, results.summary.allowableMm)} · ${results.summary.statusCode}` },
     { label: summaryMetricLabel("truss", "max_node_displacement", "最大节点位移"), value: formatEngineeringValue(results.summary.maxDisplacementMm, "mm"), detail: `控制节点 ${results.summary.maxDisplacementNodeId ?? "—"} · 位移校核` },
-    { label: summaryMetricLabel("truss", "max_member_axial", "最大杆件轴力"), value: formatEngineeringValue(results.summary.maxAxialForceKn, "kN"), detail: `控制杆件 ${results.summary.maxAxialForceMemberId ?? "—"} · 轴力校核` },
+    { label: summaryMetricLabel("truss", "max_member_axial", `最大${memberTerm}轴力`), value: formatEngineeringValue(results.summary.maxAxialForceKn, "kN"), detail: `控制${memberTerm} ${results.summary.maxAxialForceMemberId ?? "—"} · 轴力校核` },
     { label: summaryMetricLabel("truss", "calculation_status", "计算结论"), value: results.summary.status, detail: results.summary.method },
   ];
 }
 
 export function frameSummaryRows(results: FrameCalculationResults): SummaryRow[] {
+  const memberTerm = modelObjectMemberTerm("frame");
   const controlMomentMemberId = frameControlMomentMemberId(results);
   return [
     {
@@ -199,9 +203,9 @@ export function frameSummaryRows(results: FrameCalculationResults): SummaryRow[]
       detail: `最大竖向位移 ${formatEngineeringValue(results.summary.maxVerticalMm, "mm")} · 位移校核`,
     },
     {
-      label: summaryMetricLabel("frame", "max_member_moment", "最大构件弯矩"),
+      label: summaryMetricLabel("frame", "max_member_moment", `最大${memberTerm}弯矩`),
       value: formatEngineeringValue(results.summary.maxMomentKnM, "kN·m"),
-      detail: `控制构件 ${controlMomentMemberId ?? "—"} · 弯矩校核`,
+      detail: `控制${memberTerm} ${controlMomentMemberId ?? "—"} · 弯矩校核`,
     },
     {
       label: summaryMetricLabel("frame", "calculation_status", "计算结论"),
