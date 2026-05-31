@@ -1,4 +1,5 @@
 import { Plus, Trash2 } from "lucide-react";
+import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import type { StructureMember } from "../types/structure.ts";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -21,6 +22,7 @@ export function FrameMemberReleaseField({
   showHint = false,
 }: FrameMemberReleaseFieldProps) {
   const hinges = member.internalHinges ?? [];
+  const memberTerm = modelObjectMemberTerm("frame");
 
   return (
     <div className="grid grid-cols-1 gap-3 rounded-xl border border-white/8 bg-white/[0.02] p-3 lg:grid-cols-2">
@@ -68,7 +70,7 @@ export function FrameMemberReleaseField({
       </div>
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-3">
-          <div className={fieldLabelClass}>构件内部铰</div>
+          <div className={fieldLabelClass}>{memberTerm}内部铰</div>
           <Button
             variant="outline"
             size="sm"

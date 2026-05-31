@@ -44,3 +44,10 @@ test("梁系结构预览文案不使用梁体口径", () => {
   assert.match(beamPreview, /梁系结构预览/u);
   assert.doesNotMatch(beamPreview, /梁体/u);
 });
+
+test("系统显示设置使用跨结构对象视觉口径", () => {
+  const systemSettings = readFileSync(new URL("../components/SystemSettingsPanel.tsx", import.meta.url), "utf-8");
+
+  assert.match(systemSettings, /蓝色结构对象与橙色荷载/u);
+  assert.doesNotMatch(systemSettings, /蓝色构件/u);
+});

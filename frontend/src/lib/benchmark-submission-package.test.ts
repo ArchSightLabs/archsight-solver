@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   buildBenchmarkSubmissionChannelDraft,
@@ -29,6 +30,13 @@ test("createDefaultBenchmarkSubmissionForm keeps truss metrics in axial-force vo
     maxDisplacementNodeId: "N1",
     maxAxialForceMemberId: "M1",
   });
+});
+
+test("benchmark submission defaults derive member terminology from shared vocabulary", () => {
+  const source = readFileSync(new URL("./benchmark-submission-package.ts", import.meta.url), "utf-8");
+
+  assert.match(source, /modelObjectMemberTerm/u);
+  assert.doesNotMatch(source, /构件数量|杆件数量|最大构件弯矩|最大杆件轴力|控制杆件|构件弯矩|杆件轴力/u);
 });
 
 test("buildBenchmarkSubmissionPackageRequest creates complete package input", () => {

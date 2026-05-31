@@ -74,6 +74,7 @@ test("对象编辑器成员术语从共享模型对象词表派生", () => {
     "FrameObjectNavigator.tsx",
     "FrameTableSection.tsx",
     "FrameMemberEditor.tsx",
+    "FrameMemberReleaseField.tsx",
     "TrussCustomModelEditor.tsx",
     "TrussMemberEditor.tsx",
     "TrussObjectNavigator.tsx",

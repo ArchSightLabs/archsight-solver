@@ -1,4 +1,6 @@
 import type { AnalysisMode } from "../types/structure.ts";
+import { modelObjectMemberTerm } from "./model-object-vocabulary.ts";
+import { summaryMetricLabel } from "./result-metrics.ts";
 
 export type BenchmarkSubmissionCategory = Extract<AnalysisMode, "beam" | "frame" | "truss">;
 export type BenchmarkMetricValueType = "number" | "text";
@@ -303,8 +305,8 @@ function defaultTitle(category: BenchmarkSubmissionCategory): string {
 }
 
 function defaultPurpose(category: BenchmarkSubmissionCategory): string {
-  if (category === "frame") return "复核平面框架节点位移、构件弯矩和支座反力。";
-  if (category === "truss") return "复核平面桁架节点位移、杆件轴力和支座反力。";
+  if (category === "frame") return `复核平面框架节点位移、${modelObjectMemberTerm("frame")}弯矩和支座反力。`;
+  if (category === "truss") return `复核平面桁架节点位移、${modelObjectMemberTerm("truss")}轴力和支座反力。`;
   return "复核梁系挠度、支座反力和控制位置。";
 }
 
@@ -345,18 +347,20 @@ function defaultMetricRows(category: BenchmarkSubmissionCategory, payload: unkno
   const result = parsePayloadForDefaults(calculationResult);
   const summary = parsePayloadForDefaults(result.summary);
   if (category === "frame") {
+    const memberTerm = modelObjectMemberTerm("frame");
     const structure = parsePayloadForDefaults(model.structure);
     const nodeCount = arrayLength(result.nodeIds, structure.nodes);
     const memberCount = arrayLength(result.memberIds, structure.members);
     return [
       textMetric("statusCode", "计算状态码", stringValue(summary.statusCode, "PASS"), "计算结果"),
       countMetric("nodeCount", "节点数量", nodeCount, "当前模型"),
-      countMetric("memberCount", "构件数量", memberCount, "当前模型"),
+      countMetric("memberCount", `${memberTerm}数量`, memberCount, "当前模型"),
       numericMetric("maxDisplacementMm", "最大节点位移", numberValue(summary.maxDisplacementMm), "mm", "maxDisplacementMm", 0.01, "mm", ["mm", "m"]),
-      numericMetric("maxMomentKnM", "最大构件弯矩", numberValue(summary.maxMomentKnM), "kN·m", "maxMomentKnM", 0.01, "kN·m", ["kN·m", "N·m"]),
+      numericMetric("maxMomentKnM", summaryMetricLabel("frame", "max_member_moment", `最大${memberTerm}弯矩`), numberValue(summary.maxMomentKnM), "kN·m", "maxMomentKnM", 0.01, "kN·m", ["kN·m", "N·m"]),
     ];
   }
   if (category === "truss") {
+    const memberTerm = modelObjectMemberTerm("truss");
     const structure = parsePayloadForDefaults(model.structure);
     const nodes = Array.isArray(structure.nodes) ? structure.nodes : [];
     const members = Array.isArray(structure.members) ? structure.members : [];
@@ -365,11 +369,11 @@ function defaultMetricRows(category: BenchmarkSubmissionCategory, payload: unkno
     return [
       textMetric("statusCode", "计算状态码", stringValue(summary.statusCode, "PASS"), "计算结果"),
       countMetric("nodeCount", "节点数量", nodeCount, "当前模型"),
-      countMetric("memberCount", "杆件数量", memberCount, "当前模型"),
+      countMetric("memberCount", `${memberTerm}数量`, memberCount, "当前模型"),
       numericMetric("maxDisplacementMm", "最大节点位移", numberValue(summary.maxDisplacementMm), "mm", "maxDisplacementMm", 0.01, "mm", ["mm", "m"]),
-      numericMetric("maxAxialForceKn", "最大杆件轴力", numberValue(summary.maxAxialForceKn), "kN", "maxAxialForceKn", 0.01, "kN", ["kN", "N"]),
+      numericMetric("maxAxialForceKn", summaryMetricLabel("truss", "max_member_axial", `最大${memberTerm}轴力`), numberValue(summary.maxAxialForceKn), "kN", "maxAxialForceKn", 0.01, "kN", ["kN", "N"]),
       textMetric("maxDisplacementNodeId", "控制节点", stringValue(summary.maxDisplacementNodeId, firstObjectId(nodes)), "计算结果"),
-      textMetric("maxAxialForceMemberId", "控制杆件", stringValue(summary.maxAxialForceMemberId, firstObjectId(members)), "计算结果"),
+      textMetric("maxAxialForceMemberId", `控制${memberTerm}`, stringValue(summary.maxAxialForceMemberId, firstObjectId(members)), "计算结果"),
     ];
   }
   const beam = parsePayloadForDefaults(result.beam);

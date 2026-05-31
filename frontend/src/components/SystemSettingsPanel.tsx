@@ -22,7 +22,7 @@ interface SystemSettingsPanelProps {
 }
 
 const MODEL_PREVIEW_STYLE_OPTIONS: Array<{ label: string; value: ModelPreviewStyle; description: string }> = [
-  { label: "彩色高亮", value: "color", description: "梁系、框架和桁架建模图使用蓝色构件与橙色荷载" },
+  { label: "彩色高亮", value: "color", description: "梁系、框架和桁架建模图使用蓝色结构对象与橙色荷载" },
   { label: "工程简图", value: "simple", description: "梁系、框架和桁架建模图使用低饱和黑白表达" },
 ];
 const STATUS_LINE_CLASS = "rounded-lg border border-slate-200/80 bg-slate-50 px-3 py-2 text-[11px] font-semibold leading-5 text-slate-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300";
