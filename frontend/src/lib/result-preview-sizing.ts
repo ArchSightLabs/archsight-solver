@@ -59,6 +59,16 @@ export function resultPreviewCanvasSize(nodes: ResultPreviewNodeLike[], memberCo
 }
 
 export function resultPreviewSvgStyle(size: ResultPreviewCanvasSize): CSSProperties {
+  const isExpandedCanvas = size.width > RESULT_PREVIEW_BASE_SIZE.width || size.height > RESULT_PREVIEW_BASE_SIZE.height;
+  if (!isExpandedCanvas) {
+    return {
+      width: "100%",
+      height: "auto",
+      maxWidth: `${size.width}px`,
+      margin: "0 auto",
+    };
+  }
+
   return {
     width: `${size.width}px`,
     height: `${size.height}px`,

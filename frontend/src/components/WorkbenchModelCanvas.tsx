@@ -49,7 +49,7 @@ export function WorkbenchModelCanvas({ workspace, mode, compact = false, modelPr
 
   return (
     <GlassCard className="overflow-hidden">
-      <div className={`model-canvas-surface relative flex flex-col gap-3 px-4 py-4 ${compact ? "h-[260px]" : "h-[360px]"}`} data-preview-style={modelPreviewStyle}>
+      <div className={`model-canvas-surface relative flex flex-col gap-3 px-4 py-4 ${compact ? "h-[260px]" : "h-[448px]"}`} data-preview-style={modelPreviewStyle}>
         <div className="flex h-8 items-center justify-end">
           <div className="flex items-center gap-1 rounded-xl border border-slate-200/80 bg-white/[0.88] p-1 shadow-sm backdrop-blur dark:border-slate-700/80 dark:bg-slate-950/[0.82]">
             {showZoomControls ? (
@@ -133,7 +133,7 @@ export function WorkbenchModelCanvas({ workspace, mode, compact = false, modelPr
         </div>
         <div
           ref={canvasScrollRef}
-          className={`min-h-0 flex-1 overflow-auto ${zoomPercent > MODEL_CANVAS_DEFAULT_ZOOM_PERCENT ? (isCanvasDragging ? "cursor-grabbing" : "cursor-grab") : ""}`}
+          className={`min-h-0 flex-1 overflow-auto ${showZoomControls ? (isCanvasDragging ? "cursor-grabbing" : "cursor-grab") : ""}`}
           onPointerDown={handleCanvasPointerDown}
           onPointerMove={handleCanvasPointerMove}
           onPointerUp={finishCanvasDrag}

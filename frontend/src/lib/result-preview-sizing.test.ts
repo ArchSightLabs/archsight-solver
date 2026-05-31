@@ -28,7 +28,16 @@ test("大节点网格结果预览扩展横向和竖向画布", () => {
   assert.ok(size.height > RESULT_PREVIEW_BASE_SIZE.height);
 });
 
-test("结果预览 SVG 使用实际像素尺寸以触发滚动", () => {
+test("默认结果预览 SVG 按容器自适应避免初始滚动条", () => {
+  assert.deepEqual(resultPreviewSvgStyle(RESULT_PREVIEW_BASE_SIZE), {
+    width: "100%",
+    height: "auto",
+    maxWidth: "1000px",
+    margin: "0 auto",
+  });
+});
+
+test("扩展结果预览 SVG 使用实际像素尺寸以触发滚动", () => {
   assert.deepEqual(resultPreviewSvgStyle({ width: 1800, height: 720 }), {
     width: "1800px",
     height: "720px",

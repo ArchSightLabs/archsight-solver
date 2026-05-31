@@ -14,6 +14,8 @@ export const TRUSS_MODEL_CANVAS_BASE_SIZE: ModelCanvasSize = { width: 900, heigh
 
 const MODEL_CANVAS_MAX_WIDTH = 3600;
 const MODEL_CANVAS_MAX_HEIGHT = 1800;
+const MODEL_CANVAS_RESPONSIVE_MAX_WIDTH = 900;
+const MODEL_CANVAS_RESPONSIVE_MAX_HEIGHT = 360;
 
 interface NodeLike {
   x: number;
@@ -113,9 +115,26 @@ export function workbenchModelCanvasSize(workspace: WorkspaceState, mode: Analys
 
 export function modelCanvasBoardStyle(canvasSize: ModelCanvasSize, zoomPercent: number): CSSProperties {
   const scale = zoomPercent / MODEL_CANVAS_DEFAULT_ZOOM_PERCENT;
+  const width = Math.round(canvasSize.width * scale);
+  const height = Math.round(canvasSize.height * scale);
+  const shouldFitDefaultCanvas =
+    zoomPercent === MODEL_CANVAS_DEFAULT_ZOOM_PERCENT &&
+    canvasSize.width <= MODEL_CANVAS_RESPONSIVE_MAX_WIDTH &&
+    canvasSize.height <= MODEL_CANVAS_RESPONSIVE_MAX_HEIGHT;
+
+  if (shouldFitDefaultCanvas) {
+    return {
+      width: "100%",
+      maxWidth: `${width}px`,
+      height: "auto",
+      aspectRatio: `${canvasSize.width} / ${canvasSize.height}`,
+      margin: "0 auto",
+    };
+  }
+
   return {
-    width: `${Math.round(canvasSize.width * scale)}px`,
-    height: `${Math.round(canvasSize.height * scale)}px`,
+    width: `${width}px`,
+    height: `${height}px`,
     minWidth: zoomPercent >= MODEL_CANVAS_DEFAULT_ZOOM_PERCENT ? "100%" : undefined,
     minHeight: zoomPercent >= MODEL_CANVAS_DEFAULT_ZOOM_PERCENT ? "100%" : undefined,
   };

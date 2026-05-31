@@ -1,6 +1,6 @@
 import { useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 
-export const MODEL_CANVAS_MIN_ZOOM_PERCENT = 70;
+export const MODEL_CANVAS_MIN_ZOOM_PERCENT = 25;
 export const MODEL_CANVAS_MAX_ZOOM_PERCENT = 400;
 export const MODEL_CANVAS_BUTTON_ZOOM_STEP_PERCENT = 10;
 export const MODEL_CANVAS_INPUT_ZOOM_STEP_PERCENT = 5;
@@ -34,7 +34,13 @@ export function useModelCanvasZoom() {
   };
 
   const handleCanvasPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0 || zoomPercent <= MODEL_CANVAS_DEFAULT_ZOOM_PERCENT) return;
+    const scrollArea = canvasScrollRef.current;
+    if (event.button !== 0 || !scrollArea) return;
+    const canPan =
+      scrollArea.scrollWidth > scrollArea.clientWidth + 1 ||
+      scrollArea.scrollHeight > scrollArea.clientHeight + 1;
+    if (!canPan) return;
+
     canvasDragRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,

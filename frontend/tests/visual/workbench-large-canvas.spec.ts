@@ -60,6 +60,13 @@ async function canvasLabelMetrics(page: Page) {
   });
 }
 
+async function setCanvasZoom(page: Page, percent: number) {
+  await page.getByRole("button", { name: "显示工作台缩放" }).click();
+  const zoomInput = page.getByLabel("工作台缩放百分比");
+  await zoomInput.fill(String(percent));
+  await zoomInput.press("Enter");
+}
+
 function frameGridTextModel() {
   const lines: string[] = ["# 5x4 节点网格，验证主控建模画布扩展"];
   const cols = 5;
@@ -139,6 +146,18 @@ test.beforeEach(async ({ page }) => {
   await page.goto("/");
 });
 
+test("默认平面框架主控建模画布不触发内嵌滚动", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await selectObject(page, /平面框架-1/);
+
+  const metrics = await canvasMetrics(page);
+
+  expect(metrics.viewBoxWidth).toBe(900);
+  expect(metrics.viewBoxHeight).toBe(360);
+  expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.scrollClientWidth + 1);
+  expect(metrics.scrollHeight).toBeLessThanOrEqual(metrics.scrollClientHeight + 1);
+});
+
 test("梁系跨段支座增多后主控建模画布扩展并触发滚动", async ({ page }) => {
   await importTextModel(page, "梁系文本模型", beamLongTextModel());
 
@@ -152,6 +171,35 @@ test("梁系跨段支座增多后主控建模画布扩展并触发滚动", async
   expect(labelMetrics.density).toBe("normal");
   expect(labelMetrics.nodeLabelCount).toBe(17);
   expect(labelMetrics.memberLabelCount).toBe(16);
+});
+
+test("超长梁系缩小到 25% 后仍可拖动画布平移", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await importTextModel(page, "梁系文本模型", beamLongTextModel());
+  await setCanvasZoom(page, 25);
+
+  const scrollArea = page.locator(".model-canvas-board").first().locator("xpath=..");
+  await expect(page.getByLabel("工作台缩放百分比")).toHaveValue("25");
+  await expect.poll(async () => {
+    const metrics = await canvasMetrics(page);
+    return metrics.scrollWidth > metrics.scrollClientWidth;
+  }).toBe(true);
+
+  await scrollArea.evaluate((element) => {
+    element.scrollLeft = 220;
+  });
+  const before = await scrollArea.evaluate((element) => element.scrollLeft);
+  const box = await scrollArea.boundingBox();
+  expect(box).not.toBeNull();
+  if (!box) return;
+
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + 120, box.y + box.height / 2, { steps: 8 });
+  await page.mouse.up();
+
+  const after = await scrollArea.evaluate((element) => element.scrollLeft);
+  expect(after).toBeLessThan(before);
 });
 
 test("平面框架节点构件增多后主控建模画布扩展并触发滚动", async ({ page }) => {

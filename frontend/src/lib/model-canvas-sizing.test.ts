@@ -109,3 +109,20 @@ test("画布缩放样式使用实际像素尺寸", () => {
     minHeight: undefined,
   });
 });
+
+test("默认基准画布使用容器自适应样式避免初始滚动条", () => {
+  assert.deepEqual(modelCanvasBoardStyle({ width: 900, height: 360 }, 100), {
+    width: "100%",
+    maxWidth: "900px",
+    height: "auto",
+    aspectRatio: "900 / 360",
+    margin: "0 auto",
+  });
+  assert.deepEqual(modelCanvasBoardStyle({ width: 900, height: 300 }, 100), {
+    width: "100%",
+    maxWidth: "900px",
+    height: "auto",
+    aspectRatio: "900 / 300",
+    margin: "0 auto",
+  });
+});
