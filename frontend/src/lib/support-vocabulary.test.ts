@@ -28,7 +28,6 @@ import {
   supportChoiceOptions,
   supportConstraintFieldLabel,
   supportDofStateLabel,
-  supportOptionChoiceLabel,
   supportSystemHint,
   trussSupportDetail,
   trussSupportDofStates,
@@ -61,8 +60,6 @@ test("框架和桁架支座说明区分转角自由度", () => {
 });
 
 test("支座选择项用简短名称承载主控面板显示", () => {
-  const frameRoller = FRAME_SUPPORT_OPTIONS.find((option) => option.value === "roller");
-  assert.equal(frameRoller ? supportOptionChoiceLabel(frameRoller) : "", "滚动支座（默认约束 uy、释放 ux 与 rz；设置支座角度时约束法向位移）");
   assert.deepEqual(
     supportChoiceOptions(FRAME_SUPPORT_OPTIONS).map((option) => [option.label, option.selectedLabel, option.description]),
     [

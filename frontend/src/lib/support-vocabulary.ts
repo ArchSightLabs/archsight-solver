@@ -127,10 +127,6 @@ export const FRAME_SUPPORT_OPTIONS: Array<SupportOption<SupportType>> = supportO
 
 export const TRUSS_SUPPORT_OPTIONS: Array<SupportOption<TrussSupportType>> = supportOptions<TrussSupportType>("truss");
 
-export function supportOptionChoiceLabel(option: Pick<SupportOption<string>, "label" | "detail">): string {
-  return option.detail ? `${option.label}（${option.detail}）` : option.label;
-}
-
 export function supportChoiceOptions<T extends string>(options: Array<SupportOption<T>>): Array<SupportChoiceOption<T>> {
   return options.map((option) => ({
     value: option.value,
