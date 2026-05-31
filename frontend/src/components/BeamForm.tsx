@@ -18,7 +18,7 @@ import { BeamTableSection } from "./BeamTableSection";
 import { BeamTemplateSection } from "./BeamTemplateSection";
 import { BeamTextModelSection } from "./BeamTextModelSection";
 import { formatBeamLoadSummary } from "../lib/beam-loads.ts";
-import { materialEngineeringNote, materialOptionLabel } from "../lib/material-presets.ts";
+import { materialDropdownOptions, materialEngineeringNote } from "../lib/material-presets.ts";
 import { PREDEFINED_MATERIALS } from "../types/material.ts";
 import type { BeamSpanConfig, BeamSupportConfig, BeamWorkspaceState } from "../types/beam.ts";
 import type { BeamWorkbenchSelection, WorkbenchSelectionOptions } from "../types/workbench-selection.ts";
@@ -50,7 +50,7 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
   const isSectionVisible = (sectionId: string) => visibleSectionId === sectionId;
   const materialLibrary = value.materials?.length ? value.materials : PREDEFINED_MATERIALS;
   const materialOptions = useMemo(
-    () => materialLibrary.map((material) => ({ value: material.id, label: materialOptionLabel(material) })),
+    () => materialDropdownOptions(materialLibrary),
     [materialLibrary]
   );
   const findMaterial = (materialId: string | undefined) =>

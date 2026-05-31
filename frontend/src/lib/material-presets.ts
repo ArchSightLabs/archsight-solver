@@ -3,6 +3,8 @@ import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
 export interface MaterialDropdownOption {
   value: string;
   label: string;
+  selectedLabel?: string;
+  description?: string;
 }
 
 export function materialOptionLabel(material: Material): string {
@@ -10,6 +12,19 @@ export function materialOptionLabel(material: Material): string {
     return "CUSTOM · 自定义 / 手动输入 E（不回填预设）";
   }
   return `${material.id.toUpperCase()} · ${material.name} · E=${material.youngModulus} GPa · ρ=${material.density} kg/m³`;
+}
+
+export function materialOptionSelectedLabel(material: Material): string {
+  return material.id === "custom" ? "自定义" : material.id.toUpperCase();
+}
+
+export function materialOptionMenuLabel(material: Material): string {
+  return material.id === "custom" ? "CUSTOM · 自定义" : `${material.id.toUpperCase()} · ${material.name}`;
+}
+
+export function materialOptionDescription(material: Material): string {
+  if (material.id === "custom") return "手动输入 E；不回填预设";
+  return `E=${material.youngModulus} GPa · ρ=${material.density} kg/m³`;
 }
 
 export function materialEngineeringNote(materialId: string | undefined, materials: Material[] = PREDEFINED_MATERIALS): string {
@@ -37,7 +52,9 @@ export function memberMaterialEngineeringNote(
 export function materialDropdownOptions(materials: Material[] = PREDEFINED_MATERIALS): MaterialDropdownOption[] {
   return materials.map((material) => ({
     value: material.id,
-    label: materialOptionLabel(material),
+    label: materialOptionMenuLabel(material),
+    selectedLabel: materialOptionSelectedLabel(material),
+    description: materialOptionDescription(material),
   }));
 }
 

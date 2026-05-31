@@ -2,11 +2,15 @@ import { strict as assert } from "node:assert";
 import test from "node:test";
 import {
   materialEngineeringNote,
+  materialDropdownOptions,
   materialElasticityLabelForYoungModulus,
   materialIdForMember,
   materialLabelForId,
   materialLabelForYoungModulus,
+  materialOptionDescription,
   materialOptionLabel,
+  materialOptionMenuLabel,
+  materialOptionSelectedLabel,
   memberElasticityDistributionLabel,
   memberMaterialEngineeringNote,
   youngModulusForMaterial,
@@ -24,6 +28,29 @@ test("共享材料目录保留结构工程材料名称和 E/密度", () => {
   assert.match(materialOptionLabel(q345!), /E=210 GPa/u);
   assert.match(materialOptionLabel(custom!), /手动输入 E/u);
   assert.doesNotMatch(materialOptionLabel(custom!), /E=206 GPa/u);
+  assert.equal(materialOptionSelectedLabel(q345!), "Q345");
+  assert.equal(materialOptionMenuLabel(q345!), "Q345 · Q345 低合金高强度结构钢");
+  assert.equal(materialOptionDescription(q345!), "E=210 GPa · ρ=7850 kg/m³");
+  assert.equal(materialOptionSelectedLabel(custom!), "自定义");
+});
+
+test("材料下拉选中态使用短标签并保留 E/密度说明", () => {
+  const options = materialDropdownOptions(PREDEFINED_MATERIALS);
+  const q345 = options.find((option) => option.value === "q345");
+  const custom = options.find((option) => option.value === "custom");
+
+  assert.deepEqual(q345, {
+    value: "q345",
+    label: "Q345 · Q345 低合金高强度结构钢",
+    selectedLabel: "Q345",
+    description: "E=210 GPa · ρ=7850 kg/m³",
+  });
+  assert.deepEqual(custom, {
+    value: "custom",
+    label: "CUSTOM · 自定义",
+    selectedLabel: "自定义",
+    description: "手动输入 E；不回填预设",
+  });
 });
 
 test("材料说明明确预设不替代强度和规范设计", () => {
