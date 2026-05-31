@@ -43,6 +43,7 @@ export function FrameNodeEditor({
   const yLabel = nodeCoordinateLabel("y");
   const angleLabel = supportAngleLabel();
   const showSupportAngle = supportAngleApplies(node.supportType);
+  const showSpringField = isSelectedVariant || (node.springs?.length ?? 0) > 0;
   const handleSupportTypeChange = (supportType: StructureNode["supportType"]) => {
     onUpdate({
       supportType,
@@ -147,14 +148,16 @@ export function FrameNodeEditor({
         />
       ) : null}
 
-      <FrameNodeSpringField
-        nodeId={node.id}
-        springs={node.springs}
-        fieldLabelClass={fieldLabelClass}
-        onChange={(springs) => onUpdate({ springs })}
-        showHint={isSelectedVariant}
-        compactWhenEmpty={!isSelectedVariant}
-      />
+      {showSpringField ? (
+        <FrameNodeSpringField
+          nodeId={node.id}
+          springs={node.springs}
+          fieldLabelClass={fieldLabelClass}
+          onChange={(springs) => onUpdate({ springs })}
+          showHint={isSelectedVariant}
+          compactWhenEmpty={!isSelectedVariant}
+        />
+      ) : null}
     </div>
   );
 }

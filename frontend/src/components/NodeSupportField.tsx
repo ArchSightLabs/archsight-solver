@@ -5,7 +5,9 @@ import {
   frameNodeSupportDofStates,
   frameNodeSupportStateDetail,
   nodeSupportNote,
+  supportConstraintFieldLabel,
   supportChoiceOptions,
+  supportDofStateLabel,
   supportSystemHint,
   trussSupportDetail,
   trussSupportDofStates,
@@ -39,7 +41,7 @@ export function NodeSupportField({
   springs,
   fieldLabelClass,
   className,
-  label = "支座预设",
+  label = supportConstraintFieldLabel(),
   ariaLabel = "支座约束",
   showHint = false,
 }: NodeSupportFieldProps) {
@@ -67,7 +69,7 @@ export function NodeSupportField({
       />
       {showHint ? (
         <div className="space-y-1 text-[10px] font-semibold leading-relaxed text-muted-foreground">
-          <div>当前边界：{detail}</div>
+          <div>{supportDofStateLabel()}：{detail}</div>
           <SupportDofStateChips states={dofStates} />
           <div>工程提示：{note}</div>
           <div>{supportSystemHint(mode)}</div>

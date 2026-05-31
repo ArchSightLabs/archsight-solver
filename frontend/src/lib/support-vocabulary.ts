@@ -88,16 +88,24 @@ export const TRUSS_SUPPORT_DOF_ROWS: TrussSupportDofRow[] = [
   { dof: "uy", label: "竖向位移 uy" },
 ];
 
+export function supportConstraintFieldLabel(): string {
+  return "支座约束";
+}
+
+export function supportDofStateLabel(): string {
+  return "自由度状态";
+}
+
 export function frameSpringBoundaryTitle(): string {
-  return "节点弹性约束";
+  return "附加弹性约束";
 }
 
 export function frameSpringBoundaryHint(): string {
-  return "为平面框架节点的 ux、uy 或 rz 附加有限刚度；0 刚度不作为有效边界。";
+  return "在上方支座约束之外，为框架节点 ux、uy 或 rz 附加有限刚度；0 刚度不作为有效边界。";
 }
 
 export function frameSpringBoundaryEmptyHint(): string {
-  return "未设置弹性约束；普通边界直接使用支座预设。";
+  return "未设置附加弹性约束；普通边界使用上方支座约束。";
 }
 
 export function frameSpringBoundaryAddLabel(): string {
@@ -264,7 +272,7 @@ export function frameNodeSupportStateDetail(node: FrameNodeSupportState): string
 
 export function frameNodeSupportSummary(node: FrameNodeSupportState): string {
   const activeSprings = (node.springs ?? []).some(isPositiveFrameSpring);
-  const label = (node.supportType ?? "free") === "free" && activeSprings ? "弹性支座" : nodeSupportLabel(node.supportType);
+  const label = (node.supportType ?? "free") === "free" && activeSprings ? "弹性约束节点" : nodeSupportLabel(node.supportType);
   return `${label} · ${frameNodeSupportStateDetail(node)}`;
 }
 
