@@ -7,7 +7,7 @@ import pandas as pd
 
 from backend.benchmarks.catalog import load_benchmark_catalog
 from backend.exporters.common.analysis_assumptions import analysis_assumption_table_rows
-from backend.common.support_catalog import support_constraint_dofs, support_label, support_system_note
+from backend.common.support_catalog import support_constraint_dofs, support_label, support_released_dofs, support_system_note
 from backend.exporters.common.member_materials import member_elasticity_summary
 
 DOF_LABELS = {
@@ -272,9 +272,9 @@ def _node_boundary_table(nodes: Iterable[Mapping[str, Any]], analysis_type: str)
                 "节点": node.get("id", "—"),
                 "位置": f"({round(float(node.get('x', 0.0)), 6)}, {round(float(node.get('y', 0.0)), 6)}) m",
                 "支座类型": support_label(analysis_type, support_type),  # type: ignore[arg-type]
-                "约束自由度": _format_dofs(constraints),
+                "约束自由度": _format_frame_constraint_text(node, constraints),
                 "弹簧刚度": _format_springs(node.get("springs", [])),
-                "释放/内铰": _format_node_release(node),
+                "释放/内铰": _format_frame_release_text(node, support_type),
             }
         )
     return pd.DataFrame(rows or [{"节点": "—", "位置": "—", "支座类型": "—", "约束自由度": "—", "弹簧刚度": "—", "释放/内铰": "—"}])
@@ -502,6 +502,35 @@ def _format_dofs(dofs: Iterable[Any]) -> str:
     return "、".join(labels) if labels else "无固定约束"
 
 
+def _format_angle(value: Any) -> str:
+    try:
+        angle = round(float(value), 4)
+    except (TypeError, ValueError):
+        return str(value)
+    return str(int(angle)) if angle.is_integer() else str(angle)
+
+
+def _format_frame_constraint_text(node: Mapping[str, Any], constraints: Iterable[Any]) -> str:
+    if str(node.get("supportType", "free")).strip().lower() == "roller" and node.get("supportAngleDeg") is not None:
+        return f"法向位移 n（{_format_angle(node.get('supportAngleDeg'))}°）"
+    return _format_dofs(constraints)
+
+
+def _format_frame_release_text(node: Mapping[str, Any], support_type: str) -> str:
+    condensed = node.get("condensedDofs") or []
+    parts = []
+    if str(support_type).strip().lower() == "roller" and node.get("supportAngleDeg") is not None:
+        parts.append("释放切向位移 t")
+        parts.append("释放 rz 平面转角")
+    else:
+        released = support_released_dofs("frame", support_type)
+        if released:
+            parts.append("释放 " + _format_dofs(released))
+    if condensed:
+        parts.append("凝聚/释放自由度：" + _format_dofs(condensed))
+    return "；".join(parts) if parts else "无"
+
+
 def _format_springs(springs: Any) -> str:
     if not springs:
         return "无"
@@ -512,13 +541,6 @@ def _format_springs(springs: Any) -> str:
         unit = "kN.m/rad" if "stiffnessKnMPerRad" in spring else "kN/m"
         parts.append(f"{dof}: {value} {unit}")
     return "；".join(parts)
-
-
-def _format_node_release(node: Mapping[str, Any]) -> str:
-    condensed = node.get("condensedDofs") or []
-    if condensed:
-        return "凝聚/释放自由度：" + _format_dofs(condensed)
-    return "无"
 
 
 def _symbolic_check_text(solution: Mapping[str, Any]) -> str:

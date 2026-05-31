@@ -54,9 +54,21 @@ def support_constraint_dof_map() -> Dict[str, Dict[str, list[str]]]:
     }
 
 
+def support_released_dof_map() -> Dict[str, Dict[str, list[str]]]:
+    return {
+        analysis_type: {spec.value: list(spec.released) for spec in support_specs(analysis_type)}  # type: ignore[arg-type]
+        for analysis_type in ("beam", "frame", "truss")
+    }
+
+
 def support_constraint_dofs(analysis_type: AnalysisType, support_type: str) -> list[str]:
     normalized = str(support_type or "free").strip().lower()
     return list(support_constraint_dof_map()[analysis_type].get(normalized, []))
+
+
+def support_released_dofs(analysis_type: AnalysisType, support_type: str) -> list[str]:
+    normalized = str(support_type or "free").strip().lower()
+    return list(support_released_dof_map()[analysis_type].get(normalized, []))
 
 
 def support_label(analysis_type: AnalysisType, support_type: str) -> str:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from backend.common.support_catalog import support_constraint_dofs, support_label, support_system_note
+from backend.common.support_catalog import support_constraint_dofs, support_label, support_released_dofs, support_system_note
 from backend.normalizers.beam.request_normalizer import normalize_beam_supports
 from backend.normalizers.structural_model import FRAME_SUPPORT_LABELS, SUPPORT_DOF_MAP, TRUSS_SUPPORT_LABELS
 
@@ -10,6 +10,8 @@ def test_shared_support_catalog_drives_backend_labels_and_dofs() -> None:
     assert TRUSS_SUPPORT_LABELS["roller"] == "滚动支座"
     assert SUPPORT_DOF_MAP["frame"]["fixed"] == ["ux", "uy", "rz"]
     assert SUPPORT_DOF_MAP["truss"]["roller"] == ["uy"]
+    assert support_released_dofs("frame", "roller") == ["ux", "rz"]
+    assert support_released_dofs("truss", "roller") == ["ux"]
 
 
 def test_beam_support_defaults_use_shared_constraints() -> None:

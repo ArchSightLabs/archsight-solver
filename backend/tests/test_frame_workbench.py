@@ -377,11 +377,15 @@ def test_frame_exports_describe_support_nodes_instead_of_left_right(client):
     assert xlsx_response.status_code == 200
     with pd.ExcelFile(io.BytesIO(xlsx_response.data)) as xls:
         model_text = pd.read_excel(xls, sheet_name="02_输入模型", header=None).to_string()
+        boundary_text = pd.read_excel(xls, sheet_name="04_边界条件", header=None).to_string()
 
     assert "支座节点" in model_text
     assert "N1：固结支座" in model_text
     assert "N2：铰支座" in model_text
     assert "N3：滚动支座，法向角 45°" in model_text
+    assert "法向位移 n（45°）" in boundary_text
+    assert "释放切向位移 t" in boundary_text
+    assert "释放 rz 平面转角" in boundary_text
     assert "材料适用范围" in model_text
     assert "框架整体刚度按各构件 E_GPa / A_cm2 / I_cm4 输入装配" in model_text
     assert "E=30 GPa：1 个构件" in model_text
@@ -395,6 +399,9 @@ def test_frame_exports_describe_support_nodes_instead_of_left_right(client):
     table_text = "\n".join(cell.text for table in doc.tables for row in table.rows for cell in row.cells)
 
     assert "N3：滚动支座，法向角 45°" in table_text
+    assert "法向位移 n（45°）" in table_text
+    assert "释放切向位移 t" in table_text
+    assert "释放 rz 平面转角" in table_text
     assert "E=30 GPa：1 个构件" in table_text
     assert "左支座" not in table_text
     assert "右支座" not in table_text
