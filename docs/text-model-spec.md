@@ -64,7 +64,7 @@ LOAD,point,12,0.75
 
 ## 平面框架文本模型
 
-适用于显式节点、构件、支座、节点荷载和构件分布荷载。当前文本模型导入基础荷载，不导入高级工况与组合；应用文本模型时会重置既有工况和组合，避免旧组合引用新模型中不存在的对象。
+适用于显式节点、构件、支座、节点弹性约束、节点荷载、构件分布荷载、基础荷载工况和组合系数。应用文本模型时会以文本内容重建模型、工况和组合，避免旧组合引用新模型中不存在的对象。
 
 ### 单位口径
 
@@ -77,6 +77,8 @@ LOAD,point,12,0.75
 | 节点力 Fx、Fy | kN |
 | 节点弯矩 Mz | kN·m |
 | 构件线荷载 | kN/m |
+| 节点平动弹簧刚度 | kN/m |
+| 节点转动弹簧刚度 | kN·m/rad |
 
 ### 命令
 
@@ -84,6 +86,7 @@ LOAD,point,12,0.75
 N,节点号,x,y
 NODE,节点号,x,y,支座类型
 NSUPT,节点号,支座码,角度deg
+NSPRING,节点号,自由度,刚度
 E,起点节点号,终点节点号,...释放参数
 MEMBER,构件号,起点节点号,终点节点号,类型,E_GPa,A_cm2,I_cm4,材料编号
 PROP,构件起号,构件止号,E_GPa,A_cm2,I_cm4,类型,材料编号
@@ -91,9 +94,14 @@ NLOAD,节点号,方向码,荷载值
 LOAD,节点号,Fx_kN,Fy_kN,Mz_kN_m
 DLOAD,构件序号,qStart,qEnd,方向
 ELOAD,构件序号,荷载类型,荷载值,方向
+PLOAD,构件序号,集中力,位置比例,方向
+CASE,工况编号,工况名称
+CASELOAD,工况编号,<NLOAD/DLOAD/PLOAD...>
+COMB,组合编号,组合名称,标签
+FACTOR,组合编号,工况编号,系数
 ```
 
-`N`、`E`、`NSUPT`、`PROP`、`NLOAD`、`DLOAD` 兼容常见结构程序的短命令风格。`MEMBER` 和 `LOAD` 提供更直观的 ArchSight 显式写法。
+`N`、`E`、`NSUPT`、`PROP`、`NLOAD`、`DLOAD` 兼容常见结构程序的短命令风格。`MEMBER`、`LOAD`、`NSPRING` 提供更直观的 ArchSight 显式写法。`NSPRING` 可写作 `SPRING`，自由度支持 `ux`、`uy`、`rz`；`ux/uy` 刚度单位为 kN/m，`rz` 刚度单位为 kN·m/rad，刚度必须大于 0。
 
 `材料编号` 可省略；省略时系统会根据 `E_GPa` 尝试匹配材料库，无法匹配时记为 `custom`。求解刚度仍以 `E_GPa`、`A_cm2`、`I_cm4` 为准。
 
@@ -107,12 +115,17 @@ N,3,0,4
 N,4,6,4
 NSUPT,1,6,0
 NSUPT,2,6,0
+NSPRING,1,rz,15000
 E,1,3,1,1,1,1,1,1
 E,3,4,1,1,1,1,1,1
 E,2,4,1,1,1,1,1,1
 PROP,2,2,210,220,15000,beam,q345
 DLOAD,2,-18,-18,global_y
 NLOAD,4,1,24,0
+CASE,DL,恒载
+CASELOAD,DL,DLOAD,2,-18,-18,global_y,0,1
+COMB,SLS,正常使用组合,SLS
+FACTOR,SLS,DL,1.0
 ```
 
 ## 平面桁架文本模型

@@ -1,5 +1,6 @@
 import { createPortalFrameModelFromState, type WorkspaceState } from "../../lib/workspace-state";
 import { nodeSupportLabel } from "../../lib/support-vocabulary";
+import { FRAME_MODEL_CANVAS_BASE_SIZE, type ModelCanvasSize } from "../../lib/model-canvas-sizing";
 import { buildFrameDimensionLegendRows, buildFrameLoadLabelMap, formatFrameDistributedLoadLabel, formatFrameForceLoadLabel, frameMemberDimensionValueLabel, type FrameGeometryDimension } from "../frame-preview-utils";
 import type { FrameLoad, FrameLoadDirection, StructureNode, SupportType } from "../../types/structure";
 import type { WorkbenchSelection } from "../../types/workbench-selection";
@@ -8,6 +9,11 @@ import { MODEL_DIMENSION_TEXT_WEIGHT, SVG_TEXT_FONT, clampRatio, svgInteractiveP
 const FRAME_LOAD_STROKE_WIDTH = 1.55;
 const FRAME_LOAD_SELECTED_STROKE_WIDTH = 2.35;
 const FRAME_LOAD_GUIDE_STROKE_WIDTH = 1.2;
+const FRAME_SKETCH_LEFT_PAD = 165;
+const FRAME_SKETCH_RIGHT_PAD = 165;
+const FRAME_SKETCH_TOP_PAD = 90;
+const FRAME_SKETCH_BOTTOM_PAD = 75;
+
 function getFrameLoadValue(load: Extract<FrameLoad, { type: "distributed" }>) {
   const start = Number.isFinite(load.qStartKnPerM) ? Number(load.qStartKnPerM) : Number(load.wyKnPerM ?? 0);
   const end = Number.isFinite(load.qEndKnPerM) ? Number(load.qEndKnPerM) : start;
@@ -122,7 +128,17 @@ function FrameSupportMarker({ type, x, y, selected, angleDeg }: { type?: Support
   );
 }
 
-export function FrameSketch({ workspace, selection, onSelect }: { workspace: WorkspaceState; selection?: WorkbenchSelection | null; onSelect?: (next: WorkbenchSelection) => void }) {
+export function FrameSketch({
+  workspace,
+  canvasSize = FRAME_MODEL_CANVAS_BASE_SIZE,
+  selection,
+  onSelect,
+}: {
+  workspace: WorkspaceState;
+  canvasSize?: ModelCanvasSize;
+  selection?: WorkbenchSelection | null;
+  onSelect?: (next: WorkbenchSelection) => void;
+}) {
   const model =
     workspace.frame.frameMode === "custom"
       ? {
@@ -140,17 +156,19 @@ export function FrameSketch({ workspace, selection, onSelect }: { workspace: Wor
   const maxX = Math.max(...xs, 1);
   const minY = Math.min(...ys, 0);
   const maxY = Math.max(...ys, 1);
+  const drawableWidth = Math.max(240, canvasSize.width - FRAME_SKETCH_LEFT_PAD - FRAME_SKETCH_RIGHT_PAD);
+  const drawableHeight = Math.max(150, canvasSize.height - FRAME_SKETCH_TOP_PAD - FRAME_SKETCH_BOTTOM_PAD);
   const map = (point: Pick<StructureNode, "x" | "y">) => ({
-    x: 165 + ((point.x - minX) / Math.max(1, maxX - minX)) * 570,
-    y: 285 - ((point.y - minY) / Math.max(1, maxY - minY)) * 195,
+    x: FRAME_SKETCH_LEFT_PAD + ((point.x - minX) / Math.max(1, maxX - minX)) * drawableWidth,
+    y: canvasSize.height - FRAME_SKETCH_BOTTOM_PAD - ((point.y - minY) / Math.max(1, maxY - minY)) * drawableHeight,
   });
   const nodeMap = new Map(nodes.map((node) => [node.id, map(node)]));
   const rawNodeMap = new Map(nodes.map((node) => [node.id, node]));
   const memberMap = new Map(members.map((member) => [member.id, member]));
-  const topY = Math.min(...nodes.map((node) => map(node).y), 90);
-  const bottomY = Math.max(...nodes.map((node) => map(node).y), 285);
-  const leftX = Math.min(...nodes.map((node) => map(node).x), 165);
-  const rightX = Math.max(...nodes.map((node) => map(node).x), 735);
+  const topY = Math.min(...nodes.map((node) => map(node).y), FRAME_SKETCH_TOP_PAD);
+  const bottomY = Math.max(...nodes.map((node) => map(node).y), canvasSize.height - FRAME_SKETCH_BOTTOM_PAD);
+  const leftX = Math.min(...nodes.map((node) => map(node).x), FRAME_SKETCH_LEFT_PAD);
+  const rightX = Math.max(...nodes.map((node) => map(node).x), canvasSize.width - FRAME_SKETCH_RIGHT_PAD);
   const frameCenter = { x: (leftX + rightX) / 2, y: (topY + bottomY) / 2 };
   const frameDimensionLegendX = Math.max(20, leftX - 112);
   const frameLoadLabelMap = buildFrameLoadLabelMap(loads);
@@ -190,7 +208,7 @@ export function FrameSketch({ workspace, selection, onSelect }: { workspace: Wor
   });
 
   return (
-    <svg viewBox="0 0 900 360" className="h-full w-full">
+    <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} className="h-full w-full">
       <g fontFamily={SVG_TEXT_FONT} fill="var(--model-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
         {frameDimensionLegendRows.map((row, index) => (
           <text key={`frame-dimension-legend-${index}`} x={frameDimensionLegendX} y={22 + index * 16} fontSize="12" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT}>

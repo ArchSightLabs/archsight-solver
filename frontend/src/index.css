@@ -41,6 +41,18 @@
   --frame-diagram-grid: rgba(100, 116, 139, 0.24);
   --frame-diagram-zero: rgba(15, 23, 42, 0.28);
   --frame-diagram-label: #334155;
+  --structure-object-member: #2563eb;
+  --structure-object-node: #2f5f8f;
+  --structure-object-support-fill: #d6dee8;
+  --structure-object-support-stroke: #718096;
+  --structure-object-support-line: #64748b;
+  --structure-object-load: #b45309;
+  --structure-object-label: #475569;
+  --structure-object-label-strong: #334155;
+  --structure-object-text-halo: rgba(248, 250, 252, 0.92);
+  --structure-object-badge-fill: #fff7ed;
+  --structure-object-badge-stroke: #f97316;
+  --structure-object-badge-text: #7c2d12;
 
   /* shadcn 兼容变量 */
   --background: 210 40% 96%;
@@ -74,6 +86,18 @@
   --frame-diagram-grid: rgba(148, 163, 184, 0.12);
   --frame-diagram-zero: rgba(226, 232, 240, 0.24);
   --frame-diagram-label: #94a3b8;
+  --structure-object-member: #38bdf8;
+  --structure-object-node: #e2e8f0;
+  --structure-object-support-fill: #94a3b8;
+  --structure-object-support-stroke: #e2e8f0;
+  --structure-object-support-line: #64748b;
+  --structure-object-load: #fbbf24;
+  --structure-object-label: #cbd5e1;
+  --structure-object-label-strong: #cbd5e1;
+  --structure-object-text-halo: rgba(2, 8, 23, 0.92);
+  --structure-object-badge-fill: rgba(251, 191, 36, 0.16);
+  --structure-object-badge-stroke: #fbbf24;
+  --structure-object-badge-text: #fde68a;
 
   --background: 222 47% 7%;
   --foreground: 210 40% 95%;
@@ -246,19 +270,19 @@ div[class*="text-[9px]"] {
 }
 
 .model-canvas-surface {
-  --model-member: #2563eb;
-  --model-node: #2f5f8f;
-  --model-support-fill: #d6dee8;
-  --model-support-stroke: #718096;
-  --model-support-line: #64748b;
-  --model-load: #b45309;
+  --model-member: var(--structure-object-member);
+  --model-node: var(--structure-object-node);
+  --model-support-fill: var(--structure-object-support-fill);
+  --model-support-stroke: var(--structure-object-support-stroke);
+  --model-support-line: var(--structure-object-support-line);
+  --model-load: var(--structure-object-load);
   --model-load-halo: rgba(248, 250, 252, 0.92);
-  --model-badge-fill: #fff7ed;
-  --model-badge-stroke: #f97316;
-  --model-badge-text: #7c2d12;
+  --model-badge-fill: var(--structure-object-badge-fill);
+  --model-badge-stroke: var(--structure-object-badge-stroke);
+  --model-badge-text: var(--structure-object-badge-text);
   --model-guide: #94a3b8;
-  --model-label: #52657a;
-  --model-label-halo: rgba(248, 250, 252, 0.92);
+  --model-label: var(--structure-object-label);
+  --model-label-halo: var(--structure-object-text-halo);
   --beam-sketch-member: #111827;
   --beam-sketch-node: #111827;
   --beam-sketch-support-fill: #f8fafc;
@@ -293,19 +317,19 @@ div[class*="text-[9px]"] {
 }
 
 .dark .model-canvas-surface {
-  --model-member: #38bdf8;
-  --model-node: #e2e8f0;
-  --model-support-fill: #94a3b8;
-  --model-support-stroke: #e2e8f0;
-  --model-support-line: #64748b;
-  --model-load: #fbbf24;
+  --model-member: var(--structure-object-member);
+  --model-node: var(--structure-object-node);
+  --model-support-fill: var(--structure-object-support-fill);
+  --model-support-stroke: var(--structure-object-support-stroke);
+  --model-support-line: var(--structure-object-support-line);
+  --model-load: var(--structure-object-load);
   --model-load-halo: rgba(2, 8, 23, 0.92);
-  --model-badge-fill: rgba(251, 191, 36, 0.16);
-  --model-badge-stroke: #fbbf24;
-  --model-badge-text: #fde68a;
+  --model-badge-fill: var(--structure-object-badge-fill);
+  --model-badge-stroke: var(--structure-object-badge-stroke);
+  --model-badge-text: var(--structure-object-badge-text);
   --model-guide: #94a3b8;
-  --model-label: #cbd5e1;
-  --model-label-halo: rgba(2, 8, 23, 0.92);
+  --model-label: var(--structure-object-label);
+  --model-label-halo: var(--structure-object-text-halo);
   --beam-sketch-member: #e2e8f0;
   --beam-sketch-node: #e2e8f0;
   --beam-sketch-support-fill: #0f172a;
@@ -338,11 +362,18 @@ div[class*="text-[9px]"] {
 }
 
 .model-canvas-board {
+  display: flex;
+  flex: 0 0 auto;
   border: 1px solid rgba(100, 116, 139, 0.35);
   background: rgba(248, 250, 252, 0.58);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
     0 10px 28px rgba(15, 23, 42, 0.05);
+}
+
+.model-canvas-board > svg {
+  display: block;
+  flex: 1 1 auto;
 }
 
 .dark .model-canvas-board {
@@ -362,26 +393,26 @@ div[class*="text-[9px]"] {
 }
 
 .structure-preview-surface {
-  --structure-preview-support-fill: #d6dee8;
-  --structure-preview-support-stroke: #718096;
-  --structure-preview-support-line: #64748b;
-  --structure-preview-label: #475569;
-  --structure-preview-node-label: #334155;
-  --structure-preview-load: #334155;
+  --structure-preview-support-fill: var(--structure-object-support-fill);
+  --structure-preview-support-stroke: var(--structure-object-support-stroke);
+  --structure-preview-support-line: var(--structure-object-support-line);
+  --structure-preview-label: var(--structure-object-label);
+  --structure-preview-node-label: var(--structure-object-label-strong);
+  --structure-preview-load: var(--structure-object-load);
   --structure-preview-guide: #64748b;
   --structure-preview-hinge-fill: #ffffff;
-  --structure-preview-base-start: #2f5f8f;
-  --structure-preview-base-end: #285778;
+  --structure-preview-base-start: var(--structure-object-member);
+  --structure-preview-base-end: var(--structure-object-member);
   --structure-preview-deformed-start: #0f766e;
   --structure-preview-deformed-end: #0d9488;
-  --structure-preview-node: #2f5f8f;
+  --structure-preview-node: var(--structure-object-node);
   --structure-preview-deformed-node: #0f766e;
   --structure-preview-deformed-node-stroke: #ccfbf1;
   --structure-preview-peak-label: #92400e;
-  --structure-preview-text-halo: rgba(248, 250, 252, 0.92);
-  --structure-preview-badge-fill: #fff7ed;
-  --structure-preview-badge-stroke: #f97316;
-  --structure-preview-badge-text: #7c2d12;
+  --structure-preview-text-halo: var(--structure-object-text-halo);
+  --structure-preview-badge-fill: var(--structure-object-badge-fill);
+  --structure-preview-badge-stroke: var(--structure-object-badge-stroke);
+  --structure-preview-badge-text: var(--structure-object-badge-text);
   background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
   border-top: 1px solid rgba(100, 116, 139, 0.18);
   border-bottom: 1px solid rgba(100, 116, 139, 0.18);
@@ -398,26 +429,26 @@ div[class*="text-[9px]"] {
 }
 
 .dark .structure-preview-surface {
-  --structure-preview-support-fill: #94a3b8;
-  --structure-preview-support-stroke: #e2e8f0;
-  --structure-preview-support-line: #64748b;
-  --structure-preview-label: #94a3b8;
-  --structure-preview-node-label: #cbd5e1;
-  --structure-preview-load: #e2e8f0;
+  --structure-preview-support-fill: var(--structure-object-support-fill);
+  --structure-preview-support-stroke: var(--structure-object-support-stroke);
+  --structure-preview-support-line: var(--structure-object-support-line);
+  --structure-preview-label: var(--structure-object-label);
+  --structure-preview-node-label: var(--structure-object-label-strong);
+  --structure-preview-load: var(--structure-object-load);
   --structure-preview-guide: #38bdf8;
   --structure-preview-hinge-fill: #020617;
-  --structure-preview-base-start: #38bdf8;
-  --structure-preview-base-end: #818cf8;
+  --structure-preview-base-start: var(--structure-object-member);
+  --structure-preview-base-end: var(--structure-object-member);
   --structure-preview-deformed-start: #22c55e;
   --structure-preview-deformed-end: #10b981;
-  --structure-preview-node: #38bdf8;
+  --structure-preview-node: var(--structure-object-node);
   --structure-preview-deformed-node: #22c55e;
   --structure-preview-deformed-node-stroke: #dcfce7;
   --structure-preview-peak-label: #fde68a;
-  --structure-preview-text-halo: rgba(2, 8, 23, 0.92);
-  --structure-preview-badge-fill: rgba(251, 191, 36, 0.16);
-  --structure-preview-badge-stroke: #fbbf24;
-  --structure-preview-badge-text: #fde68a;
+  --structure-preview-text-halo: var(--structure-object-text-halo);
+  --structure-preview-badge-fill: var(--structure-object-badge-fill);
+  --structure-preview-badge-stroke: var(--structure-object-badge-stroke);
+  --structure-preview-badge-text: var(--structure-object-badge-text);
   background: linear-gradient(180deg, #060d18 0%, #0b1628 100%);
   border-top-color: rgba(255, 255, 255, 0.05);
   border-bottom-color: rgba(255, 255, 255, 0.05);

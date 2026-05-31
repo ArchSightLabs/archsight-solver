@@ -1,5 +1,6 @@
 import { type CSSProperties } from "react";
 import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments, formatBeamDimensionLength } from "../../lib/beam-span-dimensions";
+import { BEAM_MODEL_CANVAS_BASE_SIZE, type ModelCanvasSize } from "../../lib/model-canvas-sizing";
 import type { WorkspaceState } from "../../lib/workspace-state";
 import type { ModelPreviewStyle } from "../../types/beam";
 import type { WorkbenchSelection } from "../../types/workbench-selection";
@@ -12,6 +13,7 @@ const BEAM_DISTRIBUTED_LOAD_TIP_Y = BEAM_SKETCH_AXIS_Y;
 const BEAM_POINT_LOAD_TIP_Y = BEAM_SKETCH_AXIS_Y - 6;
 const BEAM_NODE_BADGE_OFFSET_X = 10;
 const BEAM_NODE_BADGE_Y = BEAM_SKETCH_AXIS_Y - 14;
+const BEAM_SKETCH_SIDE_PAD = 96;
 
 function activeBeamLinearLoads(beam: WorkspaceState["beam"]) {
   if (!beam.linearLoadEnabled) {
@@ -134,23 +136,26 @@ function shiftLoadLabelAwayFromPointLoads(labelX: number, pointLoadXs: number[],
 
 export function BeamSketch({
   beam,
+  canvasSize = BEAM_MODEL_CANVAS_BASE_SIZE,
   modelPreviewStyle = "simple",
   selection,
   onSelect,
 }: {
   beam: WorkspaceState["beam"];
+  canvasSize?: ModelCanvasSize;
   modelPreviewStyle?: ModelPreviewStyle;
   selection?: WorkbenchSelection | null;
   onSelect?: (next: WorkbenchSelection) => void;
 }) {
   const total = Math.max(1, beam.spans.reduce((sum, span) => sum + span.length, 0));
+  const beamDrawableWidth = Math.max(220, canvasSize.width - BEAM_SKETCH_SIDE_PAD * 2);
   const segments = beam.spans.reduce<Array<{ index: number; length: number; start: number; end: number }>>((items, span, index) => {
-    const start = items[index - 1]?.end ?? 96;
-    const end = start + (span.length / total) * 708;
+    const start = items[index - 1]?.end ?? BEAM_SKETCH_SIDE_PAD;
+    const end = start + (span.length / total) * beamDrawableWidth;
     return [...items, { index, length: span.length, start, end }];
   }, []);
-  const beamStart = segments[0]?.start ?? 96;
-  const beamEnd = segments[segments.length - 1]?.end ?? 804;
+  const beamStart = segments[0]?.start ?? BEAM_SKETCH_SIDE_PAD;
+  const beamEnd = segments[segments.length - 1]?.end ?? canvasSize.width - BEAM_SKETCH_SIDE_PAD;
   const beamMemberIds = beam.spans.map((span, index) => beamSpanMemberId(span, index));
   const beamNodeIds = Array.from({ length: beam.spans.length + 1 }, (_, index) => beamBoundaryNodeId(beam, index));
   const spanDimensions = buildBeamSpanDimensionSegments(beam.spans.map((span) => span.length), total, beamStart, beamEnd, {
@@ -216,7 +221,7 @@ export function BeamSketch({
     : undefined;
 
   return (
-    <svg viewBox="0 0 900 300" className="h-full w-full" style={beamSketchStyle}>
+    <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} className="h-full w-full" style={beamSketchStyle}>
       <g fontFamily={SVG_TEXT_FONT} fill="var(--beam-sketch-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
         {beamDimensionLegendRows.map((row, index) => (
           <text key={`span-dimension-legend-${index}`} x={beamStart} y={34 + index * 16} fontSize="12" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT}>
@@ -388,4 +393,3 @@ export function BeamSketch({
     </svg>
   );
 }
-

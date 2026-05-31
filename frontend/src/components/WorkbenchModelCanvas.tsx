@@ -17,6 +17,7 @@ import type { AnalysisMode } from "../types/structure";
 import type { WorkbenchSelection } from "../types/workbench-selection";
 import type { ModelPreviewStyle } from "../types/beam";
 import { modelObjectMetricRows } from "../lib/model-object-vocabulary";
+import { modelCanvasBoardStyle, workbenchModelCanvasSize } from "../lib/model-canvas-sizing";
 interface WorkbenchModelCanvasProps {
   workspace: WorkspaceState;
   mode: AnalysisMode;
@@ -40,10 +41,11 @@ export function WorkbenchModelCanvas({ workspace, mode, compact = false, modelPr
     setZoomDraft,
     showZoomControls,
     zoomDraft,
-    zoomedBoardStyle,
     zoomPercent,
   } = useModelCanvasZoom();
   const metrics = modelObjectMetricRows(workspace, mode);
+  const canvasSize = workbenchModelCanvasSize(workspace, mode);
+  const boardStyle = modelCanvasBoardStyle(canvasSize, zoomPercent);
 
   return (
     <GlassCard className="overflow-hidden">
@@ -138,13 +140,13 @@ export function WorkbenchModelCanvas({ workspace, mode, compact = false, modelPr
           onPointerCancel={finishCanvasDrag}
           onClickCapture={handleCanvasClickCapture}
         >
-          <div className="model-canvas-board" style={zoomedBoardStyle}>
+          <div className="model-canvas-board" style={boardStyle}>
             {mode === "beam" ? (
-              <BeamSketch beam={workspace.beam} modelPreviewStyle={modelPreviewStyle} selection={selection} onSelect={onSelect} />
+              <BeamSketch beam={workspace.beam} canvasSize={canvasSize} modelPreviewStyle={modelPreviewStyle} selection={selection} onSelect={onSelect} />
             ) : mode === "frame" ? (
-              <FrameSketch workspace={workspace} selection={selection} onSelect={onSelect} />
+              <FrameSketch workspace={workspace} canvasSize={canvasSize} selection={selection} onSelect={onSelect} />
             ) : (
-              <TrussSketch workspace={workspace} selection={selection} onSelect={onSelect} />
+              <TrussSketch workspace={workspace} canvasSize={canvasSize} selection={selection} onSelect={onSelect} />
             )}
           </div>
         </div>

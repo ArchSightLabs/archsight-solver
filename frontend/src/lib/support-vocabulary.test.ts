@@ -3,14 +3,17 @@ import test from "node:test";
 import { nodeCoordinateAriaLabel, nodeCoordinateLabel, supportAngleApplies, supportAngleHelpText, supportAngleLabel } from "./node-field-vocabulary.ts";
 import {
   BEAM_SUPPORT_DOF_ROWS,
+  FRAME_SUPPORT_DOF_ROWS,
   FRAME_SUPPORT_OPTIONS,
   SUPPORT_DOF_MODE_OPTIONS,
+  TRUSS_SUPPORT_DOF_ROWS,
   TRUSS_SUPPORT_OPTIONS,
   beamSupportConstraints,
   beamSupportDetail,
   beamSupportNote,
   beamSupportStateDetail,
   beamSupportSummary,
+  frameNodeSupportDofStates,
   frameNodeSupportStateDetail,
   frameNodeSupportSummary,
   hasFrameSupportBoundary,
@@ -21,6 +24,7 @@ import {
   supportOptionChoiceLabel,
   supportSystemHint,
   trussSupportDetail,
+  trussSupportDofStates,
   trussSupportNote,
   trussSupportSummary,
 } from "./support-vocabulary.ts";
@@ -94,6 +98,23 @@ test("梁系支座自由度编辑行统一声明标签、模式和默认弹簧�
   assert.deepEqual(SUPPORT_DOF_MODE_OPTIONS.map((option) => option.label), ["约束", "弹簧", "释放"]);
   assert.deepEqual(BEAM_SUPPORT_DOF_ROWS.map((row) => row.label), ["竖向位移 v", "转角 θz"]);
   assert.deepEqual(BEAM_SUPPORT_DOF_ROWS.map((row) => row.springLabel), ["竖向弹簧刚度（kN/m）", "转动弹簧刚度（kN·m/rad）"]);
+});
+
+test("框架和桁架节点边界显式拆成自由度状态", () => {
+  assert.deepEqual(FRAME_SUPPORT_DOF_ROWS.map((row) => row.label), ["水平位移 ux", "竖向位移 uy", "转角 rz"]);
+  assert.deepEqual(TRUSS_SUPPORT_DOF_ROWS.map((row) => row.label), ["水平位移 ux", "竖向位移 uy"]);
+  assert.deepEqual(
+    frameNodeSupportDofStates({ supportType: "pinned", springs: [{ dof: "rz", stiffnessKnMPerRad: 12000 }] }).map((state) => [state.dof, state.mode, state.detail]),
+    [["ux", "fixed", "约束"], ["uy", "fixed", "约束"], ["rz", "spring", "弹性 12000 kN·m/rad"]],
+  );
+  assert.deepEqual(
+    frameNodeSupportDofStates({ supportType: "roller", supportAngleDeg: 45 }).map((state) => [state.label, state.mode, state.detail]),
+    [["法向位移 n", "fixed", "约束 45° 法向"], ["切向位移 t", "free", "释放切向"], ["转角 rz", "free", "释放"]],
+  );
+  assert.deepEqual(
+    trussSupportDofStates("roller").map((state) => [state.dof, state.mode]),
+    [["ux", "free"], ["uy", "fixed"]],
+  );
 });
 
 test("节点坐标和滚动支座角标签显式显示工程单位", () => {

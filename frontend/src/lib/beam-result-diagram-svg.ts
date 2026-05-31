@@ -58,7 +58,7 @@ const DIAGRAM_LABEL_WEIGHT = 600;
 const COLORS = {
   background: "#ffffff",
   grid: "#cbd5e1",
-  base: "#2f5f8f",
+  base: "#2563eb",
   supportFill: "#d6dee8",
   supportStroke: "#718096",
   supportLine: "#64748b",

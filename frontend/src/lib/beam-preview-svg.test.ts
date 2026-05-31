@@ -66,6 +66,8 @@ test("buildBeamPreviewSvg follows the workbench beam preview sign convention", (
   assert.match(svg, /q=10\.0 kN\/m/);
   assert.match(svg, /最大挠度 1 mm/);
   assert.match(svg, /80\.0,150\.0 500\.0,230\.0 920\.0,150\.0/);
+  assert.match(svg, /stop-color="#2563eb"/);
+  assert.match(svg, /stroke="#b45309"/);
 });
 
 test("buildBeamResultDiagramSvg uses workbench-style span dimensions and key point annotations", () => {
@@ -115,6 +117,7 @@ test("buildBeamResultDiagramSvg uses workbench-style span dimensions and key poi
   assert.match(svg, />x = 1\.50 m</);
   assert.doesNotMatch(svg, />S3</);
   assert.match(svg, /stroke-dasharray="4 4"/);
+  assert.match(svg, /stroke="#2563eb" stroke-opacity="0\.82"/);
 });
 
 test("assertReportImagesReady prevents frontend DOCX export from falling back to simplified backend figures", () => {

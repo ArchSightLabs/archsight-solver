@@ -78,6 +78,8 @@ export function FrameNodeEditor({
         <NodeSupportField
           mode="frame"
           supportType={node.supportType}
+          supportAngleDeg={node.supportAngleDeg}
+          springs={node.springs}
           onSupportTypeChange={handleSupportTypeChange}
           fieldLabelClass={fieldLabelClass}
           ariaLabel={`${labelPrefix}支座约束`}

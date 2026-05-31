@@ -67,6 +67,8 @@ test("serializeFrameTextModel emits importable text", () => {
 N,1,0,0
 N,2,4,0
 NSUPT,1,6,0
+NSPRING,2,uy,12000
+SPRING,2,rz,8000
 E,1,2,1,1,0,1,1,1
 LOAD,2,0,-10,0
 `);
@@ -79,8 +81,35 @@ LOAD,2,0,-10,0
   assert.equal(restored.collections.nodes.length, 2);
   assert.equal(restored.collections.members.length, 1);
   assert.equal(restored.collections.loads.length, 1);
+  assert.deepEqual(restored.collections.nodes[1]?.springs, [
+    { dof: "uy", stiffnessKnPerM: 12000 },
+    { dof: "rz", stiffnessKnMPerRad: 8000 },
+  ]);
   assert.deepEqual(restored.collections.members[0]?.endReleases?.start, ["rz"]);
   assert.equal(restored.collections.members[0]?.materialId, "q345");
+});
+
+test("serializeFrameTextModel preserves node elastic constraints", () => {
+  const text = serializeFrameTextModel({
+    nodes: [
+      { id: "N1", x: 0, y: 0, supportType: "pinned", springs: [{ dof: "rz", stiffnessKnMPerRad: 15000 }] },
+      { id: "N2", x: 4, y: 0, supportType: "free", springs: [{ dof: "uy", stiffnessKnPerM: 12000 }] },
+    ],
+    members: [
+      { id: "B1", start: "N1", end: "N2", elementType: "frame", E_GPa: 210, A_cm2: 240, I_cm4: 12000, kind: "beam" },
+    ],
+    loads: [],
+  });
+
+  assert.match(text, /NSUPT,1,4,0/u);
+  assert.match(text, /NSPRING,1,rz,15000/u);
+  assert.match(text, /NSPRING,2,uy,12000/u);
+
+  const restored = parseFrameTextModel(text);
+
+  assert.ok(restored.collections);
+  assert.deepEqual(restored.collections.nodes[0]?.springs, [{ dof: "rz", stiffnessKnMPerRad: 15000 }]);
+  assert.deepEqual(restored.collections.nodes[1]?.springs, [{ dof: "uy", stiffnessKnPerM: 12000 }]);
 });
 
 test("serializeFrameTextModel uses sequential SM element numbers for named members", () => {
@@ -161,4 +190,20 @@ LOAD,N3,0,-10,0
   assert.equal(result.collections.members.length, 0);
   assert.equal(result.collections.loads.length, 0);
   assert.match(result.diagnostics.join("\n"), /已忽略/u);
+});
+
+test("parseFrameTextModel rejects invalid node spring definitions", () => {
+  const result = parseFrameTextModel(`
+N,1,0,0
+NSPRING,1,uz,100
+NSPRING,1,uy,0
+NSPRING,2,uy,100
+`);
+
+  assert.ok(result.collections);
+  assert.equal(result.collections.nodes[0]?.springs, undefined);
+  const diagnostics = result.diagnostics.join("\n");
+  assert.match(diagnostics, /节点弹簧自由度必须为 ux、uy 或 rz/u);
+  assert.match(diagnostics, /节点弹簧刚度必须大于 0/u);
+  assert.match(diagnostics, /节点弹簧引用了不存在的节点 N2/u);
 });

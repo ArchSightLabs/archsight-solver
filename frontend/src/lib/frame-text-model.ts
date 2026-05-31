@@ -1,4 +1,4 @@
-import type { FrameLoad, FrameLoadCase, FrameLoadCombination, StructureMember, StructureNode } from "../types/structure.ts";
+import type { FrameLoad, FrameLoadCase, FrameLoadCombination, FrameSpring, StructureMember, StructureNode } from "../types/structure.ts";
 import {
   parseTextModelNumber,
   parseTextModelNumericCode,
@@ -68,6 +68,22 @@ function supportType(value: string | undefined, fallback: StructureNode["support
     return "free";
   }
   return fallback;
+}
+
+function frameSpringDof(value: string | undefined): FrameSpring["dof"] | null {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (normalized === "ux" || normalized === "uy" || normalized === "rz") {
+    return normalized;
+  }
+  return null;
+}
+
+function frameSpring(dof: FrameSpring["dof"], stiffness: number): FrameSpring {
+  return dof === "rz" ? { dof, stiffnessKnMPerRad: stiffness } : { dof, stiffnessKnPerM: stiffness };
+}
+
+function frameSpringStiffness(spring: FrameSpring): number {
+  return spring.dof === "rz" ? spring.stiffnessKnMPerRad : spring.stiffnessKnPerM;
 }
 
 function defaultMember(id: string, start: string, end: string, patch: Partial<StructureMember> = {}): StructureMember {
@@ -336,6 +352,30 @@ export function parseFrameTextModel(text: string): FrameTextParseResult {
       continue;
     }
 
+    if (command === "NSPRING" || command === "SPRING" || command === "弹簧" || command === "节点弹簧") {
+      const id = nodeId(tokens[1], "N1");
+      const node = rawNodes.find((item) => item.id === id);
+      if (!node) {
+        diagnostics.push(`第 ${lineIndex + 1} 行：节点弹簧引用了不存在的节点 ${id}。`);
+        continue;
+      }
+      const dof = frameSpringDof(tokens[2]);
+      if (!dof) {
+        diagnostics.push(`第 ${lineIndex + 1} 行：节点弹簧自由度必须为 ux、uy 或 rz。`);
+        continue;
+      }
+      const stiffness = toNumber(tokens[3]);
+      if (stiffness === null || stiffness <= 0) {
+        diagnostics.push(`第 ${lineIndex + 1} 行：节点弹簧刚度必须大于 0。`);
+        continue;
+      }
+      node.springs = [
+        ...(node.springs ?? []).filter((spring) => spring.dof !== dof),
+        frameSpring(dof, stiffness),
+      ];
+      continue;
+    }
+
     if (command === "PROP") {
       const targetStart = getNumberedMember(members, tokens[1] ?? "");
       const usesRange = tokens.length >= 7;
@@ -568,6 +608,12 @@ export function serializeFrameTextModel(collections: FrameTextCollections): stri
     ...collections.nodes
       .filter((node) => (node.supportType ?? "free") !== "free")
       .map((node) => `NSUPT,${nodeNumbers.get(node.id) ?? 1},${supportCode(node.supportType ?? "free")},${node.supportAngleDeg ?? 0}`),
+    "# 节点弹性约束：NSPRING,节点号,自由度,刚度；ux/uy 单位 kN/m，rz 单位 kN·m/rad",
+    ...collections.nodes.flatMap((node) =>
+      (node.springs ?? [])
+        .filter((spring) => frameSpringStiffness(spring) > 0)
+        .map((spring) => `NSPRING,${nodeNumbers.get(node.id) ?? 1},${spring.dof},${frameSpringStiffness(spring)}`)
+    ),
     "",
     "# 构件：E,起点节点号,终点节点号,ux1,uy1,rz1,ux2,uy2,rz2",
     ...collections.members.map((member) => {

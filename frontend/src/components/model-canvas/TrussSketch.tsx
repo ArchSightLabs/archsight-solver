@@ -1,10 +1,16 @@
 import { buildTrussMemberLengthDimension, buildTrussMemberLengthLegendRows, buildTrussSupportMarkerGeometry } from "../truss-preview-utils";
+import { TRUSS_MODEL_CANVAS_BASE_SIZE, type ModelCanvasSize } from "../../lib/model-canvas-sizing";
 import type { WorkspaceState } from "../../lib/workspace-state";
 import type { TrussLoad } from "../../types/structure";
 import type { WorkbenchSelection } from "../../types/workbench-selection";
 import { MODEL_DIMENSION_TEXT_WEIGHT, SVG_TEXT_FONT, formatMagnitude, formatSignedMagnitude, svgInteractiveProps } from "./shared";
 
 type TrussMemberLoad = Extract<TrussLoad, { type: "distributed" | "member_load" | "member" }>;
+
+const TRUSS_SKETCH_LEFT_PAD = 110;
+const TRUSS_SKETCH_RIGHT_PAD = 110;
+const TRUSS_SKETCH_TOP_PAD = 90;
+const TRUSS_SKETCH_BOTTOM_PAD = 80;
 
 function trussMemberLabelPlacement(start: { x: number; y: number }, end: { x: number; y: number }, center: { x: number; y: number }) {
   const midX = (start.x + end.x) / 2;
@@ -99,7 +105,17 @@ function TrussSupportMarker({ type, x, y, selected }: { type?: string; x: number
   );
 }
 
-export function TrussSketch({ workspace, selection, onSelect }: { workspace: WorkspaceState; selection?: WorkbenchSelection | null; onSelect?: (next: WorkbenchSelection) => void }) {
+export function TrussSketch({
+  workspace,
+  canvasSize = TRUSS_MODEL_CANVAS_BASE_SIZE,
+  selection,
+  onSelect,
+}: {
+  workspace: WorkspaceState;
+  canvasSize?: ModelCanvasSize;
+  selection?: WorkbenchSelection | null;
+  onSelect?: (next: WorkbenchSelection) => void;
+}) {
   const nodes = workspace.truss.customNodes;
   const members = workspace.truss.customMembers;
   const loads = workspace.truss.customLoads;
@@ -109,16 +125,18 @@ export function TrussSketch({ workspace, selection, onSelect }: { workspace: Wor
   const maxX = Math.max(...xs, 1);
   const minY = Math.min(...ys, 0);
   const maxY = Math.max(...ys, 1);
+  const drawableWidth = Math.max(240, canvasSize.width - TRUSS_SKETCH_LEFT_PAD - TRUSS_SKETCH_RIGHT_PAD);
+  const drawableHeight = Math.max(150, canvasSize.height - TRUSS_SKETCH_TOP_PAD - TRUSS_SKETCH_BOTTOM_PAD);
   const map = (point: { x: number; y: number }) => ({
-    x: 110 + ((point.x - minX) / Math.max(1, maxX - minX)) * 680,
-    y: 280 - ((point.y - minY) / Math.max(1, maxY - minY)) * 190,
+    x: TRUSS_SKETCH_LEFT_PAD + ((point.x - minX) / Math.max(1, maxX - minX)) * drawableWidth,
+    y: canvasSize.height - TRUSS_SKETCH_BOTTOM_PAD - ((point.y - minY) / Math.max(1, maxY - minY)) * drawableHeight,
   });
   const nodeMap = new Map(nodes.map((node) => [node.id, map(node)]));
   const rawNodeMap = new Map(nodes.map((node) => [node.id, node]));
   const memberMap = new Map(members.map((member) => [member.id, member]));
-  const trussCenterX = 110 + 680 / 2;
-  const trussMidY = 280 - 190 / 2;
-  const trussLeftX = Math.min(...nodes.map((node) => nodeMap.get(node.id)?.x ?? 110), 110);
+  const trussCenterX = TRUSS_SKETCH_LEFT_PAD + drawableWidth / 2;
+  const trussMidY = canvasSize.height - TRUSS_SKETCH_BOTTOM_PAD - drawableHeight / 2;
+  const trussLeftX = Math.min(...nodes.map((node) => nodeMap.get(node.id)?.x ?? TRUSS_SKETCH_LEFT_PAD), TRUSS_SKETCH_LEFT_PAD);
   const memberLengthLegendX = Math.max(20, trussLeftX - 86);
   const memberLengthDimensions = members.flatMap((member) => {
     const start = nodeMap.get(member.start);
@@ -144,7 +162,7 @@ export function TrussSketch({ workspace, selection, onSelect }: { workspace: Wor
   };
 
   return (
-    <svg viewBox="0 0 900 360" className="h-full w-full">
+    <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} className="h-full w-full">
       <g fontFamily={SVG_TEXT_FONT} fill="var(--model-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
         {memberLengthLegendRows.map((row, index) => (
           <text key={`truss-member-length-legend-${index}`} x={memberLengthLegendX} y={34 + index * 16} fontSize="12" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT}>

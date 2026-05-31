@@ -1,4 +1,4 @@
-import { useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 
 export const MODEL_CANVAS_MIN_ZOOM_PERCENT = 70;
 export const MODEL_CANVAS_MAX_ZOOM_PERCENT = 400;
@@ -15,13 +15,6 @@ export function useModelCanvasZoom() {
   const canvasScrollRef = useRef<HTMLDivElement | null>(null);
   const canvasDragRef = useRef<{ pointerId: number; startX: number; startY: number; lastX: number; lastY: number; active: boolean } | null>(null);
   const suppressCanvasClickRef = useRef(false);
-  const zoomedBoardStyle: CSSProperties = {
-    width: `${zoomPercent}%`,
-    height: `${zoomPercent}%`,
-    minWidth: zoomPercent >= MODEL_CANVAS_DEFAULT_ZOOM_PERCENT ? "100%" : undefined,
-    minHeight: zoomPercent >= MODEL_CANVAS_DEFAULT_ZOOM_PERCENT ? "100%" : undefined,
-  };
-
   const commitZoomPercent = (nextPercent: number) => {
     if (!Number.isFinite(nextPercent)) {
       setZoomDraft(String(zoomPercent));
@@ -104,7 +97,6 @@ export function useModelCanvasZoom() {
     setZoomDraft,
     showZoomControls,
     zoomDraft,
-    zoomedBoardStyle,
     zoomPercent,
   };
 }

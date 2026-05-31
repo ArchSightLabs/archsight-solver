@@ -18,7 +18,8 @@ export interface SupportChoiceOption<T extends string> {
 
 type SupportGroup = "beam" | "frame" | "truss";
 export type SupportDofMode = "fixed" | "spring" | "free";
-type FrameSupportDof = "ux" | "uy" | "rz";
+export type FrameSupportDof = "ux" | "uy" | "rz";
+type TrussSupportDof = "ux" | "uy";
 
 type FrameNodeSupportState = Pick<StructureNode, "supportType" | "supportAngleDeg" | "springs">;
 
@@ -27,6 +28,25 @@ export interface BeamSupportDofRow {
   label: string;
   springLabel: string;
   defaultStiffness: number;
+}
+
+export interface FrameSupportDofRow {
+  dof: FrameSupportDof;
+  label: string;
+  springLabel: string;
+  defaultStiffness: number;
+}
+
+export interface TrussSupportDofRow {
+  dof: TrussSupportDof;
+  label: string;
+}
+
+export interface SupportDofState {
+  dof: string;
+  label: string;
+  mode: SupportDofMode;
+  detail: string;
 }
 
 interface SharedSupportOption {
@@ -53,6 +73,17 @@ export const SUPPORT_DOF_MODE_OPTIONS: Array<{ label: string; value: SupportDofM
 export const BEAM_SUPPORT_DOF_ROWS: BeamSupportDofRow[] = [
   { dof: "v", label: "竖向位移 v", springLabel: "竖向弹簧刚度（kN/m）", defaultStiffness: 50000 },
   { dof: "rz", label: "转角 θz", springLabel: "转动弹簧刚度（kN·m/rad）", defaultStiffness: 10000 },
+];
+
+export const FRAME_SUPPORT_DOF_ROWS: FrameSupportDofRow[] = [
+  { dof: "ux", label: "水平位移 ux", springLabel: "水平弹簧刚度（kN/m）", defaultStiffness: 10000 },
+  { dof: "uy", label: "竖向位移 uy", springLabel: "竖向弹簧刚度（kN/m）", defaultStiffness: 10000 },
+  { dof: "rz", label: "转角 rz", springLabel: "转动弹簧刚度（kN·m/rad）", defaultStiffness: 10000 },
+];
+
+export const TRUSS_SUPPORT_DOF_ROWS: TrussSupportDofRow[] = [
+  { dof: "ux", label: "水平位移 ux" },
+  { dof: "uy", label: "竖向位移 uy" },
 ];
 
 function supportOptions<T extends string>(group: SupportGroup): Array<SupportOption<T>> {
@@ -219,6 +250,53 @@ export function frameNodeSupportSummary(node: FrameNodeSupportState): string {
 
 export function trussSupportSummary(type: SupportType | undefined): string {
   return `${trussSupportLabel(type)} · ${trussSupportDetail(type)}`;
+}
+
+function springStateDetail(spring: FrameSpring): string {
+  const unit = spring.dof === "rz" ? "kN·m/rad" : "kN/m";
+  return `${compactSupportNumber(frameSpringStiffness(spring))} ${unit}`;
+}
+
+function supportDofState(label: string, dof: string, mode: SupportDofMode, detail?: string): SupportDofState {
+  return { dof, label, mode, detail: detail ?? (mode === "fixed" ? "约束" : mode === "spring" ? "弹性" : "释放") };
+}
+
+export function frameNodeSupportDofStates(node: FrameNodeSupportState): SupportDofState[] {
+  const supportType = node.supportType ?? "free";
+  const activeSprings = (node.springs ?? []).filter(isPositiveFrameSpring);
+
+  if (supportType === "roller" && Number.isFinite(node.supportAngleDeg)) {
+    const angle = formatSupportAngle(Number(node.supportAngleDeg));
+    const rzSpring = activeSprings.find((spring) => spring.dof === "rz");
+    return [
+      supportDofState("法向位移 n", "n", "fixed", `约束 ${angle}° 法向`),
+      supportDofState("切向位移 t", "t", "free", "释放切向"),
+      rzSpring
+        ? supportDofState("转角 rz", "rz", "spring", `弹性 ${springStateDetail(rzSpring)}`)
+        : supportDofState("转角 rz", "rz", "free"),
+    ];
+  }
+
+  const constrainedDofs = new Set<FrameSupportDof>(frameSupportConstraintDofs(supportType));
+  const springByDof = new Map<FrameSupportDof, FrameSpring>(activeSprings.map((spring) => [spring.dof, spring] as const));
+  return FRAME_SUPPORT_DOF_ROWS.map((row) => {
+    if (constrainedDofs.has(row.dof)) return supportDofState(row.label, row.dof, "fixed");
+    const spring = springByDof.get(row.dof);
+    if (spring) return supportDofState(row.label, row.dof, "spring", `弹性 ${springStateDetail(spring)}`);
+    return supportDofState(row.label, row.dof, "free");
+  });
+}
+
+export function trussSupportDofStates(type: SupportType | undefined): SupportDofState[] {
+  const supportType = type === "fixed" ? "pinned" : type ?? "free";
+  const constrainedDofs = new Set<TrussSupportDof>(
+    supportType === "pinned" ? ["ux", "uy"] : supportType === "roller" ? ["uy"] : [],
+  );
+  return TRUSS_SUPPORT_DOF_ROWS.map((row) => (
+    constrainedDofs.has(row.dof)
+      ? supportDofState(row.label, row.dof, "fixed")
+      : supportDofState(row.label, row.dof, "free")
+  ));
 }
 
 export function beamSupportNote(type: BeamSupportType | undefined): string {
