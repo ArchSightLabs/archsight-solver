@@ -1,0 +1,85 @@
+{
+  "version": "2026-05-31",
+  "beam": {
+    "spanProperties": {
+      "fields": ["id", "memberId", "materialId", "E", "I"],
+      "frontendTypePath": "frontend/src/types/beam.ts",
+      "frontendTypeTokens": ["spanProperties?: Array<{", "materialId?: string"],
+      "payloadPath": "frontend/src/solver-payload.ts",
+      "payloadTokens": ["spanProperties:", "materialId: span.materialId"],
+      "docTokens": ["spanProperties[].materialId", "梁单元刚度计算输入"]
+    }
+  },
+  "frame": {
+    "nodeFields": ["supportAngleDeg", "springs"],
+    "springFields": ["stiffnessKnPerM", "stiffnessKnMPerRad"],
+    "memberFields": ["materialId", "E_GPa", "A_cm2", "I_cm4", "endReleases", "internalHinges"],
+    "distributedLoadFields": ["qStartKnPerM", "qEndKnPerM", "startRatio", "endRatio"],
+    "memberPointLoadFields": ["forceKn", "positionRatio"],
+    "structureFields": ["loadCases", "loadCombinations"],
+    "frontendTypePath": "frontend/src/types/structure.ts",
+    "frontendTypeTokens": [
+      "supportAngleDeg?: number",
+      "springs?: FrameSpring[]",
+      "materialId?: string",
+      "endReleases?:",
+      "internalHinges?: FrameInternalHinge[]",
+      "type: \"member_point\"",
+      "startRatio?: number",
+      "endRatio?: number",
+      "loadCases?: FrameLoadCase[]",
+      "loadCombinations?: FrameLoadCombination[]"
+    ],
+    "payloadPath": "frontend/src/solver-payload.ts",
+    "payloadTokens": [
+      "supportAngleDeg:",
+      "springs:",
+      "materialId:",
+      "endReleases:",
+      "internalHinges:",
+      "startRatio,",
+      "endRatio,",
+      "type: \"member_point\"",
+      "loadCases:",
+      "loadCombinations:"
+    ],
+    "docTokens": [
+      "supportAngleDeg",
+      "springs",
+      "节点弹性约束",
+      "materialId",
+      "endReleases",
+      "internalHinges",
+      "startRatio",
+      "endRatio",
+      "member_point",
+      "loadCases",
+      "loadCombinations"
+    ]
+  },
+  "truss": {
+    "memberFields": ["materialId", "E_GPa", "A_cm2"],
+    "nodalLoadFields": ["fxKn", "fyKn"],
+    "memberLoadFields": ["direction", "wyKnPerM", "qStartKnPerM", "qEndKnPerM", "selfWeightKnPerM"],
+    "structureFields": ["loadCases", "loadCombinations"],
+    "forbiddenNodeFields": ["supportAngleDeg", "rollerAngleDeg", "springs", "condensedDofs"],
+    "frontendTypePath": "frontend/src/types/structure.ts",
+    "frontendTypeTokens": [
+      "selfWeightKnPerM?: number",
+      "materialId?: string"
+    ],
+    "payloadPath": "frontend/src/solver-payload.ts",
+    "payloadTokens": [
+      "selfWeightKnPerM:",
+      "materialId:"
+    ],
+    "docTokens": [
+      "selfWeightKnPerM",
+      "loadCases",
+      "loadCombinations",
+      "supportAngleDeg",
+      "springs",
+      "materialId"
+    ]
+  }
+}

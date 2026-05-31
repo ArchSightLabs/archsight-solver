@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 
@@ -37,6 +38,11 @@ def _one_of_branch_by_type(schema, type_name):
 def _read_repo_text(path):
     with open(os.path.join(ROOT_DIR, path), encoding="utf-8") as handle:
         return handle.read()
+
+
+def _contract_field_matrix():
+    with open(os.path.join(ROOT_DIR, "shared/asms-contract-fields.json"), encoding="utf-8") as handle:
+        return json.load(handle)
 
 
 def _support_values(analysis_type):
@@ -89,40 +95,18 @@ def test_frame_and_truss_member_schemas_expose_material_id():
         assert "E_GPa" in member_properties["materialId"]["description"]
 
 
-def test_beam_span_properties_expose_material_id_across_stack():
+def test_beam_span_material_schema_exposes_description():
+    beam_contract = _contract_field_matrix()["beam"]["spanProperties"]
     registry = schema_registry()
     openapi = build_openapi_document()
 
     for schema in (registry["asms-beam-model"], openapi["components"]["schemas"]["asms-beam-model"]):
         span_properties = schema["properties"]["spanProperties"]["items"]["properties"]
 
-        assert {"id", "memberId", "materialId", "E", "I"}.issubset(span_properties)
+        assert set(beam_contract["fields"]).issubset(span_properties)
         assert span_properties["materialId"]["type"] == "string"
         assert "跨段材料库编号" in span_properties["materialId"]["description"]
         assert "E / I" in span_properties["materialId"]["description"]
-
-    _assert_source_contains(
-        "frontend/src/types/beam.ts",
-        [
-            "spanProperties?: Array<{",
-            "materialId?: string",
-        ],
-    )
-    _assert_source_contains(
-        "frontend/src/solver-payload.ts",
-        [
-            "spanProperties:",
-            "materialId: span.materialId",
-        ],
-    )
-    for doc_path in ("docs/api-reference.md", "docs/asms-json-schema.md"):
-        _assert_source_contains(
-            doc_path,
-            [
-                "spanProperties[].materialId",
-                "梁单元刚度计算输入",
-            ],
-        )
 
 
 def test_support_type_schema_enums_use_shared_catalog():
@@ -140,7 +124,71 @@ def test_support_type_schema_enums_use_shared_catalog():
     assert "fixed" not in truss_node_properties["supportType"]["enum"]
 
 
-def test_cross_stack_critical_field_matrix_is_in_sync():
+def test_shared_contract_field_matrix_covers_cross_stack_fields():
+    matrix = _contract_field_matrix()
+    registry = schema_registry()
+    openapi = build_openapi_document()
+
+    beam_fields = set(matrix["beam"]["spanProperties"]["fields"])
+    for schema in (registry["asms-beam-model"], openapi["components"]["schemas"]["asms-beam-model"]):
+        span_properties = schema["properties"]["spanProperties"]["items"]["properties"]
+        assert beam_fields.issubset(span_properties)
+
+    beam_contract = matrix["beam"]["spanProperties"]
+    _assert_source_contains(beam_contract["frontendTypePath"], beam_contract["frontendTypeTokens"])
+    _assert_source_contains(beam_contract["payloadPath"], beam_contract["payloadTokens"])
+    for doc_path in ("docs/api-reference.md", "docs/asms-json-schema.md"):
+        _assert_source_contains(doc_path, beam_contract["docTokens"])
+
+    frame_contract = matrix["frame"]
+    for schema in (registry["asms-frame-model"], openapi["components"]["schemas"]["asms-frame-model"]):
+        node_properties = _structure_collection_properties(schema, "nodes")["items"]["properties"]
+        assert set(frame_contract["nodeFields"]).issubset(node_properties)
+        spring_fields = {field for branch in node_properties["springs"]["items"]["oneOf"] for field in branch["properties"]}
+        assert set(frame_contract["springFields"]).issubset(spring_fields)
+
+        member_properties = _structure_member_properties(schema)
+        assert set(frame_contract["memberFields"]).issubset(member_properties)
+
+        load_schema = _structure_collection_properties(schema, "loads")["items"]
+        distributed = _one_of_branch_by_type(load_schema, "distributed")["properties"]
+        assert set(frame_contract["distributedLoadFields"]).issubset(distributed)
+        member_point = _one_of_branch_by_type(load_schema, "member_point")["properties"]
+        assert set(frame_contract["memberPointLoadFields"]).issubset(member_point)
+
+        structure_properties = schema["properties"]["structure"]["properties"]
+        assert set(frame_contract["structureFields"]).issubset(structure_properties)
+
+    _assert_source_contains(frame_contract["frontendTypePath"], frame_contract["frontendTypeTokens"])
+    _assert_source_contains(frame_contract["payloadPath"], frame_contract["payloadTokens"])
+    for doc_path in ("docs/api-reference.md", "docs/asms-json-schema.md"):
+        _assert_source_contains(doc_path, frame_contract["docTokens"])
+
+    truss_contract = matrix["truss"]
+    for schema in (registry["asms-truss-model"], openapi["components"]["schemas"]["asms-truss-model"]):
+        node_schema = _structure_collection_properties(schema, "nodes")["items"]
+        node_properties = node_schema["properties"]
+        assert set(truss_contract["forbiddenNodeFields"]).isdisjoint(node_properties)
+
+        member_properties = _structure_member_properties(schema)
+        assert set(truss_contract["memberFields"]).issubset(member_properties)
+
+        load_schema = _structure_collection_properties(schema, "loads")["items"]
+        nodal = _one_of_branch_by_type(load_schema, "nodal")["properties"]
+        assert set(truss_contract["nodalLoadFields"]).issubset(nodal)
+        member_load = _one_of_branch_by_type(load_schema, "member_load")["properties"]
+        assert set(truss_contract["memberLoadFields"]).issubset(member_load)
+
+        structure_properties = schema["properties"]["structure"]["properties"]
+        assert set(truss_contract["structureFields"]).issubset(structure_properties)
+
+    _assert_source_contains(truss_contract["frontendTypePath"], truss_contract["frontendTypeTokens"])
+    _assert_source_contains(truss_contract["payloadPath"], truss_contract["payloadTokens"])
+    for doc_path in ("docs/api-reference.md", "docs/asms-json-schema.md"):
+        _assert_source_contains(doc_path, truss_contract["docTokens"])
+
+
+def test_cross_stack_domain_constraints_are_in_sync():
     registry = schema_registry()
     openapi = build_openapi_document()
     frame_schema = registry["asms-frame-model"]
@@ -148,23 +196,9 @@ def test_cross_stack_critical_field_matrix_is_in_sync():
 
     for schema in (frame_schema, openapi["components"]["schemas"]["asms-frame-model"]):
         node_properties = _structure_collection_properties(schema, "nodes")["items"]["properties"]
-        assert {"supportAngleDeg", "springs"}.issubset(node_properties)
-        spring_branches = node_properties["springs"]["items"]["oneOf"]
         assert node_properties["springs"]["description"].startswith("节点弹性约束")
-        spring_fields = {field for branch in spring_branches for field in branch["properties"]}
-        assert {"stiffnessKnPerM", "stiffnessKnMPerRad"}.issubset(spring_fields)
-
-        member_properties = _structure_member_properties(schema)
-        assert {"materialId", "E_GPa", "A_cm2", "I_cm4", "endReleases", "internalHinges"}.issubset(member_properties)
-
-        load_schema = _structure_collection_properties(schema, "loads")["items"]
-        distributed = _one_of_branch_by_type(load_schema, "distributed")["properties"]
-        assert {"qStartKnPerM", "qEndKnPerM", "startRatio", "endRatio"}.issubset(distributed)
-        member_point = _one_of_branch_by_type(load_schema, "member_point")["properties"]
-        assert {"forceKn", "positionRatio"}.issubset(member_point)
 
         structure_properties = schema["properties"]["structure"]["properties"]
-        assert {"loadCases", "loadCombinations"}.issubset(structure_properties)
         assert {"id", "loads"}.issubset(structure_properties["loadCases"]["items"]["properties"])
         assert {"id", "factors", "tags"}.issubset(structure_properties["loadCombinations"]["items"]["properties"])
 
@@ -175,69 +209,6 @@ def test_cross_stack_critical_field_matrix_is_in_sync():
         assert {"supportAngleDeg", "springs", "condensedDofs"}.isdisjoint(node_properties)
         forbidden_node_fields = {tuple(branch["required"]) for branch in node_schema["not"]["anyOf"]}
         assert {("supportAngleDeg",), ("rollerAngleDeg",), ("springs",), ("condensedDofs",)}.issubset(forbidden_node_fields)
-
-        member_properties = _structure_member_properties(schema)
-        assert {"materialId", "E_GPa", "A_cm2"}.issubset(member_properties)
-
-        load_schema = _structure_collection_properties(schema, "loads")["items"]
-        nodal = _one_of_branch_by_type(load_schema, "nodal")["properties"]
-        assert {"fxKn", "fyKn"}.issubset(nodal)
-        member_load = _one_of_branch_by_type(load_schema, "member_load")["properties"]
-        assert {"direction", "wyKnPerM", "qStartKnPerM", "qEndKnPerM", "selfWeightKnPerM"}.issubset(member_load)
-
-        structure_properties = schema["properties"]["structure"]["properties"]
-        assert {"loadCases", "loadCombinations"}.issubset(structure_properties)
-
-    _assert_source_contains(
-        "frontend/src/types/structure.ts",
-        [
-            "supportAngleDeg?: number",
-            "springs?: FrameSpring[]",
-            "materialId?: string",
-            "endReleases?:",
-            "internalHinges?: FrameInternalHinge[]",
-            "type: \"member_point\"",
-            "startRatio?: number",
-            "endRatio?: number",
-            "loadCases?: FrameLoadCase[]",
-            "loadCombinations?: FrameLoadCombination[]",
-            "selfWeightKnPerM?: number",
-        ],
-    )
-    _assert_source_contains(
-        "frontend/src/solver-payload.ts",
-        [
-            "supportAngleDeg:",
-            "springs:",
-            "materialId:",
-            "endReleases:",
-            "internalHinges:",
-            "startRatio,",
-            "endRatio,",
-            "type: \"member_point\"",
-            "loadCases:",
-            "loadCombinations:",
-            "selfWeightKnPerM:",
-        ],
-    )
-    for doc_path in ("docs/api-reference.md", "docs/asms-json-schema.md"):
-        _assert_source_contains(
-            doc_path,
-            [
-                "supportAngleDeg",
-                "springs",
-                "节点弹性约束",
-                "materialId",
-                "endReleases",
-                "internalHinges",
-                "startRatio",
-                "endRatio",
-                "member_point",
-                "loadCases",
-                "loadCombinations",
-                "selfWeightKnPerM",
-            ],
-        )
 
 
 def test_schema_id_uri_uses_solver_public_domain():
