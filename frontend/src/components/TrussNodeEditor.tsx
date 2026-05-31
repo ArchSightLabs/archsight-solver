@@ -76,7 +76,7 @@ export function TrussNodeEditor({
         <NodeSupportField
           mode="truss"
           supportType={node.supportType}
-          onSupportTypeChange={(supportType) => onUpdate({ supportType: supportType === "fixed" ? "pinned" : supportType })}
+          onSupportTypeChange={(supportType) => onUpdate({ supportType })}
           fieldLabelClass={fieldLabelClass}
           showHint={isSelectedVariant}
           className={isSelectedVariant ? undefined : "sm:col-span-2 xl:col-span-1"}

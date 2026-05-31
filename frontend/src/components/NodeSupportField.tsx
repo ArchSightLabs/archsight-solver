@@ -16,16 +16,9 @@ import {
   type SupportDofState,
 } from "../lib/support-vocabulary.ts";
 import { cn } from "@/lib/utils";
-import type { FrameSpring, SupportType } from "../types/structure.ts";
+import type { FrameSpring, SupportType, TrussSupportType } from "../types/structure.ts";
 
-type NodeSupportMode = "frame" | "truss";
-
-interface NodeSupportFieldProps {
-  mode: NodeSupportMode;
-  supportType?: SupportType;
-  onSupportTypeChange: (nextSupportType: SupportType) => void;
-  supportAngleDeg?: number;
-  springs?: FrameSpring[];
+interface CommonNodeSupportFieldProps {
   fieldLabelClass: string;
   className?: string;
   label?: string;
@@ -33,35 +26,57 @@ interface NodeSupportFieldProps {
   showHint?: boolean;
 }
 
-export function NodeSupportField({
-  mode,
-  supportType,
-  onSupportTypeChange,
-  supportAngleDeg,
-  springs,
-  fieldLabelClass,
-  className,
-  label = supportConstraintFieldLabel(),
-  ariaLabel = "支座类型",
-  showHint = false,
-}: NodeSupportFieldProps) {
-  const options = mode === "truss" ? TRUSS_SUPPORT_OPTIONS : FRAME_SUPPORT_OPTIONS;
-  const choiceOptions = supportChoiceOptions(options);
-  const value = mode === "truss" && supportType === "fixed" ? "pinned" : supportType ?? "free";
-  const detail = mode === "truss"
-    ? trussSupportDetail(value as SupportType)
-    : frameNodeSupportStateDetail({ supportType: value as SupportType, supportAngleDeg, springs });
-  const note = mode === "truss" ? trussSupportNote(value as SupportType) : nodeSupportNote(value as SupportType);
-  const dofStates = mode === "truss"
-    ? trussSupportDofStates(value as SupportType)
-    : frameNodeSupportDofStates({ supportType: value as SupportType, supportAngleDeg, springs });
+interface FrameNodeSupportFieldProps extends CommonNodeSupportFieldProps {
+  mode: "frame";
+  supportType?: SupportType;
+  onSupportTypeChange: (nextSupportType: SupportType) => void;
+  supportAngleDeg?: number;
+  springs?: FrameSpring[];
+}
+
+interface TrussNodeSupportFieldProps extends CommonNodeSupportFieldProps {
+  mode: "truss";
+  supportType?: TrussSupportType;
+  onSupportTypeChange: (nextSupportType: TrussSupportType) => void;
+}
+
+type NodeSupportFieldProps = FrameNodeSupportFieldProps | TrussNodeSupportFieldProps;
+
+export function NodeSupportField(props: NodeSupportFieldProps) {
+  const {
+    mode,
+    fieldLabelClass,
+    className,
+    label = supportConstraintFieldLabel(),
+    ariaLabel = "支座类型",
+    showHint = false,
+  } = props;
+
+  const isTruss = mode === "truss";
+  const choiceOptions = supportChoiceOptions(isTruss ? TRUSS_SUPPORT_OPTIONS : FRAME_SUPPORT_OPTIONS);
+  const value = props.supportType ?? "free";
+  const detail = isTruss
+    ? trussSupportDetail(value)
+    : frameNodeSupportStateDetail({ supportType: value, supportAngleDeg: props.supportAngleDeg, springs: props.springs });
+  const note = isTruss ? trussSupportNote(value) : nodeSupportNote(value);
+  const dofStates = isTruss
+    ? trussSupportDofStates(value)
+    : frameNodeSupportDofStates({ supportType: value, supportAngleDeg: props.supportAngleDeg, springs: props.springs });
+
+  const handleChange = (nextValue: string) => {
+    if (isTruss) {
+      props.onSupportTypeChange(nextValue as TrussSupportType);
+      return;
+    }
+    props.onSupportTypeChange(nextValue as SupportType);
+  };
 
   return (
     <div className={cn("space-y-1", className)}>
       <div className={fieldLabelClass}>{label}</div>
       <DropdownSelect
         value={value}
-        onChange={(nextValue) => onSupportTypeChange(nextValue as SupportType)}
+        onChange={handleChange}
         options={choiceOptions}
         className="text-xs font-mono"
         menuClassName="text-xs font-mono"
