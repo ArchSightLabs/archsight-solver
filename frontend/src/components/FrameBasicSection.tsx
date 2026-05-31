@@ -1,7 +1,16 @@
 import { Plus, RotateCw, Wand2 } from "lucide-react";
 
-import { materialDropdownOptions, materialEngineeringNote, type MaterialDropdownOption } from "../lib/material-presets.ts";
+import { materialDropdownOptions, type MaterialDropdownOption } from "../lib/material-presets.ts";
 import { supportSystemHint } from "../lib/support-vocabulary.ts";
+import {
+  defaultMaterialAriaLabel,
+  defaultMaterialBasicDetail,
+  defaultMaterialControlHint,
+  defaultMaterialFieldLabel,
+  materialSectionBasicDetail,
+  workbenchBasicDescription,
+  workbenchBasicSuccessMessage,
+} from "../lib/workbench-basic-vocabulary.ts";
 import type { Material } from "../types/material.ts";
 import { DropdownSelect } from "./ui/DropdownSelect";
 import { WorkbenchModelBasicSection } from "./WorkbenchModelBasicSection";
@@ -43,7 +52,7 @@ export function FrameBasicSection({
     <WorkbenchModelBasicSection
       id="frame-basic"
       title="自定义平面框架建模"
-      description="先套用参数模板或选择当前对象，再在属性检查器中修改节点、构件、支座、材料与截面、荷载；批量字段保留在表格页。"
+      description={workbenchBasicDescription("frame")}
       metrics={[
         { label: "节点", value: nodeCount },
         { label: "构件", value: memberCount },
@@ -51,18 +60,12 @@ export function FrameBasicSection({
         { label: "荷载", value: loadCount },
       ]}
       modelWarnings={modelWarnings}
-      successMessage="当前模型对象引用完整，可继续复核截面、节点约束与荷载参数。"
+      successMessage={workbenchBasicSuccessMessage("frame")}
       detailRows={[
         { label: "支座自由度", value: supportSystemHint("frame") },
-        {
-          label: "默认材料",
-          value: `${materialId.toUpperCase()} 用于项目材料说明和新增构件 E 回填；实际刚度按各构件 E / A / I 输入参与整体刚度矩阵。`,
-        },
+        { label: "默认材料", value: defaultMaterialBasicDetail("frame", materialId, materialLibrary) },
         { label: "弹性模量分布", value: memberElasticitySummary },
-        {
-          label: "材料与截面",
-          value: "按构件维护 E / A / I；材料预设只回填弹性模量 E，截面面积和截面惯性矩仍由构件截面控制。",
-        },
+        { label: "材料与截面", value: materialSectionBasicDetail("frame") },
         { label: "主要结果", value: "节点位移、构件轴力 / 剪力 / 弯矩、支座反力" },
       ]}
       actions={[
@@ -73,17 +76,17 @@ export function FrameBasicSection({
       controls={
         <div className="grid grid-cols-1 gap-4">
           <div className="space-y-2">
-            <label className={formLabelClass}>默认材料编号（新增构件 E）</label>
+            <label className={formLabelClass}>{defaultMaterialFieldLabel("frame")}</label>
             <DropdownSelect
               value={materialId}
               onChange={onMaterialChange}
               options={materialOptions}
               className="h-10 text-xs font-mono"
               menuClassName="text-xs font-mono"
-              ariaLabel="框架默认材料编号（新增构件 E）"
+              ariaLabel={defaultMaterialAriaLabel("frame")}
             />
             <div className="text-[10px] font-semibold leading-relaxed text-muted-foreground">
-              {materialEngineeringNote(materialId, materialLibrary)} 已有构件不会被静默改写；需要统一材料时，在“对象”或“表格”页批量检查构件 E。
+              {defaultMaterialControlHint("frame", materialId, materialLibrary)}
             </div>
           </div>
         </div>

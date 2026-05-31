@@ -1,7 +1,16 @@
 import { CheckCircle2, RotateCcw } from "lucide-react";
 
-import { materialEngineeringNote, type MaterialDropdownOption } from "../lib/material-presets.ts";
+import type { MaterialDropdownOption } from "../lib/material-presets.ts";
 import { supportSystemHint } from "../lib/support-vocabulary.ts";
+import {
+  defaultMaterialAriaLabel,
+  defaultMaterialBasicDetail,
+  defaultMaterialControlHint,
+  defaultMaterialFieldLabel,
+  materialSectionBasicDetail,
+  workbenchBasicDescription,
+  workbenchBasicSuccessMessage,
+} from "../lib/workbench-basic-vocabulary.ts";
 import type { BeamWorkspaceState } from "../types/beam.ts";
 import type { Material } from "../types/material.ts";
 import { Button } from "./ui/button";
@@ -53,7 +62,7 @@ export function BeamBasicSection({
     <WorkbenchModelBasicSection
       id="beam-basic"
       title="参数化梁系建模"
-      description="先选择梁型和默认材料，再在对象页维护跨段、支座、荷载及单跨材料截面；连续梁按跨段和支座节点组织模型。"
+      description={workbenchBasicDescription("beam")}
       metrics={[
         { label: "节点", value: nodeCount },
         { label: "杆件", value: spanCount },
@@ -61,13 +70,11 @@ export function BeamBasicSection({
         { label: "总长", value: `${totalLength.toFixed(2)} m` },
       ]}
       modelWarnings={supportCount === 0 ? ["尚未设置支座约束。"] : []}
-      successMessage="当前梁系跨段、支座与荷载参数完整，可继续复核挠度、弯矩、剪力和支座反力。"
+      successMessage={workbenchBasicSuccessMessage("beam")}
       detailRows={[
         { label: "支座自由度", value: supportSystemHint("beam") },
-        {
-          label: "材料与截面",
-          value: "默认材料用于新增杆件；各跨可在对象页单独引用材料编号。材料预设只回填弹性模量 E，截面惯性矩 I 仍按跨段维护。",
-        },
+        { label: "默认材料", value: defaultMaterialBasicDetail("beam", materialId, materialLibrary) },
+        { label: "材料与截面", value: materialSectionBasicDetail("beam") },
         { label: "求解模型", value: "梁单元矩阵位移法；连续梁保留三弯矩方程校核口径。" },
         { label: "输入单位", value: "E:GPa · I:cm⁴ · q:kN/m · P:kN" },
         { label: "主要结果", value: "挠度、弯矩、剪力、支座反力" },
@@ -79,7 +86,7 @@ export function BeamBasicSection({
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <label className={formLabelClass}>默认材料编号（新增杆件）</label>
+              <label className={formLabelClass}>{defaultMaterialFieldLabel("beam")}</label>
               <DropdownSelect
                 value={materialId}
                 onChange={onMaterialChange}
@@ -87,10 +94,10 @@ export function BeamBasicSection({
                 className={formControlClass}
                 menuClassName={formSelectMenuClass}
                 optionClassName={formSelectOptionClass}
-                ariaLabel="默认材料编号（新增杆件）"
+                ariaLabel={defaultMaterialAriaLabel("beam")}
               />
               <div className="text-[10px] font-semibold leading-relaxed text-muted-foreground">
-                {materialEngineeringNote(materialId, materialLibrary)} 每一跨可在“对象”页单独引用材料编号。
+                {defaultMaterialControlHint("beam", materialId, materialLibrary)}
               </div>
             </div>
           </div>
