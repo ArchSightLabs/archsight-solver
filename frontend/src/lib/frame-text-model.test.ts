@@ -178,6 +178,26 @@ test("serializeFrameTextModel round-trips load cases and combinations", () => {
   assert.deepEqual(restored.collections.loadCombinations?.[0]?.factors, { DL: 1.2, WL: 1.4 });
 });
 
+test("parseFrameTextModel filters invalid load case loads and combination factors", () => {
+  const result = parseFrameTextModel(`
+N,1,0,0
+N,2,6,0
+E,1,2,1,1,1,1,1,1
+CASE,DL,恒载
+CASELOAD,DL,DLOAD,2,-12,-12,global_y,0,1
+COMB,ULS1,基本组合,ULS
+FACTOR,ULS1,DL,1.2
+FACTOR,ULS1,WL,1.4
+`);
+
+  assert.ok(result.collections);
+  assert.equal(result.collections.loadCases?.[0]?.loads.length, 0);
+  assert.deepEqual(result.collections.loadCombinations?.[0]?.factors, { DL: 1.2 });
+  const diagnostics = result.diagnostics.join("\n");
+  assert.match(diagnostics, /已忽略工况中引用不存在节点或构件的荷载/u);
+  assert.match(diagnostics, /已忽略组合中引用不存在工况的系数/u);
+});
+
 test("parseFrameTextModel reports ignored invalid references for preview blocking", () => {
   const result = parseFrameTextModel(`
 N,1,0,0

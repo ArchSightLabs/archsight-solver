@@ -8,6 +8,18 @@ import {
 } from "./text-model-utils.ts";
 import { materialIdForYoungModulus } from "./material-presets.ts";
 import { parseFrameTextSupportType } from "./support-text-model.ts";
+import {
+  applyFrameTextLoadCaseCommand,
+  createFrameTextLoadCaseState,
+  filterFrameTextLoadCaseReferences,
+  frameTextLoadCaseLines,
+  frameTextLoadCombinationLines,
+} from "./frame-text-load-cases.ts";
+import {
+  isFrameTextLoadReferenceValid,
+  parseFrameTextLoad,
+  serializeFrameTextLoad,
+} from "./frame-text-loads.ts";
 
 export interface FrameTextCollections {
   nodes: StructureNode[];
@@ -107,115 +119,14 @@ function inferMemberKind(start: StructureNode | undefined, end: StructureNode | 
   return "brace";
 }
 
-function parseNodalLoad(tokens: string[]): FrameLoad | null {
-  if (tokens[0].toUpperCase() === "LOAD" && tokens.length >= 5) {
-    return {
-      type: "nodal",
-      node: nodeId(tokens[1], "N1"),
-      fxKn: toNumber(tokens[2]) ?? 0,
-      fyKn: toNumber(tokens[3]) ?? 0,
-      mzKnM: toNumber(tokens[4]) ?? 0,
-    };
-  }
-
-  const type = toNumber(tokens[2]) ?? 1;
-  const size = toNumber(tokens[3]) ?? 0;
-  if (Math.abs(type) === 2) {
-    return {
-      type: "nodal",
-      node: nodeId(tokens[1], "N1"),
-      fxKn: 0,
-      fyKn: 0,
-      mzKnM: type >= 0 ? size : -size,
-    };
-  }
-
-  const directionDeg = toNumber(tokens[4]) ?? 0;
-  const factor = type >= 0 ? 1 : -1;
-  const rad = directionDeg * Math.PI / 180;
-  return {
-    type: "nodal",
-    node: nodeId(tokens[1], "N1"),
-    fxKn: Number((factor * size * Math.cos(rad)).toFixed(6)),
-    fyKn: Number((factor * size * Math.sin(rad)).toFixed(6)),
-    mzKnM: 0,
-  };
-}
-
-function parseDistributedLoad(tokens: string[]): FrameLoad | null {
-  if (tokens[0].toUpperCase() === "DLOAD") {
-    const startRatio = toNumber(tokens[5]) ?? 0;
-    const endRatio = toNumber(tokens[6]) ?? 1;
-    return {
-      type: "distributed",
-      member: memberId(tokens[1], "M1"),
-      qStartKnPerM: toNumber(tokens[2]) ?? 0,
-      qEndKnPerM: toNumber(tokens[3]) ?? toNumber(tokens[2]) ?? 0,
-      direction: tokens[4] === "global_y" ? "global_y" : "local_y",
-      startRatio: Math.min(1, Math.max(0, startRatio)),
-      endRatio: Math.min(1, Math.max(0, endRatio)),
-    };
-  }
-
-  const loadType = toNumber(tokens[2]) ?? 3;
-  if (Math.abs(loadType) !== 3) {
-    return null;
-  }
-  const size = toNumber(tokens[3]) ?? 0;
-  const directionDeg = toNumber(tokens[6]);
-  return {
-    type: "distributed",
-    member: memberId(tokens[1], "M1"),
-    qStartKnPerM: loadType >= 0 ? size : -size,
-    qEndKnPerM: loadType >= 0 ? size : -size,
-    direction: directionDeg !== null && Math.abs(Math.abs(directionDeg) - 90) < 1e-9 ? "global_y" : "local_y",
-    startRatio: 0,
-    endRatio: 1,
-  };
-}
-
-function parseMemberPointLoad(tokens: string[]): FrameLoad {
-  return {
-    type: "member_point",
-    member: memberId(tokens[1], "M1"),
-    forceKn: toNumber(tokens[2]) ?? 0,
-    positionRatio: Math.min(1, Math.max(0, toNumber(tokens[3]) ?? 0.5)),
-    direction: tokens[4] === "global_y" ? "global_y" : "local_y",
-  };
-}
-
-function parseLoadTokens(tokens: string[]): FrameLoad | null {
-  const command = tokens[0]?.toUpperCase();
-  if (command === "NLOAD" || command === "LOAD") {
-    return parseNodalLoad(tokens);
-  }
-  if (command === "ELOAD" || command === "DLOAD") {
-    return parseDistributedLoad(tokens);
-  }
-  if (command === "PLOAD" || command === "MLOAD") {
-    return parseMemberPointLoad(tokens);
-  }
-  return null;
-}
-
-function isLoadReferenceValid(load: FrameLoad, nodeIds: Set<string>, memberIds: Set<string>): boolean {
-  if (load.type === "nodal") {
-    return nodeIds.has(load.node);
-  }
-  return memberIds.has(load.member);
-}
-
 export function parseFrameTextModel(text: string): FrameTextParseResult {
   const diagnostics: string[] = [];
   const rawNodes: StructureNode[] = [];
   const members: StructureMember[] = [];
   const loads: FrameLoad[] = [];
-  const loadCases: FrameLoadCase[] = [];
-  const loadCombinations: FrameLoadCombination[] = [];
+  const loadCaseState = createFrameTextLoadCaseState();
   const seenNodes = new Set<string>();
   const seenMembers = new Set<string>();
-  const seenLoadCases = new Set<string>();
-  const seenLoadCombinations = new Set<string>();
 
   const lines = text.split(/\r?\n/u);
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
@@ -391,7 +302,7 @@ export function parseFrameTextModel(text: string): FrameTextParseResult {
     }
 
     if (command === "NLOAD" || command === "LOAD") {
-      const load = parseLoadTokens(tokens);
+      const load = parseFrameTextLoad(tokens);
       if (load) {
         loads.push(load);
       }
@@ -399,7 +310,7 @@ export function parseFrameTextModel(text: string): FrameTextParseResult {
     }
 
     if (command === "ELOAD" || command === "DLOAD") {
-      const load = parseLoadTokens(tokens);
+      const load = parseFrameTextLoad(tokens);
       if (load) {
         loads.push(load);
       } else {
@@ -409,70 +320,14 @@ export function parseFrameTextModel(text: string): FrameTextParseResult {
     }
 
     if (command === "PLOAD" || command === "MLOAD") {
-      const load = parseLoadTokens(tokens);
+      const load = parseFrameTextLoad(tokens);
       if (load) {
         loads.push(load);
       }
       continue;
     }
 
-    if (command === "CASE" || command === "LCASE" || command === "LOADCASE") {
-      const id = uniqueId(String(tokens[1] ?? `LC${loadCases.length + 1}`).trim() || `LC${loadCases.length + 1}`, seenLoadCases);
-      loadCases.push({
-        id,
-        title: tokens.slice(2).join(" ") || id,
-        loads: [],
-      });
-      continue;
-    }
-
-    if (command === "CASELOAD" || command === "LCLOAD") {
-      const caseId = String(tokens[1] ?? "").trim();
-      const loadCase = loadCases.find((item) => item.id === caseId);
-      if (!loadCase) {
-        diagnostics.push(`第 ${lineIndex + 1} 行：CASELOAD 引用了不存在的工况 ${caseId || "（空）"}。`);
-        continue;
-      }
-      const load = parseLoadTokens(tokens.slice(2));
-      if (!load) {
-        diagnostics.push(`第 ${lineIndex + 1} 行：CASELOAD 缺少有效的荷载定义。`);
-        continue;
-      }
-      loadCase.loads = [...loadCase.loads, load];
-      continue;
-    }
-
-    if (command === "COMB" || command === "COMBINATION") {
-      const id = uniqueId(String(tokens[1] ?? `COMB${loadCombinations.length + 1}`).trim() || `COMB${loadCombinations.length + 1}`, seenLoadCombinations);
-      const tagsToken = tokens.length >= 4 ? tokens[tokens.length - 1] : "";
-      const tags = tagsToken
-        ? tagsToken.split(/[|/；;]+/u).map((tag) => tag.trim()).filter(Boolean)
-        : undefined;
-      loadCombinations.push({
-        id,
-        title: tokens.length >= 4 ? tokens.slice(2, -1).join(" ") || id : tokens.slice(2).join(" ") || id,
-        factors: {},
-        tags,
-      });
-      continue;
-    }
-
-    if (command === "FACTOR" || command === "COMBFACTOR") {
-      const combinationId = String(tokens[1] ?? "").trim();
-      const loadCaseId = String(tokens[2] ?? "").trim();
-      const combination = loadCombinations.find((item) => item.id === combinationId);
-      if (!combination) {
-        diagnostics.push(`第 ${lineIndex + 1} 行：组合系数引用了不存在的组合 ${combinationId || "（空）"}。`);
-        continue;
-      }
-      if (!loadCaseId) {
-        diagnostics.push(`第 ${lineIndex + 1} 行：组合系数缺少工况编号。`);
-        continue;
-      }
-      combination.factors = {
-        ...combination.factors,
-        [loadCaseId]: toNumber(tokens[3]) ?? 0,
-      };
+    if (applyFrameTextLoadCaseCommand({ command, tokens, lineNumber: lineIndex + 1, state: loadCaseState, parseLoadTokens: parseFrameTextLoad, diagnostics })) {
       continue;
     }
 
@@ -482,28 +337,23 @@ export function parseFrameTextModel(text: string): FrameTextParseResult {
   const nodeIds = new Set(rawNodes.map((node) => node.id));
   const memberIds = new Set(members.map((member) => member.id));
   const validMembers = members.filter((member) => nodeIds.has(member.start) && nodeIds.has(member.end) && member.start !== member.end);
-  const validLoads = loads.filter((load) => isLoadReferenceValid(load, nodeIds, memberIds));
-  const validLoadCases = loadCases.map((loadCase) => ({
-    ...loadCase,
-    loads: loadCase.loads.filter((load) => isLoadReferenceValid(load, nodeIds, memberIds)),
-  }));
-  const validLoadCaseIds = new Set(validLoadCases.map((loadCase) => loadCase.id));
-  const validLoadCombinations = loadCombinations.map((combination) => ({
-    ...combination,
-    factors: Object.fromEntries(
-      Object.entries(combination.factors).filter(([caseId]) => validLoadCaseIds.has(caseId))
-    ),
-  }));
+  const validLoads = loads.filter((load) => isFrameTextLoadReferenceValid(load, nodeIds, memberIds));
+  const {
+    loadCases: validLoadCases,
+    loadCombinations: validLoadCombinations,
+    hasIgnoredLoadCaseLoads,
+    hasIgnoredCombinationFactors,
+  } = filterFrameTextLoadCaseReferences(loadCaseState.loadCases, loadCaseState.loadCombinations, (load) => isFrameTextLoadReferenceValid(load, nodeIds, memberIds));
   if (validMembers.length !== members.length) {
     diagnostics.push("已忽略起止节点不存在或两端相同的构件。");
   }
   if (validLoads.length !== loads.length) {
     diagnostics.push("已忽略引用不存在节点或构件的荷载。");
   }
-  if (validLoadCases.some((loadCase, index) => loadCase.loads.length !== loadCases[index]?.loads.length)) {
+  if (hasIgnoredLoadCaseLoads) {
     diagnostics.push("已忽略工况中引用不存在节点或构件的荷载。");
   }
-  if (validLoadCombinations.some((combination, index) => Object.keys(combination.factors).length !== Object.keys(loadCombinations[index]?.factors ?? {}).length)) {
+  if (hasIgnoredCombinationFactors) {
     diagnostics.push("已忽略组合中引用不存在工况的系数。");
   }
 
@@ -539,33 +389,6 @@ function supportCode(type: StructureNode["supportType"]): number {
   return 0;
 }
 
-function nodalLoadLines(load: Extract<FrameLoad, { type: "nodal" }>, nodeNumbers: Map<string, number>): string[] {
-  const node = nodeNumbers.get(load.node) ?? 1;
-  const lines: string[] = [];
-  const fx = load.fxKn ?? 0;
-  const fy = load.fyKn ?? 0;
-  const mz = load.mzKnM ?? 0;
-  const force = Math.hypot(fx, fy);
-  if (force > 1e-9) {
-    const angle = Math.atan2(fy, fx) * 180 / Math.PI;
-    lines.push(`NLOAD,${node},1,${Number(force.toFixed(6))},${Number(angle.toFixed(6))}`);
-  }
-  if (Math.abs(mz) > 1e-9) {
-    lines.push(`NLOAD,${node},${mz >= 0 ? 2 : -2},${Math.abs(mz)}`);
-  }
-  return lines;
-}
-
-function frameLoadLine(load: FrameLoad, nodeNumbers: Map<string, number>, memberNumbers: Map<string, number>): string[] {
-  if (load.type === "nodal") {
-    return nodalLoadLines(load, nodeNumbers);
-  }
-  if (load.type === "member_point") {
-    return [`PLOAD,${memberNumbers.get(load.member) ?? 1},${load.forceKn ?? 0},${load.positionRatio ?? 0.5},${load.direction ?? "local_y"}`];
-  }
-  return [`DLOAD,${memberNumbers.get(load.member) ?? 1},${load.qStartKnPerM ?? load.wyKnPerM ?? 0},${load.qEndKnPerM ?? load.wyKnPerM ?? 0},${load.direction ?? "local_y"},${load.startRatio ?? 0},${load.endRatio ?? 1}`];
-}
-
 export function serializeFrameTextModel(collections: FrameTextCollections): string {
   const nodeNumbers = new Map(collections.nodes.map((node, index) => [node.id, nodeNumber(node.id, index)]));
   const memberNumbers = new Map(collections.members.map((member, index) => [member.id, memberNumber(member.id, index)]));
@@ -598,19 +421,13 @@ export function serializeFrameTextModel(collections: FrameTextCollections): stri
     ...collections.members.map((member, index) => `PROP,${memberNumber(member.id, index)},${memberNumber(member.id, index)},${member.E_GPa},${member.A_cm2},${member.I_cm4},${member.kind ?? "generic"},${normalizedMaterialId(member.materialId, member.E_GPa)}`),
     "",
     "# 荷载",
-    ...collections.loads.flatMap((load) => frameLoadLine(load, nodeNumbers, memberNumbers)),
+    ...collections.loads.flatMap((load) => serializeFrameTextLoad(load, nodeNumbers, memberNumbers)),
     "",
     "# 荷载工况扩展：CASE,工况编号,工况名称；CASELOAD,工况编号,<NLOAD/DLOAD/PLOAD...>",
-    ...(collections.loadCases ?? []).flatMap((loadCase) => [
-      `CASE,${loadCase.id},${loadCase.title}`,
-      ...loadCase.loads.flatMap((load) => frameLoadLine(load, nodeNumbers, memberNumbers).map((line) => `CASELOAD,${loadCase.id},${line}`)),
-    ]),
+    ...frameTextLoadCaseLines(collections.loadCases ?? [], (load) => serializeFrameTextLoad(load, nodeNumbers, memberNumbers)),
     "",
     "# 荷载组合扩展：COMB,组合编号,组合名称,标签；FACTOR,组合编号,工况编号,系数",
-    ...(collections.loadCombinations ?? []).flatMap((combination) => [
-      `COMB,${combination.id},${combination.title},${(combination.tags ?? []).join("/")}`,
-      ...Object.entries(combination.factors).map(([caseId, factor]) => `FACTOR,${combination.id},${caseId},${factor}`),
-    ]),
+    ...frameTextLoadCombinationLines(collections.loadCombinations ?? []),
   ];
 
   return lines.join("\n");
