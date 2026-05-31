@@ -7,6 +7,7 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 sys.path.insert(0, ROOT_DIR)
 
 from app import app
+from backend.common.support_catalog import support_specs
 from backend.contracts.openapi import build_openapi_document
 from backend.contracts.json_schemas import SCHEMA_ID_BASE_URI, schema_by_id, schema_registry
 
@@ -36,6 +37,10 @@ def _one_of_branch_by_type(schema, type_name):
 def _read_repo_text(path):
     with open(os.path.join(ROOT_DIR, path), encoding="utf-8") as handle:
         return handle.read()
+
+
+def _support_values(analysis_type):
+    return [spec.value for spec in support_specs(analysis_type)]
 
 
 def _assert_source_contains(path, tokens):
@@ -118,6 +123,21 @@ def test_beam_span_properties_expose_material_id_across_stack():
                 "梁单元刚度计算输入",
             ],
         )
+
+
+def test_support_type_schema_enums_use_shared_catalog():
+    registry = schema_registry()
+
+    beam_support_properties = registry["asms-beam-model"]["properties"]["supports"]["items"]["properties"]
+    assert beam_support_properties["type"]["enum"] == _support_values("beam")
+    assert beam_support_properties["supportType"]["enum"] == _support_values("beam")
+    assert beam_support_properties["constraints"]["items"]["enum"] == ["v", "rz"]
+
+    frame_node_properties = registry["asms-frame-model"]["properties"]["structure"]["properties"]["nodes"]["items"]["properties"]
+    truss_node_properties = registry["asms-truss-model"]["properties"]["structure"]["properties"]["nodes"]["items"]["properties"]
+    assert set(frame_node_properties["supportType"]["enum"]) == set(_support_values("frame"))
+    assert set(truss_node_properties["supportType"]["enum"]) == set(_support_values("truss"))
+    assert "fixed" not in truss_node_properties["supportType"]["enum"]
 
 
 def test_cross_stack_critical_field_matrix_is_in_sync():

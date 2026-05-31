@@ -3,12 +3,25 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any, Dict
 
+from backend.common.support_catalog import AnalysisType, support_specs
+
 API_SCHEMA_VERSION = "2026-05-30"
 SCHEMA_ID_BASE_URI = "https://solver.archsight.cn/schemas"
 
 
 def _schema_id(name: str) -> str:
     return f"{SCHEMA_ID_BASE_URI}/{name}.schema.json"
+
+
+def _support_type_enum(analysis_type: AnalysisType, preferred_order: tuple[str, ...]) -> list[str]:
+    values = [spec.value for spec in support_specs(analysis_type)]
+    ordered = [value for value in preferred_order if value in values]
+    return [*ordered, *(value for value in values if value not in ordered)]
+
+
+BEAM_SUPPORT_TYPE_ENUM = _support_type_enum("beam", ("pinned", "roller", "fixed", "free"))
+FRAME_SUPPORT_TYPE_ENUM = _support_type_enum("frame", ("free", "pinned", "roller", "fixed"))
+TRUSS_SUPPORT_TYPE_ENUM = _support_type_enum("truss", ("free", "pinned", "roller"))
 
 
 QUANTITY_SCHEMA: Dict[str, Any] = {
@@ -64,6 +77,57 @@ FRAME_ROTATIONAL_SPRING_SCHEMA: Dict[str, Any] = {
     "additionalProperties": False,
 }
 
+BEAM_TRANSLATIONAL_SPRING_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "required": ["dof", "stiffnessKnPerM"],
+    "properties": {
+        "dof": {"type": "string", "enum": ["v"]},
+        "stiffnessKnPerM": {"type": "number", "exclusiveMinimum": 0, "description": "梁系竖向弹性约束刚度，单位 kN/m。"},
+    },
+    "additionalProperties": False,
+}
+
+BEAM_ROTATIONAL_SPRING_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "required": ["dof", "stiffnessKnMPerRad"],
+    "properties": {
+        "dof": {"type": "string", "enum": ["rz"]},
+        "stiffnessKnMPerRad": {"type": "number", "exclusiveMinimum": 0, "description": "梁系转角弹性约束刚度，单位 kN·m/rad。"},
+    },
+    "additionalProperties": False,
+}
+
+BEAM_SUPPORT_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "required": ["x"],
+    "properties": {
+        "id": {"type": "string", "description": "梁系支座编号。"},
+        "x": {"type": "number", "description": "支座在梁轴线上的位置，单位 m。"},
+        "type": {
+            "type": "string",
+            "enum": BEAM_SUPPORT_TYPE_ENUM,
+            "description": "梁系支座类型；枚举来自共享支座目录。",
+        },
+        "supportType": {
+            "type": "string",
+            "enum": BEAM_SUPPORT_TYPE_ENUM,
+            "description": "梁系支座类型兼容字段；新模型优先使用 type。",
+        },
+        "constraints": {
+            "type": "array",
+            "description": "显式支座自由度约束；未提供时按支座类型默认约束。",
+            "items": {"type": "string", "enum": ["v", "rz"]},
+            "uniqueItems": True,
+        },
+        "springs": {
+            "type": "array",
+            "description": "梁系支座自由度弹性约束。",
+            "items": {"oneOf": [BEAM_TRANSLATIONAL_SPRING_SCHEMA, BEAM_ROTATIONAL_SPRING_SCHEMA]},
+        },
+    },
+    "additionalProperties": True,
+}
+
 NODE_SCHEMA: Dict[str, Any] = {
     "type": "object",
     "required": ["id", "x", "y"],
@@ -73,7 +137,7 @@ NODE_SCHEMA: Dict[str, Any] = {
         "y": {"type": "number", "description": "节点 Y 坐标，单位 m。"},
         "supportType": {
             "type": "string",
-            "enum": ["free", "pinned", "roller", "fixed"],
+            "enum": FRAME_SUPPORT_TYPE_ENUM,
             "default": "free",
         },
         "supportAngleDeg": {
@@ -103,7 +167,7 @@ TRUSS_NODE_SCHEMA: Dict[str, Any] = {
         "y": {"type": "number", "description": "节点 Y 坐标，单位 m。"},
         "supportType": {
             "type": "string",
-            "enum": ["free", "pinned", "roller"],
+            "enum": TRUSS_SUPPORT_TYPE_ENUM,
             "default": "free",
             "description": "桁架节点仅含 ux/uy 平动自由度；fixed 会在旧版兼容层归并为 pinned，但新模型应使用 pinned、roller 或 free。",
         },
@@ -303,7 +367,7 @@ ASMS_BEAM_MODEL_SCHEMA: Dict[str, Any] = {
         "pointLoadPositionM": {"type": "number", "description": "集中荷载位置，单位 m。"},
         "uniformLoadStartM": {"type": "number", "description": "局部均布荷载起点，单位 m。"},
         "uniformLoadEndM": {"type": "number", "description": "局部均布荷载终点，单位 m。"},
-        "supports": {"type": "array", "items": {"type": "object"}},
+        "supports": {"type": "array", "items": BEAM_SUPPORT_SCHEMA},
         "loads": {"type": "array", "items": {"type": "object"}},
     },
     "additionalProperties": True,
