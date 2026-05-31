@@ -198,7 +198,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
     return (
       <GlassCard className={`flex items-center justify-center border-dashed border-primary/10 ${compact ? "h-40 sm:h-48" : "h-48 sm:h-52"}`}>
         <div className="text-center">
-          <p className="text-sm font-medium opacity-50">运行计算后将显示梁体预览</p>
+          <p className="text-sm font-medium opacity-50">运行计算后将显示梁系结构预览</p>
         </div>
       </GlassCard>
     );

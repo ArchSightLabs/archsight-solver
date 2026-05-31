@@ -37,3 +37,10 @@ test("结构对象线宽语义由共享令牌命名", () => {
   assert.equal(STRUCTURE_VISUAL_STROKES.resultOverlayBase, 7);
   assert.equal(STRUCTURE_VISUAL_STROKES.reportBaseMember, 5);
 });
+
+test("梁系结构预览文案不使用梁体口径", () => {
+  const beamPreview = readFileSync(new URL("../components/BeamPreview.tsx", import.meta.url), "utf-8");
+
+  assert.match(beamPreview, /梁系结构预览/u);
+  assert.doesNotMatch(beamPreview, /梁体/u);
+});

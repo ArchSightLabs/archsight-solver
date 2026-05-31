@@ -309,11 +309,14 @@ def test_beam_exports_describe_material_scope_span_stiffness_and_supports(client
     docx_response = client.post("/api/export", json={**payload, "format": "docx"})
     assert docx_response.status_code == 200
     doc = Document(io.BytesIO(docx_response.data))
+    paragraph_text = "\n".join(paragraph.text for paragraph in doc.paragraphs)
     table_text = "\n".join(cell.text for table in doc.tables for row in table.rows for cell in row.cells)
 
+    assert "图 2-1 梁系结构预览、支座与荷载示意" in paragraph_text
+    assert "梁体结构预览" not in paragraph_text
     assert "材料适用范围" in table_text
     assert "梁系整体刚度按各跨段 E_GPa / I_cm4 输入装配" in table_text
-    assert "跨段刚度输入" in "\n".join(paragraph.text for paragraph in doc.paragraphs)
+    assert "跨段刚度输入" in paragraph_text
     assert "L2" in table_text
     assert "30.0 GPa" in table_text
     assert "900.0 cm^4" in table_text

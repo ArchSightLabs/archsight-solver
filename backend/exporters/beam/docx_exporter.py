@@ -82,7 +82,7 @@ def export_docx(
 
     if include_figures(options) and solution.get("beam"):
         add_heading(doc, "2.1 结构预览图")
-        add_png_figure(doc, _report_or_fallback(report_images, "beam.preview", beam_preview_png(solution["beam"])), "图 2-1 梁体结构预览、支座与荷载示意")
+        add_png_figure(doc, _report_or_fallback(report_images, "beam.preview", beam_preview_png(solution["beam"])), "图 2-1 梁系结构预览、支座与荷载示意")
 
     if solution.get("queryResults"):
         add_heading(doc, "2.2 指定截面查询")
