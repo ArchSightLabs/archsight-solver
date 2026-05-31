@@ -5,6 +5,7 @@ import {
   TEXT,
   clamp,
 } from "./report-rendering.ts";
+import { STRUCTURE_NODE_RADII, STRUCTURE_REPORT_COLORS } from "./structure-visual-tokens.ts";
 
 export { REPORT_BG };
 
@@ -13,17 +14,17 @@ export type ReportCanvasSize = { width: number; height: number };
 export const REPORT_IMAGE_W = 900;
 export const REPORT_IMAGE_H = 520;
 export const REPORT_IMAGE_BASE_SIZE: ReportCanvasSize = { width: REPORT_IMAGE_W, height: REPORT_IMAGE_H };
-export const BASE_MEMBER_STROKE = "rgba(51,65,85,0.62)";
-export const BASE_MEMBER_LIGHT_STROKE = "rgba(51,65,85,0.48)";
-export const LOAD_STROKE = "#dc2626";
+export const BASE_MEMBER_STROKE = STRUCTURE_REPORT_COLORS.baseMember;
+export const BASE_MEMBER_LIGHT_STROKE = STRUCTURE_REPORT_COLORS.baseMemberLight;
+export const LOAD_STROKE = STRUCTURE_REPORT_COLORS.load;
 
 const REPORT_PADDING_X = 86;
 const REPORT_PADDING_TOP = 132;
 const REPORT_PADDING_BOTTOM = 72;
-const NODE_FILL = "#0f172a";
-const LABEL_HALO = "#ffffff";
-const DIMENSION_TEXT = "#475569";
-const LOAD_LABEL = "#b91c1c";
+const NODE_FILL = STRUCTURE_REPORT_COLORS.node;
+const LABEL_HALO = STRUCTURE_REPORT_COLORS.labelHalo;
+const DIMENSION_TEXT = STRUCTURE_REPORT_COLORS.dimensionText;
+const LOAD_LABEL = STRUCTURE_REPORT_COLORS.loadLabel;
 
 export type ReportNode = { id: string; x: number; y: number; supportType?: string; supportAngleDeg?: number };
 export type ReportMember = { id?: string; start: string; end: string };
@@ -114,14 +115,14 @@ export function addDimensionLegend(graphics: ReportGraphic[], rows: string[], to
 export function addNode(graphics: ReportGraphic[], id: string, point: ReportPoint, center: ReportPoint) {
   const side = point.x < center.x ? -1 : 1;
   graphics.push(
-    { type: "circle", shape: { cx: point.x, cy: point.y, r: 5 }, style: { fill: NODE_FILL } },
+    { type: "circle", shape: { cx: point.x, cy: point.y, r: STRUCTURE_NODE_RADII.report }, style: { fill: NODE_FILL } },
     {
       type: "text",
       left: point.x + side * 14,
       top: point.y - 24,
       style: {
         text: id,
-        fill: "#0f172a",
+        fill: STRUCTURE_REPORT_COLORS.label,
         fontSize: 11,
         fontWeight: 700,
         fontFamily: "Fira Code, Consolas, monospace",
@@ -142,7 +143,7 @@ export function addMemberLabel(graphics: ReportGraphic[], id: string | undefined
     top: label.y - 7,
     style: {
       text: id,
-      fill: "#334155",
+      fill: STRUCTURE_REPORT_COLORS.label,
       fontSize: 11,
       fontWeight: 700,
       fontFamily: "Fira Code, Consolas, monospace",

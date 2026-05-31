@@ -1,6 +1,7 @@
 import { createPortalFrameModelFromState, type WorkspaceState } from "../../lib/workspace-state";
 import { nodeSupportLabel } from "../../lib/support-vocabulary";
 import { FRAME_MODEL_CANVAS_BASE_SIZE, type ModelCanvasSize } from "../../lib/model-canvas-sizing";
+import { STRUCTURE_NODE_RADII, STRUCTURE_VISUAL_STROKES } from "../../lib/structure-visual-tokens";
 import { buildFrameDimensionLegendRows, buildFrameLoadLabelMap, formatFrameDistributedLoadLabel, formatFrameForceLoadLabel, frameMemberDimensionValueLabel, type FrameGeometryDimension } from "../frame-preview-utils";
 import type { FrameLoad, FrameLoadDirection, StructureNode, SupportType } from "../../types/structure";
 import type { WorkbenchSelection } from "../../types/workbench-selection";
@@ -226,7 +227,7 @@ export function FrameSketch({
           return (
             <g key={member.id} {...svgInteractiveProps(`选择框架构件 ${member.id}`, () => onSelect?.({ mode: "frame", type: "member", id: member.id }))}>
               <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="transparent" strokeWidth="18" />
-              <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} strokeWidth={selected ? "7" : "4.5"} stroke={selected ? "var(--model-load)" : "var(--model-member)"} opacity={selected ? "0.85" : "1"} />
+              <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} strokeWidth={selected ? STRUCTURE_VISUAL_STROKES.modelSelectedMember : STRUCTURE_VISUAL_STROKES.modelMember} stroke={selected ? "var(--model-load)" : "var(--model-member)"} opacity={selected ? "0.85" : "1"} />
               <text
                 x={label.x}
                 y={label.y}
@@ -254,7 +255,7 @@ export function FrameSketch({
             <g key={node.id} {...svgInteractiveProps(`选择框架节点 ${node.id}`, () => onSelect?.({ mode: "frame", type: "node", id: node.id }))}>
               <FrameSupportMarker type={node.supportType} x={point.x} y={point.y} selected={Boolean(selected)} angleDeg={node.supportAngleDeg} />
               <circle cx={point.x} cy={point.y} r={selected ? "11" : "8"} fill="transparent" />
-              <circle cx={point.x} cy={point.y} r={selected ? "7.5" : "5.5"} fill={selected ? "var(--model-load)" : "var(--model-node)"} />
+              <circle cx={point.x} cy={point.y} r={selected ? STRUCTURE_NODE_RADII.modelSelected : STRUCTURE_NODE_RADII.model} fill={selected ? "var(--model-load)" : "var(--model-node)"} />
             </g>
           ) : null;
         })}

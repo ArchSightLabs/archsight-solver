@@ -33,6 +33,7 @@ import {
   renderOption,
 } from "./report-rendering.ts";
 import { RESULT_PREVIEW_BASE_SIZE, resultPreviewCanvasSize } from "./result-preview-sizing.ts";
+import { STRUCTURE_REPORT_COLORS, STRUCTURE_RESULT_COLORS, STRUCTURE_VISUAL_STROKES } from "./structure-visual-tokens.ts";
 
 type ReportStructureLoadRenderer = (
   graphics: ReportGraphic[],
@@ -105,11 +106,11 @@ export function buildFrameSupportMarkerGraphics(type: string | undefined, point:
   if (!type || type === "free") return [];
   if (type === "fixed") {
     return [
-      { type: "rect", shape: { x: point.x - 16, y: point.y + 7, width: 32, height: 8, r: 2 }, style: { fill: "#e2e8f0", stroke: "#475569", lineWidth: 1 } },
+      { type: "rect", shape: { x: point.x - 16, y: point.y + 7, width: 32, height: 8, r: 2 }, style: { fill: STRUCTURE_REPORT_COLORS.supportFill, stroke: STRUCTURE_REPORT_COLORS.supportStroke, lineWidth: 1 } },
       ...[-12, -4, 4, 12].map((offset) => ({
         type: "line",
         shape: { x1: point.x + offset - 5, y1: point.y + 24, x2: point.x + offset + 5, y2: point.y + 14 },
-        style: { stroke: "#64748b", lineWidth: 1.6 },
+        style: { stroke: STRUCTURE_REPORT_COLORS.supportLine, lineWidth: 1.6 },
       })),
     ];
   }
@@ -123,15 +124,15 @@ export function buildFrameSupportMarkerGraphics(type: string | undefined, point:
   const baseStart = rotate(point.x - 18, point.y + 28);
   const baseEnd = rotate(point.x + 18, point.y + 28);
   const marker: ReportGraphic[] = [
-    { type: "polygon", shape: { points: triangle.map((item) => [item.x, item.y]) }, style: { fill: "#e2e8f0", stroke: "#475569", lineWidth: 1 } },
-    { type: "line", shape: { x1: baseStart.x, y1: baseStart.y, x2: baseEnd.x, y2: baseEnd.y }, style: { stroke: "#64748b", lineWidth: 2 } },
+    { type: "polygon", shape: { points: triangle.map((item) => [item.x, item.y]) }, style: { fill: STRUCTURE_REPORT_COLORS.supportFill, stroke: STRUCTURE_REPORT_COLORS.supportStroke, lineWidth: 1 } },
+    { type: "line", shape: { x1: baseStart.x, y1: baseStart.y, x2: baseEnd.x, y2: baseEnd.y }, style: { stroke: STRUCTURE_REPORT_COLORS.supportLine, lineWidth: 2 } },
   ];
   if (type === "roller") {
     marker.push(
       ...[
         rotate(point.x - 8, point.y + 33),
         rotate(point.x + 8, point.y + 33),
-      ].map((roller) => ({ type: "circle", shape: { cx: roller.x, cy: roller.y, r: 3 }, style: { fill: "#64748b" } })),
+      ].map((roller) => ({ type: "circle", shape: { cx: roller.x, cy: roller.y, r: 3 }, style: { fill: STRUCTURE_REPORT_COLORS.supportLine } })),
     );
   }
   return marker;
@@ -145,9 +146,9 @@ function addTrussSupportMarker(graphics: ReportGraphic[], type: string | undefin
   const marker = buildTrussSupportMarkerGeometry(type, point.x, point.y);
   if (!marker) return;
   graphics.push(
-    { type: "polygon", shape: { points: marker.trianglePoints.split(" ").map((pair) => pair.split(",").map(Number)) }, style: { fill: "#e2e8f0", stroke: "#475569", lineWidth: 1 } },
-    { type: "line", shape: marker.baseLine, style: { stroke: "#64748b", lineWidth: 2 } },
-    ...marker.rollers.map((roller) => ({ type: "circle", shape: roller, style: { fill: "#64748b" } })),
+    { type: "polygon", shape: { points: marker.trianglePoints.split(" ").map((pair) => pair.split(",").map(Number)) }, style: { fill: STRUCTURE_REPORT_COLORS.supportFill, stroke: STRUCTURE_REPORT_COLORS.supportStroke, lineWidth: 1 } },
+    { type: "line", shape: marker.baseLine, style: { stroke: STRUCTURE_REPORT_COLORS.supportLine, lineWidth: 2 } },
+    ...marker.rollers.map((roller) => ({ type: "circle", shape: roller, style: { fill: STRUCTURE_REPORT_COLORS.supportLine } })),
   );
 }
 
@@ -265,12 +266,12 @@ export function buildFrameOverlayGraphics(
   const effectiveCanvasSize = canvasSize ?? frameReportCanvasSize(preview);
   const metricConfig =
     metric === "momentKnM"
-      ? { label: "弯矩图", unit: "kN·m", color: "#dc2626" }
+      ? { label: "弯矩图", unit: "kN·m", color: STRUCTURE_RESULT_COLORS.frameMoment }
       : metric === "shearKn"
-        ? { label: "剪力图", unit: "kN", color: "#2563eb" }
+        ? { label: "剪力图", unit: "kN", color: STRUCTURE_RESULT_COLORS.frameShear }
         : metric === "axialKn"
-          ? { label: "轴力图", unit: "kN", color: "#059669" }
-          : { label: "局部 y 向挠度图", unit: "mm", color: "#7c3aed" };
+          ? { label: "轴力图", unit: "kN", color: STRUCTURE_RESULT_COLORS.frameAxial }
+          : { label: "局部 y 向挠度图", unit: "mm", color: STRUCTURE_RESULT_COLORS.frameDeflection };
   const nodes = frameReportNodesFromPreview(preview);
   const members = preview.members;
   const diagrams = results.memberDiagrams ?? [];
@@ -302,7 +303,7 @@ export function buildFrameOverlayGraphics(
     if (!startNode || !endNode) continue;
     const start = layout.map(startNode);
     const end = layout.map(endNode);
-    graphics.push({ type: "line", shape: { x1: start.x, y1: start.y, x2: end.x, y2: end.y }, style: { stroke: BASE_MEMBER_STROKE, lineWidth: 5 } });
+    graphics.push({ type: "line", shape: { x1: start.x, y1: start.y, x2: end.x, y2: end.y }, style: { stroke: BASE_MEMBER_STROKE, lineWidth: STRUCTURE_VISUAL_STROKES.reportBaseMember } });
     const diagram = diagramById.get(member.id);
     if (!diagram) continue;
     const dx = end.x - start.x;
@@ -393,13 +394,13 @@ export function buildTrussOverlayGraphics(results: TrussCalculationResults, metr
     if (!startNode || !endNode) continue;
     const start = layout.map(startNode);
     const end = layout.map(endNode);
-    graphics.push({ type: "line", shape: { x1: start.x, y1: start.y, x2: end.x, y2: end.y }, style: { stroke: BASE_MEMBER_LIGHT_STROKE, lineWidth: 5 } });
+    graphics.push({ type: "line", shape: { x1: start.x, y1: start.y, x2: end.x, y2: end.y }, style: { stroke: BASE_MEMBER_LIGHT_STROKE, lineWidth: STRUCTURE_VISUAL_STROKES.reportBaseMember } });
     if (metric === "axial") {
       const axial = memberResultById.get(member.id)?.axialForceKn ?? 0;
       graphics.push({
         type: "line",
         shape: { x1: start.x, y1: start.y, x2: end.x, y2: end.y },
-        style: { stroke: axial >= 0 ? "#dc2626" : "#2563eb", lineWidth: 3 + (Math.abs(axial) / maxAbsAxial) * 6 },
+        style: { stroke: axial >= 0 ? STRUCTURE_RESULT_COLORS.trussTension : STRUCTURE_RESULT_COLORS.trussCompression, lineWidth: 3 + (Math.abs(axial) / maxAbsAxial) * 6 },
       });
       if (controlAxial?.memberId === member.id) {
         controlPoint = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
@@ -412,7 +413,7 @@ export function buildTrussOverlayGraphics(results: TrussCalculationResults, metr
       if (d0 && d1) {
         const startD = layout.map(d0);
         const endD = layout.map(d1);
-        graphics.push({ type: "line", shape: { x1: startD.x, y1: startD.y, x2: endD.x, y2: endD.y }, style: { stroke: "#22c55e", lineWidth: 4, lineDash: [8, 6] } });
+        graphics.push({ type: "line", shape: { x1: startD.x, y1: startD.y, x2: endD.x, y2: endD.y }, style: { stroke: STRUCTURE_RESULT_COLORS.reportDisplacement, lineWidth: 4, lineDash: [8, 6] } });
       }
     }
   }
@@ -436,7 +437,7 @@ export function buildTrussOverlayGraphics(results: TrussCalculationResults, metr
     addControlCallout(graphics, {
       point: controlPoint,
       text: controlText,
-      color: metric === "axial" ? "#dc2626" : "#22c55e",
+      color: metric === "axial" ? STRUCTURE_RESULT_COLORS.trussTension : STRUCTURE_RESULT_COLORS.reportDisplacement,
       clampX: reportCalloutClampX(effectiveCanvasSize),
       clampY: reportCalloutClampY(effectiveCanvasSize),
     });
@@ -481,7 +482,7 @@ function buildStructurePreviewGraphics(
     if (start && end) {
       const startPoint = layout.map(start);
       const endPoint = layout.map(end);
-      graphics.push({ type: "line", shape: { x1: startPoint.x, y1: startPoint.y, x2: endPoint.x, y2: endPoint.y }, style: { stroke: BASE_MEMBER_STROKE, lineWidth: 5 } });
+      graphics.push({ type: "line", shape: { x1: startPoint.x, y1: startPoint.y, x2: endPoint.x, y2: endPoint.y }, style: { stroke: BASE_MEMBER_STROKE, lineWidth: STRUCTURE_VISUAL_STROKES.reportBaseMember } });
       addMemberLabel(graphics, member.id, startPoint, endPoint, layout.center);
     }
     const d0 = deformedById.get(member.start);
@@ -489,7 +490,7 @@ function buildStructurePreviewGraphics(
     if (d0 && d1) {
       const startDeformed = layout.map(d0);
       const endDeformed = layout.map(d1);
-      graphics.push({ type: "line", shape: { x1: startDeformed.x, y1: startDeformed.y, x2: endDeformed.x, y2: endDeformed.y }, style: { stroke: "#38bdf8", lineWidth: 3.5 } });
+      graphics.push({ type: "line", shape: { x1: startDeformed.x, y1: startDeformed.y, x2: endDeformed.x, y2: endDeformed.y }, style: { stroke: STRUCTURE_RESULT_COLORS.reportDeformed, lineWidth: STRUCTURE_VISUAL_STROKES.reportPreviewDeformedMember } });
     }
   }
   for (const node of nodes) {

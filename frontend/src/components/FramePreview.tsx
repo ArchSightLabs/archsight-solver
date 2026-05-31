@@ -5,6 +5,7 @@ import { buildFrameDimensionLegendRows, buildFrameGeometryDimensions, buildFrame
 import { formatEngineeringValue } from "../lib/engineering-format";
 import { RESULT_PREVIEW_BASE_SIZE, resultPreviewCanvasSize, resultPreviewSvgStyle } from "../lib/result-preview-sizing";
 import { summaryMetricLabel } from "../lib/result-metrics";
+import { STRUCTURE_NODE_RADII, STRUCTURE_STATE_COLORS, STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
 
 interface FramePreviewProps {
   frame: FramePreviewData | null;
@@ -66,8 +67,8 @@ function springMarkers(node: FramePreviewData["nodes"][number], x: number, y: nu
     if (spring.dof === "rz") {
       return (
         <g key={`${node.id}-spring-rz-${index}`} transform={`translate(${offset}, ${-offset})`}>
-          <path d={`M ${x + 18} ${y - 18} A 14 14 0 1 1 ${x + 18} ${y + 10}`} fill="none" stroke="#fbbf24" strokeWidth="2" strokeDasharray="3 2" />
-          <text x={x + 34} y={y - 14} fill="#fbbf24" fontSize="9" fontFamily="Fira Code">kθ</text>
+          <path d={`M ${x + 18} ${y - 18} A 14 14 0 1 1 ${x + 18} ${y + 10}`} fill="none" stroke={STRUCTURE_STATE_COLORS.spring} strokeWidth="2" strokeDasharray="3 2" />
+          <text x={x + 34} y={y - 14} fill={STRUCTURE_STATE_COLORS.spring} fontSize="9" fontFamily="Fira Code">kθ</text>
         </g>
       );
     }
@@ -77,8 +78,8 @@ function springMarkers(node: FramePreviewData["nodes"][number], x: number, y: nu
       : `${x + 18 + offset},${y + 20} ${x + 24 + offset},${y + 14} ${x + 30 + offset},${y + 26} ${x + 36 + offset},${y + 14} ${x + 42 + offset},${y + 20}`;
     return (
       <g key={`${node.id}-spring-${spring.dof}-${index}`}>
-        <polyline points={points} fill="none" stroke="#fbbf24" strokeWidth="2" />
-        <text x={vertical ? x - 46 : x + 22 + offset} y={vertical ? y - 18 - offset : y + 36} fill="#fbbf24" fontSize="9" fontFamily="Fira Code">
+        <polyline points={points} fill="none" stroke={STRUCTURE_STATE_COLORS.spring} strokeWidth="2" />
+        <text x={vertical ? x - 46 : x + 22 + offset} y={vertical ? y - 18 - offset : y + 36} fill={STRUCTURE_STATE_COLORS.spring} fontSize="9" fontFamily="Fira Code">
           k{spring.dof}
         </text>
       </g>
@@ -89,8 +90,8 @@ function springMarkers(node: FramePreviewData["nodes"][number], x: number, y: nu
 function hingeMarker(x: number, y: number, key: string) {
   return (
     <g key={key}>
-      <circle cx={x} cy={y} r="9" fill="var(--structure-preview-hinge-fill)" stroke="#f97316" strokeWidth="2" />
-      <circle cx={x} cy={y} r="3" fill="#f97316" />
+      <circle cx={x} cy={y} r="9" fill="var(--structure-preview-hinge-fill)" stroke={STRUCTURE_STATE_COLORS.hinge} strokeWidth="2" />
+      <circle cx={x} cy={y} r="3" fill={STRUCTURE_STATE_COLORS.hinge} />
     </g>
   );
 }
@@ -260,7 +261,7 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
             const label = frameMemberLabelPlacement(start, end, layout.center, compact ? 14 : 18);
             return (
               <g key={member.id}>
-                <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="url(#frameBaseGrad)" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />
+                <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="url(#frameBaseGrad)" strokeWidth={STRUCTURE_VISUAL_STROKES.previewMember} strokeLinecap="round" strokeLinejoin="round" />
                 <text x={label.x} y={label.y} fill="var(--structure-preview-label)" textAnchor={label.textAnchor} dominantBaseline="middle" fontSize={compact ? "9" : "11"} fontFamily="Fira Code" fontWeight="700">
                   {member.id}
                 </text>
@@ -282,7 +283,7 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
                 x2={end.x}
                 y2={end.y}
                 stroke="url(#frameDeformedGrad)"
-                strokeWidth="2.4"
+                strokeWidth={STRUCTURE_VISUAL_STROKES.previewFrameDeformedMember}
                 strokeOpacity="0.55"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -297,7 +298,7 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
             return (
               <g key={node.id}>
                 {supportMarker((node.supportType ?? "free") as SupportType, point.x, point.y, node.supportAngleDeg)}
-                <circle cx={point.x} cy={point.y} r="4.5" fill="var(--structure-preview-node)" />
+                <circle cx={point.x} cy={point.y} r={STRUCTURE_NODE_RADII.preview} fill="var(--structure-preview-node)" />
                 <text x={label.x} y={label.y} textAnchor={label.anchor} fill="var(--structure-preview-node-label)" fontSize={compact ? "9" : "11"} fontFamily="Fira Code">
                   {node.id}
                 </text>

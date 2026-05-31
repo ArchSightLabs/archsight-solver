@@ -4,6 +4,7 @@ import type { BeamLoadMarker, BeamPreviewData, BeamSupport } from "../types/beam
 import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments, formatBeamDimensionLength } from "../lib/beam-span-dimensions";
 import { formatEngineeringValue } from "../lib/engineering-format";
 import { summaryMetricLabel } from "../lib/result-metrics";
+import { STRUCTURE_STATE_COLORS, STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
 
 interface BeamPreviewProps {
   beam?: BeamPreviewData | null;
@@ -265,7 +266,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
 
           {/* 主梁线 */}
           <line x1={BEAM_LEFT} y1={BEAM_Y} x2={BEAM_RIGHT} y2={BEAM_Y}
-            stroke="url(#beamGrad)" strokeWidth="7" strokeLinecap="round" />
+            stroke="url(#beamGrad)" strokeWidth={STRUCTURE_VISUAL_STROKES.previewMember} strokeLinecap="round" />
 
           <g fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="3" paintOrder="stroke" fontFamily={svgTextFont}>
             {spanDimensions.map((dimension) => {
@@ -383,7 +384,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
               <circle
                 cx={peakPoint.x}
                 cy={peakPoint.y}
-                r="5" fill="#d97706" stroke="#ffedd5" strokeWidth="1.5"
+                r="5" fill={STRUCTURE_STATE_COLORS.peakDot} stroke={STRUCTURE_STATE_COLORS.peakDotStroke} strokeWidth="1.5"
               />
               <text
                 x={peakLabel.x}

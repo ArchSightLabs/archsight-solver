@@ -1,6 +1,7 @@
 import { type CSSProperties } from "react";
 import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments, formatBeamDimensionLength } from "../../lib/beam-span-dimensions";
 import { BEAM_MODEL_CANVAS_BASE_SIZE, type ModelCanvasSize } from "../../lib/model-canvas-sizing";
+import { STRUCTURE_NODE_RADII, STRUCTURE_VISUAL_STROKES } from "../../lib/structure-visual-tokens";
 import type { WorkspaceState } from "../../lib/workspace-state";
 import type { ModelPreviewStyle } from "../../types/beam";
 import type { WorkbenchSelection } from "../../types/workbench-selection";
@@ -229,7 +230,7 @@ export function BeamSketch({
           </text>
         ))}
       </g>
-      <line x1={beamStart} y1={BEAM_SKETCH_AXIS_Y} x2={beamEnd} y2={BEAM_SKETCH_AXIS_Y} stroke="var(--beam-sketch-member)" strokeWidth="3.2" strokeLinecap="square" />
+      <line x1={beamStart} y1={BEAM_SKETCH_AXIS_Y} x2={beamEnd} y2={BEAM_SKETCH_AXIS_Y} stroke="var(--beam-sketch-member)" strokeWidth={STRUCTURE_VISUAL_STROKES.modelBeamMember} strokeLinecap="square" />
       {segments.map((segment) => {
         const selected = selection?.mode === "beam" && selection.type === "span" && selection.id === `span-${segment.index}`;
         const dimension = spanDimensions[segment.index];
@@ -237,16 +238,16 @@ export function BeamSketch({
           <g key={segment.index} {...svgInteractiveProps(`选择梁系杆件 ${beamMemberIds[segment.index]}`, () => onSelect?.({ mode: "beam", type: "span", id: `span-${segment.index}` }))}>
             {dimension ? <title>{dimension.title}</title> : null}
             <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="transparent" strokeWidth="20" strokeLinecap="round" />
-            {selected ? <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="var(--beam-sketch-selected)" strokeWidth="7" strokeLinecap="round" opacity="0.45" /> : null}
+            {selected ? <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="var(--beam-sketch-selected)" strokeWidth={STRUCTURE_VISUAL_STROKES.modelSelectedMember} strokeLinecap="round" opacity="0.45" /> : null}
             {dimension?.label ? (
               <text x={(segment.start + segment.end) / 2} y="176" textAnchor="middle" fontSize="13" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT} fill="var(--beam-sketch-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
                 {dimension.label}
               </text>
             ) : null}
-            <circle cx={segment.start} cy={BEAM_SKETCH_AXIS_Y} r="4.5" fill="var(--beam-sketch-node)" />
+            <circle cx={segment.start} cy={BEAM_SKETCH_AXIS_Y} r={STRUCTURE_NODE_RADII.preview} fill="var(--beam-sketch-node)" />
             {segment.index === segments.length - 1 ? (
               <>
-                <circle cx={segment.end} cy={BEAM_SKETCH_AXIS_Y} r="4.5" fill="var(--beam-sketch-node)" />
+                <circle cx={segment.end} cy={BEAM_SKETCH_AXIS_Y} r={STRUCTURE_NODE_RADII.preview} fill="var(--beam-sketch-node)" />
               </>
             ) : null}
           </g>

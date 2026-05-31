@@ -1,6 +1,7 @@
 import type { BeamLoadMarker, BeamPreviewData, BeamSupport } from "../types/beam";
 import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments, formatBeamDimensionLength } from "./beam-span-dimensions.ts";
 import { formatEngineeringValue } from "./engineering-format.ts";
+import { STRUCTURE_OBJECT_COLORS, STRUCTURE_STATE_COLORS, STRUCTURE_VISUAL_STROKES } from "./structure-visual-tokens.ts";
 
 type BeamLoadArrow = BeamLoadMarker & {
   svgX: number;
@@ -37,23 +38,23 @@ const SVG_TEXT_FONT = "Inter, Microsoft YaHei, system-ui, sans-serif";
 
 const PREVIEW_COLORS = {
   background: "#ffffff",
-  supportFill: "#d6dee8",
-  supportStroke: "#718096",
-  supportLine: "#64748b",
-  label: "#475569",
-  load: "#b45309",
-  guide: "#64748b",
-  baseStart: "#2563eb",
-  baseEnd: "#2563eb",
-  deformed: "#0f766e",
-  node: "#2f5f8f",
-  peak: "#92400e",
-  peakDot: "#d97706",
-  peakDotStroke: "#ffedd5",
-  badgeFill: "#fff7ed",
-  badgeStroke: "#f97316",
-  badgeText: "#7c2d12",
-  textHalo: "#f8fafc",
+  supportFill: STRUCTURE_OBJECT_COLORS.supportFill,
+  supportStroke: STRUCTURE_OBJECT_COLORS.supportStroke,
+  supportLine: STRUCTURE_OBJECT_COLORS.supportLine,
+  label: STRUCTURE_OBJECT_COLORS.label,
+  load: STRUCTURE_OBJECT_COLORS.load,
+  guide: STRUCTURE_OBJECT_COLORS.supportLine,
+  baseStart: STRUCTURE_OBJECT_COLORS.member,
+  baseEnd: STRUCTURE_OBJECT_COLORS.member,
+  deformed: STRUCTURE_STATE_COLORS.deformedStart,
+  node: STRUCTURE_OBJECT_COLORS.node,
+  peak: STRUCTURE_STATE_COLORS.peakLabel,
+  peakDot: STRUCTURE_STATE_COLORS.peakDot,
+  peakDotStroke: STRUCTURE_STATE_COLORS.peakDotStroke,
+  badgeFill: STRUCTURE_OBJECT_COLORS.badgeFill,
+  badgeStroke: STRUCTURE_OBJECT_COLORS.badgeStroke,
+  badgeText: STRUCTURE_OBJECT_COLORS.badgeText,
+  textHalo: STRUCTURE_OBJECT_COLORS.textHalo,
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -228,7 +229,7 @@ export function buildBeamPreviewSvg(beam: BeamPreviewData) {
   <g fill="${PREVIEW_COLORS.label}" stroke="${PREVIEW_COLORS.textHalo}" stroke-width="3" paint-order="stroke" font-family="${SVG_TEXT_FONT}">
     ${dimensionLegendRows.map((row, index) => `<text x="32" y="${28 + index * 15}" font-size="12" font-weight="600">${escapeSvg(row)}</text>`).join("")}
   </g>
-  <line x1="${BEAM_LEFT}" y1="${BEAM_Y}" x2="${BEAM_RIGHT}" y2="${BEAM_Y}" stroke="url(#beamReportGrad)" stroke-width="7" stroke-linecap="round" />
+  <line x1="${BEAM_LEFT}" y1="${BEAM_Y}" x2="${BEAM_RIGHT}" y2="${BEAM_Y}" stroke="url(#beamReportGrad)" stroke-width="${STRUCTURE_VISUAL_STROKES.previewMember}" stroke-linecap="round" />
   <g fill="${PREVIEW_COLORS.label}" stroke="${PREVIEW_COLORS.textHalo}" stroke-width="3" paint-order="stroke" font-family="${SVG_TEXT_FONT}">
     ${spanDimensions.map((dimension) => {
       if (!dimension.label) return "";

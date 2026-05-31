@@ -9,6 +9,7 @@ import {
   type DiagramPlacedLabel,
 } from "./diagram-label-layout.ts";
 import { formatEngineeringValue } from "./engineering-format.ts";
+import { STRUCTURE_NODE_RADII, STRUCTURE_OBJECT_COLORS, STRUCTURE_RESULT_COLORS, STRUCTURE_VISUAL_STROKES } from "./structure-visual-tokens.ts";
 
 interface BeamDiagramMetric {
   key: BeamDiagramMetricKey;
@@ -36,11 +37,11 @@ const BEAM_RIGHT = 920;
 const BEAM_Y = 180;
 const BEAM_LEN = BEAM_RIGHT - BEAM_LEFT;
 const GRID_STROKE_WIDTH = 0.8;
-const BEAM_STROKE_WIDTH = 3;
+const BEAM_STROKE_WIDTH = STRUCTURE_VISUAL_STROKES.resultBeamBase;
 const RESULT_AREA_STROKE_WIDTH = 1.7;
 const RESULT_LINE_STROKE_WIDTH = 2;
 const SUPPORT_BASE_STROKE_WIDTH = 1.25;
-const NODE_RADIUS = 3;
+const NODE_RADIUS = STRUCTURE_NODE_RADII.resultBeam;
 const EXTREME_RADIUS = 4;
 const SPAN_MEMBER_LABEL_Y = BEAM_Y + 18;
 const NODE_BADGE_OFFSET_X = 10;
@@ -58,23 +59,23 @@ const DIAGRAM_LABEL_WEIGHT = 600;
 const COLORS = {
   background: "#ffffff",
   grid: "#cbd5e1",
-  base: "#2563eb",
-  supportFill: "#d6dee8",
-  supportStroke: "#718096",
-  supportLine: "#64748b",
-  label: "#475569",
-  node: "#2f5f8f",
+  base: STRUCTURE_OBJECT_COLORS.member,
+  supportFill: STRUCTURE_OBJECT_COLORS.supportFill,
+  supportStroke: STRUCTURE_OBJECT_COLORS.supportStroke,
+  supportLine: STRUCTURE_OBJECT_COLORS.supportLine,
+  label: STRUCTURE_OBJECT_COLORS.label,
+  node: STRUCTURE_OBJECT_COLORS.node,
   guide: "#94a3b8",
-  badgeFill: "#fff7ed",
-  badgeStroke: "#f97316",
-  badgeText: "#7c2d12",
+  badgeFill: STRUCTURE_OBJECT_COLORS.badgeFill,
+  badgeStroke: STRUCTURE_OBJECT_COLORS.badgeStroke,
+  badgeText: STRUCTURE_OBJECT_COLORS.badgeText,
   textHalo: "#ffffff",
 };
 
 const BEAM_DIAGRAM_METRICS: Record<BeamDiagramMetricKey, BeamDiagramMetric> = {
-  momentKnM: { key: "momentKnM", title: "弯矩图", unit: "kN·m", color: "#ef4444", fillColor: "rgba(239, 68, 68, 0.1)", diagramType: "area" },
-  shearKn: { key: "shearKn", title: "剪力图", unit: "kN", color: "#3b82f6", fillColor: "rgba(59, 130, 246, 0.09)", diagramType: "area" },
-  deflectionMm: { key: "deflectionMm", title: "挠度图", unit: "mm", color: "#8b5cf6", fillColor: "rgba(139, 92, 246, 0.08)", diagramType: "line" },
+  momentKnM: { key: "momentKnM", title: "弯矩图", unit: "kN·m", color: STRUCTURE_RESULT_COLORS.beamMoment, fillColor: STRUCTURE_RESULT_COLORS.beamMomentFill, diagramType: "area" },
+  shearKn: { key: "shearKn", title: "剪力图", unit: "kN", color: STRUCTURE_RESULT_COLORS.beamShear, fillColor: STRUCTURE_RESULT_COLORS.beamShearFill, diagramType: "area" },
+  deflectionMm: { key: "deflectionMm", title: "挠度图", unit: "mm", color: STRUCTURE_RESULT_COLORS.beamDeflection, fillColor: STRUCTURE_RESULT_COLORS.beamDeflectionFill, diagramType: "line" },
 };
 
 function clamp(value: number, min: number, max: number) {

@@ -4,6 +4,7 @@ import type { SupportType, TrussPreviewData } from "../types/structure";
 import { buildTrussLoadMarkers, buildTrussMemberLengthDimensions, buildTrussMemberLengthLegendRows } from "./truss-preview-utils";
 import { formatEngineeringValue, formatLimitRatio, formatUtilizationPercent } from "../lib/engineering-format";
 import { RESULT_PREVIEW_BASE_SIZE, resultPreviewCanvasSize, resultPreviewSvgStyle, type ResultPreviewCanvasSize } from "../lib/result-preview-sizing";
+import { STRUCTURE_NODE_RADII, STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
 
 interface TrussPreviewProps {
   truss: TrussPreviewData | null;
@@ -212,7 +213,7 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
             const label = memberLabelPlacement(start, end, canvasSize);
             return (
               <g key={member.id}>
-                <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="url(#trussBaseGrad)" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />
+                <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="url(#trussBaseGrad)" strokeWidth={STRUCTURE_VISUAL_STROKES.previewMember} strokeLinecap="round" strokeLinejoin="round" />
                 <text
                   x={label.x}
                   y={label.y}
@@ -246,7 +247,7 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
                   x2={end.x}
                   y2={end.y}
                   stroke="url(#trussDeformedGrad)"
-                  strokeWidth="2"
+                  strokeWidth={STRUCTURE_VISUAL_STROKES.previewTrussDeformedMember}
                   strokeOpacity="0.7"
                   strokeDasharray="8 6"
                   strokeLinecap="round"
@@ -262,7 +263,7 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
             const label = nodeLabelPlacement(point, (layout.bounds.left + layout.bounds.right) / 2);
             return (
               <g key={node.id}>
-                <circle cx={point.x} cy={point.y} r="4.5" fill="var(--structure-preview-node)" />
+                <circle cx={point.x} cy={point.y} r={STRUCTURE_NODE_RADII.preview} fill="var(--structure-preview-node)" />
                 <text x={label.x} y={label.y} textAnchor={label.anchor} fill="var(--structure-preview-node-label)" fontSize={compact ? "9" : "11"} fontFamily={svgTextFont}>
                   {node.id}
                 </text>

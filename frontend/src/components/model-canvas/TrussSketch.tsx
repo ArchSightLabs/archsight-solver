@@ -1,5 +1,6 @@
 import { buildTrussMemberLengthDimension, buildTrussMemberLengthLegendRows, buildTrussSupportMarkerGeometry } from "../truss-preview-utils";
 import { TRUSS_MODEL_CANVAS_BASE_SIZE, type ModelCanvasSize } from "../../lib/model-canvas-sizing";
+import { STRUCTURE_NODE_RADII, STRUCTURE_VISUAL_STROKES } from "../../lib/structure-visual-tokens";
 import type { WorkspaceState } from "../../lib/workspace-state";
 import type { TrussLoad } from "../../types/structure";
 import type { WorkbenchSelection } from "../../types/workbench-selection";
@@ -181,7 +182,7 @@ export function TrussSketch({
           <g key={member.id} {...svgInteractiveProps(`选择桁架杆件 ${member.id}`, () => onSelect?.({ mode: "truss", type: "member", id: member.id }))}>
             {dimension ? <title>{dimension.title}</title> : null}
             <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="transparent" strokeWidth="18" strokeLinecap="round" />
-            <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke={selected ? "var(--model-load)" : "var(--model-member)"} strokeWidth={selected ? "7" : "4.5"} strokeLinecap="round" opacity={selected ? "0.85" : "1"} />
+            <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke={selected ? "var(--model-load)" : "var(--model-member)"} strokeWidth={selected ? STRUCTURE_VISUAL_STROKES.modelSelectedMember : STRUCTURE_VISUAL_STROKES.modelMember} strokeLinecap="round" opacity={selected ? "0.85" : "1"} />
             <text
               x={label.x}
               y={label.y}
@@ -209,7 +210,7 @@ export function TrussSketch({
         return (
           <g key={node.id} {...svgInteractiveProps(`选择桁架节点 ${node.id}`, () => onSelect?.({ mode: "truss", type: "node", id: node.id }))}>
             <TrussSupportMarker type={node.supportType} x={point.x} y={point.y} selected={selected} />
-            <circle cx={point.x} cy={point.y} r={selected ? "7.5" : "5.5"} fill={selected ? "var(--model-load)" : "var(--model-node)"} />
+            <circle cx={point.x} cy={point.y} r={selected ? STRUCTURE_NODE_RADII.modelSelected : STRUCTURE_NODE_RADII.model} fill={selected ? "var(--model-load)" : "var(--model-node)"} />
             <text x={label.x} y={label.y} textAnchor={label.anchor} fill="var(--model-label)" fontSize="10.5" fontWeight="400">
               {node.id}
             </text>

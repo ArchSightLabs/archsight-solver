@@ -24,6 +24,7 @@ import { formatEngineeringValue } from "../lib/engineering-format";
 import { resultPreviewCanvasSize, resultPreviewSvgStyle, type ResultPreviewCanvasSize } from "../lib/result-preview-sizing";
 import { clamp, svgAreaPath, svgPathFromPoints } from "../lib/result-diagram-geometry";
 import { summaryMetricLabel } from "../lib/result-metrics";
+import { STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
 import { ResultDiagramCard, ResultDiagramEmptyState, ResultDiagramMetricBadge, ResultDiagramMetricGallery } from "./ResultDiagramLayout";
 import { buildFrameDimensionLegendRows, buildFrameGeometryDimensions, frameMemberLabelPlacement } from "./frame-preview-utils";
 
@@ -347,7 +348,7 @@ function FrameStructureDiagram({
               y2={end.y}
               stroke="var(--structure-preview-base-start)"
               strokeOpacity="0.7"
-              strokeWidth="7"
+              strokeWidth={STRUCTURE_VISUAL_STROKES.resultOverlayBase}
               strokeLinecap="round"
             />
           );
@@ -358,7 +359,7 @@ function FrameStructureDiagram({
             {metric.diagramType === "area" && member.areaPath ? (
               <path d={member.areaPath} fill={metric.fillColor} stroke="none" />
             ) : null}
-            <path d={member.resultPath} fill="none" stroke={metric.color} strokeWidth={metric.diagramType === "line" ? "3.5" : "3"} strokeLinecap="round" strokeLinejoin="round" />
+            <path d={member.resultPath} fill="none" stroke={metric.color} strokeWidth={metric.diagramType === "line" ? "3.5" : STRUCTURE_VISUAL_STROKES.resultFrameDiagram} strokeLinecap="round" strokeLinejoin="round" />
           </g>
         ))}
 

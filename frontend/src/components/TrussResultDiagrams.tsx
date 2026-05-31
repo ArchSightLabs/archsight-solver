@@ -14,6 +14,7 @@ import { formatEngineeringValue } from "../lib/engineering-format";
 import { RESULT_PREVIEW_BASE_SIZE, resultPreviewCanvasSize, resultPreviewSvgStyle, type ResultPreviewCanvasSize } from "../lib/result-preview-sizing";
 import { clamp } from "../lib/result-diagram-geometry";
 import { summaryMetricLabel } from "../lib/result-metrics";
+import { STRUCTURE_RESULT_COLORS, STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
 import {
   DEFAULT_TRUSS_DIAGRAM_METRIC_KEY,
   getTrussDiagramMetric,
@@ -421,17 +422,18 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
             const result = memberResultsById.get(member.id);
             const value = result?.axialForceKn ?? 0;
             const isTension = value >= 0;
-            const strokeWidth = selectedMetricKey === "axialForceKn" ? 3 + (maxAbsAxial > 1e-9 ? (Math.abs(value) / maxAbsAxial) * 6 : 0) : 7;
+            const strokeWidth = selectedMetricKey === "axialForceKn" ? 3 + (maxAbsAxial > 1e-9 ? (Math.abs(value) / maxAbsAxial) * 6 : 0) : STRUCTURE_VISUAL_STROKES.resultOverlayBase;
             const label = labelLayouts.get(`member-${member.id}`);
             const line = label?.lines[0];
+            const axialColor = isTension ? STRUCTURE_RESULT_COLORS.trussTension : STRUCTURE_RESULT_COLORS.trussCompression;
             return (
               <g key={member.id}>
-                <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="var(--structure-preview-base-start)" strokeOpacity="0.55" strokeWidth="7" strokeLinecap="round" />
+                <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="var(--structure-preview-base-start)" strokeOpacity="0.55" strokeWidth={STRUCTURE_VISUAL_STROKES.resultOverlayBase} strokeLinecap="round" />
                 {selectedMetricKey === "axialForceKn" ? (
                   <>
-                    <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke={isTension ? "#dc2626" : "#2563eb"} strokeOpacity="0.82" strokeWidth={strokeWidth} strokeLinecap="round" />
+                    <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke={axialColor} strokeOpacity="0.82" strokeWidth={strokeWidth} strokeLinecap="round" />
                     {label && line ? (
-                      <text x={line.x} y={line.y} fill={isTension ? "#dc2626" : "#2563eb"} stroke="var(--structure-preview-text-halo)" strokeWidth="5" paintOrder="stroke" textAnchor={label.textAnchor} fontSize={line.fontSize} fontFamily="Fira Code" fontWeight="700">
+                      <text x={line.x} y={line.y} fill={axialColor} stroke="var(--structure-preview-text-halo)" strokeWidth="5" paintOrder="stroke" textAnchor={label.textAnchor} fontSize={line.fontSize} fontFamily="Fira Code" fontWeight="700">
                         {line.text}
                       </text>
                     ) : null}
@@ -452,7 +454,7 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
               const start = renderedDeformedMap.get(member.start);
               const end = renderedDeformedMap.get(member.end);
               if (!start || !end) return null;
-              return <line key={`d-${member.id}`} x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="var(--structure-preview-deformed-start)" strokeWidth="3" strokeOpacity="0.82" strokeDasharray="8 6" strokeLinecap="round" />;
+              return <line key={`d-${member.id}`} x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="var(--structure-preview-deformed-start)" strokeWidth={STRUCTURE_VISUAL_STROKES.resultTrussDeformedMember} strokeOpacity="0.82" strokeDasharray="8 6" strokeLinecap="round" />;
             })}
 
           {truss.nodes.map((node) => {

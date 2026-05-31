@@ -1,0 +1,83 @@
+export const STRUCTURE_OBJECT_COLORS = {
+  member: "#2563eb",
+  node: "#2f5f8f",
+  supportFill: "#d6dee8",
+  supportStroke: "#718096",
+  supportLine: "#64748b",
+  load: "#b45309",
+  label: "#475569",
+  labelStrong: "#334155",
+  textHalo: "#f8fafc",
+  badgeFill: "#fff7ed",
+  badgeStroke: "#f97316",
+  badgeText: "#7c2d12",
+} as const;
+
+export const STRUCTURE_STATE_COLORS = {
+  deformedStart: "#0f766e",
+  deformedEnd: "#0d9488",
+  deformedNodeStroke: "#ccfbf1",
+  peakLabel: "#92400e",
+  peakDot: "#d97706",
+  peakDotStroke: "#ffedd5",
+  hinge: "#f97316",
+  spring: "#fbbf24",
+} as const;
+
+export const STRUCTURE_RESULT_COLORS = {
+  beamMoment: "#ef4444",
+  beamMomentFill: "rgba(239, 68, 68, 0.1)",
+  beamShear: "#3b82f6",
+  beamShearFill: "rgba(59, 130, 246, 0.09)",
+  beamDeflection: "#8b5cf6",
+  beamDeflectionFill: "rgba(139, 92, 246, 0.08)",
+  frameMoment: "#dc2626",
+  frameMomentFill: "rgba(220, 38, 38, 0.18)",
+  frameShear: "#2563eb",
+  frameShearFill: "rgba(37, 99, 235, 0.16)",
+  frameAxial: "#059669",
+  frameAxialFill: "rgba(5, 150, 105, 0.14)",
+  frameDeflection: "#7c3aed",
+  frameDeflectionFill: "rgba(124, 58, 237, 0.14)",
+  trussTension: "#dc2626",
+  trussCompression: "#2563eb",
+  reportDeformed: "#38bdf8",
+  reportDisplacement: "#22c55e",
+} as const;
+
+export const STRUCTURE_REPORT_COLORS = {
+  baseMember: "rgba(37,99,235,0.62)",
+  baseMemberLight: "rgba(37,99,235,0.48)",
+  node: STRUCTURE_OBJECT_COLORS.node,
+  label: STRUCTURE_OBJECT_COLORS.labelStrong,
+  dimensionText: STRUCTURE_OBJECT_COLORS.label,
+  labelHalo: "#ffffff",
+  load: "#dc2626",
+  loadLabel: "#b91c1c",
+  supportFill: STRUCTURE_OBJECT_COLORS.supportFill,
+  supportStroke: STRUCTURE_OBJECT_COLORS.supportStroke,
+  supportLine: STRUCTURE_OBJECT_COLORS.supportLine,
+} as const;
+
+export const STRUCTURE_VISUAL_STROKES = {
+  modelBeamMember: 3.2,
+  modelMember: 4.5,
+  modelSelectedMember: 7,
+  previewMember: 7,
+  previewFrameDeformedMember: 2.4,
+  previewTrussDeformedMember: 2,
+  resultBeamBase: 3,
+  resultOverlayBase: 7,
+  resultFrameDiagram: 3,
+  resultTrussDeformedMember: 3,
+  reportBaseMember: 5,
+  reportPreviewDeformedMember: 3.5,
+} as const;
+
+export const STRUCTURE_NODE_RADII = {
+  model: 5.5,
+  modelSelected: 7.5,
+  preview: 4.5,
+  resultBeam: 3,
+  report: 5,
+} as const;

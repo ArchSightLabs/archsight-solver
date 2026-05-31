@@ -12,6 +12,7 @@ import {
 import { formatEngineeringValue } from "../lib/engineering-format";
 import { clamp, svgAreaPath, svgPathFromPoints } from "../lib/result-diagram-geometry";
 import { sensitivityResponseMetricLabel } from "../lib/result-metrics";
+import { STRUCTURE_NODE_RADII, STRUCTURE_RESULT_COLORS, STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
 import { ResultDiagramCard, ResultDiagramEmptyState, ResultDiagramMetricBadge, ResultDiagramMetricGallery } from "./ResultDiagramLayout";
 
 interface BeamDiagramMetric {
@@ -55,11 +56,11 @@ const BEAM_Y = 180;
 const BEAM_LEN = BEAM_RIGHT - BEAM_LEFT;
 const DEFAULT_BEAM_DIAGRAM_METRIC_KEY: BeamDiagramMetricKey = "momentKnM";
 const GRID_STROKE_WIDTH = 0.8;
-const BEAM_STROKE_WIDTH = 3;
+const BEAM_STROKE_WIDTH = STRUCTURE_VISUAL_STROKES.resultBeamBase;
 const RESULT_AREA_STROKE_WIDTH = 1.7;
 const RESULT_LINE_STROKE_WIDTH = 2;
 const SUPPORT_BASE_STROKE_WIDTH = 1.25;
-const NODE_RADIUS = 3;
+const NODE_RADIUS = STRUCTURE_NODE_RADII.resultBeam;
 const EXTREME_RADIUS = 4;
 const SPAN_MEMBER_LABEL_Y = BEAM_Y + 18;
 const NODE_BADGE_OFFSET_X = 10;
@@ -75,9 +76,9 @@ const DIAGRAM_NUMERIC_FONT = "Fira Code, ui-monospace, SFMono-Regular, Consolas,
 const DIAGRAM_LABEL_WEIGHT = 600;
 
 const BEAM_DIAGRAM_METRICS: BeamDiagramMetric[] = [
-  { key: "momentKnM", title: "弯矩图", unit: "kN·m", color: "#ef4444", fillColor: "rgba(239, 68, 68, 0.1)", diagramType: "area" },
-  { key: "shearKn", title: "剪力图", unit: "kN", color: "#3b82f6", fillColor: "rgba(59, 130, 246, 0.09)", diagramType: "area" },
-  { key: "deflectionMm", title: "挠度图", unit: "mm", color: "#8b5cf6", fillColor: "rgba(139, 92, 246, 0.08)", diagramType: "line" },
+  { key: "momentKnM", title: "弯矩图", unit: "kN·m", color: STRUCTURE_RESULT_COLORS.beamMoment, fillColor: STRUCTURE_RESULT_COLORS.beamMomentFill, diagramType: "area" },
+  { key: "shearKn", title: "剪力图", unit: "kN", color: STRUCTURE_RESULT_COLORS.beamShear, fillColor: STRUCTURE_RESULT_COLORS.beamShearFill, diagramType: "area" },
+  { key: "deflectionMm", title: "挠度图", unit: "mm", color: STRUCTURE_RESULT_COLORS.beamDeflection, fillColor: STRUCTURE_RESULT_COLORS.beamDeflectionFill, diagramType: "line" },
 ];
 const BEAM_DIAGRAM_RESPONSE_METRICS: Record<BeamDiagramMetricKey, string> = {
   momentKnM: "max_moment",

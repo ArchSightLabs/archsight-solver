@@ -1,5 +1,6 @@
 import type { FrameMemberDiagram } from "../types/structure";
 import { FRAME_REPORT_MEMBER_FIGURES } from "./report-figure-catalog.ts";
+import { STRUCTURE_RESULT_COLORS } from "./structure-visual-tokens.ts";
 
 export type FrameDiagramMetricKey = "axialKn" | "shearKn" | "momentKnM" | "deflectionMm";
 
@@ -32,10 +33,10 @@ export interface FrameDiagramExtreme {
 }
 
 const FRAME_DIAGRAM_STYLES: Record<FrameDiagramMetricKey, Pick<FrameDiagramMetric, "color" | "fillColor" | "diagramType">> = {
-  momentKnM: { color: "#dc2626", fillColor: "rgba(220, 38, 38, 0.18)", diagramType: "area" },
-  shearKn: { color: "#2563eb", fillColor: "rgba(37, 99, 235, 0.16)", diagramType: "area" },
-  deflectionMm: { color: "#7c3aed", fillColor: "rgba(124, 58, 237, 0.14)", diagramType: "line" },
-  axialKn: { color: "#059669", fillColor: "rgba(5, 150, 105, 0.14)", diagramType: "area" },
+  momentKnM: { color: STRUCTURE_RESULT_COLORS.frameMoment, fillColor: STRUCTURE_RESULT_COLORS.frameMomentFill, diagramType: "area" },
+  shearKn: { color: STRUCTURE_RESULT_COLORS.frameShear, fillColor: STRUCTURE_RESULT_COLORS.frameShearFill, diagramType: "area" },
+  deflectionMm: { color: STRUCTURE_RESULT_COLORS.frameDeflection, fillColor: STRUCTURE_RESULT_COLORS.frameDeflectionFill, diagramType: "line" },
+  axialKn: { color: STRUCTURE_RESULT_COLORS.frameAxial, fillColor: STRUCTURE_RESULT_COLORS.frameAxialFill, diagramType: "area" },
 };
 
 export const FRAME_DIAGRAM_METRICS: FrameDiagramMetric[] = FRAME_REPORT_MEMBER_FIGURES.map((figure) => ({
