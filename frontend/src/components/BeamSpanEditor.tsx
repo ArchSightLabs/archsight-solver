@@ -1,6 +1,7 @@
 import { Minus } from "lucide-react";
 import type { BeamSpanConfig } from "../types/beam.ts";
 import { memberMaterialPresetHint, memberPropertyAriaLabel, memberPropertyLabels } from "../lib/member-property-vocabulary.ts";
+import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import { Button } from "./ui/button";
 import { DeferredIdInput } from "./ui/DeferredIdInput";
 import { DropdownSelect } from "./ui/DropdownSelect";
@@ -44,13 +45,14 @@ export function BeamSpanEditor({
   onRemove,
 }: BeamSpanEditorProps) {
   const propertyLabels = memberPropertyLabels("beam");
+  const memberTerm = modelObjectMemberTerm("beam");
   const spanLabel = `第 ${spanIndex + 1} 跨`;
 
   return (
     <div className="space-y-3 rounded-xl border border-white/8 bg-slate-950/20 p-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <div className={fieldLabelClass}>当前杆件</div>
+          <div className={fieldLabelClass}>当前{memberTerm}</div>
           <div className="mt-1 text-sm font-bold">{memberId}</div>
           <div className="mt-1 font-mono text-[10px] text-muted-foreground">
             {semanticLabel} · 材料 {materialLabel} · E = {span.E} GPa
@@ -62,35 +64,35 @@ export function BeamSpanEditor({
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1 sm:col-span-2">
-          <div className={fieldLabelClass}>杆件编号</div>
+          <div className={fieldLabelClass}>{memberTerm}编号</div>
           <DeferredIdInput
             key={`beam-member-id-${memberId}`}
-            ariaLabel={`第 ${spanIndex + 1} 跨杆件编号`}
+            ariaLabel={`第 ${spanIndex + 1} 跨${memberTerm}编号`}
             value={memberId}
             onCommit={onUpdateId}
             className="h-10 min-w-0 font-mono text-xs"
           />
         </div>
         <div className="space-y-1 sm:col-span-2">
-          <div className={fieldLabelClass}>杆件材料编号</div>
+          <div className={fieldLabelClass}>{memberTerm}材料编号</div>
           <DropdownSelect
             value={span.materialId ?? ""}
             onChange={onUpdateMaterial}
             options={materialOptions}
             placeholder="手动输入 E"
-            ariaLabel={`第 ${spanIndex + 1} 跨杆件材料编号`}
+            ariaLabel={`第 ${spanIndex + 1} 跨${memberTerm}材料编号`}
             className={formControlClass}
             menuClassName={formSelectMenuClass}
             optionClassName={formSelectOptionClass}
           />
           <div className="text-[10px] font-semibold leading-relaxed text-muted-foreground">
-            {memberMaterialPresetHint("beam", "杆件")} {materialNote}
+            {memberMaterialPresetHint("beam", memberTerm)} {materialNote}
           </div>
         </div>
         <div className="space-y-1">
-          <div className={fieldLabelClass}>杆件长度（m）</div>
+          <div className={fieldLabelClass}>{memberTerm}长度（m）</div>
           <Input
-            aria-label={`第 ${spanIndex + 1} 跨杆件长度（m）`}
+            aria-label={`第 ${spanIndex + 1} 跨${memberTerm}长度（m）`}
             name={`${memberId}-length`}
             type="number"
             step="0.1"

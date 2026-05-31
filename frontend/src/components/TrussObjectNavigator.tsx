@@ -117,7 +117,7 @@ export function TrussObjectNavigator({
           <div className={fieldLabelClass}>{vocabulary.memberGroupLabel}</div>
           <MemberConnectionPanel
             fieldLabelClass={fieldLabelClass}
-            memberTerm="杆件"
+            memberTerm={vocabulary.memberGroupLabel}
             nodeOptions={nodeOptions}
             startNodeId={memberConnectionStartId}
             endNodeId={memberConnectionEndId}

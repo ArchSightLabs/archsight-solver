@@ -7,7 +7,7 @@ export interface ModelObjectVocabulary {
   navigatorDescription: string;
   nodeGroupLabel: string;
   supportGroupLabel: string;
-  memberGroupLabel: string;
+  memberGroupLabel: ModelObjectMemberTerm;
   loadGroupLabel: string;
   noSupportLabel: string;
   noMemberLabel: string;
@@ -21,6 +21,7 @@ export interface ModelMetricRow {
 }
 
 export type ModelObjectKind = "node" | "support" | "member" | "load";
+export type ModelObjectMemberTerm = "构件" | "杆件";
 
 const MODEL_OBJECT_LABEL_FIELDS: Record<ModelObjectKind, keyof ModelObjectVocabulary> = {
   node: "nodeGroupLabel",
@@ -74,6 +75,10 @@ export function modelObjectVocabulary(mode: AnalysisMode): ModelObjectVocabulary
 
 export function modelObjectLabel(mode: AnalysisMode, kind: ModelObjectKind): string {
   return modelObjectVocabulary(mode)[MODEL_OBJECT_LABEL_FIELDS[kind]];
+}
+
+export function modelObjectMemberTerm(mode: AnalysisMode): ModelObjectMemberTerm {
+  return modelObjectVocabulary(mode).memberGroupLabel;
 }
 
 export function modelObjectCountPhrase(mode: AnalysisMode, kind: ModelObjectKind, count: number, classifier?: string): string {

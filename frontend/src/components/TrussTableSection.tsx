@@ -131,7 +131,7 @@ export function TrussTableSection({
             </div>
             <MemberConnectionPanel
               fieldLabelClass={fieldLabelClass}
-              memberTerm="杆件"
+              memberTerm={vocabulary.memberGroupLabel}
               nodeOptions={nodeOptions}
               startNodeId={memberConnectionStartId}
               endNodeId={memberConnectionEndId}

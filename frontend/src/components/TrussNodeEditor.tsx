@@ -5,6 +5,7 @@ import { DeferredIdInput } from "./ui/DeferredIdInput";
 import { Input } from "./ui/input";
 import { NodeSupportField } from "./NodeSupportField";
 import { SelectedNodeConnectionPanel } from "./SelectedNodeConnectionPanel";
+import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import { nodeCoordinateAriaLabel, nodeCoordinateLabel } from "../lib/node-field-vocabulary.ts";
 import type { TrussNode } from "../types/structure.ts";
 
@@ -38,6 +39,7 @@ export function TrussNodeEditor({
   memberConnectionExists = () => false,
 }: TrussNodeEditorProps) {
   const isSelectedVariant = variant === "selected";
+  const memberTerm = modelObjectMemberTerm("truss");
   const labelPrefix = isSelectedVariant ? "节点" : `第 ${nodeIndex + 1} 个节点`;
   const xLabel = nodeCoordinateLabel("x");
   const yLabel = nodeCoordinateLabel("y");
@@ -118,7 +120,7 @@ export function TrussNodeEditor({
           nodeOptions={nodeOptions}
           connectionTargetId={connectionTargetId}
           fieldLabelClass={fieldLabelClass}
-          memberTerm="杆件"
+          memberTerm={memberTerm}
           duplicateExists={memberConnectionExists}
           onConnectionTargetChange={onConnectionTargetChange ?? (() => undefined)}
           onAddConnection={onAddMemberBetweenNodes ?? (() => undefined)}

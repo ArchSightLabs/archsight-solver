@@ -112,7 +112,7 @@ export function FrameObjectNavigator({
           <div className={fieldLabelClass}>{vocabulary.memberGroupLabel}</div>
           <MemberConnectionPanel
             fieldLabelClass={fieldLabelClass}
-            memberTerm="构件"
+            memberTerm={vocabulary.memberGroupLabel}
             nodeOptions={nodeOptions}
             startNodeId={memberConnectionStartId}
             endNodeId={memberConnectionEndId}

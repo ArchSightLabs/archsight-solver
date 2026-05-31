@@ -6,10 +6,12 @@ import {
   modelObjectCountPhrase,
   modelObjectLabel,
   modelObjectLoadLabel,
+  modelObjectMemberTerm,
   modelObjectMetricRows,
   modelObjectVocabulary,
 } from "./model-object-vocabulary.ts";
 import type { WorkspaceState } from "./workspace-state.ts";
+import { readFileSync } from "node:fs";
 
 function defaultWorkspace(): WorkspaceState {
   return {
@@ -59,4 +61,28 @@ test("模型对象词表提供统一的计数短语和作用对象荷载标签",
   assert.equal(modelObjectCountPhrase("beam", "load", 2), "2 条荷载");
   assert.equal(modelObjectLoadLabel("truss", "node"), "节点荷载");
   assert.equal(modelObjectLoadLabel("truss", "member"), "杆件荷载");
+});
+
+test("对象编辑器成员术语从共享模型对象词表派生", () => {
+  assert.equal(modelObjectMemberTerm("beam"), "杆件");
+  assert.equal(modelObjectMemberTerm("frame"), "构件");
+  assert.equal(modelObjectMemberTerm("truss"), "杆件");
+
+  const editorFiles = [
+    "BeamSpanEditor.tsx",
+    "FrameObjectNavigator.tsx",
+    "FrameTableSection.tsx",
+    "FrameMemberEditor.tsx",
+    "TrussMemberEditor.tsx",
+    "TrussObjectNavigator.tsx",
+    "TrussTableSection.tsx",
+    "FrameNodeEditor.tsx",
+    "TrussNodeEditor.tsx",
+  ];
+
+  for (const fileName of editorFiles) {
+    const source = readFileSync(new URL(`../components/${fileName}`, import.meta.url), "utf-8");
+    assert.match(source, /modelObject(?:MemberTerm|Vocabulary)/u, `${fileName} 应从共享词表取得成员术语`);
+    assert.doesNotMatch(source, /member(?:Term|Label)="(?:构件|杆件)"/u, `${fileName} 不应向共享子组件传入硬编码成员术语`);
+  }
 });

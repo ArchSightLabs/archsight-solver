@@ -7,6 +7,7 @@ import { Input } from "./ui/input";
 import { MemberMaterialPresetField } from "./MemberMaterialPresetField";
 import { materialIdForYoungModulus } from "../lib/material-presets.ts";
 import { memberPropertyAriaLabel, memberPropertyLabels } from "../lib/member-property-vocabulary.ts";
+import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import { TRUSS_MEMBER_KIND_OPTIONS } from "../lib/truss-editor-model.ts";
 import type { TrussMember } from "../types/structure.ts";
 
@@ -30,7 +31,8 @@ export function TrussMemberEditor({
   variant,
 }: TrussMemberEditorProps) {
   const isSelectedVariant = variant === "selected";
-  const labelPrefix = isSelectedVariant ? "杆件" : `第 ${memberIndex + 1} 个杆件`;
+  const memberTerm = modelObjectMemberTerm("truss");
+  const labelPrefix = isSelectedVariant ? memberTerm : `第 ${memberIndex + 1} 个${memberTerm}`;
   const propertyLabels = memberPropertyLabels("truss");
 
   return (
@@ -38,19 +40,19 @@ export function TrussMemberEditor({
       {isSelectedVariant ? (
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className={fieldLabelClass}>当前杆件</div>
+            <div className={fieldLabelClass}>当前{memberTerm}</div>
             <div className="mt-1 text-sm font-bold">{member.id}</div>
           </div>
-          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={onRemove} aria-label="删除当前杆件">
+          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={onRemove} aria-label={`删除当前${memberTerm}`}>
             <Trash2 className="h-4 w-4 text-rose-300" />
           </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
           <div className="space-y-1">
-            <div className={fieldLabelClass}>杆件编号</div>
+            <div className={fieldLabelClass}>{memberTerm}编号</div>
             <DeferredIdInput
-              ariaLabel={`第 ${memberIndex + 1} 个杆件编号`}
+              ariaLabel={`第 ${memberIndex + 1} 个${memberTerm}编号`}
               value={member.id}
               onCommit={(nextId) => onUpdate({ id: nextId })}
               className="h-10 min-w-0 font-mono text-xs"
@@ -58,14 +60,14 @@ export function TrussMemberEditor({
           </div>
           <div className="space-y-1">
             <div className={fieldLabelClass}>起点节点</div>
-            <DropdownSelect value={member.start} onChange={(nextValue) => onUpdate({ start: nextValue })} options={nodeOptions} className="min-w-0 text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${memberIndex + 1} 个杆件起点节点`} />
+            <DropdownSelect value={member.start} onChange={(nextValue) => onUpdate({ start: nextValue })} options={nodeOptions} className="min-w-0 text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${memberIndex + 1} 个${memberTerm}起点节点`} />
           </div>
           <div className="space-y-1">
             <div className={fieldLabelClass}>终点节点</div>
-            <DropdownSelect value={member.end} onChange={(nextValue) => onUpdate({ end: nextValue })} options={nodeOptions} className="min-w-0 text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${memberIndex + 1} 个杆件终点节点`} />
+            <DropdownSelect value={member.end} onChange={(nextValue) => onUpdate({ end: nextValue })} options={nodeOptions} className="min-w-0 text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${memberIndex + 1} 个${memberTerm}终点节点`} />
           </div>
           <div className="flex items-end md:justify-end">
-            <Button variant="ghost" size="icon" className="h-10 w-10" onClick={onRemove} aria-label={`删除第 ${memberIndex + 1} 个杆件`}>
+            <Button variant="ghost" size="icon" className="h-10 w-10" onClick={onRemove} aria-label={`删除第 ${memberIndex + 1} 个${memberTerm}`}>
               <Trash2 className="h-4 w-4 text-rose-300" />
             </Button>
           </div>
@@ -76,18 +78,18 @@ export function TrussMemberEditor({
         {isSelectedVariant ? (
           <>
             <div className="space-y-1">
-              <div className={fieldLabelClass}>杆件编号</div>
+              <div className={fieldLabelClass}>{memberTerm}编号</div>
               <DeferredIdInput
                 key={`selected-truss-member-id-${member.id}`}
-                ariaLabel="杆件编号"
+                ariaLabel={`${memberTerm}编号`}
                 value={member.id}
                 onCommit={(nextId) => onUpdate({ id: nextId })}
                 className="h-10 min-w-0 font-mono text-xs"
               />
             </div>
             <div className="space-y-1">
-              <div className={fieldLabelClass}>杆件类型</div>
-              <DropdownSelect value={member.kind ?? "generic"} onChange={(nextValue) => onUpdate({ kind: nextValue })} options={TRUSS_MEMBER_KIND_OPTIONS} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel="杆件类型" />
+              <div className={fieldLabelClass}>{memberTerm}类型</div>
+              <DropdownSelect value={member.kind ?? "generic"} onChange={(nextValue) => onUpdate({ kind: nextValue })} options={TRUSS_MEMBER_KIND_OPTIONS} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`${memberTerm}类型`} />
             </div>
           </>
         ) : null}
@@ -97,10 +99,10 @@ export function TrussMemberEditor({
           onYoungModulusChange={(E_GPa) => onUpdate({ E_GPa })}
           onMaterialChange={(materialId, E_GPa) => onUpdate({ materialId, E_GPa })}
           fieldLabelClass={fieldLabelClass}
-          memberLabel="杆件"
+          memberLabel={memberTerm}
           mode="truss"
           label={isSelectedVariant ? undefined : "材料预设"}
-          ariaLabel={isSelectedVariant ? undefined : `第 ${memberIndex + 1} 个杆件材料预设`}
+          ariaLabel={isSelectedVariant ? undefined : `第 ${memberIndex + 1} 个${memberTerm}材料预设`}
           showHint={isSelectedVariant}
           className={isSelectedVariant ? "sm:col-span-2" : undefined}
         />
@@ -135,8 +137,8 @@ export function TrussMemberEditor({
         </div>
         {!isSelectedVariant ? (
           <div className="space-y-1">
-            <div className={fieldLabelClass}>杆件类型</div>
-            <DropdownSelect value={member.kind ?? "generic"} onChange={(nextValue) => onUpdate({ kind: nextValue })} options={TRUSS_MEMBER_KIND_OPTIONS} className="min-w-0 text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${memberIndex + 1} 个杆件类型`} />
+            <div className={fieldLabelClass}>{memberTerm}类型</div>
+            <DropdownSelect value={member.kind ?? "generic"} onChange={(nextValue) => onUpdate({ kind: nextValue })} options={TRUSS_MEMBER_KIND_OPTIONS} className="min-w-0 text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${memberIndex + 1} 个${memberTerm}类型`} />
           </div>
         ) : null}
       </div>

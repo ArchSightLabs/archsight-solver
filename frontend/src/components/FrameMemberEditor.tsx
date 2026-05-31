@@ -2,6 +2,7 @@ import { Trash2 } from "lucide-react";
 import { FRAME_MEMBER_KIND_OPTIONS } from "../lib/frame-editor-model.ts";
 import { materialIdForYoungModulus } from "../lib/material-presets.ts";
 import { memberPropertyAriaLabel, memberPropertyLabels } from "../lib/member-property-vocabulary.ts";
+import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import type { StructureMember } from "../types/structure.ts";
 import { DeferredIdInput } from "./ui/DeferredIdInput";
 import { Button } from "./ui/button";
@@ -30,7 +31,8 @@ export function FrameMemberEditor({
   variant,
 }: FrameMemberEditorProps) {
   const isSelectedVariant = variant === "selected";
-  const labelPrefix = isSelectedVariant ? "构件" : `第 ${memberIndex + 1} 个构件`;
+  const memberTerm = modelObjectMemberTerm("frame");
+  const labelPrefix = isSelectedVariant ? memberTerm : `第 ${memberIndex + 1} 个${memberTerm}`;
   const propertyLabels = memberPropertyLabels("frame");
 
   return (
@@ -38,19 +40,19 @@ export function FrameMemberEditor({
       {isSelectedVariant ? (
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className={fieldLabelClass}>当前构件</div>
+            <div className={fieldLabelClass}>当前{memberTerm}</div>
             <div className="mt-1 text-sm font-bold">{member.id}</div>
           </div>
-          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={onRemove} aria-label="删除当前构件">
+          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={onRemove} aria-label={`删除当前${memberTerm}`}>
             <Trash2 className="h-4 w-4 text-rose-300" />
           </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
           <div className="space-y-1">
-            <div className={fieldLabelClass}>构件编号</div>
+            <div className={fieldLabelClass}>{memberTerm}编号</div>
             <DeferredIdInput
-              ariaLabel={`第 ${memberIndex + 1} 个构件编号`}
+              ariaLabel={`第 ${memberIndex + 1} 个${memberTerm}编号`}
               value={member.id}
               onCommit={(nextId) => onUpdate({ id: nextId })}
               className="h-10 min-w-0 font-mono text-xs"
@@ -64,7 +66,7 @@ export function FrameMemberEditor({
               options={nodeOptions}
               className="text-xs font-mono"
               menuClassName="text-xs font-mono"
-              ariaLabel={`第 ${memberIndex + 1} 个构件起点节点`}
+              ariaLabel={`第 ${memberIndex + 1} 个${memberTerm}起点节点`}
             />
           </div>
           <div className="space-y-1">
@@ -75,11 +77,11 @@ export function FrameMemberEditor({
               options={nodeOptions}
               className="text-xs font-mono"
               menuClassName="text-xs font-mono"
-              ariaLabel={`第 ${memberIndex + 1} 个构件终点节点`}
+              ariaLabel={`第 ${memberIndex + 1} 个${memberTerm}终点节点`}
             />
           </div>
           <div className="flex items-end">
-            <Button variant="ghost" size="icon" className="h-10 w-10" onClick={onRemove} aria-label={`删除第 ${memberIndex + 1} 个构件`}>
+            <Button variant="ghost" size="icon" className="h-10 w-10" onClick={onRemove} aria-label={`删除第 ${memberIndex + 1} 个${memberTerm}`}>
               <Trash2 className="h-4 w-4 text-rose-300" />
             </Button>
           </div>
@@ -90,24 +92,24 @@ export function FrameMemberEditor({
         {isSelectedVariant ? (
           <>
             <div className="space-y-1">
-              <div className={fieldLabelClass}>构件编号</div>
+              <div className={fieldLabelClass}>{memberTerm}编号</div>
               <DeferredIdInput
                 key={`selected-member-id-${member.id}`}
-                ariaLabel="构件编号"
+                ariaLabel={`${memberTerm}编号`}
                 value={member.id}
                 onCommit={(nextId) => onUpdate({ id: nextId })}
                 className="h-10 min-w-0 font-mono text-xs"
               />
             </div>
             <div className="space-y-1">
-              <div className={fieldLabelClass}>构件类型</div>
+              <div className={fieldLabelClass}>{memberTerm}类型</div>
               <DropdownSelect
                 value={member.kind ?? "generic"}
                 onChange={(nextValue) => onUpdate({ kind: nextValue })}
                 options={FRAME_MEMBER_KIND_OPTIONS}
                 className="text-xs font-mono"
                 menuClassName="text-xs font-mono"
-                ariaLabel="构件类型"
+                ariaLabel={`${memberTerm}类型`}
               />
             </div>
           </>
@@ -118,10 +120,10 @@ export function FrameMemberEditor({
           onYoungModulusChange={(E_GPa) => onUpdate({ E_GPa })}
           onMaterialChange={(materialId, E_GPa) => onUpdate({ materialId, E_GPa })}
           fieldLabelClass={fieldLabelClass}
-          memberLabel="构件"
+          memberLabel={memberTerm}
           mode="frame"
           label={isSelectedVariant ? undefined : "材料预设"}
-          ariaLabel={isSelectedVariant ? undefined : `第 ${memberIndex + 1} 个构件材料预设`}
+          ariaLabel={isSelectedVariant ? undefined : `第 ${memberIndex + 1} 个${memberTerm}材料预设`}
           showHint={isSelectedVariant}
           className={isSelectedVariant ? "sm:col-span-2" : undefined}
         />
@@ -189,14 +191,14 @@ export function FrameMemberEditor({
         </div>
         {!isSelectedVariant ? (
           <div className="space-y-1">
-            <div className={fieldLabelClass}>构件类型</div>
+            <div className={fieldLabelClass}>{memberTerm}类型</div>
             <DropdownSelect
               value={member.kind ?? "generic"}
               onChange={(nextValue) => onUpdate({ kind: nextValue })}
               options={FRAME_MEMBER_KIND_OPTIONS}
               className="text-xs font-mono"
               menuClassName="text-xs font-mono"
-              ariaLabel={`第 ${memberIndex + 1} 个构件类型`}
+              ariaLabel={`第 ${memberIndex + 1} 个${memberTerm}类型`}
             />
           </div>
         ) : null}
@@ -204,7 +206,7 @@ export function FrameMemberEditor({
 
       <FrameMemberReleaseField
         member={member}
-        memberLabel={isSelectedVariant ? `构件 ${member.id}` : `第 ${memberIndex + 1} 个构件`}
+        memberLabel={isSelectedVariant ? `${memberTerm} ${member.id}` : `第 ${memberIndex + 1} 个${memberTerm}`}
         fieldLabelClass={fieldLabelClass}
         onChange={onUpdate}
         showHint={isSelectedVariant}

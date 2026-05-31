@@ -1,4 +1,5 @@
 import { Trash2 } from "lucide-react";
+import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import { nodeCoordinateAriaLabel, nodeCoordinateLabel, supportAngleApplies, supportAngleAriaLabel, supportAngleHelpText, supportAngleLabel } from "../lib/node-field-vocabulary.ts";
 import type { StructureNode } from "../types/structure.ts";
 import { DeferredIdInput } from "./ui/DeferredIdInput";
@@ -38,6 +39,7 @@ export function FrameNodeEditor({
   memberConnectionExists = () => false,
 }: FrameNodeEditorProps) {
   const isSelectedVariant = variant === "selected";
+  const memberTerm = modelObjectMemberTerm("frame");
   const labelPrefix = isSelectedVariant ? "节点" : `第 ${nodeIndex + 1} 个节点`;
   const xLabel = nodeCoordinateLabel("x");
   const yLabel = nodeCoordinateLabel("y");
@@ -141,7 +143,7 @@ export function FrameNodeEditor({
           nodeOptions={nodeOptions}
           connectionTargetId={connectionTargetId}
           fieldLabelClass={fieldLabelClass}
-          memberTerm="构件"
+          memberTerm={memberTerm}
           duplicateExists={memberConnectionExists}
           onConnectionTargetChange={onConnectionTargetChange ?? (() => undefined)}
           onAddConnection={onAddMemberBetweenNodes ?? (() => undefined)}
