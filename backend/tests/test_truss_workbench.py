@@ -190,6 +190,36 @@ def test_truss_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
     assert len(doc.inline_shapes) == 1 + len(figures)
 
 
+def test_truss_docx_export_control_scope_uses_only_preview_and_control_figure(client):
+    figures = report_figures_for_scope(TRUSS_REPORT_OVERLAY_FIGURES, include_all=False)
+    assert [figure.image_key for figure in figures] == ["truss.overlay.axial"]
+    report_images = {
+        "truss.preview": _report_image(),
+        figures[0].image_key: _report_image(),
+    }
+
+    response = client.post(
+        "/api/export",
+        json={
+            **_base_payload(),
+            "format": "docx",
+            "reportOptions": {"template": "standard", "figureMode": "overlay", "figureScope": "control"},
+            "reportImages": report_images,
+        },
+    )
+
+    assert response.status_code == 200
+    doc = Document(io.BytesIO(response.data))
+    full_text = "\n".join(paragraph.text for paragraph in doc.paragraphs)
+
+    assert "图 2-1 桁架结构预览与节点变形示意（节点、杆件编号、尺寸与荷载标注同图显示；蓝色为放大后的变形线）" in full_text
+    assert "4.1 杆件轴力图" in full_text
+    assert "图 4-1 杆件轴力图（kN，模型叠加工程图）" in full_text
+    assert "节点位移图" not in full_text
+    assert "未收到前端同源模型叠加工程图" not in full_text
+    assert len(doc.inline_shapes) == 2
+
+
 @pytest.mark.parametrize(
     ("mutate_payload", "expected_error"),
     [

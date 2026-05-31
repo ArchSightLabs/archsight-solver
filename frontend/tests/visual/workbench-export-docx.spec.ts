@@ -1,4 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 test.setTimeout(90_000);
 
@@ -25,20 +28,47 @@ type ExportPayload = StructurePayload & {
   reportImages?: Record<string, string>;
 };
 
+type SharedReportFigureCatalog = {
+  frame: { member: Array<{ overlayImageKey: string; scope: "control" | "all" }> };
+  truss: { overlay: Array<{ imageKey: string; scope: "control" | "all" }> };
+};
+
+const specDir = dirname(fileURLToPath(import.meta.url));
+const reportFigureCatalog = JSON.parse(
+  readFileSync(join(specDir, "../../../shared/report-figures.json"), "utf-8"),
+) as SharedReportFigureCatalog;
+
+function controlReportImageKeys(mode: AnalysisMode) {
+  if (mode === "frame") {
+    return [
+      "frame.preview",
+      ...reportFigureCatalog.frame.member
+        .filter((figure) => figure.scope === "control")
+        .map((figure) => figure.overlayImageKey),
+    ];
+  }
+  return [
+    "truss.preview",
+    ...reportFigureCatalog.truss.overlay
+      .filter((figure) => figure.scope === "control")
+      .map((figure) => figure.imageKey),
+  ];
+}
+
 const MODE_LABELS: Record<AnalysisMode, { object: RegExp; run: string; complete: string; filename: string; imageKeys: string[] }> = {
   frame: {
     object: /平面框架-1\s+(平面框架|框架)/,
     run: "运行平面框架计算",
     complete: "平面框架计算完成",
     filename: "平面框架-计算书.docx",
-    imageKeys: ["frame.preview", "frame.overlay.moment"],
+    imageKeys: controlReportImageKeys("frame"),
   },
   truss: {
     object: /平面桁架-1\s+(平面桁架|桁架)/,
     run: "运行平面桁架计算",
     complete: "平面桁架计算完成",
     filename: "平面桁架-计算书.docx",
-    imageKeys: ["truss.preview", "truss.overlay.axial"],
+    imageKeys: controlReportImageKeys("truss"),
   },
 };
 

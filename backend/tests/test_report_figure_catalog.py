@@ -20,6 +20,7 @@ def test_report_figure_catalog_keeps_engineering_order():
 def test_report_figure_catalog_control_scope_only_keeps_control_figures():
     assert [figure.metric_key for figure in report_figures_for_scope(FRAME_REPORT_MEMBER_FIGURES, include_all=False)] == ["momentKnM"]
     assert [figure.metric for figure in report_figures_for_scope(BEAM_REPORT_OVERLAY_FIGURES, include_all=False)] == ["moment"]
+    assert [figure.metric for figure in report_figures_for_scope(TRUSS_REPORT_OVERLAY_FIGURES, include_all=False)] == ["axial"]
 
 
 def _shared_catalog():

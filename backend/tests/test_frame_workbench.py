@@ -318,6 +318,38 @@ def test_frame_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
     assert len(doc.inline_shapes) == 1 + len(figures)
 
 
+def test_frame_docx_export_control_scope_uses_only_preview_and_control_figure(client):
+    figures = report_figures_for_scope(FRAME_REPORT_MEMBER_FIGURES, include_all=False)
+    assert [figure.overlay_image_key for figure in figures] == ["frame.overlay.moment"]
+    report_images = {
+        "frame.preview": _report_image(),
+        figures[0].overlay_image_key: _report_image(),
+    }
+
+    response = client.post(
+        "/api/export",
+        json={
+            **frame_payload(),
+            "format": "docx",
+            "reportOptions": {"template": "standard", "figureMode": "overlay", "figureScope": "control"},
+            "reportImages": report_images,
+        },
+    )
+
+    assert response.status_code == 200
+    doc = Document(io.BytesIO(response.data))
+    full_text = "\n".join(paragraph.text for paragraph in doc.paragraphs)
+
+    assert "图 2-1 结构预览与变形示意（节点、构件编号、尺寸与荷载标注同图显示；蓝色为放大后的变形线）" in full_text
+    assert "4.1 构件弯矩图（模型叠加）" in full_text
+    assert "图 4-1 构件弯矩图（kN·m，模型叠加工程图）" in full_text
+    assert "构件剪力图" not in full_text
+    assert "局部 y 向挠度图" not in full_text
+    assert "构件轴力图" not in full_text
+    assert "未收到前端同源模型叠加工程图" not in full_text
+    assert len(doc.inline_shapes) == 2
+
+
 def test_frame_exports_include_load_combination_tags(client):
     xlsx_response = client.post("/api/export", json={**frame_payload_with_combination_tags(), "format": "xlsx"})
     assert xlsx_response.status_code == 200
