@@ -8,6 +8,7 @@ import pandas as pd
 from backend.benchmarks.catalog import load_benchmark_catalog
 from backend.exporters.common.analysis_assumptions import analysis_assumption_table_rows
 from backend.common.support_catalog import support_constraint_dofs, support_label, support_system_note
+from backend.exporters.common.member_materials import member_elasticity_summary
 
 DOF_LABELS = {
     "ux": "ux 水平位移",
@@ -128,9 +129,12 @@ def _frame_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str
             [
                 ["结构类型", "二维平面框架"],
                 ["材料名称", material_name],
+                ["材料适用范围", "材料名称为项目默认材料说明；框架整体刚度按各构件 E_GPa / A_cm2 / I_cm4 输入装配。"],
+                ["构件弹性模量分布", member_elasticity_summary(structure.get("members", []), "构件")],
                 ["节点数量", len(structure.get("nodes", []))],
                 ["构件数量", len(structure.get("members", []))],
                 ["荷载数量", len(structure.get("loads", []))],
+                ["支座体系说明", support_system_note("frame")],
                 ["原始输入单位", "E: GPa；A: cm^2；I: cm^4；节点荷载: kN/kN.m；分布荷载: kN/m"],
             ],
             columns=["项目", "数值/说明"],
@@ -184,9 +188,12 @@ def _truss_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str
             [
                 ["结构类型", "二维平面桁架"],
                 ["材料名称", material_name],
+                ["材料适用范围", "材料名称为项目默认材料说明；桁架整体刚度按各杆件 E_GPa / A_cm2 输入装配。"],
+                ["杆件弹性模量分布", member_elasticity_summary(structure.get("members", []), "杆件")],
                 ["节点数量", len(structure.get("nodes", []))],
                 ["杆件数量", len(structure.get("members", []))],
                 ["荷载数量", len(structure.get("loads", []))],
+                ["支座体系说明", support_system_note("truss")],
                 ["原始输入单位", "E: GPa；A: cm^2；节点荷载: kN；杆件轴力: kN"],
             ],
             columns=["项目", "数值/说明"],
