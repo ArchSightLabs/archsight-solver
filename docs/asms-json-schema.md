@@ -84,9 +84,10 @@ Schema：`asms-beam-model`
 字段说明：
 
 - `beamType`：`continuous`、`simply_supported`、`cantilever`。
-- `loadType`：`uniform`、`point`、`linear`。
+- `loadType`：`none`、`uniform`、`point`、`linear`、`distributed`、`combined`。
 - `spans`：跨长数组，单位 m。
 - `spanProperties`：逐跨材料与截面参数，优先级高于全局 `E` / `I`。
+- `spanProperties[].materialId`：跨段材料库编号；用于保留材料语义，`E` / `I` 仍是梁单元刚度计算输入。
 - `supports`：自定义支座数组，用于连续梁或非标准边界。
 - `loads`：叠加荷载数组，用于多荷载工况。
 

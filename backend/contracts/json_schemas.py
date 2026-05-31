@@ -286,6 +286,10 @@ ASMS_BEAM_MODEL_SCHEMA: Dict[str, Any] = {
                 "properties": {
                     "id": {"type": "string", "description": "梁杆件编号。"},
                     "memberId": {"type": "string", "description": "梁杆件编号兼容字段。"},
+                    "materialId": {
+                        "type": "string",
+                        "description": "跨段材料库编号；用于保留材料语义，E / I 仍是梁单元刚度计算输入。",
+                    },
                     "E": {"type": "number", "description": "弹性模量，单位 GPa。"},
                     "I": {"type": "number", "description": "截面惯性矩，单位 cm^4。"},
                 },

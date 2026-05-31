@@ -106,6 +106,8 @@ Content-Type: application/json
 - `summary.maxShearKn`：最大剪力，单位 kN。
 - `beam.supports`：支座信息。
 
+梁系逐跨参数：`spanProperties[].materialId` 为跨段材料库编号，用于保留材料语义；`E` / `I` 仍是梁单元刚度计算输入。
+
 ### 二维平面框架示例
 
 ```json

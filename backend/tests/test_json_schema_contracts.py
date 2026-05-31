@@ -84,6 +84,42 @@ def test_frame_and_truss_member_schemas_expose_material_id():
         assert "E_GPa" in member_properties["materialId"]["description"]
 
 
+def test_beam_span_properties_expose_material_id_across_stack():
+    registry = schema_registry()
+    openapi = build_openapi_document()
+
+    for schema in (registry["asms-beam-model"], openapi["components"]["schemas"]["asms-beam-model"]):
+        span_properties = schema["properties"]["spanProperties"]["items"]["properties"]
+
+        assert {"id", "memberId", "materialId", "E", "I"}.issubset(span_properties)
+        assert span_properties["materialId"]["type"] == "string"
+        assert "跨段材料库编号" in span_properties["materialId"]["description"]
+        assert "E / I" in span_properties["materialId"]["description"]
+
+    _assert_source_contains(
+        "frontend/src/types/beam.ts",
+        [
+            "spanProperties?: Array<{",
+            "materialId?: string",
+        ],
+    )
+    _assert_source_contains(
+        "frontend/src/solver-payload.ts",
+        [
+            "spanProperties:",
+            "materialId: span.materialId",
+        ],
+    )
+    for doc_path in ("docs/api-reference.md", "docs/asms-json-schema.md"):
+        _assert_source_contains(
+            doc_path,
+            [
+                "spanProperties[].materialId",
+                "梁单元刚度计算输入",
+            ],
+        )
+
+
 def test_cross_stack_critical_field_matrix_is_in_sync():
     registry = schema_registry()
     openapi = build_openapi_document()
