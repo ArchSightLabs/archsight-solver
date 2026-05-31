@@ -153,6 +153,7 @@ export function FrameNodeEditor({
         fieldLabelClass={fieldLabelClass}
         onChange={(springs) => onUpdate({ springs })}
         showHint={isSelectedVariant}
+        compactWhenEmpty={!isSelectedVariant}
       />
     </div>
   );

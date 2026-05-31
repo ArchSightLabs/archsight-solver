@@ -13,6 +13,10 @@ import {
   beamSupportNote,
   beamSupportStateDetail,
   beamSupportSummary,
+  frameSpringBoundaryAddLabel,
+  frameSpringBoundaryEmptyHint,
+  frameSpringBoundaryHint,
+  frameSpringBoundaryTitle,
   frameNodeSupportDofStates,
   frameNodeSupportStateDetail,
   frameNodeSupportSummary,
@@ -125,6 +129,14 @@ test("框架和桁架节点边界显式拆成自由度状态", () => {
     trussSupportDofStates("roller").map((state) => [state.dof, state.mode]),
     [["ux", "free"], ["uy", "fixed"]],
   );
+});
+
+test("框架节点弹性约束入口使用共享短文案", () => {
+  assert.equal(frameSpringBoundaryTitle(), "节点弹性约束");
+  assert.match(frameSpringBoundaryHint(), /ux、uy 或 rz/u);
+  assert.match(frameSpringBoundaryHint(), /0 刚度不作为有效边界/u);
+  assert.equal(frameSpringBoundaryEmptyHint(), "未设置弹性约束；普通边界直接使用支座预设。");
+  assert.equal(frameSpringBoundaryAddLabel(), "添加弹性约束");
 });
 
 test("节点坐标和滚动支座角标签显式显示工程单位", () => {

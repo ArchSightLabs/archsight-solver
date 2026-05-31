@@ -88,6 +88,22 @@ export const TRUSS_SUPPORT_DOF_ROWS: TrussSupportDofRow[] = [
   { dof: "uy", label: "竖向位移 uy" },
 ];
 
+export function frameSpringBoundaryTitle(): string {
+  return "节点弹性约束";
+}
+
+export function frameSpringBoundaryHint(): string {
+  return "为平面框架节点的 ux、uy 或 rz 附加有限刚度；0 刚度不作为有效边界。";
+}
+
+export function frameSpringBoundaryEmptyHint(): string {
+  return "未设置弹性约束；普通边界直接使用支座预设。";
+}
+
+export function frameSpringBoundaryAddLabel(): string {
+  return "添加弹性约束";
+}
+
 function supportOptions<T extends string>(group: SupportGroup): Array<SupportOption<T>> {
   return SUPPORT_CATALOG[group].map((option) => ({
     value: option.value as T,
