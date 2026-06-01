@@ -28,6 +28,7 @@ import { Button } from "./components/ui/button";
 import { useTemplateLibrary } from "./hooks/useTemplateLibrary";
 import { createWorkspaceSnapshot, restoreWorkspaceSnapshot } from "./lib/template-library";
 import { materialLibraryFromCustomMaterials } from "./lib/material-presets";
+import { analysisVocabulary } from "./lib/analysis-vocabulary";
 import type { ProjectInfo } from "./lib/solver-project";
 import { moduleSectionsForMode, normalizeModuleSectionId, objectNavigatorSectionId } from "./lib/workbench-navigation";
 import { ARCHSIGHT_SOLVER_PROJECT_ACCEPT } from "./lib/project-file";
@@ -582,26 +583,35 @@ function App() {
 
       {isTemplateLibraryOpen && typeof document !== "undefined" ? createPortal(
         <div
-          className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-6"
+          className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
-          aria-label="模板库"
+          aria-labelledby="template-library-dialog-title"
           onClick={() => setIsTemplateLibraryOpen(false)}
         >
           <div
-            className="relative flex h-[92dvh] max-h-[58rem] min-h-0 w-full max-w-[76rem] flex-col rounded-lg border border-slate-200 bg-background/95 shadow-2xl dark:border-white/10 sm:h-[86dvh] sm:min-h-[34rem]"
+            className="flex max-h-[92vh] min-h-0 w-full max-w-[64rem] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-950"
             onClick={(event) => event.stopPropagation()}
           >
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setIsTemplateLibraryOpen(false)}
-              aria-label="关闭模板库"
-              className="absolute right-4 top-4 z-20 h-10 w-10 rounded-lg border-slate-200 bg-white text-slate-900 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100 dark:hover:bg-white/[0.08]"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-            <div className={`flex-1 overflow-y-auto custom-scrollbar ${isCompactWorkbench ? "p-3 pt-14" : "p-5"}`}>
+            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3.5 dark:border-white/10 sm:px-5">
+              <div>
+                <div className="text-xs font-bold text-muted-foreground">
+                  {analysisVocabulary(analysisMode).systemLabel}工作区快照
+                </div>
+                <h3 id="template-library-dialog-title" className="text-lg font-black tracking-tight">
+                  模板库
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTemplateLibraryOpen(false)}
+                className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                aria-label="关闭模板库"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className={`flex-1 overflow-y-auto custom-scrollbar ${isCompactWorkbench ? "p-3" : "p-5"}`}>
               <TemplateLibraryPanel
                 templates={templates}
                 baselineTemplateId={baselineTemplateId}

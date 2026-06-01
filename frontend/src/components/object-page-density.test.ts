@@ -39,6 +39,17 @@ test("工程设置入口归属工程树，工程材料并入同一设置弹窗",
   assert.doesNotMatch(systemSettings, /工程自定义材料|新增或更新材料|onCustomMaterialsChange/u);
 });
 
+test("模板库弹窗沿用工作台紧凑弹窗和列表行风格", () => {
+  const appSource = readFileSync(new URL("../App.tsx", import.meta.url), "utf-8");
+  const templateLibrary = componentSource("TemplateLibraryPanel.tsx");
+
+  assert.match(appSource, /template-library-dialog-title/u);
+  assert.match(appSource, /border-b border-slate-200 px-4 py-3\.5/u);
+  assert.doesNotMatch(templateLibrary, /GlassCard|GlassHeader|rounded-3xl|grid-cols-2 gap-2/u);
+  assert.match(templateLibrary, /aria-label="模板列表"/u);
+  assert.match(templateLibrary, /lg:grid-cols-\[minmax\(0,1fr\)_auto\]/u);
+});
+
 test("对象导航芯片不再把成员截面摘要作为可见第二行", () => {
   const sources = [
     componentSource("BeamObjectNavigator.tsx"),
