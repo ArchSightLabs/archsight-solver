@@ -15,6 +15,7 @@ RUN npm ci
 COPY frontend/ ./
 COPY CHANGELOG.md /app/CHANGELOG.md
 COPY data/ /app/data/
+COPY shared/ /app/shared/
 RUN NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
 FROM ${PYTHON_IMAGE} AS runtime
@@ -38,6 +39,8 @@ COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 COPY app.py ./app.py
 COPY backend ./backend
 COPY config ./config
+COPY data ./data
+COPY shared ./shared
 # 确保 app 用户对程序目录有读写权限（用于创建日志等）
 RUN chown -R app:app /app
 
