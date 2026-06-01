@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "清理后端调试端口",
+            "label": "清理后端端口",
             "type": "process",
             "command": "powershell.exe",
             "args": [
@@ -16,13 +16,15 @@
             ],
             "problemMatcher": [],
             "presentation": {
-                "reveal": "always",
+                "reveal": "silent",
                 "panel": "dedicated",
-                "clear": true
+                "clear": true,
+                "close": true,
+                "showReuseMessage": false
             }
         },
         {
-            "label": "清理前端调试端口",
+            "label": "清理前端端口",
             "type": "process",
             "command": "powershell.exe",
             "args": [
@@ -36,65 +38,21 @@
             ],
             "problemMatcher": [],
             "presentation": {
-                "reveal": "always",
+                "reveal": "silent",
                 "panel": "dedicated",
-                "clear": true
+                "clear": true,
+                "close": true,
+                "showReuseMessage": false
             }
         },
         {
-            "label": "清理全栈调试端口",
+            "label": "清理调试端口",
             "dependsOn": [
-                "清理后端调试端口",
-                "清理前端调试端口"
+                "清理后端端口",
+                "清理前端端口"
             ],
             "dependsOrder": "sequence",
             "problemMatcher": []
-        },
-        {
-            "label": "前端 Vite HMR",
-            "type": "process",
-            "command": "npm.cmd",
-            "args": [
-                "run",
-                "dev",
-                "--",
-                "--host",
-                "127.0.0.1",
-                "--port",
-                "6241",
-                "--strictPort"
-            ],
-            "options": {
-                "cwd": "${workspaceFolder}/frontend",
-                "env": {
-                    "BEAM_SOLVER_FRONTEND_HOST": "127.0.0.1",
-                    "BEAM_SOLVER_FRONTEND_PORT": "6241",
-                    "BEAM_SOLVER_BACKEND_TARGET": "http://127.0.0.1:6240"
-                }
-            },
-            "dependsOn": "清理前端调试端口",
-            "dependsOrder": "sequence",
-            "isBackground": true,
-            "problemMatcher": {
-                "owner": "vite",
-                "pattern": [
-                    {
-                        "regexp": "^__vite_problem__:(.*):(.*)$",
-                        "file": 1,
-                        "message": 2
-                    }
-                ],
-                "background": {
-                    "activeOnStart": true,
-                    "beginsPattern": ".+",
-                    "endsPattern": ".*(ready in|Local:|http://127\\.0\\.0\\.1:6241|http://localhost:6241).*"
-                }
-            },
-            "presentation": {
-                "reveal": "always",
-                "panel": "dedicated",
-                "clear": true
-            }
         }
     ]
 }

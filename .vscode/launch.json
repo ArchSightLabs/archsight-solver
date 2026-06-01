@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: 后端 Flask 调试（无重载）",
+            "name": "后端 Flask",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/app.py",
@@ -12,8 +12,8 @@
             "justMyCode": true,
             "subProcess": false,
             "cwd": "${workspaceFolder}",
-            "preLaunchTask": "清理后端调试端口",
-            "postDebugTask": "清理后端调试端口",
+            "preLaunchTask": "清理后端端口",
+            "postDebugTask": "清理后端端口",
             "env": {
                 "FLASK_APP": "app.py",
                 "FLASK_DEBUG": "1",
@@ -24,13 +24,36 @@
             }
         },
         {
-            "name": "Chrome: 调试前端页面",
+            "name": "前端 Vite",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "npm.cmd",
+            "runtimeArgs": [
+                "run",
+                "dev",
+                "--",
+                "--host",
+                "127.0.0.1",
+                "--port",
+                "6241",
+                "--strictPort"
+            ],
+            "cwd": "${workspaceFolder}/frontend",
+            "console": "integratedTerminal",
+            "preLaunchTask": "清理前端端口",
+            "postDebugTask": "清理前端端口",
+            "env": {
+                "BEAM_SOLVER_FRONTEND_HOST": "127.0.0.1",
+                "BEAM_SOLVER_FRONTEND_PORT": "6241",
+                "BEAM_SOLVER_BACKEND_TARGET": "http://127.0.0.1:6240"
+            }
+        },
+        {
+            "name": "前端 Chrome",
             "type": "chrome",
             "request": "launch",
             "url": "http://127.0.0.1:6241",
             "webRoot": "${workspaceFolder}/frontend/src",
-            "preLaunchTask": "前端 Vite HMR",
-            "postDebugTask": "清理前端调试端口",
             "sourceMapPathOverrides": {
                 "webpack:///./src/*": "${webRoot}/*"
             }
@@ -38,12 +61,12 @@
     ],
     "compounds": [
         {
-            "name": "全栈开发（后端调试 + 前端 HMR）",
+            "name": "全栈开发",
             "configurations": [
-                "Python: 后端 Flask 调试（无重载）",
-                "Chrome: 调试前端页面"
+                "后端 Flask",
+                "前端 Vite"
             ],
-            "stopAll": true
+            "stopAll": false
         }
     ]
 }
