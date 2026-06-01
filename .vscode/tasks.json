@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "\u6e05\u7406\u540e\u7aef\u8c03\u8bd5\u7aef\u53e3",
+            "label": "清理后端调试端口",
             "type": "shell",
             "command": "powershell",
             "args": [
@@ -22,7 +22,7 @@
             }
         },
         {
-            "label": "\u6e05\u7406\u524d\u7aef\u8c03\u8bd5\u7aef\u53e3",
+            "label": "清理前端调试端口",
             "type": "shell",
             "command": "powershell",
             "args": [
@@ -42,7 +42,16 @@
             }
         },
         {
-            "label": "\u524d\u7aef Vite HMR",
+            "label": "清理全栈调试端口",
+            "dependsOn": [
+                "清理后端调试端口",
+                "清理前端调试端口"
+            ],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
+        },
+        {
+            "label": "前端 Vite HMR",
             "type": "shell",
             "command": "npm.cmd",
             "args": [
@@ -63,18 +72,20 @@
                     "BEAM_SOLVER_BACKEND_TARGET": "http://127.0.0.1:6240"
                 }
             },
+            "dependsOn": "清理全栈调试端口",
+            "dependsOrder": "sequence",
             "isBackground": true,
             "problemMatcher": {
                 "owner": "vite",
                 "pattern": [
                     {
-                        "regexp": "^(?!.*)$"
+                        "regexp": "^$"
                     }
                 ],
                 "background": {
                     "activeOnStart": true,
-                    "beginsPattern": ".*",
-                    "endsPattern": ".*http://127\\.0\\.0\\.1:6241/.*"
+                    "beginsPattern": ".+",
+                    "endsPattern": ".*(ready in|Local:|http://127\\.0\\.0\\.1:6241|http://localhost:6241).*"
                 }
             },
             "presentation": {
@@ -82,24 +93,6 @@
                 "panel": "dedicated",
                 "clear": true
             }
-        },
-        {
-            "label": "\u542f\u52a8\u524d\u7aef Vite HMR",
-            "dependsOn": [
-                "\u6e05\u7406\u524d\u7aef\u8c03\u8bd5\u7aef\u53e3",
-                "\u524d\u7aef Vite HMR"
-            ],
-            "dependsOrder": "sequence",
-            "problemMatcher": []
-        },
-        {
-            "label": "\u542f\u52a8\u5168\u6808\u8c03\u8bd5\u524d\u7f6e\u4efb\u52a1",
-            "dependsOn": [
-                "\u6e05\u7406\u540e\u7aef\u8c03\u8bd5\u7aef\u53e3",
-                "\u542f\u52a8\u524d\u7aef Vite HMR"
-            ],
-            "dependsOrder": "sequence",
-            "problemMatcher": []
         }
     ]
 }
