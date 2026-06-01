@@ -3,6 +3,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
+from backend.benchmarks.report import build_report
 from backend.benchmarks.runner import evaluate_benchmark_case_by_id, evaluate_benchmark_suite
 
 
@@ -21,3 +22,10 @@ def test_benchmark_runner_executes_suite():
     assert result["total"] >= 10
     assert result["failed"] == 0
 
+
+def test_benchmark_report_keeps_public_examples_entrypoint():
+    report = build_report()
+
+    assert "## 界面入口" in report
+    assert "GET /api/examples/projects" in report
+    assert "公开案例" in report

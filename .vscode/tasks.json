@@ -3,8 +3,8 @@
     "tasks": [
         {
             "label": "清理后端调试端口",
-            "type": "shell",
-            "command": "powershell",
+            "type": "process",
+            "command": "powershell.exe",
             "args": [
                 "-NoProfile",
                 "-ExecutionPolicy",
@@ -23,8 +23,8 @@
         },
         {
             "label": "清理前端调试端口",
-            "type": "shell",
-            "command": "powershell",
+            "type": "process",
+            "command": "powershell.exe",
             "args": [
                 "-NoProfile",
                 "-ExecutionPolicy",
@@ -52,7 +52,7 @@
         },
         {
             "label": "前端 Vite HMR",
-            "type": "shell",
+            "type": "process",
             "command": "npm.cmd",
             "args": [
                 "run",
@@ -72,14 +72,16 @@
                     "BEAM_SOLVER_BACKEND_TARGET": "http://127.0.0.1:6240"
                 }
             },
-            "dependsOn": "清理全栈调试端口",
+            "dependsOn": "清理前端调试端口",
             "dependsOrder": "sequence",
             "isBackground": true,
             "problemMatcher": {
                 "owner": "vite",
                 "pattern": [
                     {
-                        "regexp": "^$"
+                        "regexp": "^__vite_problem__:(.*):(.*)$",
+                        "file": 1,
+                        "message": 2
                     }
                 ],
                 "background": {

@@ -2,55 +2,18 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "全栈开发（后端调试 + 前端 HMR）",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "flask",
-            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
-            "args": [
-                "run",
-                "--debug",
-                "--no-reload",
-                "--host",
-                "127.0.0.1",
-                "--port",
-                "6240"
-            ],
-            "console": "integratedTerminal",
-            "justMyCode": true,
-            "subProcess": false,
-            "cwd": "${workspaceFolder}",
-            "preLaunchTask": "前端 Vite HMR",
-            "postDebugTask": "清理前端调试端口",
-            "env": {
-                "FLASK_APP": "app.py",
-                "FLASK_DEBUG": "1",
-                "FLASK_RUN_RELOAD": "0",
-                "BEAM_SOLVER_BACKEND_HOST": "127.0.0.1",
-                "BEAM_SOLVER_BACKEND_PORT": "6240",
-                "PYDEVD_DISABLE_FILE_VALIDATION": "1"
-            }
-        },
-        {
             "name": "Python: 后端 Flask 调试（无重载）",
             "type": "debugpy",
             "request": "launch",
-            "module": "flask",
+            "program": "${workspaceFolder}/app.py",
             "python": "${workspaceFolder}/.venv/Scripts/python.exe",
-            "args": [
-                "run",
-                "--debug",
-                "--no-reload",
-                "--host",
-                "127.0.0.1",
-                "--port",
-                "6240"
-            ],
+            "args": [],
             "console": "integratedTerminal",
             "justMyCode": true,
             "subProcess": false,
             "cwd": "${workspaceFolder}",
             "preLaunchTask": "清理后端调试端口",
+            "postDebugTask": "清理后端调试端口",
             "env": {
                 "FLASK_APP": "app.py",
                 "FLASK_DEBUG": "1",
@@ -67,9 +30,20 @@
             "url": "http://127.0.0.1:6241",
             "webRoot": "${workspaceFolder}/frontend/src",
             "preLaunchTask": "前端 Vite HMR",
+            "postDebugTask": "清理前端调试端口",
             "sourceMapPathOverrides": {
                 "webpack:///./src/*": "${webRoot}/*"
             }
+        }
+    ],
+    "compounds": [
+        {
+            "name": "全栈开发（后端调试 + 前端 HMR）",
+            "configurations": [
+                "Python: 后端 Flask 调试（无重载）",
+                "Chrome: 调试前端页面"
+            ],
+            "stopAll": true
         }
     ]
 }

@@ -20,6 +20,12 @@
 
 如果改动涉及计算结果，请补充或更新对应的回归用例。
 
+如果改动涉及材料、支座、节点、跨段/构件/杆件、荷载、荷载工况/组合、文本模型字段或计算书导出字段，请先同步共享契约或共享词表，再补前端 payload、后端 schema、公开文档和漂移测试。不要只改 UI、API 或导出中的单一入口。
+
+如果改动涉及内置模板，请同步检查 `data/verification/template_benchmark_map.json`；没有直接公开 benchmark 时，应明确标注“相近/相关”，并记录后续专项算例需求。
+
+如果改动涉及计算书图形或结果插图，请同步检查 `shared/report-figures.json`、前端 `reportImages`、后端 DOCX 插图断言和 `npm --prefix frontend run test:visual:export-docx` 的适用性。
+
 如果改动涉及版本发布记录，请只维护根目录 `CHANGELOG.md`；前端静态发布记录通过 `npm --prefix frontend run sync:release-notes` 生成，`npm --prefix frontend run build` 会在构建前自动同步。
 
 如果改动涉及私有部署、高级分析、三维求解、规范校核或客户场景，请先开 issue 讨论边界。

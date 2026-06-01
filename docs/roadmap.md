@@ -128,6 +128,9 @@ ArchSight Solver 是面向结构工程师、高校教师和进阶学习者的开
 
 - 新增路线项必须说明对应结构类型、响应指标、验证方式和非目标影响。
 - 新增模板、导出字段或 API 字段必须同步检查 README、能力边界、API 参考和测试。
+- 新增会跨越 UI、API、CLI/MCP、文本模型或计算书导出的专业字段时，先更新 `shared/asms-contract-fields.json` 或对应共享词表，再补前端 payload、后端 schema、公开文档和漂移测试。
+- 新增计算书图形或结果插图时，先更新 `shared/report-figures.json` 或共享图形目录，再补前端同源 `reportImages`、后端 DOCX 媒体断言和必要的浏览器导出回归。
+- 新增内置模板时，必须同步评估 `data/verification/template_benchmark_map.json`；没有直接 benchmark 时应标注“相近/相关”并在路线或任务中记录专项补充需求。
 - v1.2 后的中英双语与全球开源定位升级按 [中英双语与全球开源定位方案](global-open-source-i18n-plan.md) 分阶段推进，不混入当前发布收尾。
 - 新增功能若不能进入 benchmark、测试或可复核样例，应先作为实验能力处理，不写入主路线承诺。
 - 路线图只保留阶段方向和验收口径；具体任务拆分应放在 issue、PRD 或任务清单中。
