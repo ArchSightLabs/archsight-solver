@@ -124,7 +124,7 @@
       <article class="release">
         <div class="release-head">
           <h2>v1.3.0</h2>
-          <span class="date">发布时间：2026-06-01</span>
+          <span class="date">发布时间：2026-06-02</span>
         </div>
           <p class="section-label">相对 v1.2.0 的发布定位</p>
           <ul>
@@ -141,6 +141,8 @@
             <li>对象摘要、基本页、结果页受力变形、荷载编辑器、模板库和计算书选项统一使用共享对象词表；框架使用“构件”，桁架使用“杆件”，梁系使用“跨段 / 支座”，降低跨模块术语漂移。</li>
             <li>主控建模画布改为按模型规模自适应显示，普通模板默认完整可读，高密度模型才进入低倍缩放与可平移画布；标签布局增加遮挡控制，降低大模型节点、构件/杆件、荷载和尺寸标注混叠风险。</li>
             <li>结果页收敛为统一的内容区、指标选择器、结果工具栏和工程图预览结构，敏感性分析响应指标从共享结果指标目录派生。</li>
+            <li>**受力变形主视图升级**：统一三类分析对象的“受力变形”主视图，支持位移倍率和未变形结构、极值、荷载图层的动态显隐控制；优化实际变形比例下大跨结构内力图和位移图的视觉表现与可读性。</li>
+            <li>**视觉风格与信息密度收口**：收紧基本页、系统设置面板、模板库等界面的文本说明与密度，降低用户的视觉断层；统一应用内 SVG 工程图（字重、标号）、ECharts 数据曲线与 DOCX 计算书导出图形的线条粗细（统一向 1.5 基准靠拢），消除视觉割裂。</li>
           </ul>
           <p class="section-label">模板、公开案例与验证集</p>
           <ul>
@@ -173,8 +175,9 @@
             <li>新增结构力学入门文档，覆盖三类分析对象、支座类型、梁系、桁架、框架、符号与方向约定，帮助开发者、学生和贡献者理解当前开源核心的力学边界。</li>
             <li>更新 README、能力边界、API Reference、ASMS-JSON、Agent 工程流、Agent 集成和公开路线图，明确“可验证、可复核、可导出”的开源核心定位。</li>
             <li>新增部署模板与运维脚本：Docker Compose 示例、Nginx 示例、部署说明、镜像构建脚本、远程部署脚本和端口清理脚本，补齐公开发布后的私有部署入口。</li>
-            <li>新增 <code>AGENTS.md</code>、<code>CLAUDE.md</code>、<code>GEMINI.md</code> 和 <code>AI_CODING_RULES.md</code>，把项目定位、结构工程术语、中文输出、版本同步和验证要求沉淀为 AI 编码入口。</li>
+            <li>新增 <code>AGENTS.md</code>、<code>CLAUDE.md</code>、<code>GEMINI.md</code> 和 <code>AI_CODING_RULES.md</code>，把项目定位、结构工程术语、中文输出、版本同步和验证要求沉淀为 AI 编码入口。特别固化了强制结构化提交流程（包含 Constraint, Rejected, Directive 等字段）以保证协作上下文透明。</li>
             <li>前端单元测试入口收敛为 <code>npm --prefix frontend run test:unit</code>，计算书图形导出增加 Chromium / Firefox / WebKit 三浏览器矩阵入口，发布构建前自动从 <code>CHANGELOG.md</code> 同步前端 release notes。</li>
+            <li>梳理 VS Code 及本地全栈调试（Antigravity）入口，修复调试启动顺序。</li>
           </ul>
           <p class="section-label">质量门禁</p>
           <ul>
