@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Button } from "./ui/button";
-import { Plus, Triangle, Sparkles } from "lucide-react";
+import { Plus, Triangle } from "lucide-react";
 import { TrussLoadEditor } from "./TrussLoadEditor";
 import { TrussBasicSection } from "./TrussBasicSection";
 import { TrussMemberEditor } from "./TrussMemberEditor";
@@ -31,7 +31,7 @@ import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
 import { memberElasticityDistributionLabel, youngModulusForMaterial } from "../lib/material-presets.ts";
 import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import { trussSupportStabilityWarning } from "../solver-payload.ts";
-import { PREDEFINED_MATERIALS } from "../types/material.ts";
+import type { Material } from "../types/material.ts";
 import type { TrussLoad, TrussMember, TrussNode } from "../types/structure.ts";
 import type { TrussWorkbenchSelection, WorkbenchSelectionOptions } from "../types/workbench-selection.ts";
 
@@ -40,6 +40,7 @@ type TrussCollections = TrussEditorCollections;
 interface TrussCustomModelEditorProps {
   value: TrussCollections;
   materialId: string;
+  materialLibrary: Material[];
   onChange: (next: TrussCollections) => void;
   onMaterialChange: (nextMaterialId: string) => void;
   activeSectionId?: string;
@@ -50,6 +51,7 @@ interface TrussCustomModelEditorProps {
 export function TrussCustomModelEditor({
   value,
   materialId,
+  materialLibrary,
   onChange,
   onMaterialChange,
   activeSectionId,
@@ -108,10 +110,10 @@ export function TrussCustomModelEditor({
   }, [selectedObject, selection, value.loads, value.members, value.nodes]);
   const supportCount = value.nodes.filter((node) => (node.supportType ?? "free") !== "free").length;
   const memberElasticitySummary = useMemo(
-    () => memberElasticityDistributionLabel(value.members, memberTerm),
-    [memberTerm, value.members],
+    () => memberElasticityDistributionLabel(value.members, memberTerm, materialId, materialLibrary),
+    [materialId, materialLibrary, memberTerm, value.members],
   );
-  const defaultMemberElasticityGPa = youngModulusForMaterial(materialId, 210);
+  const defaultMemberElasticityGPa = youngModulusForMaterial(materialId, 210, materialLibrary);
   const modelWarnings = useMemo(() => {
     const warnings: string[] = [];
     const nodeIds = new Set(value.nodes.map((node) => node.id));
@@ -269,6 +271,7 @@ export function TrussCustomModelEditor({
           member={member}
           memberIndex={index}
           nodeOptions={nodeOptions}
+          materialLibrary={materialLibrary}
           fieldLabelClass={fieldLabelClass}
           onUpdate={(patch) => updateMember(index, patch)}
           onRemove={() => removeMember(index)}
@@ -301,7 +304,7 @@ export function TrussCustomModelEditor({
       {isSectionVisible("truss-basic") ? (
       <TrussBasicSection
         materialId={materialId}
-        materialLibrary={PREDEFINED_MATERIALS}
+        materialLibrary={materialLibrary}
         memberElasticitySummary={memberElasticitySummary}
         nodeCount={value.nodes.length}
         memberCount={value.members.length}
@@ -327,12 +330,6 @@ export function TrussCustomModelEditor({
 
       {isSectionVisible("truss-template") ? (
       <section id="truss-template" className="space-y-3 rounded-2xl border border-white/8 bg-white/[0.03] p-4 scroll-mt-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="eyebrow flex items-center gap-2">
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
-            模板
-          </div>
-        </div>
         <div className="grid grid-cols-1 gap-2">
           {TRUSS_MODEL_TEMPLATES.map((template, index) => (
             <button
@@ -369,6 +366,7 @@ export function TrussCustomModelEditor({
       <TrussObjectNavigator
         nodes={value.nodes}
         members={value.members}
+        materialLibrary={materialLibrary}
         nodeOptions={nodeOptions}
         loadOptions={loadOptions}
         selectedObject={resolvedSelectedObject}

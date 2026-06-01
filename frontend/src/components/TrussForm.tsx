@@ -1,10 +1,12 @@
 import { TrussCustomModelEditor } from "./TrussCustomModelEditor";
 import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
+import type { Material } from "../types/material.ts";
 import type { TrussWorkspaceState } from "../types/structure.ts";
 import type { TrussWorkbenchSelection, WorkbenchSelectionOptions } from "../types/workbench-selection.ts";
 
 interface TrussFormProps {
   value: TrussWorkspaceState;
+  materialLibrary: Material[];
   onChange: (next: TrussWorkspaceState) => void;
   activeSectionId?: string;
   selection?: TrussWorkbenchSelection | null;
@@ -13,7 +15,7 @@ interface TrussFormProps {
 
 const DEFAULT_SECTION_ID = "truss-template";
 
-export function TrussForm({ value, onChange, activeSectionId, selection, onSelectionChange }: TrussFormProps) {
+export function TrussForm({ value, materialLibrary, onChange, activeSectionId, selection, onSelectionChange }: TrussFormProps) {
   const visibleSectionId = normalizeModuleSectionId("truss", activeSectionId) ?? DEFAULT_SECTION_ID;
   return (
     <TrussCustomModelEditor
@@ -23,6 +25,7 @@ export function TrussForm({ value, onChange, activeSectionId, selection, onSelec
         loads: value.customLoads,
       }}
       materialId={value.materialId}
+      materialLibrary={materialLibrary}
       onMaterialChange={(nextMaterialId) => onChange({ ...value, materialId: nextMaterialId })}
       onChange={(next) =>
         onChange({

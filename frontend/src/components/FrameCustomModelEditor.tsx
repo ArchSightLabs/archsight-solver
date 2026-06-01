@@ -42,7 +42,7 @@ import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
 import { memberElasticityDistributionLabel, youngModulusForMaterial } from "../lib/material-presets.ts";
 import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import { frameSupportStabilityWarning } from "../solver-payload.ts";
-import { PREDEFINED_MATERIALS } from "../types/material.ts";
+import type { Material } from "../types/material.ts";
 import type {
   FrameLoad,
   FrameLoadCase,
@@ -57,6 +57,7 @@ type FrameCollections = FrameEditorCollections;
 interface FrameCustomModelEditorProps {
   value: FrameCollections;
   materialId: string;
+  materialLibrary: Material[];
   onChange: (next: FrameCollections) => void;
   onMaterialChange: (nextMaterialId: string) => void;
   activeSectionId?: string;
@@ -67,6 +68,7 @@ interface FrameCustomModelEditorProps {
 export function FrameCustomModelEditor({
   value,
   materialId,
+  materialLibrary,
   onChange,
   onMaterialChange,
   activeSectionId,
@@ -129,10 +131,10 @@ export function FrameCustomModelEditor({
       (node.springs ?? []).some((spring) => spring.dof === "rz" ? spring.stiffnessKnMPerRad > 0 : spring.stiffnessKnPerM > 0),
   ).length;
   const memberElasticitySummary = useMemo(
-    () => memberElasticityDistributionLabel(value.members, memberTerm),
-    [memberTerm, value.members],
+    () => memberElasticityDistributionLabel(value.members, memberTerm, materialId, materialLibrary),
+    [materialId, materialLibrary, memberTerm, value.members],
   );
-  const defaultMemberElasticityGPa = youngModulusForMaterial(materialId, 210);
+  const defaultMemberElasticityGPa = youngModulusForMaterial(materialId, 210, materialLibrary);
   const modelWarnings = useMemo(() => {
     const warnings: string[] = [];
     const nodeIds = new Set(value.nodes.map((node) => node.id));
@@ -394,6 +396,7 @@ export function FrameCustomModelEditor({
           member={member}
           memberIndex={index}
           nodeOptions={nodeOptions}
+          materialLibrary={materialLibrary}
           fieldLabelClass={fieldLabelClass}
           onUpdate={(patch) => updateMember(index, patch)}
           onRemove={() => removeMember(index)}
@@ -425,7 +428,7 @@ export function FrameCustomModelEditor({
       {isSectionVisible("frame-basic") ? (
       <FrameBasicSection
         materialId={materialId}
-        materialLibrary={PREDEFINED_MATERIALS}
+        materialLibrary={materialLibrary}
         memberElasticitySummary={memberElasticitySummary}
         nodeCount={value.nodes.length}
         memberCount={value.members.length}
@@ -457,6 +460,7 @@ export function FrameCustomModelEditor({
       <FrameObjectNavigator
         nodes={value.nodes}
         members={value.members}
+        materialLibrary={materialLibrary}
         nodeOptions={nodeOptions}
         loadOptions={loadOptions}
         selectedObject={resolvedSelectedObject}

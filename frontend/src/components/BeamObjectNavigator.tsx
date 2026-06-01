@@ -3,9 +3,8 @@ import { Plus, SlidersHorizontal } from "lucide-react";
 import type { BeamSpanConfig, BeamSupportConfig } from "../types/beam.ts";
 import { Button } from "./ui/button";
 import { ModelObjectGuide } from "./ModelObjectGuide";
-import { memberSectionSummary } from "../lib/member-property-vocabulary";
 import { modelObjectVocabulary } from "../lib/model-object-vocabulary";
-import { beamSupportSummary } from "../lib/support-vocabulary";
+import { beamSupportLabel } from "../lib/support-vocabulary";
 
 export type BeamSelectedObject =
   | { type: "span"; id: string }
@@ -30,15 +29,15 @@ export function beamSpanSemanticLabel(index: number) {
 }
 
 export function beamSpanChipLabel(index: number, span: BeamSpanConfig) {
-  return `${beamSpanMemberId(index, span)} · 第 ${index + 1} 跨`;
+  return `${beamSpanMemberId(index, span)} · L=${formatCompactLength(span.length)} m`;
 }
 
 export function beamSpanChipSummary(span: BeamSpanConfig, materialLabel: string) {
-  return memberSectionSummary("beam", { E: span.E, I: span.I, materialLabel });
+  return `${materialLabel.toUpperCase()} · E=${formatCompactNumber(span.E)} · I=${formatCompactNumber(span.I)}`;
 }
 
 export function beamSupportChipLabel(support: BeamSupportConfig, _index: number) {
-  return `${support.id} · x=${support.x.toFixed(2)} m · ${beamSupportSummary(support)}`;
+  return `${support.id} · ${beamSupportLabel(support.type)} · x=${formatCompactLength(support.x)} m`;
 }
 
 export function supportId(index: number) {
@@ -69,6 +68,17 @@ function objectButtonClass(isActive: boolean) {
     : "border-white/8 bg-slate-950/20 text-muted-foreground hover:text-foreground";
 }
 
+function formatCompactNumber(value: number | undefined) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "—";
+  if (Number.isInteger(value)) return String(value);
+  return value.toFixed(2).replace(/\.?0+$/u, "");
+}
+
+function formatCompactLength(value: number | undefined) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "—";
+  return value.toFixed(2).replace(/\.?0+$/u, "");
+}
+
 function selectedObjectLabel(selectedObject: BeamSelectedObject, spans: BeamSpanConfig[], supports: BeamSupportConfig[], loadSummary: string) {
   if (selectedObject.type === "load") return loadSummary;
   if (selectedObject.type === "support") {
@@ -93,9 +103,9 @@ export function BeamObjectNavigator({
 }: BeamObjectNavigatorProps) {
   const vocabulary = modelObjectVocabulary("beam");
   return (
-    <section id="beam-object" className="scroll-mt-4 space-y-4 rounded-lg border border-white/8 bg-white/[0.03] p-4">
-      <div className="space-y-4">
-        <div className="space-y-3 rounded-lg border border-white/8 bg-slate-950/20 p-3">
+    <section id="beam-object" className="scroll-mt-4 space-y-2.5 rounded-lg border border-white/8 bg-white/[0.03] p-2.5">
+      <div className="space-y-2.5">
+        <div className="space-y-2.5 rounded-lg border border-white/8 bg-slate-950/20 p-2.5">
           <ModelObjectGuide mode="beam" />
           <div className="space-y-2">
             <div className={fieldLabelClass}>{vocabulary.supportGroupLabel}</div>
@@ -124,11 +134,9 @@ export function BeamObjectNavigator({
                   type="button"
                   onClick={() => onSelectObject({ type: "span", id: spanId(index) })}
                   className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold ${objectButtonClass(selectedObject.type === "span" && selectedObject.id === spanId(index))}`}
+                  title={beamSpanChipSummary(span, materialLabelForSpan(span))}
                 >
                   <span>{beamSpanChipLabel(index, span)}</span>
-                  <span className="block pt-0.5 font-mono text-[10px] font-semibold opacity-75">
-                    {beamSpanChipSummary(span, materialLabelForSpan(span))}
-                  </span>
                 </button>
               ))}
               <Button variant="outline" size="sm" onClick={onAddSpan} disabled={spans.length >= maxSpans} className="h-8 rounded-lg px-2 text-[10px]">
@@ -148,7 +156,7 @@ export function BeamObjectNavigator({
             </button>
           </div>
         </div>
-        <div className="space-y-3 rounded-lg border border-white/8 bg-background/20 p-3">
+        <div className="space-y-2.5 rounded-lg border border-white/8 bg-background/20 p-2.5">
           <div className="flex items-center justify-between gap-3">
             <div className="eyebrow flex items-center gap-2">
               <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />

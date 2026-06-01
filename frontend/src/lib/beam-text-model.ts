@@ -119,14 +119,14 @@ function spanMaterialToken(span: BeamSpanConfig, materials: Map<string, Material
   return String(span.E);
 }
 
-export function parseBeamTextModel(text: string): BeamTextParseResult {
+export function parseBeamTextModel(text: string, baseMaterials: Material[] = PREDEFINED_MATERIALS): BeamTextParseResult {
   const diagnostics: string[] = [];
   const spans: BeamWorkspaceState["spans"] = [];
   const supports: BeamSupportConfig[] = [];
   const pointLoads: BeamPointLoadConfig[] = [];
   const linearLoads: BeamLinearLoadConfig[] = [];
   const patch: Partial<BeamWorkspaceState> = {};
-  const materials = createMaterialMap();
+  const materials = createMaterialMap(baseMaterials);
   let materialsChanged = false;
   let hasLoadCommand = false;
   let uniformLoadEnabled = false;
@@ -405,8 +405,11 @@ export function parseBeamTextModel(text: string): BeamTextParseResult {
   return { patch, diagnostics };
 }
 
-export function serializeBeamTextModel(value: BeamWorkspaceState): string {
-  const materials = createMaterialMap(value.materials?.length ? value.materials : PREDEFINED_MATERIALS);
+export function serializeBeamTextModel(
+  value: BeamWorkspaceState,
+  baseMaterials: Material[] = value.materials?.length ? value.materials : PREDEFINED_MATERIALS,
+): string {
+  const materials = createMaterialMap(baseMaterials);
   const usedMaterialIds = new Set(
     [value.materialId, ...value.spans.map((span) => span.materialId)]
       .map((id) => String(id ?? "").trim().toLowerCase())

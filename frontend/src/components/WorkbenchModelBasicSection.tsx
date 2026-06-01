@@ -1,11 +1,13 @@
 import type { ReactNode } from "react";
-import { AlertTriangle, CheckCircle2, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 
 import { Button, type ButtonProps } from "./ui/button";
 
 export interface WorkbenchModelMetric {
   label: string;
   value: number | string;
+  className?: string;
+  valueClassName?: string;
 }
 
 export interface WorkbenchModelAction {
@@ -17,8 +19,6 @@ export interface WorkbenchModelAction {
 
 interface WorkbenchModelBasicSectionProps {
   id: string;
-  title: string;
-  description: string;
   metrics: WorkbenchModelMetric[];
   modelWarnings: string[];
   successMessage: string;
@@ -28,8 +28,6 @@ interface WorkbenchModelBasicSectionProps {
 
 export function WorkbenchModelBasicSection({
   id,
-  title,
-  description,
   metrics,
   modelWarnings,
   successMessage,
@@ -38,31 +36,24 @@ export function WorkbenchModelBasicSection({
 }: WorkbenchModelBasicSectionProps) {
   return (
     <section id={id} className="space-y-4 rounded-2xl border border-white/8 bg-white/[0.03] p-4 scroll-mt-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <div className="eyebrow flex items-center gap-2">
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
-            {title}
-          </div>
-          <p className="text-xs font-semibold text-muted-foreground">{description}</p>
+      {actions.length ? (
+      <div className="flex justify-end">
+        <div className="flex flex-wrap gap-2">
+          {actions.map((action) => (
+            <Button
+              key={action.label}
+              variant={action.variant ?? "outline"}
+              size="sm"
+              onClick={action.onClick}
+              className="h-8 rounded-xl"
+            >
+              {action.icon}
+              {action.label}
+            </Button>
+          ))}
         </div>
-        {actions.length ? (
-          <div className="flex flex-wrap gap-2">
-            {actions.map((action) => (
-              <Button
-                key={action.label}
-                variant={action.variant ?? "outline"}
-                size="sm"
-                onClick={action.onClick}
-                className="h-8 rounded-xl"
-              >
-                {action.icon}
-                {action.label}
-              </Button>
-            ))}
-          </div>
-        ) : null}
       </div>
+      ) : null}
 
       {controls ? (
         <div className="rounded-xl border border-white/8 bg-slate-950/20 p-3">
@@ -72,9 +63,9 @@ export function WorkbenchModelBasicSection({
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {metrics.map((item) => (
-          <div key={item.label} className="rounded-xl border border-white/8 bg-slate-950/20 p-3">
+          <div key={item.label} className={`rounded-xl border border-white/8 bg-slate-950/20 p-3 ${item.className ?? ""}`}>
             <div className="text-[10px] font-black tracking-widest text-muted-foreground">{item.label}</div>
-            <div className="mt-1 font-mono text-lg font-black">{item.value}</div>
+            <div className={`mt-1 font-mono text-lg font-black ${item.valueClassName ?? ""}`}>{item.value}</div>
           </div>
         ))}
       </div>

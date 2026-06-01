@@ -1,7 +1,9 @@
 import type { AnalysisResults } from "../hooks/useWorkbenchActions.ts";
 import type { BeamWorkspaceState, ModelPreviewStyle, SensitivityResults } from "../types/beam.ts";
+import type { Material } from "../types/material.ts";
 import type { AnalysisMode, FrameWorkspaceState, TrussWorkspaceState } from "../types/structure.ts";
 import { defaultAnalysisObjectNameForMode } from "./analysis-vocabulary.ts";
+import { materialLibraryFromCustomMaterials, normalizeProjectCustomMaterials } from "./material-presets.ts";
 import { normalizeReportExportOptions, type ReportExportOptions } from "./report-options.ts";
 import {
   createDefaultBeamWorkspaceState,
@@ -69,6 +71,7 @@ export function getAnalysisObjectDisplayName(object: Pick<AnalysisObject, "name"
 export interface ProjectSettings {
   activeModuleSection: string;
   modelPreviewStyle: ModelPreviewStyle;
+  customMaterials: Material[];
   reportExportOptions: ReportExportOptions;
   projectInfo: ProjectInfo;
 }
@@ -174,6 +177,7 @@ export function createDefaultSolverProject(
     settings: {
       activeModuleSection: "",
       modelPreviewStyle: "color",
+      customMaterials: [],
       reportExportOptions: normalizeReportExportOptions(null),
       projectInfo,
     },
@@ -202,6 +206,13 @@ function normalizeAnalysisObject(rawObject: unknown, index: number): AnalysisObj
     createdAt: String(raw.createdAt ?? now),
     updatedAt: String(raw.updatedAt ?? now),
   };
+}
+
+function legacyBeamMaterialSources(objects: AnalysisObject[]): Material[][] {
+  return objects
+    .filter((object) => object.type === "beam")
+    .map((object) => (object.state as BeamWorkspaceState).materials)
+    .filter((materials): materials is Material[] => Array.isArray(materials));
 }
 
 function normalizeBenchmarkCaseSource(rawSource: unknown): BenchmarkCaseSource | undefined {
@@ -242,7 +253,13 @@ export function normalizeSolverProject(rawProject: unknown): SolverProject {
   const activeObjectId = normalizedObjects.some((object) => object.id === raw.activeObjectId)
     ? String(raw.activeObjectId)
     : normalizedObjects[0].id;
-  const rawSettings = raw.settings as (Partial<ProjectSettings> & { beamPreviewStyle?: unknown }) | undefined;
+  const rawSettings = raw.settings as (Partial<ProjectSettings> & { beamPreviewStyle?: unknown; materials?: unknown }) | undefined;
+  const hasModernMaterialSettings = Array.isArray(rawSettings?.customMaterials) || Array.isArray(rawSettings?.materials);
+  const customMaterials = normalizeProjectCustomMaterials(
+    ...(hasModernMaterialSettings
+      ? [rawSettings?.customMaterials, rawSettings?.materials]
+      : legacyBeamMaterialSources(normalizedObjects))
+  );
   const legacyModelPreviewStyle = legacyModelPreviewStyleFromObjects(normalizedObjects);
   return {
     id: String(raw.id ?? createId("project")),
@@ -252,6 +269,7 @@ export function normalizeSolverProject(rawProject: unknown): SolverProject {
     settings: {
       activeModuleSection: String(rawSettings?.activeModuleSection ?? ""),
       modelPreviewStyle: normalizeModelPreviewStyle(rawSettings?.modelPreviewStyle ?? rawSettings?.beamPreviewStyle ?? legacyModelPreviewStyle),
+      customMaterials,
       reportExportOptions: normalizeReportExportOptions(rawSettings?.reportExportOptions),
       projectInfo,
     },
@@ -264,17 +282,18 @@ export function getActiveAnalysisObject(project: SolverProject): AnalysisObject 
   return project.objects.find((object) => object.id === project.activeObjectId) ?? project.objects[0];
 }
 
-export function createWorkspaceFromAnalysisObject(object: AnalysisObject): WorkspaceState {
+export function createWorkspaceFromAnalysisObject(object: AnalysisObject, customMaterials: Material[] = []): WorkspaceState {
+  const materialLibrary = materialLibraryFromCustomMaterials(customMaterials);
   return normalizeWorkspaceState({
     analysisMode: object.type,
-    beam: object.type === "beam" ? object.state as BeamWorkspaceState : createDefaultBeamWorkspaceState(),
+    beam: object.type === "beam" ? { ...(object.state as BeamWorkspaceState), materials: materialLibrary } : createDefaultBeamWorkspaceState(),
     frame: object.type === "frame" ? object.state as FrameWorkspaceState : createDefaultFrameWorkspaceState(),
     truss: object.type === "truss" ? object.state as TrussWorkspaceState : createDefaultTrussWorkspaceState(),
   });
 }
 
 export function createWorkspaceFromProject(project: SolverProject): WorkspaceState {
-  return createWorkspaceFromAnalysisObject(getActiveAnalysisObject(project));
+  return createWorkspaceFromAnalysisObject(getActiveAnalysisObject(project), project.settings.customMaterials);
 }
 
 function stateFromWorkspaceForType(type: AnalysisObjectType, workspace: WorkspaceState): AnalysisObjectState {

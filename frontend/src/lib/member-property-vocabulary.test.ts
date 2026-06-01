@@ -19,7 +19,7 @@ test("构件材料截面摘要按结构体系显示必要工程参数", () => {
 });
 
 test("材料预设提示明确只回填 E 且不替代截面参数", () => {
-  assert.match(memberMaterialPresetHint("frame", "构件"), /只回填弹性模量 E/u);
+  assert.match(memberMaterialPresetHint("frame", "构件"), /只回填 E/u);
   assert.match(memberMaterialPresetHint("frame", "构件"), /截面面积 A 和截面惯性矩 I/u);
   assert.match(memberMaterialPresetHint("truss", "杆件"), /截面面积 A/u);
 });

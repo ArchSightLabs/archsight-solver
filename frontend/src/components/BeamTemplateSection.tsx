@@ -1,4 +1,3 @@
-import { Sparkles } from "lucide-react";
 import { BEAM_MODEL_TEMPLATES, type BeamModelTemplate } from "../lib/workbench-model-templates.ts";
 
 interface BeamTemplateSectionProps {
@@ -8,10 +7,6 @@ interface BeamTemplateSectionProps {
 export function BeamTemplateSection({ onApplyTemplate }: BeamTemplateSectionProps) {
   return (
     <section id="beam-template" className="scroll-mt-4 space-y-3 rounded-lg border border-white/8 bg-white/[0.03] p-3">
-      <div className="eyebrow flex items-center gap-2">
-        <Sparkles className="h-3.5 w-3.5 text-primary" />
-        模板
-      </div>
       <div className="grid grid-cols-1 gap-2">
         {BEAM_MODEL_TEMPLATES.map((template, index) => (
           <button

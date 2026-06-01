@@ -6,7 +6,8 @@ import { ModelObjectGuide } from "./ModelObjectGuide";
 import { materialLabelForId, materialIdForMember } from "../lib/material-presets.ts";
 import { memberSectionSummary } from "../lib/member-property-vocabulary.ts";
 import { modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
-import { frameNodeSupportSummary, hasFrameSupportBoundary } from "../lib/support-vocabulary.ts";
+import { frameNodeSupportSummary, hasFrameSupportBoundary, nodeSupportLabel } from "../lib/support-vocabulary.ts";
+import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
 import type { StructureMember, StructureNode } from "../types/structure.ts";
 
 export type FrameSelectedObject =
@@ -19,6 +20,7 @@ export type FrameSelectedObject =
 interface FrameObjectNavigatorProps {
   nodes: StructureNode[];
   members: StructureMember[];
+  materialLibrary?: Material[];
   nodeOptions: Array<{ value: string; label: string }>;
   loadOptions: Array<{ value: string; label: string }>;
   selectedObject: FrameSelectedObject;
@@ -45,18 +47,19 @@ function formatCoordinate(value: number) {
   return Number.isInteger(value) ? value.toFixed(0) : value.toFixed(2);
 }
 
-export function frameMemberChipSummary(member: StructureMember): string {
+export function frameMemberChipSummary(member: StructureMember, materialLibrary: Material[] = PREDEFINED_MATERIALS): string {
   return memberSectionSummary("frame", {
     E_GPa: member.E_GPa,
     A_cm2: member.A_cm2,
     I_cm4: member.I_cm4,
-    materialLabel: materialLabelForId(materialIdForMember(member)),
+    materialLabel: materialLabelForId(materialIdForMember(member, materialLibrary), materialLibrary),
   });
 }
 
 export function FrameObjectNavigator({
   nodes,
   members,
+  materialLibrary = PREDEFINED_MATERIALS,
   nodeOptions,
   loadOptions,
   selectedObject,
@@ -101,8 +104,9 @@ export function FrameObjectNavigator({
                 type="button"
                 onClick={() => onSelectObject({ type: "node", id: node.id })}
                 className={objectChipClass(selectedObject.type === "node" && selectedObject.id === node.id)}
+                title={frameNodeSupportSummary(node)}
               >
-                {node.id} · {frameNodeSupportSummary(node)}
+                {node.id} · {nodeSupportLabel(node.supportType)}
               </button>
             ))}
             {supportNodes.length === 0 ? (
@@ -130,9 +134,9 @@ export function FrameObjectNavigator({
                 type="button"
                 onClick={() => onSelectObject({ type: "member", id: member.id })}
                 className={objectChipClass(selectedObject.type === "member" && selectedObject.id === member.id)}
+                title={`${member.start}-${member.end} · ${frameMemberChipSummary(member, materialLibrary)}`}
               >
-                <span>{member.id} · {member.start}-{member.end}</span>
-                <span className="block pt-0.5 font-mono text-[10px] font-semibold opacity-75">{frameMemberChipSummary(member)}</span>
+                <span>{member.id}</span>
               </button>
             ))}
             {members.length === 0 ? (

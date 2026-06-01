@@ -4,7 +4,6 @@ import {
   defaultMaterialAriaLabel,
   defaultMaterialControlHint,
   defaultMaterialFieldLabel,
-  workbenchBasicDescription,
   workbenchBasicSuccessMessage,
 } from "../lib/workbench-basic-vocabulary.ts";
 import type { Material } from "../types/material.ts";
@@ -42,8 +41,6 @@ export function FrameBasicSection({
   return (
     <WorkbenchModelBasicSection
       id="frame-basic"
-      title="自定义平面框架建模"
-      description={workbenchBasicDescription("frame")}
       metrics={[
         { label: objectVocabulary.nodeGroupLabel, value: nodeCount },
         { label: objectVocabulary.memberGroupLabel, value: memberCount },
@@ -70,7 +67,7 @@ export function FrameBasicSection({
             />
             <div className="text-[10px] font-semibold leading-relaxed text-muted-foreground">
               {defaultMaterialControlHint("frame", materialId, materialLibrary)}
-              <span className="ml-2 text-muted-foreground/80">{memberElasticitySummary}</span>
+              {memberElasticitySummary ? <span className="ml-2 text-muted-foreground/80">{memberElasticitySummary}</span> : null}
             </div>
           </div>
         </div>

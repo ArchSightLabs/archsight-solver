@@ -153,27 +153,31 @@ function frameControlMomentMemberId(results: FrameCalculationResults): string | 
   return control?.memberId ?? null;
 }
 
+function formatCompactLimitRatio(value: number | null | undefined) {
+  return formatLimitRatio(value).replace(/^限值\s+/u, "");
+}
+
 export function beamSummaryRows(results: BeamCalculationResults): SummaryRow[] {
   return [
     {
       label: summaryMetricLabel("beam", "allowable_deflection", "允许挠度"),
       value: formatEngineeringValue(results.summary?.allowableMm, "mm"),
-      detail: `${formatLimitRatio(results.summary?.allowableRatio)} · 利用率 ${formatUtilizationPercent(results.summary?.maxDeflectionMm, results.summary?.allowableMm)} · ${results.summary?.statusCode ?? "PENDING"}`,
+      detail: `${formatCompactLimitRatio(results.summary?.allowableRatio)} · ${formatUtilizationPercent(results.summary?.maxDeflectionMm, results.summary?.allowableMm)} · ${results.summary?.statusCode ?? "PENDING"}`,
     },
     {
       label: summaryMetricLabel("beam", "max_deflection", "最大挠度"),
       value: formatEngineeringValue(results.summary?.maxDeflectionMm, "mm"),
-      detail: `控制位置 ${formatEngineeringValue(results.summary?.maxDeflectionPositionM, "m")} · 挠度校核`,
+      detail: `x=${formatEngineeringValue(results.summary?.maxDeflectionPositionM, "m")}`,
     },
     {
       label: summaryMetricLabel("beam", "span_count", "跨段数量"),
       value: `${results.payload?.spans.length ?? 0} 跨`,
-      detail: `梁型 ${results.beam?.beamTypeLabel ?? "参数化梁系"} · 自动派生节点与支座`,
+      detail: results.beam?.beamTypeLabel ?? "参数化梁系",
     },
     {
       label: summaryMetricLabel("beam", "calculation_status", "计算结论"),
       value: results.summary?.status ?? "待计算",
-      detail: results.summary?.method ?? "梁单元法 + Hermite 位移插值",
+      detail: "梁单元",
     },
   ];
 }
@@ -181,10 +185,26 @@ export function beamSummaryRows(results: BeamCalculationResults): SummaryRow[] {
 export function trussSummaryRows(results: TrussCalculationResults): SummaryRow[] {
   const memberTerm = modelObjectMemberTerm("truss");
   return [
-    { label: summaryMetricLabel("truss", "allowable_displacement", "允许位移"), value: formatEngineeringValue(results.summary.allowableMm, "mm"), detail: `${formatLimitRatio(results.summary.allowableRatio)} · 利用率 ${formatUtilizationPercent(results.summary.maxDisplacementMm, results.summary.allowableMm)} · ${results.summary.statusCode}` },
-    { label: summaryMetricLabel("truss", "max_node_displacement", "最大节点位移"), value: formatEngineeringValue(results.summary.maxDisplacementMm, "mm"), detail: `控制节点 ${results.summary.maxDisplacementNodeId ?? "—"} · 位移校核` },
-    { label: summaryMetricLabel("truss", "max_member_axial", `最大${memberTerm}轴力`), value: formatEngineeringValue(results.summary.maxAxialForceKn, "kN"), detail: `控制${memberTerm} ${results.summary.maxAxialForceMemberId ?? "—"} · 轴力校核` },
-    { label: summaryMetricLabel("truss", "calculation_status", "计算结论"), value: results.summary.status, detail: results.summary.method },
+    {
+      label: summaryMetricLabel("truss", "allowable_displacement", "允许位移"),
+      value: formatEngineeringValue(results.summary.allowableMm, "mm"),
+      detail: `${formatCompactLimitRatio(results.summary.allowableRatio)} · ${formatUtilizationPercent(results.summary.maxDisplacementMm, results.summary.allowableMm)} · ${results.summary.statusCode}`,
+    },
+    {
+      label: summaryMetricLabel("truss", "max_node_displacement", "最大节点位移"),
+      value: formatEngineeringValue(results.summary.maxDisplacementMm, "mm"),
+      detail: `节点 ${results.summary.maxDisplacementNodeId ?? "—"}`,
+    },
+    {
+      label: summaryMetricLabel("truss", "max_member_axial", `最大${memberTerm}轴力`),
+      value: formatEngineeringValue(results.summary.maxAxialForceKn, "kN"),
+      detail: `${memberTerm} ${results.summary.maxAxialForceMemberId ?? "—"}`,
+    },
+    {
+      label: summaryMetricLabel("truss", "calculation_status", "计算结论"),
+      value: results.summary.status,
+      detail: "桁架杆单元",
+    },
   ];
 }
 
@@ -195,22 +215,22 @@ export function frameSummaryRows(results: FrameCalculationResults): SummaryRow[]
     {
       label: summaryMetricLabel("frame", "allowable_displacement", "允许位移"),
       value: formatEngineeringValue(results.summary.allowableMm, "mm"),
-      detail: `控制节点 ${results.summary.maxDisplacementNodeId ?? "—"} · ${results.summary.statusCode}`,
+      detail: `节点 ${results.summary.maxDisplacementNodeId ?? "—"} · ${results.summary.statusCode}`,
     },
     {
       label: summaryMetricLabel("frame", "max_node_displacement", "最大节点位移"),
       value: formatEngineeringValue(results.summary.maxDisplacementMm, "mm"),
-      detail: `最大竖向位移 ${formatEngineeringValue(results.summary.maxVerticalMm, "mm")} · 位移校核`,
+      detail: `竖向 ${formatEngineeringValue(results.summary.maxVerticalMm, "mm")}`,
     },
     {
       label: summaryMetricLabel("frame", "max_member_moment", `最大${memberTerm}弯矩`),
       value: formatEngineeringValue(results.summary.maxMomentKnM, "kN·m"),
-      detail: `控制${memberTerm} ${controlMomentMemberId ?? "—"} · 弯矩校核`,
+      detail: `${memberTerm} ${controlMomentMemberId ?? "—"}`,
     },
     {
       label: summaryMetricLabel("frame", "calculation_status", "计算结论"),
       value: results.summary.status,
-      detail: results.summary.method,
+      detail: "平面框架杆单元",
     },
   ];
 }

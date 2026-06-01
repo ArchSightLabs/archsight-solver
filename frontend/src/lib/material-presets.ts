@@ -12,6 +12,72 @@ interface MaterialDropdownOptionsConfig {
   includeDescriptions?: boolean;
 }
 
+const SYSTEM_MATERIAL_IDS = new Set(PREDEFINED_MATERIALS.map((material) => material.id.toLowerCase()));
+
+function normalizedMaterialId(value: unknown): string {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9_-]/g, "")
+    .slice(0, 40);
+}
+
+function normalizeProjectCustomMaterial(rawMaterial: unknown): Material | null {
+  const candidate = rawMaterial && typeof rawMaterial === "object" ? rawMaterial as Partial<Material> & {
+    youngModulusGPa?: unknown;
+    densityKgPerM3?: unknown;
+  } : {};
+  const id = normalizedMaterialId(candidate.id);
+  const name = String(candidate.name ?? "").trim();
+  const youngModulus = Number(candidate.youngModulus ?? candidate.youngModulusGPa);
+  const density = Number(candidate.density ?? candidate.densityKgPerM3);
+  if (
+    !id ||
+    id === "custom" ||
+    SYSTEM_MATERIAL_IDS.has(id) ||
+    !name ||
+    !Number.isFinite(youngModulus) ||
+    youngModulus <= 0 ||
+    !Number.isFinite(density) ||
+    density <= 0
+  ) {
+    return null;
+  }
+  return {
+    id,
+    name,
+    youngModulus,
+    density,
+    category: "custom",
+    note: String(candidate.note ?? "").trim() || undefined,
+  };
+}
+
+export function isSystemMaterialId(materialId: string | undefined): boolean {
+  return SYSTEM_MATERIAL_IDS.has(String(materialId ?? "").trim().toLowerCase());
+}
+
+export function normalizeProjectCustomMaterials(...sources: unknown[]): Material[] {
+  const byId = new Map<string, Material>();
+  for (const source of sources) {
+    if (!Array.isArray(source)) continue;
+    for (const rawMaterial of source) {
+      const material = normalizeProjectCustomMaterial(rawMaterial);
+      if (!material) continue;
+      byId.set(material.id, material);
+    }
+  }
+  return Array.from(byId.values()).slice(0, 50);
+}
+
+export function materialLibraryFromCustomMaterials(customMaterials: unknown): Material[] {
+  return [
+    ...PREDEFINED_MATERIALS.map((material) => ({ ...material })),
+    ...normalizeProjectCustomMaterials(customMaterials),
+  ];
+}
+
 function materialDisplayName(material: Material): string {
   const code = material.id.toUpperCase();
   const name = material.name.trim();
@@ -19,7 +85,7 @@ function materialDisplayName(material: Material): string {
 }
 
 function isCustomMaterial(material: Material): boolean {
-  return material.id === "custom" || material.category === "custom";
+  return material.id === "custom";
 }
 
 export function selectableMaterialPresets(materials: Material[] = PREDEFINED_MATERIALS): Material[] {
@@ -132,14 +198,22 @@ export function youngModulusForMaterial(materialId: string, fallback: number, ma
 export function memberElasticityDistributionLabel(
   members: Array<{ materialId?: string; E_GPa?: number }>,
   memberLabel: "跨段" | "构件" | "杆件",
+  defaultMaterialId?: string,
+  materials: Material[] = PREDEFINED_MATERIALS,
 ): string {
   const counts = new Map<string, number>();
+  const normalizedDefaultMaterialId = String(defaultMaterialId ?? "").trim().toLowerCase();
+  let allMatchDefault = Boolean(normalizedDefaultMaterialId);
   members.forEach((member) => {
     if (!Number.isFinite(Number(member.E_GPa))) return;
-    const label = materialElasticityLabelForMember(member);
+    if (allMatchDefault && materialIdForMember(member, materials) !== normalizedDefaultMaterialId) {
+      allMatchDefault = false;
+    }
+    const label = materialElasticityLabelForMember(member, materials);
     counts.set(label, (counts.get(label) ?? 0) + 1);
   });
   if (counts.size === 0) return `未设置${memberLabel}弹性模量`;
+  if (counts.size === 1 && allMatchDefault) return "";
   return Array.from(counts.entries())
     .sort(([left], [right]) => left.localeCompare(right, "zh-Hans-CN"))
     .map(([label, count]) => `${label}：${count} 个${memberLabel}`)

@@ -4,7 +4,6 @@ import { BeamLoadEditor } from "./BeamLoadEditor";
 import {
   BeamObjectNavigator,
   beamSpanMemberId,
-  beamSpanSemanticLabel,
   spanId,
   spanIndexFromId,
   supportId,
@@ -17,8 +16,8 @@ import { BeamTableSection } from "./BeamTableSection";
 import { BeamTemplateSection } from "./BeamTemplateSection";
 import { BeamTextModelSection } from "./BeamTextModelSection";
 import { formatBeamLoadSummary } from "../lib/beam-loads.ts";
-import { materialDropdownOptions, materialEngineeringNote } from "../lib/material-presets.ts";
-import { PREDEFINED_MATERIALS } from "../types/material.ts";
+import { materialDropdownOptions } from "../lib/material-presets.ts";
+import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
 import type { BeamSpanConfig, BeamSupportConfig, BeamWorkspaceState } from "../types/beam.ts";
 import type { BeamWorkbenchSelection, WorkbenchSelectionOptions } from "../types/workbench-selection.ts";
 import { createDefaultBeamSupports, createDefaultBeamWorkspaceState } from "../lib/workspace-state.ts";
@@ -29,6 +28,8 @@ import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
 
 interface BeamFormProps {
   value: BeamWorkspaceState;
+  materialLibrary?: Material[];
+  onMaterialLibraryChange?: (nextMaterials: Material[]) => void;
   onChange: (next: BeamWorkspaceState) => void;
   activeSectionId?: string;
   selection?: BeamWorkbenchSelection | null;
@@ -43,11 +44,11 @@ const FORM_SELECT_MENU_CLASS = "font-sans text-[12px]";
 const FORM_SELECT_OPTION_CLASS = "py-2 text-[12px] font-medium";
 const FIELD_LABEL_CLASS = "text-[10px] font-black tracking-widest text-muted-foreground";
 
-export function BeamForm({ value, onChange, activeSectionId, selection, onSelectionChange }: BeamFormProps) {
+export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMaterialLibraryChange, onChange, activeSectionId, selection, onSelectionChange }: BeamFormProps) {
   const [selectedObject, setSelectedObject] = useState<BeamSelectedObject>({ type: "span", id: spanId(0) });
   const visibleSectionId = normalizeModuleSectionId("beam", activeSectionId) ?? "beam-template";
   const isSectionVisible = (sectionId: string) => visibleSectionId === sectionId;
-  const materialLibrary = value.materials?.length ? value.materials : PREDEFINED_MATERIALS;
+  const materialLibrary = projectMaterialLibrary?.length ? projectMaterialLibrary : value.materials?.length ? value.materials : PREDEFINED_MATERIALS;
   const materialOptions = useMemo(
     () => materialDropdownOptions(materialLibrary),
     [materialLibrary]
@@ -108,6 +109,8 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
 
   const beamTextModel = useBeamTextModel({
     value,
+    materialLibrary,
+    onMaterialLibraryChange,
     onApplyWorkspace: onChange,
     onImportApplied: () => selectObject({ type: "span", id: spanId(0) }),
   });
@@ -245,9 +248,6 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
         spanIndex={index}
         spanCount={value.spans.length}
         memberId={memberId}
-        semanticLabel={beamSpanSemanticLabel(index)}
-        materialLabel={findMaterial(span.materialId)?.id ?? "手动 E"}
-        materialNote={materialEngineeringNote(span.materialId, materialLibrary)}
         materialOptions={materialOptions}
         fieldLabelClass={FIELD_LABEL_CLASS}
         formControlClass={FORM_CONTROL_CLASS}

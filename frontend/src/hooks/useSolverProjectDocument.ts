@@ -1,7 +1,9 @@
 import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import type { ModelPreviewStyle } from "../types/beam";
+import type { Material } from "../types/material";
 import type { ReportExportOptions } from "../lib/report-options";
 import { normalizeReportExportOptions } from "../lib/report-options";
+import { normalizeProjectCustomMaterials } from "../lib/material-presets";
 import type { WorkspaceState } from "../lib/workspace-state";
 import {
   createWorkspaceFromProject,
@@ -85,6 +87,18 @@ export function useSolverProjectDocument() {
     }));
   }, [markProjectDirty]);
 
+  const setCustomMaterials = useCallback((customMaterials: Material[]) => {
+    markProjectDirty();
+    setProject((current) => normalizeSolverProject({
+      ...current,
+      settings: {
+        ...current.settings,
+        customMaterials: normalizeProjectCustomMaterials(customMaterials),
+      },
+      updatedAt: new Date().toISOString(),
+    }));
+  }, [markProjectDirty]);
+
   const updateProjectInfo = useCallback((next: ProjectInfo) => {
     const normalizedProjectInfo = normalizeProjectInfo(next);
     markProjectDirty();
@@ -132,6 +146,7 @@ export function useSolverProjectDocument() {
     projectFileName,
     replaceProject,
     setFileStatusMessage,
+    setCustomMaterials,
     setModelPreviewStyle,
     setProject,
     setProjectFileHandle,

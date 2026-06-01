@@ -3,7 +3,6 @@ import { LineChart, Network, Triangle } from "lucide-react";
 import { GlassCard } from "./ui/GlassCard";
 import type { BeamCalculationResults } from "../types/beam";
 import type { AnalysisMode } from "../types/structure";
-import { analysisAssumptionRows } from "../lib/analysis-assumptions";
 import { analysisVocabulary } from "../lib/analysis-vocabulary";
 import { formatEngineeringValue } from "../lib/engineering-format";
 import type { DataCurveOption, SummaryRow } from "./workbench-result-metrics";
@@ -82,7 +81,7 @@ export function SummaryGrid({
             </div>
             <div className={`break-words font-mono font-bold text-primary ${compact ? "text-sm" : "text-lg"}`}>{row.value}</div>
             {row.detail ? (
-              <div className={`mt-1.5 leading-relaxed text-slate-600 dark:text-slate-300/80 ${compact ? "text-[10px]" : "text-xs"}`}>{row.detail}</div>
+              <div className={`mt-1.5 leading-snug text-slate-600 dark:text-slate-300/75 ${compact ? "text-[10px]" : "text-xs"}`}>{row.detail}</div>
             ) : null}
           </div>
         ))}
@@ -190,16 +189,56 @@ export function DataCurvePanel({ options, compact = false }: { options: DataCurv
   );
 }
 
+type AssumptionSummary = {
+  lead: string;
+  items: readonly {
+    label: string;
+    value: string;
+  }[];
+};
+
+const ASSUMPTION_SUMMARIES: Record<AnalysisMode, AssumptionSummary> = {
+  beam: {
+    lead: "梁弯曲线弹性静力分析",
+    items: [
+      { label: "模型", value: "梁单元 · v / θz" },
+      { label: "支座", value: "铰/滚约束 v，固结约束 v+θz" },
+      { label: "单位", value: "E:GPa · I:cm4 · mm/kN" },
+    ],
+  },
+  frame: {
+    lead: "二维平面框架线弹性静力分析",
+    items: [
+      { label: "模型", value: "框架杆单元 · ux/uy/rz" },
+      { label: "内力", value: "弯矩 / 剪力 / 轴力" },
+      { label: "单位", value: "E:GPa · A:cm2 · I:cm4" },
+    ],
+  },
+  truss: {
+    lead: "二维平面桁架线弹性静力分析",
+    items: [
+      { label: "模型", value: "桁架杆单元 · ux/uy" },
+      { label: "内力", value: "只传轴力，不列弯矩" },
+      { label: "单位", value: "E:GPa · A:cm2 · kN/MPa/mm" },
+    ],
+  },
+};
+
 export function AssumptionsPanel({ mode, compact = false }: { mode: AnalysisMode; compact?: boolean }) {
-  const rows = analysisAssumptionRows(mode);
+  const summary = ASSUMPTION_SUMMARIES[mode];
   return (
     <GlassCard className={`${compact ? "p-3 sm:p-4" : "p-4 sm:p-5"}`}>
-      <h3 className={`${compact ? "mb-3 text-lg" : "mb-4 text-xl"} font-black tracking-tight`}>计算假定与符号约定</h3>
-      <div className={`grid gap-2 ${compact ? "grid-cols-1" : "grid-cols-1 xl:grid-cols-2"}`}>
-        {rows.map((row) => (
-          <div key={row.label} className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
-            <div className="mb-1 text-[10px] font-black tracking-widest text-muted-foreground">{row.label}</div>
-            <div className="text-xs leading-relaxed text-foreground/70">{row.value}</div>
+      <div className={`mb-3 flex flex-wrap items-baseline justify-between gap-2 ${compact ? "" : "sm:mb-4"}`}>
+        <h3 className={`${compact ? "text-lg" : "text-xl"} font-black tracking-tight`}>计算口径</h3>
+        <span className="text-[11px] font-semibold text-muted-foreground">{summary.lead}</span>
+      </div>
+      <div className={`grid gap-2 ${compact ? "grid-cols-1" : "grid-cols-1 md:grid-cols-3"}`}>
+        {summary.items.map((item) => (
+          <div key={item.label} className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5">
+            <div className="shrink-0 text-[10px] font-black tracking-widest text-muted-foreground">{item.label}</div>
+            <div className="min-w-0 text-right text-xs font-semibold leading-snug text-foreground/75" title={item.value}>
+              {item.value}
+            </div>
           </div>
         ))}
       </div>

@@ -64,10 +64,10 @@ export function WorkbenchResultContent({
           <Suspense fallback={<LoadingPanel compact={compact} />}>
             <BeamResultDiagrams results={beamResults} compact={compact} />
           </Suspense>
-          <DataCurvePanel options={beamDataCurveOptions(beamResults)} compact={compact} />
-          <AssumptionsPanel mode="beam" compact={compact} />
-          <BeamBenchmarkPanel results={beamResults} compact={compact} />
           <SummaryGrid compact={compact} rows={beamSummaryRows(beamResults)} />
+          <DataCurvePanel options={beamDataCurveOptions(beamResults)} compact={compact} />
+          <BeamBenchmarkPanel results={beamResults} compact={compact} />
+          <AssumptionsPanel mode="beam" compact={compact} />
         </div>
       );
     }
@@ -92,9 +92,9 @@ export function WorkbenchResultContent({
     }
     return (
       <div className="space-y-3">
-        <AssumptionsPanel mode="beam" compact={compact} />
-        <BeamBenchmarkPanel results={beamResults} compact={compact} />
         <SummaryGrid compact={compact} rows={beamSummaryRows(beamResults)} />
+        <BeamBenchmarkPanel results={beamResults} compact={compact} />
+        <AssumptionsPanel mode="beam" compact={compact} />
       </div>
     );
   }
@@ -113,9 +113,9 @@ export function WorkbenchResultContent({
           <Suspense fallback={<LoadingPanel compact={compact} />}>
             <TrussResultDiagrams truss={trussResults.truss ?? null} compact={compact} />
           </Suspense>
+          <SummaryGrid compact={compact} rows={trussSummaryRows(trussResults)} />
           <DataCurvePanel options={trussDataCurveOptions(trussResults)} compact={compact} />
           <AssumptionsPanel mode="truss" compact={compact} />
-          <SummaryGrid compact={compact} rows={trussSummaryRows(trussResults)} />
         </div>
       );
     }
@@ -138,8 +138,8 @@ export function WorkbenchResultContent({
     }
     return (
       <div className="space-y-3">
-        <AssumptionsPanel mode="truss" compact={compact} />
         <SummaryGrid compact={compact} rows={trussSummaryRows(trussResults)} />
+        <AssumptionsPanel mode="truss" compact={compact} />
       </div>
     );
   }
@@ -157,9 +157,9 @@ export function WorkbenchResultContent({
         <Suspense fallback={<LoadingPanel compact={compact} />}>
           <FrameMemberDiagrams frame={displayedFrameResults.frame ?? null} diagrams={displayedFrameResults.memberDiagrams ?? []} compact={compact} />
         </Suspense>
+        <SummaryGrid compact={compact} rows={frameSummaryRows(displayedFrameResults)} />
         <DataCurvePanel options={frameDataCurveOptions(displayedFrameResults)} compact={compact} />
         <AssumptionsPanel mode="frame" compact={compact} />
-        <SummaryGrid compact={compact} rows={frameSummaryRows(displayedFrameResults)} />
       </div>
     );
   }
@@ -182,8 +182,8 @@ export function WorkbenchResultContent({
   }
   return (
     <div className="space-y-3">
-      <AssumptionsPanel mode="frame" compact={compact} />
       <SummaryGrid compact={compact} rows={frameSummaryRows(displayedFrameResults)} />
+      <AssumptionsPanel mode="frame" compact={compact} />
     </div>
   );
 }

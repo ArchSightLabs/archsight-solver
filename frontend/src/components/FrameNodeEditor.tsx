@@ -57,9 +57,10 @@ export function FrameNodeEditor({
     <div className={`space-y-3 border border-white/8 bg-slate-950/20 p-3 ${isSelectedVariant ? "rounded-xl" : "rounded-2xl"}`}>
       {isSelectedVariant ? (
         <div className="flex items-center justify-between gap-3">
-          <div>
-            <div className={fieldLabelClass}>当前节点</div>
-            <div className="mt-1 text-sm font-bold">{node.id}</div>
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
+            <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 text-foreground">节点 {node.id}</span>
+            <span>x={node.x}</span>
+            <span>y={node.y}</span>
           </div>
           <Button variant="ghost" size="icon" className="h-9 w-9" onClick={onRemove} disabled={nodeCount <= 1} aria-label="删除当前节点">
             <Trash2 className="h-4 w-4 text-rose-300" />
@@ -156,7 +157,7 @@ export function FrameNodeEditor({
           springs={node.springs}
           fieldLabelClass={fieldLabelClass}
           onChange={(springs) => onUpdate({ springs })}
-          showHint={isSelectedVariant}
+          showHint={false}
           compactWhenEmpty={!isSelectedVariant}
         />
       ) : null}

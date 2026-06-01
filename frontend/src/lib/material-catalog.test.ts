@@ -107,14 +107,16 @@ test("构件和杆件材料截面字段显式保留工程单位", () => {
 });
 
 test("材料预设提示明确只回填 E 且截面参数仍由构件维护", () => {
-  assert.match(memberMaterialPresetHint("beam", "跨段"), /只回填弹性模量 E/u);
-  assert.match(memberMaterialPresetHint("beam", "跨段"), /截面惯性矩 I 仍按跨段截面单独维护/u);
-  assert.match(memberMaterialPresetHint("frame", "构件"), /只回填弹性模量 E/u);
+  assert.match(memberMaterialPresetHint("beam", "跨段"), /只回填 E/u);
+  assert.match(memberMaterialPresetHint("beam", "跨段"), /截面惯性矩 I 按跨段维护/u);
+  assert.match(memberMaterialPresetHint("frame", "构件"), /只回填 E/u);
   assert.match(memberMaterialPresetHint("frame", "构件"), /截面面积 A 和截面惯性矩 I/u);
-  assert.match(memberMaterialPresetHint("truss", "杆件"), /截面面积 A 仍按杆件截面单独维护/u);
+  assert.match(memberMaterialPresetHint("truss", "杆件"), /截面面积 A 按杆件维护/u);
 });
 
 test("构件材料摘要按实际 E 分布说明刚度输入", () => {
+  assert.equal(memberElasticityDistributionLabel([{ materialId: "q345", E_GPa: 210 }, { E_GPa: 210 }], "构件", "q345"), "");
+  assert.equal(memberElasticityDistributionLabel([{ materialId: "c30", E_GPa: 30 }], "构件", "q345"), "C30 · E=30 GPa：1 个构件");
   assert.equal(
     memberElasticityDistributionLabel([{ materialId: "q345", E_GPa: 210 }, { materialId: "c30", E_GPa: 30 }, { E_GPa: 210 }], "构件"),
     "C30 · E=30 GPa：1 个构件；Q345 · E=210 GPa：2 个构件",

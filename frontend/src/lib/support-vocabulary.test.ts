@@ -48,7 +48,8 @@ test("前端支座类型常量与共享目录一致并区分桁架 fixed", () =>
 test("梁系支座约束来自共享目录并保留 v / θz 口径", () => {
   assert.deepEqual(beamSupportConstraints("fixed"), ["v", "rz"]);
   assert.deepEqual(beamSupportConstraints("roller"), ["v"]);
-  assert.match(beamSupportDetail("roller"), /梁系中与铰支座同自由度/u);
+  assert.equal(beamSupportDetail("roller"), "约束 v，释放 θz");
+  assert.match(beamSupportNote("roller"), /与铰支座同自由度/u);
 });
 
 test("框架和桁架支座说明区分转角自由度", () => {

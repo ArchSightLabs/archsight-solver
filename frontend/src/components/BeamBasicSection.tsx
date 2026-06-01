@@ -6,7 +6,6 @@ import {
   defaultMaterialAriaLabel,
   defaultMaterialControlHint,
   defaultMaterialFieldLabel,
-  workbenchBasicDescription,
   workbenchBasicSuccessMessage,
 } from "../lib/workbench-basic-vocabulary.ts";
 import type { Material } from "../types/material.ts";
@@ -47,12 +46,10 @@ export function BeamBasicSection({
   return (
     <WorkbenchModelBasicSection
       id="beam-basic"
-      title="参数化梁系建模"
-      description={workbenchBasicDescription("beam")}
       metrics={[
         { label: objectVocabulary.memberGroupLabel, value: spanCount },
-        { label: "总长", value: `${totalLength.toFixed(2)} m` },
         { label: objectVocabulary.supportGroupLabel, value: supportCount },
+        { label: "总长", value: `${totalLength.toFixed(2)} m`, className: "sm:col-span-2", valueClassName: "whitespace-nowrap" },
       ]}
       modelWarnings={supportCount === 0 ? ["尚未设置支座约束。"] : []}
       successMessage={workbenchBasicSuccessMessage("beam")}

@@ -8,10 +8,8 @@ import {
   beamSupportConstraints,
   beamSupportDetail,
   beamSupportLabel,
-  beamSupportNote,
   supportConstraintFieldLabel,
   supportDofStateLabel,
-  supportSystemHint,
   type SupportDofMode,
 } from "../lib/support-vocabulary.ts";
 import type { BeamSupportConfig, BeamSupportDof, BeamSupportSpring, BeamSupportType } from "../types/beam.ts";
@@ -96,12 +94,10 @@ export function BeamSupportEditor({
   return (
     <div className="space-y-3 rounded-xl border border-white/8 bg-slate-950/20 p-3">
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className={fieldLabelClass}>当前支座</div>
-          <div className="mt-1 text-sm font-bold">{support.id}</div>
-          <div className="mt-1 text-[10px] font-semibold text-muted-foreground">
-            {beamSupportLabel(support.type)} · {beamSupportDetail(support.type)}
-          </div>
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
+          <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 text-foreground">支座 {support.id}</span>
+          <span>{beamSupportLabel(support.type)}</span>
+          <span>{beamSupportDetail(support.type)}</span>
         </div>
         <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 font-mono text-[10px] text-muted-foreground">
           x = {support.x.toFixed(2)} m
@@ -117,6 +113,7 @@ export function BeamSupportEditor({
                 key={option.value}
                 type="button"
                 variant="ghost"
+                title={option.note || option.detail}
                 aria-pressed={isActive}
                 className={`flex min-h-12 flex-col items-start justify-center gap-0.5 rounded-lg border px-2.5 py-2 text-left font-semibold ${isActive ? SEGMENTED_OPTION_ACTIVE_CLASS : SEGMENTED_OPTION_IDLE_CLASS}`}
                 onClick={() => updateSupportType(option.value)}
@@ -201,10 +198,6 @@ export function BeamSupportEditor({
             className="h-10 min-w-0 font-mono text-xs"
           />
         </div>
-      </div>
-      <div className="rounded-xl border border-white/8 bg-background/20 px-4 py-3 text-xs leading-relaxed text-foreground/55">
-        <div className="font-semibold text-foreground/65">工程提示：{beamSupportNote(support.type)}</div>
-        <div className="mt-1">{supportSystemHint("beam")}</div>
       </div>
     </div>
   );

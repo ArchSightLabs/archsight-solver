@@ -4,14 +4,10 @@ import {
   TRUSS_SUPPORT_OPTIONS,
   frameNodeSupportDofStates,
   frameNodeSupportStateDetail,
-  nodeSupportNote,
   supportConstraintFieldLabel,
   supportChoiceOptions,
-  supportDofStateLabel,
-  supportSystemHint,
   trussSupportDetail,
   trussSupportDofStates,
-  trussSupportNote,
   type SupportDofMode,
   type SupportDofState,
 } from "../lib/support-vocabulary.ts";
@@ -58,7 +54,6 @@ export function NodeSupportField(props: NodeSupportFieldProps) {
   const detail = isTruss
     ? trussSupportDetail(value)
     : frameNodeSupportStateDetail({ supportType: value, supportAngleDeg: props.supportAngleDeg, springs: props.springs });
-  const note = isTruss ? trussSupportNote(value) : nodeSupportNote(value);
   const dofStates = isTruss
     ? trussSupportDofStates(value)
     : frameNodeSupportDofStates({ supportType: value, supportAngleDeg: props.supportAngleDeg, springs: props.springs });
@@ -83,11 +78,9 @@ export function NodeSupportField(props: NodeSupportFieldProps) {
         ariaLabel={ariaLabel}
       />
       {showHint ? (
-        <div className="space-y-1 text-[10px] font-semibold leading-relaxed text-muted-foreground">
-          <div>{supportDofStateLabel()}：{detail}</div>
+        <div className="space-y-1 text-[10px] font-semibold leading-snug text-muted-foreground">
+          <div>{detail}</div>
           <SupportDofStateChips states={dofStates} />
-          <div>工程提示：{note}</div>
-          <div>{supportSystemHint(mode)}</div>
         </div>
       ) : null}
     </div>

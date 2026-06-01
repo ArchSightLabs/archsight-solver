@@ -1,12 +1,14 @@
 import { DropdownSelect } from "./ui/DropdownSelect";
-import { materialDropdownOptions, materialIdForYoungModulus, memberMaterialEngineeringNote, youngModulusForMaterial } from "../lib/material-presets.ts";
+import { materialDropdownOptions, materialIdForYoungModulus, youngModulusForMaterial } from "../lib/material-presets.ts";
 import { memberMaterialPresetHint } from "../lib/member-property-vocabulary.ts";
+import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
 import { cn } from "@/lib/utils";
 
 type MemberMaterialMode = "frame" | "truss";
 
 interface MemberMaterialPresetFieldProps {
   materialId?: string;
+  materialLibrary?: Material[];
   youngModulusGPa: number;
   onYoungModulusChange: (nextYoungModulusGPa: number) => void;
   onMaterialChange?: (nextMaterialId: string, nextYoungModulusGPa: number) => void;
@@ -19,10 +21,9 @@ interface MemberMaterialPresetFieldProps {
   showHint?: boolean;
 }
 
-const MATERIAL_OPTIONS = materialDropdownOptions();
-
 export function MemberMaterialPresetField({
   materialId,
+  materialLibrary = PREDEFINED_MATERIALS,
   youngModulusGPa,
   onYoungModulusChange,
   onMaterialChange,
@@ -34,25 +35,23 @@ export function MemberMaterialPresetField({
   ariaLabel = `${memberLabel}材料预设（回填弹性模量 E）`,
   showHint = true,
 }: MemberMaterialPresetFieldProps) {
-  const selectedMaterialId = materialId ?? materialIdForYoungModulus(youngModulusGPa);
-  const engineeringHint = [
-    memberMaterialPresetHint(mode, memberLabel),
-    memberMaterialEngineeringNote(selectedMaterialId, youngModulusGPa, memberLabel),
-  ].join(" ");
+  const selectedMaterialId = materialId ?? materialIdForYoungModulus(youngModulusGPa, materialLibrary);
+  const materialOptions = materialDropdownOptions(materialLibrary);
+  const engineeringHint = memberMaterialPresetHint(mode, memberLabel);
   return (
     <div className={cn("space-y-1", className)}>
       <div className={fieldLabelClass}>{label}</div>
       <DropdownSelect
         value={selectedMaterialId}
         onChange={(nextValue) => {
-          const nextYoungModulusGPa = youngModulusForMaterial(nextValue, youngModulusGPa);
+          const nextYoungModulusGPa = youngModulusForMaterial(nextValue, youngModulusGPa, materialLibrary);
           if (onMaterialChange) {
             onMaterialChange(nextValue, nextYoungModulusGPa);
           } else {
             onYoungModulusChange(nextYoungModulusGPa);
           }
         }}
-        options={MATERIAL_OPTIONS}
+        options={materialOptions}
         className="text-xs font-mono"
         menuClassName="text-xs font-mono"
         optionClassName="py-2"

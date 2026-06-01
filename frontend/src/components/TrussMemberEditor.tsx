@@ -9,12 +9,14 @@ import { materialIdForYoungModulus } from "../lib/material-presets.ts";
 import { memberPropertyAriaLabel, memberPropertyLabels } from "../lib/member-property-vocabulary.ts";
 import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import { TRUSS_MEMBER_KIND_OPTIONS } from "../lib/truss-editor-model.ts";
+import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
 import type { TrussMember } from "../types/structure.ts";
 
 interface TrussMemberEditorProps {
   member: TrussMember;
   memberIndex: number;
   nodeOptions: Array<{ value: string; label: string }>;
+  materialLibrary?: Material[];
   fieldLabelClass: string;
   onUpdate: (patch: Partial<TrussMember>) => void;
   onRemove: () => void;
@@ -25,6 +27,7 @@ export function TrussMemberEditor({
   member,
   memberIndex,
   nodeOptions,
+  materialLibrary = PREDEFINED_MATERIALS,
   fieldLabelClass,
   onUpdate,
   onRemove,
@@ -39,9 +42,10 @@ export function TrussMemberEditor({
     <div className={`space-y-3 border border-white/8 bg-slate-950/20 p-3 ${isSelectedVariant ? "rounded-xl" : "rounded-2xl"}`}>
       {isSelectedVariant ? (
         <div className="flex items-center justify-between gap-3">
-          <div>
-            <div className={fieldLabelClass}>当前{memberTerm}</div>
-            <div className="mt-1 text-sm font-bold">{member.id}</div>
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
+            <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 text-foreground">{memberTerm} {member.id}</span>
+            <span>{member.start}-{member.end}</span>
+            <span>{member.kind ?? "generic"}</span>
           </div>
           <Button variant="ghost" size="icon" className="h-9 w-9" onClick={onRemove} aria-label={`删除当前${memberTerm}`}>
             <Trash2 className="h-4 w-4 text-rose-300" />
@@ -95,15 +99,16 @@ export function TrussMemberEditor({
         ) : null}
         <MemberMaterialPresetField
           materialId={member.materialId}
+          materialLibrary={materialLibrary}
           youngModulusGPa={member.E_GPa}
           onYoungModulusChange={(E_GPa) => onUpdate({ E_GPa })}
           onMaterialChange={(materialId, E_GPa) => onUpdate({ materialId, E_GPa })}
           fieldLabelClass={fieldLabelClass}
           memberLabel={memberTerm}
           mode="truss"
-          label={isSelectedVariant ? undefined : "材料预设"}
-          ariaLabel={isSelectedVariant ? undefined : `第 ${memberIndex + 1} 个${memberTerm}材料预设`}
-          showHint={isSelectedVariant}
+          label={isSelectedVariant ? "材料" : "材料预设"}
+          ariaLabel={isSelectedVariant ? `${memberTerm}材料` : `第 ${memberIndex + 1} 个${memberTerm}材料预设`}
+          showHint={false}
           className={isSelectedVariant ? "sm:col-span-2" : undefined}
         />
         {isSelectedVariant ? (
@@ -126,7 +131,7 @@ export function TrussMemberEditor({
             value={member.E_GPa}
             onChange={(event) => {
               const E_GPa = Number(event.target.value) || 0;
-              onUpdate({ E_GPa, materialId: materialIdForYoungModulus(E_GPa) });
+              onUpdate({ E_GPa, materialId: materialIdForYoungModulus(E_GPa, materialLibrary) });
             }}
             className="h-10 min-w-0 font-mono text-xs"
           />

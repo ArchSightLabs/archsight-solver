@@ -1,6 +1,6 @@
 import { Minus } from "lucide-react";
 import type { BeamSpanConfig } from "../types/beam.ts";
-import { memberMaterialPresetHint, memberPropertyAriaLabel, memberPropertyLabels } from "../lib/member-property-vocabulary.ts";
+import { memberPropertyAriaLabel, memberPropertyLabels } from "../lib/member-property-vocabulary.ts";
 import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import { Button } from "./ui/button";
 import { DeferredIdInput } from "./ui/DeferredIdInput";
@@ -12,9 +12,6 @@ interface BeamSpanEditorProps {
   spanIndex: number;
   spanCount: number;
   memberId: string;
-  semanticLabel: string;
-  materialLabel: string;
-  materialNote: string;
   materialOptions: Array<{ value: string; label: string }>;
   fieldLabelClass: string;
   formControlClass: string;
@@ -31,9 +28,6 @@ export function BeamSpanEditor({
   spanIndex,
   spanCount,
   memberId,
-  semanticLabel,
-  materialLabel,
-  materialNote,
   materialOptions,
   fieldLabelClass,
   formControlClass,
@@ -49,32 +43,30 @@ export function BeamSpanEditor({
   const spanLabel = `第 ${spanIndex + 1} 跨`;
 
   return (
-    <div className="space-y-3 rounded-xl border border-white/8 bg-slate-950/20 p-3">
+    <div className="space-y-2 rounded-xl border border-white/8 bg-slate-950/20 p-2.5">
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className={fieldLabelClass}>当前{memberTerm}</div>
-          <div className="mt-1 text-sm font-bold">{memberId}</div>
-          <div className="mt-1 font-mono text-[10px] text-muted-foreground">
-            {semanticLabel} · 材料 {materialLabel} · E = {span.E} GPa
-          </div>
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
+          <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 text-foreground">{spanLabel}</span>
+          <span className="font-mono">L={span.length} m</span>
+          <span className="font-mono">E={span.E} GPa</span>
         </div>
-        <Button variant="ghost" size="icon" className="h-9 w-9" onClick={onRemove} disabled={spanCount <= 1} aria-label={`删除 ${memberId}`}>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onRemove} disabled={spanCount <= 1} aria-label={`删除 ${memberId}`}>
           <Minus className="h-4 w-4 text-rose-300" />
         </Button>
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="space-y-1 sm:col-span-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className="space-y-1">
           <div className={fieldLabelClass}>{memberTerm}编号</div>
           <DeferredIdInput
             key={`beam-member-id-${memberId}`}
             ariaLabel={`${spanLabel}编号`}
             value={memberId}
             onCommit={onUpdateId}
-            className="h-10 min-w-0 font-mono text-xs"
+            className="h-9 min-w-0 font-mono text-xs"
           />
         </div>
-        <div className="space-y-1 sm:col-span-2">
-          <div className={fieldLabelClass}>{memberTerm}材料编号</div>
+        <div className="space-y-1">
+          <div className={fieldLabelClass}>材料</div>
           <DropdownSelect
             value={span.materialId ?? ""}
             onChange={onUpdateMaterial}
@@ -87,9 +79,6 @@ export function BeamSpanEditor({
             fallbackSelectedLabel="手动 E"
             menuMaxHeight={240}
           />
-          <div className="text-[10px] font-semibold leading-relaxed text-muted-foreground">
-            {memberMaterialPresetHint("beam", memberTerm)} {materialNote}
-          </div>
         </div>
         <div className="space-y-1">
           <div className={fieldLabelClass}>{memberTerm}长度（m）</div>
@@ -100,7 +89,7 @@ export function BeamSpanEditor({
             step="0.1"
             value={span.length}
             onChange={(event) => onUpdateNumber("length", Number(event.target.value) || 0)}
-            className="h-10 min-w-0 font-mono text-xs"
+            className="h-9 min-w-0 font-mono text-xs"
           />
         </div>
         <div className="space-y-1">
@@ -111,7 +100,7 @@ export function BeamSpanEditor({
             type="number"
             value={span.E}
             onChange={(event) => onUpdateNumber("E", Number(event.target.value) || 0)}
-            className="h-10 min-w-0 font-mono text-xs"
+            className="h-9 min-w-0 font-mono text-xs"
           />
         </div>
         <div className="space-y-1 sm:col-span-2">
@@ -122,7 +111,7 @@ export function BeamSpanEditor({
             type="number"
             value={span.I}
             onChange={(event) => onUpdateNumber("I", Number(event.target.value) || 0)}
-            className="h-10 min-w-0 font-mono text-xs"
+            className="h-9 min-w-0 font-mono text-xs"
           />
         </div>
       </div>

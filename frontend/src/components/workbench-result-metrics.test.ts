@@ -66,7 +66,7 @@ test("框架结果摘要为最大构件弯矩显示控制构件", () => {
     },
   ]));
 
-  assert.equal(rows.find((row) => row.label === "最大构件弯矩")?.detail, "控制构件 B1 · 弯矩校核");
+  assert.equal(rows.find((row) => row.label === "最大构件弯矩")?.detail, "构件 B1");
 });
 
 test("梁系和桁架结果摘要不把 L/250 限值显示成当前控制比", () => {
@@ -116,6 +116,6 @@ test("梁系和桁架结果摘要不把 L/250 限值显示成当前控制比", (
     member_axial_data: [],
   } satisfies TrussCalculationResults);
 
-  assert.equal(beamRows.find((row) => row.label === "允许挠度")?.detail, "限值 L/250 · 利用率 25% · PASS");
-  assert.equal(trussRows.find((row) => row.label === "允许位移")?.detail, "限值 L/250 · 利用率 36.75% · PASS");
+  assert.equal(beamRows.find((row) => row.label === "允许挠度")?.detail, "L/250 · 25% · PASS");
+  assert.equal(trussRows.find((row) => row.label === "允许位移")?.detail, "L/250 · 36.75% · PASS");
 });

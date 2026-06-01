@@ -19,6 +19,17 @@ test("模板卡片整体可点击时不再显示套用伪按钮", () => {
   });
 });
 
+test("模板页不重复渲染模板标题", () => {
+  const sources = [
+    componentSource("./BeamTemplateSection.tsx"),
+    componentSource("./FrameTemplateSection.tsx"),
+    componentSource("./TrussCustomModelEditor.tsx"),
+  ].join("\n");
+
+  assert.doesNotMatch(sources, /Sparkles/u);
+  assert.doesNotMatch(sources, /eyebrow flex items-center gap-2[\s\S]{0,120}模板/u);
+});
+
 test("模板数量信息只在有补充价值时并入标签行", () => {
   const beamSource = componentSource("./BeamTemplateSection.tsx");
   const frameSource = componentSource("./FrameTemplateSection.tsx");

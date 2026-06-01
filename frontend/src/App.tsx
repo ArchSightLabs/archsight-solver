@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import {
   GripVertical,
@@ -26,6 +26,7 @@ import { GlassCard } from "./components/ui/GlassCard";
 import { Button } from "./components/ui/button";
 import { useTemplateLibrary } from "./hooks/useTemplateLibrary";
 import { createWorkspaceSnapshot, restoreWorkspaceSnapshot } from "./lib/template-library";
+import { materialLibraryFromCustomMaterials } from "./lib/material-presets";
 import type { ProjectInfo } from "./lib/solver-project";
 import { moduleSectionsForMode, normalizeModuleSectionId, objectNavigatorSectionId } from "./lib/workbench-navigation";
 import { ARCHSIGHT_SOLVER_PROJECT_ACCEPT } from "./lib/project-file";
@@ -76,6 +77,7 @@ function App() {
     projectFileName,
     replaceProject,
     setFileStatusMessage,
+    setCustomMaterials,
     setModelPreviewStyle,
     setProject,
     setReportExportOptions,
@@ -84,6 +86,10 @@ function App() {
     workspace,
   } = useSolverProjectDocument();
   const reportExportOptions = project.settings.reportExportOptions;
+  const projectMaterialLibrary = useMemo(
+    () => materialLibraryFromCustomMaterials(project.settings.customMaterials),
+    [project.settings.customMaterials]
+  );
   const {
     handleInspectorResizeStart,
     handleModuleNavResizeStart,
@@ -286,6 +292,8 @@ function App() {
     analysisMode === "beam" ? (
       <BeamForm
         value={workspace.beam}
+        materialLibrary={projectMaterialLibrary}
+        onMaterialLibraryChange={setCustomMaterials}
         onChange={(next) => updateWorkspace((current) => ({ ...current, beam: next }))}
         activeSectionId={activeModuleSectionId}
         selection={beamSelection}
@@ -294,6 +302,7 @@ function App() {
     ) : analysisMode === "truss" ? (
       <TrussForm
         value={workspace.truss}
+        materialLibrary={projectMaterialLibrary}
         onChange={(next) => updateWorkspace((current) => ({ ...current, truss: next }))}
         activeSectionId={activeModuleSectionId}
         selection={trussSelection}
@@ -302,6 +311,7 @@ function App() {
     ) : (
       <FrameForm
         value={workspace.frame}
+        materialLibrary={projectMaterialLibrary}
         onChange={(next) => updateWorkspace((current) => ({ ...current, frame: next }))}
         activeSectionId={activeModuleSectionId}
         selection={frameSelection}
@@ -466,7 +476,9 @@ function App() {
               releaseNotesHref={RELEASE_NOTES_HREF}
               userManualHref={USER_MANUAL_HREF}
               modelPreviewStyle={project.settings.modelPreviewStyle}
+              customMaterials={project.settings.customMaterials}
               visitStats={visitStats}
+              onCustomMaterialsChange={setCustomMaterials}
               onModelPreviewStyleChange={setModelPreviewStyle}
               onOpenTemplateLibrary={() => setIsTemplateLibraryOpen(true)}
               onClose={() => setIsSystemSettingsOpen(false)}
@@ -492,7 +504,9 @@ function App() {
           releaseNotesHref={RELEASE_NOTES_HREF}
           userManualHref={USER_MANUAL_HREF}
           modelPreviewStyle={project.settings.modelPreviewStyle}
+          customMaterials={project.settings.customMaterials}
           visitStats={visitStats}
+          onCustomMaterialsChange={setCustomMaterials}
           onModelPreviewStyleChange={setModelPreviewStyle}
           onOpenTemplateLibrary={() => setIsTemplateLibraryOpen(true)}
           onClose={() => setIsSystemSettingsOpen(false)}

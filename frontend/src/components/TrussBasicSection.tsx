@@ -4,7 +4,6 @@ import {
   defaultMaterialAriaLabel,
   defaultMaterialControlHint,
   defaultMaterialFieldLabel,
-  workbenchBasicDescription,
   workbenchBasicSuccessMessage,
 } from "../lib/workbench-basic-vocabulary.ts";
 import type { Material } from "../types/material.ts";
@@ -42,8 +41,6 @@ export function TrussBasicSection({
   return (
     <WorkbenchModelBasicSection
       id="truss-basic"
-      title="自定义平面桁架建模"
-      description={workbenchBasicDescription("truss")}
       metrics={[
         { label: objectVocabulary.nodeGroupLabel, value: nodeCount },
         { label: objectVocabulary.memberGroupLabel, value: memberCount },
@@ -70,7 +67,7 @@ export function TrussBasicSection({
             />
             <div className="text-[10px] font-semibold leading-relaxed text-muted-foreground">
               {defaultMaterialControlHint("truss", materialId, materialLibrary)}
-              <span className="ml-2 text-muted-foreground/80">{memberElasticitySummary}</span>
+              {memberElasticitySummary ? <span className="ml-2 text-muted-foreground/80">{memberElasticitySummary}</span> : null}
             </div>
           </div>
         </div>

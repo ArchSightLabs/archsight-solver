@@ -1,10 +1,12 @@
 import { FrameCustomModelEditor } from "./FrameCustomModelEditor";
 import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
+import type { Material } from "../types/material.ts";
 import type { FrameWorkspaceState } from "../types/structure.ts";
 import type { FrameWorkbenchSelection, WorkbenchSelectionOptions } from "../types/workbench-selection.ts";
 
 interface FrameFormProps {
   value: FrameWorkspaceState;
+  materialLibrary: Material[];
   onChange: (next: FrameWorkspaceState) => void;
   activeSectionId?: string;
   selection?: FrameWorkbenchSelection | null;
@@ -13,7 +15,7 @@ interface FrameFormProps {
 
 const DEFAULT_SECTION_ID = "frame-template";
 
-export function FrameForm({ value, onChange, activeSectionId, selection, onSelectionChange }: FrameFormProps) {
+export function FrameForm({ value, materialLibrary, onChange, activeSectionId, selection, onSelectionChange }: FrameFormProps) {
   const visibleSectionId = normalizeModuleSectionId("frame", activeSectionId) ?? DEFAULT_SECTION_ID;
   const commitCollections = (next: {
     nodes: FrameWorkspaceState["customNodes"];
@@ -43,6 +45,7 @@ export function FrameForm({ value, onChange, activeSectionId, selection, onSelec
         loadCombinations: value.customLoadCombinations,
       }}
       materialId={value.materialId}
+      materialLibrary={materialLibrary}
       onMaterialChange={(nextMaterialId) => onChange({ ...value, materialId: nextMaterialId })}
       onChange={commitCollections}
       selection={selection}

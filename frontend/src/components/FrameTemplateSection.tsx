@@ -1,4 +1,3 @@
-import { Sparkles } from "lucide-react";
 import { FRAME_MODEL_TEMPLATES } from "../lib/workbench-model-templates.ts";
 
 interface FrameTemplateSectionProps {
@@ -8,12 +7,6 @@ interface FrameTemplateSectionProps {
 export function FrameTemplateSection({ onApplyTemplate }: FrameTemplateSectionProps) {
   return (
     <section id="frame-template" className="space-y-3 rounded-2xl border border-white/8 bg-white/[0.03] p-4 scroll-mt-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="eyebrow flex items-center gap-2">
-          <Sparkles className="h-3.5 w-3.5 text-primary" />
-          模板
-        </div>
-      </div>
       <div className="grid grid-cols-1 gap-2">
         {FRAME_MODEL_TEMPLATES.map((template, index) => (
           <button

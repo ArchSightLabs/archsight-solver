@@ -5,9 +5,12 @@ import { parseBeamTextModel, serializeBeamTextModel } from "../lib/beam-text-mod
 import { modelObjectCountPhrase, modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
 import { createDefaultBeamSupports } from "../lib/workspace-state.ts";
 import type { BeamWorkspaceState } from "../types/beam.ts";
+import type { Material } from "../types/material.ts";
 
 interface UseBeamTextModelOptions {
   value: BeamWorkspaceState;
+  materialLibrary?: Material[];
+  onMaterialLibraryChange?: (nextMaterials: Material[]) => void;
   onApplyWorkspace: (next: BeamWorkspaceState) => void;
   onImportApplied?: () => void;
 }
@@ -35,7 +38,7 @@ function beamTextMetrics(state: BeamWorkspaceState): TextModelPreviewMetric[] {
   ];
 }
 
-export function useBeamTextModel({ value, onApplyWorkspace, onImportApplied }: UseBeamTextModelOptions) {
+export function useBeamTextModel({ value, materialLibrary, onMaterialLibraryChange, onApplyWorkspace, onImportApplied }: UseBeamTextModelOptions) {
   const [draft, setDraft] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [diagnostics, setDiagnostics] = useState<string[]>([]);
@@ -43,7 +46,7 @@ export function useBeamTextModel({ value, onApplyWorkspace, onImportApplied }: U
 
   const exportTextModel = () => {
     const vocabulary = modelObjectVocabulary("beam");
-    setDraft(serializeBeamTextModel(value));
+    setDraft(serializeBeamTextModel(value, materialLibrary));
     setDiagnostics([]);
     setMetrics([]);
     setMessage(`已按当前${vocabulary.supportGroupLabel}、${vocabulary.memberGroupLabel}与${vocabulary.loadGroupLabel}生成梁系文本模型，可编辑后先检查再应用。`);
@@ -58,7 +61,7 @@ export function useBeamTextModel({ value, onApplyWorkspace, onImportApplied }: U
       return;
     }
 
-    const result = parseBeamTextModel(nextDraft);
+    const result = parseBeamTextModel(nextDraft, materialLibrary);
     setDiagnostics(result.diagnostics);
     if (!result.patch || result.diagnostics.length > 0) {
       setMetrics([]);
@@ -91,7 +94,7 @@ export function useBeamTextModel({ value, onApplyWorkspace, onImportApplied }: U
   };
 
   const importDraft = () => {
-    const result = parseBeamTextModel(draft);
+    const result = parseBeamTextModel(draft, materialLibrary);
     setDiagnostics(result.diagnostics);
     if (result.diagnostics.length > 0) {
       setDiagnostics(["存在诊断，未写入正式模型。", ...result.diagnostics]);
@@ -105,6 +108,9 @@ export function useBeamTextModel({ value, onApplyWorkspace, onImportApplied }: U
     }
 
     const { nextSpans, nextSupports, previewState } = buildBeamTextPreviewState(value, result.patch);
+    if (result.patch.materials) {
+      onMaterialLibraryChange?.(result.patch.materials);
+    }
     onApplyWorkspace(previewState);
     setMetrics(beamTextMetrics(previewState));
     setMessage(`已导入 ${modelObjectCountPhrase("beam", "member", nextSpans.length)}、${modelObjectCountPhrase("beam", "support", nextSupports.length)}，默认材料 ${result.patch.materialId ?? value.materialId}。`);

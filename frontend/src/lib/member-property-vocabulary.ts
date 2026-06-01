@@ -38,7 +38,7 @@ export function memberMaterialPresetHint(mode: MemberPropertyMode, memberLabel: 
       : mode === "frame"
         ? "截面面积 A 和截面惯性矩 I"
         : "截面面积 A";
-  return `材料预设来自统一材料库，只回填弹性模量 E；${sectionFields} 仍按${memberLabel}截面单独维护。`;
+  return `材料只回填 E；${sectionFields} 按${memberLabel}维护。`;
 }
 
 function compactNumber(value: number | undefined): string {

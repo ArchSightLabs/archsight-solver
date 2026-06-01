@@ -6,7 +6,8 @@ import { ModelObjectGuide } from "./ModelObjectGuide";
 import { materialLabelForId, materialIdForMember } from "../lib/material-presets.ts";
 import { memberSectionSummary } from "../lib/member-property-vocabulary.ts";
 import { modelObjectLoadLabel, modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
-import { trussSupportSummary } from "../lib/support-vocabulary.ts";
+import { trussSupportLabel, trussSupportSummary } from "../lib/support-vocabulary.ts";
+import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
 import type { TrussMember, TrussNode } from "../types/structure.ts";
 
 export type TrussSelectedObject =
@@ -17,6 +18,7 @@ export type TrussSelectedObject =
 interface TrussObjectNavigatorProps {
   nodes: TrussNode[];
   members: TrussMember[];
+  materialLibrary?: Material[];
   nodeOptions: Array<{ value: string; label: string }>;
   loadOptions: Array<{ value: string; label: string }>;
   selectedObject: TrussSelectedObject;
@@ -45,17 +47,18 @@ function formatCoordinate(value: number) {
   return Number.isInteger(value) ? value.toFixed(0) : value.toFixed(2);
 }
 
-export function trussMemberChipSummary(member: TrussMember): string {
+export function trussMemberChipSummary(member: TrussMember, materialLibrary: Material[] = PREDEFINED_MATERIALS): string {
   return memberSectionSummary("truss", {
     E_GPa: member.E_GPa,
     A_cm2: member.A_cm2,
-    materialLabel: materialLabelForId(materialIdForMember(member)),
+    materialLabel: materialLabelForId(materialIdForMember(member, materialLibrary), materialLibrary),
   });
 }
 
 export function TrussObjectNavigator({
   nodes,
   members,
+  materialLibrary = PREDEFINED_MATERIALS,
   nodeOptions,
   loadOptions,
   selectedObject,
@@ -104,8 +107,9 @@ export function TrussObjectNavigator({
                 type="button"
                 onClick={() => onSelectObject({ type: "node", id: node.id })}
                 className={objectChipClass(selectedObject.type === "node" && selectedObject.id === node.id)}
+                title={trussSupportSummary(node.supportType)}
               >
-                {node.id} · {trussSupportSummary(node.supportType)}
+                {node.id} · {trussSupportLabel(node.supportType)}
               </button>
             ))}
             {supportCount === 0 ? (
@@ -133,9 +137,9 @@ export function TrussObjectNavigator({
                 type="button"
                 onClick={() => onSelectObject({ type: "member", id: member.id })}
                 className={objectChipClass(selectedObject.type === "member" && selectedObject.id === member.id)}
+                title={`${member.start}-${member.end} · ${trussMemberChipSummary(member, materialLibrary)}`}
               >
-                <span>{member.id} · {member.start}-{member.end}</span>
-                <span className="block pt-0.5 font-mono text-[10px] font-semibold opacity-75">{trussMemberChipSummary(member)}</span>
+                <span>{member.id}</span>
               </button>
             ))}
             {members.length === 0 ? (
