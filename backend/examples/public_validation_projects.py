@@ -378,7 +378,7 @@ def _project_from_group(group: Mapping[str, Any], cases: Iterable[Mapping[str, A
             "reportExportOptions": {
                 "template": "standard",
                 "figureMode": "overlay",
-                "figureScope": "control",
+                "figureScope": "all",
             },
             "projectInfo": {
                 "name": group["title"],

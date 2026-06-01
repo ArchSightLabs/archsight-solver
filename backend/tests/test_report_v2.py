@@ -209,7 +209,7 @@ class TestFeatureSpecificationCalculationReportGenerationV2:
         assert "图 5-1 参数扰动响应曲线" in full_text
         assert len(doc.inline_shapes) >= 3
 
-    def test_docx_export_report_options_can_use_control_overlay_only(self, client):
+    def test_docx_export_legacy_control_scope_exports_all_core_overlay_figures(self, client):
         payload = {
             "q": 1,
             "E": 206,
@@ -228,10 +228,15 @@ class TestFeatureSpecificationCalculationReportGenerationV2:
         doc = Document(io.BytesIO(response.data))
         full_text = "\n".join([p.text for p in doc.paragraphs])
         assert "4.1 弯矩图" in full_text
+        assert "4.2 剪力图" in full_text
+        assert "4.3 挠度图" in full_text
         assert "计算简图与结果同图显示" in full_text
-        assert "4.2 弯矩曲线" not in full_text
+        assert "弯矩曲线" not in full_text
+        assert "剪力曲线" not in full_text
+        assert "挠度曲线" not in full_text
+        assert len(doc.inline_shapes) == 4
 
-    def test_docx_export_report_options_can_disable_figures(self, client):
+    def test_docx_export_legacy_none_scope_still_exports_core_figures(self, client):
         payload = {
             "q": 1,
             "E": 206,
@@ -249,9 +254,12 @@ class TestFeatureSpecificationCalculationReportGenerationV2:
 
         doc = Document(io.BytesIO(response.data))
         full_text = "\n".join([p.text for p in doc.paragraphs])
-        assert "结构预览图" not in full_text
-        assert "弯矩图" not in full_text
-        assert len(doc.inline_shapes) == 0
+        assert "结构预览图" in full_text
+        assert "弯矩图" in full_text
+        assert "剪力图" in full_text
+        assert "挠度图" in full_text
+        assert "弯矩曲线" not in full_text
+        assert len(doc.inline_shapes) == 4
 
     def test_export_service_uses_report_model_instead_of_exposing_solution(self):
         payload = {

@@ -164,10 +164,20 @@ test("assertReportImagesReady prevents frontend DOCX export from falling back to
 
   assert.deepEqual(
     reportImageRequirements(input).map((item) => item.key),
-    ["beam.preview", "beam.overlay.moment"],
+    ["beam.preview", "beam.overlay.moment", "beam.overlay.shear", "beam.overlay.deflection"],
   );
   assert.throws(() => assertReportImagesReady({ "beam.preview": "data:image/png;base64,test" }, input), /梁系弯矩图/);
-  assert.doesNotThrow(() => assertReportImagesReady({ "beam.preview": "data:image/png;base64,test", "beam.overlay.moment": "data:image/png;base64,test" }, input));
+  assert.doesNotThrow(() =>
+    assertReportImagesReady(
+      {
+        "beam.preview": "data:image/png;base64,test",
+        "beam.overlay.moment": "data:image/png;base64,test",
+        "beam.overlay.shear": "data:image/png;base64,test",
+        "beam.overlay.deflection": "data:image/png;base64,test",
+      },
+      input,
+    ),
+  );
 });
 
 test("assertReportImagesReady requires frame and truss preview images before DOCX export", () => {
@@ -207,7 +217,7 @@ test("assertReportImagesReady requires frame and truss preview images before DOC
   );
 });
 
-test("buildReportImagePlan keeps control figure keys aligned for every analysis mode", () => {
+test("buildReportImagePlan normalizes legacy control scope to all core figure keys", () => {
   const reportOptions = { template: "standard" as const, figureMode: "overlay" as const, figureScope: "control" as const };
 
   assert.deepEqual(
@@ -219,7 +229,7 @@ test("buildReportImagePlan keeps control figure keys aligned for every analysis 
       sensitivityData: null,
       reportOptions,
     }).map((item) => item.key),
-    ["beam.preview", "beam.overlay.moment"],
+    ["beam.preview", "beam.overlay.moment", "beam.overlay.shear", "beam.overlay.deflection"],
   );
 
   assert.deepEqual(
@@ -231,7 +241,7 @@ test("buildReportImagePlan keeps control figure keys aligned for every analysis 
       sensitivityData: null,
       reportOptions,
     }).map((item) => item.key),
-    ["frame.preview", "frame.overlay.moment"],
+    ["frame.preview", "frame.overlay.moment", "frame.overlay.shear", "frame.overlay.memberDeflection", "frame.overlay.axial"],
   );
 
   assert.deepEqual(
@@ -243,7 +253,7 @@ test("buildReportImagePlan keeps control figure keys aligned for every analysis 
       sensitivityData: null,
       reportOptions,
     }).map((item) => item.key),
-    ["truss.preview", "truss.overlay.axial"],
+    ["truss.preview", "truss.overlay.axial", "truss.overlay.displacement"],
   );
 });
 

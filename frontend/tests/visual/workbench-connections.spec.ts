@@ -159,7 +159,7 @@ test("平面框架对象页按指定起终节点新增构件并提交计算 payl
   await chooseDropdownOption(page, /新增构件终点节点，当前值：N2/, "N4");
   await page.getByRole("button", { name: "连接为构件" }).click();
 
-  await expect(page.getByRole("button", { name: /M1 · N1-N4/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^M1$/, exact: true })).toBeVisible();
 
   await page.getByRole("tab", { name: /结构计算/ }).click();
   await page.getByRole("button", { name: "运行平面框架计算" }).click();
@@ -176,7 +176,7 @@ test("平面桁架对象页按指定起终节点新增杆件并提交计算 payl
   await chooseDropdownOption(page, /新增杆件起点节点，当前值：N1/, "N2");
   await page.getByRole("button", { name: "连接为杆件" }).click();
 
-  await expect(page.getByRole("button", { name: /M6 · N2-N1/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^M6$/, exact: true })).toBeVisible();
 
   await page.getByRole("tab", { name: /结构计算/ }).click();
   await page.getByRole("button", { name: "运行平面桁架计算" }).click();

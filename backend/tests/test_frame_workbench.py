@@ -278,7 +278,8 @@ def test_frame_docx_export_smoke(client):
     assert "3.2 节点竖向位移图" not in full_text
     assert "4.1 构件弯矩图（模型叠加）" not in full_text
     assert "计算简图与结果同图显示" not in full_text
-    assert "未收到前端同源模型叠加工程图（构件弯矩图）" in full_text
+    assert "未收到前端同源模型叠加工程图" in full_text
+    assert "构件弯矩图、构件剪力图、构件局部 y 向挠度图、构件轴力图" in full_text
     assert "4.2 构件剪力" not in full_text
     assert "构件弯矩曲线" not in full_text
     assert "5. 校核结论" in full_text
@@ -322,13 +323,9 @@ def test_frame_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
     )
 
 
-def test_frame_docx_export_control_scope_uses_only_preview_and_control_figure(client):
-    figures = report_figures_for_scope(FRAME_REPORT_MEMBER_FIGURES, include_all=False)
-    assert [figure.overlay_image_key for figure in figures] == ["frame.overlay.moment"]
-    report_images = {
-        "frame.preview": _report_image(1),
-        figures[0].overlay_image_key: _report_image(2),
-    }
+def test_frame_docx_export_legacy_control_scope_uses_all_core_figures(client):
+    figures = report_figures_for_scope(FRAME_REPORT_MEMBER_FIGURES, include_all=True)
+    report_images = _frame_report_images_for_scope(include_all=True)
 
     response = client.post(
         "/api/export",
@@ -345,14 +342,16 @@ def test_frame_docx_export_control_scope_uses_only_preview_and_control_figure(cl
     full_text = "\n".join(paragraph.text for paragraph in doc.paragraphs)
 
     assert "图 2-1 结构预览与变形示意（节点、构件编号、尺寸与荷载标注同图显示；蓝色为放大后的变形线）" in full_text
-    assert "4.1 构件弯矩图（模型叠加）" in full_text
-    assert "图 4-1 构件弯矩图（kN·m，模型叠加工程图）" in full_text
-    assert "构件剪力图" not in full_text
-    assert "局部 y 向挠度图" not in full_text
-    assert "构件轴力图" not in full_text
+    for index, figure in enumerate(figures, start=1):
+        assert f"4.{index} 构件{figure.title}（模型叠加）" in full_text
+        assert f"图 4-{index} 构件{figure.title}（{figure.unit}，模型叠加工程图）" in full_text
     assert "未收到前端同源模型叠加工程图" not in full_text
-    assert len(doc.inline_shapes) == 2
-    assert_docx_embeds_report_images(response.data, report_images, ["frame.preview", figures[0].overlay_image_key])
+    assert len(doc.inline_shapes) == 1 + len(figures)
+    assert_docx_embeds_report_images(
+        response.data,
+        report_images,
+        ["frame.preview", *(figure.overlay_image_key for figure in figures)],
+    )
 
 
 def test_frame_exports_include_load_combination_tags(client):

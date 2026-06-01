@@ -145,7 +145,6 @@ test("结果页和计算书选项成员术语从共享模型对象词表派生",
     ["TrussResultDiagrams.tsx", readFileSync(new URL("../components/TrussResultDiagrams.tsx", import.meta.url), "utf-8")],
     ["workbench-result-metrics.ts", readFileSync(new URL("../components/workbench-result-metrics.ts", import.meta.url), "utf-8")],
     ["workbench-result-model.ts", readFileSync(new URL("../components/workbench-result-model.ts", import.meta.url), "utf-8")],
-    ["report-options.ts", readFileSync(new URL("./report-options.ts", import.meta.url), "utf-8")],
   ];
 
   for (const [fileName, source] of sources) {

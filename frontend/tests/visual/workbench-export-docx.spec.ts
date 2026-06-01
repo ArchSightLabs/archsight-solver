@@ -38,20 +38,16 @@ const reportFigureCatalog = JSON.parse(
   readFileSync(join(specDir, "../../../shared/report-figures.json"), "utf-8"),
 ) as SharedReportFigureCatalog;
 
-function controlReportImageKeys(mode: AnalysisMode) {
+function allReportImageKeys(mode: AnalysisMode) {
   if (mode === "frame") {
     return [
       "frame.preview",
-      ...reportFigureCatalog.frame.member
-        .filter((figure) => figure.scope === "control")
-        .map((figure) => figure.overlayImageKey),
+      ...reportFigureCatalog.frame.member.map((figure) => figure.overlayImageKey),
     ];
   }
   return [
     "truss.preview",
-    ...reportFigureCatalog.truss.overlay
-      .filter((figure) => figure.scope === "control")
-      .map((figure) => figure.imageKey),
+    ...reportFigureCatalog.truss.overlay.map((figure) => figure.imageKey),
   ];
 }
 
@@ -61,14 +57,14 @@ const MODE_LABELS: Record<AnalysisMode, { object: RegExp; run: string; complete:
     run: "运行平面框架计算",
     complete: "平面框架计算完成",
     filename: "平面框架-计算书.docx",
-    imageKeys: controlReportImageKeys("frame"),
+    imageKeys: allReportImageKeys("frame"),
   },
   truss: {
     object: /平面桁架-1\s+(平面桁架|桁架)/,
     run: "运行平面桁架计算",
     complete: "平面桁架计算完成",
     filename: "平面桁架-计算书.docx",
-    imageKeys: controlReportImageKeys("truss"),
+    imageKeys: allReportImageKeys("truss"),
   },
 };
 
@@ -331,7 +327,7 @@ for (const mode of ["frame", "truss"] as const) {
     const payload = observedExportPayload();
     expect(payload?.analysisType).toBe(mode);
     expect(payload?.format).toBe("docx");
-    expect(payload?.reportOptions).toMatchObject({ figureMode: "overlay", figureScope: "control" });
+    expect(payload?.reportOptions).toMatchObject({ figureMode: "overlay", figureScope: "all" });
     expect(Object.keys(payload?.reportImages ?? {})).toEqual(MODE_LABELS[mode].imageKeys);
     for (const key of MODE_LABELS[mode].imageKeys) {
       expect(payload?.reportImages?.[key]).toMatch(/^data:image\/png;base64,/);

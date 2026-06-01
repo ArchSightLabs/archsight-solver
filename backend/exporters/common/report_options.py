@@ -8,7 +8,6 @@ DEFAULT_REPORT_OPTIONS = default_report_options()
 LEGACY_REPORT_OPTIONS = legacy_report_options()
 VALID_REPORT_TEMPLATES = set(report_option_values("templates"))
 VALID_REPORT_FIGURE_MODES = set(report_option_values("figureModes"))
-VALID_REPORT_FIGURE_SCOPES = set(report_option_values("figureScopes"))
 
 
 def normalize_report_options(options: Optional[Dict[str, Any]]) -> Dict[str, str]:
@@ -16,13 +15,15 @@ def normalize_report_options(options: Optional[Dict[str, Any]]) -> Dict[str, str
         return dict(DEFAULT_REPORT_OPTIONS)
     template = str(options.get("template", DEFAULT_REPORT_OPTIONS["template"]))
     figure_mode = str(options.get("figureMode", DEFAULT_REPORT_OPTIONS["figureMode"]))
-    figure_scope = str(options.get("figureScope", DEFAULT_REPORT_OPTIONS["figureScope"]))
+    # figureScope is kept as a compatibility field, but the product now has one
+    # fixed scope: structure preview plus all core engineering diagrams.
+    figure_scope = DEFAULT_REPORT_OPTIONS["figureScope"]
     if template not in VALID_REPORT_TEMPLATES:
         template = DEFAULT_REPORT_OPTIONS["template"]
+    if figure_mode == "traditional":
+        figure_mode = "overlay"
     if figure_mode not in VALID_REPORT_FIGURE_MODES:
         figure_mode = DEFAULT_REPORT_OPTIONS["figureMode"]
-    if figure_scope not in VALID_REPORT_FIGURE_SCOPES:
-        figure_scope = DEFAULT_REPORT_OPTIONS["figureScope"]
     return {
         "template": template,
         "figureMode": figure_mode,

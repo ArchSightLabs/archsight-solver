@@ -152,7 +152,8 @@ def test_truss_docx_export_smoke(client):
     assert "3.2 节点竖向位移图" not in full_text
     assert "4.1 杆件轴力图" not in full_text
     assert "计算简图与结果同图显示" not in full_text
-    assert "未收到前端同源模型叠加工程图（杆件轴力图）" in full_text
+    assert "未收到前端同源模型叠加工程图" in full_text
+    assert "杆件轴力图、节点位移图" in full_text
     assert "杆件轴力曲线" not in full_text
     assert "5. 校核结论" in full_text
     assert "7. 附录数据" in full_text
@@ -194,13 +195,9 @@ def test_truss_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
     )
 
 
-def test_truss_docx_export_control_scope_uses_only_preview_and_control_figure(client):
-    figures = report_figures_for_scope(TRUSS_REPORT_OVERLAY_FIGURES, include_all=False)
-    assert [figure.image_key for figure in figures] == ["truss.overlay.axial"]
-    report_images = {
-        "truss.preview": _report_image(1),
-        figures[0].image_key: _report_image(2),
-    }
+def test_truss_docx_export_legacy_control_scope_uses_all_core_figures(client):
+    figures = report_figures_for_scope(TRUSS_REPORT_OVERLAY_FIGURES, include_all=True)
+    report_images = _truss_report_images_for_scope(include_all=True)
 
     response = client.post(
         "/api/export",
@@ -217,12 +214,16 @@ def test_truss_docx_export_control_scope_uses_only_preview_and_control_figure(cl
     full_text = "\n".join(paragraph.text for paragraph in doc.paragraphs)
 
     assert "图 2-1 桁架结构预览与节点变形示意（节点、杆件编号、尺寸与荷载标注同图显示；蓝色为放大后的变形线）" in full_text
-    assert "4.1 杆件轴力图" in full_text
-    assert "图 4-1 杆件轴力图（kN，模型叠加工程图）" in full_text
-    assert "节点位移图" not in full_text
+    for index, figure in enumerate(figures, start=1):
+        assert f"4.{index} {figure.title}" in full_text
+        assert f"图 4-{index} {figure.title}（{figure.unit}，模型叠加工程图）" in full_text
     assert "未收到前端同源模型叠加工程图" not in full_text
-    assert len(doc.inline_shapes) == 2
-    assert_docx_embeds_report_images(response.data, report_images, ["truss.preview", figures[0].image_key])
+    assert len(doc.inline_shapes) == 1 + len(figures)
+    assert_docx_embeds_report_images(
+        response.data,
+        report_images,
+        ["truss.preview", *(figure.image_key for figure in figures)],
+    )
 
 
 @pytest.mark.parametrize(

@@ -7,11 +7,11 @@ def test_report_options_catalog_defines_modern_and_legacy_defaults():
     assert default_report_options() == {
         "template": "standard",
         "figureMode": "overlay",
-        "figureScope": "control",
+        "figureScope": "all",
     }
     assert legacy_report_options() == {
         "template": "complete",
-        "figureMode": "traditional",
+        "figureMode": "both",
         "figureScope": "all",
     }
 
@@ -20,6 +20,11 @@ def test_report_options_normalization_uses_modern_default_for_missing_payload():
     assert normalize_report_options(None) == default_report_options()
     assert normalize_report_options({}) == default_report_options()
     assert normalize_report_options({"template": "bad", "figureMode": "bad", "figureScope": "bad"}) == default_report_options()
+    assert normalize_report_options({"template": "complete", "figureMode": "traditional", "figureScope": "none"}) == {
+        "template": "complete",
+        "figureMode": "overlay",
+        "figureScope": "all",
+    }
 
 
 def test_openapi_report_options_schema_uses_shared_catalog():

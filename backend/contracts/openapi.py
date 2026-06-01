@@ -392,7 +392,7 @@ def _export_payload_schema() -> Dict[str, Any]:
             },
             "reportOptions": {
                 "type": "object",
-                "description": "可选计算书排版与图形范围设置。",
+                "description": "可选计算书模板与数据曲线设置；结构预览和核心工程图固定导出。",
                 "properties": {
                     "template": {
                         "type": "string",
@@ -404,13 +404,13 @@ def _export_payload_schema() -> Dict[str, Any]:
                         "type": "string",
                         "enum": list(report_option_values("figureModes")),
                         "default": default_report_options()["figureMode"],
-                        "description": "计算书结果插图模式。",
+                        "description": "是否在核心工程图之外附加数据曲线。",
                     },
                     "figureScope": {
                         "type": "string",
                         "enum": list(report_option_values("figureScopes")),
                         "default": default_report_options()["figureScope"],
-                        "description": "计算书结果插图范围。",
+                        "description": "兼容字段；当前固定为结构预览与全部核心工程图。",
                     },
                 },
                 "additionalProperties": True,
