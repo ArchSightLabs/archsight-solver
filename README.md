@@ -88,7 +88,7 @@ python -m backend.benchmarks.catalog_summary --output docs/verification/benchmar
 | [源码目录说明](docs/source-layout.md) | 后端、前端、数据、测试和本地忽略目录说明 | 当前源码导航 |
 | [版本发布记录](CHANGELOG.md) | 仓库级发布记录；前端发布记录页面由该文件同步生成 | 当前发布记录 |
 | [部署说明](docs/deployment.md) | Docker 单镜像、远程镜像标签与 Compose 部署 | 当前部署说明 |
-| [路线图](docs/roadmap.md) | 开源路线、三模块边界、近期重点 | 当前主路线 |
+| [路线图](docs/roadmap.md) | 开源路线、三模块边界、近期重点与 v1.3 后质量 TODO | 当前主路线 |
 | [ArchSight Structural Solver API Reference](docs/api-reference.md) | REST API、CLI、MCP 与错误码 | 当前 API 参考 |
 | [MCP Resources 清单与生成口径](docs/mcp-resources.md) | MCP Resources URI、仓库事实源、更新责任和验收检查 | 当前 MCP 资源清单 |
 | [Agent 集成指南](docs/agent-integration.md) | REST API、CLI、MCP 三类 Agent/自动化集成入口 | 当前集成指南 |
