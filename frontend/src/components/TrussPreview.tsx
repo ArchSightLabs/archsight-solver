@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { GlassCard } from "./ui/GlassCard";
-import type { SupportType, TrussPreviewData } from "../types/structure";
+import type { ResultViewSettings, SupportType, TrussPreviewData } from "../types/structure";
 import { buildTrussLoadMarkers, buildTrussMemberLengthDimensions, buildTrussMemberLengthLegendRows } from "./truss-preview-utils";
 import { formatEngineeringValue, formatLimitRatio, formatUtilizationPercent } from "../lib/engineering-format";
 import { modelObjectMemberTerm, modelObjectVocabulary } from "../lib/model-object-vocabulary";
@@ -12,6 +12,8 @@ import { STRUCTURE_NODE_RADII, STRUCTURE_STATE_COLORS, STRUCTURE_VISUAL_STROKES 
 interface TrussPreviewProps {
   truss: TrussPreviewData | null;
   compact?: boolean;
+  viewSettings: ResultViewSettings;
+  onChangeViewSettings: (settings: ResultViewSettings) => void;
 }
 
 const PADDING = 72;
@@ -85,11 +87,8 @@ function memberLabelPlacement(start: { x: number; y: number }, end: { x: number;
   };
 }
 
-export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
-  const [manualDisplacementScale, setManualDisplacementScale] = useState<number | null>(null);
-  const [showLoads, setShowLoads] = useState(true);
-  const [showDisplacement, setShowDisplacement] = useState(true);
-  const [showExtremeLabel, setShowExtremeLabel] = useState(false);
+export function TrussPreview({ truss, compact = false, viewSettings, onChangeViewSettings }: TrussPreviewProps) {
+  const { showLoads, showDisplacement, showExtremeLabel, displacementScale: manualDisplacementScale } = viewSettings;
   const objectVocabulary = modelObjectVocabulary("truss");
   const memberTerm = modelObjectMemberTerm("truss");
   const { canvasScrollRef, isCanvasDragging, handleCanvasPointerDown, handleCanvasPointerMove, finishCanvasDrag, handleCanvasClickCapture } = useCanvasDrag();
@@ -222,13 +221,13 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
                 max={displacementScaleMax}
                 step={1}
                 value={displacementDisplayScale}
-                onChange={(event) => setManualDisplacementScale(Number(event.currentTarget.value))}
+                onChange={(event) => onChangeViewSettings({ ...viewSettings, displacementScale: Number(event.currentTarget.value) })}
                 className="result-preview-scale-slider w-28 sm:w-36"
                 aria-label="桁架节点位移显示放大倍率"
               />
               <button
                 type="button"
-                onClick={() => setManualDisplacementScale(null)}
+                onClick={() => onChangeViewSettings({ ...viewSettings, displacementScale: null })}
                 className={`h-6 rounded-md border px-2 text-[10px] font-semibold transition-colors ${
                   manualDisplacementScale === null
                     ? "border-sky-400/45 bg-sky-400/15 text-sky-700 dark:text-sky-200"
@@ -243,9 +242,9 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
         <div className={`flex min-w-0 flex-col gap-2 ${compact ? "w-full" : "items-end"}`}>
           <div className={`flex flex-wrap gap-2 ${compact ? "w-full" : "justify-end"}`}>
             {[
-              { key: "loads", label: "荷载", active: showLoads, onClick: () => setShowLoads((value) => !value) },
-              { key: "displacement", label: "位移", active: showDisplacement && hasDisplacement, onClick: () => setShowDisplacement((value) => !value), disabled: !hasDisplacement },
-              { key: "extreme", label: "极值", active: showExtremeLabel, onClick: () => setShowExtremeLabel((value) => !value), disabled: !showDisplacementLayer },
+              { key: "loads", label: "荷载", active: showLoads, onClick: () => onChangeViewSettings({ ...viewSettings, showLoads: !showLoads }) },
+              { key: "displacement", label: "位移", active: showDisplacement && hasDisplacement, onClick: () => onChangeViewSettings({ ...viewSettings, showDisplacement: !showDisplacement }), disabled: !hasDisplacement },
+              { key: "extreme", label: "极值", active: showExtremeLabel, onClick: () => onChangeViewSettings({ ...viewSettings, showExtremeLabel: !showExtremeLabel }), disabled: !showDisplacementLayer },
             ].map((item) => (
               <button
                 key={item.key}
@@ -330,7 +329,7 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
                   x2={end.x}
                   y2={end.y}
                   stroke="url(#trussBaseGrad)"
-                  strokeWidth={showDisplacementLayer ? 2 : STRUCTURE_VISUAL_STROKES.previewTrussMember}
+                  strokeWidth={showDisplacementLayer ? 1.2 : STRUCTURE_VISUAL_STROKES.previewTrussMember}
                   strokeDasharray={showDisplacementLayer ? "8 6" : undefined}
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -368,7 +367,7 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
                   x2={end.x}
                   y2={end.y}
                   stroke="url(#trussDeformedGrad)"
-                  strokeWidth={STRUCTURE_VISUAL_STROKES.previewTrussMember}
+                  strokeWidth={STRUCTURE_VISUAL_STROKES.previewTrussDeformedMember}
                   strokeOpacity="0.9"
                   strokeLinecap="round"
                   strokeLinejoin="round"

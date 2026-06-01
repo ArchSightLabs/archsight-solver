@@ -360,7 +360,7 @@ function FrameStructureDiagram({
               y2={end.y}
               stroke="var(--structure-preview-base-start)"
               strokeOpacity="0.7"
-              strokeWidth={STRUCTURE_VISUAL_STROKES.resultOverlayBase}
+              strokeWidth={STRUCTURE_VISUAL_STROKES.resultFrameDiagram}
               strokeLinecap="round"
             />
           );
@@ -371,7 +371,7 @@ function FrameStructureDiagram({
             {metric.diagramType === "area" && member.areaPath ? (
               <path d={member.areaPath} fill={metric.fillColor} stroke="none" />
             ) : null}
-            <path d={member.resultPath} fill="none" stroke={metric.color} strokeWidth={metric.diagramType === "line" ? "3.5" : STRUCTURE_VISUAL_STROKES.resultFrameDiagram} strokeLinecap="round" strokeLinejoin="round" />
+            <path d={member.resultPath} fill="none" stroke={metric.color} strokeWidth={metric.diagramType === "line" ? "2.5" : STRUCTURE_VISUAL_STROKES.resultFrameDiagram} strokeLinecap="round" strokeLinejoin="round" />
           </g>
         ))}
 

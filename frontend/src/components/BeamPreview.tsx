@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useMemo, type ReactNode } from "react";
 import { GlassCard } from "./ui/GlassCard";
 import type { BeamLoadMarker, BeamPreviewData, BeamSupport } from "../types/beam";
+import type { ResultViewSettings } from "../types/structure";
 import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments, formatBeamDimensionLength } from "../lib/beam-span-dimensions";
 import { formatEngineeringValue } from "../lib/engineering-format";
 import { summaryMetricLabel } from "../lib/result-metrics";
@@ -10,6 +11,8 @@ import { useCanvasDrag } from "../hooks/useModelCanvasZoom";
 interface BeamPreviewProps {
   beam?: BeamPreviewData | null;
   compact?: boolean;
+  viewSettings: ResultViewSettings;
+  onChangeViewSettings: (settings: ResultViewSettings) => void;
 }
 
 type BeamLoadArrow = BeamLoadMarker & {
@@ -46,8 +49,10 @@ const BEAM_Y = 150;
 const BEAM_LEFT = 80;
 const BEAM_RIGHT = 920;
 const BEAM_LEN = BEAM_RIGHT - BEAM_LEFT;
-const PEAK_LABEL_Y = SVG_H - 54;
 const SPAN_MEMBER_LABEL_Y = BEAM_Y + 22;
+const PEAK_LABEL_GAP_Y = 30;
+const PEAK_LABEL_MIN_Y = 28;
+const PEAK_LABEL_MAX_Y = SVG_H - 38;
 const NODE_BADGE_OFFSET_X = 10;
 const NODE_BADGE_OFFSET_Y = -18;
 const DISTRIBUTED_LOAD_GUIDE_STROKE_WIDTH = 1.5;
@@ -70,11 +75,56 @@ function distributedArrowXs(startX: number, endX: number) {
   return Array.from({ length: arrowCount }, (_, index) => startX + width * (index / (arrowCount - 1)));
 }
 
-export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
-  const [manualDeflectionScale, setManualDeflectionScale] = useState<number | null>(null);
-  const [showLoads, setShowLoads] = useState(true);
-  const [showDisplacement, setShowDisplacement] = useState(true);
-  const [showExtremeLabel, setShowExtremeLabel] = useState(false);
+function resolveSignedPeakDeflectionMm(beam: BeamPreviewData) {
+  const targetX = beam.maxDeflection?.xM;
+  if (!Number.isFinite(targetX) || !beam.curve.length) {
+    return beam.maxDeflection?.valueMm ?? 0;
+  }
+
+  const sortedCurve = beam.curve.slice().sort((a, b) => a.x - b.x);
+  let nearest = sortedCurve[0];
+  for (const point of sortedCurve) {
+    if (Math.abs(point.x - targetX) < Math.abs((nearest?.x ?? 0) - targetX)) {
+      nearest = point;
+    }
+  }
+
+  if (nearest && Math.abs(nearest.x - targetX) < 1e-6) {
+    return nearest.vMm;
+  }
+
+  let before: BeamPreviewData["curve"][number] | undefined;
+  let after: BeamPreviewData["curve"][number] | undefined;
+  for (const point of sortedCurve) {
+    if (point.x <= targetX) before = point;
+    if (!after && point.x >= targetX) after = point;
+  }
+  if (before && after && after.x !== before.x) {
+    const ratio = (targetX - before.x) / (after.x - before.x);
+    return before.vMm + (after.vMm - before.vMm) * ratio;
+  }
+
+  return nearest?.vMm ?? beam.maxDeflection?.valueMm ?? 0;
+}
+
+function placePeakDeflectionLabel(peakPoint: { x: number; y: number }, signedDeflectionMm: number) {
+  const preferBelowPeak = signedDeflectionMm < 0 || (Math.abs(signedDeflectionMm) < 1e-9 && peakPoint.y >= BEAM_Y);
+  const preferredY = preferBelowPeak ? peakPoint.y + PEAK_LABEL_GAP_Y : peakPoint.y - PEAK_LABEL_GAP_Y;
+  const fallbackY = preferBelowPeak ? peakPoint.y - PEAK_LABEL_GAP_Y : peakPoint.y + PEAK_LABEL_GAP_Y;
+  const rawY = preferredY >= PEAK_LABEL_MIN_Y && preferredY <= PEAK_LABEL_MAX_Y ? preferredY : fallbackY;
+  const y = clamp(rawY, PEAK_LABEL_MIN_Y, PEAK_LABEL_MAX_Y);
+  const isBelowPeak = y >= peakPoint.y;
+  return {
+    x: clamp(peakPoint.x, BEAM_LEFT + 92, BEAM_RIGHT - 92),
+    y,
+    connectorY: isBelowPeak ? y - 8 : y + 22,
+    anchor: peakPoint.x < BEAM_LEFT + 120 ? ("start" as const) : peakPoint.x > BEAM_RIGHT - 120 ? ("end" as const) : ("middle" as const),
+  };
+}
+
+export function BeamPreview({ beam, compact = false, viewSettings, onChangeViewSettings }: BeamPreviewProps) {
+  const { showLoads, showDisplacement, showExtremeLabel, displacementScale: manualDeflectionScale } = viewSettings;
+  
   const totalLength = beam?.totalLength || 1;
   const layoutScalePxPerM = BEAM_LEN / totalLength;
 
@@ -205,19 +255,14 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
     val: `${Math.abs(r.valueKn ?? 0).toFixed(2)} kN`,
   }));
   const maxDeflectionLabel = summaryMetricLabel("beam", "max_deflection", "最大挠度");
+  const signedPeakDeflectionMm = beam?.maxDeflection ? resolveSignedPeakDeflectionMm(beam) : 0;
   const peakPoint = beam?.maxDeflection
     ? {
         x: mapX(beam.maxDeflection.xM),
-        y: mapY(beam.maxDeflection.valueMm),
+        y: mapY(signedPeakDeflectionMm),
       }
     : null;
-  const peakLabel = peakPoint
-    ? {
-        x: clamp(peakPoint.x, BEAM_LEFT + 92, BEAM_RIGHT - 92),
-        y: PEAK_LABEL_Y,
-        anchor: peakPoint.x < BEAM_LEFT + 120 ? ("start" as const) : peakPoint.x > BEAM_RIGHT - 120 ? ("end" as const) : ("middle" as const),
-      }
-    : null;
+  const peakLabel = peakPoint ? placePeakDeflectionLabel(peakPoint, signedPeakDeflectionMm) : null;
 
   if (!beam) {
     return (
@@ -245,13 +290,13 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
                 max={deflectionDisplayScaleMax}
                 step={1}
                 value={deflectionDisplayScale}
-                onChange={(event) => setManualDeflectionScale(Number(event.currentTarget.value))}
+                onChange={(event) => onChangeViewSettings({ ...viewSettings, displacementScale: Number(event.currentTarget.value) })}
                 className="result-preview-scale-slider w-28 sm:w-36"
                 aria-label="梁系挠度显示放大倍率"
               />
               <button
                 type="button"
-                onClick={() => setManualDeflectionScale(null)}
+                onClick={() => onChangeViewSettings({ ...viewSettings, displacementScale: null })}
                 className={`h-6 rounded-md border px-2 text-[10px] font-semibold transition-colors ${
                   manualDeflectionScale === null
                     ? "border-sky-400/45 bg-sky-400/15 text-sky-700 dark:text-sky-200"
@@ -266,9 +311,9 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
         <div className={`flex min-w-0 flex-col gap-2 ${compact ? "w-full" : "items-end"}`}>
           <div className={`flex flex-wrap gap-2 ${compact ? "w-full" : "justify-end"}`}>
             {[
-              { key: "loads", label: "荷载", active: showLoads, onClick: () => setShowLoads((value) => !value) },
-              { key: "displacement", label: "位移", active: showDisplacement && hasDeflection, onClick: () => setShowDisplacement((value) => !value), disabled: !hasDeflection },
-              { key: "extreme", label: "极值", active: showExtremeLabel, onClick: () => setShowExtremeLabel((value) => !value), disabled: !showDisplacementLayer },
+              { key: "loads", label: "荷载", active: showLoads, onClick: () => onChangeViewSettings({ ...viewSettings, showLoads: !showLoads }) },
+              { key: "displacement", label: "位移", active: showDisplacement && hasDeflection, onClick: () => onChangeViewSettings({ ...viewSettings, showDisplacement: !showDisplacement }), disabled: !hasDeflection },
+              { key: "extreme", label: "极值", active: showExtremeLabel, onClick: () => onChangeViewSettings({ ...viewSettings, showExtremeLabel: !showExtremeLabel }), disabled: !showDisplacementLayer },
             ].map((item) => (
               <button
                 key={item.key}
@@ -460,7 +505,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
                 x1={peakPoint.x}
                 y1={peakPoint.y}
                 x2={peakLabel.x}
-                y2={peakLabel.y - 8}
+                y2={peakLabel.connectorY}
                 stroke="var(--structure-preview-peak-label)"
                 strokeOpacity="0.55"
                 strokeWidth="1"

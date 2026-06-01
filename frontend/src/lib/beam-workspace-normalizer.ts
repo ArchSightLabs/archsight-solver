@@ -281,5 +281,6 @@ export function normalizeBeamWorkspaceState(value: Partial<BeamWorkspaceState> |
           color: String(scenario.color ?? "#38bdf8"),
         }))
       : [],
+    viewSettings: value?.viewSettings ? { ...value.viewSettings } : base.viewSettings,
   };
 }

@@ -103,3 +103,5 @@ specs/
 
 # External reference source trees are intentionally excluded from the public repo.
 external/
+frontend/unit_tests_output.txt
+frontend/find_failed_tests.js

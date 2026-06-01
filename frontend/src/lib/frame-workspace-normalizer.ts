@@ -319,6 +319,7 @@ export function normalizeFrameWorkspaceState(value: Partial<FrameWorkspaceState>
     customLoads,
     customLoadCases,
     customLoadCombinations,
+    viewSettings: value?.viewSettings ? { ...value.viewSettings } : base.viewSettings,
   };
 }
 

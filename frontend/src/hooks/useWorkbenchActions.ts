@@ -196,6 +196,7 @@ export function useWorkbenchActions(
                 trussResults: workspace.analysisMode === "truss" ? trussResultsForReport : null,
                 sensitivityData,
                 reportOptions: effectiveReportOptions,
+                viewSettings: workspace.analysisMode === "beam" ? workspace.beam.viewSettings : workspace.analysisMode === "frame" ? workspace.frame.viewSettings : workspace.truss.viewSettings,
               }),
             }
           : exportPayload;

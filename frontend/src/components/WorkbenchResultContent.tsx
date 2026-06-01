@@ -3,6 +3,7 @@ import type { BeamCalculationResults } from "../types/beam";
 import type {
   AnalysisMode,
   FrameCalculationResults,
+  ResultViewSettings,
   TrussCalculationResults,
 } from "../types/structure";
 import {
@@ -29,6 +30,13 @@ const FrameMemberDiagrams = lazy(() => import("./FrameMemberDiagrams").then((mod
 const TrussPreview = lazy(() => import("./TrussPreview").then((module) => ({ default: module.TrussPreview })));
 const TrussResultDiagrams = lazy(() => import("./TrussResultDiagrams").then((module) => ({ default: module.TrussResultDiagrams })));
 
+const DEFAULT_RESULT_VIEW_SETTINGS: ResultViewSettings = {
+  showLoads: true,
+  showDisplacement: true,
+  showExtremeLabel: false,
+  displacementScale: null,
+};
+
 interface WorkbenchResultContentProps {
   analysisMode: AnalysisMode;
   activeTabId: string;
@@ -37,6 +45,8 @@ interface WorkbenchResultContentProps {
   beamResults: BeamCalculationResults | null;
   trussResults: TrussCalculationResults | null;
   displayedFrameResults: FrameCalculationResults | null;
+  workspace: import("../lib/workspace-state").WorkspaceState;
+  updateWorkspace: import("react").Dispatch<import("react").SetStateAction<import("../lib/workspace-state").WorkspaceState>>;
 }
 
 export function WorkbenchResultContent({
@@ -47,6 +57,8 @@ export function WorkbenchResultContent({
   beamResults,
   trussResults,
   displayedFrameResults,
+  workspace,
+  updateWorkspace,
 }: WorkbenchResultContentProps) {
   if (!hasResults) {
     return <EmptyResult mode={analysisMode} compact={compact} />;
@@ -58,7 +70,7 @@ export function WorkbenchResultContent({
         <div className={`space-y-3 ${compact ? "" : "sm:space-y-4"}`}>
           {beamResults.beam ? (
             <Suspense fallback={<LoadingPanel compact={compact} />}>
-              <BeamPreview beam={beamResults.beam} compact={compact} />
+              <BeamPreview beam={beamResults.beam} compact={compact} viewSettings={workspace.beam.viewSettings ?? DEFAULT_RESULT_VIEW_SETTINGS} onChangeViewSettings={(s) => updateWorkspace((w) => ({ ...w, beam: { ...w.beam, viewSettings: s } }))} />
             </Suspense>
           ) : null}
           <Suspense fallback={<LoadingPanel compact={compact} />}>
@@ -74,7 +86,7 @@ export function WorkbenchResultContent({
     if (activeTabId === "preview") {
       return beamResults.beam ? (
         <Suspense fallback={<LoadingPanel compact={compact} />}>
-          <BeamPreview beam={beamResults.beam} compact={compact} />
+          <BeamPreview beam={beamResults.beam} compact={compact} viewSettings={workspace.beam.viewSettings ?? DEFAULT_RESULT_VIEW_SETTINGS} onChangeViewSettings={(s) => updateWorkspace((w) => ({ ...w, beam: { ...w.beam, viewSettings: s } }))} />
         </Suspense>
       ) : (
         <EmptyResult mode="beam" compact={compact} />
@@ -108,7 +120,7 @@ export function WorkbenchResultContent({
       return (
         <div className={`space-y-3 ${compact ? "" : "sm:space-y-4"}`}>
           <Suspense fallback={<LoadingPanel compact={compact} />}>
-            <TrussPreview truss={trussResults.truss ?? null} compact={compact} />
+            <TrussPreview truss={trussResults.truss ?? null} compact={compact} viewSettings={workspace.truss.viewSettings ?? DEFAULT_RESULT_VIEW_SETTINGS} onChangeViewSettings={(s) => updateWorkspace((w) => ({ ...w, truss: { ...w.truss, viewSettings: s } }))} />
           </Suspense>
           <Suspense fallback={<LoadingPanel compact={compact} />}>
             <TrussResultDiagrams truss={trussResults.truss ?? null} compact={compact} />
@@ -122,7 +134,7 @@ export function WorkbenchResultContent({
     if (activeTabId === "preview") {
       return (
         <Suspense fallback={<LoadingPanel compact={compact} />}>
-          <TrussPreview truss={trussResults.truss ?? null} compact={compact} />
+          <TrussPreview truss={trussResults.truss ?? null} compact={compact} viewSettings={workspace.truss.viewSettings ?? DEFAULT_RESULT_VIEW_SETTINGS} onChangeViewSettings={(s) => updateWorkspace((w) => ({ ...w, truss: { ...w.truss, viewSettings: s } }))} />
         </Suspense>
       );
     }
@@ -152,7 +164,7 @@ export function WorkbenchResultContent({
     return (
       <div className={`space-y-3 ${compact ? "" : "sm:space-y-4"}`}>
         <Suspense fallback={<LoadingPanel compact={compact} />}>
-          <FramePreview frame={displayedFrameResults.frame ?? null} compact={compact} />
+          <FramePreview frame={displayedFrameResults.frame ?? null} compact={compact} viewSettings={workspace.frame.viewSettings ?? DEFAULT_RESULT_VIEW_SETTINGS} onChangeViewSettings={(s) => updateWorkspace((w) => ({ ...w, frame: { ...w.frame, viewSettings: s } }))} />
         </Suspense>
         <Suspense fallback={<LoadingPanel compact={compact} />}>
           <FrameMemberDiagrams frame={displayedFrameResults.frame ?? null} diagrams={displayedFrameResults.memberDiagrams ?? []} compact={compact} />
@@ -166,7 +178,7 @@ export function WorkbenchResultContent({
   if (activeTabId === "preview") {
     return (
       <Suspense fallback={<LoadingPanel compact={compact} />}>
-        <FramePreview frame={displayedFrameResults.frame ?? null} compact={compact} />
+        <FramePreview frame={displayedFrameResults.frame ?? null} compact={compact} viewSettings={workspace.frame.viewSettings ?? DEFAULT_RESULT_VIEW_SETTINGS} onChangeViewSettings={(s) => updateWorkspace((w) => ({ ...w, frame: { ...w.frame, viewSettings: s } }))} />
       </Suspense>
     );
   }

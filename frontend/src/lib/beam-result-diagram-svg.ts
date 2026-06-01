@@ -291,7 +291,7 @@ export function beamReportMetricToDiagramMetric(metric: "moment" | "shear" | "de
   return "deflectionMm";
 }
 
-export function buildBeamResultDiagramSvg(results: BeamCalculationResults, metricKey: BeamDiagramMetricKey, compact = false) {
+export function buildBeamResultDiagramSvg(results: BeamCalculationResults, metricKey: BeamDiagramMetricKey, compact = false, viewSettings?: import("../types/structure").ResultViewSettings | null) {
   const beam = results.beam;
   if (!beam) return "";
 
@@ -395,17 +395,21 @@ export function buildBeamResultDiagramSvg(results: BeamCalculationResults, metri
       })
       .join("")}
   </g>
-  ${annotations
-    .map(({ point, valueLabel, stationLabel, layout }) => {
-      const isGlobalExtreme = point.kind === "global-extreme";
-      return `
+  ${
+    viewSettings?.showExtremeLabel !== false
+      ? annotations
+          .map(({ point, valueLabel, stationLabel, layout }) => {
+            const isGlobalExtreme = point.kind === "global-extreme";
+            return `
       <g>
         <circle cx="${n(point.x)}" cy="${n(point.y)}" r="${isGlobalExtreme ? EXTREME_RADIUS : EXTREME_RADIUS - 0.75}" fill="${metric.color}" fill-opacity="${isGlobalExtreme ? 1 : 0.88}" stroke="${COLORS.textHalo}" stroke-width="${isGlobalExtreme ? 1.25 : 1}" />
         <line x1="${n(point.x)}" y1="${n(point.y)}" x2="${n(layout.connectorX)}" y2="${n(layout.connectorY)}" stroke="${metric.color}" stroke-opacity="${isGlobalExtreme ? 0.9 : 0.68}" stroke-width="${CALLOUT_STROKE_WIDTH}" stroke-dasharray="4 4" />
         <text x="${n(layout.textX)}" y="${n(layout.valueY)}" fill="${metric.color}" stroke="${COLORS.textHalo}" stroke-width="${VALUE_TEXT_HALO_WIDTH}" paint-order="stroke" font-size="${compact ? 11 : 13}" font-family="${DIAGRAM_NUMERIC_FONT}" font-weight="${isGlobalExtreme ? 700 : 650}">${escapeSvg(valueLabel)}</text>
         <text x="${n(layout.textX)}" y="${n(layout.stationY)}" fill="${COLORS.label}" stroke="${COLORS.textHalo}" stroke-width="${STATION_TEXT_HALO_WIDTH}" paint-order="stroke" font-size="${compact ? 9 : 11}" font-family="${DIAGRAM_NUMERIC_FONT}">${escapeSvg(stationLabel)}</text>
       </g>`;
-    })
-    .join("")}
+          })
+          .join("")
+      : ""
+  }
 </svg>`.trim();
 }

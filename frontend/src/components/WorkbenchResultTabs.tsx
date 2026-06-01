@@ -31,6 +31,8 @@ interface WorkbenchResultTabsProps {
   operationNotice: WorkbenchOperationNoticeModel | null;
   activeTabId?: string;
   onActiveTabChange?: (tabId: string) => void;
+  workspace: import("../lib/workspace-state").WorkspaceState;
+  updateWorkspace: import("react").Dispatch<import("react").SetStateAction<import("../lib/workspace-state").WorkspaceState>>;
 }
 
 export function WorkbenchResultTabs({
@@ -49,6 +51,8 @@ export function WorkbenchResultTabs({
   operationNotice,
   activeTabId: controlledActiveTabId,
   onActiveTabChange,
+  workspace,
+  updateWorkspace,
 }: WorkbenchResultTabsProps) {
   const tabs = resultTabsForMode(analysisMode);
   const [activeTabState, setActiveTabState] = useState({ mode: analysisMode, tabId: tabs[0].id });
@@ -74,6 +78,8 @@ export function WorkbenchResultTabs({
       beamResults={beamResults}
       trussResults={trussResults}
       displayedFrameResults={displayedFrameResults}
+      workspace={workspace}
+      updateWorkspace={updateWorkspace}
     />
   );
 

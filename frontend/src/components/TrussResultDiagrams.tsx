@@ -368,11 +368,9 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
       }
     >
       {selectedMetricKey === "displacementMm" && autoDisplacementDisplayScale > 0 ? (
-        <div className="flex flex-col gap-2 rounded-lg border border-slate-200/80 bg-slate-50/80 p-3 text-xs dark:border-slate-700/80 dark:bg-slate-900/45 sm:flex-row sm:items-center">
-          <div className="flex shrink-0 items-center gap-2 font-bold text-slate-700 dark:text-slate-200">
-            <span>位移显示倍率</span>
-            <span className="font-mono text-sky-600 dark:text-sky-300">{displayScaleValue}×</span>
-          </div>
+        <div className="mb-3 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+          <span>位移倍率</span>
+          <span className="font-mono text-[11px] font-semibold text-sky-600 dark:text-sky-300">{displayScaleValue}×</span>
           <input
             type="range"
             name="truss-displacement-display-scale"
@@ -381,24 +379,13 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
             step={1}
             value={displayScaleValue}
             onChange={(event) => setManualDisplacementScale(Number(event.currentTarget.value))}
-            className="h-2 min-w-0 flex-1 accent-sky-500"
+            className="result-preview-scale-slider w-28 sm:w-36"
             aria-label="节点位移显示放大倍率"
-          />
-          <input
-            type="number"
-            name="truss-displacement-display-scale-value"
-            min={1}
-            max={displacementScaleMax}
-            step={1}
-            value={displayScaleValue}
-            onChange={(event) => setManualDisplacementScale(clamp(Number(event.currentTarget.value) || 1, 1, displacementScaleMax))}
-            className="h-9 w-24 rounded-lg border border-slate-200 bg-white px-2 text-right font-mono text-xs font-bold text-slate-800 outline-none focus:border-sky-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-            aria-label="输入节点位移显示放大倍率"
           />
           <button
             type="button"
             onClick={() => setManualDisplacementScale(null)}
-            className={`h-9 rounded-lg border px-3 text-xs font-bold transition-colors ${
+            className={`h-6 rounded-md border px-2 text-[10px] font-semibold transition-colors ${
               manualDisplacementScale === null
                 ? "border-sky-400/45 bg-sky-400/15 text-sky-700 dark:text-sky-200"
                 : "border-slate-200 bg-white text-slate-600 hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:border-sky-400/50 dark:hover:text-sky-200"
@@ -408,7 +395,6 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
           </button>
         </div>
       ) : null}
-
       <div
         ref={canvasScrollRef}
         className={`structure-preview-surface overflow-auto rounded-lg border border-slate-200/80 bg-white/90 dark:border-slate-700/80 dark:bg-slate-900/45 ${isCanvasDragging ? "cursor-grabbing" : "cursor-grab"}`}

@@ -199,15 +199,15 @@ function addTrussLoadGraphics(
   });
 }
 
-export async function renderFramePreview(results: FrameCalculationResults) {
+export async function renderFramePreview(results: FrameCalculationResults, viewSettings?: import("../types/structure").ResultViewSettings | null) {
   const preview = results.frame ?? results.preview;
   const canvasSize = preview ? frameReportCanvasSize(preview) : REPORT_IMAGE_BASE_SIZE;
-  const graphics = buildFramePreviewGraphics(results, canvasSize);
+  const graphics = buildFramePreviewGraphics(results, canvasSize, viewSettings);
   if (!graphics.length) return "";
   return renderReportGraphics(graphics, canvasSize);
 }
 
-export function buildFramePreviewGraphics(results: FrameCalculationResults, canvasSize?: ReportCanvasSize): ReportGraphic[] {
+export function buildFramePreviewGraphics(results: FrameCalculationResults, canvasSize?: ReportCanvasSize, viewSettings?: import("../types/structure").ResultViewSettings | null): ReportGraphic[] {
   const preview = results.frame ?? results.preview;
   if (!preview) return [];
   const effectiveCanvasSize = canvasSize ?? frameReportCanvasSize(preview);
@@ -220,19 +220,20 @@ export function buildFramePreviewGraphics(results: FrameCalculationResults, canv
     canvasSize: effectiveCanvasSize,
     supportMarker: addFrameSupportMarker,
     dimensionRows: buildFrameDimensionLegendRows(buildFrameGeometryDimensions(preview.nodes, preview.members), 240, 12),
-    renderLoads: (graphics, context) => addFrameLoadGraphics(graphics, preview.loads, context),
+    renderLoads: viewSettings?.showLoads !== false ? ((graphics, context) => addFrameLoadGraphics(graphics, preview.loads, context)) : undefined,
+    showDisplacement: viewSettings?.showDisplacement !== false,
   });
 }
 
-export async function renderTrussPreview(results: TrussCalculationResults) {
+export async function renderTrussPreview(results: TrussCalculationResults, viewSettings?: import("../types/structure").ResultViewSettings | null) {
   const preview = results.truss ?? results.preview;
   const canvasSize = preview ? trussReportCanvasSize(preview) : REPORT_IMAGE_BASE_SIZE;
-  const graphics = buildTrussPreviewGraphics(results, canvasSize);
+  const graphics = buildTrussPreviewGraphics(results, canvasSize, viewSettings);
   if (!graphics.length) return "";
   return renderReportGraphics(graphics, canvasSize);
 }
 
-export function buildTrussPreviewGraphics(results: TrussCalculationResults, canvasSize?: ReportCanvasSize): ReportGraphic[] {
+export function buildTrussPreviewGraphics(results: TrussCalculationResults, canvasSize?: ReportCanvasSize, viewSettings?: import("../types/structure").ResultViewSettings | null): ReportGraphic[] {
   const preview = results.truss ?? results.preview;
   if (!preview) return [];
   const effectiveCanvasSize = canvasSize ?? trussReportCanvasSize(preview);
@@ -245,14 +246,15 @@ export function buildTrussPreviewGraphics(results: TrussCalculationResults, canv
     canvasSize: effectiveCanvasSize,
     supportMarker: addTrussSupportMarker,
     dimensionRows: buildTrussMemberLengthLegendRows(buildTrussMemberLengthDimensions(preview.nodes, preview.members), 240, 12),
-    renderLoads: (graphics, context) => addTrussLoadGraphics(graphics, preview.loads, context),
+    renderLoads: viewSettings?.showLoads !== false ? ((graphics, context) => addTrussLoadGraphics(graphics, preview.loads, context)) : undefined,
+    showDisplacement: viewSettings?.showDisplacement !== false,
   });
 }
 
-export async function renderFrameOverlay(results: FrameCalculationResults, metric: "momentKnM" | "shearKn" | "axialKn" | "deflectionMm") {
+export async function renderFrameOverlay(results: FrameCalculationResults, metric: "momentKnM" | "shearKn" | "axialKn" | "deflectionMm", viewSettings?: import("../types/structure").ResultViewSettings | null) {
   const preview = results.frame ?? results.preview;
   const canvasSize = preview ? frameReportCanvasSize(preview) : REPORT_IMAGE_BASE_SIZE;
-  const graphics = buildFrameOverlayGraphics(results, metric, canvasSize);
+  const graphics = buildFrameOverlayGraphics(results, metric, canvasSize, viewSettings);
   if (!graphics.length) return "";
   return renderReportGraphics(graphics, canvasSize);
 }
@@ -261,6 +263,7 @@ export function buildFrameOverlayGraphics(
   results: FrameCalculationResults,
   metric: "momentKnM" | "shearKn" | "axialKn" | "deflectionMm",
   canvasSize?: ReportCanvasSize,
+  viewSettings?: import("../types/structure").ResultViewSettings | null,
 ): ReportGraphic[] {
   const preview = results.frame ?? results.preview;
   if (!preview) return [];
@@ -305,7 +308,7 @@ export function buildFrameOverlayGraphics(
     if (!startNode || !endNode) continue;
     const start = layout.map(startNode);
     const end = layout.map(endNode);
-    graphics.push({ type: "line", shape: { x1: start.x, y1: start.y, x2: end.x, y2: end.y }, style: { stroke: BASE_MEMBER_STROKE, lineWidth: STRUCTURE_VISUAL_STROKES.reportBaseMember } });
+    graphics.push({ type: "line", shape: { x1: start.x, y1: start.y, x2: end.x, y2: end.y }, style: { stroke: BASE_MEMBER_STROKE, lineWidth: STRUCTURE_VISUAL_STROKES.resultFrameDiagram } });
     const diagram = diagramById.get(member.id);
     if (!diagram) continue;
     const dx = end.x - start.x;
@@ -334,7 +337,7 @@ export function buildFrameOverlayGraphics(
     if (metric !== "deflectionMm") {
       graphics.push({ type: "polygon", shape: { points: [...resultPoints, ...basePoints.slice().reverse()].map((point) => [point.x, point.y]) }, style: { fill: `${metricConfig.color}24` } });
     }
-    graphics.push({ type: "polyline", shape: { points: resultPoints.map((point) => [point.x, point.y]) }, style: { stroke: metricConfig.color, lineWidth: 3, fill: "none" } });
+    graphics.push({ type: "polyline", shape: { points: resultPoints.map((point) => [point.x, point.y]) }, style: { stroke: metricConfig.color, lineWidth: metric === "deflectionMm" ? 2.5 : 1.5, fill: "none" } });
   }
   for (const member of members) {
     const startNode = byId.get(member.start);
@@ -347,7 +350,7 @@ export function buildFrameOverlayGraphics(
     addFrameSupportMarker(graphics, node.supportType, point, node.supportAngleDeg);
     addNode(graphics, node.id, point, layout.center);
   }
-  if (extreme && extremePoint) {
+  if (extreme && extremePoint && viewSettings?.showExtremeLabel !== false) {
     addControlCallout(graphics, {
       point: extremePoint,
       text: `${extreme.value.toFixed(2)} ${metricConfig.unit}\n${extreme.memberId} / ${extreme.stationM.toFixed(2)} m`,
@@ -360,15 +363,15 @@ export function buildFrameOverlayGraphics(
   return graphics;
 }
 
-export async function renderTrussOverlay(results: TrussCalculationResults, metric: "axial" | "displacement") {
+export async function renderTrussOverlay(results: TrussCalculationResults, metric: "axial" | "displacement", viewSettings?: import("../types/structure").ResultViewSettings | null) {
   const preview = results.truss ?? results.preview;
   const canvasSize = preview ? trussReportCanvasSize(preview) : REPORT_IMAGE_BASE_SIZE;
-  const graphics = buildTrussOverlayGraphics(results, metric, canvasSize);
+  const graphics = buildTrussOverlayGraphics(results, metric, canvasSize, viewSettings);
   if (!graphics.length) return "";
   return renderReportGraphics(graphics, canvasSize);
 }
 
-export function buildTrussOverlayGraphics(results: TrussCalculationResults, metric: "axial" | "displacement", canvasSize?: ReportCanvasSize): ReportGraphic[] {
+export function buildTrussOverlayGraphics(results: TrussCalculationResults, metric: "axial" | "displacement", canvasSize?: ReportCanvasSize, viewSettings?: import("../types/structure").ResultViewSettings | null): ReportGraphic[] {
   const preview = results.truss ?? results.preview;
   if (!preview) return [];
   const memberTerm = modelObjectMemberTerm("truss");
@@ -436,7 +439,7 @@ export function buildTrussOverlayGraphics(results: TrussCalculationResults, metr
       controlText = `${controlNode.displacementMm.toFixed(2)} mm\n${controlNode.nodeId}`;
     }
   }
-  if (controlPoint && controlText) {
+  if (controlPoint && controlText && viewSettings?.showExtremeLabel !== false) {
     addControlCallout(graphics, {
       point: controlPoint,
       text: controlText,
@@ -459,6 +462,7 @@ function buildStructurePreviewGraphics(
     supportMarker,
     dimensionRows,
     renderLoads,
+    showDisplacement,
   }: {
     systemLabel: string;
     memberTerm: string;
@@ -469,9 +473,10 @@ function buildStructurePreviewGraphics(
     supportMarker: (graphics: ReportGraphic[], type: string | undefined, point: ReportPoint, supportAngleDeg?: number) => void;
     dimensionRows: string[];
     renderLoads?: ReportStructureLoadRenderer;
+    showDisplacement?: boolean;
   },
 ) {
-  const layout = buildReportStructureLayout(nodes, deformedNodes, canvasSize.width, canvasSize.height);
+  const layout = buildReportStructureLayout(nodes, showDisplacement !== false ? deformedNodes : [], canvasSize.width, canvasSize.height);
   const byId = new Map(nodes.map((node) => [node.id, node]));
   const memberById = new Map(members.flatMap((member) => (member.id ? [[member.id, member]] : [])));
   const deformedById = new Map(deformedNodes.map((node) => [node.id, node]));
@@ -485,15 +490,17 @@ function buildStructurePreviewGraphics(
     if (start && end) {
       const startPoint = layout.map(start);
       const endPoint = layout.map(end);
-      graphics.push({ type: "line", shape: { x1: startPoint.x, y1: startPoint.y, x2: endPoint.x, y2: endPoint.y }, style: { stroke: BASE_MEMBER_STROKE, lineWidth: STRUCTURE_VISUAL_STROKES.reportBaseMember } });
+      graphics.push({ type: "line", shape: { x1: startPoint.x, y1: startPoint.y, x2: endPoint.x, y2: endPoint.y }, style: { stroke: BASE_MEMBER_STROKE, lineWidth: showDisplacement !== false ? 1.5 : STRUCTURE_VISUAL_STROKES.reportBaseMember, lineDash: showDisplacement !== false ? [6, 4] : undefined } });
       addMemberLabel(graphics, member.id, startPoint, endPoint, layout.center);
     }
-    const d0 = deformedById.get(member.start);
-    const d1 = deformedById.get(member.end);
-    if (d0 && d1) {
-      const startDeformed = layout.map(d0);
-      const endDeformed = layout.map(d1);
-      graphics.push({ type: "line", shape: { x1: startDeformed.x, y1: startDeformed.y, x2: endDeformed.x, y2: endDeformed.y }, style: { stroke: STRUCTURE_RESULT_COLORS.reportDeformed, lineWidth: STRUCTURE_VISUAL_STROKES.reportPreviewDeformedMember } });
+    if (showDisplacement !== false) {
+      const d0 = deformedById.get(member.start);
+      const d1 = deformedById.get(member.end);
+      if (d0 && d1) {
+        const startDeformed = layout.map(d0);
+        const endDeformed = layout.map(d1);
+        graphics.push({ type: "line", shape: { x1: startDeformed.x, y1: startDeformed.y, x2: endDeformed.x, y2: endDeformed.y }, style: { stroke: STRUCTURE_RESULT_COLORS.reportDeformed, lineWidth: STRUCTURE_VISUAL_STROKES.reportPreviewDeformedMember } });
+      }
     }
   }
   for (const node of nodes) {

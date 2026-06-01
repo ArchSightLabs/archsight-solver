@@ -485,6 +485,8 @@ function App() {
                   operationNotice={operationNotice}
                   activeTabId={activeObjectPageState.resultTabId ?? ""}
                   onActiveTabChange={setActiveResultTab}
+                  workspace={workspace}
+                  updateWorkspace={updateWorkspace}
                 />
               </section>
             )}

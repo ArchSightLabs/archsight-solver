@@ -90,6 +90,7 @@ export interface BeamWorkspaceState {
   supports: BeamSupportConfig[];
   compareEnabled: boolean;
   scenarios: ComparisonScenario[];
+  viewSettings?: import("./structure.ts").ResultViewSettings;
 }
 
 export interface BeamApiPayload extends BeamForm {

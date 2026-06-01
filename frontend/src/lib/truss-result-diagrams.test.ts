@@ -38,7 +38,7 @@ test("桁架控制图与默认界面图一致", () => {
 test("桁架轴力图杆件线宽保持接近梁系结果图", () => {
   assert.equal(trussAxialMemberStrokeWidth(0, 120), STRUCTURE_VISUAL_STROKES.resultTrussAxialMin);
   assert.equal(trussAxialMemberStrokeWidth(120, 120), STRUCTURE_VISUAL_STROKES.resultTrussAxialMax);
-  assert.equal(trussAxialMemberStrokeWidth(-60, 120), 3.2);
+  assert.equal(trussAxialMemberStrokeWidth(-60, 120), 2.5);
   assert.ok(STRUCTURE_VISUAL_STROKES.resultTrussBase <= STRUCTURE_VISUAL_STROKES.resultBeamBase);
   assert.ok(STRUCTURE_VISUAL_STROKES.resultTrussAxialMax < STRUCTURE_VISUAL_STROKES.resultOverlayBase);
 });

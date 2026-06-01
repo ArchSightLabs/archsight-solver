@@ -127,5 +127,6 @@ export function normalizeTrussWorkspaceState(value: Partial<TrussWorkspaceState>
     customNodes,
     customMembers,
     customLoads,
+    viewSettings: value?.viewSettings ? { ...value.viewSettings } : base.viewSettings,
   };
 }

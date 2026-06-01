@@ -30,7 +30,9 @@ const BEAM_Y = 150;
 const BEAM_LEFT = 80;
 const BEAM_RIGHT = 920;
 const BEAM_LEN = BEAM_RIGHT - BEAM_LEFT;
-const PEAK_LABEL_Y = 46;
+const PEAK_LABEL_GAP_Y = 30;
+const PEAK_LABEL_MIN_Y = 28;
+const PEAK_LABEL_MAX_Y = BEAM_PREVIEW_SVG_HEIGHT - 38;
 const SPAN_MEMBER_LABEL_Y = BEAM_Y + 22;
 const NODE_BADGE_OFFSET_X = 10;
 const NODE_BADGE_OFFSET_Y = -18;
@@ -159,6 +161,53 @@ function buildPointLoadArrows(beam: BeamPreviewData, mapX: (x: number) => number
     });
 }
 
+function resolveSignedPeakDeflectionMm(beam: BeamPreviewData) {
+  const targetX = beam.maxDeflection?.xM;
+  if (!Number.isFinite(targetX) || !beam.curve.length) {
+    return beam.maxDeflection?.valueMm ?? 0;
+  }
+
+  const sortedCurve = beam.curve.slice().sort((a, b) => a.x - b.x);
+  let nearest = sortedCurve[0];
+  for (const point of sortedCurve) {
+    if (Math.abs(point.x - targetX) < Math.abs((nearest?.x ?? 0) - targetX)) {
+      nearest = point;
+    }
+  }
+
+  if (nearest && Math.abs(nearest.x - targetX) < 1e-6) {
+    return nearest.vMm;
+  }
+
+  let before: BeamPreviewData["curve"][number] | undefined;
+  let after: BeamPreviewData["curve"][number] | undefined;
+  for (const point of sortedCurve) {
+    if (point.x <= targetX) before = point;
+    if (!after && point.x >= targetX) after = point;
+  }
+  if (before && after && after.x !== before.x) {
+    const ratio = (targetX - before.x) / (after.x - before.x);
+    return before.vMm + (after.vMm - before.vMm) * ratio;
+  }
+
+  return nearest?.vMm ?? beam.maxDeflection?.valueMm ?? 0;
+}
+
+function placePeakDeflectionLabel(peakPoint: { x: number; y: number }, signedDeflectionMm: number) {
+  const preferBelowPeak = signedDeflectionMm < 0 || (Math.abs(signedDeflectionMm) < 1e-9 && peakPoint.y >= BEAM_Y);
+  const preferredY = preferBelowPeak ? peakPoint.y + PEAK_LABEL_GAP_Y : peakPoint.y - PEAK_LABEL_GAP_Y;
+  const fallbackY = preferBelowPeak ? peakPoint.y - PEAK_LABEL_GAP_Y : peakPoint.y + PEAK_LABEL_GAP_Y;
+  const rawY = preferredY >= PEAK_LABEL_MIN_Y && preferredY <= PEAK_LABEL_MAX_Y ? preferredY : fallbackY;
+  const y = clamp(rawY, PEAK_LABEL_MIN_Y, PEAK_LABEL_MAX_Y);
+  const isBelowPeak = y >= peakPoint.y;
+  return {
+    x: clamp(peakPoint.x, BEAM_LEFT + 92, BEAM_RIGHT - 92),
+    y,
+    connectorY: isBelowPeak ? y - 8 : y + 22,
+    anchor: peakPoint.x < BEAM_LEFT + 120 ? "start" : peakPoint.x > BEAM_RIGHT - 120 ? "end" : "middle",
+  };
+}
+
 function supportSvg(support: BeamSupport, x: number) {
   if (support.type === "fixed") {
     return `
@@ -187,7 +236,10 @@ function supportSvg(support: BeamSupport, x: number) {
     </g>`;
 }
 
-export function buildBeamPreviewSvg(beam: BeamPreviewData) {
+export function buildBeamPreviewSvg(beam: BeamPreviewData, viewSettings?: import("../types/structure").ResultViewSettings | null) {
+  const showLoads = viewSettings?.showLoads ?? true;
+  const showDisplacementLayer = viewSettings?.showDisplacement ?? true;
+  const showExtremeLabel = viewSettings?.showExtremeLabel ?? true;
   const totalLength = beam.totalLength || 1;
   const mapX = (x: number) => BEAM_LEFT + (x / totalLength) * BEAM_LEN;
   const maxDeflectionMm = Math.max(1, ...(beam.curve ?? []).map((point) => Math.abs(point.vMm)));
@@ -200,19 +252,14 @@ export function buildBeamPreviewSvg(beam: BeamPreviewData) {
   const dimensionLegendRows = [`梁长=${formatBeamDimensionLength(totalLength)}`, ...buildBeamSpanDimensionLegendRows(spanDimensions, 420, 12)];
   const loadBands = buildDistributedLoadBands(beam, mapX);
   const pointLoads = buildPointLoadArrows(beam, mapX);
+  const signedPeakDeflectionMm = beam.maxDeflection ? resolveSignedPeakDeflectionMm(beam) : 0;
   const peakPoint = beam.maxDeflection
     ? {
         x: mapX(beam.maxDeflection.xM),
-        y: mapY(beam.maxDeflection.valueMm),
+        y: mapY(signedPeakDeflectionMm),
       }
     : null;
-  const peakLabel = peakPoint
-    ? {
-        x: clamp(peakPoint.x, BEAM_LEFT + 92, BEAM_RIGHT - 92),
-        y: PEAK_LABEL_Y,
-        anchor: peakPoint.x < BEAM_LEFT + 120 ? "start" : peakPoint.x > BEAM_RIGHT - 120 ? "end" : "middle",
-      }
-    : null;
+  const peakLabel = peakPoint ? placePeakDeflectionLabel(peakPoint, signedPeakDeflectionMm) : null;
 
   return `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${BEAM_PREVIEW_SVG_WIDTH} ${BEAM_PREVIEW_SVG_HEIGHT}" width="${BEAM_PREVIEW_SVG_WIDTH}" height="${BEAM_PREVIEW_SVG_HEIGHT}">
@@ -246,7 +293,7 @@ export function buildBeamPreviewSvg(beam: BeamPreviewData) {
       return `<g><circle cx="${n(x)}" cy="${BEAM_Y}" r="4" fill="${node.support ? PREVIEW_COLORS.node : PREVIEW_COLORS.guide}" /><circle cx="${n(badgeX)}" cy="${n(badgeY)}" r="8" fill="${PREVIEW_COLORS.badgeFill}" stroke="${PREVIEW_COLORS.badgeStroke}" stroke-width="1.3" /><text x="${n(badgeX)}" y="${n(badgeY)}" fill="${PREVIEW_COLORS.badgeText}" text-anchor="middle" dominant-baseline="middle" font-size="9" font-weight="700" font-family="${SVG_TEXT_FONT}">${escapeSvg(node.id ?? `${index + 1}`)}</text></g>`;
     })
     .join("")}
-  ${loadBands
+  ${showLoads ? loadBands
     .map(
       (band) => `
       <g>
@@ -255,8 +302,8 @@ export function buildBeamPreviewSvg(beam: BeamPreviewData) {
         <text x="${n(band.labelX)}" y="${n(band.labelY)}" fill="${PREVIEW_COLORS.label}" text-anchor="middle" font-size="11" stroke="${PREVIEW_COLORS.textHalo}" stroke-width="4" paint-order="stroke" font-weight="500" font-family="${SVG_TEXT_FONT}">${escapeSvg(band.label)}</text>
       </g>`,
     )
-    .join("")}
-  ${pointLoads
+    .join("") : ""}
+  ${showLoads ? pointLoads
     .map(
       (load, index) => `
       <g>
@@ -264,13 +311,13 @@ export function buildBeamPreviewSvg(beam: BeamPreviewData) {
         <text x="${n(load.svgX + (index % 2 === 0 ? -8 : 8))}" y="${n(load.labelY)}" fill="${PREVIEW_COLORS.label}" text-anchor="${index % 2 === 0 ? "end" : "start"}" font-size="11" stroke="${PREVIEW_COLORS.textHalo}" stroke-width="4" paint-order="stroke" font-family="${SVG_TEXT_FONT}">P=${escapeSvg(Math.abs(load.intensityKn ?? 0).toFixed(1))}kN</text>
       </g>`,
     )
-    .join("")}
-  ${curvePoints ? `<polyline points="${curvePoints}" fill="none" stroke="${PREVIEW_COLORS.deformed}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />` : ""}
+    .join("") : ""}
+  ${showDisplacementLayer && curvePoints ? `<polyline points="${curvePoints}" fill="none" stroke="${PREVIEW_COLORS.deformed}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />` : ""}
   ${
-    beam.maxDeflection && peakPoint && peakLabel
+    showExtremeLabel && showDisplacementLayer && beam.maxDeflection && peakPoint && peakLabel
       ? `
       <g>
-        <line x1="${n(peakPoint.x)}" y1="${n(peakPoint.y)}" x2="${n(peakLabel.x)}" y2="${n(peakLabel.y + 22)}" stroke="${PREVIEW_COLORS.peak}" stroke-opacity="0.55" stroke-width="1" stroke-dasharray="4 4" />
+        <line x1="${n(peakPoint.x)}" y1="${n(peakPoint.y)}" x2="${n(peakLabel.x)}" y2="${n(peakLabel.connectorY)}" stroke="${PREVIEW_COLORS.peak}" stroke-opacity="0.55" stroke-width="1" stroke-dasharray="4 4" />
         <circle cx="${n(peakPoint.x)}" cy="${n(peakPoint.y)}" r="5" fill="${PREVIEW_COLORS.peakDot}" stroke="${PREVIEW_COLORS.peakDotStroke}" stroke-width="1.5" />
         <text x="${n(peakLabel.x)}" y="${n(peakLabel.y)}" fill="${PREVIEW_COLORS.peak}" stroke="${PREVIEW_COLORS.textHalo}" stroke-width="4" paint-order="stroke" text-anchor="${peakLabel.anchor}" font-size="11" font-weight="600" font-family="${SVG_TEXT_FONT}">
           <tspan x="${n(peakLabel.x)}" dy="0">最大挠度 ${escapeSvg(formatEngineeringValue(Math.abs(beam.maxDeflection.valueMm), "mm"))}</tspan>

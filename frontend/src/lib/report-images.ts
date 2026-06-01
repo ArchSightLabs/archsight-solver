@@ -22,25 +22,25 @@ export async function buildReportImages(input: ReportInput): Promise<ReportImage
   for (const item of buildReportImagePlan(input)) {
     switch (item.kind) {
       case "beamPreview":
-        if (input.beamResults) images[item.key] = await renderBeamPreview(input.beamResults);
+        if (input.beamResults) images[item.key] = await renderBeamPreview(input.beamResults, item.viewSettings);
         break;
       case "beamOverlay":
-        if (input.beamResults) images[item.key] = await renderBeamOverlay(input.beamResults, item.figure.metric);
+        if (input.beamResults) images[item.key] = await renderBeamOverlay(input.beamResults, item.figure.metric, item.viewSettings);
         break;
       case "beamTraditional":
-        if (input.beamResults) images[item.key] = await renderBeamTraditionalImage(input.beamResults, item.figure);
+        if (input.beamResults) images[item.key] = await renderBeamTraditionalImage(input.beamResults, item.figure, item.viewSettings);
         break;
       case "framePreview":
-        if (input.frameResults) images[item.key] = await renderFramePreview(input.frameResults);
+        if (input.frameResults) images[item.key] = await renderFramePreview(input.frameResults, item.viewSettings);
         break;
       case "frameOverlay":
-        if (input.frameResults) images[item.key] = await renderFrameOverlay(input.frameResults, item.figure.metric);
+        if (input.frameResults) images[item.key] = await renderFrameOverlay(input.frameResults, item.figure.metric, item.viewSettings);
         break;
       case "trussPreview":
-        if (input.trussResults) images[item.key] = await renderTrussPreview(input.trussResults);
+        if (input.trussResults) images[item.key] = await renderTrussPreview(input.trussResults, item.viewSettings);
         break;
       case "trussOverlay":
-        if (input.trussResults) images[item.key] = await renderTrussOverlay(input.trussResults, item.figure.metric);
+        if (input.trussResults) images[item.key] = await renderTrussOverlay(input.trussResults, item.figure.metric, item.viewSettings);
         break;
       case "sensitivity":
         if (input.sensitivityData) images[item.key] = await renderSensitivityImage(input.sensitivityData);
@@ -54,7 +54,7 @@ export async function buildReportImages(input: ReportInput): Promise<ReportImage
   return images;
 }
 
-async function renderBeamTraditionalImage(beam: BeamCalculationResults, figure: BeamReportFigure) {
+async function renderBeamTraditionalImage(beam: BeamCalculationResults, figure: BeamReportFigure, _viewSettings?: import("../types/structure").ResultViewSettings | null) {
   const series = beamTraditionalSeries(beam, figure);
   return renderLineChart({
     xLabels: beam.x_data.map((value) => value.toFixed(2)),
@@ -93,14 +93,14 @@ function beamTraditionalSeries(results: BeamCalculationResults, figure: BeamRepo
   return { name: "弯矩", data: results.moment_data, color: "#16a34a" };
 }
 
-async function renderBeamPreview(results: BeamCalculationResults) {
+async function renderBeamPreview(results: BeamCalculationResults, _viewSettings?: import("../types/structure").ResultViewSettings | null) {
   const beam = results.beam;
   if (!beam) return "";
-  return renderSvgToPng(buildBeamPreviewSvg(beam), BEAM_PREVIEW_SVG_WIDTH, BEAM_PREVIEW_SVG_HEIGHT);
+  return renderSvgToPng(buildBeamPreviewSvg(beam, _viewSettings), BEAM_PREVIEW_SVG_WIDTH, BEAM_PREVIEW_SVG_HEIGHT);
 }
 
-async function renderBeamOverlay(results: BeamCalculationResults, metric: "moment" | "shear" | "deflection") {
-  const svg = buildBeamResultDiagramSvg(results, beamReportMetricToDiagramMetric(metric));
+async function renderBeamOverlay(results: BeamCalculationResults, metric: "moment" | "shear" | "deflection", _viewSettings?: import("../types/structure").ResultViewSettings | null) {
+  const svg = buildBeamResultDiagramSvg(results, beamReportMetricToDiagramMetric(metric), false, _viewSettings);
   if (!svg) return "";
   return renderSvgToPng(svg, BEAM_RESULT_DIAGRAM_SVG_WIDTH, BEAM_RESULT_DIAGRAM_SVG_HEIGHT);
 }

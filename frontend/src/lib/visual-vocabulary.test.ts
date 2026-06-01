@@ -32,19 +32,19 @@ test("参数建模与结果预览共享结构对象视觉语义变量", () => {
 test("结构对象线宽语义由共享令牌命名", () => {
   assert.equal(STRUCTURE_VISUAL_STROKES.modelBeamMember, 3.2);
   assert.equal(STRUCTURE_VISUAL_STROKES.modelMember, 3.2);
-  assert.equal(STRUCTURE_VISUAL_STROKES.previewMember, 7);
-  assert.equal(STRUCTURE_VISUAL_STROKES.previewTrussMember, 3.2);
+  assert.equal(STRUCTURE_VISUAL_STROKES.previewMember, 4);
+  assert.equal(STRUCTURE_VISUAL_STROKES.previewTrussMember, 2);
   assert.equal(STRUCTURE_VISUAL_STROKES.modelFrameSelectedMember, 5.2);
   assert.equal(STRUCTURE_VISUAL_STROKES.modelFrameLoad, 1.15);
   assert.equal(STRUCTURE_VISUAL_STROKES.modelFrameSelectedLoad, 1.8);
   assert.equal(STRUCTURE_VISUAL_STROKES.modelFrameLoadGuide, 0.9);
   assert.equal(STRUCTURE_VISUAL_STROKES.modelTrussSelectedMember, 5.2);
-  assert.equal(STRUCTURE_VISUAL_STROKES.resultBeamBase, 3);
-  assert.equal(STRUCTURE_VISUAL_STROKES.resultOverlayBase, 7);
+  assert.equal(STRUCTURE_VISUAL_STROKES.resultBeamBase, 1.5);
+  assert.equal(STRUCTURE_VISUAL_STROKES.resultOverlayBase, 4);
   assert.equal(STRUCTURE_VISUAL_STROKES.resultTrussBase, STRUCTURE_VISUAL_STROKES.resultBeamBase);
-  assert.equal(STRUCTURE_VISUAL_STROKES.resultTrussAxialMax, 4.2);
-  assert.equal(STRUCTURE_VISUAL_STROKES.resultTrussDeformedMember, 2.2);
-  assert.equal(STRUCTURE_VISUAL_STROKES.reportBaseMember, 5);
+  assert.equal(STRUCTURE_VISUAL_STROKES.resultTrussAxialMax, 3.5);
+  assert.equal(STRUCTURE_VISUAL_STROKES.resultTrussDeformedMember, 1.5);
+  assert.equal(STRUCTURE_VISUAL_STROKES.reportBaseMember, 3.5);
 });
 
 test("桁架和框架建模图避免复用粗预览线宽", () => {

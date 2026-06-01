@@ -6,6 +6,13 @@ export type AnalysisType = "beam" | "frame" | "truss";
 export type AnalysisMode = "beam" | "frame" | "truss";
 export type FrameModelMode = "portal_frame" | "custom";
 
+export interface ResultViewSettings {
+  showLoads: boolean;
+  showDisplacement: boolean;
+  showExtremeLabel: boolean;
+  displacementScale: number | null;
+}
+
 export type SupportType = FrameSupportType;
 export type FrameLoadDirection = "local_y" | "global_y";
 
@@ -132,6 +139,7 @@ export interface FrameWorkspaceState {
   customLoads: FrameLoad[];
   customLoadCases: FrameLoadCase[];
   customLoadCombinations: FrameLoadCombination[];
+  viewSettings?: ResultViewSettings;
 }
 
 export interface FrameNodeResult {
@@ -311,6 +319,7 @@ export interface TrussWorkspaceState {
   customNodes: TrussNode[];
   customMembers: TrussMember[];
   customLoads: TrussLoad[];
+  viewSettings?: ResultViewSettings;
 }
 
 export interface TrussNodeResult {

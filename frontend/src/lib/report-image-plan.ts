@@ -21,16 +21,17 @@ export interface ReportImagePlanInput {
   trussResults: TrussCalculationResults | null;
   sensitivityData: SensitivityResults | null;
   reportOptions?: ReportExportOptions;
+  viewSettings?: import("../types/structure.ts").ResultViewSettings | null;
 }
 
 export type ReportImagePlanItem =
-  | { key: "beam.preview"; label: string; kind: "beamPreview" }
-  | { key: string; label: string; kind: "beamOverlay"; figure: BeamReportFigure }
-  | { key: string; label: string; kind: "beamTraditional"; figure: BeamReportFigure }
-  | { key: "frame.preview"; label: string; kind: "framePreview" }
-  | { key: string; label: string; kind: "frameOverlay"; figure: FrameMemberReportFigure }
-  | { key: "truss.preview"; label: string; kind: "trussPreview" }
-  | { key: string; label: string; kind: "trussOverlay"; figure: TrussReportFigure }
+  | { key: "beam.preview"; label: string; kind: "beamPreview"; viewSettings?: import("../types/structure.ts").ResultViewSettings | null }
+  | { key: string; label: string; kind: "beamOverlay"; figure: BeamReportFigure; viewSettings?: import("../types/structure.ts").ResultViewSettings | null }
+  | { key: string; label: string; kind: "beamTraditional"; figure: BeamReportFigure; viewSettings?: import("../types/structure.ts").ResultViewSettings | null }
+  | { key: "frame.preview"; label: string; kind: "framePreview"; viewSettings?: import("../types/structure.ts").ResultViewSettings | null }
+  | { key: string; label: string; kind: "frameOverlay"; figure: FrameMemberReportFigure; viewSettings?: import("../types/structure.ts").ResultViewSettings | null }
+  | { key: "truss.preview"; label: string; kind: "trussPreview"; viewSettings?: import("../types/structure.ts").ResultViewSettings | null }
+  | { key: string; label: string; kind: "trussOverlay"; figure: TrussReportFigure; viewSettings?: import("../types/structure.ts").ResultViewSettings | null }
   | { key: "sensitivity.response"; label: string; kind: "sensitivity" };
 
 export function reportFigureFlags(options: ReportExportOptions) {
@@ -57,13 +58,14 @@ export function buildReportImagePlan(input: ReportImagePlanInput): ReportImagePl
   const plan: ReportImagePlanItem[] = [];
 
   if (includeFigures && input.analysisMode === "beam" && input.beamResults) {
-    plan.push({ key: "beam.preview", label: analysisVocabulary("beam").previewFigureLabel, kind: "beamPreview" });
+    plan.push({ key: "beam.preview", label: analysisVocabulary("beam").previewFigureLabel, kind: "beamPreview", viewSettings: input.viewSettings });
     if (includeOverlay) {
       plan.push(...reportFiguresForScope(BEAM_REPORT_OVERLAY_FIGURES, includeAll).map((figure) => ({
         key: figure.imageKey,
         label: `梁系${figure.title}`,
         kind: "beamOverlay" as const,
         figure,
+        viewSettings: input.viewSettings,
       })));
     }
     if (includeTraditional) {
@@ -72,30 +74,33 @@ export function buildReportImagePlan(input: ReportImagePlanInput): ReportImagePl
         label: figure.title,
         kind: "beamTraditional" as const,
         figure,
+        viewSettings: input.viewSettings,
       })));
     }
   }
 
   if (includeFigures && input.analysisMode === "frame" && input.frameResults) {
-    plan.push({ key: "frame.preview", label: analysisVocabulary("frame").previewFigureLabel, kind: "framePreview" });
+    plan.push({ key: "frame.preview", label: analysisVocabulary("frame").previewFigureLabel, kind: "framePreview", viewSettings: input.viewSettings });
     if (includeOverlay || includeTraditional) {
       plan.push(...reportFiguresForScope(FRAME_REPORT_MEMBER_FIGURES, includeAll).map((figure) => ({
         key: figure.overlayImageKey,
         label: `${modelObjectMemberTerm("frame")}${figure.title}`,
         kind: "frameOverlay" as const,
         figure,
+        viewSettings: input.viewSettings,
       })));
     }
   }
 
   if (includeFigures && input.analysisMode === "truss" && input.trussResults) {
-    plan.push({ key: "truss.preview", label: analysisVocabulary("truss").previewFigureLabel, kind: "trussPreview" });
+    plan.push({ key: "truss.preview", label: analysisVocabulary("truss").previewFigureLabel, kind: "trussPreview", viewSettings: input.viewSettings });
     if (includeOverlay || includeTraditional) {
       plan.push(...reportFiguresForScope(TRUSS_REPORT_OVERLAY_FIGURES, includeAll).map((figure) => ({
         key: figure.imageKey,
         label: `平面桁架${figure.title}`,
         kind: "trussOverlay" as const,
         figure,
+        viewSettings: input.viewSettings,
       })));
     }
   }

@@ -247,6 +247,12 @@ export function createDefaultBeamWorkspaceState(): BeamWorkspaceState {
     supports: defaultBeamSupports("continuous", spans),
     compareEnabled: false,
     scenarios: [...DEFAULT_SCENARIOS],
+    viewSettings: {
+      showLoads: true,
+      showDisplacement: true,
+      showExtremeLabel: false,
+      displacementScale: null,
+    },
   };
 }
 
@@ -274,6 +280,12 @@ export function createDefaultFrameWorkspaceState(): FrameWorkspaceState {
     customLoads: cloneLoads(collections.loads),
     customLoadCases: [],
     customLoadCombinations: [],
+    viewSettings: {
+      showLoads: true,
+      showDisplacement: true,
+      showExtremeLabel: false,
+      displacementScale: null,
+    },
   };
 }
 
@@ -285,6 +297,12 @@ export function createDefaultTrussWorkspaceState(): TrussWorkspaceState {
     customNodes: cloneTrussNodes(collections.nodes),
     customMembers: cloneTrussMembers(collections.members),
     customLoads: cloneTrussLoads(collections.loads),
+    viewSettings: {
+      showLoads: true,
+      showDisplacement: true,
+      showExtremeLabel: false,
+      displacementScale: null,
+    },
   };
 }
 
@@ -306,6 +324,7 @@ export function cloneBeamWorkspaceState(value: BeamWorkspaceState): BeamWorkspac
     linearLoads: (value.linearLoads ?? []).map((load) => ({ ...load })),
     pointLoads: value.pointLoads.map((load) => ({ ...load })),
     scenarios: value.scenarios.map((scenario) => ({ ...scenario })),
+    viewSettings: value.viewSettings ? { ...value.viewSettings } : undefined,
   };
 }
 
@@ -317,6 +336,7 @@ export function cloneFrameWorkspaceState(value: FrameWorkspaceState): FrameWorks
     customLoads: cloneLoads(value.customLoads),
     customLoadCases: cloneFrameLoadCases(value.customLoadCases ?? []),
     customLoadCombinations: cloneFrameLoadCombinations(value.customLoadCombinations ?? []),
+    viewSettings: value.viewSettings ? { ...value.viewSettings } : undefined,
   };
 }
 
@@ -326,6 +346,7 @@ export function cloneTrussWorkspaceState(value: TrussWorkspaceState): TrussWorks
     customNodes: cloneTrussNodes(value.customNodes),
     customMembers: cloneTrussMembers(value.customMembers),
     customLoads: cloneTrussLoads(value.customLoads),
+    viewSettings: value.viewSettings ? { ...value.viewSettings } : undefined,
   };
 }
 

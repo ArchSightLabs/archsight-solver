@@ -49,7 +49,7 @@ test("buildBeamPreviewSvg follows the workbench beam preview sign convention", (
       { x: 8, v: 0, vMm: 0 },
     ],
     spanSummaries: [],
-    maxDeflection: { valueM: -0.001, valueMm: -1, xM: 4, spanIndex: 0 },
+    maxDeflection: { valueM: 0.001, valueMm: 1, xM: 4, spanIndex: 0 },
     reactions: [],
     warnings: [],
   };
@@ -65,6 +65,8 @@ test("buildBeamPreviewSvg follows the workbench beam preview sign convention", (
   assert.doesNotMatch(svg, />S3</);
   assert.match(svg, /q=10\.0 kN\/m/);
   assert.match(svg, /最大挠度 1 mm/);
+  assert.match(svg, /<line x1="500\.0" y1="230\.0" x2="500\.0" y2="252\.0"/);
+  assert.match(svg, /<text x="500\.0" y="260\.0"/);
   assert.match(svg, /80\.0,150\.0 500\.0,230\.0 920\.0,150\.0/);
   assert.match(svg, /stop-color="#2563eb"/);
   assert.match(svg, /stroke="#b45309"/);

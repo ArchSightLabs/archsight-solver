@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { GlassCard } from "./ui/GlassCard";
 import type { FramePreviewData, SupportType } from "../types/structure";
 import { buildFrameDimensionLegendRows, buildFrameGeometryDimensions, buildFrameLoadLabelMap, buildFrameLoadMarkers, frameMemberLabelPlacement, type FrameLoadMarker } from "./frame-preview-utils";
@@ -8,10 +8,13 @@ import { useCanvasDrag } from "../hooks/useModelCanvasZoom";
 import { RESULT_PREVIEW_BASE_SIZE, resultPreviewCanvasSize, resultPreviewSvgStyle } from "../lib/result-preview-sizing";
 import { summaryMetricLabel } from "../lib/result-metrics";
 import { STRUCTURE_NODE_RADII, STRUCTURE_STATE_COLORS, STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
+import type { ResultViewSettings } from "../types/structure";
 
 interface FramePreviewProps {
   frame: FramePreviewData | null;
   compact?: boolean;
+  viewSettings: ResultViewSettings;
+  onChangeViewSettings: (settings: ResultViewSettings) => void;
 }
 
 const PADDING = 70;
@@ -112,11 +115,8 @@ function hingeMarker(x: number, y: number, key: string) {
   );
 }
 
-export function FramePreview({ frame, compact = false }: FramePreviewProps) {
-  const [manualDeformationScale, setManualDeformationScale] = useState<number | null>(null);
-  const [showLoads, setShowLoads] = useState(true);
-  const [showDisplacement, setShowDisplacement] = useState(true);
-  const [showExtremeLabel, setShowExtremeLabel] = useState(false);
+export function FramePreview({ frame, compact = false, viewSettings, onChangeViewSettings }: FramePreviewProps) {
+  const { showLoads, showDisplacement, showExtremeLabel, displacementScale: manualDeformationScale } = viewSettings;
   const objectVocabulary = modelObjectVocabulary("frame");
   const memberTerm = modelObjectMemberTerm("frame");
   const { canvasScrollRef, isCanvasDragging, handleCanvasPointerDown, handleCanvasPointerMove, finishCanvasDrag, handleCanvasClickCapture } = useCanvasDrag();
@@ -261,13 +261,13 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
                 max={deformationDisplayScaleMax}
                 step={1}
                 value={deformationDisplayScale}
-                onChange={(event) => setManualDeformationScale(Number(event.currentTarget.value))}
+                onChange={(event) => onChangeViewSettings({ ...viewSettings, displacementScale: Number(event.currentTarget.value) })}
                 className="result-preview-scale-slider w-28 sm:w-36"
                 aria-label="框架节点位移显示放大倍率"
               />
               <button
                 type="button"
-                onClick={() => setManualDeformationScale(null)}
+                onClick={() => onChangeViewSettings({ ...viewSettings, displacementScale: null })}
                 className={`h-6 rounded-md border px-2 text-[10px] font-semibold transition-colors ${
                   manualDeformationScale === null
                     ? "border-sky-400/45 bg-sky-400/15 text-sky-700 dark:text-sky-200"
@@ -282,9 +282,9 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
         <div className={`flex min-w-0 flex-col gap-2 ${compact ? "w-full" : "items-end"}`}>
           <div className={`flex flex-wrap gap-2 ${compact ? "w-full" : "justify-end"}`}>
             {[
-              { key: "loads", label: "荷载", active: showLoads, onClick: () => setShowLoads((value) => !value) },
-              { key: "displacement", label: "位移", active: showDisplacement && hasDeformation, onClick: () => setShowDisplacement((value) => !value), disabled: !hasDeformation },
-              { key: "extreme", label: "极值", active: showExtremeLabel, onClick: () => setShowExtremeLabel((value) => !value), disabled: !showDisplacementLayer },
+              { key: "loads", label: "荷载", active: showLoads, onClick: () => onChangeViewSettings({ ...viewSettings, showLoads: !showLoads }) },
+              { key: "displacement", label: "位移", active: showDisplacement && hasDeformation, onClick: () => onChangeViewSettings({ ...viewSettings, showDisplacement: !showDisplacement }), disabled: !hasDeformation },
+              { key: "extreme", label: "极值", active: showExtremeLabel, onClick: () => onChangeViewSettings({ ...viewSettings, showExtremeLabel: !showExtremeLabel }), disabled: !showDisplacementLayer },
             ].map((item) => (
               <button
                 key={item.key}
@@ -363,7 +363,7 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
                   x2={end.x}
                   y2={end.y}
                   stroke="var(--structure-preview-guide)"
-                  strokeWidth={showDisplacementLayer ? 2 : STRUCTURE_VISUAL_STROKES.previewMember}
+                  strokeWidth={showDisplacementLayer ? 1.2 : STRUCTURE_VISUAL_STROKES.previewMember}
                   strokeDasharray={showDisplacementLayer ? "8 6" : undefined}
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -389,7 +389,7 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
                 x2={end.x}
                 y2={end.y}
                 stroke="url(#frameDeformedGrad)"
-                strokeWidth={STRUCTURE_VISUAL_STROKES.previewMember}
+                strokeWidth={STRUCTURE_VISUAL_STROKES.previewFrameDeformedMember}
                 strokeOpacity="0.9"
                 strokeLinecap="round"
                 strokeLinejoin="round"
