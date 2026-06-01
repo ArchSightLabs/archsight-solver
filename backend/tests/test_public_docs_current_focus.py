@@ -39,8 +39,8 @@ def test_v130_release_notes_are_current_and_synced():
     release_markdown = _read_doc("frontend/public/docs/release-notes.md")
     release_html = _read_doc("frontend/public/docs/release-notes.html")
 
-    assert _release_date(changelog, "v1.3.0") == "2026-06-01"
+    assert _release_date(changelog, "v1.3.0") == "2026-06-02"
     assert _release_date(release_markdown, "v1.3.0") == _release_date(changelog, "v1.3.0")
-    assert "发布时间：2026-06-01" in release_html
+    assert "发布时间：2026-06-02" in release_html
     assert "BM-006" in changelog
     assert "BM-006" in release_markdown

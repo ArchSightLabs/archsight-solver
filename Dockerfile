@@ -14,7 +14,7 @@ RUN npm ci
 
 COPY frontend/ ./
 COPY CHANGELOG.md /app/CHANGELOG.md
-RUN npm run build
+RUN NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
 FROM ${PYTHON_IMAGE} AS runtime
 
