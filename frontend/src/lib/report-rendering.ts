@@ -148,7 +148,7 @@ export async function renderSvgToPng(svg: string, width: number, height: number)
     const image = new globalThis.Image();
     await new Promise<void>((resolve, reject) => {
       image.onload = () => resolve();
-      image.onerror = () => reject(new Error("计算书结构预览图渲染失败"));
+      image.onerror = () => reject(new Error("计算书受力变形图渲染失败"));
       image.src = url;
     });
 

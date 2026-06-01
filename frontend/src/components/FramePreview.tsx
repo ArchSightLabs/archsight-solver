@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { GlassCard } from "./ui/GlassCard";
 import type { FramePreviewData, SupportType } from "../types/structure";
 import { buildFrameDimensionLegendRows, buildFrameGeometryDimensions, buildFrameLoadLabelMap, buildFrameLoadMarkers, frameMemberLabelPlacement, type FrameLoadMarker } from "./frame-preview-utils";
@@ -17,6 +17,8 @@ interface FramePreviewProps {
 const PADDING = 70;
 const FRAME_PREVIEW_LOAD_STROKE_WIDTH = 1.55;
 const FRAME_PREVIEW_LOAD_GUIDE_STROKE_WIDTH = 1.2;
+const FRAME_PREVIEW_AUTO_DEFORMATION_SCALE_CAP = 60;
+const FRAME_PREVIEW_MANUAL_DEFORMATION_SCALE_CAP = 180;
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -28,6 +30,18 @@ function nodeLabelPlacement(point: { x: number; y: number }, centerX: number) {
     x: point.x + (isLeft ? -24 : 24),
     y: point.y - 12,
     anchor: isLeft ? ("end" as const) : ("start" as const),
+  };
+}
+
+function extremeLabelPlacement(point: { x: number; y: number }, center: { x: number; y: number }, compact: boolean) {
+  const dx = point.x < center.x ? -1 : 1;
+  const dy = point.y < center.y ? -1 : 1;
+  const gapX = compact ? 24 : 34;
+  const gapY = compact ? 26 : 36;
+  return {
+    x: point.x + dx * gapX,
+    y: point.y + dy * gapY,
+    anchor: dx < 0 ? ("end" as const) : ("start" as const),
   };
 }
 
@@ -99,6 +113,10 @@ function hingeMarker(x: number, y: number, key: string) {
 }
 
 export function FramePreview({ frame, compact = false }: FramePreviewProps) {
+  const [manualDeformationScale, setManualDeformationScale] = useState<number | null>(null);
+  const [showLoads, setShowLoads] = useState(true);
+  const [showBaseShape, setShowBaseShape] = useState(true);
+  const [showExtremeLabel, setShowExtremeLabel] = useState(false);
   const objectVocabulary = modelObjectVocabulary("frame");
   const memberTerm = modelObjectMemberTerm("frame");
   const { canvasScrollRef, isCanvasDragging, handleCanvasPointerDown, handleCanvasPointerMove, finishCanvasDrag, handleCanvasClickCapture } = useCanvasDrag();
@@ -144,23 +162,29 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
     return { map, nodeMap, scale, center, bounds, dimensionLegendX };
   }, [frame, padding, compact, canvasSize]);
 
-  const deformationDrawScale = frame ? Math.min(frame.deformationScale, 60) : 0;
-  const deformationScaleRatio = frame && frame.deformationScale > 1e-9 ? deformationDrawScale / frame.deformationScale : 0;
+  const hasDeformation = Boolean(frame && frame.summary.maxDisplacementMm > 1e-9 && frame.nodeResults.length);
+  const autoDeformationDisplayScale = frame && hasDeformation ? Math.max(1, Math.round(Math.min(frame.deformationScale, FRAME_PREVIEW_AUTO_DEFORMATION_SCALE_CAP))) : 0;
+  const deformationDisplayScaleMax = frame && hasDeformation
+    ? Math.max(10, Math.ceil(Math.min(Math.max(frame.deformationScale, FRAME_PREVIEW_AUTO_DEFORMATION_SCALE_CAP), FRAME_PREVIEW_MANUAL_DEFORMATION_SCALE_CAP)))
+    : 10;
+  const deformationDisplayScale = hasDeformation
+    ? clamp(manualDeformationScale ?? autoDeformationDisplayScale, 1, deformationDisplayScaleMax)
+    : 0;
   const renderedDeformedMap = useMemo(() => {
     if (!frame || !layout) return new Map<string, { x: number; y: number }>();
     const originalById = new Map(frame.nodes.map((node) => [node.id, node]));
     const next = new Map<string, { x: number; y: number }>();
-    for (const node of frame.deformedNodes) {
+    for (const node of frame.nodeResults) {
       const original = originalById.get(node.nodeId);
       const start = layout.nodeMap.get(node.nodeId);
       if (!original || !start) continue;
       next.set(node.nodeId, {
-        x: start.x + ((node.x - original.x) * layout.scale * deformationScaleRatio),
-        y: start.y - ((node.y - original.y) * layout.scale * deformationScaleRatio),
+        x: start.x + (node.uxMm / 1000.0) * deformationDisplayScale * layout.scale,
+        y: start.y - (node.uyMm / 1000.0) * deformationDisplayScale * layout.scale,
       });
     }
     return next;
-  }, [frame, layout, deformationScaleRatio]);
+  }, [frame, layout, deformationDisplayScale]);
   const memberMap = useMemo(() => new Map((frame?.members ?? []).map((member) => [member.id, member])), [frame?.members]);
   const loadLabelMap = useMemo(() => buildFrameLoadLabelMap(frame?.loads ?? []), [frame?.loads]);
   const reservedLoadPoints = useMemo(() => {
@@ -193,7 +217,7 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
     return (
       <GlassCard className={`flex items-center justify-center border-dashed border-primary/10 ${compact ? "h-48 sm:h-60" : "h-56 sm:h-72"}`}>
         <div className="text-center">
-          <p className="text-sm font-medium opacity-50">运行计算后将显示框架预览</p>
+          <p className="text-sm font-medium opacity-50">运行计算后将显示框架受力变形</p>
         </div>
       </GlassCard>
     );
@@ -215,12 +239,69 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
   }, "");
   const maxNodeDisplacementLabel = summaryMetricLabel("frame", "max_node_displacement", "最大节点位移");
   const maxMemberMomentLabel = summaryMetricLabel("frame", "max_member_moment", `最大${memberTerm}弯矩`);
+  const maxNodeResult = frame.nodeResults.find((item) => item.nodeId === maxNodeLabel) ?? null;
+  const maxNodePoint = maxNodeLabel ? (renderedDeformedMap.get(maxNodeLabel) ?? layout.nodeMap.get(maxNodeLabel) ?? null) : null;
+  const maxNodeLabelPlacement = maxNodePoint ? extremeLabelPlacement(maxNodePoint, layout.center, compact) : null;
+  const showOriginalAnchors = showBaseShape || showLoads;
 
   return (
     <GlassCard className="overflow-hidden">
-      <div className={`flex gap-3 border-b border-white/5 px-4 py-4 sm:px-5 ${compact ? "flex-col items-start" : "flex-wrap items-center justify-between"}`}>
-        <h3 className={`${compact ? "text-lg" : "text-xl"} font-black tracking-tight`}>结构预览</h3>
-        <div className={`flex flex-wrap gap-2 ${compact ? "w-full" : ""}`}>
+      <div className={`flex gap-3 border-b border-white/5 px-4 py-4 sm:px-5 ${compact ? "flex-col items-start" : "flex-wrap items-start justify-between"}`}>
+        <div className="min-w-0">
+          <h3 className={`${compact ? "text-lg" : "text-xl"} font-black tracking-tight`}>受力变形</h3>
+          {hasDeformation ? (
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+              <span>位移显示倍率</span>
+              <span className="font-mono text-sky-600 dark:text-sky-300">{deformationDisplayScale}×</span>
+              <input
+                type="range"
+                name="frame-deformation-display-scale"
+                min={1}
+                max={deformationDisplayScaleMax}
+                step={1}
+                value={deformationDisplayScale}
+                onChange={(event) => setManualDeformationScale(Number(event.currentTarget.value))}
+                className="h-2 w-32 accent-sky-500 sm:w-44"
+                aria-label="框架节点位移显示放大倍率"
+              />
+              <button
+                type="button"
+                onClick={() => setManualDeformationScale(null)}
+                className={`h-7 rounded-lg border px-2 text-[11px] font-bold transition-colors ${
+                  manualDeformationScale === null
+                    ? "border-sky-400/45 bg-sky-400/15 text-sky-700 dark:text-sky-200"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:border-sky-400/50 dark:hover:text-sky-200"
+                }`}
+              >
+                自动
+              </button>
+            </div>
+          ) : null}
+        </div>
+        <div className={`flex min-w-0 flex-col gap-2 ${compact ? "w-full" : "items-end"}`}>
+          <div className={`flex flex-wrap gap-2 ${compact ? "w-full" : "justify-end"}`}>
+            {[
+              { key: "loads", label: "荷载", active: showLoads, onClick: () => setShowLoads((value) => !value) },
+              { key: "base", label: "未变形", active: showBaseShape, onClick: () => setShowBaseShape((value) => !value) },
+              { key: "extreme", label: "极值", active: showExtremeLabel, onClick: () => setShowExtremeLabel((value) => !value), disabled: !hasDeformation },
+            ].map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                aria-pressed={item.active}
+                disabled={item.disabled}
+                onClick={item.onClick}
+                className={`h-8 rounded-lg border px-2.5 text-[11px] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
+                  item.active
+                    ? "border-sky-400/55 bg-sky-400/15 text-sky-700 dark:text-sky-200"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:border-sky-400/50 dark:hover:text-sky-200"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <div className={`flex flex-wrap gap-2 ${compact ? "w-full" : "justify-end"}`}>
           <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
             {frame.structureTypeLabel}
           </span>
@@ -230,6 +311,7 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
           <span className="rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-[10px] font-bold text-teal-700 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-300">
             {maxNodeDisplacementLabel} = {formatEngineeringValue(peakBadge.maxDisplacementMm, "mm")}
           </span>
+          </div>
         </div>
       </div>
 
@@ -257,7 +339,7 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
             </marker>
           </defs>
 
-          {dimensionLegendRows.length ? (
+          {showBaseShape && dimensionLegendRows.length ? (
             <g fontFamily="Fira Code" fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke">
               {dimensionLegendRows.map((row, index) => (
                 <text key={`frame-preview-dimension-${index}`} x={layout.dimensionLegendX} y={28 + index * 16} fontSize={compact ? "10" : "12"} fontWeight="700">
@@ -267,14 +349,24 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
             </g>
           ) : null}
 
-          {frame.members.map((member) => {
+          {showBaseShape && frame.members.map((member) => {
             const start = layout.nodeMap.get(member.start);
             const end = layout.nodeMap.get(member.end);
             if (!start || !end) return null;
             const label = frameMemberLabelPlacement(start, end, layout.center, compact ? 14 : 18);
             return (
               <g key={member.id}>
-                <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="url(#frameBaseGrad)" strokeWidth={STRUCTURE_VISUAL_STROKES.previewMember} strokeLinecap="round" strokeLinejoin="round" />
+                <line
+                  x1={start.x}
+                  y1={start.y}
+                  x2={end.x}
+                  y2={end.y}
+                  stroke="var(--structure-preview-guide)"
+                  strokeWidth={hasDeformation ? 2 : STRUCTURE_VISUAL_STROKES.previewMember}
+                  strokeDasharray={hasDeformation ? "8 6" : undefined}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
                 <text x={label.x} y={label.y} fill="var(--structure-preview-label)" textAnchor={label.textAnchor} dominantBaseline="middle" fontSize={compact ? "9" : "11"} fontFamily="Fira Code" fontWeight="700">
                   {member.id}
                 </text>
@@ -284,7 +376,7 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
             );
           })}
 
-          {frame.deformedNodes.length === frame.nodes.length && frame.members.map((member) => {
+          {hasDeformation && frame.members.map((member) => {
             const start = renderedDeformedMap.get(member.start);
             const end = renderedDeformedMap.get(member.end);
             if (!start || !end) return null;
@@ -296,15 +388,15 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
                 x2={end.x}
                 y2={end.y}
                 stroke="url(#frameDeformedGrad)"
-                strokeWidth={STRUCTURE_VISUAL_STROKES.previewFrameDeformedMember}
-                strokeOpacity="0.55"
+                strokeWidth={STRUCTURE_VISUAL_STROKES.previewMember}
+                strokeOpacity="0.9"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
             );
           })}
 
-          {frame.nodes.map((node) => {
+          {showOriginalAnchors && frame.nodes.map((node) => {
             const point = layout.nodeMap.get(node.id);
             if (!point) return null;
             const label = nodeLabelPlacement(point, layout.center.x);
@@ -321,13 +413,47 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
             );
           })}
 
-          {frame.deformedNodes.map((node) => {
+          {hasDeformation && frame.nodeResults.map((node) => {
             const point = renderedDeformedMap.get(node.nodeId);
             if (!point) return null;
             return <circle key={node.nodeId} cx={point.x} cy={point.y} r="3.5" fill="var(--structure-preview-deformed-node)" stroke="var(--structure-preview-deformed-node-stroke)" strokeWidth="1" />;
           })}
 
-          {loadMarkers.map((load, index) => (
+          {showExtremeLabel && maxNodeResult && maxNodePoint && maxNodeLabelPlacement ? (
+            <g>
+              <circle cx={maxNodePoint.x} cy={maxNodePoint.y} r="5" fill={STRUCTURE_STATE_COLORS.peakDot} stroke={STRUCTURE_STATE_COLORS.peakDotStroke} strokeWidth="2" />
+              <line x1={maxNodePoint.x} y1={maxNodePoint.y} x2={maxNodeLabelPlacement.x} y2={maxNodeLabelPlacement.y - 6} stroke={STRUCTURE_STATE_COLORS.peakDot} strokeWidth="1.5" strokeDasharray="4 4" />
+              <text
+                x={maxNodeLabelPlacement.x}
+                y={maxNodeLabelPlacement.y - 8}
+                fill={STRUCTURE_STATE_COLORS.peakLabel}
+                stroke="var(--structure-preview-text-halo)"
+                strokeWidth="5"
+                paintOrder="stroke"
+                textAnchor={maxNodeLabelPlacement.anchor}
+                fontSize={compact ? "11" : "13"}
+                fontFamily="Fira Code"
+                fontWeight="700"
+              >
+                {formatEngineeringValue(maxNodeResult.resultantMm, "mm")}
+              </text>
+              <text
+                x={maxNodeLabelPlacement.x}
+                y={maxNodeLabelPlacement.y + 8}
+                fill="var(--structure-preview-label)"
+                stroke="var(--structure-preview-text-halo)"
+                strokeWidth="4"
+                paintOrder="stroke"
+                textAnchor={maxNodeLabelPlacement.anchor}
+                fontSize={compact ? "9" : "11"}
+                fontFamily="Fira Code"
+              >
+                节点 {maxNodeResult.nodeId} / {deformationDisplayScale}×
+              </text>
+            </g>
+          ) : null}
+
+          {showLoads && loadMarkers.map((load, index) => (
             <g key={load.key ?? `${load.type}-${index}`}>
               {load.type === "moment" ? (
                 <path

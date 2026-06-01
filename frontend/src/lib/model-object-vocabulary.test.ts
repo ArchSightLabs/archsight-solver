@@ -123,7 +123,7 @@ test("主控校核和基本页成员术语从共享模型对象词表派生", ()
   }
 });
 
-test("结构预览和主控画布成员术语从共享模型对象词表派生", () => {
+test("受力变形和主控画布成员术语从共享模型对象词表派生", () => {
   const sources = [
     ["FramePreview.tsx", readFileSync(new URL("../components/FramePreview.tsx", import.meta.url), "utf-8")],
     ["TrussPreview.tsx", readFileSync(new URL("../components/TrussPreview.tsx", import.meta.url), "utf-8")],

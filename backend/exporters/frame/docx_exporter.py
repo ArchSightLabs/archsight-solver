@@ -40,7 +40,7 @@ def export_docx(
     add_heading(doc, "2. 输入参数")
     add_df_table(doc, df_params)
     if include_figures(options):
-        add_heading(doc, "2.1 结构预览图")
+        add_heading(doc, "2.1 受力变形图")
         _add_preview_figure(doc, report_images)
     add_heading(doc, "2.2 可审查计算证据链")
     _add_evidence_tables(doc, build_evidence_tables(solution, "frame", material_name))
@@ -128,13 +128,13 @@ def _add_preview_figure(doc, report_images: Optional[Dict[str, str]]) -> None:
         add_png_figure(
             doc,
             image,
-            "图 2-1 结构预览与变形示意（节点、构件编号、尺寸与荷载标注同图显示；蓝色为放大后的变形线）",
+            "图 2-1 平面框架受力变形示意（节点、构件编号、尺寸与荷载标注同图显示；蓝色为放大后的变形线）",
         )
         return
 
     add_report_note(
         doc,
-        "说明：未收到前端同源结构预览图，已跳过结构预览插图；请从工作台导出 DOCX 以生成带节点编号、构件编号、尺寸与荷载标注的预览图。",
+        "说明：未收到前端同源受力变形图，已跳过受力变形插图；请从工作台导出 DOCX 以生成带节点编号、构件编号、尺寸与荷载标注、变形线的预览图。",
     )
 
 

@@ -57,7 +57,7 @@ export function operationRunningNotice(operation: WorkbenchOperation, mode: Anal
       phase: "running",
       tone: "info",
       title: "正在生成 Word 计算书",
-      message: "正在整理模型参数、结构预览、工程图、结果表和校核证据。",
+      message: "正在整理模型参数、受力变形、工程图、结果表和校核证据。",
     };
   }
   if (operation === "exportXlsx") {

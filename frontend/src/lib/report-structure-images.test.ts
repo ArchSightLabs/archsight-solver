@@ -158,7 +158,7 @@ test("框架计算书预览图保留节点构件编号尺寸和荷载标注", ()
 
   const graphics = buildFramePreviewGraphics(results);
 
-  assertGraphicText(graphics, "平面框架结构预览与变形示意");
+  assertGraphicText(graphics, "平面框架受力变形示意");
   assertGraphicText(graphics, "N1");
   assertGraphicText(graphics, "N4");
   assertGraphicText(graphics, "C1");
@@ -297,7 +297,7 @@ test("桁架计算书图形保留节点杆件编号尺寸和轴力控制标注",
   const previewGraphics = buildTrussPreviewGraphics(results);
   const overlayGraphics = buildTrussOverlayGraphics(results, "axial");
 
-  assertGraphicText(previewGraphics, "平面桁架结构预览与变形示意");
+  assertGraphicText(previewGraphics, "平面桁架受力变形示意");
   assertGraphicText(previewGraphics, "N1");
   assertGraphicText(previewGraphics, "N3");
   assertGraphicText(previewGraphics, "R1");

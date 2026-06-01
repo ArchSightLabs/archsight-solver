@@ -205,7 +205,7 @@ test("assertReportImagesReady requires frame and truss preview images before DOC
   );
   assert.throws(
     () => assertReportImagesReady({ "frame.overlay.moment": "data:image/png;base64,test" }, frameInput),
-    /平面框架结构预览图/u,
+    /平面框架受力变形图/u,
   );
   assert.deepEqual(
     reportImageRequirements(trussInput).map((item) => item.key),
@@ -213,7 +213,7 @@ test("assertReportImagesReady requires frame and truss preview images before DOC
   );
   assert.throws(
     () => assertReportImagesReady({ "truss.overlay.axial": "data:image/png;base64,test" }, trussInput),
-    /平面桁架结构预览图/u,
+    /平面桁架受力变形图/u,
   );
 });
 

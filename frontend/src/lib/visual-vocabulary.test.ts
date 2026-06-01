@@ -61,11 +61,21 @@ test("桁架和框架建模图避免复用粗预览线宽", () => {
   assert.doesNotMatch(trussPreview, /STRUCTURE_VISUAL_STROKES\.previewMember/u);
 });
 
-test("梁系结构预览文案不使用梁体口径", () => {
+test("梁系受力变形文案不使用梁体口径，并保留挠度专业口径", () => {
   const beamPreview = readFileSync(new URL("../components/BeamPreview.tsx", import.meta.url), "utf-8");
 
-  assert.match(beamPreview, /梁系结构预览/u);
+  assert.match(beamPreview, /梁系受力变形/u);
+  assert.match(beamPreview, /挠度/u);
   assert.doesNotMatch(beamPreview, /梁体/u);
+});
+
+test("平面框架受力变形主图提供位移倍率和图层控制", () => {
+  const framePreview = readFileSync(new URL("../components/FramePreview.tsx", import.meta.url), "utf-8");
+
+  assert.match(framePreview, /位移显示倍率/u);
+  assert.match(framePreview, /荷载/u);
+  assert.match(framePreview, /未变形/u);
+  assert.match(framePreview, /极值/u);
 });
 
 test("系统显示设置使用跨结构对象视觉口径", () => {

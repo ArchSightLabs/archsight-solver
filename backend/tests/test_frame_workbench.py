@@ -266,9 +266,9 @@ def test_frame_docx_export_smoke(client):
     assert "平面框架工程计算书" in full_text
     assert "1. 项目概况" in full_text
     assert "2. 输入参数" in full_text
-    assert "2.1 结构预览图" in full_text
+    assert "2.1 受力变形图" in full_text
     assert "后端兜底示意" not in full_text
-    assert "已跳过结构预览插图" in full_text
+    assert "已跳过受力变形插图" in full_text
     assert "带节点编号、构件编号、尺寸与荷载标注" in full_text
     assert "2.2 可审查计算证据链" in full_text
     assert "模型假定与适用范围" in full_text
@@ -308,12 +308,12 @@ def test_frame_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
     assert "3.1 节点水平位移图" not in full_text
     assert "构件弯矩曲线" not in full_text
     assert "构件剪力曲线" not in full_text
-    assert "图 2-1 结构预览与变形示意（节点、构件编号、尺寸与荷载标注同图显示；蓝色为放大后的变形线）" in full_text
+    assert "图 2-1 平面框架受力变形示意（节点、构件编号、尺寸与荷载标注同图显示；蓝色为放大后的变形线）" in full_text
     assert list(report_images) == ["frame.preview", *(figure.overlay_image_key for figure in figures)]
     for index, figure in enumerate(figures, start=1):
         assert f"4.{index} 构件{figure.title}（模型叠加）" in full_text
         assert f"图 4-{index} 构件{figure.title}（{figure.unit}，模型叠加工程图）" in full_text
-    assert "未收到前端同源结构预览图" not in full_text
+    assert "未收到前端同源受力变形图" not in full_text
     assert "未收到前端同源模型叠加工程图" not in full_text
     assert len(doc.inline_shapes) == 1 + len(figures)
     assert_docx_embeds_report_images(
@@ -341,7 +341,7 @@ def test_frame_docx_export_legacy_control_scope_uses_all_core_figures(client):
     doc = Document(io.BytesIO(response.data))
     full_text = "\n".join(paragraph.text for paragraph in doc.paragraphs)
 
-    assert "图 2-1 结构预览与变形示意（节点、构件编号、尺寸与荷载标注同图显示；蓝色为放大后的变形线）" in full_text
+    assert "图 2-1 平面框架受力变形示意（节点、构件编号、尺寸与荷载标注同图显示；蓝色为放大后的变形线）" in full_text
     for index, figure in enumerate(figures, start=1):
         assert f"4.{index} 构件{figure.title}（模型叠加）" in full_text
         assert f"图 4-{index} 构件{figure.title}（{figure.unit}，模型叠加工程图）" in full_text

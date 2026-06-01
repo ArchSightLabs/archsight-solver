@@ -477,7 +477,7 @@ function buildStructurePreviewGraphics(
   const deformedById = new Map(deformedNodes.map((node) => [node.id, node]));
   const graphics: ReportGraphic[] = [];
   addImageBackground(graphics, canvasSize);
-  addReportHeader(graphics, `${systemLabel}结构预览与变形示意`, `蓝色为放大后的变形线；节点、${memberTerm}编号、尺寸与荷载标注同图显示`);
+  addReportHeader(graphics, `${systemLabel}受力变形示意`, `蓝色为放大后的变形线；节点、${memberTerm}编号、尺寸与荷载标注同图显示`);
   addDimensionLegend(graphics, dimensionRows);
   for (const member of members) {
     const start = byId.get(member.start);

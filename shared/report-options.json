@@ -32,7 +32,7 @@
   "figureScopes": [
     {
       "value": "all",
-      "label": "结构预览与核心工程图"
+      "label": "受力变形图与核心工程图"
     }
   ]
 }

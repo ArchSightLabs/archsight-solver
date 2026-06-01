@@ -81,8 +81,12 @@ def export_docx(
         row[1].text = str(right)
 
     if include_figures(options) and solution.get("beam"):
-        add_heading(doc, "2.1 结构预览图")
-        add_png_figure(doc, _report_or_fallback(report_images, "beam.preview", beam_preview_png(solution["beam"])), "图 2-1 梁系结构预览、支座与荷载示意")
+        add_heading(doc, "2.1 受力变形图")
+        add_png_figure(
+            doc,
+            _report_or_fallback(report_images, "beam.preview", beam_preview_png(solution["beam"])),
+            "图 2-1 梁系受力变形示意（支座、荷载、跨段编号与放大后的挠度形态同图显示）",
+        )
 
     if solution.get("queryResults"):
         add_heading(doc, "2.2 指定截面查询")

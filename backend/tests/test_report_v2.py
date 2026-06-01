@@ -57,7 +57,7 @@ class TestFeatureSpecificationCalculationReportGenerationV2:
         full_text = "\n".join([p.text for p in doc.paragraphs]) + "\n" + table_text
         assert "1. 项目概况" in full_text
         assert "2. 输入参数" in full_text
-        assert "2.1 结构预览图" in full_text
+        assert "2.1 受力变形图" in full_text
         assert "3. 计算摘要" in full_text
         assert "4. 结果汇总" in full_text
         assert "4.1 弯矩图" in full_text
@@ -254,7 +254,7 @@ class TestFeatureSpecificationCalculationReportGenerationV2:
 
         doc = Document(io.BytesIO(response.data))
         full_text = "\n".join([p.text for p in doc.paragraphs])
-        assert "结构预览图" in full_text
+        assert "受力变形图" in full_text
         assert "弯矩图" in full_text
         assert "剪力图" in full_text
         assert "挠度图" in full_text

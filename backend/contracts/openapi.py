@@ -137,7 +137,7 @@ def _paths() -> Dict[str, Any]:
         "/api/preview": {
             "post": {
                 "tags": ["analysis"],
-                "summary": "生成结构预览",
+                "summary": "生成模型预览",
                 "requestBody": _json_request("calculate-payload"),
                 "responses": {**_json_response("api-envelope"), **_error_response()},
             }
@@ -387,12 +387,12 @@ def _export_payload_schema() -> Dict[str, Any]:
             },
             "reportImages": {
                 "type": "object",
-                "description": "可选计算书图片资源，例如结构预览、变形图、内力图。平面桁架和平面框架 DOCX 仅使用前端同源结构预览和模型叠加工程图；缺失时跳过对应插图，不插入后端简化兜底图。",
+                "description": "可选计算书图片资源，例如受力变形图、内力图。平面桁架和平面框架 DOCX 仅使用前端同源受力变形图和模型叠加工程图；缺失时跳过对应插图，不插入后端简化兜底图。",
                 "additionalProperties": True,
             },
             "reportOptions": {
                 "type": "object",
-                "description": "可选计算书模板与数据曲线设置；结构预览和核心工程图固定导出。",
+                "description": "可选计算书模板与数据曲线设置；受力变形图和核心工程图固定导出。",
                 "properties": {
                     "template": {
                         "type": "string",
@@ -410,7 +410,7 @@ def _export_payload_schema() -> Dict[str, Any]:
                         "type": "string",
                         "enum": list(report_option_values("figureScopes")),
                         "default": default_report_options()["figureScope"],
-                        "description": "兼容字段；当前固定为结构预览与全部核心工程图。",
+                        "description": "兼容字段；当前固定为受力变形图和全部核心工程图。",
                     },
                 },
                 "additionalProperties": True,

@@ -312,8 +312,8 @@ def test_beam_exports_describe_material_scope_span_stiffness_and_supports(client
     paragraph_text = "\n".join(paragraph.text for paragraph in doc.paragraphs)
     table_text = "\n".join(cell.text for table in doc.tables for row in table.rows for cell in row.cells)
 
-    assert "图 2-1 梁系结构预览、支座与荷载示意" in paragraph_text
-    assert "梁体结构预览" not in paragraph_text
+    assert "图 2-1 梁系受力变形示意（支座、荷载、跨段编号与放大后的挠度形态同图显示）" in paragraph_text
+    assert "梁体受力变形" not in paragraph_text
     assert "材料适用范围" in table_text
     assert "梁系整体刚度按各跨段 E_GPa / I_cm4 输入装配" in table_text
     assert "跨段刚度输入" in paragraph_text

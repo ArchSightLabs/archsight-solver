@@ -10,7 +10,7 @@ test("分析目标词表保持三类结构体系的专业命名", () => {
   );
   assert.equal(analysisVocabulary("beam").runLabel, "运行梁系计算");
   assert.equal(analysisVocabulary("frame").resultLabel, "平面框架计算结果");
-  assert.equal(analysisVocabulary("truss").previewFigureLabel, "平面桁架结构预览图");
+  assert.equal(analysisVocabulary("truss").previewFigureLabel, "平面桁架受力变形图");
 });
 
 test("默认分析对象名称不把梁系窄化为连续梁", () => {

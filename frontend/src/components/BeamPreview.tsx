@@ -200,7 +200,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
     return (
       <GlassCard className={`flex items-center justify-center border-dashed border-primary/10 ${compact ? "h-40 sm:h-48" : "h-48 sm:h-52"}`}>
         <div className="text-center">
-          <p className="text-sm font-medium opacity-50">运行计算后将显示梁系结构预览</p>
+          <p className="text-sm font-medium opacity-50">运行计算后将显示梁系受力变形</p>
         </div>
       </GlassCard>
     );
@@ -210,7 +210,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
     <GlassCard className="overflow-hidden">
       <div className={`flex gap-3 border-b border-slate-200/70 px-4 py-4 sm:px-5 dark:border-white/5 ${compact ? "flex-col items-start" : "flex-wrap items-center justify-between"}`}>
         <div className="min-w-0">
-          <h3 className={`${compact ? "text-lg" : "text-xl"} font-black tracking-tight`}>结构预览</h3>
+          <h3 className={`${compact ? "text-lg" : "text-xl"} font-black tracking-tight`}>受力变形</h3>
         </div>
         <div className={`flex flex-wrap gap-2 ${compact ? "w-full" : ""}`}>
           <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">

@@ -258,8 +258,8 @@ Content-Type: application/json
 
 - `format`：`docx` 或 `xlsx`，默认 `xlsx`。
 - `sensitivityResults`：可选敏感性分析结果，仅作为计算书附录资料写入。
-- `reportImages`：可选结构图、变形图、内力图等图片资源。平面桁架和平面框架 DOCX 仅使用前端同源结构预览和模型叠加工程图，必需 key 由 `shared/report-figures.json` 约束；缺失时跳过对应插图，不插入后端简化兜底图。
-- `reportOptions`：可选计算书模板与数据曲线配置；结构预览和核心工程图固定导出，旧版 `figureScope` 字段仅作兼容。
+- `reportImages`：可选受力变形图、内力图等图片资源。平面桁架和平面框架 DOCX 仅使用前端同源受力变形图和模型叠加工程图，必需 key 由 `shared/report-figures.json` 约束；缺失时跳过对应插图，不插入后端简化兜底图。
+- `reportOptions`：可选计算书模板与数据曲线配置；受力变形图和核心工程图固定导出，旧版 `figureScope` 字段仅作兼容。
 - `benchmark`：可选验证来源元数据；公开案例导出的计算书会写入 `caseId`、标准值和容许误差。
 
 导出结果是二进制文件；导出计算书展示求解证据、平衡校核、验证集覆盖说明和适用边界，不构成工程签审结论。

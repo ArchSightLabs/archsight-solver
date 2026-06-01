@@ -19,7 +19,7 @@ const ANALYSIS_VOCABULARY: Record<AnalysisMode, AnalysisVocabulary> = {
     runLabel: "运行梁系计算",
     waitingLabel: "等待梁系计算",
     resultLabel: "梁系计算结果",
-    previewFigureLabel: "梁系结构预览图",
+    previewFigureLabel: "梁系受力变形图",
     defaultObjectNamePrefix: "梁系",
   },
   frame: {
@@ -29,7 +29,7 @@ const ANALYSIS_VOCABULARY: Record<AnalysisMode, AnalysisVocabulary> = {
     runLabel: "运行平面框架计算",
     waitingLabel: "等待平面框架计算",
     resultLabel: "平面框架计算结果",
-    previewFigureLabel: "平面框架结构预览图",
+    previewFigureLabel: "平面框架受力变形图",
     defaultObjectNamePrefix: "平面框架",
   },
   truss: {
@@ -39,7 +39,7 @@ const ANALYSIS_VOCABULARY: Record<AnalysisMode, AnalysisVocabulary> = {
     runLabel: "运行平面桁架计算",
     waitingLabel: "等待平面桁架计算",
     resultLabel: "平面桁架计算结果",
-    previewFigureLabel: "平面桁架结构预览图",
+    previewFigureLabel: "平面桁架受力变形图",
     defaultObjectNamePrefix: "平面桁架",
   },
 };
