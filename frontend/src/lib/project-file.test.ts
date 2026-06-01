@@ -70,6 +70,19 @@ test("序列化后的项目文件可以恢复为规范化工作台状态", () =>
   assert.ok(parsed.value?.project.objects.some((object) => object.type === "truss" && object.name === "屋架复核"));
 });
 
+test("项目文件往返保留工程级自定义材料", () => {
+  const project = createDefaultSolverProject();
+  project.settings.customMaterials = [
+    { id: "timber-c24", name: "C24 结构木材", youngModulus: 11, density: 420, category: "custom" },
+  ];
+
+  const raw = serializeArchSightSolverProjectFile(createArchSightSolverProjectFile(project));
+  const parsed = parseArchSightSolverProjectFile(raw);
+
+  assert.equal(parsed.ok, true);
+  assert.deepEqual(parsed.value?.project.settings.customMaterials.map((material) => material.id), ["timber-c24"]);
+});
+
 test("项目文件往返保留框架荷载组合标签", () => {
   let project = createDefaultSolverProject();
   project = addAnalysisObjectToProject(project, "frame", "组合标签复核");

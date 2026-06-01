@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   DEFAULT_TRUSS_DIAGRAM_METRIC_KEY,
+  autoTrussDisplacementDisplayScale,
   getTrussDiagramMetric,
   TRUSS_DIAGRAM_METRICS,
 } from "./truss-result-diagrams.ts";
@@ -29,5 +30,48 @@ test("桁架控制图与默认界面图一致", () => {
   assert.deepEqual(
     reportFiguresForScope(TRUSS_REPORT_OVERLAY_FIGURES, false).map((figure) => figure.metric),
     ["axial"],
+  );
+});
+
+test("桁架节点位移自动显示倍率按实际位移比例收敛", () => {
+  const layout = {
+    layoutScalePxPerM: 120,
+    modelWidthPx: 960,
+    modelHeightPx: 480,
+  };
+  const tinyScale = autoTrussDisplacementDisplayScale({ ...layout, maxDisplacementMm: 1 });
+  const moderateScale = autoTrussDisplacementDisplayScale({ ...layout, maxDisplacementMm: 10 });
+  const largeScale = autoTrussDisplacementDisplayScale({ ...layout, maxDisplacementMm: 40 });
+  const offsetPx = (scale: number, displacementMm: number) => scale * (displacementMm / 1000) * layout.layoutScalePxPerM;
+
+  assert.ok(tinyScale > moderateScale);
+  assert.ok(moderateScale > largeScale);
+  assert.ok(offsetPx(tinyScale, 1) >= 10);
+  assert.ok(offsetPx(tinyScale, 1) < offsetPx(moderateScale, 10));
+  assert.ok(offsetPx(largeScale, 40) <= 88);
+});
+
+test("桁架节点位移自动显示倍率避免把小位移拉得过大", () => {
+  const scale = autoTrussDisplacementDisplayScale({
+    maxDisplacementMm: 8.8209,
+    layoutScalePxPerM: 133,
+    modelWidthPx: 1200,
+    modelHeightPx: 650,
+  });
+  const displayedOffsetPx = scale * (8.8209 / 1000) * 133;
+
+  assert.ok(displayedOffsetPx >= 10);
+  assert.ok(displayedOffsetPx <= 35);
+});
+
+test("桁架节点位移自动显示倍率在无有效位移时不显示", () => {
+  assert.equal(
+    autoTrussDisplacementDisplayScale({
+      maxDisplacementMm: 0,
+      layoutScalePxPerM: 120,
+      modelWidthPx: 960,
+      modelHeightPx: 480,
+    }),
+    0,
   );
 });

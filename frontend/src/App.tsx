@@ -42,6 +42,11 @@ import { useVisitStats } from "./hooks/useVisitStats";
 import { useWorkbenchRuntime } from "./hooks/useWorkbenchRuntime";
 import { APP_VERSION, BUSUANZI_VISIT_STATS_ENABLED } from "./lib/app-metadata";
 
+type AnalysisObjectPageState = {
+  moduleSectionId?: string;
+  resultTabId?: string;
+};
+
 const HIDDEN_VISIT_STATS_STYLE = {
   position: "absolute",
   width: "1px",
@@ -55,7 +60,7 @@ const USER_MANUAL_HREF = "/docs/user-manual.html";
 
 function App() {
   const { isDark, setIsDark, clientId } = useWorkbenchSession();
-  const [activeModuleSection, setActiveModuleSection] = useState("");
+  const [pageStateByObjectId, setPageStateByObjectId] = useState<Record<string, AnalysisObjectPageState>>({});
   const [workbenchSelection, setWorkbenchSelection] = useState<WorkbenchSelection | null>(null);
   const [isNewAnalysisObjectDialogOpen, setIsNewAnalysisObjectDialogOpen] = useState(false);
   const [projectInfoDialogMode, setProjectInfoDialogMode] = useState<"create" | "edit" | null>(null);
@@ -103,7 +108,10 @@ function App() {
   } = useResizableWorkbenchLayout(isSystemSettingsOpen);
   const resetWorkbenchContext = useCallback(() => {
     setWorkbenchSelection(null);
-    setActiveModuleSection("");
+  }, []);
+  const resetAllPageState = useCallback(() => {
+    setWorkbenchSelection(null);
+    setPageStateByObjectId({});
   }, []);
   const visitStats = useVisitStats();
   const {
@@ -214,12 +222,31 @@ function App() {
   }, [isFileMenuOpen]);
 
   const analysisMode = workspace.analysisMode;
+  const activeObjectPageState = pageStateByObjectId[activeAnalysisObject.id] ?? {};
   const moduleSections = moduleSectionsForMode(analysisMode);
-  const normalizedActiveModuleSection = normalizeModuleSectionId(analysisMode, activeModuleSection);
+  const normalizedActiveModuleSection = normalizeModuleSectionId(analysisMode, activeObjectPageState.moduleSectionId ?? project.settings.activeModuleSection);
 
   const activeModuleSectionId = normalizedActiveModuleSection && moduleSections.some((item) => item.id === normalizedActiveModuleSection)
     ? normalizedActiveModuleSection
     : moduleSections[0]?.id ?? "";
+  const setActiveModuleSection = useCallback((sectionId: string) => {
+    setPageStateByObjectId((current) => ({
+      ...current,
+      [activeAnalysisObject.id]: {
+        ...current[activeAnalysisObject.id],
+        moduleSectionId: sectionId,
+      },
+    }));
+  }, [activeAnalysisObject.id]);
+  const setActiveResultTab = useCallback((tabId: string) => {
+    setPageStateByObjectId((current) => ({
+      ...current,
+      [activeAnalysisObject.id]: {
+        ...current[activeAnalysisObject.id],
+        resultTabId: tabId,
+      },
+    }));
+  }, [activeAnalysisObject.id]);
 
   const handleRestoreTemplate = (template: ProjectTemplate): TemplateActionResult<void> => {
     const restoredWorkspace = restoreWorkspaceSnapshot(template.snapshot);
@@ -241,7 +268,7 @@ function App() {
     isProjectDirty,
     markRuntimePersisted,
     onNewProjectRequested: () => setProjectInfoDialogMode("create"),
-    onProjectOpened: resetWorkbenchContext,
+    onProjectOpened: resetAllPageState,
     onPublicExampleClosed: () => setIsPublicExamplesOpen(false),
     project,
     projectFileHandle,
@@ -277,6 +304,7 @@ function App() {
   };
   const handleCreateProjectWithInfo = (next: ProjectInfo) => {
     replaceProject(createInitialSolverProject(next), null, null, null, "新建项目");
+    resetAllPageState();
     resetRuntimeForNewAnalysisObject();
     setProjectInfoDialogMode(null);
   };
@@ -380,8 +408,10 @@ function App() {
               </div>
               <ProjectTreePanel
                 project={project}
+                customMaterials={project.settings.customMaterials}
                 collapsed={isModuleNavCollapsed}
                 compact={isCompactWorkbench}
+                onCustomMaterialsChange={setCustomMaterials}
                 onSelectObject={handleSelectAnalysisObject}
                 onCreateObject={() => setIsNewAnalysisObjectDialogOpen(true)}
                 onRemoveObject={handleRemoveAnalysisObject}
@@ -408,7 +438,9 @@ function App() {
               <GlassCard className="p-3">
                 <ProjectTreePanel
                   project={project}
+                  customMaterials={project.settings.customMaterials}
                   compact={isCompactWorkbench}
+                  onCustomMaterialsChange={setCustomMaterials}
                   onSelectObject={handleSelectAnalysisObject}
                   onCreateObject={() => setIsNewAnalysisObjectDialogOpen(true)}
                   onRemoveObject={handleRemoveAnalysisObject}
@@ -453,6 +485,8 @@ function App() {
                   isSolving={isSolving}
                   runLabel={runLabel}
                   operationNotice={operationNotice}
+                  activeTabId={activeObjectPageState.resultTabId ?? ""}
+                  onActiveTabChange={setActiveResultTab}
                 />
               </section>
             )}
@@ -476,9 +510,7 @@ function App() {
               releaseNotesHref={RELEASE_NOTES_HREF}
               userManualHref={USER_MANUAL_HREF}
               modelPreviewStyle={project.settings.modelPreviewStyle}
-              customMaterials={project.settings.customMaterials}
               visitStats={visitStats}
-              onCustomMaterialsChange={setCustomMaterials}
               onModelPreviewStyleChange={setModelPreviewStyle}
               onOpenTemplateLibrary={() => setIsTemplateLibraryOpen(true)}
               onClose={() => setIsSystemSettingsOpen(false)}
@@ -504,9 +536,7 @@ function App() {
           releaseNotesHref={RELEASE_NOTES_HREF}
           userManualHref={USER_MANUAL_HREF}
           modelPreviewStyle={project.settings.modelPreviewStyle}
-          customMaterials={project.settings.customMaterials}
           visitStats={visitStats}
-          onCustomMaterialsChange={setCustomMaterials}
           onModelPreviewStyleChange={setModelPreviewStyle}
           onOpenTemplateLibrary={() => setIsTemplateLibraryOpen(true)}
           onClose={() => setIsSystemSettingsOpen(false)}

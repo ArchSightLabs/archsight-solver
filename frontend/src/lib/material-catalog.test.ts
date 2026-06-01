@@ -4,6 +4,7 @@ import {
   materialEngineeringNote,
   materialDropdownOptions,
   materialElasticityLabelForYoungModulus,
+  materialLibraryFromCustomMaterials,
   materialIdForMember,
   materialLabelForId,
   materialLabelForYoungModulus,
@@ -13,6 +14,7 @@ import {
   materialOptionSelectedLabel,
   memberElasticityDistributionLabel,
   memberMaterialEngineeringNote,
+  normalizeProjectCustomMaterials,
   selectableMaterialPresets,
   youngModulusForMaterial,
 } from "./material-presets.ts";
@@ -54,6 +56,24 @@ test("材料下拉只列系统预设并使用短选项", () => {
     selectedLabel: "自定义",
     description: "手动输入 E；不回填预设",
   });
+});
+
+test("工程自定义材料进入材料库下拉且不能覆盖系统内置材料", () => {
+  const customMaterials = normalizeProjectCustomMaterials([
+    { id: "timber-c24", name: "C24 结构木材", youngModulus: 11, density: 420 },
+    { id: "q345", name: "非法覆盖", youngModulus: 1, density: 1 },
+  ]);
+  const library = materialLibraryFromCustomMaterials(customMaterials);
+  const options = materialDropdownOptions(library);
+
+  assert.equal(customMaterials.length, 1);
+  assert.equal(options.some((option) => option.value === "timber-c24"), true);
+  assert.equal(youngModulusForMaterial("timber-c24", 210, library), 11);
+  assert.equal(materialLabelForId("timber-c24", library), "TIMBER-C24");
+  assert.equal(
+    memberElasticityDistributionLabel([{ materialId: "timber-c24", E_GPa: 11 }], "构件", "timber-c24", library),
+    "",
+  );
 });
 
 test("材料说明明确预设不替代强度和规范设计", () => {

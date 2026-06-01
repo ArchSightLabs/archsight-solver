@@ -19,6 +19,7 @@ import { summaryMetricLabel } from "../lib/result-metrics";
 import { STRUCTURE_RESULT_COLORS, STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
 import {
   DEFAULT_TRUSS_DIAGRAM_METRIC_KEY,
+  autoTrussDisplacementDisplayScale,
   getTrussDiagramMetric,
   TRUSS_DIAGRAM_METRICS,
   type TrussDiagramMetricKey,
@@ -177,9 +178,13 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
 
   const autoDisplacementDisplayScale = useMemo(() => {
     if (!truss || !layout || !maxDisplacementNode || maxDisplacementNode.displacementMm <= 1e-9) return 0;
-    const targetPx = compact ? 90 : 130;
-    const maxDisplacementM = maxDisplacementNode.displacementMm / 1000.0;
-    return clamp(targetPx / Math.max(maxDisplacementM * layout.scale, 1e-9), 1, 100000);
+    return autoTrussDisplacementDisplayScale({
+      maxDisplacementMm: maxDisplacementNode.displacementMm,
+      layoutScalePxPerM: layout.scale,
+      modelWidthPx: layout.bounds.right - layout.bounds.left,
+      modelHeightPx: layout.bounds.bottom - layout.bounds.top,
+      compact,
+    });
   }, [compact, layout, maxDisplacementNode, truss]);
   const displacementDisplayScale = manualDisplacementScale ?? autoDisplacementDisplayScale;
   const displacementScaleMax = Math.max(200, Math.ceil((autoDisplacementDisplayScale * 2) / 10) * 10);

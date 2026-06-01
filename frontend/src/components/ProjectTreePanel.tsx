@@ -1,12 +1,16 @@
 import { ExternalLink, Network, PencilLine, Plus, Ruler, ShieldCheck, Trash2, Triangle } from "lucide-react";
 import { analysisVocabulary } from "../lib/analysis-vocabulary";
 import { getAnalysisObjectDisplayName, type AnalysisObject, type SolverProject } from "../lib/solver-project";
+import type { Material } from "../types/material";
+import { ProjectMaterialManager } from "./ProjectMaterialManager";
 import { Button } from "./ui/button";
 
 interface ProjectTreePanelProps {
   project: SolverProject;
+  customMaterials: Material[];
   collapsed?: boolean;
   compact?: boolean;
+  onCustomMaterialsChange: (materials: Material[]) => void;
   onSelectObject: (objectId: string) => void;
   onCreateObject: () => void;
   onRemoveObject: (objectId: string) => void;
@@ -23,7 +27,17 @@ function ObjectIcon({ object }: { object: AnalysisObject }) {
   return <Ruler className="h-4 w-4" />;
 }
 
-export function ProjectTreePanel({ project, collapsed = false, compact = false, onSelectObject, onCreateObject, onRemoveObject, onEditProjectInfo }: ProjectTreePanelProps) {
+export function ProjectTreePanel({
+  project,
+  customMaterials,
+  collapsed = false,
+  compact = false,
+  onCustomMaterialsChange,
+  onSelectObject,
+  onCreateObject,
+  onRemoveObject,
+  onEditProjectInfo,
+}: ProjectTreePanelProps) {
   const activeObject = project.objects.find((object) => object.id === project.activeObjectId) ?? project.objects[0];
   if (collapsed) {
     return (
@@ -114,6 +128,11 @@ export function ProjectTreePanel({ project, collapsed = false, compact = false, 
           </div>
         </div>
       ) : null}
+      <ProjectMaterialManager
+        compact={compact}
+        customMaterials={customMaterials}
+        onCustomMaterialsChange={onCustomMaterialsChange}
+      />
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">

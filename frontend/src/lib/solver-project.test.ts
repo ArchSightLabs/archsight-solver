@@ -41,6 +41,46 @@ test("项目级建模图显示样式兼容旧梁系设置字段", () => {
   assert.equal(normalized.settings.modelPreviewStyle, "simple");
 });
 
+test("工程级自定义材料会规范化并注入当前梁系工作台材料库", () => {
+  const project = createDefaultSolverProject(new Date("2026-05-21T12:00:00.000Z"));
+  const normalized = normalizeSolverProject({
+    ...project,
+    settings: {
+      ...project.settings,
+      customMaterials: [
+        { id: "timber-c24", name: "C24 结构木材", youngModulus: 11, density: 420 },
+        { id: "q345", name: "非法覆盖", youngModulus: 1, density: 1 },
+      ],
+    },
+  });
+  const workspace = createWorkspaceFromProject(normalized);
+
+  assert.deepEqual(normalized.settings.customMaterials.map((material) => material.id), ["timber-c24"]);
+  assert.equal(workspace.beam.materials.some((material) => material.id === "timber-c24"), true);
+});
+
+test("旧梁系对象内的自定义材料会迁移到工程级材料库", () => {
+  const project = createDefaultSolverProject(new Date("2026-05-21T12:00:00.000Z"));
+  const beamObject = project.objects.find((object) => object.type === "beam");
+  assert.ok(beamObject);
+  beamObject.state = {
+    ...(beamObject.state as ReturnType<typeof createWorkspaceFromProject>["beam"]),
+    materials: [
+      ...(beamObject.state as ReturnType<typeof createWorkspaceFromProject>["beam"]).materials,
+      { id: "steelx", name: "试验钢材 X", youngModulus: 205, density: 7800 },
+    ],
+  };
+  const normalized = normalizeSolverProject({
+    ...project,
+    settings: {
+      ...project.settings,
+      customMaterials: undefined,
+    },
+  });
+
+  assert.equal(normalized.settings.customMaterials.some((material) => material.id === "steelx"), true);
+});
+
 test("新建项目可一次性写入项目级工程信息", () => {
   const project = createDefaultSolverProject({
     name: "某教学楼结构复核",

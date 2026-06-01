@@ -29,6 +29,8 @@ interface WorkbenchResultTabsProps {
   isSolving: boolean;
   runLabel: string;
   operationNotice: WorkbenchOperationNoticeModel | null;
+  activeTabId?: string;
+  onActiveTabChange?: (tabId: string) => void;
 }
 
 export function WorkbenchResultTabs({
@@ -45,17 +47,23 @@ export function WorkbenchResultTabs({
   isSolving,
   runLabel,
   operationNotice,
+  activeTabId: controlledActiveTabId,
+  onActiveTabChange,
 }: WorkbenchResultTabsProps) {
   const tabs = resultTabsForMode(analysisMode);
   const [activeTabState, setActiveTabState] = useState({ mode: analysisMode, tabId: tabs[0].id });
   const [frameDisplayState, setFrameDisplayState] = useState<FrameDisplayOption>({ source: "primary", id: "__primary__", label: "主结果", description: "基本荷载" });
-  const activeTab = activeTabState.mode === analysisMode ? activeTabState.tabId : tabs[0].id;
+  const activeTab = controlledActiveTabId !== undefined ? controlledActiveTabId : (activeTabState.mode === analysisMode ? activeTabState.tabId : tabs[0].id);
   const hasResults = analysisMode === "frame" ? Boolean(frameResults) : analysisMode === "truss" ? Boolean(trussResults) : Boolean(beamResults);
   const activeTabId = tabs.some((tab) => tab.id === activeTab) ? activeTab : tabs[0].id;
   const activeTabMeta = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0];
   const frameDisplayOptions = useMemo(() => buildFrameDisplayOptions(frameResults), [frameResults]);
   const activeFrameDisplayOption = frameDisplayOptions.find((option) => option.source === frameDisplayState.source && option.id === frameDisplayState.id) ?? frameDisplayOptions[0];
   const displayedFrameResults = useMemo(() => buildDisplayedFrameResults(frameResults, activeFrameDisplayOption), [activeFrameDisplayOption, frameResults]);
+  const handleSelectTab = (tabId: string) => {
+    setActiveTabState({ mode: analysisMode, tabId });
+    onActiveTabChange?.(tabId);
+  };
 
   const content = (
     <WorkbenchResultContent
@@ -127,7 +135,7 @@ export function WorkbenchResultTabs({
           tabs={tabs}
           activeTabId={activeTabId}
           compact={compact}
-          onSelectTab={(tabId) => setActiveTabState({ mode: analysisMode, tabId })}
+          onSelectTab={handleSelectTab}
         />
       </GlassCard>
       <div className={`relative z-0 ${compact ? "min-h-[260px] sm:min-h-[360px]" : "min-h-[320px] sm:min-h-[460px]"}`}>{content}</div>
