@@ -2,12 +2,15 @@ import { Link2, MapPin, Triangle } from "lucide-react";
 import type { TrussLoad, TrussMember, TrussNode } from "../types/structure.ts";
 import { modelObjectLoadLabel, modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
 import { trussSupportLabel } from "../lib/support-vocabulary.ts";
+import { materialIdentityLabelForId, materialIdForMember } from "../lib/material-presets.ts";
+import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
 
 export type TrussAdvancedSection = "nodes" | "members" | "loads";
 
 interface TrussTableSectionProps {
   nodes: TrussNode[];
   members: TrussMember[];
+  materialLibrary?: Material[];
   loads: TrussLoad[];
   activeSectionId: TrussAdvancedSection;
   onSectionChange: (next: TrussAdvancedSection) => void;
@@ -16,6 +19,7 @@ interface TrussTableSectionProps {
 export function TrussTableSection({
   nodes,
   members,
+  materialLibrary = PREDEFINED_MATERIALS,
   loads,
   activeSectionId,
   onSectionChange,
@@ -83,14 +87,14 @@ export function TrussTableSection({
                 <Triangle className="h-3.5 w-3.5 text-primary" />
                 {vocabulary.memberGroupLabel}
               </div>
-              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">编号 / 连接 / 参数</span>
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">编号 / 连接 / 材料</span>
             </div>
             <div className="space-y-2">
               {members.map((member) => (
                 <div key={member.id} className="grid grid-cols-3 gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 text-xs">
                   <span className="font-bold">{member.id}</span>
                   <span className="font-mono">{member.start} - {member.end}</span>
-                  <span className="font-mono">A {member.A_cm2} cm² / E {member.E_GPa} GPa</span>
+                  <span className="truncate text-muted-foreground">{materialIdentityLabelForId(materialIdForMember(member, materialLibrary), materialLibrary)}</span>
                 </div>
               ))}
               {members.length === 0 && <div className="p-4 text-center text-xs text-muted-foreground">暂无{vocabulary.memberGroupLabel}</div>}

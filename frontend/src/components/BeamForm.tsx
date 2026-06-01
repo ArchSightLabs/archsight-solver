@@ -16,7 +16,7 @@ import { BeamTableSection } from "./BeamTableSection";
 import { BeamTemplateSection } from "./BeamTemplateSection";
 import { BeamTextModelSection } from "./BeamTextModelSection";
 import { formatBeamLoadSummary } from "../lib/beam-loads.ts";
-import { materialDropdownOptions } from "../lib/material-presets.ts";
+import { materialDropdownOptions, materialIdentityLabelForId } from "../lib/material-presets.ts";
 import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
 import type { BeamSpanConfig, BeamSupportConfig, BeamWorkspaceState } from "../types/beam.ts";
 import type { BeamWorkbenchSelection, WorkbenchSelectionOptions } from "../types/workbench-selection.ts";
@@ -149,6 +149,7 @@ export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMat
         ...DEFAULT_SPAN,
         id: nextSpanId,
         E: defaultSpanMaterial?.youngModulus ?? DEFAULT_SPAN.E,
+        I: defaultSpanMaterial?.momentOfInertiaCm4 ?? DEFAULT_SPAN.I,
         materialId: defaultSpanMaterial?.id ?? DEFAULT_SPAN.materialId,
       },
     ];
@@ -207,6 +208,7 @@ export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMat
     updateSpanPatch(index, {
       materialId,
       E: material?.youngModulus ?? value.spans[index]?.E ?? DEFAULT_SPAN.E,
+      I: material?.momentOfInertiaCm4 ?? value.spans[index]?.I ?? DEFAULT_SPAN.I,
     });
   };
 
@@ -217,6 +219,8 @@ export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMat
 
   const totalLength = value.spans.reduce((sum, span) => sum + span.length, 0);
   const loadSummary = formatBeamLoadSummary(value);
+  const materialIdentityForSpan = (span: BeamSpanConfig) =>
+    materialIdentityLabelForId(findMaterial(span.materialId)?.id ?? findMaterialByYoungModulus(span.E)?.id ?? span.materialId, materialLibrary);
 
   const renderSelectedEditor = () => {
     if (resolvedSelectedObject.type === "load") {
@@ -293,7 +297,7 @@ export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMat
         maxSpans={MAX_BEAM_SPANS}
         fieldLabelClass={FIELD_LABEL_CLASS}
         selectedEditor={renderSelectedEditor()}
-        materialLabelForSpan={(span) => findMaterial(span.materialId)?.id ?? "手动 E"}
+        materialLabelForSpan={materialIdentityForSpan}
         onSelectObject={(next) => selectObject(next)}
         onAddSpan={addSpan}
       />
@@ -318,7 +322,7 @@ export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMat
         supports={value.supports}
         loadSummary={loadSummary}
         fieldLabelClass={FIELD_LABEL_CLASS}
-        materialLabelForSpan={(span) => findMaterial(span.materialId)?.id ?? "手动 E"}
+        materialLabelForSpan={materialIdentityForSpan}
       />
       ) : null}
     </div>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import {
   GripVertical,
   PanelLeftClose,
@@ -311,7 +312,7 @@ function App() {
   const handleUpdateProjectInfo = (next: ProjectInfo) => {
     updateProjectInfo(next);
     setProjectInfoDialogMode(null);
-    setFileStatusMessage("已更新工程信息");
+    setFileStatusMessage("已更新工程设置");
   };
   const beamSelection = workbenchSelection?.mode === "beam" ? (workbenchSelection as BeamWorkbenchSelection) : null;
   const frameSelection = workbenchSelection?.mode === "frame" ? (workbenchSelection as FrameWorkbenchSelection) : null;
@@ -408,10 +409,8 @@ function App() {
               </div>
               <ProjectTreePanel
                 project={project}
-                customMaterials={project.settings.customMaterials}
                 collapsed={isModuleNavCollapsed}
                 compact={isCompactWorkbench}
-                onCustomMaterialsChange={setCustomMaterials}
                 onSelectObject={handleSelectAnalysisObject}
                 onCreateObject={() => setIsNewAnalysisObjectDialogOpen(true)}
                 onRemoveObject={handleRemoveAnalysisObject}
@@ -438,9 +437,7 @@ function App() {
               <GlassCard className="p-3">
                 <ProjectTreePanel
                   project={project}
-                  customMaterials={project.settings.customMaterials}
                   compact={isCompactWorkbench}
-                  onCustomMaterialsChange={setCustomMaterials}
                   onSelectObject={handleSelectAnalysisObject}
                   onCreateObject={() => setIsNewAnalysisObjectDialogOpen(true)}
                   onRemoveObject={handleRemoveAnalysisObject}
@@ -554,9 +551,11 @@ function App() {
       {projectInfoDialogMode && (
         <ProjectInfoDialog
           initialValue={projectInfoDialogMode === "edit" ? project.settings.projectInfo : null}
-          title={projectInfoDialogMode === "edit" ? "设置工程信息" : "新建结构分析项目"}
-          confirmLabel={projectInfoDialogMode === "edit" ? "保存工程信息" : "创建项目"}
+          title={projectInfoDialogMode === "edit" ? "工程设置" : "新建结构分析项目"}
+          confirmLabel={projectInfoDialogMode === "edit" ? "保存工程设置" : "创建项目"}
+          customMaterials={projectInfoDialogMode === "edit" ? project.settings.customMaterials : undefined}
           onSubmit={projectInfoDialogMode === "edit" ? handleUpdateProjectInfo : handleCreateProjectWithInfo}
+          onCustomMaterialsChange={projectInfoDialogMode === "edit" ? setCustomMaterials : undefined}
           onClose={() => setProjectInfoDialogMode(null)}
         />
       )}
@@ -581,34 +580,28 @@ function App() {
         />
       )}
 
-      {isTemplateLibraryOpen && (
+      {isTemplateLibraryOpen && typeof document !== "undefined" ? createPortal(
         <div
-          className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm"
+          className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-6"
           role="dialog"
           aria-modal="true"
           aria-label="模板库"
           onClick={() => setIsTemplateLibraryOpen(false)}
         >
           <div
-            className={`flex h-[100dvh] w-full flex-col bg-background/95 shadow-2xl ${isCompactWorkbench ? "rounded-none border-0" : "ml-auto max-w-[40rem] border-l border-white/10"}`}
+            className="relative flex h-[92dvh] max-h-[58rem] min-h-0 w-full max-w-[76rem] flex-col rounded-lg border border-slate-200 bg-background/95 shadow-2xl dark:border-white/10 sm:h-[86dvh] sm:min-h-[34rem]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className={`sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-white/10 bg-background/95 backdrop-blur-md ${isCompactWorkbench ? "px-4 py-3" : "px-5 py-4"}`}>
-              <div className="space-y-1">
-                <div className="eyebrow opacity-50">模块入口</div>
-                <h2 className="text-lg font-bold tracking-tight">模板管理</h2>
-              </div>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setIsTemplateLibraryOpen(false)}
-                aria-label="关闭模板管理"
-                className="h-10 w-10 rounded-lg border-white/10 bg-white/[0.03]"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className={`flex-1 overflow-y-auto custom-scrollbar ${isCompactWorkbench ? "p-3" : "p-4"}`}>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setIsTemplateLibraryOpen(false)}
+              aria-label="关闭模板库"
+              className="absolute right-4 top-4 z-20 h-10 w-10 rounded-lg border-slate-200 bg-white text-slate-900 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100 dark:hover:bg-white/[0.08]"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+            <div className={`flex-1 overflow-y-auto custom-scrollbar ${isCompactWorkbench ? "p-3 pt-14" : "p-5"}`}>
               <TemplateLibraryPanel
                 templates={templates}
                 baselineTemplateId={baselineTemplateId}
@@ -624,8 +617,9 @@ function App() {
               />
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+        document.body
+      ) : null}
     </div>
   );
 }

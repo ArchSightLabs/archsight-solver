@@ -9,7 +9,7 @@
   },
   {
     "id": "q235",
-    "name": "Q235 碳素结构钢",
+    "name": "碳素结构钢",
     "youngModulusGPa": 206,
     "densityKgPerM3": 7850,
     "category": "steel",
@@ -17,7 +17,7 @@
   },
   {
     "id": "q345",
-    "name": "Q345 低合金高强度结构钢",
+    "name": "低合金高强度结构钢",
     "youngModulusGPa": 210,
     "densityKgPerM3": 7850,
     "category": "steel",
@@ -25,7 +25,7 @@
   },
   {
     "id": "c30",
-    "name": "C30 混凝土",
+    "name": "混凝土",
     "youngModulusGPa": 30,
     "densityKgPerM3": 2500,
     "category": "concrete",
@@ -33,7 +33,7 @@
   },
   {
     "id": "c35",
-    "name": "C35 混凝土",
+    "name": "混凝土",
     "youngModulusGPa": 31.5,
     "densityKgPerM3": 2500,
     "category": "concrete",
@@ -41,7 +41,7 @@
   },
   {
     "id": "c40",
-    "name": "C40 混凝土",
+    "name": "混凝土",
     "youngModulusGPa": 32.5,
     "densityKgPerM3": 2500,
     "category": "concrete",
@@ -49,7 +49,7 @@
   },
   {
     "id": "c50",
-    "name": "C50 混凝土",
+    "name": "混凝土",
     "youngModulusGPa": 34.5,
     "densityKgPerM3": 2500,
     "category": "concrete",

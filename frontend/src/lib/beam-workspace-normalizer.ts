@@ -145,10 +145,19 @@ function normalizeBeamMaterials(rawMaterials: unknown): Material[] {
       const name = String(candidate.name ?? id).trim();
       const youngModulus = Number(candidate.youngModulus);
       const density = Number(candidate.density);
+      const sectionAreaCm2 = Number(candidate.sectionAreaCm2);
+      const momentOfInertiaCm4 = Number(candidate.momentOfInertiaCm4);
       if (!id || !name || !Number.isFinite(youngModulus) || youngModulus <= 0 || !Number.isFinite(density) || density <= 0) {
         continue;
       }
-      byId.set(id, { id, name, youngModulus, density });
+      byId.set(id, {
+        id,
+        name,
+        youngModulus,
+        density,
+        ...(Number.isFinite(sectionAreaCm2) && sectionAreaCm2 > 0 ? { sectionAreaCm2 } : {}),
+        ...(Number.isFinite(momentOfInertiaCm4) && momentOfInertiaCm4 > 0 ? { momentOfInertiaCm4 } : {}),
+      });
     }
   }
   return Array.from(byId.values());
@@ -192,7 +201,7 @@ export function normalizeBeamWorkspaceState(value: Partial<BeamWorkspaceState> |
       id: normalizeTextId(span.id, `(${index + 1})`, seenSpanIds, "B", index),
       length: Number.isFinite(span.length) && span.length > 0 ? Number(span.length) : DEFAULT_BEAM_SPAN.length,
       E: Number.isFinite(span.E) && span.E > 0 ? Number(span.E) : material?.youngModulus ?? DEFAULT_BEAM_SPAN.E,
-      I: Number.isFinite(span.I) && span.I > 0 ? Number(span.I) : DEFAULT_BEAM_SPAN.I,
+      I: Number.isFinite(span.I) && span.I > 0 ? Number(span.I) : material?.momentOfInertiaCm4 ?? DEFAULT_BEAM_SPAN.I,
       materialId: spanMaterialId,
     };
   });

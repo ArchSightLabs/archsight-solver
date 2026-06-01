@@ -28,7 +28,7 @@ import {
   type TrussEditorCollections,
 } from "../lib/truss-model-edits.ts";
 import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
-import { memberElasticityDistributionLabel, youngModulusForMaterial } from "../lib/material-presets.ts";
+import { memberElasticityDistributionLabel, sectionAreaForMaterial, youngModulusForMaterial } from "../lib/material-presets.ts";
 import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import { trussSupportStabilityWarning } from "../solver-payload.ts";
 import type { Material } from "../types/material.ts";
@@ -114,6 +114,7 @@ export function TrussCustomModelEditor({
     [materialId, materialLibrary, memberTerm, value.members],
   );
   const defaultMemberElasticityGPa = youngModulusForMaterial(materialId, 210, materialLibrary);
+  const defaultMemberSectionAreaCm2 = sectionAreaForMaterial(materialId, 24, materialLibrary);
   const modelWarnings = useMemo(() => {
     const warnings: string[] = [];
     const nodeIds = new Set(value.nodes.map((node) => node.id));
@@ -184,7 +185,9 @@ export function TrussCustomModelEditor({
   };
 
   const addMemberBetweenNodes = (startId: string, endId: string) => {
-    const nextMember = createConnectedTrussMemberByNodeId(startId, endId, value.nodes, value.members, defaultMemberElasticityGPa, materialId);
+    const nextMember = createConnectedTrussMemberByNodeId(startId, endId, value.nodes, value.members, defaultMemberElasticityGPa, materialId, {
+      sectionAreaCm2: defaultMemberSectionAreaCm2,
+    });
     if (!nextMember) {
       return;
     }
@@ -404,6 +407,7 @@ export function TrussCustomModelEditor({
       <TrussTableSection
         nodes={value.nodes}
         members={value.members}
+        materialLibrary={materialLibrary}
         loads={value.loads}
         activeSectionId={advancedSectionId}
         onSectionChange={setAdvancedSectionId}

@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   estimateDiagramTextWidth,
   labelCandidatesAroundPoint,
+  legendLabelCandidates,
   overlapDiagramRects,
   placeDiagramLabel,
   placeDiagramLabels,
@@ -15,6 +16,13 @@ const bounds = { left: 0, top: 0, right: 240, bottom: 160 };
 test("estimateDiagramTextWidth gives CJK labels enough width", () => {
   assert.ok(estimateDiagramTextWidth("节点 N1", 12) > estimateDiagramTextWidth("N1", 12));
   assert.ok(estimateDiagramTextWidth("节点 N1", 12) < 80);
+});
+
+test("legendLabelCandidates keeps dimension legends on the left side", () => {
+  assert.deepEqual(
+    legendLabelCandidates(600, 300).map((candidate) => candidate.textAnchor),
+    ["start", "start"],
+  );
 });
 
 test("placeDiagramLabel selects a non-overlapping candidate", () => {

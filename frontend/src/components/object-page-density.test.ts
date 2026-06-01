@@ -25,11 +25,17 @@ test("对象页选中编辑器不显示材料库长说明", () => {
   assert.doesNotMatch(sources, /材料参数用于线弹性刚度计算|强度、稳定、连接和规范设计/u);
 });
 
-test("工程材料管理入口归属工程树而不是系统设置", () => {
+test("工程设置入口归属工程树，工程材料并入同一设置弹窗", () => {
   const projectTree = componentSource("ProjectTreePanel.tsx");
+  const projectInfoDialog = componentSource("ProjectInfoDialog.tsx");
   const systemSettings = componentSource("SystemSettingsPanel.tsx");
 
-  assert.match(projectTree, /ProjectMaterialManager/u);
+  assert.match(projectTree, /工程设置/u);
+  assert.doesNotMatch(projectTree, /ProjectMaterialManager|工程材料库/u);
+  assert.match(projectInfoDialog, /ProjectMaterialPanel/u);
+  assert.match(projectInfoDialog, /工程信息/u);
+  assert.match(projectInfoDialog, /工程材料/u);
+  assert.match(projectInfoDialog, /role="tablist"/u);
   assert.doesNotMatch(systemSettings, /工程自定义材料|新增或更新材料|onCustomMaterialsChange/u);
 });
 

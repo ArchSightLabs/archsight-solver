@@ -10,6 +10,11 @@ import type {
 import { materialIdForYoungModulus } from "./material-presets.ts";
 import { modelObjectMemberTerm } from "./model-object-vocabulary.ts";
 
+interface FrameMemberSectionDefaults {
+  sectionAreaCm2?: number;
+  momentOfInertiaCm4?: number;
+}
+
 const FRAME_MEMBER_TERM = modelObjectMemberTerm("frame");
 
 export const FRAME_MEMBER_KIND_OPTIONS = [
@@ -77,9 +82,45 @@ function positiveStep(values: number[], fallback: number): number {
   return steps[0] ?? fallback;
 }
 
-export function inferFrameNodeDraft(nodes: StructureNode[], existingIds: string[]): StructureNode {
+function coordinateExists(nodes: StructureNode[], x: number, y: number): boolean {
+  return nodes.some((node) => Math.abs(node.x - x) < 1e-9 && Math.abs(node.y - y) < 1e-9);
+}
+
+function openHorizontalX(nodes: StructureNode[], startX: number, y: number, dx: number): number {
+  let candidateX = startX + dx;
+  while (coordinateExists(nodes, candidateX, y)) {
+    candidateX += dx;
+  }
+  return candidateX;
+}
+
+export function inferFrameNodeDraft(nodes: StructureNode[], existingIds: string[], preferredAnchorNodeId?: string): StructureNode {
   if (nodes.length === 0) {
     return createFrameNodeDraft(0, existingIds);
+  }
+
+  const anchor = preferredAnchorNodeId ? nodes.find((node) => node.id === preferredAnchorNodeId) : undefined;
+  if (anchor) {
+    const yLevels = [...new Set(nodes.map((node) => Number(node.y.toFixed(6))))]
+      .filter((y) => Math.abs(y - anchor.y) > 1e-9)
+      .sort((a, b) => Math.abs(a - anchor.y) - Math.abs(b - anchor.y));
+    const verticalTargetY = yLevels.find((y) => !coordinateExists(nodes, anchor.x, y));
+    if (verticalTargetY !== undefined) {
+      return {
+        id: nextFrameDraftId("N", existingIds),
+        x: Number(anchor.x.toFixed(3)),
+        y: Number(verticalTargetY.toFixed(3)),
+        supportType: Math.abs(verticalTargetY) < 1e-9 ? "roller" : "free",
+      };
+    }
+
+    const dx = positiveStep(nodes.map((node) => node.x), 3);
+    return {
+      id: nextFrameDraftId("N", existingIds),
+      x: Number(openHorizontalX(nodes, anchor.x, anchor.y, dx).toFixed(3)),
+      y: Number(anchor.y.toFixed(3)),
+      supportType: Math.abs(anchor.y) < 1e-9 ? "roller" : "free",
+    };
   }
 
   const maxY = Math.max(...nodes.map((node) => node.y));
@@ -127,6 +168,7 @@ export function createConnectedFrameMember(
   existingIds: string[],
   defaultYoungModulusGPa = 210,
   defaultMaterialId = materialIdForYoungModulus(defaultYoungModulusGPa),
+  sectionDefaults: FrameMemberSectionDefaults = {},
 ): StructureMember {
   const kind = memberKindBetween(start, end);
   const template = templateForKind(members, kind);
@@ -138,6 +180,8 @@ export function createConnectedFrameMember(
     ...template,
     materialId: defaultMaterialId,
     E_GPa: defaultYoungModulusGPa,
+    A_cm2: Number.isFinite(sectionDefaults.sectionAreaCm2) && Number(sectionDefaults.sectionAreaCm2) > 0 ? Number(sectionDefaults.sectionAreaCm2) : template.A_cm2,
+    I_cm4: Number.isFinite(sectionDefaults.momentOfInertiaCm4) && Number(sectionDefaults.momentOfInertiaCm4) > 0 ? Number(sectionDefaults.momentOfInertiaCm4) : template.I_cm4,
     kind,
   };
 }
@@ -149,6 +193,7 @@ export function createConnectedFrameMemberByNodeId(
   members: StructureMember[],
   defaultYoungModulusGPa = 210,
   defaultMaterialId = materialIdForYoungModulus(defaultYoungModulusGPa),
+  sectionDefaults: FrameMemberSectionDefaults = {},
 ): StructureMember | undefined {
   if (!startNodeId || !endNodeId || startNodeId === endNodeId || frameMemberExists(members, startNodeId, endNodeId)) {
     return undefined;
@@ -165,10 +210,11 @@ export function createConnectedFrameMemberByNodeId(
     members.map((member) => member.id),
     defaultYoungModulusGPa,
     defaultMaterialId,
+    sectionDefaults,
   );
 }
 
-export function createFrameMemberDraft(index: number, nodes: StructureNode[], existingIds: string[], defaultYoungModulusGPa = 210, defaultMaterialId = materialIdForYoungModulus(defaultYoungModulusGPa)): StructureMember {
+export function createFrameMemberDraft(index: number, nodes: StructureNode[], existingIds: string[], defaultYoungModulusGPa = 210, defaultMaterialId = materialIdForYoungModulus(defaultYoungModulusGPa), sectionDefaults: FrameMemberSectionDefaults = {}): StructureMember {
   const start = nodes[index]?.id ?? nodes[0]?.id ?? "N1";
   const end = nodes[index + 1]?.id ?? nodes[nodes.length - 1]?.id ?? start;
   return {
@@ -178,8 +224,8 @@ export function createFrameMemberDraft(index: number, nodes: StructureNode[], ex
     elementType: "frame",
     materialId: defaultMaterialId,
     E_GPa: defaultYoungModulusGPa,
-    A_cm2: 120,
-    I_cm4: 8000,
+    A_cm2: Number.isFinite(sectionDefaults.sectionAreaCm2) && Number(sectionDefaults.sectionAreaCm2) > 0 ? Number(sectionDefaults.sectionAreaCm2) : 120,
+    I_cm4: Number.isFinite(sectionDefaults.momentOfInertiaCm4) && Number(sectionDefaults.momentOfInertiaCm4) > 0 ? Number(sectionDefaults.momentOfInertiaCm4) : 8000,
     kind: "generic",
   };
 }

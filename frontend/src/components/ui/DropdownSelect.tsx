@@ -9,6 +9,7 @@ export interface DropdownOption {
   label: string;
   selectedLabel?: string;
   description?: string;
+  badge?: string;
 }
 
 interface DropdownSelectProps {
@@ -172,7 +173,7 @@ export function DropdownSelect({
                       optionClassName
                     )}
                   >
-                    <span className="min-w-0">
+                    <span className="min-w-0 flex-1">
                       <span className="block truncate">{option.label}</span>
                       {option.description ? (
                         <span className="mt-0.5 block whitespace-normal text-xs font-normal leading-snug text-slate-500 dark:text-slate-400">
@@ -180,7 +181,14 @@ export function DropdownSelect({
                         </span>
                       ) : null}
                     </span>
-                    {isSelected ? <Check size={14} className="shrink-0" /> : <span className="w-3.5" />}
+                    <span className="flex shrink-0 items-center gap-2">
+                      {option.badge ? (
+                        <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-bold text-sky-700 dark:border-sky-400/30 dark:bg-sky-400/10 dark:text-sky-200">
+                          {option.badge}
+                        </span>
+                      ) : null}
+                      {isSelected ? <Check size={14} className="shrink-0" /> : <span className="w-3.5" />}
+                    </span>
                   </button>
                 );
               })}

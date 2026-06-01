@@ -1,4 +1,5 @@
 import { outwardLabelCandidates, type DiagramLabelCandidate, type DiagramLabelRect } from "../lib/diagram-label-layout.ts";
+import { formatDimensionLegendGroup } from "../lib/dimension-legend-rows.ts";
 import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import { trussSupportLabel } from "../lib/support-vocabulary.ts";
 import type { TrussSupportType } from "../types/supports.ts";
@@ -113,14 +114,7 @@ function formatTrussMemberLength(value: number) {
   return `${value.toFixed(2).replace(/\.?0+$/u, "")} m`;
 }
 
-function formatTrussDimensionMemberIds(memberIds: string[]) {
-  if (memberIds.length <= 6) {
-    return memberIds.join("=");
-  }
-  return `${memberIds[0]}等${memberIds.length}根`;
-}
-
-export function buildTrussMemberLengthLegendRows(dimensions: TrussMemberLengthDimension[], _maxWidthPx: number, _fontSize = 12) {
+export function buildTrussMemberLengthLegendRows(dimensions: TrussMemberLengthDimension[], maxWidthPx: number, fontSize = 12) {
   const groupedDimensions = Array.from(
     dimensions.reduce((groups, dimension) => {
       const group = groups.get(dimension.valueLabel) ?? { memberIds: [] as string[], valueLabel: dimension.valueLabel };
@@ -131,7 +125,7 @@ export function buildTrussMemberLengthLegendRows(dimensions: TrussMemberLengthDi
       .values(),
   );
 
-  return groupedDimensions.map((dimension) => `${formatTrussDimensionMemberIds(dimension.memberIds)}=${dimension.valueLabel}`);
+  return groupedDimensions.map((dimension) => formatDimensionLegendGroup({ itemIds: dimension.memberIds, valueLabel: dimension.valueLabel }, maxWidthPx, fontSize, "根"));
 }
 
 export function buildTrussMemberLengthDimensions(

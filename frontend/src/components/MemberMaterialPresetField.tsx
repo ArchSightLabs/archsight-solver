@@ -11,7 +11,7 @@ interface MemberMaterialPresetFieldProps {
   materialLibrary?: Material[];
   youngModulusGPa: number;
   onYoungModulusChange: (nextYoungModulusGPa: number) => void;
-  onMaterialChange?: (nextMaterialId: string, nextYoungModulusGPa: number) => void;
+  onMaterialChange?: (nextMaterialId: string, nextYoungModulusGPa: number, sectionDefaults: Pick<Material, "sectionAreaCm2" | "momentOfInertiaCm4">) => void;
   fieldLabelClass: string;
   memberLabel: "跨段" | "构件" | "杆件";
   mode: MemberMaterialMode;
@@ -44,9 +44,13 @@ export function MemberMaterialPresetField({
       <DropdownSelect
         value={selectedMaterialId}
         onChange={(nextValue) => {
+          const material = materialLibrary.find((item) => item.id === nextValue);
           const nextYoungModulusGPa = youngModulusForMaterial(nextValue, youngModulusGPa, materialLibrary);
           if (onMaterialChange) {
-            onMaterialChange(nextValue, nextYoungModulusGPa);
+            onMaterialChange(nextValue, nextYoungModulusGPa, {
+              sectionAreaCm2: material?.sectionAreaCm2,
+              momentOfInertiaCm4: material?.momentOfInertiaCm4,
+            });
           } else {
             onYoungModulusChange(nextYoungModulusGPa);
           }
