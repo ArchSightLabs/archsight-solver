@@ -13,7 +13,7 @@ resolution-markers = [
 [[package]]
 name = "archsight-solver"
 version = "1.3.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "flask" },
     { name = "gunicorn" },
