@@ -1,17 +1,10 @@
-import { Layers3, Link2, MapPin, Plus } from "lucide-react";
+import { Layers3, Link2, MapPin, Settings2 } from "lucide-react";
 import type { FrameLoad, FrameLoadCase, FrameLoadCombination, StructureMember, StructureNode } from "../types/structure.ts";
-import { Button } from "./ui/button";
-import { FrameLoadCaseSection } from "./FrameLoadCaseSection";
-import { FrameLoadCombinationSection } from "./FrameLoadCombinationSection";
-import { FrameLoadEditor } from "./FrameLoadEditor";
-import { FrameMemberEditor } from "./FrameMemberEditor";
-import { FrameNodeEditor } from "./FrameNodeEditor";
-import { MemberConnectionPanel } from "./MemberConnectionPanel";
 import { modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
+import { nodeSupportLabel } from "../lib/support-vocabulary.ts";
+import { frameDistributedLoadKindLabel } from "../lib/frame-editor-model.ts";
 
 export type FrameAdvancedSection = "nodes" | "members" | "loads" | "loadCases" | "loadCombinations";
-
-type FrameSelectOption = { value: string; label: string };
 
 interface FrameTableSectionProps {
   nodes: StructureNode[];
@@ -19,33 +12,8 @@ interface FrameTableSectionProps {
   loads: FrameLoad[];
   loadCases: FrameLoadCase[];
   loadCombinations: FrameLoadCombination[];
-  nodeOptions: FrameSelectOption[];
-  memberOptions: FrameSelectOption[];
-  fieldLabelClass: string;
   activeSectionId: FrameAdvancedSection;
-  memberConnectionStartId: string;
-  memberConnectionEndId: string;
-  memberConnectionDisabledReason?: string;
   onSectionChange: (next: FrameAdvancedSection) => void;
-  onMemberConnectionStartChange: (nextId: string) => void;
-  onMemberConnectionEndChange: (nextId: string) => void;
-  onAddMember: () => void;
-  onUpdateNode: (index: number, patch: Partial<StructureNode>) => void;
-  onRemoveNode: (index: number) => void;
-  onUpdateMember: (index: number, patch: Partial<StructureMember>) => void;
-  onRemoveMember: (index: number) => void;
-  onAddLoad: () => void;
-  onUpdateLoad: (index: number, patch: Partial<FrameLoad>) => void;
-  onRemoveLoad: (index: number) => void;
-  onAddLoadCase: () => void;
-  onUpdateLoadCase: (index: number, patch: Partial<FrameLoadCase>) => void;
-  onRemoveLoadCase: (index: number) => void;
-  onAddLoadToCase: (loadCaseIndex: number) => void;
-  onUpdateLoadInCase: (loadCaseIndex: number, loadIndex: number, patch: Partial<FrameLoad>) => void;
-  onRemoveLoadFromCase: (loadCaseIndex: number, loadIndex: number) => void;
-  onAddLoadCombination: () => void;
-  onUpdateLoadCombination: (index: number, patch: Partial<FrameLoadCombination>) => void;
-  onRemoveLoadCombination: (index: number) => void;
 }
 
 export function FrameTableSection({
@@ -54,35 +22,15 @@ export function FrameTableSection({
   loads,
   loadCases,
   loadCombinations,
-  nodeOptions,
-  memberOptions,
-  fieldLabelClass,
   activeSectionId,
-  memberConnectionStartId,
-  memberConnectionEndId,
-  memberConnectionDisabledReason,
   onSectionChange,
-  onMemberConnectionStartChange,
-  onMemberConnectionEndChange,
-  onAddMember,
-  onUpdateNode,
-  onRemoveNode,
-  onUpdateMember,
-  onRemoveMember,
-  onAddLoad,
-  onUpdateLoad,
-  onRemoveLoad,
-  onAddLoadCase,
-  onUpdateLoadCase,
-  onRemoveLoadCase,
-  onAddLoadToCase,
-  onUpdateLoadInCase,
-  onRemoveLoadFromCase,
-  onAddLoadCombination,
-  onUpdateLoadCombination,
-  onRemoveLoadCombination,
 }: FrameTableSectionProps) {
   const vocabulary = modelObjectVocabulary("frame");
+  const distributedLoadValue = (load: Extract<FrameLoad, { type: "distributed" }>) => {
+    const qStart = Number(load.qStartKnPerM ?? load.wyKnPerM ?? 0);
+    const qEnd = Number(load.qEndKnPerM ?? load.qStartKnPerM ?? load.wyKnPerM ?? qStart);
+    return Math.abs(qStart - qEnd) < 1e-9 ? `${qStart} kN/m` : `${qStart} ~ ${qEnd} kN/m`;
+  };
   const sections: Array<{ id: FrameAdvancedSection; label: string; count: number }> = [
     { id: "nodes", label: vocabulary.nodeGroupLabel, count: nodes.length },
     { id: "members", label: vocabulary.memberGroupLabel, count: members.length },
@@ -125,20 +73,15 @@ export function FrameTableSection({
               </div>
               <span className="text-[10px] uppercase tracking-widest text-muted-foreground">节点编号 / 横坐标 / 纵坐标 / 支座类型</span>
             </div>
-            <div className="space-y-3">
-              {nodes.map((node, index) => (
-                <FrameNodeEditor
-                  key={`frame-node-${index}`}
-                  node={node}
-                  nodeIndex={index}
-                  nodeCount={nodes.length}
-                  nodeOptions={nodeOptions}
-                  fieldLabelClass={fieldLabelClass}
-                  onUpdate={(patch) => onUpdateNode(index, patch)}
-                  onRemove={() => onRemoveNode(index)}
-                  variant="table"
-                />
+            <div className="space-y-2">
+              {nodes.map((node) => (
+                <div key={node.id} className="grid grid-cols-3 gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 text-xs">
+                  <span className="font-bold">{node.id}</span>
+                  <span className="font-mono">({node.x.toFixed(2)}, {node.y.toFixed(2)}) m</span>
+                  <span>{node.supportType && node.supportType !== "free" ? nodeSupportLabel(node.supportType) : "自由"}</span>
+                </div>
               ))}
+              {nodes.length === 0 && <div className="p-4 text-center text-xs text-muted-foreground">暂无节点</div>}
             </div>
           </section>
         ) : null}
@@ -150,31 +93,17 @@ export function FrameTableSection({
                 <Layers3 className="h-3.5 w-3.5 text-primary" />
                 {vocabulary.memberGroupLabel}
               </div>
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">编号 / 连接 / 参数</span>
             </div>
-            <MemberConnectionPanel
-              fieldLabelClass={fieldLabelClass}
-              memberTerm={vocabulary.memberGroupLabel}
-              nodeOptions={nodeOptions}
-              startNodeId={memberConnectionStartId}
-              endNodeId={memberConnectionEndId}
-              disabledReason={memberConnectionDisabledReason}
-              onStartNodeChange={onMemberConnectionStartChange}
-              onEndNodeChange={onMemberConnectionEndChange}
-              onAddConnection={onAddMember}
-            />
-            <div className="space-y-3">
-              {members.map((member, index) => (
-                <FrameMemberEditor
-                  key={`frame-member-${index}`}
-                  member={member}
-                  memberIndex={index}
-                  nodeOptions={nodeOptions}
-                  fieldLabelClass={fieldLabelClass}
-                  onUpdate={(patch) => onUpdateMember(index, patch)}
-                  onRemove={() => onRemoveMember(index)}
-                  variant="table"
-                />
+            <div className="space-y-2">
+              {members.map((member) => (
+                <div key={member.id} className="grid grid-cols-3 gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 text-xs">
+                  <span className="font-bold">{member.id}</span>
+                  <span className="font-mono">{member.start} - {member.end}</span>
+                  <span className="font-mono">A {member.A_cm2} cm² / E {member.E_GPa} GPa</span>
+                </div>
               ))}
+              {members.length === 0 && <div className="p-4 text-center text-xs text-muted-foreground">暂无{vocabulary.memberGroupLabel}</div>}
             </div>
           </section>
         ) : null}
@@ -186,56 +115,66 @@ export function FrameTableSection({
                 <Link2 className="h-3.5 w-3.5 text-primary" />
                 {vocabulary.loadGroupLabel}
               </div>
-              <Button variant="outline" size="sm" onClick={onAddLoad} className="h-8 rounded-xl">
-                <Plus className="mr-1.5 h-3.5 w-3.5" />
-                {vocabulary.addLoadLabel}
-              </Button>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {loads.map((load, index) => (
-                <FrameLoadEditor
-                  key={`frame-load-${index}`}
-                  load={load}
-                  index={index}
-                  nodes={nodes}
-                  members={members}
-                  nodeOptions={nodeOptions}
-                  memberOptions={memberOptions}
-                  fieldLabelClass={fieldLabelClass}
-                  onUpdate={(patch) => onUpdateLoad(index, patch)}
-                  onRemove={() => onRemoveLoad(index)}
-                />
+                <div key={index} className="grid grid-cols-3 gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 text-xs">
+                  <span className="font-bold">荷载 {index + 1}</span>
+                  <span>{load.type === "nodal" ? `节点 (${load.node})` : `单元 (${load.member})`}</span>
+                  <span className="font-mono text-muted-foreground">
+                    {load.type === "nodal"
+                      ? `Fx: ${load.fxKn ?? 0} kN, Fy: ${load.fyKn ?? 0} kN`
+                      : load.type === "member_point"
+                        ? `P: ${load.forceKn ?? 0} kN`
+                        : `${frameDistributedLoadKindLabel(load)} ${distributedLoadValue(load)}`}
+                  </span>
+                </div>
               ))}
+              {loads.length === 0 && <div className="p-4 text-center text-xs text-muted-foreground">暂无基本荷载</div>}
             </div>
           </section>
         ) : null}
 
         {activeSectionId === "loadCases" ? (
-          <FrameLoadCaseSection
-            loadCases={loadCases}
-            nodes={nodes}
-            members={members}
-            nodeOptions={nodeOptions}
-            memberOptions={memberOptions}
-            fieldLabelClass={fieldLabelClass}
-            onAddLoadCase={onAddLoadCase}
-            onUpdateLoadCase={onUpdateLoadCase}
-            onRemoveLoadCase={onRemoveLoadCase}
-            onAddLoadToCase={onAddLoadToCase}
-            onUpdateLoadInCase={onUpdateLoadInCase}
-            onRemoveLoadFromCase={onRemoveLoadFromCase}
-          />
+          <section id="frame-custom-load-cases" className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 space-y-4 scroll-mt-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="eyebrow flex items-center gap-2">
+                <Settings2 className="h-3.5 w-3.5 text-primary" />
+                荷载工况
+              </div>
+            </div>
+            <div className="space-y-2">
+              {loadCases.map((loadCase) => (
+                <div key={loadCase.id} className="grid grid-cols-2 gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 text-xs">
+                  <span className="font-bold">{loadCase.id} ({loadCase.title})</span>
+                  <span className="text-muted-foreground">包含 {loadCase.loads.length} 个荷载</span>
+                </div>
+              ))}
+              {loadCases.length === 0 && <div className="p-4 text-center text-xs text-muted-foreground">暂无工况</div>}
+            </div>
+          </section>
         ) : null}
 
         {activeSectionId === "loadCombinations" ? (
-          <FrameLoadCombinationSection
-            loadCases={loadCases}
-            loadCombinations={loadCombinations}
-            fieldLabelClass={fieldLabelClass}
-            onAddLoadCombination={onAddLoadCombination}
-            onUpdateLoadCombination={onUpdateLoadCombination}
-            onRemoveLoadCombination={onRemoveLoadCombination}
-          />
+          <section id="frame-custom-load-combinations" className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 space-y-4 scroll-mt-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="eyebrow flex items-center gap-2">
+                <Settings2 className="h-3.5 w-3.5 text-primary" />
+                荷载组合
+              </div>
+            </div>
+            <div className="space-y-2">
+              {loadCombinations.map((combination) => (
+                <div key={combination.id} className="grid grid-cols-2 gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 text-xs">
+                  <span className="font-bold">{combination.id} ({combination.title})</span>
+                  <span className="text-muted-foreground">
+                    {Object.entries(combination.factors).map(([caseId, factor]) => `${factor}×${caseId}`).join(" + ")}
+                  </span>
+                </div>
+              ))}
+              {loadCombinations.length === 0 && <div className="p-4 text-center text-xs text-muted-foreground">暂无组合</div>}
+            </div>
+          </section>
         ) : null}
       </div>
     </section>

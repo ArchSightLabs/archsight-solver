@@ -1,64 +1,24 @@
-import { Link2, MapPin, Plus, Triangle } from "lucide-react";
+import { Link2, MapPin, Triangle } from "lucide-react";
 import type { TrussLoad, TrussMember, TrussNode } from "../types/structure.ts";
-import { Button } from "./ui/button";
-import { TrussLoadEditor } from "./TrussLoadEditor";
-import { TrussMemberEditor } from "./TrussMemberEditor";
-import { TrussNodeEditor } from "./TrussNodeEditor";
-import { MemberConnectionPanel } from "./MemberConnectionPanel";
 import { modelObjectLoadLabel, modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
+import { trussSupportLabel } from "../lib/support-vocabulary.ts";
 
 export type TrussAdvancedSection = "nodes" | "members" | "loads";
-
-type TrussSelectOption = { value: string; label: string };
 
 interface TrussTableSectionProps {
   nodes: TrussNode[];
   members: TrussMember[];
   loads: TrussLoad[];
-  nodeOptions: TrussSelectOption[];
-  memberOptions: TrussSelectOption[];
-  fieldLabelClass: string;
   activeSectionId: TrussAdvancedSection;
-  memberConnectionStartId: string;
-  memberConnectionEndId: string;
-  memberConnectionDisabledReason?: string;
   onSectionChange: (next: TrussAdvancedSection) => void;
-  onMemberConnectionStartChange: (nextId: string) => void;
-  onMemberConnectionEndChange: (nextId: string) => void;
-  onUpdateNode: (index: number, patch: Partial<TrussNode>) => void;
-  onRemoveNode: (index: number) => void;
-  onAddMember: () => void;
-  onUpdateMember: (index: number, patch: Partial<TrussMember>) => void;
-  onRemoveMember: (index: number) => void;
-  onAddNodalLoad: () => void;
-  onAddMemberLoad: () => void;
-  onUpdateLoad: (index: number, patch: Partial<TrussLoad>) => void;
-  onRemoveLoad: (index: number) => void;
 }
 
 export function TrussTableSection({
   nodes,
   members,
   loads,
-  nodeOptions,
-  memberOptions,
-  fieldLabelClass,
   activeSectionId,
-  memberConnectionStartId,
-  memberConnectionEndId,
-  memberConnectionDisabledReason,
   onSectionChange,
-  onMemberConnectionStartChange,
-  onMemberConnectionEndChange,
-  onUpdateNode,
-  onRemoveNode,
-  onAddMember,
-  onUpdateMember,
-  onRemoveMember,
-  onAddNodalLoad,
-  onAddMemberLoad,
-  onUpdateLoad,
-  onRemoveLoad,
 }: TrussTableSectionProps) {
   const vocabulary = modelObjectVocabulary("truss");
   const nodeLoadLabel = modelObjectLoadLabel("truss", "node");
@@ -101,22 +61,17 @@ export function TrussTableSection({
                 <MapPin className="h-3.5 w-3.5 text-primary" />
                 {vocabulary.nodeGroupLabel}
               </div>
-              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">节点编号 / 坐标 / 支座类型</span>
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">节点编号 / 坐标 / 支座</span>
             </div>
-            <div className="space-y-3">
-              {nodes.map((node, index) => (
-                <TrussNodeEditor
-                  key={`truss-node-${index}`}
-                  node={node}
-                  nodeIndex={index}
-                  nodeCount={nodes.length}
-                  nodeOptions={nodeOptions}
-                  fieldLabelClass={fieldLabelClass}
-                  onUpdate={(patch) => onUpdateNode(index, patch)}
-                  onRemove={() => onRemoveNode(index)}
-                  variant="table"
-                />
+            <div className="space-y-2">
+              {nodes.map((node) => (
+                <div key={node.id} className="grid grid-cols-3 gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 text-xs">
+                  <span className="font-bold">{node.id}</span>
+                  <span className="font-mono">({node.x.toFixed(2)}, {node.y.toFixed(2)}) m</span>
+                  <span>{node.supportType && node.supportType !== "free" ? trussSupportLabel(node.supportType) : "自由"}</span>
+                </div>
               ))}
+              {nodes.length === 0 && <div className="p-4 text-center text-xs text-muted-foreground">暂无节点</div>}
             </div>
           </section>
         ) : null}
@@ -128,31 +83,17 @@ export function TrussTableSection({
                 <Triangle className="h-3.5 w-3.5 text-primary" />
                 {vocabulary.memberGroupLabel}
               </div>
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">编号 / 连接 / 参数</span>
             </div>
-            <MemberConnectionPanel
-              fieldLabelClass={fieldLabelClass}
-              memberTerm={vocabulary.memberGroupLabel}
-              nodeOptions={nodeOptions}
-              startNodeId={memberConnectionStartId}
-              endNodeId={memberConnectionEndId}
-              disabledReason={memberConnectionDisabledReason}
-              onStartNodeChange={onMemberConnectionStartChange}
-              onEndNodeChange={onMemberConnectionEndChange}
-              onAddConnection={onAddMember}
-            />
-            <div className="space-y-3">
-              {members.map((member, index) => (
-                <TrussMemberEditor
-                  key={`truss-member-${index}`}
-                  member={member}
-                  memberIndex={index}
-                  nodeOptions={nodeOptions}
-                  fieldLabelClass={fieldLabelClass}
-                  onUpdate={(patch) => onUpdateMember(index, patch)}
-                  onRemove={() => onRemoveMember(index)}
-                  variant="table"
-                />
+            <div className="space-y-2">
+              {members.map((member) => (
+                <div key={member.id} className="grid grid-cols-3 gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 text-xs">
+                  <span className="font-bold">{member.id}</span>
+                  <span className="font-mono">{member.start} - {member.end}</span>
+                  <span className="font-mono">A {member.A_cm2} cm² / E {member.E_GPa} GPa</span>
+                </div>
               ))}
+              {members.length === 0 && <div className="p-4 text-center text-xs text-muted-foreground">暂无{vocabulary.memberGroupLabel}</div>}
             </div>
           </section>
         ) : null}
@@ -164,33 +105,22 @@ export function TrussTableSection({
                 <Link2 className="h-3.5 w-3.5 text-primary" />
                 {vocabulary.loadGroupLabel}
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" onClick={onAddNodalLoad} className="h-8 rounded-xl">
-                  <Plus className="mr-1.5 h-3.5 w-3.5" />
-                  新增{nodeLoadLabel}
-                </Button>
-                <Button variant="outline" size="sm" onClick={onAddMemberLoad} disabled={members.length === 0} className="h-8 rounded-xl">
-                  <Plus className="mr-1.5 h-3.5 w-3.5" />
-                  新增{memberLoadLabel}
-                </Button>
-              </div>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {loads.map((load, index) => (
-                <TrussLoadEditor
-                  key={`truss-load-${index}`}
-                  load={load}
-                  index={index}
-                  nodes={nodes}
-                  members={members}
-                  nodeOptions={nodeOptions}
-                  memberOptions={memberOptions}
-                  fieldLabelClass={fieldLabelClass}
-                  onUpdate={(patch) => onUpdateLoad(index, patch)}
-                  onRemove={() => onRemoveLoad(index)}
-                  variant="table"
-                />
+                <div key={index} className="grid grid-cols-3 gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 text-xs">
+                  <span className="font-bold">荷载 {index + 1}</span>
+                  <span>{load.type === "nodal" ? `${nodeLoadLabel} (${load.node})` : `${memberLoadLabel} (${load.member})`}</span>
+                  <span className="font-mono">
+                    {load.type === "nodal"
+                      ? `Fx: ${load.fxKn ?? 0} kN, Fy: ${load.fyKn ?? 0} kN`
+                      : load.wyKnPerM !== undefined
+                        ? `q: ${load.wyKnPerM} kN/m`
+                        : `q: ${load.qStartKnPerM ?? 0} ~ ${load.qEndKnPerM ?? 0} kN/m`}
+                  </span>
+                </div>
               ))}
+              {loads.length === 0 && <div className="p-4 text-center text-xs text-muted-foreground">暂无荷载</div>}
             </div>
           </section>
         ) : null}

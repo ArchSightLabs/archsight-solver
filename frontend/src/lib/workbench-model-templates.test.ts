@@ -53,6 +53,8 @@ test("梁系公共模板覆盖公开验证课程中的通用工况", () => {
     "three-span-continuous-uniform",
     "three-span-linear",
     "unequal-span-continuous-point",
+    "fixed-fixed-uniform",
+    "propped-cantilever-point",
   ]);
 
   const byId = new Map(BEAM_MODEL_TEMPLATES.map((template) => [template.id, template]));
@@ -138,6 +140,7 @@ test("平面框架公共模板覆盖公开验证课程中的通用工况", () =>
     "braced-frame",
     "inclined-member-local-load",
     "frame-member-point-load",
+    "gable-frame",
   ]);
 
   const byId = new Map(FRAME_MODEL_TEMPLATES.map((template) => [template.id, template]));
@@ -154,6 +157,7 @@ test("内置桁架典型案例提供可计算的显式模型", () => {
     "warren-truss",
     "howe-roof-truss",
     "cantilever-truss",
+    "parallel-chord-truss",
   ]);
 
   for (const template of TRUSS_MODEL_TEMPLATES) {

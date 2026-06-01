@@ -6,7 +6,9 @@ export type BeamWorkbenchSelection =
 export type FrameWorkbenchSelection =
   | { mode: "frame"; type: "node"; id: string }
   | { mode: "frame"; type: "member"; id: string }
-  | { mode: "frame"; type: "load"; id: string };
+  | { mode: "frame"; type: "load"; id: string }
+  | { mode: "frame"; type: "loadCases"; id: "all" }
+  | { mode: "frame"; type: "loadCombinations"; id: "all" };
 
 export type TrussWorkbenchSelection =
   | { mode: "truss"; type: "node"; id: string }

@@ -39,6 +39,10 @@ async function createAnalysisObject(page: Page, dialogButton: RegExp | null) {
   await expect(dialog).toBeHidden();
 }
 
+async function expectNoDesktopPageOverflow(page: Page) {
+  await expect.poll(async () => page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(960);
+}
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.clear();
@@ -64,6 +68,7 @@ for (const item of moduleCases) {
     await expect(mainTabs.getByRole("tab", { name: "参数建模", exact: true })).toBeVisible();
     await expect(mainTabs.getByRole("tab", { name: /结构计算/ })).toBeVisible();
     await expect(page.getByText("按梁系、平面框架、平面桁架切换建模参数与结果指标。")).toHaveCount(0);
+    await expectNoDesktopPageOverflow(page);
     await expect(page).toHaveScreenshot(`desktop-${item.key}-workbench.png`, screenshotOptions);
   });
 }

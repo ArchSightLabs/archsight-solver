@@ -82,6 +82,10 @@ frontend/tmp/playwright-report/
 # Local agent/runtime state
 .ai/
 .vscode/
+!.vscode/
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
 .omx/
 .gstack/
 .local-docs/

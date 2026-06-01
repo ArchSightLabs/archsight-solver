@@ -343,7 +343,7 @@ function App() {
         setIsFileMenuOpen={setIsFileMenuOpen}
       />
 
-      <main className="relative z-10 mx-auto max-w-[118rem] px-4 pb-12 pt-4 sm:px-6 sm:pb-16 sm:pt-6">
+      <main className="relative z-10 mx-auto max-w-[118rem] px-4 pb-12 pt-4 sm:px-6 sm:pb-16 sm:pt-6 xl:pb-0">
         <div
           className="grid grid-cols-1 gap-5 xl:items-start"
           style={workbenchGridStyle}
@@ -408,7 +408,6 @@ function App() {
             </div>
 
             <WorkbenchViewTabs value={workbenchView} onChange={setWorkbenchView} />
-
             {workbenchView === "model" ? (
               <WorkbenchModelCanvas
                 workspace={workspace}

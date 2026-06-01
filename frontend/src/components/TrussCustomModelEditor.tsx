@@ -183,13 +183,6 @@ export function TrussCustomModelEditor({
     if (next) commit(next);
   };
 
-  const addMember = () => {
-    if (value.nodes.length < 2 || memberConnection.disabledReason) {
-      return;
-    }
-    addMemberBetweenNodes(memberConnection.startNodeId, memberConnection.endNodeId);
-  };
-
   const addMemberBetweenNodes = (startId: string, endId: string) => {
     const nextMember = createConnectedTrussMemberByNodeId(startId, endId, value.nodes, value.members, defaultMemberElasticityGPa, materialId);
     if (!nextMember) {
@@ -413,25 +406,8 @@ export function TrussCustomModelEditor({
         nodes={value.nodes}
         members={value.members}
         loads={value.loads}
-        nodeOptions={nodeOptions}
-        memberOptions={memberOptions}
-        fieldLabelClass={fieldLabelClass}
         activeSectionId={advancedSectionId}
-        memberConnectionStartId={memberConnection.startNodeId}
-        memberConnectionEndId={memberConnection.endNodeId}
-        memberConnectionDisabledReason={memberConnection.disabledReason}
         onSectionChange={setAdvancedSectionId}
-        onMemberConnectionStartChange={memberConnection.updateStartNodeId}
-        onMemberConnectionEndChange={memberConnection.updateEndNodeId}
-        onUpdateNode={updateNode}
-        onRemoveNode={removeNode}
-        onAddMember={addMember}
-        onUpdateMember={updateMember}
-        onRemoveMember={removeMember}
-        onAddNodalLoad={addNodalLoad}
-        onAddMemberLoad={addMemberLoad}
-        onUpdateLoad={updateLoad}
-        onRemoveLoad={removeLoad}
       />
       ) : null}
     </div>

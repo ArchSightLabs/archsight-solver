@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { Button } from "./ui/button";
 import { FrameBasicSection } from "./FrameBasicSection";
+import { FrameLoadCaseSection } from "./FrameLoadCaseSection";
+import { FrameLoadCombinationSection } from "./FrameLoadCombinationSection";
 import { FrameLoadEditor } from "./FrameLoadEditor";
 import { FrameMemberEditor } from "./FrameMemberEditor";
 import { FrameNodeEditor } from "./FrameNodeEditor";
@@ -106,10 +108,19 @@ export function FrameCustomModelEditor({
     [value.loads]
   );
   const resolvedSelectedObject = useMemo<FrameSelectedObject>(() => {
-    const current = selection ? { type: selection.type, id: selection.id } : selectedObject;
+    let current = selectedObject;
+    if (selection) {
+      if (selection.type === "node") current = { type: "node", id: selection.id };
+      if (selection.type === "member") current = { type: "member", id: selection.id };
+      if (selection.type === "load") current = { type: "load", id: selection.id };
+      if (selection.type === "loadCases") current = { type: "loadCases", id: selection.id };
+      if (selection.type === "loadCombinations") current = { type: "loadCombinations", id: selection.id };
+    }
     if (current.type === "node" && value.nodes.some((node) => node.id === current.id)) return current;
     if (current.type === "member" && value.members.some((member) => member.id === current.id)) return current;
     if (current.type === "load" && value.loads[Number(current.id.replace("load-", ""))]) return current;
+    if (current.type === "loadCases") return current;
+    if (current.type === "loadCombinations") return current;
     if (value.nodes[0]) return { type: "node", id: value.nodes[0].id };
     if (value.members[0]) return { type: "member", id: value.members[0].id };
     return { type: "load", id: "load-0" };
@@ -143,7 +154,11 @@ export function FrameCustomModelEditor({
 
   const selectObject = (next: FrameSelectedObject, options?: WorkbenchSelectionOptions) => {
     setSelectedObject(next);
-    onSelectionChange?.({ mode: "frame", type: next.type, id: next.id }, options);
+    if (next.type === "node") onSelectionChange?.({ mode: "frame", type: "node", id: next.id }, options);
+    if (next.type === "member") onSelectionChange?.({ mode: "frame", type: "member", id: next.id }, options);
+    if (next.type === "load") onSelectionChange?.({ mode: "frame", type: "load", id: next.id }, options);
+    if (next.type === "loadCases") onSelectionChange?.({ mode: "frame", type: "loadCases", id: next.id }, options);
+    if (next.type === "loadCombinations") onSelectionChange?.({ mode: "frame", type: "loadCombinations", id: next.id }, options);
   };
 
   const keep = (patch: Partial<FrameCollections> = {}): FrameCollections => ({
@@ -247,13 +262,6 @@ export function FrameCustomModelEditor({
     if (next) commit(next);
   };
 
-  const addMember = () => {
-    if (value.nodes.length < 2 || memberConnection.disabledReason) {
-      return;
-    }
-    addMemberBetweenNodes(memberConnection.startNodeId, memberConnection.endNodeId);
-  };
-
   const addMemberBetweenNodes = (startId: string, endId: string) => {
     const nextMember = createConnectedFrameMemberByNodeId(startId, endId, value.nodes, value.members, defaultMemberElasticityGPa, materialId);
     if (!nextMember) {
@@ -351,6 +359,40 @@ export function FrameCustomModelEditor({
 
   const fieldLabelClass = "text-[10px] font-black tracking-widest text-muted-foreground";
   const renderSelectedEditor = () => {
+    if (resolvedSelectedObject.type === "loadCases") {
+      return (
+        <FrameLoadCaseSection
+          loadCases={value.loadCases}
+          nodes={value.nodes}
+          members={value.members}
+          nodeOptions={nodeOptions}
+          memberOptions={memberOptions}
+          fieldLabelClass={fieldLabelClass}
+          onAddLoadCase={addLoadCase}
+          onUpdateLoadCase={updateLoadCase}
+          onRemoveLoadCase={removeLoadCase}
+          onAddLoadToCase={addLoadToCase}
+          onUpdateLoadInCase={updateLoadInCase}
+          onRemoveLoadFromCase={removeLoadFromCase}
+        />
+      );
+    }
+
+    if (resolvedSelectedObject.type === "loadCombinations") {
+      return (
+        <FrameLoadCombinationSection
+          loadCases={value.loadCases}
+          loadCombinations={value.loadCombinations}
+          fieldLabelClass={fieldLabelClass}
+          onAddLoadCombination={addLoadCombination}
+          onUpdateLoadCombination={updateLoadCombination}
+          onRemoveLoadCombination={(combinationIndex) =>
+            commit(removeFrameLoadCombinationCollections(value, combinationIndex))
+          }
+        />
+      );
+    }
+
     if (resolvedSelectedObject.type === "node") {
       const index = value.nodes.findIndex((node) => node.id === resolvedSelectedObject.id);
       const node = value.nodes[index];
@@ -486,35 +528,8 @@ export function FrameCustomModelEditor({
         loads={value.loads}
         loadCases={value.loadCases}
         loadCombinations={value.loadCombinations}
-        nodeOptions={nodeOptions}
-        memberOptions={memberOptions}
-        fieldLabelClass={fieldLabelClass}
         activeSectionId={advancedSectionId}
-        memberConnectionStartId={memberConnection.startNodeId}
-        memberConnectionEndId={memberConnection.endNodeId}
-        memberConnectionDisabledReason={memberConnection.disabledReason}
         onSectionChange={setAdvancedSectionId}
-        onMemberConnectionStartChange={memberConnection.updateStartNodeId}
-        onMemberConnectionEndChange={memberConnection.updateEndNodeId}
-        onAddMember={addMember}
-        onUpdateNode={updateNode}
-        onRemoveNode={removeNode}
-        onUpdateMember={updateMember}
-        onRemoveMember={removeMember}
-        onAddLoad={addLoad}
-        onUpdateLoad={updateLoad}
-        onRemoveLoad={removeLoad}
-        onAddLoadCase={addLoadCase}
-        onUpdateLoadCase={updateLoadCase}
-        onRemoveLoadCase={removeLoadCase}
-        onAddLoadToCase={addLoadToCase}
-        onUpdateLoadInCase={updateLoadInCase}
-        onRemoveLoadFromCase={removeLoadFromCase}
-        onAddLoadCombination={addLoadCombination}
-        onUpdateLoadCombination={updateLoadCombination}
-        onRemoveLoadCombination={(combinationIndex) =>
-          commit(removeFrameLoadCombinationCollections(value, combinationIndex))
-        }
       />
       ) : null}
     </div>

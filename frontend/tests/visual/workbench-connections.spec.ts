@@ -34,9 +34,9 @@ async function openAnalysisObject(page: Page, buttonName: RegExp) {
   await moduleRail.getByRole("button", { name: buttonName }).click();
 }
 
-async function openTableMemberGroup(page: Page, groupName: RegExp) {
-  await page.getByRole("tab", { name: "表格", exact: true }).click();
-  await page.getByRole("tab", { name: groupName }).click();
+async function openObjectMemberGroup(page: Page, connectionButtonName: string) {
+  await page.getByRole("tab", { name: "对象", exact: true }).click();
+  await expect(page.getByRole("button", { name: connectionButtonName })).toBeVisible();
 }
 
 function hasConnection(payload: StructurePayload, start: string, end: string) {
@@ -151,16 +151,15 @@ test.beforeEach(async ({ page }) => {
   await stabilizeWorkbench(page);
 });
 
-test("平面框架表格页按指定起终节点新增构件并提交计算 payload", async ({ page }) => {
+test("平面框架对象页按指定起终节点新增构件并提交计算 payload", async ({ page }) => {
   const observedPayload = await expectCalculatePayload(page, "frame", ["N1", "N4"]);
 
   await openAnalysisObject(page, /平面框架-1\s+(平面框架|框架)/);
-  await openTableMemberGroup(page, /构件\s+3/);
+  await openObjectMemberGroup(page, "连接为构件");
   await chooseDropdownOption(page, /新增构件终点节点，当前值：N2/, "N4");
   await page.getByRole("button", { name: "连接为构件" }).click();
 
-  await expect(page.getByRole("tab", { name: /构件\s+4/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /选择框架构件 M1/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /M1 · N1-N4/ })).toBeVisible();
 
   await page.getByRole("tab", { name: /结构计算/ }).click();
   await page.getByRole("button", { name: "运行平面框架计算" }).click();
@@ -169,16 +168,15 @@ test("平面框架表格页按指定起终节点新增构件并提交计算 payl
   expect(observedPayload()?.structure.members).toHaveLength(4);
 });
 
-test("平面桁架表格页按指定起终节点新增杆件并提交计算 payload", async ({ page }) => {
+test("平面桁架对象页按指定起终节点新增杆件并提交计算 payload", async ({ page }) => {
   const observedPayload = await expectCalculatePayload(page, "truss", ["N2", "N1"]);
 
   await openAnalysisObject(page, /平面桁架-1\s+(平面桁架|桁架)/);
-  await openTableMemberGroup(page, /杆件\s+5/);
+  await openObjectMemberGroup(page, "连接为杆件");
   await chooseDropdownOption(page, /新增杆件起点节点，当前值：N1/, "N2");
   await page.getByRole("button", { name: "连接为杆件" }).click();
 
-  await expect(page.getByRole("tab", { name: /杆件\s+6/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /选择桁架杆件 M6/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /M6 · N2-N1/ })).toBeVisible();
 
   await page.getByRole("tab", { name: /结构计算/ }).click();
   await page.getByRole("button", { name: "运行平面桁架计算" }).click();

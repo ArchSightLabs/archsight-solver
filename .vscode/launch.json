@@ -1,0 +1,74 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "\u5168\u6808\u5f00\u53d1\uff08\u540e\u7aef\u8c03\u8bd5 + \u524d\u7aef HMR\uff09",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "flask",
+            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+            "args": [
+                "run",
+                "--debug",
+                "--no-reload",
+                "--host",
+                "127.0.0.1",
+                "--port",
+                "6240"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "subProcess": false,
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "\u542f\u52a8\u5168\u6808\u8c03\u8bd5\u524d\u7f6e\u4efb\u52a1",
+            "env": {
+                "FLASK_APP": "app.py",
+                "FLASK_DEBUG": "1",
+                "FLASK_RUN_RELOAD": "0",
+                "BEAM_SOLVER_BACKEND_HOST": "127.0.0.1",
+                "BEAM_SOLVER_BACKEND_PORT": "6240",
+                "PYDEVD_DISABLE_FILE_VALIDATION": "1"
+            }
+        },
+        {
+            "name": "Python: \u540e\u7aef Flask \u8c03\u8bd5\uff08\u65e0\u91cd\u8f7d\uff09",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "flask",
+            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+            "args": [
+                "run",
+                "--debug",
+                "--no-reload",
+                "--host",
+                "127.0.0.1",
+                "--port",
+                "6240"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "subProcess": false,
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "\u6e05\u7406\u540e\u7aef\u8c03\u8bd5\u7aef\u53e3",
+            "env": {
+                "FLASK_APP": "app.py",
+                "FLASK_DEBUG": "1",
+                "FLASK_RUN_RELOAD": "0",
+                "BEAM_SOLVER_BACKEND_HOST": "127.0.0.1",
+                "BEAM_SOLVER_BACKEND_PORT": "6240",
+                "PYDEVD_DISABLE_FILE_VALIDATION": "1"
+            }
+        },
+        {
+            "name": "Chrome: \u8c03\u8bd5\u524d\u7aef\u9875\u9762",
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://127.0.0.1:6241",
+            "webRoot": "${workspaceFolder}/frontend/src",
+            "preLaunchTask": "\u542f\u52a8\u524d\u7aef Vite HMR",
+            "sourceMapPathOverrides": {
+                "webpack:///./src/*": "${webRoot}/*"
+            }
+        }
+    ]
+}

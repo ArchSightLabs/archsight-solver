@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus, Settings2 } from "lucide-react";
 
 import { Button } from "./ui/button";
 import { MemberConnectionPanel } from "./MemberConnectionPanel";
@@ -12,7 +12,9 @@ import type { StructureMember, StructureNode } from "../types/structure.ts";
 export type FrameSelectedObject =
   | { type: "node"; id: string }
   | { type: "member"; id: string }
-  | { type: "load"; id: string };
+  | { type: "load"; id: string }
+  | { type: "loadCases"; id: "all" }
+  | { type: "loadCombinations"; id: "all" };
 
 interface FrameObjectNavigatorProps {
   nodes: StructureNode[];
@@ -155,6 +157,27 @@ export function FrameObjectNavigator({
               <Plus className="mr-1 h-3 w-3" />
               {vocabulary.addLoadLabel}
             </Button>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <div className={fieldLabelClass}>荷载工况与组合</div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => onSelectObject({ type: "loadCases", id: "all" })}
+              className={objectChipClass(selectedObject.type === "loadCases")}
+            >
+              <Settings2 className="mr-1.5 inline-block h-3.5 w-3.5" />
+              荷载工况
+            </button>
+            <button
+              type="button"
+              onClick={() => onSelectObject({ type: "loadCombinations", id: "all" })}
+              className={objectChipClass(selectedObject.type === "loadCombinations")}
+            >
+              <Settings2 className="mr-1.5 inline-block h-3.5 w-3.5" />
+              荷载组合
+            </button>
           </div>
         </div>
       </div>

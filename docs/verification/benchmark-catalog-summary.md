@@ -100,6 +100,10 @@
 | truss | `warren-truss` / Warren 桁架 | `truss-warren-roof` | 对应 | 同为 Warren 桁架，主要复核节点位移与杆件轴力。 |
 | truss | `howe-roof-truss` / Howe 型屋架 | `truss-howe-roof` | 对应 | 同为 Howe 型屋架，主要复核反向斜腹杆布置下的节点位移与杆件轴力。 |
 | truss | `cantilever-truss` / 悬臂桁架 | `truss-cantilever-panel` | 对应 | 同为悬挑桁架体系，主要复核自由端节点位移与杆件轴力。 |
+| beam | `fixed-fixed-uniform` / 两端固结均布荷载 | `BM-003` | 相关 | 当前公开验证集尚无两端固结梁系专项；BM-003 同为框架梁退化超静定单跨梁，可临时复核固定端弯矩口径。 |
+| beam | `propped-cantilever-point` / 一端固结一端简支 | `BM-003` | 相近 | 同为固端-滚动支座的一阶超静定梁边界；荷载类型不同，仍需补充梁系专项 benchmark。 |
+| frame | `gable-frame` / 坡屋面门式刚架 | `frame-inclined-member-load` | 相近 | 同为斜构件和屋面坡度相关模型；公开 benchmark 覆盖斜构件局部坐标分布荷载，坡屋面门式刚架仍需补专项算例。 |
+| truss | `parallel-chord-truss` / 平行弦桁架 | `truss-pratt-bridge` | 相近 | 同为桥式平面桁架体系；公开 benchmark 覆盖 Pratt 桥式桁架，平行弦模板仍需补专项算例。 |
 
 ## 使用说明
 

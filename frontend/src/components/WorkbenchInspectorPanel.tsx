@@ -28,7 +28,7 @@ export function WorkbenchInspectorPanel({
   onSelectSection,
 }: WorkbenchInspectorPanelProps) {
   return (
-    <aside className="relative space-y-5 xl:sticky xl:top-24 xl:max-h-[calc(100vh-7rem)]">
+    <aside className="relative space-y-5 xl:sticky xl:top-24 xl:max-h-[calc(100vh-11.5rem)]">
       {collapsed ? (
         <GlassCard className="flex min-h-[22rem] flex-col items-center gap-3 p-2 xl:h-[calc(100vh-7rem)]">
           <Button
@@ -59,7 +59,7 @@ export function WorkbenchInspectorPanel({
           >
             <span className="h-20 w-1 rounded-full bg-slate-300/50 transition-colors group-hover:bg-primary/70 dark:bg-slate-700 dark:group-hover:bg-sky-400" />
           </button>
-          <GlassCard className="inspector-panel flex min-h-0 flex-col gap-4 p-4 sm:p-5 xl:max-h-[calc(100vh-7rem)]">
+          <GlassCard className="inspector-panel flex min-h-0 flex-col gap-4 p-4 sm:p-5 xl:max-h-[calc(100vh-11.5rem)]">
             <ModuleSectionNav
               title={moduleTitleForMode(analysisMode)}
               items={items}
