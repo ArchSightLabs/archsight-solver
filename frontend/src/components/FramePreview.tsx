@@ -115,7 +115,7 @@ function hingeMarker(x: number, y: number, key: string) {
 export function FramePreview({ frame, compact = false }: FramePreviewProps) {
   const [manualDeformationScale, setManualDeformationScale] = useState<number | null>(null);
   const [showLoads, setShowLoads] = useState(true);
-  const [showBaseShape, setShowBaseShape] = useState(true);
+  const [showDisplacement, setShowDisplacement] = useState(true);
   const [showExtremeLabel, setShowExtremeLabel] = useState(false);
   const objectVocabulary = modelObjectVocabulary("frame");
   const memberTerm = modelObjectMemberTerm("frame");
@@ -242,17 +242,18 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
   const maxNodeResult = frame.nodeResults.find((item) => item.nodeId === maxNodeLabel) ?? null;
   const maxNodePoint = maxNodeLabel ? (renderedDeformedMap.get(maxNodeLabel) ?? layout.nodeMap.get(maxNodeLabel) ?? null) : null;
   const maxNodeLabelPlacement = maxNodePoint ? extremeLabelPlacement(maxNodePoint, layout.center, compact) : null;
-  const showOriginalAnchors = showBaseShape || showLoads;
+  const showDisplacementLayer = showDisplacement && hasDeformation;
+  const showExtremeDisplacementLabel = showDisplacementLayer && showExtremeLabel;
 
   return (
     <GlassCard className="overflow-hidden">
       <div className={`flex gap-3 border-b border-white/5 px-4 py-4 sm:px-5 ${compact ? "flex-col items-start" : "flex-wrap items-start justify-between"}`}>
         <div className="min-w-0">
           <h3 className={`${compact ? "text-lg" : "text-xl"} font-black tracking-tight`}>受力变形</h3>
-          {hasDeformation ? (
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-500 dark:text-slate-400">
-              <span>位移显示倍率</span>
-              <span className="font-mono text-sky-600 dark:text-sky-300">{deformationDisplayScale}×</span>
+          {showDisplacementLayer ? (
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+              <span>位移倍率</span>
+              <span className="font-mono text-[11px] font-semibold text-sky-600 dark:text-sky-300">{deformationDisplayScale}×</span>
               <input
                 type="range"
                 name="frame-deformation-display-scale"
@@ -261,13 +262,13 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
                 step={1}
                 value={deformationDisplayScale}
                 onChange={(event) => setManualDeformationScale(Number(event.currentTarget.value))}
-                className="h-2 w-32 accent-sky-500 sm:w-44"
+                className="result-preview-scale-slider w-28 sm:w-36"
                 aria-label="框架节点位移显示放大倍率"
               />
               <button
                 type="button"
                 onClick={() => setManualDeformationScale(null)}
-                className={`h-7 rounded-lg border px-2 text-[11px] font-bold transition-colors ${
+                className={`h-6 rounded-md border px-2 text-[10px] font-semibold transition-colors ${
                   manualDeformationScale === null
                     ? "border-sky-400/45 bg-sky-400/15 text-sky-700 dark:text-sky-200"
                     : "border-slate-200 bg-white text-slate-600 hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:border-sky-400/50 dark:hover:text-sky-200"
@@ -282,8 +283,8 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
           <div className={`flex flex-wrap gap-2 ${compact ? "w-full" : "justify-end"}`}>
             {[
               { key: "loads", label: "荷载", active: showLoads, onClick: () => setShowLoads((value) => !value) },
-              { key: "base", label: "未变形", active: showBaseShape, onClick: () => setShowBaseShape((value) => !value) },
-              { key: "extreme", label: "极值", active: showExtremeLabel, onClick: () => setShowExtremeLabel((value) => !value), disabled: !hasDeformation },
+              { key: "displacement", label: "位移", active: showDisplacement && hasDeformation, onClick: () => setShowDisplacement((value) => !value), disabled: !hasDeformation },
+              { key: "extreme", label: "极值", active: showExtremeLabel, onClick: () => setShowExtremeLabel((value) => !value), disabled: !showDisplacementLayer },
             ].map((item) => (
               <button
                 key={item.key}
@@ -339,7 +340,7 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
             </marker>
           </defs>
 
-          {showBaseShape && dimensionLegendRows.length ? (
+          {dimensionLegendRows.length ? (
             <g fontFamily="Fira Code" fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke">
               {dimensionLegendRows.map((row, index) => (
                 <text key={`frame-preview-dimension-${index}`} x={layout.dimensionLegendX} y={28 + index * 16} fontSize={compact ? "10" : "12"} fontWeight="700">
@@ -349,7 +350,7 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
             </g>
           ) : null}
 
-          {showBaseShape && frame.members.map((member) => {
+          {frame.members.map((member) => {
             const start = layout.nodeMap.get(member.start);
             const end = layout.nodeMap.get(member.end);
             if (!start || !end) return null;
@@ -362,8 +363,8 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
                   x2={end.x}
                   y2={end.y}
                   stroke="var(--structure-preview-guide)"
-                  strokeWidth={hasDeformation ? 2 : STRUCTURE_VISUAL_STROKES.previewMember}
-                  strokeDasharray={hasDeformation ? "8 6" : undefined}
+                  strokeWidth={showDisplacementLayer ? 2 : STRUCTURE_VISUAL_STROKES.previewMember}
+                  strokeDasharray={showDisplacementLayer ? "8 6" : undefined}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
@@ -376,7 +377,7 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
             );
           })}
 
-          {hasDeformation && frame.members.map((member) => {
+          {showDisplacementLayer && frame.members.map((member) => {
             const start = renderedDeformedMap.get(member.start);
             const end = renderedDeformedMap.get(member.end);
             if (!start || !end) return null;
@@ -396,7 +397,7 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
             );
           })}
 
-          {showOriginalAnchors && frame.nodes.map((node) => {
+          {frame.nodes.map((node) => {
             const point = layout.nodeMap.get(node.id);
             if (!point) return null;
             const label = nodeLabelPlacement(point, layout.center.x);
@@ -413,13 +414,13 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
             );
           })}
 
-          {hasDeformation && frame.nodeResults.map((node) => {
+          {showDisplacementLayer && frame.nodeResults.map((node) => {
             const point = renderedDeformedMap.get(node.nodeId);
             if (!point) return null;
             return <circle key={node.nodeId} cx={point.x} cy={point.y} r="3.5" fill="var(--structure-preview-deformed-node)" stroke="var(--structure-preview-deformed-node-stroke)" strokeWidth="1" />;
           })}
 
-          {showExtremeLabel && maxNodeResult && maxNodePoint && maxNodeLabelPlacement ? (
+          {showExtremeDisplacementLabel && maxNodeResult && maxNodePoint && maxNodeLabelPlacement ? (
             <g>
               <circle cx={maxNodePoint.x} cy={maxNodePoint.y} r="5" fill={STRUCTURE_STATE_COLORS.peakDot} stroke={STRUCTURE_STATE_COLORS.peakDotStroke} strokeWidth="2" />
               <line x1={maxNodePoint.x} y1={maxNodePoint.y} x2={maxNodeLabelPlacement.x} y2={maxNodeLabelPlacement.y - 6} stroke={STRUCTURE_STATE_COLORS.peakDot} strokeWidth="1.5" strokeDasharray="4 4" />

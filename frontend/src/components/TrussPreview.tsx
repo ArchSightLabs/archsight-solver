@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { GlassCard } from "./ui/GlassCard";
 import type { SupportType, TrussPreviewData } from "../types/structure";
 import { buildTrussLoadMarkers, buildTrussMemberLengthDimensions, buildTrussMemberLengthLegendRows } from "./truss-preview-utils";
@@ -6,7 +6,8 @@ import { formatEngineeringValue, formatLimitRatio, formatUtilizationPercent } fr
 import { modelObjectMemberTerm, modelObjectVocabulary } from "../lib/model-object-vocabulary";
 import { useCanvasDrag } from "../hooks/useModelCanvasZoom";
 import { RESULT_PREVIEW_BASE_SIZE, resultPreviewCanvasSize, resultPreviewSvgStyle, type ResultPreviewCanvasSize } from "../lib/result-preview-sizing";
-import { STRUCTURE_NODE_RADII, STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
+import { autoTrussDisplacementDisplayScale } from "../lib/truss-result-diagrams";
+import { STRUCTURE_NODE_RADII, STRUCTURE_STATE_COLORS, STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
 
 interface TrussPreviewProps {
   truss: TrussPreviewData | null;
@@ -26,6 +27,18 @@ function nodeLabelPlacement(point: { x: number; y: number }, centerX: number) {
     x: point.x + (isLeft ? -16 : 16),
     y: point.y - 10,
     anchor: isLeft ? ("end" as const) : ("start" as const),
+  };
+}
+
+function extremeLabelPlacement(point: { x: number; y: number }, center: { x: number; y: number }, compact: boolean) {
+  const dx = point.x < center.x ? -1 : 1;
+  const dy = point.y < center.y ? -1 : 1;
+  const gapX = compact ? 22 : 30;
+  const gapY = compact ? 24 : 32;
+  return {
+    x: point.x + dx * gapX,
+    y: point.y + dy * gapY,
+    anchor: dx < 0 ? ("end" as const) : ("start" as const),
   };
 }
 
@@ -73,6 +86,10 @@ function memberLabelPlacement(start: { x: number; y: number }, end: { x: number;
 }
 
 export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
+  const [manualDisplacementScale, setManualDisplacementScale] = useState<number | null>(null);
+  const [showLoads, setShowLoads] = useState(true);
+  const [showDisplacement, setShowDisplacement] = useState(true);
+  const [showExtremeLabel, setShowExtremeLabel] = useState(false);
   const objectVocabulary = modelObjectVocabulary("truss");
   const memberTerm = modelObjectMemberTerm("truss");
   const { canvasScrollRef, isCanvasDragging, handleCanvasPointerDown, handleCanvasPointerMove, finishCanvasDrag, handleCanvasClickCapture } = useCanvasDrag();
@@ -109,27 +126,52 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
       bottom: Math.max(...mappedYs),
     };
     const nodeMap = new Map(truss.nodes.map((node, index) => [node.id, mappedNodes[index]]));
+    const center = {
+      x: (bounds.left + bounds.right) / 2,
+      y: (bounds.top + bounds.bottom) / 2,
+    };
     const dimensionLegendX = clamp(bounds.left - (compact ? 112 : 126), 28, canvasSize.width - 260);
-    return { map, nodeMap, scale, bounds, dimensionLegendX };
+    return { map, nodeMap, scale, bounds, center, dimensionLegendX };
   }, [truss, padding, compact, canvasSize]);
 
-  const deformationDrawScale = truss ? Math.min(truss.deformationScale, 64) : 0;
-  const deformationScaleRatio = truss && truss.deformationScale > 1e-9 ? deformationDrawScale / truss.deformationScale : 0;
+  const maxDisplacementNode = useMemo(() => {
+    return (truss?.nodeResults ?? []).reduce<TrussPreviewData["nodeResults"][number] | null>((current, node) => {
+      if (!current || node.displacementMm > current.displacementMm) return node;
+      return current;
+    }, null);
+  }, [truss]);
+  const hasDisplacement = Boolean(maxDisplacementNode && maxDisplacementNode.displacementMm > 1e-9);
+  const autoDisplacementDisplayScale = useMemo(() => {
+    if (!truss || !layout || !maxDisplacementNode || maxDisplacementNode.displacementMm <= 1e-9) return 0;
+    return autoTrussDisplacementDisplayScale({
+      maxDisplacementMm: maxDisplacementNode.displacementMm,
+      layoutScalePxPerM: layout.scale,
+      modelWidthPx: layout.bounds.right - layout.bounds.left,
+      modelHeightPx: layout.bounds.bottom - layout.bounds.top,
+      compact,
+    });
+  }, [compact, layout, maxDisplacementNode, truss]);
+  const displacementScaleMax = hasDisplacement ? Math.max(10, Math.ceil(Math.min(Math.max(autoDisplacementDisplayScale * 2, autoDisplacementDisplayScale, 10), 100000) / 10) * 10) : 10;
+  const displacementDisplayScale = hasDisplacement
+    ? Math.round(clamp(manualDisplacementScale ?? autoDisplacementDisplayScale, 1, displacementScaleMax))
+    : 0;
+  const showDisplacementLayer = showDisplacement && hasDisplacement;
+  const showExtremeDisplacementLabel = showDisplacementLayer && showExtremeLabel;
   const renderedDeformedMap = useMemo(() => {
     if (!truss || !layout) return new Map<string, { x: number; y: number }>();
-    const originalById = new Map(truss.nodes.map((node) => [node.id, node]));
+    const resultById = new Map(truss.nodeResults.map((node) => [node.nodeId, node]));
     const next = new Map<string, { x: number; y: number }>();
-    for (const node of truss.deformedNodes) {
-      const original = originalById.get(node.id);
+    for (const node of truss.nodes) {
+      const result = resultById.get(node.id);
       const start = layout.nodeMap.get(node.id);
-      if (!original || !start) continue;
+      if (!result || !start) continue;
       next.set(node.id, {
-        x: start.x + ((node.x - original.x) * layout.scale * deformationScaleRatio),
-        y: start.y - ((node.y - original.y) * layout.scale * deformationScaleRatio),
+        x: start.x + (result.uxMm / 1000.0) * displacementDisplayScale * layout.scale,
+        y: start.y - (result.uyMm / 1000.0) * displacementDisplayScale * layout.scale,
       });
     }
     return next;
-  }, [truss, layout, deformationScaleRatio]);
+  }, [truss, layout, displacementDisplayScale]);
 
   const supportTypeById = useMemo(() => {
     const map = new Map<string, SupportType>();
@@ -161,27 +203,83 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
     if (!node) return [];
     return buildTrussLoadMarkers(node, load, index);
   });
+  const maxDisplacementPoint = maxDisplacementNode ? (renderedDeformedMap.get(maxDisplacementNode.nodeId) ?? layout.nodeMap.get(maxDisplacementNode.nodeId) ?? null) : null;
+  const maxDisplacementLabelPlacement = maxDisplacementPoint ? extremeLabelPlacement(maxDisplacementPoint, layout.center, compact) : null;
 
   return (
     <GlassCard className="overflow-hidden">
-      <div className={`flex gap-3 border-b border-white/5 px-4 py-4 sm:px-5 ${compact ? "flex-col items-start" : "flex-wrap items-center justify-between"}`}>
-        <h3 className={`${compact ? "text-lg" : "text-xl"} font-black tracking-tight`}>受力变形</h3>
-        <div className={`flex flex-wrap gap-2 ${compact ? "w-full" : ""}`}>
-          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-            {truss.structureTypeLabel}
-          </span>
-          <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[10px] font-bold text-sky-700 dark:border-sky-400/20 dark:bg-sky-500/10 dark:text-sky-300">
-            节点 {truss.nodes.length}
-          </span>
-          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-600 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300">
-            {memberTerm} {truss.members.length}
-          </span>
-          <span className="rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-[10px] font-bold text-teal-700 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-300">
-            允许位移 {formatEngineeringValue(truss.summary.allowableMm, "mm")}
-          </span>
-          <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${statusToneClass}`}>
-            校核 {truss.summary.status}
-          </span>
+      <div className={`flex gap-3 border-b border-white/5 px-4 py-4 sm:px-5 ${compact ? "flex-col items-start" : "flex-wrap items-start justify-between"}`}>
+        <div className="min-w-0">
+          <h3 className={`${compact ? "text-lg" : "text-xl"} font-black tracking-tight`}>受力变形</h3>
+          {showDisplacementLayer ? (
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+              <span>位移倍率</span>
+              <span className="font-mono text-[11px] font-semibold text-sky-600 dark:text-sky-300">{displacementDisplayScale}×</span>
+              <input
+                type="range"
+                name="truss-preview-displacement-display-scale"
+                min={1}
+                max={displacementScaleMax}
+                step={1}
+                value={displacementDisplayScale}
+                onChange={(event) => setManualDisplacementScale(Number(event.currentTarget.value))}
+                className="result-preview-scale-slider w-28 sm:w-36"
+                aria-label="桁架节点位移显示放大倍率"
+              />
+              <button
+                type="button"
+                onClick={() => setManualDisplacementScale(null)}
+                className={`h-6 rounded-md border px-2 text-[10px] font-semibold transition-colors ${
+                  manualDisplacementScale === null
+                    ? "border-sky-400/45 bg-sky-400/15 text-sky-700 dark:text-sky-200"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:border-sky-400/50 dark:hover:text-sky-200"
+                }`}
+              >
+                自动
+              </button>
+            </div>
+          ) : null}
+        </div>
+        <div className={`flex min-w-0 flex-col gap-2 ${compact ? "w-full" : "items-end"}`}>
+          <div className={`flex flex-wrap gap-2 ${compact ? "w-full" : "justify-end"}`}>
+            {[
+              { key: "loads", label: "荷载", active: showLoads, onClick: () => setShowLoads((value) => !value) },
+              { key: "displacement", label: "位移", active: showDisplacement && hasDisplacement, onClick: () => setShowDisplacement((value) => !value), disabled: !hasDisplacement },
+              { key: "extreme", label: "极值", active: showExtremeLabel, onClick: () => setShowExtremeLabel((value) => !value), disabled: !showDisplacementLayer },
+            ].map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                aria-pressed={item.active}
+                disabled={item.disabled}
+                onClick={item.onClick}
+                className={`h-8 rounded-lg border px-2.5 text-[11px] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
+                  item.active
+                    ? "border-sky-400/55 bg-sky-400/15 text-sky-700 dark:text-sky-200"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:border-sky-400/50 dark:hover:text-sky-200"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <div className={`flex flex-wrap gap-2 ${compact ? "w-full" : "justify-end"}`}>
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+              {truss.structureTypeLabel}
+            </span>
+            <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[10px] font-bold text-sky-700 dark:border-sky-400/20 dark:bg-sky-500/10 dark:text-sky-300">
+              节点 {truss.nodes.length}
+            </span>
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-600 dark:border-cyan-400/20 dark:bg-cyan-500/10 dark:text-cyan-300">
+              {memberTerm} {truss.members.length}
+            </span>
+            <span className="rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-[10px] font-bold text-teal-700 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-300">
+              允许位移 {formatEngineeringValue(truss.summary.allowableMm, "mm")}
+            </span>
+            <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${statusToneClass}`}>
+              校核 {truss.summary.status}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -226,7 +324,17 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
             const label = memberLabelPlacement(start, end, canvasSize);
             return (
               <g key={member.id}>
-                <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="url(#trussBaseGrad)" strokeWidth={STRUCTURE_VISUAL_STROKES.previewTrussMember} strokeLinecap="round" strokeLinejoin="round" />
+                <line
+                  x1={start.x}
+                  y1={start.y}
+                  x2={end.x}
+                  y2={end.y}
+                  stroke="url(#trussBaseGrad)"
+                  strokeWidth={showDisplacementLayer ? 2 : STRUCTURE_VISUAL_STROKES.previewTrussMember}
+                  strokeDasharray={showDisplacementLayer ? "8 6" : undefined}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
                 <text
                   x={label.x}
                   y={label.y}
@@ -247,7 +355,7 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
             );
           })}
 
-          {truss.deformedNodes.length === truss.nodes.length &&
+          {showDisplacementLayer &&
             truss.members.map((member) => {
               const start = renderedDeformedMap.get(member.start);
               const end = renderedDeformedMap.get(member.end);
@@ -260,9 +368,8 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
                   x2={end.x}
                   y2={end.y}
                   stroke="url(#trussDeformedGrad)"
-                  strokeWidth={STRUCTURE_VISUAL_STROKES.previewTrussDeformedMember}
-                  strokeOpacity="0.7"
-                  strokeDasharray="8 6"
+                  strokeWidth={STRUCTURE_VISUAL_STROKES.previewTrussMember}
+                  strokeOpacity="0.9"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
@@ -285,13 +392,47 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
             );
           })}
 
-          {truss.deformedNodes.map((node) => {
+          {showDisplacementLayer && truss.nodes.map((node) => {
             const point = renderedDeformedMap.get(node.id);
             if (!point) return null;
             return <circle key={node.id} cx={point.x} cy={point.y} r="3.5" fill="var(--structure-preview-deformed-node)" stroke="var(--structure-preview-deformed-node-stroke)" strokeWidth="1" />;
           })}
 
-          {loadMarkers.map((load) => (
+          {showExtremeDisplacementLabel && maxDisplacementNode && maxDisplacementPoint && maxDisplacementLabelPlacement ? (
+            <g>
+              <circle cx={maxDisplacementPoint.x} cy={maxDisplacementPoint.y} r="5" fill={STRUCTURE_STATE_COLORS.peakDot} stroke={STRUCTURE_STATE_COLORS.peakDotStroke} strokeWidth="2" />
+              <line x1={maxDisplacementPoint.x} y1={maxDisplacementPoint.y} x2={maxDisplacementLabelPlacement.x} y2={maxDisplacementLabelPlacement.y - 6} stroke={STRUCTURE_STATE_COLORS.peakDot} strokeWidth="1.5" strokeDasharray="4 4" />
+              <text
+                x={maxDisplacementLabelPlacement.x}
+                y={maxDisplacementLabelPlacement.y - 8}
+                fill={STRUCTURE_STATE_COLORS.peakLabel}
+                stroke="var(--structure-preview-text-halo)"
+                strokeWidth="5"
+                paintOrder="stroke"
+                textAnchor={maxDisplacementLabelPlacement.anchor}
+                fontSize={compact ? "11" : "13"}
+                fontFamily="Fira Code"
+                fontWeight="700"
+              >
+                {formatEngineeringValue(maxDisplacementNode.displacementMm, "mm")}
+              </text>
+              <text
+                x={maxDisplacementLabelPlacement.x}
+                y={maxDisplacementLabelPlacement.y + 8}
+                fill="var(--structure-preview-label)"
+                stroke="var(--structure-preview-text-halo)"
+                strokeWidth="4"
+                paintOrder="stroke"
+                textAnchor={maxDisplacementLabelPlacement.anchor}
+                fontSize={compact ? "9" : "11"}
+                fontFamily="Fira Code"
+              >
+                节点 {maxDisplacementNode.nodeId} / {displacementDisplayScale}×
+              </text>
+            </g>
+          ) : null}
+
+          {showLoads && loadMarkers.map((load) => (
             <g key={load.key}>
               <line x1={load.x1} y1={load.y1} x2={load.x2} y2={load.y2} stroke="var(--structure-preview-load)" strokeWidth="2" markerEnd="url(#trussLoadArrow)" />
               <text

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { GlassCard } from "./ui/GlassCard";
 import type { BeamLoadMarker, BeamPreviewData, BeamSupport } from "../types/beam";
 import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments, formatBeamDimensionLength } from "../lib/beam-span-dimensions";
@@ -46,7 +46,7 @@ const BEAM_Y = 150;
 const BEAM_LEFT = 80;
 const BEAM_RIGHT = 920;
 const BEAM_LEN = BEAM_RIGHT - BEAM_LEFT;
-const PEAK_LABEL_Y = 46;
+const PEAK_LABEL_Y = SVG_H - 54;
 const SPAN_MEMBER_LABEL_Y = BEAM_Y + 22;
 const NODE_BADGE_OFFSET_X = 10;
 const NODE_BADGE_OFFSET_Y = -18;
@@ -55,6 +55,9 @@ const DISTRIBUTED_LOAD_ARROW_STROKE_WIDTH = 1.15;
 const POINT_LOAD_ARROW_STROKE_WIDTH = 1.9;
 const DISTRIBUTED_LOAD_ARROW_MARKER_SIZE = 4.4;
 const POINT_LOAD_ARROW_MARKER_SIZE = 6.5;
+const BEAM_PREVIEW_AUTO_DEFLECTION_TARGET_PX = 80;
+const BEAM_PREVIEW_AUTO_DEFLECTION_TARGET_COMPACT_PX = 64;
+const BEAM_PREVIEW_MANUAL_DEFLECTION_SCALE_CAP = 100000;
 const svgTextFont = "Inter, Microsoft YaHei, system-ui, sans-serif";
 
 function clamp(value: number, min: number, max: number) {
@@ -68,15 +71,35 @@ function distributedArrowXs(startX: number, endX: number) {
 }
 
 export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
+  const [manualDeflectionScale, setManualDeflectionScale] = useState<number | null>(null);
+  const [showLoads, setShowLoads] = useState(true);
+  const [showDisplacement, setShowDisplacement] = useState(true);
+  const [showExtremeLabel, setShowExtremeLabel] = useState(false);
   const totalLength = beam?.totalLength || 1;
+  const layoutScalePxPerM = BEAM_LEN / totalLength;
 
   const { canvasScrollRef, isCanvasDragging, handleCanvasPointerDown, handleCanvasPointerMove, finishCanvasDrag, handleCanvasClickCapture } = useCanvasDrag();
   const mapX = useCallback((x: number) => BEAM_LEFT + (x / totalLength) * BEAM_LEN, [totalLength]);
-  const maxDeflMm = useMemo(() => {
+  const maxAbsDeflectionMm = useMemo(() => {
     const vals = (beam?.curve || []).map((p) => Math.abs(p.vMm));
-    return Math.max(1, ...vals);
+    return Math.max(0, ...vals);
   }, [beam?.curve]);
-  const mapY = useCallback((vMm: number) => BEAM_Y - (vMm / maxDeflMm) * 80, [maxDeflMm]);
+  const hasDeflection = Boolean(beam?.curve.length) && maxAbsDeflectionMm > 1e-9;
+  const autoDeflectionDisplayScale = hasDeflection
+    ? Math.max(1, Math.round(Math.min(
+        (compact ? BEAM_PREVIEW_AUTO_DEFLECTION_TARGET_COMPACT_PX : BEAM_PREVIEW_AUTO_DEFLECTION_TARGET_PX) / ((maxAbsDeflectionMm / 1000.0) * layoutScalePxPerM),
+        BEAM_PREVIEW_MANUAL_DEFLECTION_SCALE_CAP,
+      )))
+    : 0;
+  const deflectionDisplayScaleMax = hasDeflection
+    ? Math.max(10, Math.ceil(Math.min(Math.max(autoDeflectionDisplayScale * 2, autoDeflectionDisplayScale, 10), BEAM_PREVIEW_MANUAL_DEFLECTION_SCALE_CAP) / 10) * 10)
+    : 10;
+  const deflectionDisplayScale = hasDeflection
+    ? clamp(manualDeflectionScale ?? autoDeflectionDisplayScale, 1, deflectionDisplayScaleMax)
+    : 0;
+  const showDisplacementLayer = showDisplacement && hasDeflection;
+  const showExtremeDeflectionLabel = showDisplacementLayer && showExtremeLabel;
+  const mapY = useCallback((vMm: number) => BEAM_Y - (vMm / 1000.0) * deflectionDisplayScale * layoutScalePxPerM, [deflectionDisplayScale, layoutScalePxPerM]);
 
   const curvePoints = useMemo(() => {
     return (beam?.curve || [])
@@ -208,17 +231,69 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
 
   return (
     <GlassCard className="overflow-hidden">
-      <div className={`flex gap-3 border-b border-slate-200/70 px-4 py-4 sm:px-5 dark:border-white/5 ${compact ? "flex-col items-start" : "flex-wrap items-center justify-between"}`}>
+      <div className={`flex gap-3 border-b border-slate-200/70 px-4 py-4 sm:px-5 dark:border-white/5 ${compact ? "flex-col items-start" : "flex-wrap items-start justify-between"}`}>
         <div className="min-w-0">
           <h3 className={`${compact ? "text-lg" : "text-xl"} font-black tracking-tight`}>受力变形</h3>
+          {showDisplacementLayer ? (
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+              <span>位移倍率</span>
+              <span className="font-mono text-[11px] font-semibold text-sky-600 dark:text-sky-300">{deflectionDisplayScale}×</span>
+              <input
+                type="range"
+                name="beam-deflection-display-scale"
+                min={1}
+                max={deflectionDisplayScaleMax}
+                step={1}
+                value={deflectionDisplayScale}
+                onChange={(event) => setManualDeflectionScale(Number(event.currentTarget.value))}
+                className="result-preview-scale-slider w-28 sm:w-36"
+                aria-label="梁系挠度显示放大倍率"
+              />
+              <button
+                type="button"
+                onClick={() => setManualDeflectionScale(null)}
+                className={`h-6 rounded-md border px-2 text-[10px] font-semibold transition-colors ${
+                  manualDeflectionScale === null
+                    ? "border-sky-400/45 bg-sky-400/15 text-sky-700 dark:text-sky-200"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:border-sky-400/50 dark:hover:text-sky-200"
+                }`}
+              >
+                自动
+              </button>
+            </div>
+          ) : null}
         </div>
-        <div className={`flex flex-wrap gap-2 ${compact ? "w-full" : ""}`}>
-          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-            {beam.beamTypeLabel}
-          </span>
-          <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[10px] font-bold text-sky-700 dark:border-sky-400/20 dark:bg-sky-500/10 dark:text-sky-300">
-            {beam.loadTypeLabel}
-          </span>
+        <div className={`flex min-w-0 flex-col gap-2 ${compact ? "w-full" : "items-end"}`}>
+          <div className={`flex flex-wrap gap-2 ${compact ? "w-full" : "justify-end"}`}>
+            {[
+              { key: "loads", label: "荷载", active: showLoads, onClick: () => setShowLoads((value) => !value) },
+              { key: "displacement", label: "位移", active: showDisplacement && hasDeflection, onClick: () => setShowDisplacement((value) => !value), disabled: !hasDeflection },
+              { key: "extreme", label: "极值", active: showExtremeLabel, onClick: () => setShowExtremeLabel((value) => !value), disabled: !showDisplacementLayer },
+            ].map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                aria-pressed={item.active}
+                disabled={item.disabled}
+                onClick={item.onClick}
+                className={`h-8 rounded-lg border px-2.5 text-[11px] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
+                  item.active
+                    ? "border-sky-400/55 bg-sky-400/15 text-sky-700 dark:text-sky-200"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:border-sky-400/50 dark:hover:text-sky-200"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <div className={`flex flex-wrap gap-2 ${compact ? "w-full" : "justify-end"}`}>
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+              {beam.beamTypeLabel}
+            </span>
+            <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[10px] font-bold text-sky-700 dark:border-sky-400/20 dark:bg-sky-500/10 dark:text-sky-300">
+              {beam.loadTypeLabel}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -335,7 +410,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
           })}
 
           {/* 分布荷载 */}
-          {distributedLoadBands.map((band) => (
+          {showLoads && distributedLoadBands.map((band) => (
             <g key={band.key}>
               <line x1={band.startX} y1={band.guideY} x2={band.endX} y2={band.guideY} stroke="var(--structure-preview-load)" strokeWidth={DISTRIBUTED_LOAD_GUIDE_STROKE_WIDTH} opacity="0.86" />
               {band.arrowXs.map((x, index) => (
@@ -358,7 +433,7 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
           ))}
 
           {/* 集中荷载箭头 */}
-          {loadArrows.map((load, i) => (
+          {showLoads && loadArrows.map((load, i) => (
             <g key={i}>
               <line x1={load.svgX} y1={load.y1} x2={load.svgX} y2={load.y2}
                 stroke="var(--structure-preview-load)" strokeWidth={POINT_LOAD_ARROW_STROKE_WIDTH} markerEnd="url(#beamPreviewPointLoadArrow)" />
@@ -372,20 +447,20 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
           ))}
 
           {/* 变形曲线 */}
-          {curvePoints && (
+          {showDisplacementLayer && curvePoints && (
             <polyline points={curvePoints}
               fill="none" stroke="var(--structure-preview-deformed-start)" strokeWidth="2.5"
               strokeLinecap="round" strokeLinejoin="round" />
           )}
 
           {/* 最大挠度标注点 */}
-          {beam.maxDeflection && peakPoint && peakLabel && (
+          {showExtremeDeflectionLabel && beam.maxDeflection && peakPoint && peakLabel && (
             <g>
               <line
                 x1={peakPoint.x}
                 y1={peakPoint.y}
                 x2={peakLabel.x}
-                y2={peakLabel.y + 22}
+                y2={peakLabel.y - 8}
                 stroke="var(--structure-preview-peak-label)"
                 strokeOpacity="0.55"
                 strokeWidth="1"
