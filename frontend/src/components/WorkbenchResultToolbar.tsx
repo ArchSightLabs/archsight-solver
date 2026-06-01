@@ -3,15 +3,11 @@ import { ChevronDown, FileText, Play, RotateCw, Settings2, Table2 } from "lucide
 import { Button } from "./ui/button";
 import type { ExportFormat } from "../hooks/useWorkbenchActions";
 import {
-  REPORT_FIGURE_SCOPE_OPTIONS,
   REPORT_TEMPLATE_OPTIONS,
-  reportFigureModeHintForMode,
   reportFigureModeOptionsForMode,
   reportFigureModeValueForMode,
-  reportFigureScopeHintForMode,
   type ReportExportOptions,
   type ReportFigureMode,
-  type ReportFigureScope,
   type ReportTemplate,
 } from "../lib/report-options";
 import type { AnalysisMode } from "../types/structure";
@@ -49,9 +45,7 @@ export function WorkbenchResultToolbar({
   const isExportingAny = exportingFormat !== null;
   const exportLabel = exportToolbarLabel(exportingFormat);
   const figureModeOptions = reportFigureModeOptionsForMode(analysisMode);
-  const figureModeHint = reportFigureModeHintForMode(analysisMode);
   const figureModeValue = reportFigureModeValueForMode(analysisMode, reportExportOptions.figureMode);
-  const figureScopeHint = reportFigureScopeHintForMode(analysisMode, reportExportOptions.figureScope);
 
   const updateReportExportOption = <K extends keyof ReportExportOptions>(key: K, value: ReportExportOptions[K]) => {
     onReportExportOptionsChange({ ...reportExportOptions, [key]: value });
@@ -187,20 +181,10 @@ export function WorkbenchResultToolbar({
                   <ReportOptionSelect
                     id="report-figure-mode"
                     name="reportFigureMode"
-                    label="图形模式"
-                    hint={figureModeHint}
+                    label="数据曲线"
                     value={figureModeValue}
                     options={figureModeOptions}
                     onChange={(value) => updateReportExportOption("figureMode", value as ReportFigureMode)}
-                  />
-                  <ReportOptionSelect
-                    id="report-figure-scope"
-                    name="reportFigureScope"
-                    label="插图范围"
-                    hint={figureScopeHint}
-                    value={reportExportOptions.figureScope}
-                    options={REPORT_FIGURE_SCOPE_OPTIONS}
-                    onChange={(value) => updateReportExportOption("figureScope", value as ReportFigureScope)}
                   />
                 </div>
               ) : null}
