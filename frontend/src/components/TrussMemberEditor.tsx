@@ -102,7 +102,11 @@ export function TrussMemberEditor({
           materialLibrary={materialLibrary}
           youngModulusGPa={member.E_GPa}
           onYoungModulusChange={(E_GPa) => onUpdate({ E_GPa })}
-          onMaterialChange={(materialId, E_GPa) => onUpdate({ materialId, E_GPa })}
+          onMaterialChange={(materialId, E_GPa, sectionDefaults) => onUpdate({
+            materialId,
+            E_GPa,
+            ...(Number.isFinite(sectionDefaults.sectionAreaCm2) && Number(sectionDefaults.sectionAreaCm2) > 0 ? { A_cm2: Number(sectionDefaults.sectionAreaCm2) } : {}),
+          })}
           fieldLabelClass={fieldLabelClass}
           memberLabel={memberTerm}
           mode="truss"

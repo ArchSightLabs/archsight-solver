@@ -1,3 +1,5 @@
+import { formatDimensionLegendGroup } from "./dimension-legend-rows.ts";
+
 export interface BeamSpanDimension {
   index: number;
   memberId: string;
@@ -32,7 +34,7 @@ export function beamSpanDimensionLabel(index: number, _length: number, widthPx: 
   return null;
 }
 
-export function buildBeamSpanDimensionLegendRows(dimensions: BeamSpanDimension[], _maxWidthPx: number, _fontSize = 12) {
+export function buildBeamSpanDimensionLegendRows(dimensions: BeamSpanDimension[], maxWidthPx: number, fontSize = 12) {
   const groups = dimensions.reduce<Array<{ memberIds: string[]; lengthLabel: string }>>((items, dimension) => {
     const current = items.find((item) => item.lengthLabel === dimension.lengthLabel);
     if (current) {
@@ -42,7 +44,7 @@ export function buildBeamSpanDimensionLegendRows(dimensions: BeamSpanDimension[]
     return [...items, { memberIds: [dimension.memberId], lengthLabel: dimension.lengthLabel }];
   }, []);
 
-  return groups.map((group) => `${group.memberIds.join("=")}=${group.lengthLabel}`);
+  return groups.map((group) => formatDimensionLegendGroup({ itemIds: group.memberIds, valueLabel: group.lengthLabel }, maxWidthPx, fontSize, "跨"));
 }
 
 export function buildBeamSpanDimensionSegments(

@@ -5,6 +5,7 @@ export interface MaterialDropdownOption {
   label: string;
   selectedLabel?: string;
   description?: string;
+  badge?: string;
 }
 
 interface MaterialDropdownOptionsConfig {
@@ -27,11 +28,15 @@ function normalizeProjectCustomMaterial(rawMaterial: unknown): Material | null {
   const candidate = rawMaterial && typeof rawMaterial === "object" ? rawMaterial as Partial<Material> & {
     youngModulusGPa?: unknown;
     densityKgPerM3?: unknown;
+    A_cm2?: unknown;
+    I_cm4?: unknown;
   } : {};
   const id = normalizedMaterialId(candidate.id);
   const name = String(candidate.name ?? "").trim();
   const youngModulus = Number(candidate.youngModulus ?? candidate.youngModulusGPa);
   const density = Number(candidate.density ?? candidate.densityKgPerM3);
+  const sectionAreaCm2 = Number(candidate.sectionAreaCm2 ?? candidate.A_cm2);
+  const momentOfInertiaCm4 = Number(candidate.momentOfInertiaCm4 ?? candidate.I_cm4);
   if (
     !id ||
     id === "custom" ||
@@ -49,6 +54,8 @@ function normalizeProjectCustomMaterial(rawMaterial: unknown): Material | null {
     name,
     youngModulus,
     density,
+    ...(Number.isFinite(sectionAreaCm2) && sectionAreaCm2 > 0 ? { sectionAreaCm2 } : {}),
+    ...(Number.isFinite(momentOfInertiaCm4) && momentOfInertiaCm4 > 0 ? { momentOfInertiaCm4 } : {}),
     category: "custom",
     note: String(candidate.note ?? "").trim() || undefined,
   };
@@ -84,8 +91,21 @@ function materialDisplayName(material: Material): string {
   return name.toUpperCase().startsWith(code) ? name : `${code} ${name}`;
 }
 
+function projectCustomMaterialDisplayName(material: Material): string {
+  const code = material.id.toUpperCase();
+  const name = material.name.trim();
+  const normalizedName = name.toUpperCase();
+  if (normalizedName === code) return code;
+  const nameWithoutCode = normalizedName.startsWith(code) ? name.slice(code.length).trim() : name;
+  return nameWithoutCode ? `${code} ${nameWithoutCode}` : code;
+}
+
 function isCustomMaterial(material: Material): boolean {
   return material.id === "custom";
+}
+
+function isProjectCustomMaterial(material: Material): boolean {
+  return material.category === "custom" && !isCustomMaterial(material) && !isSystemMaterialId(material.id);
 }
 
 export function selectableMaterialPresets(materials: Material[] = PREDEFINED_MATERIALS): Material[] {
@@ -96,20 +116,28 @@ export function materialOptionLabel(material: Material): string {
   if (material.id === "custom") {
     return "手动 E（不回填预设）";
   }
-  return `${materialDisplayName(material)} · E=${material.youngModulus} GPa · ρ=${material.density} kg/m³`;
+  const displayName = isProjectCustomMaterial(material) ? projectCustomMaterialDisplayName(material) : materialDisplayName(material);
+  return `${displayName} · ${materialOptionDescription(material)}`;
 }
 
 export function materialOptionSelectedLabel(material: Material): string {
-  return material.id === "custom" ? "自定义" : material.id.toUpperCase();
+  if (material.id === "custom") return "自定义";
+  return isProjectCustomMaterial(material) ? `${material.id.toUpperCase()} 自定义` : material.id.toUpperCase();
 }
 
 export function materialOptionMenuLabel(material: Material): string {
-  return material.id === "custom" ? "手动 E" : materialDisplayName(material);
+  if (material.id === "custom") return "手动 E";
+  return isProjectCustomMaterial(material) ? projectCustomMaterialDisplayName(material) : materialDisplayName(material);
 }
 
 export function materialOptionDescription(material: Material): string {
   if (material.id === "custom") return "手动输入 E；不回填预设";
-  return `E=${material.youngModulus} GPa · ρ=${material.density} kg/m³`;
+  const scopeLabel = isProjectCustomMaterial(material) ? "自定义 · " : "";
+  const sectionSummary = [
+    Number.isFinite(material.sectionAreaCm2) ? `A=${material.sectionAreaCm2} cm²` : null,
+    Number.isFinite(material.momentOfInertiaCm4) ? `I=${material.momentOfInertiaCm4} cm⁴` : null,
+  ].filter(Boolean).join(" · ");
+  return `${scopeLabel}E=${material.youngModulus} GPa${sectionSummary ? ` · ${sectionSummary}` : ""} · ρ=${material.density} kg/m³`;
 }
 
 export function materialEngineeringNote(materialId: string | undefined, materials: Material[] = PREDEFINED_MATERIALS): string {
@@ -117,7 +145,11 @@ export function materialEngineeringNote(materialId: string | undefined, material
   if (!material) {
     return "材料参数用于线弹性刚度计算；强度、稳定、连接和规范设计仍需单独复核。";
   }
-  const base = `${material.name}：E=${material.youngModulus} GPa，ρ=${material.density} kg/m³。`;
+  const sectionSummary = [
+    Number.isFinite(material.sectionAreaCm2) ? `A=${material.sectionAreaCm2} cm²` : null,
+    Number.isFinite(material.momentOfInertiaCm4) ? `I=${material.momentOfInertiaCm4} cm⁴` : null,
+  ].filter(Boolean).join("，");
+  const base = `${material.name}：E=${material.youngModulus} GPa${sectionSummary ? `，${sectionSummary}` : ""}，密度=${material.density} kg/m³。`;
   return `${base}${material.note ?? "材料参数用于线弹性刚度计算；强度、稳定、连接和规范设计仍需单独复核。"}`;
 }
 
@@ -144,6 +176,7 @@ export function materialDropdownOptions(
     label: materialOptionMenuLabel(material),
     selectedLabel: materialOptionSelectedLabel(material),
     ...(config.includeDescriptions ? { description: materialOptionDescription(material) } : {}),
+    ...(isProjectCustomMaterial(material) ? { badge: "自定义" } : {}),
   }));
 }
 
@@ -161,6 +194,14 @@ export function materialLabelForId(materialId: string | undefined, materials: Ma
   const normalizedId = String(materialId ?? "").trim().toLowerCase();
   if (!normalizedId || normalizedId === "custom") return "自定义";
   return materials.some((material) => material.id === normalizedId) ? normalizedId.toUpperCase() : normalizedId;
+}
+
+export function materialIdentityLabelForId(materialId: string | undefined, materials: Material[] = PREDEFINED_MATERIALS): string {
+  const normalizedId = String(materialId ?? "").trim().toLowerCase();
+  if (!normalizedId || normalizedId === "custom") return "手动 E";
+  const material = materials.find((item) => item.id === normalizedId);
+  if (!material) return normalizedId.toUpperCase();
+  return isProjectCustomMaterial(material) ? projectCustomMaterialDisplayName(material) : materialDisplayName(material);
 }
 
 export function materialIdForMember(
@@ -193,6 +234,18 @@ export function materialElasticityLabelForMember(
 export function youngModulusForMaterial(materialId: string, fallback: number, materials: Material[] = PREDEFINED_MATERIALS): number {
   if (materialId === "custom") return fallback;
   return materials.find((material) => material.id === materialId)?.youngModulus ?? fallback;
+}
+
+export function sectionAreaForMaterial(materialId: string, fallback: number, materials: Material[] = PREDEFINED_MATERIALS): number {
+  if (materialId === "custom") return fallback;
+  const sectionAreaCm2 = materials.find((material) => material.id === materialId)?.sectionAreaCm2;
+  return Number.isFinite(sectionAreaCm2) && Number(sectionAreaCm2) > 0 ? Number(sectionAreaCm2) : fallback;
+}
+
+export function momentOfInertiaForMaterial(materialId: string, fallback: number, materials: Material[] = PREDEFINED_MATERIALS): number {
+  if (materialId === "custom") return fallback;
+  const momentOfInertiaCm4 = materials.find((material) => material.id === materialId)?.momentOfInertiaCm4;
+  return Number.isFinite(momentOfInertiaCm4) && Number(momentOfInertiaCm4) > 0 ? Number(momentOfInertiaCm4) : fallback;
 }
 
 export function memberElasticityDistributionLabel(

@@ -1,3 +1,4 @@
+import { formatDimensionLegendGroup } from "../lib/dimension-legend-rows.ts";
 import type { FrameLoad, FrameLoadDirection } from "../types/structure";
 
 export interface FramePreviewPoint {
@@ -92,14 +93,7 @@ export function frameMemberDimensionValueLabel(start: Pick<FramePreviewPoint, "x
   return formatFrameDimensionLength(length);
 }
 
-function formatFrameDimensionMemberIds(memberIds: string[]) {
-  if (memberIds.length <= 6) {
-    return memberIds.join("=");
-  }
-  return `${memberIds[0]}等${memberIds.length}根`;
-}
-
-export function buildFrameDimensionLegendRows(dimensions: FrameGeometryDimension[], _maxWidthPx: number, _fontSize = 12) {
+export function buildFrameDimensionLegendRows(dimensions: FrameGeometryDimension[], maxWidthPx: number, fontSize = 12) {
   const groupedDimensions = Array.from(
     dimensions.reduce((groups, dimension) => {
       const group = groups.get(dimension.valueLabel) ?? { memberIds: [] as string[], valueLabel: dimension.valueLabel };
@@ -110,7 +104,7 @@ export function buildFrameDimensionLegendRows(dimensions: FrameGeometryDimension
       .values(),
   );
 
-  return groupedDimensions.map((dimension) => `${formatFrameDimensionMemberIds(dimension.memberIds)}=${dimension.valueLabel}`);
+  return groupedDimensions.map((dimension) => formatDimensionLegendGroup({ itemIds: dimension.memberIds, valueLabel: dimension.valueLabel }, maxWidthPx, fontSize, "根"));
 }
 
 function memberLoadDirection(

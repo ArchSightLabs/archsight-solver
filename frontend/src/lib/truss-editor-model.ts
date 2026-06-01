@@ -2,6 +2,10 @@ import type { TrussLoad, TrussMember, TrussNode } from "../types/structure.ts";
 import { materialIdForYoungModulus } from "./material-presets.ts";
 import { modelObjectLoadLabel } from "./model-object-vocabulary.ts";
 
+interface TrussMemberSectionDefaults {
+  sectionAreaCm2?: number;
+}
+
 export const TRUSS_MEMBER_KIND_OPTIONS = [
   { value: "upper_chord", label: "上弦杆" },
   { value: "lower_chord", label: "下弦杆" },
@@ -45,7 +49,7 @@ export function createTrussNodeDraft(index: number, existingIds: string[]): Trus
   };
 }
 
-export function createTrussMemberDraft(index: number, nodes: TrussNode[], existingIds: string[], defaultYoungModulusGPa = 210, defaultMaterialId = materialIdForYoungModulus(defaultYoungModulusGPa)): TrussMember {
+export function createTrussMemberDraft(index: number, nodes: TrussNode[], existingIds: string[], defaultYoungModulusGPa = 210, defaultMaterialId = materialIdForYoungModulus(defaultYoungModulusGPa), sectionDefaults: TrussMemberSectionDefaults = {}): TrussMember {
   const start = nodes[index]?.id ?? nodes[0]?.id ?? "N1";
   const end = nodes[index + 1]?.id ?? nodes[nodes.length - 1]?.id ?? start;
   return {
@@ -55,7 +59,7 @@ export function createTrussMemberDraft(index: number, nodes: TrussNode[], existi
     elementType: "truss",
     materialId: defaultMaterialId,
     E_GPa: defaultYoungModulusGPa,
-    A_cm2: 24,
+    A_cm2: Number.isFinite(sectionDefaults.sectionAreaCm2) && Number(sectionDefaults.sectionAreaCm2) > 0 ? Number(sectionDefaults.sectionAreaCm2) : 24,
     kind: "generic",
   };
 }
@@ -87,6 +91,7 @@ export function createConnectedTrussMember(
   existingIds: string[],
   defaultYoungModulusGPa = 210,
   defaultMaterialId = materialIdForYoungModulus(defaultYoungModulusGPa),
+  sectionDefaults: TrussMemberSectionDefaults = {},
 ): TrussMember {
   const kind = memberKindBetween(start, end);
   const template = templateForKind(members, kind);
@@ -98,6 +103,7 @@ export function createConnectedTrussMember(
     ...template,
     materialId: defaultMaterialId,
     E_GPa: defaultYoungModulusGPa,
+    A_cm2: Number.isFinite(sectionDefaults.sectionAreaCm2) && Number(sectionDefaults.sectionAreaCm2) > 0 ? Number(sectionDefaults.sectionAreaCm2) : template.A_cm2,
     kind,
   };
 }
@@ -109,6 +115,7 @@ export function createConnectedTrussMemberByNodeId(
   members: TrussMember[],
   defaultYoungModulusGPa = 210,
   defaultMaterialId = materialIdForYoungModulus(defaultYoungModulusGPa),
+  sectionDefaults: TrussMemberSectionDefaults = {},
 ): TrussMember | undefined {
   if (!startNodeId || !endNodeId || startNodeId === endNodeId || trussMemberExists(members, startNodeId, endNodeId)) {
     return undefined;
@@ -125,6 +132,7 @@ export function createConnectedTrussMemberByNodeId(
     members.map((member) => member.id),
     defaultYoungModulusGPa,
     defaultMaterialId,
+    sectionDefaults,
   );
 }
 

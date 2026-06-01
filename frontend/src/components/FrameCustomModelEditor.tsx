@@ -39,7 +39,7 @@ import {
 } from "../lib/frame-model-edits.ts";
 import { FRAME_MODEL_TEMPLATES, cloneFrameModelTemplate } from "../lib/workbench-model-templates.ts";
 import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
-import { memberElasticityDistributionLabel, youngModulusForMaterial } from "../lib/material-presets.ts";
+import { memberElasticityDistributionLabel, momentOfInertiaForMaterial, sectionAreaForMaterial, youngModulusForMaterial } from "../lib/material-presets.ts";
 import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import { frameSupportStabilityWarning } from "../solver-payload.ts";
 import type { Material } from "../types/material.ts";
@@ -135,6 +135,8 @@ export function FrameCustomModelEditor({
     [materialId, materialLibrary, memberTerm, value.members],
   );
   const defaultMemberElasticityGPa = youngModulusForMaterial(materialId, 210, materialLibrary);
+  const defaultMemberSectionAreaCm2 = sectionAreaForMaterial(materialId, 120, materialLibrary);
+  const defaultMemberMomentOfInertiaCm4 = momentOfInertiaForMaterial(materialId, 8000, materialLibrary);
   const modelWarnings = useMemo(() => {
     const warnings: string[] = [];
     const nodeIds = new Set(value.nodes.map((node) => node.id));
@@ -210,20 +212,27 @@ export function FrameCustomModelEditor({
   };
 
   const addNode = () => {
-    const nextNode = inferFrameNodeDraft(value.nodes, value.nodes.map((node) => node.id));
+    const preferredConnectionNode = resolvedSelectedObject.type === "node"
+      ? value.nodes.find((node) => node.id === resolvedSelectedObject.id) ?? null
+      : null;
+    const nextNode = inferFrameNodeDraft(value.nodes, value.nodes.map((node) => node.id), preferredConnectionNode?.id);
     const nextNodes = [...value.nodes, nextNode];
     const nearest = value.nodes.reduce<StructureNode | null>((candidate, node) => {
       if (!candidate) return node;
       return distanceBetweenFrameNodes(node, nextNode) < distanceBetweenFrameNodes(candidate, nextNode) ? node : candidate;
     }, null);
-    const nextMembers = nearest && !frameMemberExists(value.members, nearest.id, nextNode.id)
-      ? [...value.members, createConnectedFrameMember(nearest, nextNode, value.members, value.members.map((member) => member.id), defaultMemberElasticityGPa, materialId)]
+    const connectionNode = preferredConnectionNode ?? nearest;
+    const nextMembers = connectionNode && !frameMemberExists(value.members, connectionNode.id, nextNode.id)
+      ? [...value.members, createConnectedFrameMember(connectionNode, nextNode, value.members, value.members.map((member) => member.id), defaultMemberElasticityGPa, materialId, {
+        sectionAreaCm2: defaultMemberSectionAreaCm2,
+        momentOfInertiaCm4: defaultMemberMomentOfInertiaCm4,
+      })]
       : value.members;
     commit(keep({ nodes: nextNodes, members: nextMembers }));
     memberConnection.selectAvailablePairForNode({
       nodeIds: nextNodes.map((node) => node.id),
       nodeId: nextNode.id,
-      preferredNeighborId: nearest?.id,
+      preferredNeighborId: connectionNode?.id,
       duplicateExists: (nextStartId, nextEndId) => frameMemberExists(nextMembers, nextStartId, nextEndId),
     });
     selectObject({ type: "node", id: nextNode.id }, { openEditor: false });
@@ -235,7 +244,10 @@ export function FrameCustomModelEditor({
   };
 
   const addMemberBetweenNodes = (startId: string, endId: string) => {
-    const nextMember = createConnectedFrameMemberByNodeId(startId, endId, value.nodes, value.members, defaultMemberElasticityGPa, materialId);
+    const nextMember = createConnectedFrameMemberByNodeId(startId, endId, value.nodes, value.members, defaultMemberElasticityGPa, materialId, {
+      sectionAreaCm2: defaultMemberSectionAreaCm2,
+      momentOfInertiaCm4: defaultMemberMomentOfInertiaCm4,
+    });
     if (!nextMember) {
       return;
     }
@@ -496,6 +508,7 @@ export function FrameCustomModelEditor({
       <FrameTableSection
         nodes={value.nodes}
         members={value.members}
+        materialLibrary={materialLibrary}
         loads={value.loads}
         loadCases={value.loadCases}
         loadCombinations={value.loadCombinations}

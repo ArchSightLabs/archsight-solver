@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { createConnectedFrameMember, createConnectedFrameMemberByNodeId, frameMemberExists } from "./frame-editor-model.ts";
+import { createConnectedFrameMember, createConnectedFrameMemberByNodeId, frameMemberExists, inferFrameNodeDraft } from "./frame-editor-model.ts";
 import { createConnectedTrussMember, createConnectedTrussMemberByNodeId, trussMemberExists } from "./truss-editor-model.ts";
 import type { StructureMember, StructureNode, TrussMember, TrussNode } from "../types/structure.ts";
 
@@ -48,6 +48,47 @@ test("框架表格入口按显式起终节点新增构件，避免按数组下�
   assert.equal(brace?.end, "N4");
   assert.equal(brace?.kind, "brace");
   assert.notEqual(brace?.start, brace?.end);
+});
+
+test("框架从选中端节点新增节点时优先补同轴竖向构件", () => {
+  const nodes: StructureNode[] = [
+    { id: "N1", x: 0, y: 0, supportType: "fixed" },
+    { id: "N2", x: 6, y: 0, supportType: "fixed" },
+    { id: "N3", x: 0, y: 4, supportType: "free" },
+    { id: "N4", x: 6, y: 4, supportType: "free" },
+    { id: "N5", x: 9, y: 4, supportType: "free" },
+  ];
+  const members: StructureMember[] = [
+    { id: "C1", start: "N1", end: "N3", elementType: "frame", E_GPa: 210, A_cm2: 240, I_cm4: 12000, kind: "column" },
+    { id: "B1", start: "N3", end: "N4", elementType: "frame", E_GPa: 210, A_cm2: 220, I_cm4: 15000, kind: "beam" },
+    { id: "C2", start: "N2", end: "N4", elementType: "frame", E_GPa: 210, A_cm2: 240, I_cm4: 12000, kind: "column" },
+    { id: "B2", start: "N4", end: "N5", elementType: "frame", E_GPa: 210, A_cm2: 220, I_cm4: 15000, kind: "beam" },
+  ];
+
+  const nextNode = inferFrameNodeDraft(nodes, nodes.map((node) => node.id), "N5");
+  const nextMember = createConnectedFrameMember(nodes[4], nextNode, members, members.map((member) => member.id), 210);
+
+  assert.equal(nextNode.id, "N6");
+  assert.equal(nextNode.x, nodes[4].x);
+  assert.equal(nextNode.y, 0);
+  assert.equal(nextMember.start, "N5");
+  assert.equal(nextMember.end, "N6");
+  assert.equal(nextMember.kind, "column");
+});
+
+test("框架选中节点已有同轴节点时继续沿当前标高延伸", () => {
+  const nodes: StructureNode[] = [
+    { id: "N1", x: 0, y: 0, supportType: "fixed" },
+    { id: "N2", x: 6, y: 0, supportType: "fixed" },
+    { id: "N3", x: 0, y: 4, supportType: "free" },
+    { id: "N4", x: 6, y: 4, supportType: "free" },
+  ];
+
+  const nextNode = inferFrameNodeDraft(nodes, nodes.map((node) => node.id), "N4");
+
+  assert.equal(nextNode.id, "N5");
+  assert.equal(nextNode.x, 12);
+  assert.equal(nextNode.y, 4);
 });
 
 test("桁架按选定起终节点新增杆件并阻止同一节点对重复连接", () => {

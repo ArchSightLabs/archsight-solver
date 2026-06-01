@@ -1,16 +1,12 @@
 import { ExternalLink, Network, PencilLine, Plus, Ruler, ShieldCheck, Trash2, Triangle } from "lucide-react";
 import { analysisVocabulary } from "../lib/analysis-vocabulary";
 import { getAnalysisObjectDisplayName, type AnalysisObject, type SolverProject } from "../lib/solver-project";
-import type { Material } from "../types/material";
-import { ProjectMaterialManager } from "./ProjectMaterialManager";
 import { Button } from "./ui/button";
 
 interface ProjectTreePanelProps {
   project: SolverProject;
-  customMaterials: Material[];
   collapsed?: boolean;
   compact?: boolean;
-  onCustomMaterialsChange: (materials: Material[]) => void;
   onSelectObject: (objectId: string) => void;
   onCreateObject: () => void;
   onRemoveObject: (objectId: string) => void;
@@ -29,10 +25,8 @@ function ObjectIcon({ object }: { object: AnalysisObject }) {
 
 export function ProjectTreePanel({
   project,
-  customMaterials,
   collapsed = false,
   compact = false,
-  onCustomMaterialsChange,
   onSelectObject,
   onCreateObject,
   onRemoveObject,
@@ -88,8 +82,8 @@ export function ProjectTreePanel({
             variant="outline"
             size="icon"
             onClick={onEditProjectInfo}
-            aria-label="设置工程信息"
-            title="设置工程信息"
+            aria-label="工程设置"
+            title="工程设置"
             className="h-8 w-8 shrink-0 rounded-lg border-white/10 bg-transparent"
           >
             <PencilLine className="h-4 w-4" />
@@ -128,11 +122,6 @@ export function ProjectTreePanel({
           </div>
         </div>
       ) : null}
-      <ProjectMaterialManager
-        compact={compact}
-        customMaterials={customMaterials}
-        onCustomMaterialsChange={onCustomMaterialsChange}
-      />
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">

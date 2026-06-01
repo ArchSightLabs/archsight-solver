@@ -3,12 +3,15 @@ import type { FrameLoad, FrameLoadCase, FrameLoadCombination, StructureMember, S
 import { modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
 import { nodeSupportLabel } from "../lib/support-vocabulary.ts";
 import { frameDistributedLoadKindLabel } from "../lib/frame-editor-model.ts";
+import { materialIdentityLabelForId, materialIdForMember } from "../lib/material-presets.ts";
+import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
 
 export type FrameAdvancedSection = "nodes" | "members" | "loads" | "loadCases" | "loadCombinations";
 
 interface FrameTableSectionProps {
   nodes: StructureNode[];
   members: StructureMember[];
+  materialLibrary?: Material[];
   loads: FrameLoad[];
   loadCases: FrameLoadCase[];
   loadCombinations: FrameLoadCombination[];
@@ -19,6 +22,7 @@ interface FrameTableSectionProps {
 export function FrameTableSection({
   nodes,
   members,
+  materialLibrary = PREDEFINED_MATERIALS,
   loads,
   loadCases,
   loadCombinations,
@@ -93,14 +97,14 @@ export function FrameTableSection({
                 <Layers3 className="h-3.5 w-3.5 text-primary" />
                 {vocabulary.memberGroupLabel}
               </div>
-              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">编号 / 连接 / 参数</span>
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">编号 / 连接 / 材料</span>
             </div>
             <div className="space-y-2">
               {members.map((member) => (
                 <div key={member.id} className="grid grid-cols-3 gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 text-xs">
                   <span className="font-bold">{member.id}</span>
                   <span className="font-mono">{member.start} - {member.end}</span>
-                  <span className="font-mono">A {member.A_cm2} cm² / E {member.E_GPa} GPa</span>
+                  <span className="truncate text-muted-foreground">{materialIdentityLabelForId(materialIdForMember(member, materialLibrary), materialLibrary)}</span>
                 </div>
               ))}
               {members.length === 0 && <div className="p-4 text-center text-xs text-muted-foreground">暂无{vocabulary.memberGroupLabel}</div>}

@@ -131,12 +131,10 @@ export function labelCandidatesAroundPoint(gap: number, extendedGap = gap + 18):
   ];
 }
 
-export function legendLabelCandidates(width: number, height: number): DiagramLabelCandidate[] {
+export function legendLabelCandidates(_width: number, _height: number): DiagramLabelCandidate[] {
   return [
     { dx: 0, dy: 0, textAnchor: "start", verticalAnchor: "top", penalty: 0 },
     { dx: 0, dy: 42, textAnchor: "start", verticalAnchor: "top", penalty: 38 },
-    { dx: width, dy: 0, textAnchor: "end", verticalAnchor: "top", penalty: 70 },
-    { dx: width, dy: height, textAnchor: "end", verticalAnchor: "bottom", penalty: 95 },
   ];
 }
 

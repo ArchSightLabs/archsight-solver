@@ -123,7 +123,12 @@ export function FrameMemberEditor({
           materialLibrary={materialLibrary}
           youngModulusGPa={member.E_GPa}
           onYoungModulusChange={(E_GPa) => onUpdate({ E_GPa })}
-          onMaterialChange={(materialId, E_GPa) => onUpdate({ materialId, E_GPa })}
+          onMaterialChange={(materialId, E_GPa, sectionDefaults) => onUpdate({
+            materialId,
+            E_GPa,
+            ...(Number.isFinite(sectionDefaults.sectionAreaCm2) && Number(sectionDefaults.sectionAreaCm2) > 0 ? { A_cm2: Number(sectionDefaults.sectionAreaCm2) } : {}),
+            ...(Number.isFinite(sectionDefaults.momentOfInertiaCm4) && Number(sectionDefaults.momentOfInertiaCm4) > 0 ? { I_cm4: Number(sectionDefaults.momentOfInertiaCm4) } : {}),
+          })}
           fieldLabelClass={fieldLabelClass}
           memberLabel={memberTerm}
           mode="frame"

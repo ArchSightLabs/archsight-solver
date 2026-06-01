@@ -33,6 +33,13 @@ test("buildBeamSpanDimensionLegendRows groups non-adjacent equal span lengths", 
   assert.deepEqual(buildBeamSpanDimensionLegendRows(segments, 420), ["(1)=(3)=4 m", "(2)=3 m"]);
 });
 
+test("buildBeamSpanDimensionLegendRows summarizes equal-length groups that exceed display width", () => {
+  const segments = buildBeamSpanDimensionSegments([3, 3, 3, 3, 3, 3], 18, 80, 920);
+
+  assert.deepEqual(buildBeamSpanDimensionLegendRows(segments, 260), ["(1)=(2)=(3)=(4)=(5)=(6)=3 m"]);
+  assert.deepEqual(buildBeamSpanDimensionLegendRows(segments, 120), ["(1)等6跨=3 m"]);
+});
+
 test("buildBeamSpanDimensionSegments uses custom member and node ids", () => {
   const segments = buildBeamSpanDimensionSegments([4, 4], 8, 80, 920, {
     memberIds: ["G1", "G2"],
