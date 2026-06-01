@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { BarChart3, BookOpen, ClipboardList, ExternalLink, Github, Info, Library, Palette, Settings, X } from "lucide-react";
+import { type ReactNode, useId, useState } from "react";
+import { BarChart3, BookOpen, ChevronDown, ClipboardList, ExternalLink, Github, Info, Library, Palette, Settings, X } from "lucide-react";
 import { Button } from "./ui/button";
 import type { ModelPreviewStyle } from "../types/beam";
 import { APP_VERSION, BUSUANZI_VISIT_STATS_ENABLED, GITHUB_REPOSITORY_URL } from "../lib/app-metadata";
@@ -42,6 +42,42 @@ function materialCategoryLabel(category: string | undefined) {
   if (category === "steel") return "钢材";
   if (category === "concrete") return "混凝土";
   return "材料";
+}
+
+function CollapsibleSettingsSection({
+  title,
+  icon,
+  children,
+}: {
+  title: string;
+  icon: ReactNode;
+  children: ReactNode;
+}) {
+  const panelId = useId();
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <section className="rounded-lg border border-slate-200/80 bg-white p-1.5 shadow-sm dark:border-white/10 dark:bg-white/[0.03]">
+      <button
+        type="button"
+        onClick={() => setIsOpen((current) => !current)}
+        aria-expanded={isOpen}
+        aria-controls={panelId}
+        className="flex w-full items-center justify-between gap-3 rounded-md px-2.5 py-2 text-left text-sm font-black tracking-tight text-slate-950 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800"
+      >
+        <span className="flex items-center gap-2">
+          {icon}
+          {title}
+        </span>
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+      {isOpen ? (
+        <div id={panelId} className="space-y-3 px-1.5 pb-2 pt-2">
+          {children}
+        </div>
+      ) : null}
+    </section>
+  );
 }
 
 function VisitStatsBlock({ stats, visible }: { stats: VisitStats; visible: boolean }) {
@@ -138,11 +174,7 @@ export function SystemSettingsPanel({
         </div>
 
         <div className={`flex-1 space-y-4 overflow-y-auto custom-scrollbar ${compact ? "p-3" : "p-4"}`}>
-          <section className="rounded-lg border border-slate-200/80 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-white/[0.03] sm:p-4">
-            <h3 className="mb-3 flex items-center gap-2 text-sm font-black tracking-tight">
-              <Palette className="h-4 w-4 text-sky-500" />
-              显示偏好
-            </h3>
+          <CollapsibleSettingsSection title="显示偏好" icon={<Palette className="h-4 w-4 text-sky-500" />}>
             <div className="space-y-3 rounded-lg border border-slate-200/80 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/[0.04]">
               <div className="flex items-center justify-between gap-3">
                 <div className="text-xs font-black">结构建模图</div>
@@ -171,13 +203,9 @@ export function SystemSettingsPanel({
                 })}
               </div>
             </div>
-          </section>
+          </CollapsibleSettingsSection>
 
-          <section className="rounded-lg border border-slate-200/80 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-white/[0.03] sm:p-4">
-            <h3 className="mb-3 flex items-center gap-2 text-sm font-black tracking-tight">
-              <Library className="h-4 w-4 text-sky-500" />
-              材料库
-            </h3>
+          <CollapsibleSettingsSection title="材料库" icon={<Library className="h-4 w-4 text-sky-500" />}>
             <div className="space-y-2">
               {MATERIAL_LIBRARY_ITEMS.map((material) => (
                 <div
@@ -203,10 +231,9 @@ export function SystemSettingsPanel({
                 自定义材料后续作为用户材料库扩展；当前仅支持在对象或表格页手动输入 E。
               </div>
             </div>
-          </section>
+          </CollapsibleSettingsSection>
 
-          <section className="rounded-lg border border-slate-200/80 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-white/[0.03] sm:p-4">
-            <h3 className="mb-3 text-sm font-black tracking-tight">资源与模板</h3>
+          <CollapsibleSettingsSection title="资源与模板" icon={<BookOpen className="h-4 w-4 text-sky-500" />}>
             <div className="grid gap-2">
               <a className={settingButtonClass(compact)} href={GITHUB_REPOSITORY_URL} target="_blank" rel="noreferrer">
                 <span className="flex min-w-0 items-center gap-3">
@@ -259,13 +286,9 @@ export function SystemSettingsPanel({
                 </span>
               </button>
             </div>
-          </section>
+          </CollapsibleSettingsSection>
 
-          <section className="rounded-lg border border-slate-200/80 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-white/[0.03] sm:p-4">
-            <h3 className="mb-3 flex items-center gap-2 text-sm font-black tracking-tight">
-              <Info className="h-4 w-4 text-sky-500" />
-              关于
-            </h3>
+          <CollapsibleSettingsSection title="关于" icon={<Info className="h-4 w-4 text-sky-500" />}>
             <div className="space-y-3">
               <div className="rounded-lg border border-slate-200/80 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -283,7 +306,7 @@ export function SystemSettingsPanel({
               </div>
               <VisitStatsBlock stats={visitStats} visible={false} />
             </div>
-          </section>
+          </CollapsibleSettingsSection>
         </div>
     </div>
   );

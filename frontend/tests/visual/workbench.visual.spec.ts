@@ -89,6 +89,7 @@ test("模板库名称输入框支持回车保存并关闭面板", async ({ page 
   await page.setViewportSize({ width: 1440, height: 960 });
 
   await page.getByRole("button", { name: "系统设置" }).click();
+  await page.getByRole("button", { name: "资源与模板" }).click();
   await page.getByRole("button", { name: "模板库" }).click();
 
   const templateDialog = page.getByRole("dialog", { name: "模板库" });
@@ -99,6 +100,7 @@ test("模板库名称输入框支持回车保存并关闭面板", async ({ page 
   await expect(templateDialog).toBeHidden();
 
   await page.getByRole("button", { name: "系统设置" }).click();
+  await page.getByRole("button", { name: "资源与模板" }).click();
   await page.getByRole("button", { name: "模板库" }).click();
 
   const reopenedTemplateDialog = page.getByRole("dialog", { name: "模板库" });
