@@ -126,7 +126,7 @@ export function BeamChart({ xData, yData, xLabels, title, yLabel, unit, color, x
         data: seriesData,
         smooth: 0.4,
         symbol: "none",
-        lineStyle: { width: 2.4, color: displayColor },
+        lineStyle: { width: 1.5, color: displayColor },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: `${displayColor}${isDark ? "55" : "30"}` },

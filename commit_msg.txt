@@ -1,12 +1,12 @@
-style(ui): 降低受力变形图中尺寸与构件图例的字重并在DOCX中统一直观表现
+fix(ui): 降低数据曲线和计算书轴力图的线宽以统一视觉体验
 
-修复了“受力变形”主图中参数类文本（尺寸图例、构件编号）字重过高导致的视觉糊和偏粗的问题，并收齐了相关 DOCX 导出逻辑的桁架基线厚度，同步更新了 AI 编码规范。
+针对平面桁架计算书导出中的轴力图杆件过粗，以及连续梁等分析对象数据曲线图（ECharts）过粗的问题，将动态线宽基准和 ECharts 线宽下降至 1.5，对齐预览图与变形图。
 
-Constraint: 遵循最新的 AIOS 代码提交流程与规范，前端样式变动需对齐受力变形全局降权逻辑
-Rejected: 在 SVG 根级设定通用的 fontWeight=normal | 会破坏某些原本需要高亮的极值节点字重
+Constraint: 必须遵循 AI_CODING_RULES.md 规范的提交记录格式
+Rejected: 保持 ECharts 默认粗细 | 导致与 SVG 渲染的力学结果图视觉割裂
 Confidence: high
 Scope-risk: low
-Directive: 针对工程图文案排版，非极值的尺寸和标号需保持细体或半粗体（fontWeight 500-600）
+Directive: 所有结构结果线条宽度应当以 STRUCTURE_VISUAL_STROKES 设定的 1.5 为视觉基准
 Tested: npm --prefix frontend run lint
 Tested: npm --prefix frontend run test:unit
-Not-tested: 未涉及后端逻辑变更，无需执行 pytest
+Not-tested: 未涉及后端 Python 逻辑

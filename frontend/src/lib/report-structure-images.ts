@@ -406,7 +406,7 @@ export function buildTrussOverlayGraphics(results: TrussCalculationResults, metr
       graphics.push({
         type: "line",
         shape: { x1: start.x, y1: start.y, x2: end.x, y2: end.y },
-        style: { stroke: axial >= 0 ? STRUCTURE_RESULT_COLORS.trussTension : STRUCTURE_RESULT_COLORS.trussCompression, lineWidth: 3 + (Math.abs(axial) / maxAbsAxial) * 6 },
+        style: { stroke: axial >= 0 ? STRUCTURE_RESULT_COLORS.trussTension : STRUCTURE_RESULT_COLORS.trussCompression, lineWidth: 1.5 + (Math.abs(axial) / maxAbsAxial) * 2.5 },
       });
       if (controlAxial?.memberId === member.id) {
         controlPoint = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };

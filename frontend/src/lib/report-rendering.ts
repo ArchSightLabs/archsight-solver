@@ -70,7 +70,7 @@ export async function renderLineChart({
       data: item.data.map((value) => Number(value.toFixed(6))),
       smooth: 0.4,
       symbol: "none",
-      lineStyle: { width: 2.8, color: item.color },
+      lineStyle: { width: 1.5, color: item.color },
       areaStyle:
         series.length === 1
           ? {
