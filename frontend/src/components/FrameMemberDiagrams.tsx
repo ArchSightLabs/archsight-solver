@@ -341,7 +341,7 @@ function FrameStructureDiagram({
         {dimensionLegendRows.length ? (
           <g fontFamily="Fira Code" fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke">
             {labelLayouts.get("dimension-legend")?.lines.map((line, index) => (
-              <text key={`frame-diagram-dimension-${index}`} x={line.x} y={line.y} textAnchor={labelLayouts.get("dimension-legend")?.textAnchor} fontSize={line.fontSize} fontWeight="700">
+              <text key={`frame-diagram-dimension-${index}`} x={line.x} y={line.y} textAnchor={labelLayouts.get("dimension-legend")?.textAnchor} fontSize={line.fontSize} fontWeight="600">
                 {line.text}
               </text>
             ))}

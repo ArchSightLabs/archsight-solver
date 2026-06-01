@@ -309,7 +309,7 @@ export function TrussPreview({ truss, compact = false, viewSettings, onChangeVie
           {dimensionLegendRows.length ? (
             <g fontFamily={svgTextFont} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke">
               {dimensionLegendRows.map((row, index) => (
-                <text key={`truss-preview-dimension-${index}`} x={layout.dimensionLegendX} y={28 + index * 16} fontSize={compact ? "10" : "12"} fontWeight="700">
+                <text key={`truss-preview-dimension-${index}`} x={layout.dimensionLegendX} y={28 + index * 16} fontSize={compact ? "10" : "12"} fontWeight="600">
                   {row}
                 </text>
               ))}

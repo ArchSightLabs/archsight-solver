@@ -403,7 +403,7 @@ export function BeamPreview({ beam, compact = false, viewSettings, onChangeViewS
               if (!dimension.label) return null;
               const midX = (dimension.start + dimension.end) / 2;
               return (
-                <text key={`beam-preview-span-${dimension.index}`} x={midX} y={SPAN_MEMBER_LABEL_Y} textAnchor="middle" fontSize={compact ? "10" : "12"} fontWeight="700">
+                <text key={`beam-preview-span-${dimension.index}`} x={midX} y={SPAN_MEMBER_LABEL_Y} textAnchor="middle" fontSize={compact ? "10" : "12"} fontWeight="600">
                   {dimension.label}
                 </text>
               );

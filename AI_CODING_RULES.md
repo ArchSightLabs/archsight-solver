@@ -79,11 +79,25 @@
 - 中间结构预览区与右侧参数面板在不同模块之间必须保持布局密度、按钮层级、边框/卡片风格、颜色语义和文案粒度一致；新增或调整一个模块时，应同步检查另外两个模块，避免单模块风格漂移。
 
 ## 5. 语言与工具集成规范 (Localization & Tool Integration)
-
 ### 5.1 强制中文产出 (Mandatory Chinese Output)
 
 - **技术产出**: 本项目所有技术文档（Spec, Plan, Tasks, Research）、审查报告及 UI 文本必须使用专业简体中文。
-- **Commit 信息**: 必须使用中文编写 Conventional Commits (如：`feat(sensitivity): 增加参数敏感性分析后端接口`)。
+- **Commit 信息**: 必须使用中文编写 Conventional Commits，并严格遵循结构化的额外字段说明，以确保上下文和决策透明。格式必须如下：
+  ```
+  <type>(<scope>): <subject>
+
+  <body> (解释做了什么、为什么这么做)
+
+  Constraint: <必须遵守的约束、契约或边界>
+  Rejected: <被拒绝的替代方案 1> | <拒绝原因>
+  Rejected: <被拒绝的替代方案 2> | <拒绝原因>
+  Confidence: <high/moderate/low>
+  Scope-risk: <high/moderate/low>
+  Directive: <核心指导原则或注意事项>
+  Tested: <具体的测试命令或手动验证动作 1>
+  Tested: <具体的测试命令或手动验证动作 2>
+  Not-tested: <未测试的范围及原因>
+  ```
 - **任务管理**: 所有代办事项（Task List / Markdown Checklist）必须使用中文描述。
 - **版本一致性**: 涉及项目发布号、展示版本或 Release/Changelog 时，必须同步检查并更新 `frontend/package.json`、`pyproject.toml`、`uv.lock`、`CHANGELOG.md` 以及 README/文档中的可见版本号；不得只更新单一入口导致前端包版本、Python 包元数据和发布说明不一致。
 - **Python 依赖管理**: 新增、删除或升级 Python 包时，必须先使用 `uv add` / `uv remove` / `uv lock` 写入 `pyproject.toml` 和 `uv.lock`，再执行 `uv sync`。

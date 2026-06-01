@@ -400,7 +400,7 @@ export function buildTrussOverlayGraphics(results: TrussCalculationResults, metr
     if (!startNode || !endNode) continue;
     const start = layout.map(startNode);
     const end = layout.map(endNode);
-    graphics.push({ type: "line", shape: { x1: start.x, y1: start.y, x2: end.x, y2: end.y }, style: { stroke: BASE_MEMBER_LIGHT_STROKE, lineWidth: STRUCTURE_VISUAL_STROKES.reportBaseMember } });
+    graphics.push({ type: "line", shape: { x1: start.x, y1: start.y, x2: end.x, y2: end.y }, style: { stroke: BASE_MEMBER_LIGHT_STROKE, lineWidth: metric === "displacement" ? 1.5 : STRUCTURE_VISUAL_STROKES.reportBaseMember } });
     if (metric === "axial") {
       const axial = memberResultById.get(member.id)?.axialForceKn ?? 0;
       graphics.push({

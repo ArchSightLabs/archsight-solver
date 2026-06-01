@@ -411,7 +411,7 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
           {dimensionLegendRows.length ? (
             <g fontFamily={svgTextFont} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke">
               {labelLayouts.get("dimension-legend")?.lines.map((line, index) => (
-                <text key={`truss-diagram-dimension-${index}`} x={line.x} y={line.y} textAnchor={labelLayouts.get("dimension-legend")?.textAnchor} fontSize={line.fontSize} fontWeight="700">
+                <text key={`truss-diagram-dimension-${index}`} x={line.x} y={line.y} textAnchor={labelLayouts.get("dimension-legend")?.textAnchor} fontSize={line.fontSize} fontWeight="600">
                   {line.text}
                 </text>
               ))}
@@ -438,14 +438,14 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
                   <>
                     <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke={axialColor} strokeOpacity="0.82" strokeWidth={strokeWidth} strokeLinecap="round" />
                     {label && line ? (
-                      <text x={line.x} y={line.y} fill={axialColor} stroke="var(--structure-preview-text-halo)" strokeWidth="5" paintOrder="stroke" textAnchor={label.textAnchor} fontSize={line.fontSize} fontFamily="Fira Code" fontWeight="700">
+                      <text x={line.x} y={line.y} fill={axialColor} stroke="var(--structure-preview-text-halo)" strokeWidth="5" paintOrder="stroke" textAnchor={label.textAnchor} fontSize={line.fontSize} fontFamily="Fira Code" fontWeight="600">
                         {line.text}
                       </text>
                     ) : null}
                   </>
                 ) : (
                   label && line ? (
-                    <text x={line.x} y={line.y} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke" textAnchor={label.textAnchor} fontSize={line.fontSize} fontFamily={svgTextFont} fontWeight="700">
+                    <text x={line.x} y={line.y} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke" textAnchor={label.textAnchor} fontSize={line.fontSize} fontFamily={svgTextFont} fontWeight="500">
                       {line.text}
                     </text>
                   ) : null
