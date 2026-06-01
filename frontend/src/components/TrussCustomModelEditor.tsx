@@ -42,7 +42,6 @@ interface TrussCustomModelEditorProps {
   materialId: string;
   onChange: (next: TrussCollections) => void;
   onMaterialChange: (nextMaterialId: string) => void;
-  onResetToBenchmark: () => void;
   activeSectionId?: string;
   selection?: TrussWorkbenchSelection | null;
   onSelectionChange?: (next: TrussWorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
@@ -53,7 +52,6 @@ export function TrussCustomModelEditor({
   materialId,
   onChange,
   onMaterialChange,
-  onResetToBenchmark,
   activeSectionId,
   selection,
   onSelectionChange,
@@ -310,8 +308,6 @@ export function TrussCustomModelEditor({
         supportCount={supportCount}
         loadCount={value.loads.length}
         modelWarnings={modelWarnings}
-        onResetToBenchmark={onResetToBenchmark}
-        onAddNode={addNode}
         onMaterialChange={onMaterialChange}
       />
       ) : null}
@@ -345,29 +341,22 @@ export function TrussCustomModelEditor({
               onClick={() => applyTypicalCase(template.id)}
               className="rounded-xl border border-white/8 bg-slate-950/20 p-3 text-left transition-colors hover:border-primary/35 hover:bg-primary/5"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-start gap-2">
-                  <span className="mt-0.5 shrink-0 rounded border border-white/8 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-muted-foreground">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <div className="min-w-0">
-                    <div className="text-sm font-bold leading-snug">{template.title}</div>
-                    <div className="mt-1 flex flex-wrap gap-1.5">
-                      {template.tags?.slice(0, 3).map((tag) => (
-                        <span key={tag} className="rounded border border-white/8 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
+              <div className="flex min-w-0 items-start gap-2">
+                <span className="mt-0.5 shrink-0 rounded border border-white/8 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-muted-foreground">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <div className="min-w-0">
+                  <div className="text-sm font-bold leading-snug">{template.title}</div>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {template.tags?.slice(0, 3).map((tag) => (
+                      <span key={tag} className="rounded border border-white/8 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                        {tag}
+                      </span>
+                    ))}
+                    <span className="rounded border border-white/8 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                      {template.members.length} {memberTerm}
+                    </span>
                   </div>
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-1.5">
-                  <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] text-muted-foreground">
-                    {template.members.length} {memberTerm}
-                  </span>
-                  <span className="rounded border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-                    套用
-                  </span>
                 </div>
               </div>
             </button>

@@ -1,14 +1,9 @@
-import { Plus, RotateCw } from "lucide-react";
-
 import { materialDropdownOptions, type MaterialDropdownOption } from "../lib/material-presets.ts";
 import { modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
-import { supportSystemHint } from "../lib/support-vocabulary.ts";
 import {
   defaultMaterialAriaLabel,
-  defaultMaterialBasicDetail,
   defaultMaterialControlHint,
   defaultMaterialFieldLabel,
-  materialSectionBasicDetail,
   workbenchBasicDescription,
   workbenchBasicSuccessMessage,
 } from "../lib/workbench-basic-vocabulary.ts";
@@ -26,8 +21,6 @@ interface TrussBasicSectionProps {
   supportCount: number;
   loadCount: number;
   modelWarnings: string[];
-  onResetToBenchmark: () => void;
-  onAddNode: () => void;
   onMaterialChange: (nextMaterialId: string) => void;
 }
 
@@ -41,13 +34,10 @@ export function TrussBasicSection({
   supportCount,
   loadCount,
   modelWarnings,
-  onResetToBenchmark,
-  onAddNode,
   onMaterialChange,
 }: TrussBasicSectionProps) {
   const formLabelClass = "text-[10px] font-black tracking-widest text-muted-foreground";
   const objectVocabulary = modelObjectVocabulary("truss");
-  const memberTerm = objectVocabulary.memberGroupLabel;
 
   return (
     <WorkbenchModelBasicSection
@@ -62,17 +52,7 @@ export function TrussBasicSection({
       ]}
       modelWarnings={modelWarnings}
       successMessage={workbenchBasicSuccessMessage("truss")}
-      detailRows={[
-        { label: "支座自由度", value: supportSystemHint("truss") },
-        { label: "默认材料", value: defaultMaterialBasicDetail("truss", materialId, materialLibrary) },
-        { label: "弹性模量分布", value: memberElasticitySummary },
-        { label: "材料与截面", value: materialSectionBasicDetail("truss") },
-        { label: "主要结果", value: `节点位移、${memberTerm}轴力、${memberTerm}轴应力、支座反力` },
-      ]}
-      actions={[
-        { label: "恢复默认屋架", icon: <RotateCw className="h-3.5 w-3.5" />, onClick: onResetToBenchmark },
-        { label: "新增节点", icon: <Plus className="h-3.5 w-3.5" />, onClick: onAddNode, variant: "default" },
-      ]}
+      actions={[]}
       controls={
         <div className="grid grid-cols-1 gap-4">
           <div className="space-y-2">
@@ -83,10 +63,14 @@ export function TrussBasicSection({
               options={materialOptions}
               className="h-10 text-xs font-mono"
               menuClassName="text-xs font-mono"
+              optionClassName="py-2"
+              fallbackSelectedLabel="手动 E"
+              menuMaxHeight={240}
               ariaLabel={defaultMaterialAriaLabel("truss")}
             />
             <div className="text-[10px] font-semibold leading-relaxed text-muted-foreground">
               {defaultMaterialControlHint("truss", materialId, materialLibrary)}
+              <span className="ml-2 text-muted-foreground/80">{memberElasticitySummary}</span>
             </div>
           </div>
         </div>

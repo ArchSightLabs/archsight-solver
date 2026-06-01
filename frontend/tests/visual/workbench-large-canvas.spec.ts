@@ -207,6 +207,19 @@ test("默认平面框架主控建模画布不触发内嵌滚动", async ({ page 
   expect(metrics.scrollHeight).toBeLessThanOrEqual(metrics.scrollClientHeight + 1);
 });
 
+test("两层两跨框架模板默认完整适配主控建模画布", async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 986 });
+  await selectObject(page, /平面框架-1/);
+  await page.getByRole("button", { name: /两层两跨框架/ }).click();
+
+  const metrics = await canvasMetrics(page);
+
+  expect(metrics.viewBoxWidth).toBeGreaterThan(900);
+  expect(metrics.viewBoxHeight).toBeGreaterThan(360);
+  expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.scrollClientWidth + 1);
+  expect(metrics.scrollHeight).toBeLessThanOrEqual(metrics.scrollClientHeight + 1);
+});
+
 test("梁系跨段支座增多后主控建模画布扩展并触发滚动", async ({ page }) => {
   await importTextModel(page, "梁系文本模型", beamLongTextModel());
 

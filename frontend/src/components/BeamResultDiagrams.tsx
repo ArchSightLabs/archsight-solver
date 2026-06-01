@@ -13,6 +13,7 @@ import { formatEngineeringValue } from "../lib/engineering-format";
 import { clamp, svgAreaPath, svgPathFromPoints } from "../lib/result-diagram-geometry";
 import { sensitivityResponseMetricLabel } from "../lib/result-metrics";
 import { STRUCTURE_NODE_RADII, STRUCTURE_RESULT_COLORS, STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
+import { useCanvasDrag } from "../hooks/useModelCanvasZoom";
 import { ResultDiagramCard, ResultDiagramEmptyState, ResultDiagramMetricBadge, ResultDiagramMetricGallery } from "./ResultDiagramLayout";
 
 interface BeamDiagramMetric {
@@ -246,6 +247,7 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
   const [selectedMetricState, setSelectedMetricState] = useState<BeamDiagramSelectionKey>("all");
   const selectedMetricKey = metricKey ?? selectedMetricState;
   const selectedMetric = getMetric(selectedMetricKey === "all" ? DEFAULT_BEAM_DIAGRAM_METRIC_KEY : selectedMetricKey);
+  const { canvasScrollRef, isCanvasDragging, handleCanvasPointerDown, handleCanvasPointerMove, finishCanvasDrag, handleCanvasClickCapture } = useCanvasDrag();
   const beam = results?.beam ?? null;
 
   const diagram = useMemo(() => {
@@ -361,7 +363,15 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
         ) : null
       }
     >
-      <div className="structure-preview-surface overflow-hidden rounded-lg border border-slate-200/80 bg-white/90 dark:border-slate-700/80 dark:bg-slate-900/45">
+      <div
+        ref={canvasScrollRef}
+        className={`structure-preview-surface overflow-auto rounded-lg border border-slate-200/80 bg-white/90 dark:border-slate-700/80 dark:bg-slate-900/45 ${isCanvasDragging ? "cursor-grabbing" : "cursor-grab"}`}
+        onPointerDown={handleCanvasPointerDown}
+        onPointerMove={handleCanvasPointerMove}
+        onPointerUp={finishCanvasDrag}
+        onPointerCancel={finishCanvasDrag}
+        onClickCapture={handleCanvasClickCapture}
+      >
         <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} className={compact ? "block h-[230px] w-full sm:h-[300px]" : "block h-[320px] w-full"}>
           {[0.25, 0.5, 0.75].map((ratio) => (
             <line key={ratio} x1="42" y1={SVG_H * ratio} x2={SVG_W - 42} y2={SVG_H * ratio} stroke="var(--frame-diagram-grid)" strokeWidth={GRID_STROKE_WIDTH} strokeDasharray="6 8" />

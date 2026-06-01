@@ -3,6 +3,8 @@ import { BarChart3, BookOpen, ClipboardList, ExternalLink, Github, Info, Library
 import { Button } from "./ui/button";
 import type { ModelPreviewStyle } from "../types/beam";
 import { APP_VERSION, BUSUANZI_VISIT_STATS_ENABLED, GITHUB_REPOSITORY_URL } from "../lib/app-metadata";
+import { selectableMaterialPresets } from "../lib/material-presets";
+import { PREDEFINED_MATERIALS } from "../types/material";
 
 interface VisitStats {
   pageViews: string;
@@ -25,6 +27,7 @@ const MODEL_PREVIEW_STYLE_OPTIONS: Array<{ label: string; value: ModelPreviewSty
   { label: "彩色高亮", value: "color", description: "梁系、框架和桁架建模图使用蓝色结构对象与橙色荷载" },
   { label: "工程简图", value: "simple", description: "梁系、框架和桁架建模图使用低饱和黑白表达" },
 ];
+const MATERIAL_LIBRARY_ITEMS = selectableMaterialPresets(PREDEFINED_MATERIALS);
 const STATUS_LINE_CLASS = "rounded-lg border border-slate-200/80 bg-slate-50 px-3 py-2 text-[11px] font-semibold leading-5 text-slate-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300";
 
 function settingButtonClass(compact: boolean) {
@@ -33,6 +36,12 @@ function settingButtonClass(compact: boolean) {
 
 function iconBoxClass() {
   return "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200/80 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200";
+}
+
+function materialCategoryLabel(category: string | undefined) {
+  if (category === "steel") return "钢材";
+  if (category === "concrete") return "混凝土";
+  return "材料";
 }
 
 function VisitStatsBlock({ stats, visible }: { stats: VisitStats; visible: boolean }) {
@@ -160,6 +169,38 @@ export function SystemSettingsPanel({
                     </button>
                   );
                 })}
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-slate-200/80 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-white/[0.03] sm:p-4">
+            <h3 className="mb-3 flex items-center gap-2 text-sm font-black tracking-tight">
+              <Library className="h-4 w-4 text-sky-500" />
+              材料库
+            </h3>
+            <div className="space-y-2">
+              {MATERIAL_LIBRARY_ITEMS.map((material) => (
+                <div
+                  key={material.id}
+                  className="rounded-lg border border-slate-200/80 bg-slate-50 px-3 py-2 dark:border-white/10 dark:bg-white/[0.035]"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate text-xs font-black text-foreground">
+                        {material.id.toUpperCase()} · {material.name}
+                      </div>
+                      <div className="mt-1 font-mono text-[11px] font-semibold text-muted-foreground">
+                        E={material.youngModulus} GPa · ρ={material.density} kg/m³
+                      </div>
+                    </div>
+                    <span className="shrink-0 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-bold text-muted-foreground dark:border-white/10 dark:bg-white/[0.04]">
+                      {materialCategoryLabel(material.category)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              <div className={STATUS_LINE_CLASS}>
+                自定义材料后续作为用户材料库扩展；当前仅支持在对象或表格页手动输入 E。
               </div>
             </div>
           </section>

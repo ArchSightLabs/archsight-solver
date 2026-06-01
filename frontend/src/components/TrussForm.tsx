@@ -1,5 +1,4 @@
 import { TrussCustomModelEditor } from "./TrussCustomModelEditor";
-import { createDefaultTrussWorkspaceState } from "../lib/workspace-state.ts";
 import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
 import type { TrussWorkspaceState } from "../types/structure.ts";
 import type { TrussWorkbenchSelection, WorkbenchSelectionOptions } from "../types/workbench-selection.ts";
@@ -33,7 +32,6 @@ export function TrussForm({ value, onChange, activeSectionId, selection, onSelec
           customLoads: next.loads,
         })
       }
-      onResetToBenchmark={() => onChange(createDefaultTrussWorkspaceState())}
       selection={selection}
       onSelectionChange={onSelectionChange}
       activeSectionId={visibleSectionId}

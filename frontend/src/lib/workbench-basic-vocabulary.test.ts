@@ -4,44 +4,59 @@ import test from "node:test";
 
 import {
   defaultMaterialAriaLabel,
-  defaultMaterialBasicDetail,
   defaultMaterialControlHint,
   defaultMaterialFieldLabel,
-  materialSectionBasicDetail,
   workbenchBasicDescription,
   workbenchBasicSuccessMessage,
 } from "./workbench-basic-vocabulary.ts";
 
-test("基本页文案使用三类对象共享的短句结构", () => {
-  assert.equal(workbenchBasicDescription("beam"), "先定梁型和默认材料；跨段、支座、荷载在对象页维护，批量参数在表格页复核。");
-  assert.equal(workbenchBasicDescription("frame"), "先定默认材料；节点、构件、支座节点、荷载在对象页维护，批量参数在表格页复核。");
-  assert.equal(workbenchBasicDescription("truss"), "先定默认材料；节点、杆件、支座节点、荷载在对象页维护，批量参数在表格页复核。");
-  assert.doesNotMatch(workbenchBasicDescription("frame"), /属性检查器|先套用参数模板/u);
-  assert.doesNotMatch(workbenchBasicSuccessMessage("beam"), /可继续复核/u);
+test("基本页文案保持摘要式短句", () => {
+  assert.equal(workbenchBasicDescription("beam"), "模板定型；默认材料用于新增跨段。");
+  assert.equal(workbenchBasicDescription("frame"), "默认材料用于新增构件；对象页维护模型。");
+  assert.equal(workbenchBasicDescription("truss"), "默认材料用于新增杆件；对象页维护模型。");
+  assert.equal(workbenchBasicSuccessMessage("beam"), "梁系输入完整，可计算。");
+  assert.ok(workbenchBasicDescription("frame").length <= 24);
+  assert.doesNotMatch(workbenchBasicDescription("frame"), /属性检查器|先套用参数模板|批量参数|支座节点|荷载/u);
+  assert.doesNotMatch(workbenchBasicDescription("beam"), /先定梁型/u);
+  assert.doesNotMatch(workbenchBasicSuccessMessage("beam"), /挠度|弯矩|剪力|支座反力|可继续复核/u);
+});
+
+test("框架和桁架基本页不提供模板恢复或对象编辑动作", () => {
+  const frameBasicSource = readFileSync(new URL("../components/FrameBasicSection.tsx", import.meta.url), "utf-8");
+  const trussBasicSource = readFileSync(new URL("../components/TrussBasicSection.tsx", import.meta.url), "utf-8");
+  const sharedBasicSource = readFileSync(new URL("../components/WorkbenchModelBasicSection.tsx", import.meta.url), "utf-8");
+
+  assert.doesNotMatch(frameBasicSource, /恢复单跨刚架|补全同轴|新增节点并连接|onResetToPortal|onCompleteAxisMembers|onAddNode/u);
+  assert.doesNotMatch(trussBasicSource, /恢复默认屋架|新增节点|onResetToBenchmark|onAddNode/u);
+  assert.match(sharedBasicSource, /actions\.length \?/u);
+});
+
+test("基本页不渲染说明书式详情行", () => {
+  const sources = [
+    readFileSync(new URL("../components/BeamBasicSection.tsx", import.meta.url), "utf-8"),
+    readFileSync(new URL("../components/FrameBasicSection.tsx", import.meta.url), "utf-8"),
+    readFileSync(new URL("../components/TrussBasicSection.tsx", import.meta.url), "utf-8"),
+    readFileSync(new URL("../components/WorkbenchModelBasicSection.tsx", import.meta.url), "utf-8"),
+  ];
+
+  sources.forEach((source) => {
+    assert.doesNotMatch(source, /detailRows|支座自由度|求解模型|输入单位|主要结果|materialSectionBasicDetail|supportSystemHint/u);
+  });
 });
 
 test("基本页对象术语从共享对象词表派生", () => {
   const source = readFileSync(new URL("./workbench-basic-vocabulary.ts", import.meta.url), "utf-8");
 
-  assert.match(source, /modelObjectVocabulary/u);
   assert.match(source, /modelObjectMemberTerm/u);
   assert.doesNotMatch(source, /memberTerm:\s*"(?:构件|杆件)"/u);
   assert.doesNotMatch(source, /(?:description|successMessage|materialFieldLabel|materialAriaLabel|materialSectionDetail):\s*"/u);
 });
 
-test("基本页默认材料说明统一区分材料编号和刚度输入", () => {
-  assert.equal(defaultMaterialFieldLabel("beam"), "默认材料编号（新增跨段 E）");
-  assert.equal(defaultMaterialAriaLabel("frame"), "框架默认材料编号（新增构件 E）");
-  assert.equal(defaultMaterialBasicDetail("beam", "q345"), "新增跨段回填 Q345 的 E；刚度仍按 E/I 输入计算。");
-  assert.equal(defaultMaterialBasicDetail("frame", "q345"), "新增构件回填 Q345 的 E；刚度仍按 E/A/I 输入计算。");
-  assert.equal(defaultMaterialBasicDetail("truss", "q345"), "新增杆件回填 Q345 的 E；刚度仍按 E/A 输入计算。");
-  assert.equal(defaultMaterialBasicDetail("frame", "custom"), "新增构件使用自定义 E；刚度仍按 E/A/I 输入计算。");
-});
-
 test("基本页材料提示保持简洁并避免重复长说明", () => {
-  assert.equal(materialSectionBasicDetail("beam"), "材料编号保留工程语义；截面惯性矩 I 按跨段维护。");
-  assert.equal(materialSectionBasicDetail("truss"), "材料编号保留工程语义；截面面积 A 按杆件维护。");
-  assert.equal(defaultMaterialControlHint("beam", "q345"), "Q345 仅回填新增跨段的 E；已有跨段不自动改写。");
-  assert.equal(defaultMaterialControlHint("frame", "custom"), "自定义材料不回填预设；已有构件的 E 需在对象或表格页复核。");
+  assert.equal(defaultMaterialFieldLabel("beam"), "默认材料");
+  assert.equal(defaultMaterialAriaLabel("frame"), "框架默认材料（新增构件 E）");
+  assert.equal(defaultMaterialControlHint("beam", "q345"), "新增跨段使用 Q345；已有不变。");
+  assert.equal(defaultMaterialControlHint("frame", "custom"), "手动 E；已有构件不变。");
+  assert.ok(defaultMaterialControlHint("truss", "q235").length <= 18);
   assert.doesNotMatch(defaultMaterialControlHint("truss", "q235"), /强度|稳定|连接|规范设计|kg\/m³/u);
 });

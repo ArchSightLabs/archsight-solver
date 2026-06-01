@@ -37,6 +37,7 @@ export function WorkbenchModelCanvas({ workspace, mode, compact = false, modelPr
     handleCanvasPointerDown,
     handleCanvasPointerMove,
     isCanvasDragging,
+    canvasViewportSize,
     setShowZoomControls,
     setZoomDraft,
     showZoomControls,
@@ -45,7 +46,7 @@ export function WorkbenchModelCanvas({ workspace, mode, compact = false, modelPr
   } = useModelCanvasZoom();
   const metrics = modelObjectMetricRows(workspace, mode);
   const canvasSize = workbenchModelCanvasSize(workspace, mode);
-  const boardStyle = modelCanvasBoardStyle(canvasSize, zoomPercent);
+  const boardStyle = modelCanvasBoardStyle(canvasSize, zoomPercent, canvasViewportSize);
   const metricGridClass = metrics.length > 3 ? "sm:grid-cols-2 xl:grid-cols-4" : "sm:grid-cols-3";
 
   return (

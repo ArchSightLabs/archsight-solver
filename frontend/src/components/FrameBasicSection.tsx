@@ -1,14 +1,9 @@
-import { Plus, RotateCw, Wand2 } from "lucide-react";
-
 import { materialDropdownOptions, type MaterialDropdownOption } from "../lib/material-presets.ts";
 import { modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
-import { supportSystemHint } from "../lib/support-vocabulary.ts";
 import {
   defaultMaterialAriaLabel,
-  defaultMaterialBasicDetail,
   defaultMaterialControlHint,
   defaultMaterialFieldLabel,
-  materialSectionBasicDetail,
   workbenchBasicDescription,
   workbenchBasicSuccessMessage,
 } from "../lib/workbench-basic-vocabulary.ts";
@@ -26,9 +21,6 @@ interface FrameBasicSectionProps {
   supportCount: number;
   loadCount: number;
   modelWarnings: string[];
-  onResetToPortal: () => void;
-  onCompleteAxisMembers: () => void;
-  onAddNode: () => void;
   onMaterialChange: (nextMaterialId: string) => void;
 }
 
@@ -42,14 +34,10 @@ export function FrameBasicSection({
   supportCount,
   loadCount,
   modelWarnings,
-  onResetToPortal,
-  onCompleteAxisMembers,
-  onAddNode,
   onMaterialChange,
 }: FrameBasicSectionProps) {
   const formLabelClass = "text-[10px] font-black tracking-widest text-muted-foreground";
   const objectVocabulary = modelObjectVocabulary("frame");
-  const memberTerm = objectVocabulary.memberGroupLabel;
 
   return (
     <WorkbenchModelBasicSection
@@ -64,18 +52,7 @@ export function FrameBasicSection({
       ]}
       modelWarnings={modelWarnings}
       successMessage={workbenchBasicSuccessMessage("frame")}
-      detailRows={[
-        { label: "支座自由度", value: supportSystemHint("frame") },
-        { label: "默认材料", value: defaultMaterialBasicDetail("frame", materialId, materialLibrary) },
-        { label: "弹性模量分布", value: memberElasticitySummary },
-        { label: "材料与截面", value: materialSectionBasicDetail("frame") },
-        { label: "主要结果", value: `节点位移、${memberTerm}轴力 / 剪力 / 弯矩、支座反力` },
-      ]}
-      actions={[
-        { label: "恢复单跨刚架", icon: <RotateCw className="h-3.5 w-3.5" />, onClick: onResetToPortal },
-        { label: `补全同轴${memberTerm}`, icon: <Wand2 className="h-3.5 w-3.5" />, onClick: onCompleteAxisMembers },
-        { label: "新增节点并连接", icon: <Plus className="h-3.5 w-3.5" />, onClick: onAddNode, variant: "default" },
-      ]}
+      actions={[]}
       controls={
         <div className="grid grid-cols-1 gap-4">
           <div className="space-y-2">
@@ -86,10 +63,14 @@ export function FrameBasicSection({
               options={materialOptions}
               className="h-10 text-xs font-mono"
               menuClassName="text-xs font-mono"
+              optionClassName="py-2"
+              fallbackSelectedLabel="手动 E"
+              menuMaxHeight={240}
               ariaLabel={defaultMaterialAriaLabel("frame")}
             />
             <div className="text-[10px] font-semibold leading-relaxed text-muted-foreground">
               {defaultMaterialControlHint("frame", materialId, materialLibrary)}
+              <span className="ml-2 text-muted-foreground/80">{memberElasticitySummary}</span>
             </div>
           </div>
         </div>

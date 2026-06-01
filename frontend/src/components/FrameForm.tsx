@@ -1,5 +1,4 @@
 import { FrameCustomModelEditor } from "./FrameCustomModelEditor";
-import { createDefaultFrameWorkspaceState } from "../lib/workspace-state.ts";
 import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
 import type { FrameWorkspaceState } from "../types/structure.ts";
 import type { FrameWorkbenchSelection, WorkbenchSelectionOptions } from "../types/workbench-selection.ts";
@@ -34,19 +33,6 @@ export function FrameForm({ value, onChange, activeSectionId, selection, onSelec
     });
   };
 
-  const resetToDefaultFrame = () => {
-    const defaults = createDefaultFrameWorkspaceState();
-    onChange({
-      ...value,
-      frameMode: "custom",
-      customNodes: defaults.customNodes,
-      customMembers: defaults.customMembers,
-      customLoads: defaults.customLoads,
-      customLoadCases: defaults.customLoadCases,
-      customLoadCombinations: defaults.customLoadCombinations,
-    });
-  };
-
   return (
     <FrameCustomModelEditor
       value={{
@@ -59,7 +45,6 @@ export function FrameForm({ value, onChange, activeSectionId, selection, onSelec
       materialId={value.materialId}
       onMaterialChange={(nextMaterialId) => onChange({ ...value, materialId: nextMaterialId })}
       onChange={commitCollections}
-      onResetToPortal={resetToDefaultFrame}
       selection={selection}
       onSelectionChange={onSelectionChange}
       activeSectionId={visibleSectionId}

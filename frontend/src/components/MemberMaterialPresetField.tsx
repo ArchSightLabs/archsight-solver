@@ -55,6 +55,9 @@ export function MemberMaterialPresetField({
         options={MATERIAL_OPTIONS}
         className="text-xs font-mono"
         menuClassName="text-xs font-mono"
+        optionClassName="py-2"
+        fallbackSelectedLabel="手动 E"
+        menuMaxHeight={240}
         ariaLabel={ariaLabel}
       />
       {showHint ? (

@@ -37,10 +37,11 @@ test("默认结果预览 SVG 按容器自适应避免初始滚动条", () => {
   });
 });
 
-test("扩展结果预览 SVG 使用实际像素尺寸以触发滚动", () => {
+test("扩展结果预览 SVG 默认响应式完整适配避免内嵌滚动", () => {
   assert.deepEqual(resultPreviewSvgStyle({ width: 1800, height: 720 }), {
-    width: "1800px",
-    height: "720px",
-    maxWidth: "none",
+    width: "100%",
+    height: "auto",
+    maxWidth: "1800px",
+    margin: "0 auto",
   });
 });

@@ -19,6 +19,8 @@ interface DropdownSelectProps {
   menuClassName?: string;
   optionClassName?: string;
   placeholder?: string;
+  fallbackSelectedLabel?: string;
+  menuMaxHeight?: number;
   ariaLabel?: string;
 }
 
@@ -30,6 +32,8 @@ export function DropdownSelect({
   menuClassName,
   optionClassName,
   placeholder = "请选择",
+  fallbackSelectedLabel,
+  menuMaxHeight = 320,
   ariaLabel,
 }: DropdownSelectProps) {
   const rootRef = React.useRef<HTMLDivElement>(null);
@@ -39,7 +43,8 @@ export function DropdownSelect({
   const [menuStyle, setMenuStyle] = React.useState<React.CSSProperties | null>(null);
 
   const selected = options.find((option) => option.value === value) ?? null;
-  const selectedDisplayLabel = selected?.selectedLabel ?? selected?.label ?? placeholder;
+  const selectedDisplayLabel = selected?.selectedLabel ?? selected?.label ?? fallbackSelectedLabel ?? placeholder;
+  const ariaValueLabel = selected?.label ?? fallbackSelectedLabel ?? placeholder;
   const hasOptionDescriptions = options.some((option) => option.description);
 
   React.useLayoutEffect(() => {
@@ -56,7 +61,7 @@ export function DropdownSelect({
       const spaceBelow = window.innerHeight - preferredTop - viewportPadding;
       const spaceAbove = rect.top - gap - viewportPadding;
       const opensAbove = spaceBelow < 160 && spaceAbove > spaceBelow;
-      const maxHeight = Math.max(120, Math.min(320, Math.max(spaceBelow, spaceAbove)));
+      const maxHeight = Math.max(120, Math.min(menuMaxHeight, Math.max(spaceBelow, spaceAbove)));
       const availableWidth = window.innerWidth - viewportPadding * 2;
       const width = Math.min(Math.max(rect.width, hasOptionDescriptions ? 260 : 160), availableWidth);
       const left = Math.min(Math.max(rect.left, viewportPadding), window.innerWidth - width - viewportPadding);
@@ -82,7 +87,7 @@ export function DropdownSelect({
       window.removeEventListener("resize", updateMenuStyle);
       window.removeEventListener("scroll", updateMenuStyle, true);
     };
-  }, [hasOptionDescriptions, open, value, options.length]);
+  }, [hasOptionDescriptions, menuMaxHeight, open, value, options.length]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -122,7 +127,7 @@ export function DropdownSelect({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listboxId : undefined}
-        aria-label={ariaLabel ? `${ariaLabel}，当前值：${selected?.label ?? placeholder}` : undefined}
+        aria-label={ariaLabel ? `${ariaLabel}，当前值：${ariaValueLabel}` : undefined}
         onClick={() => setOpen((current) => !current)}
         className={cn(
           "flex h-10 w-full items-center justify-between gap-3 rounded-md border border-white/10 px-3 text-left text-sm font-medium outline-none transition-colors",

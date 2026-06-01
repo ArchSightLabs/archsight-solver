@@ -40,7 +40,7 @@ const DEFAULT_BEAM_STATE = createDefaultBeamWorkspaceState();
 const FORM_LABEL_CLASS = "text-[11px] font-semibold leading-none text-slate-600 dark:text-slate-300";
 const FORM_CONTROL_CLASS = "h-9 border-white/5 bg-primary/[0.03] font-sans text-[12px] font-medium";
 const FORM_SELECT_MENU_CLASS = "font-sans text-[12px]";
-const FORM_SELECT_OPTION_CLASS = "py-2.5 text-[12px] font-medium";
+const FORM_SELECT_OPTION_CLASS = "py-2 text-[12px] font-medium";
 const FIELD_LABEL_CLASS = "text-[10px] font-black tracking-widest text-muted-foreground";
 
 export function BeamForm({ value, onChange, activeSectionId, selection, onSelectionChange }: BeamFormProps) {
@@ -83,51 +83,6 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
         springs: prior?.springs?.map((spring) => ({ ...spring })),
       };
     });
-
-  const withBeamSpanIds = (spans: BeamSpanConfig[]) => {
-    const seen = new Set<string>();
-    return spans.map((span, index) => {
-      const rawId = span.id?.trim();
-      const fallback = `(${index + 1})`;
-      const baseId = rawId && !seen.has(rawId) ? rawId : fallback;
-      let nextId = baseId;
-      let suffix = index + 1;
-      while (seen.has(nextId)) {
-        suffix += 1;
-        nextId = `(${suffix})`;
-      }
-      seen.add(nextId);
-      return { ...span, id: nextId };
-    });
-  };
-
-  const normalizeSpansForBeamType = (beamType: BeamWorkspaceState["beamType"], spans: BeamSpanConfig[]) => {
-    if (beamType === "continuous") {
-      if (spans.length >= 2) return withBeamSpanIds(spans.map((span) => ({ ...span })));
-      const span = spans[0] ?? DEFAULT_SPAN;
-      const splitLength = Math.max(span.length / 2, 0.1);
-      return withBeamSpanIds([
-        { ...span, id: "(1)", length: splitLength },
-        { ...span, id: "(2)", length: splitLength },
-      ]);
-    }
-
-    if (spans.length <= 1) return withBeamSpanIds(spans.map((span) => ({ ...span })));
-    const totalLength = spans.reduce((sum, span) => sum + span.length, 0);
-    const firstSpan = spans[0] ?? DEFAULT_SPAN;
-    return withBeamSpanIds([{ ...firstSpan, length: Math.max(totalLength, 0.1) }]);
-  };
-
-  const updateBeamType = (beamType: BeamWorkspaceState["beamType"]) => {
-    const spans = normalizeSpansForBeamType(beamType, value.spans);
-    onChange({
-      ...value,
-      beamType,
-      spans,
-      supports: mergeDefaultSupportLayout(beamType, spans),
-    });
-    selectObject({ type: "support", id: supportId(0) }, { openEditor: false });
-  };
 
   const updateSupport = (index: number, patch: Partial<BeamSupportConfig>) => {
     const supports = value.supports.map((support, supportIndex) =>
@@ -310,7 +265,6 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
     <div className="space-y-4">
       {isSectionVisible("beam-basic") ? (
       <BeamBasicSection
-        beamType={value.beamType}
         materialId={value.materialId}
         materialLibrary={materialLibrary}
         materialOptions={materialOptions}
@@ -321,7 +275,6 @@ export function BeamForm({ value, onChange, activeSectionId, selection, onSelect
         formControlClass={FORM_CONTROL_CLASS}
         formSelectMenuClass={FORM_SELECT_MENU_CLASS}
         formSelectOptionClass={FORM_SELECT_OPTION_CLASS}
-        onBeamTypeChange={updateBeamType}
         onMaterialChange={(nextValue) => updateWorkspace("materialId", nextValue)}
         onReset={() => onChange(DEFAULT_BEAM_STATE)}
       />

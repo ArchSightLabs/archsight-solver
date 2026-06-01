@@ -84,6 +84,8 @@ export function BeamSpanEditor({
             className={formControlClass}
             menuClassName={formSelectMenuClass}
             optionClassName={formSelectOptionClass}
+            fallbackSelectedLabel="手动 E"
+            menuMaxHeight={240}
           />
           <div className="text-[10px] font-semibold leading-relaxed text-muted-foreground">
             {memberMaterialPresetHint("beam", memberTerm)} {materialNote}

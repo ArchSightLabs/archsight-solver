@@ -4,6 +4,7 @@ import type { FramePreviewData, SupportType } from "../types/structure";
 import { buildFrameDimensionLegendRows, buildFrameGeometryDimensions, buildFrameLoadLabelMap, buildFrameLoadMarkers, frameMemberLabelPlacement, type FrameLoadMarker } from "./frame-preview-utils";
 import { formatEngineeringValue } from "../lib/engineering-format";
 import { modelObjectMemberTerm, modelObjectVocabulary } from "../lib/model-object-vocabulary";
+import { useCanvasDrag } from "../hooks/useModelCanvasZoom";
 import { RESULT_PREVIEW_BASE_SIZE, resultPreviewCanvasSize, resultPreviewSvgStyle } from "../lib/result-preview-sizing";
 import { summaryMetricLabel } from "../lib/result-metrics";
 import { STRUCTURE_NODE_RADII, STRUCTURE_STATE_COLORS, STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
@@ -100,6 +101,7 @@ function hingeMarker(x: number, y: number, key: string) {
 export function FramePreview({ frame, compact = false }: FramePreviewProps) {
   const objectVocabulary = modelObjectVocabulary("frame");
   const memberTerm = modelObjectMemberTerm("frame");
+  const { canvasScrollRef, isCanvasDragging, handleCanvasPointerDown, handleCanvasPointerMove, finishCanvasDrag, handleCanvasClickCapture } = useCanvasDrag();
   const padding = compact ? 52 : PADDING;
   const canvasSize = useMemo(
     () => frame ? resultPreviewCanvasSize(frame.nodes, frame.members.length) : RESULT_PREVIEW_BASE_SIZE,
@@ -231,7 +233,15 @@ export function FramePreview({ frame, compact = false }: FramePreviewProps) {
         </div>
       </div>
 
-      <div className="structure-preview-surface frame-structure-preview-surface relative overflow-auto">
+      <div
+        ref={canvasScrollRef}
+        className={`structure-preview-surface frame-structure-preview-surface relative overflow-auto ${isCanvasDragging ? "cursor-grabbing" : "cursor-grab"}`}
+        onPointerDown={handleCanvasPointerDown}
+        onPointerMove={handleCanvasPointerMove}
+        onPointerUp={finishCanvasDrag}
+        onPointerCancel={finishCanvasDrag}
+        onClickCapture={handleCanvasClickCapture}
+      >
         <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} className="block" style={resultPreviewSvgStyle(canvasSize)}>
           <defs>
             <linearGradient id="frameBaseGrad" x1="0%" x2="100%">

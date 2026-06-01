@@ -5,6 +5,7 @@ import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments, forma
 import { formatEngineeringValue } from "../lib/engineering-format";
 import { summaryMetricLabel } from "../lib/result-metrics";
 import { STRUCTURE_STATE_COLORS, STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
+import { useCanvasDrag } from "../hooks/useModelCanvasZoom";
 
 interface BeamPreviewProps {
   beam?: BeamPreviewData | null;
@@ -69,6 +70,7 @@ function distributedArrowXs(startX: number, endX: number) {
 export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
   const totalLength = beam?.totalLength || 1;
 
+  const { canvasScrollRef, isCanvasDragging, handleCanvasPointerDown, handleCanvasPointerMove, finishCanvasDrag, handleCanvasClickCapture } = useCanvasDrag();
   const mapX = useCallback((x: number) => BEAM_LEFT + (x / totalLength) * BEAM_LEN, [totalLength]);
   const maxDeflMm = useMemo(() => {
     const vals = (beam?.curve || []).map((p) => Math.abs(p.vMm));
@@ -221,7 +223,15 @@ export function BeamPreview({ beam, compact = false }: BeamPreviewProps) {
       </div>
 
       {/* SVG 工程预览图 */}
-      <div className="structure-preview-surface relative">
+      <div
+        ref={canvasScrollRef}
+        className={`structure-preview-surface relative overflow-auto ${isCanvasDragging ? "cursor-grabbing" : "cursor-grab"}`}
+        onPointerDown={handleCanvasPointerDown}
+        onPointerMove={handleCanvasPointerMove}
+        onPointerUp={finishCanvasDrag}
+        onPointerCancel={finishCanvasDrag}
+        onClickCapture={handleCanvasClickCapture}
+      >
         <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} className={`block w-full ${compact ? "h-[180px] sm:h-[240px]" : "h-[220px] sm:h-[260px]"}`}>
           <defs>
             <linearGradient id="beamGrad" x1="0%" x2="100%">

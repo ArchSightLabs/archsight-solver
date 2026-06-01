@@ -8,6 +8,11 @@ export interface ModelCanvasSize {
   height: number;
 }
 
+export interface ModelCanvasViewportSize {
+  width: number;
+  height: number;
+}
+
 export const BEAM_MODEL_CANVAS_BASE_SIZE: ModelCanvasSize = { width: 900, height: 300 };
 export const FRAME_MODEL_CANVAS_BASE_SIZE: ModelCanvasSize = { width: 900, height: 360 };
 export const TRUSS_MODEL_CANVAS_BASE_SIZE: ModelCanvasSize = { width: 900, height: 360 };
@@ -113,7 +118,11 @@ export function workbenchModelCanvasSize(workspace: WorkspaceState, mode: Analys
   return trussCanvasSize(workspace);
 }
 
-export function modelCanvasBoardStyle(canvasSize: ModelCanvasSize, zoomPercent: number): CSSProperties {
+export function modelCanvasBoardStyle(
+  canvasSize: ModelCanvasSize,
+  zoomPercent: number,
+  viewportSize?: ModelCanvasViewportSize | null,
+): CSSProperties {
   const scale = zoomPercent / MODEL_CANVAS_DEFAULT_ZOOM_PERCENT;
   const width = Math.round(canvasSize.width * scale);
   const height = Math.round(canvasSize.height * scale);
@@ -123,6 +132,18 @@ export function modelCanvasBoardStyle(canvasSize: ModelCanvasSize, zoomPercent: 
     canvasSize.height <= MODEL_CANVAS_RESPONSIVE_MAX_HEIGHT;
 
   if (shouldFitDefaultCanvas) {
+    const viewportWidth = viewportSize?.width && viewportSize.width > 0 ? Math.max(1, viewportSize.width - 1) : null;
+    const viewportHeight = viewportSize?.height && viewportSize.height > 0 ? Math.max(1, viewportSize.height - 1) : null;
+
+    if (viewportWidth && viewportHeight) {
+      const fitScale = Math.min(1, viewportWidth / canvasSize.width, viewportHeight / canvasSize.height);
+      return {
+        width: `${Math.max(1, Math.floor(canvasSize.width * fitScale))}px`,
+        height: `${Math.max(1, Math.floor(canvasSize.height * fitScale))}px`,
+        margin: "0 auto",
+      };
+    }
+
     return {
       width: "100%",
       maxWidth: `${width}px`,

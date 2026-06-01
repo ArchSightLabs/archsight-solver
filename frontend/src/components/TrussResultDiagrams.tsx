@@ -11,6 +11,7 @@ import {
   type DiagramPlacedLabel,
 } from "../lib/diagram-label-layout";
 import { formatEngineeringValue } from "../lib/engineering-format";
+import { useCanvasDrag } from "../hooks/useModelCanvasZoom";
 import { RESULT_PREVIEW_BASE_SIZE, resultPreviewCanvasSize, resultPreviewSvgStyle, type ResultPreviewCanvasSize } from "../lib/result-preview-sizing";
 import { clamp } from "../lib/result-diagram-geometry";
 import { modelObjectMemberTerm } from "../lib/model-object-vocabulary";
@@ -112,6 +113,7 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
   const [manualDisplacementScale, setManualDisplacementScale] = useState<number | null>(null);
   const selectedMetricKey = metricKey ?? selectedMetricState;
   const selectedMetric = getTrussDiagramMetric(selectedMetricKey === "all" ? DEFAULT_TRUSS_DIAGRAM_METRIC_KEY : selectedMetricKey);
+  const { canvasScrollRef, isCanvasDragging, handleCanvasPointerDown, handleCanvasPointerMove, finishCanvasDrag, handleCanvasClickCapture } = useCanvasDrag();
   const padding = compact ? 54 : PADDING;
   const canvasSize = useMemo(
     () => truss ? resultPreviewCanvasSize(truss.nodes, truss.members.length) : RESULT_PREVIEW_BASE_SIZE,
@@ -401,7 +403,15 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
         </div>
       ) : null}
 
-      <div className="structure-preview-surface overflow-auto rounded-lg border border-slate-200/80 bg-white/90 dark:border-slate-700/80 dark:bg-slate-900/45">
+      <div
+        ref={canvasScrollRef}
+        className={`structure-preview-surface overflow-auto rounded-lg border border-slate-200/80 bg-white/90 dark:border-slate-700/80 dark:bg-slate-900/45 ${isCanvasDragging ? "cursor-grabbing" : "cursor-grab"}`}
+        onPointerDown={handleCanvasPointerDown}
+        onPointerMove={handleCanvasPointerMove}
+        onPointerUp={finishCanvasDrag}
+        onPointerCancel={finishCanvasDrag}
+        onClickCapture={handleCanvasClickCapture}
+      >
         <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} className="block" style={resultPreviewSvgStyle(canvasSize)}>
           {[0.25, 0.5, 0.75].map((ratio) => (
             <line key={ratio} x1="42" y1={canvasSize.height * ratio} x2={canvasSize.width - 42} y2={canvasSize.height * ratio} stroke="var(--frame-diagram-grid)" strokeDasharray="6 8" />

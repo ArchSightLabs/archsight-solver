@@ -4,6 +4,7 @@ import type { SupportType, TrussPreviewData } from "../types/structure";
 import { buildTrussLoadMarkers, buildTrussMemberLengthDimensions, buildTrussMemberLengthLegendRows } from "./truss-preview-utils";
 import { formatEngineeringValue, formatLimitRatio, formatUtilizationPercent } from "../lib/engineering-format";
 import { modelObjectMemberTerm, modelObjectVocabulary } from "../lib/model-object-vocabulary";
+import { useCanvasDrag } from "../hooks/useModelCanvasZoom";
 import { RESULT_PREVIEW_BASE_SIZE, resultPreviewCanvasSize, resultPreviewSvgStyle, type ResultPreviewCanvasSize } from "../lib/result-preview-sizing";
 import { STRUCTURE_NODE_RADII, STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
 
@@ -74,6 +75,7 @@ function memberLabelPlacement(start: { x: number; y: number }, end: { x: number;
 export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
   const objectVocabulary = modelObjectVocabulary("truss");
   const memberTerm = modelObjectMemberTerm("truss");
+  const { canvasScrollRef, isCanvasDragging, handleCanvasPointerDown, handleCanvasPointerMove, finishCanvasDrag, handleCanvasClickCapture } = useCanvasDrag();
   const padding = compact ? 54 : PADDING;
   const canvasSize = useMemo(
     () => truss ? resultPreviewCanvasSize(truss.nodes, truss.members.length) : RESULT_PREVIEW_BASE_SIZE,
@@ -183,7 +185,15 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
         </div>
       </div>
 
-      <div className="structure-preview-surface relative overflow-auto">
+      <div
+        ref={canvasScrollRef}
+        className={`structure-preview-surface relative overflow-auto ${isCanvasDragging ? "cursor-grabbing" : "cursor-grab"}`}
+        onPointerDown={handleCanvasPointerDown}
+        onPointerMove={handleCanvasPointerMove}
+        onPointerUp={finishCanvasDrag}
+        onPointerCancel={finishCanvasDrag}
+        onClickCapture={handleCanvasClickCapture}
+      >
         <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} className="block" style={resultPreviewSvgStyle(canvasSize)}>
           <defs>
             <linearGradient id="trussBaseGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={canvasSize.width} y2="0">

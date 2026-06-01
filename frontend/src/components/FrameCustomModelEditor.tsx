@@ -59,7 +59,6 @@ interface FrameCustomModelEditorProps {
   materialId: string;
   onChange: (next: FrameCollections) => void;
   onMaterialChange: (nextMaterialId: string) => void;
-  onResetToPortal: () => void;
   activeSectionId?: string;
   selection?: FrameWorkbenchSelection | null;
   onSelectionChange?: (next: FrameWorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
@@ -70,7 +69,6 @@ export function FrameCustomModelEditor({
   materialId,
   onChange,
   onMaterialChange,
-  onResetToPortal,
   activeSectionId,
   selection,
   onSelectionChange,
@@ -227,34 +225,6 @@ export function FrameCustomModelEditor({
       duplicateExists: (nextStartId, nextEndId) => frameMemberExists(nextMembers, nextStartId, nextEndId),
     });
     selectObject({ type: "node", id: nextNode.id }, { openEditor: false });
-  };
-
-  const completeAxisMembers = () => {
-    const nodeById = new Map(value.nodes.map((node) => [node.id, node]));
-    const candidates: Array<[StructureNode, StructureNode]> = [];
-    const sameXGroups = new Map<number, StructureNode[]>();
-    const sameYGroups = new Map<number, StructureNode[]>();
-    for (const node of value.nodes) {
-      const xKey = Number(node.x.toFixed(6));
-      const yKey = Number(node.y.toFixed(6));
-      sameXGroups.set(xKey, [...(sameXGroups.get(xKey) ?? []), node]);
-      sameYGroups.set(yKey, [...(sameYGroups.get(yKey) ?? []), node]);
-    }
-    for (const group of sameXGroups.values()) {
-      group.sort((a, b) => a.y - b.y).slice(1).forEach((node, index) => candidates.push([group[index], node]));
-    }
-    for (const group of sameYGroups.values()) {
-      group.sort((a, b) => a.x - b.x).slice(1).forEach((node, index) => candidates.push([group[index], node]));
-    }
-
-    let nextMembers = [...value.members];
-    for (const [start, end] of candidates) {
-      if (!nodeById.has(start.id) || !nodeById.has(end.id) || frameMemberExists(nextMembers, start.id, end.id)) {
-        continue;
-      }
-      nextMembers = [...nextMembers, createConnectedFrameMember(start, end, nextMembers, nextMembers.map((member) => member.id), defaultMemberElasticityGPa, materialId)];
-    }
-    commit(keep({ members: nextMembers }));
   };
 
   const removeNode = (index: number) => {
@@ -462,9 +432,6 @@ export function FrameCustomModelEditor({
         supportCount={supportCount}
         loadCount={value.loads.length}
         modelWarnings={modelWarnings}
-        onResetToPortal={onResetToPortal}
-        onCompleteAxisMembers={completeAxisMembers}
-        onAddNode={addNode}
         onMaterialChange={onMaterialChange}
       />
       ) : null}

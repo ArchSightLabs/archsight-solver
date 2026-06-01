@@ -26,6 +26,7 @@ import { clamp, svgAreaPath, svgPathFromPoints } from "../lib/result-diagram-geo
 import { modelObjectMemberTerm } from "../lib/model-object-vocabulary";
 import { summaryMetricLabel } from "../lib/result-metrics";
 import { STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
+import { useCanvasDrag } from "../hooks/useModelCanvasZoom";
 import { ResultDiagramCard, ResultDiagramEmptyState, ResultDiagramMetricBadge, ResultDiagramMetricGallery } from "./ResultDiagramLayout";
 import { buildFrameDimensionLegendRows, buildFrameGeometryDimensions, frameMemberLabelPlacement } from "./frame-preview-utils";
 
@@ -152,6 +153,7 @@ function FrameStructureDiagram({
   compact: boolean;
 }) {
   const padding = compact ? 68 : 88;
+  const { canvasScrollRef, isCanvasDragging, handleCanvasPointerDown, handleCanvasPointerMove, finishCanvasDrag, handleCanvasClickCapture } = useCanvasDrag();
   const canvasSize = useMemo(() => resultPreviewCanvasSize(frame.nodes, frame.members.length), [frame]);
   const layout = useMemo(() => buildNodeLayout(frame, padding, canvasSize), [frame, padding, canvasSize]);
   const diagramsByMember = useMemo(() => new Map(diagrams.map((diagram) => [diagram.memberId, diagram])), [diagrams]);
@@ -313,7 +315,15 @@ function FrameStructureDiagram({
   }, [canvasSize, compact, dimensionLegendRows, extreme, extremePoint, frame.members, frame.nodes, frameCenter, layout.nodeMap, metric.unit, renderedMembers]);
 
   return (
-    <div className="structure-preview-surface overflow-auto rounded-lg border border-slate-200/80 bg-white/90 dark:border-slate-700/80 dark:bg-slate-900/45">
+    <div
+      ref={canvasScrollRef}
+      className={`structure-preview-surface overflow-auto rounded-lg border border-slate-200/80 bg-white/90 dark:border-slate-700/80 dark:bg-slate-900/45 ${isCanvasDragging ? "cursor-grabbing" : "cursor-grab"}`}
+      onPointerDown={handleCanvasPointerDown}
+      onPointerMove={handleCanvasPointerMove}
+      onPointerUp={finishCanvasDrag}
+      onPointerCancel={finishCanvasDrag}
+      onClickCapture={handleCanvasClickCapture}
+    >
       <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} className="block" style={resultPreviewSvgStyle(canvasSize)}>
         <defs>
           <filter id="frameDiagramTextHalo" x="-20%" y="-20%" width="140%" height="140%">

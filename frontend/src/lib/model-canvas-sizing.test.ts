@@ -204,3 +204,15 @@ test("默认基准画布使用容器自适应样式避免初始滚动条", () =>
     margin: "0 auto",
   });
 });
+
+test("默认中等框架画布按容器宽高缩放避免宽屏纵向滚动条", () => {
+  const style = modelCanvasBoardStyle({ width: 1080, height: 506 }, 100, { width: 1180, height: 372 });
+  const width = Number.parseFloat(String(style.width));
+  const height = Number.parseFloat(String(style.height));
+
+  assert.equal(style.margin, "0 auto");
+  assert.ok(width <= 1179);
+  assert.ok(height <= 371);
+  assert.ok(width > 0);
+  assert.ok(height > 0);
+});

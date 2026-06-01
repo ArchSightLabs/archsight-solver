@@ -7,11 +7,30 @@ export interface MaterialDropdownOption {
   description?: string;
 }
 
+interface MaterialDropdownOptionsConfig {
+  includeCustom?: boolean;
+  includeDescriptions?: boolean;
+}
+
+function materialDisplayName(material: Material): string {
+  const code = material.id.toUpperCase();
+  const name = material.name.trim();
+  return name.toUpperCase().startsWith(code) ? name : `${code} ${name}`;
+}
+
+function isCustomMaterial(material: Material): boolean {
+  return material.id === "custom" || material.category === "custom";
+}
+
+export function selectableMaterialPresets(materials: Material[] = PREDEFINED_MATERIALS): Material[] {
+  return materials.filter((material) => !isCustomMaterial(material));
+}
+
 export function materialOptionLabel(material: Material): string {
   if (material.id === "custom") {
-    return "CUSTOM · 自定义 / 手动输入 E（不回填预设）";
+    return "手动 E（不回填预设）";
   }
-  return `${material.id.toUpperCase()} · ${material.name} · E=${material.youngModulus} GPa · ρ=${material.density} kg/m³`;
+  return `${materialDisplayName(material)} · E=${material.youngModulus} GPa · ρ=${material.density} kg/m³`;
 }
 
 export function materialOptionSelectedLabel(material: Material): string {
@@ -19,7 +38,7 @@ export function materialOptionSelectedLabel(material: Material): string {
 }
 
 export function materialOptionMenuLabel(material: Material): string {
-  return material.id === "custom" ? "CUSTOM · 自定义" : `${material.id.toUpperCase()} · ${material.name}`;
+  return material.id === "custom" ? "手动 E" : materialDisplayName(material);
 }
 
 export function materialOptionDescription(material: Material): string {
@@ -49,12 +68,16 @@ export function memberMaterialEngineeringNote(
   return materialEngineeringNote(material.id, materials);
 }
 
-export function materialDropdownOptions(materials: Material[] = PREDEFINED_MATERIALS): MaterialDropdownOption[] {
-  return materials.map((material) => ({
+export function materialDropdownOptions(
+  materials: Material[] = PREDEFINED_MATERIALS,
+  config: MaterialDropdownOptionsConfig = {},
+): MaterialDropdownOption[] {
+  const selectableMaterials = config.includeCustom ? materials : selectableMaterialPresets(materials);
+  return selectableMaterials.map((material) => ({
     value: material.id,
     label: materialOptionMenuLabel(material),
     selectedLabel: materialOptionSelectedLabel(material),
-    description: materialOptionDescription(material),
+    ...(config.includeDescriptions ? { description: materialOptionDescription(material) } : {}),
   }));
 }
 
