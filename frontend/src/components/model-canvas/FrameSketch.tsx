@@ -9,9 +9,9 @@ import type { FrameLoad, FrameLoadDirection, StructureNode, SupportType } from "
 import type { WorkbenchSelection } from "../../types/workbench-selection";
 import { MODEL_DIMENSION_TEXT_WEIGHT, SVG_TEXT_FONT, clampRatio, svgInteractiveProps } from "./shared";
 
-const FRAME_LOAD_STROKE_WIDTH = 1.55;
-const FRAME_LOAD_SELECTED_STROKE_WIDTH = 2.35;
-const FRAME_LOAD_GUIDE_STROKE_WIDTH = 1.2;
+const FRAME_LOAD_STROKE_WIDTH = STRUCTURE_VISUAL_STROKES.modelFrameLoad;
+const FRAME_LOAD_SELECTED_STROKE_WIDTH = STRUCTURE_VISUAL_STROKES.modelFrameSelectedLoad;
+const FRAME_LOAD_GUIDE_STROKE_WIDTH = STRUCTURE_VISUAL_STROKES.modelFrameLoadGuide;
 const FRAME_SKETCH_LEFT_PAD = 165;
 const FRAME_SKETCH_RIGHT_PAD = 165;
 const FRAME_SKETCH_TOP_PAD = 90;
@@ -243,7 +243,7 @@ export function FrameSketch({
             <g key={member.id} {...svgInteractiveProps(`选择框架${memberTerm} ${member.id}`, () => onSelect?.({ mode: "frame", type: "member", id: member.id }))}>
               <title>{`框架${memberTerm} ${member.id}`}</title>
               <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="transparent" strokeWidth="18" />
-              <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} strokeWidth={selected ? STRUCTURE_VISUAL_STROKES.modelSelectedMember : STRUCTURE_VISUAL_STROKES.modelMember} stroke={selected ? "var(--model-load)" : "var(--model-member)"} opacity={selected ? "0.85" : "1"} />
+              <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} strokeWidth={selected ? STRUCTURE_VISUAL_STROKES.modelFrameSelectedMember : STRUCTURE_VISUAL_STROKES.modelMember} stroke={selected ? "var(--model-load)" : "var(--model-member)"} opacity={selected ? "0.85" : "1"} />
               {showLabel ? (
                 <text
                   x={label.x}

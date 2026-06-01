@@ -197,7 +197,7 @@ export function TrussSketch({
           <g key={member.id} {...svgInteractiveProps(`选择桁架${memberTerm} ${member.id}`, () => onSelect?.({ mode: "truss", type: "member", id: member.id }))}>
             <title>{dimension?.title ?? `桁架${memberTerm} ${member.id}`}</title>
             <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="transparent" strokeWidth="18" strokeLinecap="round" />
-            <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke={selected ? "var(--model-load)" : "var(--model-member)"} strokeWidth={selected ? STRUCTURE_VISUAL_STROKES.modelSelectedMember : STRUCTURE_VISUAL_STROKES.modelMember} strokeLinecap="round" opacity={selected ? "0.85" : "1"} />
+            <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke={selected ? "var(--model-load)" : "var(--model-member)"} strokeWidth={selected ? STRUCTURE_VISUAL_STROKES.modelTrussSelectedMember : STRUCTURE_VISUAL_STROKES.modelMember} strokeLinecap="round" opacity={selected ? "0.85" : "1"} />
             {showLabel ? (
               <text
                 x={label.x}

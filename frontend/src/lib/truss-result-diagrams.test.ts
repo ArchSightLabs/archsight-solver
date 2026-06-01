@@ -5,8 +5,10 @@ import {
   DEFAULT_TRUSS_DIAGRAM_METRIC_KEY,
   autoTrussDisplacementDisplayScale,
   getTrussDiagramMetric,
+  trussAxialMemberStrokeWidth,
   TRUSS_DIAGRAM_METRICS,
 } from "./truss-result-diagrams.ts";
+import { STRUCTURE_VISUAL_STROKES } from "./structure-visual-tokens.ts";
 import { reportFiguresForScope, TRUSS_REPORT_OVERLAY_FIGURES } from "./report-figure-catalog.ts";
 
 test("桁架界面工程图目录由计算书图形目录派生", () => {
@@ -31,6 +33,14 @@ test("桁架控制图与默认界面图一致", () => {
     reportFiguresForScope(TRUSS_REPORT_OVERLAY_FIGURES, false).map((figure) => figure.metric),
     ["axial"],
   );
+});
+
+test("桁架轴力图杆件线宽保持接近梁系结果图", () => {
+  assert.equal(trussAxialMemberStrokeWidth(0, 120), STRUCTURE_VISUAL_STROKES.resultTrussAxialMin);
+  assert.equal(trussAxialMemberStrokeWidth(120, 120), STRUCTURE_VISUAL_STROKES.resultTrussAxialMax);
+  assert.equal(trussAxialMemberStrokeWidth(-60, 120), 3.2);
+  assert.ok(STRUCTURE_VISUAL_STROKES.resultTrussBase <= STRUCTURE_VISUAL_STROKES.resultBeamBase);
+  assert.ok(STRUCTURE_VISUAL_STROKES.resultTrussAxialMax < STRUCTURE_VISUAL_STROKES.resultOverlayBase);
 });
 
 test("桁架节点位移自动显示倍率按实际位移比例收敛", () => {

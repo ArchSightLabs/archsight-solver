@@ -1,5 +1,6 @@
 import { TRUSS_REPORT_OVERLAY_FIGURES, type TrussReportFigure } from "./report-figure-catalog.ts";
 import { clamp } from "./result-diagram-geometry.ts";
+import { STRUCTURE_VISUAL_STROKES } from "./structure-visual-tokens.ts";
 
 export type TrussDiagramMetricKey = "axialForceKn" | "displacementMm";
 
@@ -32,6 +33,15 @@ export const DEFAULT_TRUSS_DIAGRAM_METRIC_KEY: TrussDiagramMetricKey = TRUSS_DIA
 
 export function getTrussDiagramMetric(key: TrussDiagramMetricKey): TrussDiagramMetric {
   return TRUSS_DIAGRAM_METRICS.find((metric) => metric.key === key) ?? TRUSS_DIAGRAM_METRICS[0];
+}
+
+export function trussAxialMemberStrokeWidth(axialForceKn: number, maxAbsAxialKn: number): number {
+  const minStroke = STRUCTURE_VISUAL_STROKES.resultTrussAxialMin;
+  const maxStroke = STRUCTURE_VISUAL_STROKES.resultTrussAxialMax;
+  if (!Number.isFinite(axialForceKn) || !Number.isFinite(maxAbsAxialKn) || maxAbsAxialKn <= 1e-9) {
+    return minStroke;
+  }
+  return minStroke + clamp(Math.abs(axialForceKn) / maxAbsAxialKn, 0, 1) * (maxStroke - minStroke);
 }
 
 function smoothStep(value: number) {

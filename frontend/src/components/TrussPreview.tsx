@@ -226,7 +226,7 @@ export function TrussPreview({ truss, compact = false }: TrussPreviewProps) {
             const label = memberLabelPlacement(start, end, canvasSize);
             return (
               <g key={member.id}>
-                <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="url(#trussBaseGrad)" strokeWidth={STRUCTURE_VISUAL_STROKES.previewMember} strokeLinecap="round" strokeLinejoin="round" />
+                <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="url(#trussBaseGrad)" strokeWidth={STRUCTURE_VISUAL_STROKES.previewTrussMember} strokeLinecap="round" strokeLinejoin="round" />
                 <text
                   x={label.x}
                   y={label.y}

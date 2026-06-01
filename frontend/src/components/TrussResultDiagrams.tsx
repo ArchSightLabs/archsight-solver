@@ -21,6 +21,7 @@ import {
   DEFAULT_TRUSS_DIAGRAM_METRIC_KEY,
   autoTrussDisplacementDisplayScale,
   getTrussDiagramMetric,
+  trussAxialMemberStrokeWidth,
   TRUSS_DIAGRAM_METRICS,
   type TrussDiagramMetricKey,
 } from "../lib/truss-result-diagrams";
@@ -438,13 +439,15 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
             const result = memberResultsById.get(member.id);
             const value = result?.axialForceKn ?? 0;
             const isTension = value >= 0;
-            const strokeWidth = selectedMetricKey === "axialForceKn" ? 3 + (maxAbsAxial > 1e-9 ? (Math.abs(value) / maxAbsAxial) * 6 : 0) : STRUCTURE_VISUAL_STROKES.resultOverlayBase;
+            const strokeWidth = selectedMetricKey === "axialForceKn"
+              ? trussAxialMemberStrokeWidth(value, maxAbsAxial)
+              : STRUCTURE_VISUAL_STROKES.resultTrussBase;
             const label = labelLayouts.get(`member-${member.id}`);
             const line = label?.lines[0];
             const axialColor = isTension ? STRUCTURE_RESULT_COLORS.trussTension : STRUCTURE_RESULT_COLORS.trussCompression;
             return (
               <g key={member.id}>
-                <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="var(--structure-preview-base-start)" strokeOpacity="0.55" strokeWidth={STRUCTURE_VISUAL_STROKES.resultOverlayBase} strokeLinecap="round" />
+                <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="var(--structure-preview-base-start)" strokeOpacity="0.55" strokeWidth={STRUCTURE_VISUAL_STROKES.resultTrussBase} strokeLinecap="round" />
                 {selectedMetricKey === "axialForceKn" ? (
                   <>
                     <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke={axialColor} strokeOpacity="0.82" strokeWidth={strokeWidth} strokeLinecap="round" />
