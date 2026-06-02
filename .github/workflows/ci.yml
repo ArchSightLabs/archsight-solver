@@ -26,7 +26,7 @@ jobs:
 
       - name: Verify Docker requirements export
         run: |
-          uv export --frozen --no-dev --format requirements-txt --no-header --output-file /tmp/requirements.txt
+          uv export --frozen --no-dev --no-emit-project --format requirements-txt --no-header --output-file /tmp/requirements.txt
           tail -n +3 requirements.txt > /tmp/requirements.current.txt
           diff -u /tmp/requirements.current.txt /tmp/requirements.txt
 
