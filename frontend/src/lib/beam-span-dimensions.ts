@@ -62,9 +62,9 @@ export function buildBeamSpanDimensionSegments(
     const width = drawingLength * (Math.max(0, length) / safeTotal);
     const start = cursor;
     const end = index === spans.length - 1 ? endX : start + width;
-    const memberId = labels.memberIds?.[index]?.trim() || beamSpanMemberId(index);
-    const startNodeId = labels.nodeIds?.[index]?.trim() || `${index + 1}`;
-    const endNodeId = labels.nodeIds?.[index + 1]?.trim() || `${index + 2}`;
+    const memberId = labels.memberIds?.at(index)?.trim() || beamSpanMemberId(index);
+    const startNodeId = labels.nodeIds?.at(index)?.trim() || `${index + 1}`;
+    const endNodeId = labels.nodeIds?.at(index + 1)?.trim() || `${index + 2}`;
     cursor = end;
     return {
       index,

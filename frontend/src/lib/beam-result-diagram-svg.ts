@@ -231,18 +231,18 @@ function beamXData(results: BeamCalculationResults, beam: BeamPreviewData) {
 
 function supportMarkerSvg(type: BeamSupportType, x: number) {
   if (type === "fixed") {
-    return `<rect x="${n(x - 14)}" y="${n(BEAM_Y - 5)}" width="28" height="44" rx="3" fill="${COLORS.supportFill}" stroke="${COLORS.supportStroke}" stroke-width="1" />`;
+    return String.raw`<rect x="${n(x - 14)}" y="${n(BEAM_Y - 5)}" width="28" height="44" rx="3" fill="${COLORS.supportFill}" stroke="${COLORS.supportStroke}" stroke-width="1" />`;
   }
   if (type === "free") {
-    return `<circle cx="${n(x)}" cy="${n(BEAM_Y)}" r="7" fill="none" stroke="${COLORS.supportStroke}" stroke-dasharray="3 3" />`;
+    return String.raw`<circle cx="${n(x)}" cy="${n(BEAM_Y)}" r="7" fill="none" stroke="${COLORS.supportStroke}" stroke-dasharray="3 3" />`;
   }
   const rollers =
     type === "roller"
-      ? `
+      ? String.raw`
         <circle cx="${n(x - 9)}" cy="${n(BEAM_Y + 36)}" r="3" fill="none" stroke="${COLORS.supportStroke}" stroke-width="1" />
         <circle cx="${n(x + 9)}" cy="${n(BEAM_Y + 36)}" r="3" fill="none" stroke="${COLORS.supportStroke}" stroke-width="1" />`
       : "";
-  return `
+  return String.raw`
     <polygon points="${n(x - 16)},${n(BEAM_Y + 26)} ${n(x + 16)},${n(BEAM_Y + 26)} ${n(x)},${n(BEAM_Y + 2)}" fill="${COLORS.supportFill}" stroke="${COLORS.supportStroke}" stroke-width="1" />
     <line x1="${n(x - 18)}" y1="${n(BEAM_Y + 30)}" x2="${n(x + 18)}" y2="${n(BEAM_Y + 30)}" stroke="${COLORS.supportLine}" stroke-width="${SUPPORT_BASE_STROKE_WIDTH}" />
     ${rollers}`;
@@ -295,12 +295,12 @@ export function buildBeamResultDiagramSvg(results: BeamCalculationResults, metri
   const beam = results.beam;
   if (!beam) return "";
 
-  const metric = BEAM_DIAGRAM_METRICS[metricKey];
+  const metric = Reflect.get(BEAM_DIAGRAM_METRICS, metricKey as keyof typeof BEAM_DIAGRAM_METRICS) || BEAM_DIAGRAM_METRICS.deflectionMm;
   const totalLength = Math.max(beam.totalLength || 0, 1e-9);
   const xData = beamXData(results, beam);
   const values = metricValues(results, metric.key);
   const samples = xData
-    .map((x, index) => ({ x, value: values[index] ?? 0 }))
+    .map((x, index) => ({ x, value: values.at(index) ?? 0 }))
     .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.value))
     .sort((a, b) => a.x - b.x);
   const maxAbs = Math.max(...samples.map((point) => Math.abs(point.value)), 0);
@@ -323,7 +323,7 @@ export function buildBeamResultDiagramSvg(results: BeamCalculationResults, metri
   const resultAreaPath = areaPath(basePoints, resultPoints);
   const keyPoints: BeamAnnotationPoint[] = findBeamDiagramKeyPoints(samples, metric.key)
     .map((point) => {
-      const svgPoint = resultPoints[point.index];
+      const svgPoint = resultPoints.at(point.index);
       if (!svgPoint) return null;
       return {
         ...svgPoint,
@@ -344,13 +344,13 @@ export function buildBeamResultDiagramSvg(results: BeamCalculationResults, metri
     unit: metric.unit,
   });
 
-  return `
+  return String.raw`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${BEAM_RESULT_DIAGRAM_SVG_WIDTH} ${BEAM_RESULT_DIAGRAM_SVG_HEIGHT}" width="${BEAM_RESULT_DIAGRAM_SVG_WIDTH}" height="${BEAM_RESULT_DIAGRAM_SVG_HEIGHT}">
   <rect x="0" y="0" width="${BEAM_RESULT_DIAGRAM_SVG_WIDTH}" height="${BEAM_RESULT_DIAGRAM_SVG_HEIGHT}" fill="${COLORS.background}" />
   ${[0.25, 0.5, 0.75]
     .map(
       (ratio) =>
-        `<line x1="42" y1="${n(BEAM_RESULT_DIAGRAM_SVG_HEIGHT * ratio)}" x2="${BEAM_RESULT_DIAGRAM_SVG_WIDTH - 42}" y2="${n(BEAM_RESULT_DIAGRAM_SVG_HEIGHT * ratio)}" stroke="${COLORS.grid}" stroke-opacity="0.78" stroke-width="${GRID_STROKE_WIDTH}" stroke-dasharray="6 8" />`,
+        String.raw`<line x1="42" y1="${n(BEAM_RESULT_DIAGRAM_SVG_HEIGHT * ratio)}" x2="${BEAM_RESULT_DIAGRAM_SVG_WIDTH - 42}" y2="${n(BEAM_RESULT_DIAGRAM_SVG_HEIGHT * ratio)}" stroke="${COLORS.grid}" stroke-opacity="0.78" stroke-width="${GRID_STROKE_WIDTH}" stroke-dasharray="6 8" />`,
     )
     .join("")}
   <text x="32" y="30" fill="${COLORS.label}" font-size="${compact ? 10 : 12}" font-family="${DIAGRAM_LABEL_FONT}" font-weight="${DIAGRAM_LABEL_WEIGHT}">梁长=${escapeSvg(formatBeamDimensionLength(totalLength))}</text>
@@ -358,13 +358,13 @@ export function buildBeamResultDiagramSvg(results: BeamCalculationResults, metri
     ${spanDimensionLegendRows
       .map(
         (row, index) =>
-          `<text x="${SPAN_DIMENSION_LEGEND_X}" y="${SPAN_DIMENSION_LEGEND_Y + index * SPAN_DIMENSION_LEGEND_GAP}" font-size="${compact ? 10 : 12}" font-weight="${DIAGRAM_LABEL_WEIGHT}">${escapeSvg(row)}</text>`,
+          String.raw`<text x="${SPAN_DIMENSION_LEGEND_X}" y="${SPAN_DIMENSION_LEGEND_Y + index * SPAN_DIMENSION_LEGEND_GAP}" font-size="${compact ? 10 : 12}" font-weight="${DIAGRAM_LABEL_WEIGHT}">${escapeSvg(row)}</text>`,
       )
       .join("")}
   </g>
   <line x1="${BEAM_LEFT}" y1="${BEAM_Y}" x2="${BEAM_RIGHT}" y2="${BEAM_Y}" stroke="${COLORS.base}" stroke-opacity="0.82" stroke-width="${BEAM_STROKE_WIDTH}" stroke-linecap="butt" />
-  ${metric.diagramType === "area" && resultAreaPath ? `<path d="${resultAreaPath}" fill="${metric.fillColor}" stroke="none" />` : ""}
-  ${resultPath ? `<path d="${resultPath}" fill="none" stroke="${metric.color}" stroke-opacity="0.92" stroke-width="${metric.diagramType === "line" ? RESULT_LINE_STROKE_WIDTH : RESULT_AREA_STROKE_WIDTH}" stroke-linecap="butt" stroke-linejoin="round" />` : ""}
+  ${metric.diagramType === "area" && resultAreaPath ? String.raw`<path d="${resultAreaPath}" fill="${metric.fillColor}" stroke="none" />` : ""}
+  ${resultPath ? String.raw`<path d="${resultPath}" fill="none" stroke="${metric.color}" stroke-opacity="0.92" stroke-width="${metric.diagramType === "line" ? RESULT_LINE_STROKE_WIDTH : RESULT_AREA_STROKE_WIDTH}" stroke-linecap="butt" stroke-linejoin="round" />` : ""}
   ${(beam.supports ?? [])
     .map((support) => {
       const x = mapX(support.x);
@@ -379,7 +379,7 @@ export function buildBeamResultDiagramSvg(results: BeamCalculationResults, metri
       const x = mapX(node.x);
       const badgeX = x + NODE_BADGE_OFFSET_X;
       const badgeY = BEAM_Y + NODE_BADGE_OFFSET_Y;
-      return `<g><circle cx="${n(x)}" cy="${BEAM_Y}" r="${NODE_RADIUS}" fill="${node.support ? COLORS.node : COLORS.guide}" /><circle cx="${n(badgeX)}" cy="${n(badgeY)}" r="7.5" fill="${COLORS.badgeFill}" stroke="${COLORS.badgeStroke}" stroke-width="1.2" /><text x="${n(badgeX)}" y="${n(badgeY)}" fill="${COLORS.badgeText}" text-anchor="middle" dominant-baseline="middle" font-size="8.5" font-family="${DIAGRAM_LABEL_FONT}" font-weight="${DIAGRAM_LABEL_WEIGHT}">${escapeSvg(node.id ?? `${index + 1}`)}</text></g>`;
+      return String.raw`<g><circle cx="${n(x)}" cy="${BEAM_Y}" r="${NODE_RADIUS}" fill="${node.support ? COLORS.node : COLORS.guide}" /><circle cx="${n(badgeX)}" cy="${n(badgeY)}" r="7.5" fill="${COLORS.badgeFill}" stroke="${COLORS.badgeStroke}" stroke-width="1.2" /><text x="${n(badgeX)}" y="${n(badgeY)}" fill="${COLORS.badgeText}" text-anchor="middle" dominant-baseline="middle" font-size="8.5" font-family="${DIAGRAM_LABEL_FONT}" font-weight="${DIAGRAM_LABEL_WEIGHT}">${escapeSvg(node.id ?? `${index + 1}`)}</text></g>`;
     })
     .join("")}
   <g fill="${COLORS.label}" font-family="${DIAGRAM_LABEL_FONT}">
@@ -387,7 +387,7 @@ export function buildBeamResultDiagramSvg(results: BeamCalculationResults, metri
       .map((dimension) => {
         const midX = (dimension.start + dimension.end) / 2;
         if (!dimension.label) return "";
-        return `
+        return String.raw`
         <g>
           <title>${escapeSvg(dimension.title)}</title>
           <text x="${n(midX)}" y="${SPAN_MEMBER_LABEL_Y}" text-anchor="middle" font-size="${compact ? 10 : 12}" font-weight="${DIAGRAM_LABEL_WEIGHT}" stroke="${COLORS.textHalo}" stroke-width="${STATION_TEXT_HALO_WIDTH}" paint-order="stroke">${escapeSvg(dimension.label)}</text>
@@ -400,7 +400,7 @@ export function buildBeamResultDiagramSvg(results: BeamCalculationResults, metri
       ? annotations
           .map(({ point, valueLabel, stationLabel, layout }) => {
             const isGlobalExtreme = point.kind === "global-extreme";
-            return `
+            return String.raw`
       <g>
         <circle cx="${n(point.x)}" cy="${n(point.y)}" r="${isGlobalExtreme ? EXTREME_RADIUS : EXTREME_RADIUS - 0.75}" fill="${metric.color}" fill-opacity="${isGlobalExtreme ? 1 : 0.88}" stroke="${COLORS.textHalo}" stroke-width="${isGlobalExtreme ? 1.25 : 1}" />
         <line x1="${n(point.x)}" y1="${n(point.y)}" x2="${n(layout.connectorX)}" y2="${n(layout.connectorY)}" stroke="${metric.color}" stroke-opacity="${isGlobalExtreme ? 0.9 : 0.68}" stroke-width="${CALLOUT_STROKE_WIDTH}" stroke-dasharray="4 4" />

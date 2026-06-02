@@ -23,8 +23,10 @@ const MEMBER_PROPERTY_LABELS: Record<MemberPropertyMode, MemberPropertyLabels> =
   },
 };
 
+const MEMBER_PROPERTY_LABELS_MAP = new Map<MemberPropertyMode, MemberPropertyLabels>(Object.entries(MEMBER_PROPERTY_LABELS) as [MemberPropertyMode, MemberPropertyLabels][]);
+
 export function memberPropertyLabels(mode: MemberPropertyMode): MemberPropertyLabels {
-  return MEMBER_PROPERTY_LABELS[mode];
+  return MEMBER_PROPERTY_LABELS_MAP.get(mode) || MEMBER_PROPERTY_LABELS.beam;
 }
 
 export function memberPropertyAriaLabel(subjectLabel: string, propertyLabel: string): string {

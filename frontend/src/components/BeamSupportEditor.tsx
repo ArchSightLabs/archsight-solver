@@ -100,7 +100,7 @@ export function BeamSupportEditor({
           <span>{beamSupportDetail(support.type)}</span>
         </div>
         <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 font-mono text-[10px] text-muted-foreground">
-          x = {support.x.toFixed(2)} m
+          {`x = ${support.x.toFixed(2)} m`}
         </span>
       </div>
       <div className="space-y-2">

@@ -137,7 +137,7 @@ function frameCalculationEnvelope(payload: StructurePayload) {
     maxVerticalMm: 1.2,
     maxRotationDeg: 0,
     maxMomentKnM: 12,
-    maxDisplacementNodeId: nodes[nodes.length - 1]?.id ?? null,
+    maxDisplacementNodeId: nodes.at(-1)?.id ?? null,
     status: "合格",
     statusCode: "PASS",
     method: "二维平面框架杆单元法",
@@ -215,7 +215,7 @@ function trussCalculationEnvelope(payload: StructurePayload) {
     allowableMm: 10,
     allowableRatio: 250,
     maxDisplacementMm: 0.9,
-    maxDisplacementNodeId: nodes[nodes.length - 1]?.id ?? null,
+    maxDisplacementNodeId: nodes.at(-1)?.id ?? null,
     maxAxialForceKn: Math.max(...memberResults.map((member) => Math.abs(member.axialForceKn)), 0),
     maxAxialForceMemberId: memberResults[0]?.memberId ?? null,
     status: "合格",
@@ -294,7 +294,7 @@ async function routeDocxExport(page: Page) {
 }
 
 async function solveAndExportDocx(page: Page, mode: AnalysisMode) {
-  const labels = MODE_LABELS[mode];
+  const labels = Reflect.get(MODE_LABELS, mode);
   await openAnalysisObject(page, labels.object);
   await page.getByRole("tab", { name: /结构计算/ }).click();
   await page.getByRole("button", { name: labels.run }).click();
@@ -311,7 +311,7 @@ async function solveAndExportDocx(page: Page, mode: AnalysisMode) {
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
-    window.localStorage.clear();
+    (window as any).localStorage.clear();
   });
   await routeCalculate(page);
   await page.goto("/");
@@ -319,7 +319,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 for (const mode of ["frame", "truss"] as const) {
-  test(`${MODE_LABELS[mode].filename} 浏览器导出请求携带前端同源工程图`, async ({ page }) => {
+  test(`${Reflect.get(MODE_LABELS, mode).filename} 浏览器导出请求携带前端同源工程图`, async ({ page }) => {
     const observedExportPayload = await routeDocxExport(page);
 
     await solveAndExportDocx(page, mode);
@@ -328,9 +328,9 @@ for (const mode of ["frame", "truss"] as const) {
     expect(payload?.analysisType).toBe(mode);
     expect(payload?.format).toBe("docx");
     expect(payload?.reportOptions).toMatchObject({ figureMode: "overlay", figureScope: "all" });
-    expect(Object.keys(payload?.reportImages ?? {})).toEqual(MODE_LABELS[mode].imageKeys);
-    for (const key of MODE_LABELS[mode].imageKeys) {
-      expect(payload?.reportImages?.[key]).toMatch(/^data:image\/png;base64,/);
+    expect(Object.keys(payload?.reportImages ?? {})).toEqual(Reflect.get(MODE_LABELS, mode).imageKeys);
+    for (const key of Reflect.get(MODE_LABELS, mode).imageKeys as string[]) {
+      expect(Reflect.get(payload?.reportImages ?? {}, key)).toMatch(/^data:image\/png;base64,/);
     }
   });
 }

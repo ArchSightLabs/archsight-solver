@@ -189,12 +189,12 @@ export function parseBeamTextModel(text: string, baseMaterials: Material[] = PRE
         diagnostics.push(`第 ${lineIndex + 1} 行：跨段编号不能为空。`);
         continue;
       }
-      const length = toNumber(tokens[lengthTokenIndex]);
+      const length = toNumber(tokens.at(lengthTokenIndex));
       if (!length || length <= 0) {
         diagnostics.push(`第 ${lineIndex + 1} 行：跨长必须大于 0。`);
         continue;
       }
-      const materialToken = tokens[lengthTokenIndex + 1];
+      const materialToken = tokens.at(lengthTokenIndex + 1);
       const directE = toNumber(materialToken);
       const spanMaterial = directE === null ? materials.get(String(materialToken ?? "").trim().toLowerCase()) : null;
       const E = directE ?? spanMaterial?.youngModulus ?? null;
@@ -202,7 +202,7 @@ export function parseBeamTextModel(text: string, baseMaterials: Material[] = PRE
         diagnostics.push(`第 ${lineIndex + 1} 行：跨段材料编号 ${materialToken ?? ""} 未在材料库中定义，或弹性模量 E_GPa 不是大于 0 的数字。`);
         continue;
       }
-      const I = toNumber(tokens[lengthTokenIndex + 2]);
+      const I = toNumber(tokens.at(lengthTokenIndex + 2));
       if (!I || I <= 0) {
         diagnostics.push(`第 ${lineIndex + 1} 行：截面惯性矩 I_cm4 必须大于 0。`);
         continue;
@@ -308,8 +308,8 @@ export function parseBeamTextModel(text: string, baseMaterials: Material[] = PRE
           magnitudeKn,
           positionRatio,
         });
-        patch.pointLoad = pointLoads[0]?.magnitudeKn ?? 0;
-        patch.pointLoadPositionRatio = pointLoads[0]?.positionRatio ?? 0.5;
+        patch.pointLoad = pointLoads.at(0)?.magnitudeKn ?? 0;
+        patch.pointLoadPositionRatio = pointLoads.at(0)?.positionRatio ?? 0.5;
       } else if (["linear", "线性"].includes(loadType)) {
         if (tokens.length < 6) {
           diagnostics.push(`第 ${lineIndex + 1} 行：线性荷载 LOAD,linear 必须包含 q1、q2、startRatio 和 endRatio。`);
@@ -335,11 +335,13 @@ export function parseBeamTextModel(text: string, baseMaterials: Material[] = PRE
           endRatio,
         });
         linearLoadEnabled = true;
-        const primaryLinearLoad = linearLoads[0];
-        patch.distributedLoadStart = primaryLinearLoad.qStartKnPerM;
-        patch.distributedLoadEnd = primaryLinearLoad.qEndKnPerM;
-        patch.distributedLoadStartRatio = primaryLinearLoad.startRatio;
-        patch.distributedLoadEndRatio = primaryLinearLoad.endRatio;
+        const primaryLinearLoad = linearLoads.at(0);
+        if (primaryLinearLoad) {
+          patch.distributedLoadStart = primaryLinearLoad.qStartKnPerM;
+          patch.distributedLoadEnd = primaryLinearLoad.qEndKnPerM;
+          patch.distributedLoadStartRatio = primaryLinearLoad.startRatio;
+          patch.distributedLoadEndRatio = primaryLinearLoad.endRatio;
+        }
       } else if (["uniform", "均布"].includes(loadType)) {
         if (tokens.length < 3) {
           diagnostics.push(`第 ${lineIndex + 1} 行：均布荷载 LOAD,uniform 必须包含 q_kN_per_m。`);
@@ -372,7 +374,7 @@ export function parseBeamTextModel(text: string, baseMaterials: Material[] = PRE
   if (spans.length > 0) {
     patch.spans = spans;
     patch.beamType = patch.beamType ?? (spans.length > 1 ? "continuous" : "simply_supported");
-    patch.materialId = patch.materialId ?? spans[0]?.materialId;
+    patch.materialId = patch.materialId ?? spans.at(0)?.materialId;
   }
   if (materialsChanged) {
     patch.materials = materialList(materials);

@@ -193,8 +193,9 @@ export function TrussSketch({
           step: labelPolicy.memberLabelStep,
           selected,
         });
+        const interact = svgInteractiveProps(`选择桁架${memberTerm} ${member.id}`, () => onSelect?.({ mode: "truss", type: "member", id: member.id }));
         return (
-          <g key={member.id} {...svgInteractiveProps(`选择桁架${memberTerm} ${member.id}`, () => onSelect?.({ mode: "truss", type: "member", id: member.id }))}>
+          <g key={member.id} role={interact.role} tabIndex={interact.tabIndex} aria-label={interact["aria-label"]} className={interact.className} onClick={interact.onClick} onKeyDown={interact.onKeyDown}>
             <title>{dimension?.title ?? `桁架${memberTerm} ${member.id}`}</title>
             <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="transparent" strokeWidth="18" strokeLinecap="round" />
             <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke={selected ? "var(--model-load)" : "var(--model-member)"} strokeWidth={selected ? STRUCTURE_VISUAL_STROKES.modelTrussSelectedMember : STRUCTURE_VISUAL_STROKES.modelMember} strokeLinecap="round" opacity={selected ? "0.85" : "1"} />
@@ -233,8 +234,9 @@ export function TrussSketch({
           selected,
           pinned,
         });
+        const interact = svgInteractiveProps(`选择桁架节点 ${node.id}`, () => onSelect?.({ mode: "truss", type: "node", id: node.id }));
         return (
-          <g key={node.id} {...svgInteractiveProps(`选择桁架节点 ${node.id}`, () => onSelect?.({ mode: "truss", type: "node", id: node.id }))}>
+          <g key={node.id} role={interact.role} tabIndex={interact.tabIndex} aria-label={interact["aria-label"]} className={interact.className} onClick={interact.onClick} onKeyDown={interact.onKeyDown}>
             <title>{`桁架节点 ${node.id}`}</title>
             <TrussSupportMarker type={node.supportType} x={point.x} y={point.y} selected={selected} />
             <circle cx={point.x} cy={point.y} r={selected ? STRUCTURE_NODE_RADII.modelSelected : STRUCTURE_NODE_RADII.model} fill={selected ? "var(--model-load)" : "var(--model-node)"} />
@@ -270,8 +272,9 @@ export function TrussSketch({
               { key: "start", force: startForce, anchor: pointOnSegment(start, end, 0) },
               { key: "end", force: endForce, anchor: pointOnSegment(start, end, 1) },
             ];
+            const interact = svgInteractiveProps(`选择桁架荷载 ${index + 1}`, () => onSelect?.({ mode: "truss", type: "load", id: `load-${index}` }));
             const items = [
-              <g key={`${index}-member-load`} {...svgInteractiveProps(`选择桁架荷载 ${index + 1}`, () => onSelect?.({ mode: "truss", type: "load", id: `load-${index}` }))}>
+              <g key={`${index}-member-load`} role={interact.role} tabIndex={interact.tabIndex} aria-label={interact["aria-label"]} className={interact.className} onClick={interact.onClick} onKeyDown={interact.onKeyDown}>
                 <line x1={guide.start.x} y1={guide.start.y} x2={guide.end.x} y2={guide.end.y} strokeWidth={selected ? "2.8" : "1.6"} strokeDasharray="5 4" opacity="0.85" />
                 {equivalentArrows.map((arrow) => {
                   if (Math.abs(arrow.force) <= 1e-9) return null;
@@ -358,13 +361,13 @@ export function TrussSketch({
               </g>
             );
           }
-          return items.length
-            ? [
-                <g key={`${index}-nodal-load`} {...svgInteractiveProps(`选择桁架荷载 ${index + 1}`, () => onSelect?.({ mode: "truss", type: "load", id: `load-${index}` }))}>
-                  {items}
-                </g>,
-              ]
-            : [];
+          if (items.length === 0) return [];
+          const interact = svgInteractiveProps(`选择桁架荷载 ${index + 1}`, () => onSelect?.({ mode: "truss", type: "load", id: `load-${index}` }));
+          return [
+            <g key={`${index}-nodal-load`} role={interact.role} tabIndex={interact.tabIndex} aria-label={interact["aria-label"]} className={interact.className} onClick={interact.onClick} onKeyDown={interact.onKeyDown}>
+              {items}
+            </g>,
+          ];
         })}
       </g>
       <defs>

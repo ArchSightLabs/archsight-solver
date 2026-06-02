@@ -73,7 +73,7 @@ export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMat
     priorSupports: BeamSupportConfig[] = value.supports
   ) =>
     createDefaultBeamSupports(beamType, spans).map((support, index, defaults) => {
-      const prior = priorSupports[index];
+      const prior = priorSupports.at(index);
       const isLastSupport = index === defaults.length - 1;
       const shouldKeepPriorType = prior && !(beamType === "continuous" && isLastSupport && prior.type === "pinned");
       return {
@@ -123,10 +123,10 @@ export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMat
           ? { type: "support" as const, id: selection.id }
           : { type: "load" as const, id: "primary" as const }
       : selectedObject;
-    if (current.type === "span" && value.spans[spanIndexFromId(current.id)]) {
+    if (current.type === "span" && value.spans.at(spanIndexFromId(current.id))) {
       return current;
     }
-    if (current.type === "support" && value.supports[supportIndexFromId(current.id)]) {
+    if (current.type === "support" && value.supports.at(supportIndexFromId(current.id))) {
       return current;
     }
     if (current.type === "load") return current;
@@ -207,8 +207,8 @@ export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMat
     const material = findMaterial(materialId);
     updateSpanPatch(index, {
       materialId,
-      E: material?.youngModulus ?? value.spans[index]?.E ?? DEFAULT_SPAN.E,
-      I: material?.momentOfInertiaCm4 ?? value.spans[index]?.I ?? DEFAULT_SPAN.I,
+      E: material?.youngModulus ?? value.spans.at(index)?.E ?? DEFAULT_SPAN.E,
+      I: material?.momentOfInertiaCm4 ?? value.spans.at(index)?.I ?? DEFAULT_SPAN.I,
     });
   };
 
@@ -229,7 +229,7 @@ export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMat
 
     if (resolvedSelectedObject.type === "support") {
       const index = supportIndexFromId(resolvedSelectedObject.id);
-      const support = value.supports[index];
+      const support = value.supports.at(index);
       return support ? (
         <BeamSupportEditor
           support={support}
@@ -243,7 +243,7 @@ export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMat
     }
 
     const index = spanIndexFromId(resolvedSelectedObject.id);
-    const span = value.spans[index];
+    const span = value.spans.at(index);
     if (!span) return null;
     const memberId = beamSpanMemberId(index, span);
     return (

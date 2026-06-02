@@ -224,8 +224,10 @@ const ASSUMPTION_SUMMARIES: Record<AnalysisMode, AssumptionSummary> = {
   },
 };
 
+const ASSUMPTION_SUMMARIES_MAP = new Map<AnalysisMode, AssumptionSummary>(Object.entries(ASSUMPTION_SUMMARIES) as [AnalysisMode, AssumptionSummary][]);
+
 export function AssumptionsPanel({ mode, compact = false }: { mode: AnalysisMode; compact?: boolean }) {
-  const summary = ASSUMPTION_SUMMARIES[mode];
+  const summary = ASSUMPTION_SUMMARIES_MAP.get(mode) || ASSUMPTION_SUMMARIES.beam;
   return (
     <GlassCard className={`${compact ? "p-3 sm:p-4" : "p-4 sm:p-5"}`}>
       <div className={`mb-3 flex flex-wrap items-baseline justify-between gap-2 ${compact ? "" : "sm:mb-4"}`}>

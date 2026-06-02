@@ -149,7 +149,7 @@ export function SystemSettingsPanel({
               <Settings className="h-4 w-4" />
             </span>
             <div className="min-w-0">
-              <div className="eyebrow opacity-50">ArchSight Solver</div>
+              <div className="eyebrow opacity-50">{"ArchSight Solver"}</div>
               <h2 className="truncate text-lg font-bold tracking-tight">系统设置</h2>
             </div>
           </div>
@@ -204,7 +204,7 @@ export function SystemSettingsPanel({
                     <Github className="h-4 w-4" />
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate font-bold">GitHub 仓库</span>
+                    <span className="block truncate font-bold">{"GitHub 仓库"}</span>
                   </span>
                 </span>
                 <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" />
@@ -255,7 +255,7 @@ export function SystemSettingsPanel({
             <div className="space-y-3">
               <div className="rounded-lg border border-slate-200/80 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-sm font-black">ArchSight Solver</div>
+                  <div className="text-sm font-black">{"ArchSight Solver"}</div>
                   <a
                     className="rounded-full border border-sky-400/30 bg-sky-400/10 px-2.5 py-1 font-mono text-[11px] font-black text-sky-700 transition-colors hover:border-sky-400/60 hover:bg-sky-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70 dark:text-sky-200"
                     href={releaseNotesHref}

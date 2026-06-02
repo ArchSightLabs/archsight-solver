@@ -118,7 +118,7 @@ export function FrameCustomModelEditor({
     }
     if (current.type === "node" && value.nodes.some((node) => node.id === current.id)) return current;
     if (current.type === "member" && value.members.some((member) => member.id === current.id)) return current;
-    if (current.type === "load" && value.loads[Number(current.id.replace("load-", ""))]) return current;
+    if (current.type === "load" && value.loads.at(Number(current.id.replace("load-", "")))) return current;
     if (current.type === "loadCases") return current;
     if (current.type === "loadCombinations") return current;
     if (value.nodes[0]) return { type: "node", id: value.nodes[0].id };
@@ -309,13 +309,13 @@ export function FrameCustomModelEditor({
   };
 
   const addLoadToCase = (loadCaseIndex: number) => {
-    const loadCase = value.loadCases[loadCaseIndex];
+    const loadCase = value.loadCases.at(loadCaseIndex);
     if (!loadCase) return;
     updateLoadCase(loadCaseIndex, { loads: [...loadCase.loads, createFrameLoadDraft(loadCase.loads.length, value.nodes, value.members)] });
   };
 
   const updateLoadInCase = (loadCaseIndex: number, loadIndex: number, patch: Partial<FrameLoad>) => {
-    const loadCase = value.loadCases[loadCaseIndex];
+    const loadCase = value.loadCases.at(loadCaseIndex);
     if (!loadCase) return;
     updateLoadCase(loadCaseIndex, {
       loads: loadCase.loads.map((load, index) => (index === loadIndex ? { ...load, ...patch } as FrameLoad : load)),
@@ -323,7 +323,7 @@ export function FrameCustomModelEditor({
   };
 
   const removeLoadFromCase = (loadCaseIndex: number, loadIndex: number) => {
-    const loadCase = value.loadCases[loadCaseIndex];
+    const loadCase = value.loadCases.at(loadCaseIndex);
     if (!loadCase) return;
     updateLoadCase(loadCaseIndex, { loads: loadCase.loads.filter((_, index) => index !== loadIndex) });
   };

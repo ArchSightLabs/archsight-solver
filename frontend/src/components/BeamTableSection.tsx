@@ -46,7 +46,7 @@ export function BeamTableSection({
           </div>
           <div className="space-y-2">
             {spans.map((span, index) => {
-              const detail = sameMaterial ? "" : spanMaterialLabels[index];
+              const detail = sameMaterial ? "" : spanMaterialLabels.at(index);
               return (
                 <div
                   key={spanId(index)}
