@@ -296,7 +296,7 @@ Content-Type: application/json
 
 查询异步作业状态。
 
-如果 SQLite 中的 `queued` / `running` 记录已经失去本地执行进程或线程句柄，接口会把该作业标记为 `failed`，错误码为 `COMMON_ASYNC_JOB_ORPHANED`，提示重新提交作业，避免旧记录永久停留在运行中状态。
+如果 SQLite 中的 `queued` / `running` 记录已经失去本地执行进程或线程句柄，接口会把该作业标记为 `failed`，错误码为 `COMMON_ASYNC_JOB_ORPHANED`，提示重新提交作业，避免旧记录永久停留在运行中状态。可通过设置环境变量 `ARCHSIGHT_SOLVER_DISABLE_ORPHAN_CHECK=1` 禁用此孤儿作业检查逻辑（例如在跨容器共享 SQLite 等场景）。
 
 状态枚举：
 
@@ -313,6 +313,8 @@ Content-Type: application/json
 ## DELETE /api/jobs/{jobId}
 
 请求取消排队或运行中的作业。当前开源实现只跟踪当前服务进程内的 `ThreadPoolExecutor` future，并用本地 SQLite 记录作业状态和结果；同一容器内多 Gunicorn worker 可共享提交、轮询和结果读取状态，但执行调度仍不是跨进程、跨容器的分布式队列。已开始执行的短任务可能在取消请求前完成。
+
+**注意**：当启用 `ARCHSIGHT_SOLVER_DISABLE_ORPHAN_CHECK=1` 时，如果是跨进程/跨容器作业，DELETE 接口由于拿不到本地 future，只能将记录的 `cancelRequested` 标记为 true；此时必须由负责执行该作业的外部工作节点（或队列系统）感知此标记并最终更新作业的完成/取消状态，否则作业状态可能长期挂起。
 
 ## GET /api/contracts/schemas
 

@@ -40,7 +40,7 @@ test("工程设置入口归属工程树，工程材料并入同一设置弹窗",
 });
 
 test("模板库弹窗沿用工作台紧凑弹窗和列表行风格", () => {
-  const appSource = readFileSync(new URL("../App.tsx", import.meta.url), "utf-8");
+  const appSource = componentSource("WorkbenchDialogs.tsx");
   const templateLibrary = componentSource("TemplateLibraryPanel.tsx");
 
   assert.match(appSource, /template-library-dialog-title/u);

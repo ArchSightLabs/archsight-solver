@@ -32,7 +32,7 @@ test("计算书图形导出提供三浏览器矩阵入口", () => {
 
 test("计算书图形导出测试锁定共享图形目录和前端同源图片", () => {
   assert.match(exportDocxSpec, /shared\/report-figures\.json/u);
-  assert.match(exportDocxSpec, /Object\.keys\(payload\?\.reportImages \?\? \{\}\)\)\.toEqual\(MODE_LABELS\[mode\]\.imageKeys\)/u);
+  assert.match(exportDocxSpec, /Object\.keys\(payload\?\.reportImages \?\? \{\}\)\)\.toEqual\(Reflect\.get\(MODE_LABELS, mode\)\.imageKeys\)/u);
   assert.match(exportDocxSpec, /\^data:image\\\/png;base64,/u);
 });
 

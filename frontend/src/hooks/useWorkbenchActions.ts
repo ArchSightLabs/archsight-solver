@@ -178,10 +178,13 @@ export function useWorkbenchActions(
     setOperationNotice(operationRunningNotice(exportOperation, workspace.analysisMode));
     try {
       const effectiveReportOptions = reportExportOptionsForMode(workspace.analysisMode, reportExportOptions);
+      type ResultWithJobId = { jobId?: string; apiEnvelope?: { jobId?: string }; meta?: { jobId?: string } };
+      const resultData = analysisData as unknown as ResultWithJobId | null;
+      const jobId = resultData?.jobId || resultData?.apiEnvelope?.jobId || resultData?.meta?.jobId;
       const exportPayload =
         format === "docx" && sensitivityData
-          ? { ...payload, format, sensitivityResults: sensitivityData, reportOptions: effectiveReportOptions, benchmark: activeBenchmark }
-          : { ...payload, format, benchmark: activeBenchmark, ...(format === "docx" ? { reportOptions: effectiveReportOptions } : {}) };
+          ? { ...payload, format, sensitivityResults: sensitivityData, reportOptions: effectiveReportOptions, benchmark: activeBenchmark, jobId }
+          : { ...payload, format, benchmark: activeBenchmark, jobId, ...(format === "docx" ? { reportOptions: effectiveReportOptions } : {}) };
       const beamResultsForReport = beamResultForView(analysisData);
       const frameResultsForReport = frameResultForView(analysisData);
       const trussResultsForReport = trussResultForView(analysisData);

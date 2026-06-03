@@ -1,22 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import { createPortal } from "react-dom";
 import {
   GripVertical,
   PanelLeftClose,
   PanelLeftOpen,
-  X,
 } from "lucide-react";
 import { BeamForm } from "./components/BeamForm";
 import { FrameForm } from "./components/FrameForm";
 import { TrussForm } from "./components/TrussForm";
-import { TemplateLibraryPanel } from "./components/TemplateLibraryPanel";
-import { SystemSettingsPanel } from "./components/SystemSettingsPanel";
-import { NewAnalysisObjectDialog } from "./components/NewAnalysisObjectDialog";
 import { ProjectTreePanel } from "./components/ProjectTreePanel";
-import { ProjectInfoDialog } from "./components/ProjectInfoDialog";
-import { PublicExamplesDialog } from "./components/PublicExamplesDialog";
-import { BenchmarkSubmissionDialog } from "./components/BenchmarkSubmissionDialog";
+import { SystemSettingsPanel } from "./components/SystemSettingsPanel";
+import { WorkbenchDialogs } from "./components/WorkbenchDialogs";
 import { AppHeader } from "./components/AppHeader";
 import { WorkbenchInspectorPanel } from "./components/WorkbenchInspectorPanel";
 import { WorkbenchModelCanvas } from "./components/WorkbenchModelCanvas";
@@ -26,15 +20,13 @@ import { WorkbenchViewTabs } from "./components/WorkbenchViewTabs";
 import { GlassCard } from "./components/ui/GlassCard";
 import { Button } from "./components/ui/button";
 import { useTemplateLibrary } from "./hooks/useTemplateLibrary";
-import { createWorkspaceSnapshot, restoreWorkspaceSnapshot } from "./lib/template-library";
 import { materialLibraryFromCustomMaterials } from "./lib/material-presets";
-import { analysisVocabulary } from "./lib/analysis-vocabulary";
 import type { ProjectInfo } from "./lib/solver-project";
 import { moduleSectionsForMode, normalizeModuleSectionId, objectNavigatorSectionId } from "./lib/workbench-navigation";
 import { ARCHSIGHT_SOLVER_PROJECT_ACCEPT } from "./lib/project-file";
 import type { ProjectTemplate } from "./types/beam";
 import type { BeamWorkbenchSelection, FrameWorkbenchSelection, TrussWorkbenchSelection, WorkbenchSelection, WorkbenchSelectionOptions } from "./types/workbench-selection";
-import type { TemplateActionResult } from "./lib/template-library";
+import { restoreWorkspaceSnapshot, type TemplateActionResult } from "./lib/template-library";
 import { useWorkbenchSession } from "./hooks/useWorkbenchSession";
 import { useAnalysisObjectManager } from "./hooks/useAnalysisObjectManager";
 import { useProjectFileActions } from "./hooks/useProjectFileActions";
@@ -530,108 +522,46 @@ function App() {
         </div>
       ) : null}
 
-      {isSystemSettingsOpen && !isSystemSettingsDocked && (
-        <SystemSettingsPanel
-          compact={isCompactWorkbench}
-          releaseNotesHref={RELEASE_NOTES_HREF}
-          userManualHref={USER_MANUAL_HREF}
-          modelPreviewStyle={project.settings.modelPreviewStyle}
-          visitStats={visitStats}
-          onModelPreviewStyleChange={setModelPreviewStyle}
-          onOpenTemplateLibrary={() => setIsTemplateLibraryOpen(true)}
-          onClose={() => setIsSystemSettingsOpen(false)}
-        />
-      )}
-
-      {isNewAnalysisObjectDialogOpen && (
-        <NewAnalysisObjectDialog
-          existingCountByType={objectCountByType}
-          onCreate={handleCreateAnalysisObject}
-          onClose={() => setIsNewAnalysisObjectDialogOpen(false)}
-        />
-      )}
-
-      {projectInfoDialogMode && (
-        <ProjectInfoDialog
-          initialValue={projectInfoDialogMode === "edit" ? project.settings.projectInfo : null}
-          title={projectInfoDialogMode === "edit" ? "工程设置" : "新建结构分析项目"}
-          confirmLabel={projectInfoDialogMode === "edit" ? "保存工程设置" : "创建项目"}
-          customMaterials={projectInfoDialogMode === "edit" ? project.settings.customMaterials : undefined}
-          onSubmit={projectInfoDialogMode === "edit" ? handleUpdateProjectInfo : handleCreateProjectWithInfo}
-          onCustomMaterialsChange={projectInfoDialogMode === "edit" ? setCustomMaterials : undefined}
-          onClose={() => setProjectInfoDialogMode(null)}
-        />
-      )}
-
-      {isPublicExamplesOpen && (
-        <PublicExamplesDialog
-          onClose={() => setIsPublicExamplesOpen(false)}
-          onOpenProject={handleOpenPublicExampleProject}
-        />
-      )}
-
-      {isBenchmarkSubmissionOpen && (
-        <BenchmarkSubmissionDialog
-          category={benchmarkSubmissionContext.category}
-          payload={benchmarkSubmissionContext.payload}
-          calculationResult={benchmarkSubmissionContext.calculationResult}
-          objectName={benchmarkSubmissionContext.objectName}
-          disabledReason={benchmarkSubmissionContext.disabledReason}
-          isCalculating={isSolving}
-          onRunCalculation={handleRunCurrentModule}
-          onClose={() => setIsBenchmarkSubmissionOpen(false)}
-        />
-      )}
-
-      {isTemplateLibraryOpen && typeof document !== "undefined" ? createPortal(
-        <div
-          className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="template-library-dialog-title"
-          onClick={() => setIsTemplateLibraryOpen(false)}
-        >
-          <div
-            className="flex max-h-[92vh] min-h-0 w-full max-w-[64rem] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-950"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3.5 dark:border-white/10 sm:px-5">
-              <div>
-                <div className="text-xs font-bold text-muted-foreground">
-                  {analysisVocabulary(analysisMode).systemLabel}工作区快照
-                </div>
-                <h3 id="template-library-dialog-title" className="text-lg font-black tracking-tight">
-                  模板库
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsTemplateLibraryOpen(false)}
-                className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-                aria-label="关闭模板库"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className={`flex-1 overflow-y-auto custom-scrollbar ${isCompactWorkbench ? "p-3" : "p-5"}`}>
-              <TemplateLibraryPanel
-                templates={templates}
-                baselineTemplateId={baselineTemplateId}
-                currentMode={analysisMode}
-                isAtCapacity={isAtCapacity}
-                compact={isCompactWorkbench}
-                onSaveTemplate={(name) => saveTemplate(name, createWorkspaceSnapshot(workspace))}
-                onSaveComplete={() => setIsTemplateLibraryOpen(false)}
-                onRestoreTemplate={handleRestoreTemplate}
-                onDuplicateTemplate={duplicateTemplate}
-                onDeleteTemplate={deleteTemplate}
-                onSetBaselineTemplate={setBaselineTemplate}
-              />
-            </div>
-          </div>
-        </div>,
-        document.body
-      ) : null}
+      <WorkbenchDialogs
+        isSystemSettingsOpen={isSystemSettingsOpen}
+        isSystemSettingsDocked={isSystemSettingsDocked}
+        isCompactWorkbench={isCompactWorkbench}
+        project={project}
+        visitStats={visitStats}
+        setModelPreviewStyle={setModelPreviewStyle}
+        setIsTemplateLibraryOpen={setIsTemplateLibraryOpen}
+        setIsSystemSettingsOpen={setIsSystemSettingsOpen}
+        isNewAnalysisObjectDialogOpen={isNewAnalysisObjectDialogOpen}
+        objectCountByType={objectCountByType}
+        handleCreateAnalysisObject={handleCreateAnalysisObject}
+        setIsNewAnalysisObjectDialogOpen={setIsNewAnalysisObjectDialogOpen}
+        projectInfoDialogMode={projectInfoDialogMode}
+        setCustomMaterials={setCustomMaterials}
+        handleUpdateProjectInfo={handleUpdateProjectInfo}
+        handleCreateProjectWithInfo={handleCreateProjectWithInfo}
+        setProjectInfoDialogMode={setProjectInfoDialogMode}
+        isPublicExamplesOpen={isPublicExamplesOpen}
+        setIsPublicExamplesOpen={setIsPublicExamplesOpen}
+        handleOpenPublicExampleProject={handleOpenPublicExampleProject}
+        isBenchmarkSubmissionOpen={isBenchmarkSubmissionOpen}
+        benchmarkSubmissionContext={benchmarkSubmissionContext}
+        isSolving={isSolving}
+        handleRunCurrentModule={handleRunCurrentModule}
+        setIsBenchmarkSubmissionOpen={setIsBenchmarkSubmissionOpen}
+        isTemplateLibraryOpen={isTemplateLibraryOpen}
+        analysisMode={analysisMode}
+        templates={templates}
+        baselineTemplateId={baselineTemplateId}
+        isAtCapacity={isAtCapacity}
+        saveTemplate={saveTemplate}
+        workspace={workspace}
+        handleRestoreTemplate={handleRestoreTemplate}
+        duplicateTemplate={duplicateTemplate}
+        deleteTemplate={deleteTemplate}
+        setBaselineTemplate={setBaselineTemplate}
+        RELEASE_NOTES_HREF={RELEASE_NOTES_HREF}
+        USER_MANUAL_HREF={USER_MANUAL_HREF}
+      />
     </div>
   );
 }

@@ -110,6 +110,31 @@ def test_async_job_marks_orphaned_running_job_failed_after_process_restart(clien
     assert result_response.get_json()["error"]["code"] == "COMMON_ASYNC_JOB_ORPHANED"
 
 
+def test_async_job_disables_orphan_check_when_env_var_set(client, monkeypatch):
+    monkeypatch.setenv("ARCHSIGHT_SOLVER_DISABLE_ORPHAN_CHECK", "1")
+    now = "2026-05-31T00:00:00+00:00"
+    store_job(
+        {
+            "jobId": "orphaned-override",
+            "clientJobId": "lost-worker",
+            "operation": "calculate",
+            "payload": _beam_payload(),
+            "status": "running",
+            "createdAt": now,
+            "updatedAt": now,
+            "startedAt": now,
+            "warnings": [],
+            "infos": [],
+        }
+    )
+    _futures.clear()
+
+    status_response = client.get("/api/jobs/orphaned-override")
+    assert status_response.status_code == 200
+    status_payload = status_response.get_json()
+    assert status_payload["status"] == "running"
+
+
 def test_async_job_cancel_reconciles_orphaned_running_job(client):
     now = "2026-05-31T00:00:00+00:00"
     store_job(

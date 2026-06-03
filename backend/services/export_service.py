@@ -23,13 +23,17 @@ def build_report_model(
     sensitivity_results: Optional[Dict[str, Any]],
     report_images: Optional[Dict[str, str]],
     report_options: Optional[Dict[str, Any]] = None,
+    precomputed_solution: Optional[Dict[str, Any]] = None,
 ) -> ReportModel:
-    if analysis_type == "frame":
-        solution = build_frame_solution(data, material_name)
-    elif analysis_type == "truss":
-        solution = build_truss_solution(data, material_name)
+    if precomputed_solution is not None:
+        solution = precomputed_solution
     else:
-        solution = build_beam_solution(data, material_name)
+        if analysis_type == "frame":
+            solution = build_frame_solution(data, material_name)
+        elif analysis_type == "truss":
+            solution = build_truss_solution(data, material_name)
+        else:
+            solution = build_beam_solution(data, material_name)
     if isinstance(data.get("benchmark"), dict):
         solution = {**solution, "benchmark": data["benchmark"]}
     return ReportModel.from_solution(

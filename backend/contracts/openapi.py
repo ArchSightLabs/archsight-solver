@@ -374,6 +374,10 @@ def _export_payload_schema() -> Dict[str, Any]:
     return {
         "allOf": [_ref("calculate-payload")],
         "properties": {
+            "jobId": {
+                "type": "string",
+                "description": "已完成计算的作业 ID。提供此 ID 后，导出服务将跳过重复计算，直接使用缓存结果。",
+            },
             "format": {
                 "type": "string",
                 "enum": ["xlsx", "docx"],

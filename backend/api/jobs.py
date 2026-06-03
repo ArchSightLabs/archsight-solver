@@ -173,6 +173,9 @@ def _reconcile_local_job_handle(record: Mapping[str, Any]) -> Dict[str, Any]:
         if job_id in _futures:
             return dict(record)
 
+    if os.environ.get("ARCHSIGHT_SOLVER_DISABLE_ORPHAN_CHECK") == "1":
+        return dict(record)
+
     worker_process_id = record.get("workerProcessId")
     current_process_id = os.getpid()
     try:

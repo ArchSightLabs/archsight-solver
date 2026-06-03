@@ -17,6 +17,7 @@ def test_async_job_public_docs_disclose_local_queue_boundary():
         "ThreadPoolExecutor",
         "本地 SQLite",
         "ARCHSIGHT_SOLVER_JOB_DB_PATH",
+        "ARCHSIGHT_SOLVER_DISABLE_ORPHAN_CHECK",
         "执行进程 ID",
         "COMMON_ASYNC_JOB_ORPHANED",
         "重新提交作业",
