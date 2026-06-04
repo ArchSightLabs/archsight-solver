@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 from pathlib import Path
 
 from backend.benchmarks.catalog import load_benchmark_catalog
@@ -21,6 +22,10 @@ def _format_check_summary(checks: list[dict]) -> str:
 def build_report() -> str:
     catalog = load_benchmark_catalog()
     suite = evaluate_benchmark_suite()
+    category_counts = Counter(case.get("category", "unknown") for case in catalog.get("cases", []))
+    beam_project_count = category_counts.get("beam", 0)
+    truss_project_count = category_counts.get("truss", 0) + category_counts.get("truss-verify", 0)
+    frame_project_count = category_counts.get("frame", 0) + category_counts.get("frame-beam-verify", 0)
     source_types = sorted({result["verification"].get("sourceType", "") for result in suite["results"]})
     verification_levels = sorted({result["verification"].get("verificationLevel", "") for result in suite["results"]})
 
@@ -45,9 +50,9 @@ def build_report() -> str:
         "",
         "工作台顶部提供“公开案例”入口，可直接打开由本验证集生成的三个工程：",
         "",
-        "- 梁系公开验证工程：12 个梁系分析对象。",
-        "- 二维平面桁架公开验证工程：8 个桁架分析对象。",
-        "- 二维平面框架公开验证工程：13 个框架与框架梁退化分析对象。",
+        f"- 梁系公开验证工程：{beam_project_count} 个梁系分析对象。",
+        f"- 二维平面桁架公开验证工程：{truss_project_count} 个桁架分析对象。",
+        f"- 二维平面框架公开验证工程：{frame_project_count} 个框架与框架梁退化分析对象。",
         "",
         "每个分析对象均保留 `caseId`、来源类型、校核指标、标准值、容许误差和可用出处链接。打开工程后可直接查看模型、运行计算、查看图形结果并导出计算书，无需重新输入参数建模。",
         "",

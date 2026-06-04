@@ -41,7 +41,7 @@ def test_benchmark_catalog_shape_is_stable():
     assert isinstance(BENCHMARK_CATALOG["updatedAt"], str)
     assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", BENCHMARK_CATALOG["updatedAt"])
     date.fromisoformat(BENCHMARK_CATALOG["updatedAt"])
-    assert len(BENCHMARK_CATALOG["cases"]) >= 30
+    assert len(BENCHMARK_CATALOG["cases"]) >= 60
 
     case_ids = [case["id"] for case in BENCHMARK_CATALOG["cases"]]
     assert len(case_ids) == len(set(case_ids))

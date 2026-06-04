@@ -1,8 +1,8 @@
 # ArchSight Solver 公开验证集报告
 
-- 算例目录版本：2026-05-28
-- 算例数量：33
-- 通过数量：33
+- 算例目录版本：2026-06-04
+- 算例数量：60
+- 通过数量：60
 - 未通过数量：0
 - 验证等级：A, B, D
 - 来源类型：independent-stiffness-baseline, internal-regression, textbook-analytical
@@ -15,9 +15,9 @@
 
 工作台顶部提供“公开案例”入口，可直接打开由本验证集生成的三个工程：
 
-- 梁系公开验证工程：12 个梁系分析对象。
-- 二维平面桁架公开验证工程：8 个桁架分析对象。
-- 二维平面框架公开验证工程：13 个框架与框架梁退化分析对象。
+- 梁系公开验证工程：22 个梁系分析对象。
+- 二维平面桁架公开验证工程：16 个桁架分析对象。
+- 二维平面框架公开验证工程：22 个框架与框架梁退化分析对象。
 
 每个分析对象均保留 `caseId`、来源类型、校核指标、标准值、容许误差和可用出处链接。打开工程后可直接查看模型、运行计算、查看图形结果并导出计算书，无需重新输入参数建模。
 
@@ -69,6 +69,33 @@
 | `truss-howe-roof` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=7（标准 7）；杆件数量=11（标准 11） |
 | `truss-member-self-weight` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=3（标准 3）；杆件数量=3（标准 3） |
 | `truss-cantilever-panel` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=6（标准 6）；杆件数量=9（标准 9） |
+| `beam-template-three-span-linear` | beam | D 级验证 | 通过 | 支座数量=4（标准 4）；最大挠度(mm)=4.4056（标准 4.4056）；最大挠度位置(m)=6.5（标准 6.5） |
+| `beam-template-fixed-fixed-uniform` | beam | A 级验证 | 通过 | 支座数量=2（标准 2）；最大挠度(mm)=2.4575（标准 2.4575）；最大挠度位置(m)=3.0（标准 3.0） |
+| `beam-template-propped-cantilever-point` | beam | D 级验证 | 通过 | 支座数量=2（标准 2）；最大挠度(mm)=3.5332（标准 3.5332）；最大挠度位置(m)=2.75（标准 2.75） |
+| `beam-continuous-four-span-uniform` | beam | D 级验证 | 通过 | 支座数量=5（标准 5）；最大挠度(mm)=0.031（标准 0.031）；最大挠度位置(m)=4.964286（标准 4.9643） |
+| `beam-continuous-four-span-point` | beam | D 级验证 | 通过 | 支座数量=5（标准 5）；最大挠度(mm)=0.1316（标准 0.1316）；最大挠度位置(m)=5.392857（标准 5.3929） |
+| `beam-continuous-two-span-partial-uniform` | beam | D 级验证 | 通过 | 支座数量=3（标准 3）；最大挠度(mm)=0.295（标准 0.295）；最大挠度位置(m)=2.428571（标准 2.4286） |
+| `beam-continuous-two-point-loads` | beam | D 级验证 | 通过 | 支座数量=4（标准 4）；最大挠度(mm)=0.1938（标准 0.1938）；最大挠度位置(m)=2.0（标准 2.0） |
+| `beam-simply-supported-partial-uniform` | beam | D 级验证 | 通过 | 支座数量=2（标准 2）；最大挠度(mm)=3.3617（标准 3.3617）；最大挠度位置(m)=3.5（标准 3.5） |
+| `beam-cantilever-partial-uniform` | beam | D 级验证 | 通过 | 支座数量=1（标准 1）；最大挠度(mm)=12.4363（标准 12.4363）；最大挠度位置(m)=6.0（标准 6.0） |
+| `beam-continuous-elastic-middle-support` | beam | D 级验证 | 通过 | 支座数量=3（标准 3）；最大挠度(mm)=0.0903（标准 0.0903）；最大挠度位置(m)=1.678571（标准 1.6786） |
+| `frame-template-portal-single-bay` | frame | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；构件数量=3（标准 3） |
+| `frame-template-two-story` | frame | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=9（标准 9）；构件数量=10（标准 10） |
+| `frame-template-braced-frame` | frame | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；构件数量=5（标准 5） |
+| `frame-template-gable-frame` | frame | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=5（标准 5）；构件数量=4（标准 4） |
+| `frame-portal-global-y-heavy` | frame | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；构件数量=3（标准 3） |
+| `frame-portal-local-y-load` | frame | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；构件数量=3（标准 3） |
+| `frame-two-bay-asymmetric-load` | frame | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=6（标准 6）；构件数量=5（标准 5） |
+| `frame-portal-member-point-quarter` | frame | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；构件数量=3（标准 3） |
+| `frame-elastic-column-base` | frame | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；构件数量=3（标准 3） |
+| `truss-template-parallel-chord` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=8（标准 8）；杆件数量=13（标准 13） |
+| `truss-parallel-chord-asymmetric` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=8（标准 8）；杆件数量=13（标准 13） |
+| `truss-parallel-chord-member-weight` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=8（标准 8）；杆件数量=13（标准 13） |
+| `truss-simple-roof-horizontal-load` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；杆件数量=5（标准 5） |
+| `truss-simple-roof-unbalanced` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；杆件数量=5（标准 5） |
+| `truss-cantilever-tip-single` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=6（标准 6）；杆件数量=9（标准 9） |
+| `truss-cantilever-tip-horizontal` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=6（标准 6）；杆件数量=9（标准 9） |
+| `truss-cantilever-member-weight` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=6（标准 6）；杆件数量=9（标准 9） |
 
 ## 使用方式
 

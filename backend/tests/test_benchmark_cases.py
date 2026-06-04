@@ -19,7 +19,17 @@ def client():
 
 
 def test_benchmark_case_catalog_is_populated():
-    assert len(BENCHMARK_CASES) >= 3
+    assert len(BENCHMARK_CASES) >= 60
+
+
+def test_benchmark_case_catalog_exposes_verification_levels():
+    allowed_levels = {"A", "B", "C", "D"}
+    for case in BENCHMARK_CASES:
+        verification = case["verification"]
+        assert verification["verificationLevel"] in allowed_levels
+        assert verification["verificationLevelLabel"]
+        assert verification["verificationLevelDescription"]
+        assert verification["sourceType"]
 
 
 def test_truss_unstable_benchmark_rejects_insufficient_constraints(client):

@@ -78,6 +78,7 @@ test("内置模板均标注公开验证集映射", () => {
     assert.ok(template.validationRefs.length >= 1, `${template.id} 应标注 benchmark 映射`);
     for (const ref of template.validationRefs) {
       assert.ok(ref.caseId.trim(), `${template.id} 的 benchmark caseId 不能为空`);
+      assert.equal(ref.relation, "对应", `${template.id} 应绑定直接 benchmark，不应只标注相近或相关案例`);
       assert.ok(ref.note.trim(), `${template.id} 的映射说明不能为空`);
     }
     const mapped = mappingByTemplate.get(`${module}:${template.id}`);

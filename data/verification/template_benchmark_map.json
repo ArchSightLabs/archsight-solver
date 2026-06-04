@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-05-31",
+  "updatedAt": "2026-06-04",
   "templates": [
     {
       "module": "beam",
@@ -80,9 +80,9 @@
       "templateTitle": "三跨连续梁线性分布荷载",
       "validationRefs": [
         {
-          "caseId": "beam-continuous-three-span-uniform",
-          "relation": "相近",
-          "note": "验证对象同为三跨连续梁；公开 benchmark 采用均布荷载，模板采用线性分布荷载。"
+          "caseId": "beam-template-three-span-linear",
+          "relation": "对应",
+          "note": "同为三跨连续梁线性分布荷载模板，直接复核线性荷载范围、最大挠度和峰值位置。"
         }
       ]
     },
@@ -104,9 +104,9 @@
       "templateTitle": "单跨单层刚架",
       "validationRefs": [
         {
-          "caseId": "frame-portal-benchmark",
-          "relation": "相近",
-          "note": "同为单跨门式刚架；荷载组合略有差异，主要复核位移与构件弯矩口径。"
+          "caseId": "frame-template-portal-single-bay",
+          "relation": "对应",
+          "note": "同为单跨单层刚架模板，直接复核梁面均布荷载、节点竖向荷载、位移与构件弯矩。"
         }
       ]
     },
@@ -140,9 +140,9 @@
       "templateTitle": "两层两跨框架",
       "validationRefs": [
         {
-          "caseId": "frame-explicit-two-bay",
-          "relation": "相近",
-          "note": "公开 benchmark 覆盖显式两跨单层框架；该模板扩展到两层，需另补专门 benchmark。"
+          "caseId": "frame-template-two-story",
+          "relation": "对应",
+          "note": "同为两层两跨规则框架模板，直接复核楼层节点位移、梁柱弯矩和对象数量。"
         }
       ]
     },
@@ -152,9 +152,9 @@
       "templateTitle": "带斜撑框架",
       "validationRefs": [
         {
-          "caseId": "frame-portal-benchmark",
-          "relation": "相关",
-          "note": "共享门式刚架基本边界；斜撑端部释放与抗侧效果仍需新增专项 benchmark。"
+          "caseId": "frame-template-braced-frame",
+          "relation": "对应",
+          "note": "同为带斜撑框架模板，直接复核斜撑端部释放、节点位移和构件弯矩。"
         }
       ]
     },
@@ -248,9 +248,9 @@
       "templateTitle": "两端固结均布荷载",
       "validationRefs": [
         {
-          "caseId": "BM-003",
-          "relation": "相关",
-          "note": "当前公开验证集尚无两端固结梁系专项；BM-003 同为框架梁退化超静定单跨梁，可临时复核固定端弯矩口径。"
+          "caseId": "beam-template-fixed-fixed-uniform",
+          "relation": "对应",
+          "note": "同为两端固结单跨梁全跨均布荷载，直接复核固定端边界和跨中挠度。"
         }
       ]
     },
@@ -260,9 +260,9 @@
       "templateTitle": "一端固结一端简支",
       "validationRefs": [
         {
-          "caseId": "BM-003",
-          "relation": "相近",
-          "note": "同为固端-滚动支座的一阶超静定梁边界；荷载类型不同，仍需补充梁系专项 benchmark。"
+          "caseId": "beam-template-propped-cantilever-point",
+          "relation": "对应",
+          "note": "同为左端固结、右端滚动支座并承受跨中集中荷载，直接复核超静定边界。"
         }
       ]
     },
@@ -272,9 +272,9 @@
       "templateTitle": "坡屋面门式刚架",
       "validationRefs": [
         {
-          "caseId": "frame-inclined-member-load",
-          "relation": "相近",
-          "note": "同为斜构件和屋面坡度相关模型；公开 benchmark 覆盖斜构件局部坐标分布荷载，坡屋面门式刚架仍需补专项算例。"
+          "caseId": "frame-template-gable-frame",
+          "relation": "对应",
+          "note": "同为坡屋面门式刚架模板，直接复核斜梁全局竖向荷载、节点位移和构件弯矩。"
         }
       ]
     },
@@ -284,9 +284,9 @@
       "templateTitle": "平行弦桁架",
       "validationRefs": [
         {
-          "caseId": "truss-pratt-bridge",
-          "relation": "相近",
-          "note": "同为桥式平面桁架体系；公开 benchmark 覆盖 Pratt 桥式桁架，平行弦模板仍需补专项算例。"
+          "caseId": "truss-template-parallel-chord",
+          "relation": "对应",
+          "note": "同为平行弦桥式桁架模板，直接复核节点位移、杆件轴力和控制杆件。"
         }
       ]
     }

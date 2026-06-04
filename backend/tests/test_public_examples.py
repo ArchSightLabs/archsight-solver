@@ -1,3 +1,5 @@
+from collections import Counter
+
 import pytest
 
 from app import app
@@ -22,12 +24,14 @@ def test_public_validation_projects_expose_all_benchmark_cases_once():
         for obj in project["project"]["objects"]
     ]
 
-    assert examples["caseCount"] == 33
+    assert examples["caseCount"] == len(catalog["cases"])
     assert len(object_case_ids) == len(catalog["cases"])
     assert sorted(object_case_ids) == sorted(case["id"] for case in catalog["cases"])
 
 
 def test_public_validation_projects_group_by_analysis_object():
+    catalog = load_benchmark_catalog()
+    category_counts = Counter(case["category"] for case in catalog["cases"])
     examples = build_public_validation_projects()
     projects = {project["id"]: project for project in examples["projects"]}
 
@@ -36,9 +40,9 @@ def test_public_validation_projects_group_by_analysis_object():
         "truss-public-validation",
         "frame-public-validation",
     ]
-    assert projects["beam-public-validation"]["caseCount"] == 12
-    assert projects["truss-public-validation"]["caseCount"] == 8
-    assert projects["frame-public-validation"]["caseCount"] == 13
+    assert projects["beam-public-validation"]["caseCount"] == category_counts["beam"]
+    assert projects["truss-public-validation"]["caseCount"] == category_counts["truss"] + category_counts["truss-verify"]
+    assert projects["frame-public-validation"]["caseCount"] == category_counts["frame"] + category_counts["frame-beam-verify"]
     assert {obj["type"] for obj in projects["beam-public-validation"]["project"]["objects"]} == {"beam"}
     assert {obj["type"] for obj in projects["truss-public-validation"]["project"]["objects"]} == {"truss"}
     assert {obj["type"] for obj in projects["frame-public-validation"]["project"]["objects"]} == {"frame"}
@@ -69,12 +73,13 @@ def test_public_validation_project_metric_summaries_use_trimmed_four_decimal_pre
 
 
 def test_public_examples_api_returns_importable_projects(client):
+    catalog = load_benchmark_catalog()
     response = client.get("/api/examples/projects")
     assert response.status_code == 200
     data = response.get_json()
 
     assert data["schemaVersion"] == 1
-    assert data["caseCount"] == 33
+    assert data["caseCount"] == len(catalog["cases"])
     assert len(data["projects"]) == 3
     benchmark = data["projects"][0]["project"]["objects"][0]["benchmark"]
     assert benchmark["caseId"]
