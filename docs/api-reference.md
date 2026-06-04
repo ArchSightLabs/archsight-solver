@@ -66,13 +66,26 @@ ASMS-JSON 是 ArchSight Solver 的结构力学数据入口标准，用同一份 
   "legacyError": "跨度必须大于 0",
   "diagnostics": {
     "warnings": [],
-    "infos": []
+    "infos": [],
+    "issues": [
+      {
+        "code": "BEAM_INVALID_SPAN_LAYOUT",
+        "severity": "error",
+        "title": "梁系跨段布置异常",
+        "detail": "梁系跨段长度或跨段数量不满足当前求解器边界。",
+        "suggestions": [
+          "检查 spans 数组是否为空、是否包含非正长度，或是否超过当前公开核心支持规模。"
+        ]
+      }
+    ]
   },
   "meta": {
     "generatedAt": "2026-05-26T00:00:00+00:00"
   }
 }
 ```
+
+`diagnostics.issues` 是工程化诊断入口。顶层 `error.code` 保持接口兼容；具体排错建议放在 `issues[].code`、`issues[].detail` 和 `issues[].suggestions` 中，例如结构约束不足、刚度矩阵奇异、对象引用无效、刚度/单位输入异常和荷载范围错误。
 
 ## POST /api/calculate
 

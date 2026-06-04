@@ -23,6 +23,18 @@ def assert_error_response(response, expected_error, expected_code=None):
     assert data["legacyError"] == expected_error
     if expected_code is not None:
         assert data["error"]["code"] == expected_code
+    assert isinstance(data["diagnostics"]["issues"], list)
+    assert data["diagnostics"]["issues"]
+    for issue in data["diagnostics"]["issues"]:
+        assert issue["code"].strip()
+        assert issue["title"].strip()
+        assert issue["detail"].strip()
+        assert isinstance(issue["suggestions"], list)
+        assert issue["suggestions"]
+
+
+def issue_codes(response):
+    return {issue["code"] for issue in response.get_json()["diagnostics"]["issues"]}
 
 
 def _beam_base_payload():
@@ -104,6 +116,25 @@ def test_beam_error_contracts(client, payload_factory, expected_error):
 
     assert response.status_code == 400
     assert_error_response(response, expected_error, "BEAM_INVALID_REQUEST")
+
+
+def test_beam_singular_error_returns_engineering_diagnostic(client):
+    payload = {
+        **_beam_base_payload(),
+        "spanProperties": [
+            {"E": 0.0, "I": 0.0},
+            {"E": 0.0, "I": 0.0},
+        ],
+        "E": 0.0,
+        "I": 0.0,
+    }
+
+    response = client.post("/api/calculate", json=payload)
+
+    assert response.status_code == 400
+    codes = issue_codes(response)
+    assert "STRUCTURE_SINGULAR_STIFFNESS" in codes
+    assert any("单位" in suggestion for issue in response.get_json()["diagnostics"]["issues"] for suggestion in issue["suggestions"])
 
 
 def test_persistence_mode_error_contract(client, monkeypatch):
@@ -265,6 +296,45 @@ def test_frame_error_contracts(client, payload_factory, expected_error):
 
     assert response.status_code == 400
     assert_error_response(response, expected_error, "FRAME_INVALID_REQUEST")
+
+
+def test_frame_invalid_reference_error_returns_engineering_diagnostic(client):
+    payload = {
+        **_frame_base_payload(),
+        "structure": {
+            **_frame_base_payload()["structure"],
+            "loads": [
+                {"type": "distributed", "member": "MX", "wyKnPerM": -18.0},
+            ],
+        },
+    }
+
+    response = client.post("/api/calculate", json=payload)
+
+    assert response.status_code == 400
+    assert "STRUCTURE_INVALID_REFERENCE" in issue_codes(response)
+
+
+def test_frame_unstable_error_returns_constraint_diagnostic(client):
+    payload = {
+        **_frame_base_payload(),
+        "structure": {
+            "template": "explicit",
+            "nodes": [
+                {"id": "N1", "x": 0.0, "y": 0.0, "supportType": "free"},
+                {"id": "N2", "x": 4.0, "y": 0.0, "supportType": "free"},
+            ],
+            "members": [
+                {"id": "B1", "start": "N1", "end": "N2", "E_GPa": 210, "A_cm2": 220, "I_cm4": 15000, "kind": "beam"},
+            ],
+            "loads": [],
+        },
+    }
+
+    response = client.post("/api/calculate", json=payload)
+
+    assert response.status_code == 400
+    assert "STRUCTURE_UNSTABLE_CONSTRAINTS" in issue_codes(response)
 
 
 def test_unknown_analysis_type_returns_structured_error(client):
