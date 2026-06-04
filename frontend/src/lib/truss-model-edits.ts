@@ -7,6 +7,167 @@ export interface TrussEditorCollections {
   loads: TrussLoad[];
 }
 
+export interface TrussCopyOptions {
+  nodeIds?: string[];
+  memberIds?: string[];
+  offsetX?: number;
+  offsetY?: number;
+  copyIndex?: number;
+}
+
+export interface TrussMirrorOptions extends Omit<TrussCopyOptions, "offsetX" | "offsetY"> {
+  axis: "x" | "y";
+  origin: number;
+}
+
+export interface TrussArrayOptions extends Omit<TrussCopyOptions, "copyIndex"> {
+  count: number;
+  deltaX: number;
+  deltaY: number;
+}
+
+function uniqueId(baseId: string, usedIds: Set<string>, copyIndex: number): string {
+  const suffix = `_C${copyIndex}`;
+  let candidate = `${baseId}${suffix}`;
+  let serial = 2;
+  while (usedIds.has(candidate)) {
+    candidate = `${baseId}${suffix}_${serial}`;
+    serial += 1;
+  }
+  usedIds.add(candidate);
+  return candidate;
+}
+
+function selectedTrussNodeIds(collections: TrussEditorCollections, options: TrussCopyOptions): Set<string> {
+  const selected = new Set((options.nodeIds ?? []).filter(Boolean));
+  const memberIds = new Set((options.memberIds ?? []).filter(Boolean));
+  collections.members.forEach((member) => {
+    if (memberIds.has(member.id)) {
+      selected.add(member.start);
+      selected.add(member.end);
+    }
+  });
+  if (selected.size === 0 && memberIds.size === 0) {
+    collections.nodes.forEach((node) => selected.add(node.id));
+  }
+  return selected;
+}
+
+function selectedTrussMemberIds(collections: TrussEditorCollections, selectedNodes: Set<string>, options: TrussCopyOptions): Set<string> {
+  const explicit = new Set((options.memberIds ?? []).filter(Boolean));
+  if (explicit.size > 0) return explicit;
+  return new Set(collections.members.filter((member) => selectedNodes.has(member.start) && selectedNodes.has(member.end)).map((member) => member.id));
+}
+
+function transformTrussNode(node: TrussNode, options: TrussCopyOptions & Partial<TrussMirrorOptions>): TrussNode {
+  const offsetX = options.offsetX ?? 0;
+  const offsetY = options.offsetY ?? 0;
+  let x = node.x + offsetX;
+  let y = node.y + offsetY;
+  if (options.axis === "x") y = 2 * (options.origin ?? 0) - node.y;
+  if (options.axis === "y") x = 2 * (options.origin ?? 0) - node.x;
+  return { ...node, x, y };
+}
+
+function withoutUndefined<T extends Record<string, unknown>>(value: T): T {
+  return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined)) as T;
+}
+
+function transformTrussLoad(load: TrussLoad, options: Partial<TrussMirrorOptions>): TrussLoad {
+  if (!options.axis) return { ...load };
+  if (load.type === "nodal") {
+    return withoutUndefined({
+      ...load,
+      fxKn: options.axis === "y" && load.fxKn !== undefined ? -load.fxKn : load.fxKn,
+      fyKn: options.axis === "x" && load.fyKn !== undefined ? -load.fyKn : load.fyKn,
+    });
+  }
+  if (load.direction === "global_x" && options.axis === "y") {
+    return withoutUndefined({
+      ...load,
+      wyKnPerM: load.wyKnPerM !== undefined ? -load.wyKnPerM : load.wyKnPerM,
+      qStartKnPerM: load.qStartKnPerM !== undefined ? -load.qStartKnPerM : load.qStartKnPerM,
+      qEndKnPerM: load.qEndKnPerM !== undefined ? -load.qEndKnPerM : load.qEndKnPerM,
+      selfWeightKnPerM: load.selfWeightKnPerM !== undefined ? -load.selfWeightKnPerM : load.selfWeightKnPerM,
+    });
+  }
+  if ((load.direction ?? "global_y") === "global_y" && options.axis === "x") {
+    return withoutUndefined({
+      ...load,
+      wyKnPerM: load.wyKnPerM !== undefined ? -load.wyKnPerM : load.wyKnPerM,
+      qStartKnPerM: load.qStartKnPerM !== undefined ? -load.qStartKnPerM : load.qStartKnPerM,
+      qEndKnPerM: load.qEndKnPerM !== undefined ? -load.qEndKnPerM : load.qEndKnPerM,
+      selfWeightKnPerM: load.selfWeightKnPerM !== undefined ? -load.selfWeightKnPerM : load.selfWeightKnPerM,
+    });
+  }
+  return { ...load };
+}
+
+function copyTrussOnce(collections: TrussEditorCollections, options: TrussCopyOptions & Partial<TrussMirrorOptions>): TrussEditorCollections {
+  const copyIndex = Math.max(1, Math.trunc(options.copyIndex ?? 1));
+  const selectedNodes = selectedTrussNodeIds(collections, options);
+  const selectedMembers = selectedTrussMemberIds(collections, selectedNodes, options);
+  const usedNodeIds = new Set(collections.nodes.map((node) => node.id));
+  const usedMemberIds = new Set(collections.members.map((member) => member.id));
+  const nodeIdMap = new Map<string, string>();
+  const memberIdMap = new Map<string, string>();
+  const copiedNodes = collections.nodes
+    .filter((node) => selectedNodes.has(node.id))
+    .map((node) => {
+      const nextId = uniqueId(node.id, usedNodeIds, copyIndex);
+      nodeIdMap.set(node.id, nextId);
+      return { ...transformTrussNode(node, options), id: nextId };
+    });
+  const copiedMembers = collections.members
+    .filter((member) => selectedMembers.has(member.id) && nodeIdMap.has(member.start) && nodeIdMap.has(member.end))
+    .map((member) => {
+      const nextId = uniqueId(member.id, usedMemberIds, copyIndex);
+      memberIdMap.set(member.id, nextId);
+      return { ...member, id: nextId, start: nodeIdMap.get(member.start) ?? member.start, end: nodeIdMap.get(member.end) ?? member.end };
+    });
+  const copiedLoads = collections.loads
+    .map((load): TrussLoad | null => {
+      if (load.type === "nodal") {
+        const nextNode = nodeIdMap.get(load.node);
+        return nextNode ? { ...transformTrussLoad(load, options), node: nextNode } : null;
+      }
+      const nextMember = memberIdMap.get(load.member);
+      return nextMember ? { ...transformTrussLoad(load, options), member: nextMember } as TrussLoad : null;
+    })
+    .filter((load): load is TrussLoad => Boolean(load));
+  return {
+    ...collections,
+    nodes: [...collections.nodes, ...copiedNodes],
+    members: [...collections.members, ...copiedMembers],
+    loads: [...collections.loads, ...copiedLoads],
+  };
+}
+
+export function copyTrussCollections(collections: TrussEditorCollections, options: TrussCopyOptions = {}): TrussEditorCollections {
+  return copyTrussOnce(collections, options);
+}
+
+export function mirrorTrussCollections(collections: TrussEditorCollections, options: TrussMirrorOptions): TrussEditorCollections {
+  return copyTrussOnce(collections, options);
+}
+
+export function arrayTrussCollections(collections: TrussEditorCollections, options: TrussArrayOptions): TrussEditorCollections {
+  const count = Math.max(0, Math.trunc(options.count));
+  const baseNodeIds = options.nodeIds ?? collections.nodes.map((node) => node.id);
+  const baseMemberIds = options.memberIds ?? collections.members.map((member) => member.id);
+  return Array.from({ length: count }, (_, index) => index + 1).reduce(
+    (nextCollections, copyIndex) => copyTrussOnce(nextCollections, {
+      ...options,
+      nodeIds: baseNodeIds,
+      memberIds: baseMemberIds,
+      copyIndex,
+      offsetX: options.deltaX * copyIndex,
+      offsetY: options.deltaY * copyIndex,
+    }),
+    collections,
+  );
+}
+
 function removeTrussLoadsForTargets(loads: TrussLoad[], nodeIds: Set<string>, memberIds: Set<string>): TrussLoad[] {
   return loads.filter((load) => {
     if (load.type === "nodal") return !nodeIds.has(load.node);

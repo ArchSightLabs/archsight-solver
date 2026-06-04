@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  arrayFrameCollections,
+  copyFrameCollections,
+  mirrorFrameCollections,
   removeFrameLoadCaseCollections,
   removeFrameNodeCollections,
   updateFrameMemberCollections,
@@ -21,7 +24,7 @@ const frameCollections = (): FrameEditorCollections => ({
   ],
   loads: [
     { type: "nodal", node: "N3", fyKn: -10 },
-    { type: "distributed", member: "C1", qStartKnPerM: -6, qEndKnPerM: -6 },
+    { type: "distributed", member: "C1", direction: "global_y", qStartKnPerM: -6, qEndKnPerM: -6 },
     { type: "member_point", member: "B1", forceKn: -4, positionRatio: 0.5 },
   ],
   loadCases: [
@@ -30,7 +33,7 @@ const frameCollections = (): FrameEditorCollections => ({
       title: "恒载",
       loads: [
         { type: "nodal", node: "N3", fyKn: -10 },
-        { type: "distributed", member: "C1", qStartKnPerM: -6, qEndKnPerM: -6 },
+        { type: "distributed", member: "C1", direction: "global_y", qStartKnPerM: -6, qEndKnPerM: -6 },
       ],
     },
   ],
@@ -76,6 +79,47 @@ test("updateFrameMemberCollections renames member loads in base loads and load c
   assert.equal(baseLoad && "member" in baseLoad ? baseLoad.member : "", "C10");
   assert.equal(loadCaseLoad?.type, "distributed");
   assert.equal(loadCaseLoad && "member" in loadCaseLoad ? loadCaseLoad.member : "", "C10");
+});
+
+test("copyFrameCollections duplicates selected subgraph with rewritten loads", () => {
+  const next = copyFrameCollections(frameCollections(), { memberIds: ["C1"], offsetX: 8 });
+
+  assert.deepEqual(next.nodes.slice(3).map((node) => [node.id, node.x, node.y]), [
+    ["N1_C1", 8, 0],
+    ["N3_C1", 12, 3],
+  ]);
+  assert.deepEqual(next.members[2], { id: "C1_C1", start: "N1_C1", end: "N3_C1", elementType: "frame", E_GPa: 210, A_cm2: 120, I_cm4: 8000 });
+  assert.deepEqual(next.loads.slice(3), [
+    { type: "nodal", node: "N3_C1", fyKn: -10 },
+    { type: "distributed", member: "C1_C1", direction: "global_y", qStartKnPerM: -6, qEndKnPerM: -6 },
+  ]);
+  assert.deepEqual(next.loadCases[0]?.loads.slice(2), [
+    { type: "nodal", node: "N3_C1", fyKn: -10 },
+    { type: "distributed", member: "C1_C1", direction: "global_y", qStartKnPerM: -6, qEndKnPerM: -6 },
+  ]);
+});
+
+test("mirrorFrameCollections mirrors geometry and global load signs", () => {
+  const next = mirrorFrameCollections(frameCollections(), { axis: "x", origin: 0, nodeIds: ["N3"], memberIds: [] });
+  const copiedNode = next.nodes.find((node) => node.id === "N3_C1");
+  const copiedLoad = next.loads.find((load) => load.type === "nodal" && load.node === "N3_C1");
+
+  assert.deepEqual(copiedNode, { id: "N3_C1", x: 4, y: -3, supportType: "free" });
+  assert.deepEqual(copiedLoad, { type: "nodal", node: "N3_C1", fyKn: 10 });
+});
+
+test("arrayFrameCollections creates fixed-count copies from the original selection", () => {
+  const next = arrayFrameCollections(frameCollections(), { count: 2, deltaX: 5, deltaY: 0 });
+
+  assert.equal(next.nodes.length, 9);
+  assert.equal(next.members.length, 6);
+  assert.deepEqual(next.nodes.slice(3).map((node) => node.id), ["N1_C1", "N2_C1", "N3_C1", "N1_C2", "N2_C2", "N3_C2"]);
+  assert.deepEqual(next.members.slice(2).map((member) => [member.id, member.start, member.end]), [
+    ["C1_C1", "N1_C1", "N3_C1"],
+    ["B1_C1", "N2_C1", "N3_C1"],
+    ["C1_C2", "N1_C2", "N3_C2"],
+    ["B1_C2", "N2_C2", "N3_C2"],
+  ]);
 });
 
 test("removeFrameLoadCaseCollections removes load combination factors for deleted load cases", () => {

@@ -15,8 +15,180 @@ export interface FrameEditorCollections {
   loadCombinations: FrameLoadCombination[];
 }
 
+export interface FrameCopyOptions {
+  nodeIds?: string[];
+  memberIds?: string[];
+  offsetX?: number;
+  offsetY?: number;
+  copyIndex?: number;
+}
+
+export interface FrameMirrorOptions extends Omit<FrameCopyOptions, "offsetX" | "offsetY"> {
+  axis: "x" | "y";
+  origin: number;
+}
+
+export interface FrameArrayOptions extends Omit<FrameCopyOptions, "copyIndex"> {
+  count: number;
+  deltaX: number;
+  deltaY: number;
+}
+
 function memberLoadTargets(load: FrameLoad): load is Extract<FrameLoad, { member: string }> {
   return load.type === "distributed" || load.type === "member_point";
+}
+
+function uniqueId(baseId: string, usedIds: Set<string>, copyIndex: number): string {
+  const suffix = `_C${copyIndex}`;
+  let candidate = `${baseId}${suffix}`;
+  let serial = 2;
+  while (usedIds.has(candidate)) {
+    candidate = `${baseId}${suffix}_${serial}`;
+    serial += 1;
+  }
+  usedIds.add(candidate);
+  return candidate;
+}
+
+function selectedFrameNodeIds(collections: FrameEditorCollections, options: FrameCopyOptions): Set<string> {
+  const selected = new Set((options.nodeIds ?? []).filter(Boolean));
+  const memberIds = new Set((options.memberIds ?? []).filter(Boolean));
+  collections.members.forEach((member) => {
+    if (memberIds.has(member.id)) {
+      selected.add(member.start);
+      selected.add(member.end);
+    }
+  });
+  if (selected.size === 0 && memberIds.size === 0) {
+    collections.nodes.forEach((node) => selected.add(node.id));
+  }
+  return selected;
+}
+
+function selectedFrameMemberIds(collections: FrameEditorCollections, selectedNodes: Set<string>, options: FrameCopyOptions): Set<string> {
+  const explicit = new Set((options.memberIds ?? []).filter(Boolean));
+  if (explicit.size > 0) return explicit;
+  return new Set(collections.members.filter((member) => selectedNodes.has(member.start) && selectedNodes.has(member.end)).map((member) => member.id));
+}
+
+function mirrorAngleDeg(value: number | undefined, axis: "x" | "y"): number | undefined {
+  if (value === undefined) return undefined;
+  const mirrored = axis === "x" ? -value : 180 - value;
+  return ((mirrored % 360) + 360) % 360;
+}
+
+function withoutUndefined<T extends Record<string, unknown>>(value: T): T {
+  return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined)) as T;
+}
+
+function transformFrameNode(node: StructureNode, options: FrameCopyOptions & Partial<FrameMirrorOptions>): StructureNode {
+  const offsetX = options.offsetX ?? 0;
+  const offsetY = options.offsetY ?? 0;
+  let x = node.x + offsetX;
+  let y = node.y + offsetY;
+  const axis = options.axis;
+  if (axis === "x") y = 2 * (options.origin ?? 0) - node.y;
+  if (axis === "y") x = 2 * (options.origin ?? 0) - node.x;
+  return withoutUndefined({
+    ...node,
+    x,
+    y,
+    supportAngleDeg: axis ? mirrorAngleDeg(node.supportAngleDeg, axis) : node.supportAngleDeg,
+  });
+}
+
+function transformFrameLoad(load: FrameLoad, options: Partial<FrameMirrorOptions>): FrameLoad {
+  const axis = options.axis;
+  if (!axis) return { ...load };
+  if (load.type === "nodal") {
+    return withoutUndefined({
+      ...load,
+      fxKn: axis === "y" && load.fxKn !== undefined ? -load.fxKn : load.fxKn,
+      fyKn: axis === "x" && load.fyKn !== undefined ? -load.fyKn : load.fyKn,
+      mzKnM: load.mzKnM !== undefined ? -load.mzKnM : load.mzKnM,
+    });
+  }
+  if (load.type === "distributed" && (load.direction ?? "local_y") === "global_y" && axis === "x") {
+    return withoutUndefined({
+      ...load,
+      wyKnPerM: load.wyKnPerM !== undefined ? -load.wyKnPerM : load.wyKnPerM,
+      qStartKnPerM: load.qStartKnPerM !== undefined ? -load.qStartKnPerM : load.qStartKnPerM,
+      qEndKnPerM: load.qEndKnPerM !== undefined ? -load.qEndKnPerM : load.qEndKnPerM,
+    });
+  }
+  if (load.type === "member_point" && (load.direction ?? "local_y") === "global_y" && axis === "x") {
+    return withoutUndefined({ ...load, forceKn: load.forceKn !== undefined ? -load.forceKn : load.forceKn });
+  }
+  return { ...load };
+}
+
+function copyFrameOnce(collections: FrameEditorCollections, options: FrameCopyOptions & Partial<FrameMirrorOptions>): FrameEditorCollections {
+  const copyIndex = Math.max(1, Math.trunc(options.copyIndex ?? 1));
+  const selectedNodes = selectedFrameNodeIds(collections, options);
+  const selectedMembers = selectedFrameMemberIds(collections, selectedNodes, options);
+  const usedNodeIds = new Set(collections.nodes.map((node) => node.id));
+  const usedMemberIds = new Set(collections.members.map((member) => member.id));
+  const nodeIdMap = new Map<string, string>();
+  const memberIdMap = new Map<string, string>();
+
+  const copiedNodes = collections.nodes
+    .filter((node) => selectedNodes.has(node.id))
+    .map((node) => {
+      const nextId = uniqueId(node.id, usedNodeIds, copyIndex);
+      nodeIdMap.set(node.id, nextId);
+      return { ...transformFrameNode(node, options), id: nextId };
+    });
+  const copiedMembers = collections.members
+    .filter((member) => selectedMembers.has(member.id) && nodeIdMap.has(member.start) && nodeIdMap.has(member.end))
+    .map((member) => {
+      const nextId = uniqueId(member.id, usedMemberIds, copyIndex);
+      memberIdMap.set(member.id, nextId);
+      return { ...member, id: nextId, start: nodeIdMap.get(member.start) ?? member.start, end: nodeIdMap.get(member.end) ?? member.end };
+    });
+  const rewriteLoad = (load: FrameLoad): FrameLoad | null => {
+    if (load.type === "nodal") {
+      const nextNode = nodeIdMap.get(load.node);
+      return nextNode ? { ...transformFrameLoad(load, options), node: nextNode } : null;
+    }
+    const nextMember = memberIdMap.get(load.member);
+    return nextMember ? { ...transformFrameLoad(load, options), member: nextMember } as FrameLoad : null;
+  };
+  const copiedLoads = collections.loads.map(rewriteLoad).filter((load): load is FrameLoad => Boolean(load));
+  return {
+    ...collections,
+    nodes: [...collections.nodes, ...copiedNodes],
+    members: [...collections.members, ...copiedMembers],
+    loads: [...collections.loads, ...copiedLoads],
+    loadCases: collections.loadCases.map((loadCase) => ({
+      ...loadCase,
+      loads: [...loadCase.loads, ...loadCase.loads.map(rewriteLoad).filter((load): load is FrameLoad => Boolean(load))],
+    })),
+  };
+}
+
+export function copyFrameCollections(collections: FrameEditorCollections, options: FrameCopyOptions = {}): FrameEditorCollections {
+  return copyFrameOnce(collections, options);
+}
+
+export function mirrorFrameCollections(collections: FrameEditorCollections, options: FrameMirrorOptions): FrameEditorCollections {
+  return copyFrameOnce(collections, options);
+}
+
+export function arrayFrameCollections(collections: FrameEditorCollections, options: FrameArrayOptions): FrameEditorCollections {
+  const count = Math.max(0, Math.trunc(options.count));
+  const baseNodeIds = options.nodeIds ?? collections.nodes.map((node) => node.id);
+  const baseMemberIds = options.memberIds ?? collections.members.map((member) => member.id);
+  return Array.from({ length: count }, (_, index) => index + 1).reduce(
+    (nextCollections, copyIndex) => copyFrameOnce(nextCollections, {
+      ...options,
+      nodeIds: baseNodeIds,
+      memberIds: baseMemberIds,
+      copyIndex,
+      offsetX: options.deltaX * copyIndex,
+      offsetY: options.deltaY * copyIndex,
+    }),
+    collections,
+  );
 }
 
 function removeFrameLoadsForTargets(loads: FrameLoad[], nodeIds: Set<string>, memberIds: Set<string>): FrameLoad[] {
