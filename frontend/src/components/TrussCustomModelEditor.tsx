@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Button } from "./ui/button";
-import { Plus, Triangle } from "lucide-react";
+import { ArrowRight, ArrowUp, Copy, FlipHorizontal, FlipVertical, Plus, Triangle } from "lucide-react";
 import { TrussLoadEditor } from "./TrussLoadEditor";
 import { TrussBasicSection } from "./TrussBasicSection";
 import { TrussMemberEditor } from "./TrussMemberEditor";
@@ -19,6 +19,9 @@ import { TRUSS_MODEL_TEMPLATES, cloneTrussModelTemplate } from "../lib/workbench
 import { useTrussTextModel } from "../hooks/useTrussTextModel.ts";
 import { useNodePairConnection } from "../hooks/useNodePairConnection.ts";
 import {
+  arrayTrussCollections,
+  copyTrussCollections,
+  mirrorTrussCollections,
   removeTrussLoadCollections,
   removeTrussMemberCollections,
   removeTrussNodeCollections,
@@ -46,6 +49,14 @@ interface TrussCustomModelEditorProps {
   activeSectionId?: string;
   selection?: TrussWorkbenchSelection | null;
   onSelectionChange?: (next: TrussWorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
+}
+
+interface TrussGeometryEditTarget {
+  nodeIds?: string[];
+  memberIds?: string[];
+  preferredNodeId?: string;
+  preferredMemberId?: string;
+  label: string;
 }
 
 export function TrussCustomModelEditor({
@@ -130,12 +141,127 @@ export function TrussCustomModelEditor({
     if (value.loads.length === 0) warnings.push(`尚未设置节点荷载或${memberTerm}荷载。`);
     return warnings;
   }, [memberTerm, supportCount, value.loads, value.members, value.nodes]);
+  const geometryEditSpacing = useMemo(() => {
+    if (value.nodes.length === 0) return { x: 3, y: 3 };
+    const xs = value.nodes.map((node) => node.x);
+    const ys = value.nodes.map((node) => node.y);
+    const width = Math.max(...xs) - Math.min(...xs);
+    const height = Math.max(...ys) - Math.min(...ys);
+    return {
+      x: Number(Math.max(1, width + 1).toFixed(3)),
+      y: Number(Math.max(1, height + 1).toFixed(3)),
+    };
+  }, [value.nodes]);
+  const geometryEditTarget = useMemo<TrussGeometryEditTarget>(() => {
+    if (resolvedSelectedObject.type === "node" && value.nodes.some((node) => node.id === resolvedSelectedObject.id)) {
+      return {
+        nodeIds: [resolvedSelectedObject.id],
+        memberIds: [],
+        preferredNodeId: resolvedSelectedObject.id,
+        label: "当前节点",
+      };
+    }
+    if (resolvedSelectedObject.type === "member" && value.members.some((member) => member.id === resolvedSelectedObject.id)) {
+      return {
+        nodeIds: [],
+        memberIds: [resolvedSelectedObject.id],
+        preferredMemberId: resolvedSelectedObject.id,
+        label: `当前${memberTerm}`,
+      };
+    }
+    if (resolvedSelectedObject.type === "load") {
+      const load = value.loads.at(Number(resolvedSelectedObject.id.replace("load-", "")));
+      if (load?.type === "nodal") {
+        return {
+          nodeIds: [load.node],
+          memberIds: [],
+          preferredNodeId: load.node,
+          label: "荷载作用节点",
+        };
+      }
+      if (load) {
+        return {
+          nodeIds: [],
+          memberIds: [load.member],
+          preferredMemberId: load.member,
+          label: `荷载作用${memberTerm}`,
+        };
+      }
+    }
+    return {
+      nodeIds: value.nodes.map((node) => node.id),
+      memberIds: value.members.map((member) => member.id),
+      preferredNodeId: value.nodes[0]?.id,
+      preferredMemberId: value.members[0]?.id,
+      label: "全模型",
+    };
+  }, [memberTerm, resolvedSelectedObject, value.loads, value.members, value.nodes]);
+  const geometryEditDisabled = value.nodes.length === 0 && value.members.length === 0;
 
   const commit = (next: TrussCollections) => onChange(next);
 
   const selectObject = (next: TrussSelectedObject, options?: WorkbenchSelectionOptions) => {
     setSelectedObject(next);
     onSelectionChange?.({ mode: "truss", type: next.type, id: next.id }, options);
+  };
+
+  const geometryEditOptions = () => ({
+    nodeIds: geometryEditTarget.nodeIds,
+    memberIds: geometryEditTarget.memberIds,
+  });
+
+  const resetTrussMemberConnection = (next: TrussCollections) => {
+    memberConnection.resetToAvailablePair({
+      nodeIds: next.nodes.map((node) => node.id),
+      duplicateExists: (nextStartId, nextEndId) => trussMemberExists(next.members, nextStartId, nextEndId),
+    });
+  };
+
+  const selectGeneratedTrussGeometry = (next: TrussCollections, target: TrussGeometryEditTarget) => {
+    const previousNodeIds = new Set(value.nodes.map((node) => node.id));
+    const previousMemberIds = new Set(value.members.map((member) => member.id));
+    if (target.preferredMemberId) {
+      const generatedMember = next.members.find((member) => !previousMemberIds.has(member.id) && member.id.startsWith(`${target.preferredMemberId}_C`));
+      if (generatedMember) {
+        selectObject({ type: "member", id: generatedMember.id }, { openEditor: false });
+        return;
+      }
+    }
+    if (target.preferredNodeId) {
+      const generatedNode = next.nodes.find((node) => !previousNodeIds.has(node.id) && node.id.startsWith(`${target.preferredNodeId}_C`));
+      if (generatedNode) {
+        selectObject({ type: "node", id: generatedNode.id }, { openEditor: false });
+        return;
+      }
+    }
+    const generatedNode = next.nodes.find((node) => !previousNodeIds.has(node.id));
+    if (generatedNode) selectObject({ type: "node", id: generatedNode.id }, { openEditor: false });
+  };
+
+  const commitTrussGeometryEdit = (next: TrussCollections, target: TrussGeometryEditTarget) => {
+    commit(next);
+    resetTrussMemberConnection(next);
+    selectGeneratedTrussGeometry(next, target);
+  };
+
+  const copyGeometryTarget = () => {
+    const next = copyTrussCollections(value, { ...geometryEditOptions(), offsetX: geometryEditSpacing.x, offsetY: 0 });
+    commitTrussGeometryEdit(next, geometryEditTarget);
+  };
+
+  const mirrorGeometryTarget = (axis: "x" | "y") => {
+    const next = mirrorTrussCollections(value, { ...geometryEditOptions(), axis, origin: 0 });
+    commitTrussGeometryEdit(next, geometryEditTarget);
+  };
+
+  const arrayGeometryTarget = (direction: "x" | "y") => {
+    const next = arrayTrussCollections(value, {
+      ...geometryEditOptions(),
+      count: 2,
+      deltaX: direction === "x" ? geometryEditSpacing.x : 0,
+      deltaY: direction === "y" ? geometryEditSpacing.y : 0,
+    });
+    commitTrussGeometryEdit(next, geometryEditTarget);
   };
 
   const applyTypicalCase = (templateId: string) => {
@@ -389,15 +515,73 @@ export function TrussCustomModelEditor({
 
       {isSectionVisible("truss-object") ? (
       <section id="truss-selected-editor" className="space-y-3 rounded-2xl border border-white/8 bg-white/[0.03] p-4 scroll-mt-4">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="eyebrow flex items-center gap-2">
             <Triangle className="h-3.5 w-3.5 text-primary" />
             属性编辑
           </div>
-          <Button size="sm" onClick={addNode} className="h-8 rounded-xl">
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
-            新增节点
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-semibold text-muted-foreground">{geometryEditTarget.label}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={copyGeometryTarget}
+              disabled={geometryEditDisabled}
+              title="复制当前几何对象并沿 X 向错开"
+              className="h-8 rounded-xl"
+            >
+              <Copy className="mr-1.5 h-3.5 w-3.5" />
+              复制
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => mirrorGeometryTarget("x")}
+              disabled={geometryEditDisabled}
+              title="按 X 轴镜像当前几何对象"
+              className="h-8 rounded-xl"
+            >
+              <FlipVertical className="mr-1.5 h-3.5 w-3.5" />
+              X 镜像
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => mirrorGeometryTarget("y")}
+              disabled={geometryEditDisabled}
+              title="按 Y 轴镜像当前几何对象"
+              className="h-8 rounded-xl"
+            >
+              <FlipHorizontal className="mr-1.5 h-3.5 w-3.5" />
+              Y 镜像
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => arrayGeometryTarget("x")}
+              disabled={geometryEditDisabled}
+              title="沿 X 向生成 2 份阵列副本"
+              className="h-8 rounded-xl"
+            >
+              <ArrowRight className="mr-1.5 h-3.5 w-3.5" />
+              X 阵列
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => arrayGeometryTarget("y")}
+              disabled={geometryEditDisabled}
+              title="沿 Y 向生成 2 份阵列副本"
+              className="h-8 rounded-xl"
+            >
+              <ArrowUp className="mr-1.5 h-3.5 w-3.5" />
+              Y 阵列
+            </Button>
+            <Button variant="outline" size="sm" onClick={addNode} className="h-8 rounded-xl">
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              新增节点
+            </Button>
+          </div>
         </div>
         {renderSelectedEditor()}
       </section>

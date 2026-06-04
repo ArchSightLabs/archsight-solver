@@ -129,7 +129,8 @@ function copyTrussOnce(collections: TrussEditorCollections, options: TrussCopyOp
     .map((load): TrussLoad | null => {
       if (load.type === "nodal") {
         const nextNode = nodeIdMap.get(load.node);
-        return nextNode ? { ...transformTrussLoad(load, options), node: nextNode } : null;
+        const transformedLoad = transformTrussLoad(load, options) as Extract<TrussLoad, { type: "nodal" }>;
+        return nextNode ? { ...transformedLoad, node: nextNode } : null;
       }
       const nextMember = memberIdMap.get(load.member);
       return nextMember ? { ...transformTrussLoad(load, options), member: nextMember } as TrussLoad : null;

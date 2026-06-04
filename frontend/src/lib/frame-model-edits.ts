@@ -148,7 +148,8 @@ function copyFrameOnce(collections: FrameEditorCollections, options: FrameCopyOp
   const rewriteLoad = (load: FrameLoad): FrameLoad | null => {
     if (load.type === "nodal") {
       const nextNode = nodeIdMap.get(load.node);
-      return nextNode ? { ...transformFrameLoad(load, options), node: nextNode } : null;
+      const transformedLoad = transformFrameLoad(load, options) as Extract<FrameLoad, { type: "nodal" }>;
+      return nextNode ? { ...transformedLoad, node: nextNode } : null;
     }
     const nextMember = memberIdMap.get(load.member);
     return nextMember ? { ...transformFrameLoad(load, options), member: nextMember } as FrameLoad : null;
