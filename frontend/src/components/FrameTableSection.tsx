@@ -5,6 +5,7 @@ import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
 import { FrameLoadEditor } from "./FrameLoadEditor";
 import { FrameMemberEditor } from "./FrameMemberEditor";
 import { FrameNodeEditor } from "./FrameNodeEditor";
+import { GridSnapControls } from "./GridSnapControls";
 
 export type FrameAdvancedSection = "nodes" | "members" | "loads" | "loadCases" | "loadCombinations";
 
@@ -25,6 +26,10 @@ interface FrameTableSectionProps {
   onMemberRemove: (index: number) => void;
   onLoadUpdate: (index: number, patch: Partial<FrameLoad>) => void;
   onLoadRemove: (index: number) => void;
+  gridSnapEnabled: boolean;
+  gridSnapStepM: number;
+  onGridSnapEnabledChange: (enabled: boolean) => void;
+  onGridSnapStepChange: (stepM: number) => void;
 }
 
 export function FrameTableSection({
@@ -44,6 +49,10 @@ export function FrameTableSection({
   onMemberRemove,
   onLoadUpdate,
   onLoadRemove,
+  gridSnapEnabled,
+  gridSnapStepM,
+  onGridSnapEnabledChange,
+  onGridSnapStepChange,
 }: FrameTableSectionProps) {
   const vocabulary = modelObjectVocabulary("frame");
   const fieldLabelClass = "text-[10px] font-black tracking-widest text-muted-foreground";
@@ -79,6 +88,14 @@ export function FrameTableSection({
           );
         })}
       </div>
+      <div className="mt-4">
+        <GridSnapControls
+          enabled={gridSnapEnabled}
+          stepM={gridSnapStepM}
+          onEnabledChange={onGridSnapEnabledChange}
+          onStepChange={onGridSnapStepChange}
+        />
+      </div>
       <div className="mt-4 space-y-5">
         {activeSectionId === "nodes" ? (
           <section id="frame-custom-nodes" className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 space-y-4 scroll-mt-4">
@@ -101,6 +118,8 @@ export function FrameTableSection({
                   onUpdate={(patch) => onNodeUpdate(index, patch)}
                   onRemove={() => onNodeRemove(index)}
                   variant="table"
+                  gridSnapEnabled={gridSnapEnabled}
+                  gridSnapStepM={gridSnapStepM}
                 />
               ))}
               {nodes.length === 0 && <div className="p-4 text-center text-xs text-muted-foreground">暂无节点</div>}

@@ -6,6 +6,7 @@ import { Input } from "./ui/input";
 import { NodeSupportField } from "./NodeSupportField";
 import { SelectedNodeConnectionPanel } from "./SelectedNodeConnectionPanel";
 import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
+import { snapCoordinateToGrid } from "../lib/node-coordinate-snap.ts";
 import { nodeCoordinateAriaLabel, nodeCoordinateLabel } from "../lib/node-field-vocabulary.ts";
 import type { TrussNode } from "../types/structure.ts";
 
@@ -22,6 +23,8 @@ interface TrussNodeEditorProps {
   onConnectionTargetChange?: (nextId: string) => void;
   onAddMemberBetweenNodes?: (startId: string, endId: string) => void;
   memberConnectionExists?: (startId: string, endId: string) => boolean;
+  gridSnapEnabled?: boolean;
+  gridSnapStepM?: number;
 }
 
 export function TrussNodeEditor({
@@ -37,12 +40,21 @@ export function TrussNodeEditor({
   onConnectionTargetChange,
   onAddMemberBetweenNodes,
   memberConnectionExists = () => false,
+  gridSnapEnabled = false,
+  gridSnapStepM = 0.5,
 }: TrussNodeEditorProps) {
   const isSelectedVariant = variant === "selected";
   const memberTerm = modelObjectMemberTerm("truss");
   const labelPrefix = isSelectedVariant ? "节点" : `第 ${nodeIndex + 1} 个节点`;
   const xLabel = nodeCoordinateLabel("x");
   const yLabel = nodeCoordinateLabel("y");
+  const parseCoordinateInput = (value: string) => (value === "" ? 0 : Number(value) || 0);
+  const updateCoordinate = (coordinate: "x" | "y", value: number) => {
+    onUpdate(coordinate === "x" ? { x: value } : { y: value });
+  };
+  const commitCoordinate = (coordinate: "x" | "y", value: string) => {
+    updateCoordinate(coordinate, snapCoordinateToGrid(parseCoordinateInput(value), { enabled: gridSnapEnabled, stepM: gridSnapStepM }));
+  };
 
   return (
     <div
@@ -92,7 +104,8 @@ export function TrussNodeEditor({
             type="number"
             step="0.1"
             value={node.x}
-            onChange={(event) => onUpdate({ x: Number(event.target.value) || 0 })}
+            onChange={(event) => updateCoordinate("x", parseCoordinateInput(event.target.value))}
+            onBlur={(event) => commitCoordinate("x", event.target.value)}
             className="h-10 min-w-0 font-mono text-xs"
           />
         </div>
@@ -103,7 +116,8 @@ export function TrussNodeEditor({
             type="number"
             step="0.1"
             value={node.y}
-            onChange={(event) => onUpdate({ y: Number(event.target.value) || 0 })}
+            onChange={(event) => updateCoordinate("y", parseCoordinateInput(event.target.value))}
+            onBlur={(event) => commitCoordinate("y", event.target.value)}
             className="h-10 min-w-0 font-mono text-xs"
           />
         </div>

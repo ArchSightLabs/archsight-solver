@@ -5,6 +5,7 @@ import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
 import { TrussLoadEditor } from "./TrussLoadEditor";
 import { TrussMemberEditor } from "./TrussMemberEditor";
 import { TrussNodeEditor } from "./TrussNodeEditor";
+import { GridSnapControls } from "./GridSnapControls";
 
 export type TrussAdvancedSection = "nodes" | "members" | "loads";
 
@@ -23,6 +24,10 @@ interface TrussTableSectionProps {
   onMemberRemove: (index: number) => void;
   onLoadUpdate: (index: number, patch: Partial<TrussLoad> | TrussLoad) => void;
   onLoadRemove: (index: number) => void;
+  gridSnapEnabled: boolean;
+  gridSnapStepM: number;
+  onGridSnapEnabledChange: (enabled: boolean) => void;
+  onGridSnapStepChange: (stepM: number) => void;
 }
 
 export function TrussTableSection({
@@ -40,6 +45,10 @@ export function TrussTableSection({
   onMemberRemove,
   onLoadUpdate,
   onLoadRemove,
+  gridSnapEnabled,
+  gridSnapStepM,
+  onGridSnapEnabledChange,
+  onGridSnapStepChange,
 }: TrussTableSectionProps) {
   const vocabulary = modelObjectVocabulary("truss");
   const fieldLabelClass = "text-[10px] font-black tracking-widest text-muted-foreground";
@@ -73,6 +82,14 @@ export function TrussTableSection({
           );
         })}
       </div>
+      <div className="mt-4">
+        <GridSnapControls
+          enabled={gridSnapEnabled}
+          stepM={gridSnapStepM}
+          onEnabledChange={onGridSnapEnabledChange}
+          onStepChange={onGridSnapStepChange}
+        />
+      </div>
       <div className="mt-4 space-y-5">
         {activeSectionId === "nodes" ? (
           <section id="truss-custom-nodes" className="space-y-4 rounded-2xl border border-white/8 bg-white/[0.03] p-4 scroll-mt-4">
@@ -95,6 +112,8 @@ export function TrussTableSection({
                   onUpdate={(patch) => onNodeUpdate(index, patch)}
                   onRemove={() => onNodeRemove(index)}
                   variant="table"
+                  gridSnapEnabled={gridSnapEnabled}
+                  gridSnapStepM={gridSnapStepM}
                 />
               ))}
               {nodes.length === 0 && <div className="p-4 text-center text-xs text-muted-foreground">暂无节点</div>}

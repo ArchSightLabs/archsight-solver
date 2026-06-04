@@ -1,5 +1,6 @@
 import { Trash2 } from "lucide-react";
 import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
+import { snapCoordinateToGrid } from "../lib/node-coordinate-snap.ts";
 import { nodeCoordinateAriaLabel, nodeCoordinateLabel, supportAngleApplies, supportAngleAriaLabel, supportAngleHelpText, supportAngleLabel } from "../lib/node-field-vocabulary.ts";
 import type { StructureNode } from "../types/structure.ts";
 import { DeferredIdInput } from "./ui/DeferredIdInput";
@@ -22,6 +23,8 @@ interface FrameNodeEditorProps {
   onConnectionTargetChange?: (nextId: string) => void;
   onAddMemberBetweenNodes?: (startId: string, endId: string) => void;
   memberConnectionExists?: (startId: string, endId: string) => boolean;
+  gridSnapEnabled?: boolean;
+  gridSnapStepM?: number;
 }
 
 export function FrameNodeEditor({
@@ -37,6 +40,8 @@ export function FrameNodeEditor({
   onConnectionTargetChange,
   onAddMemberBetweenNodes,
   memberConnectionExists = () => false,
+  gridSnapEnabled = false,
+  gridSnapStepM = 0.5,
 }: FrameNodeEditorProps) {
   const isSelectedVariant = variant === "selected";
   const memberTerm = modelObjectMemberTerm("frame");
@@ -46,6 +51,13 @@ export function FrameNodeEditor({
   const angleLabel = supportAngleLabel();
   const showSupportAngle = supportAngleApplies(node.supportType);
   const showSpringField = isSelectedVariant || (node.springs?.length ?? 0) > 0;
+  const parseCoordinateInput = (value: string) => (value === "" ? 0 : Number(value) || 0);
+  const updateCoordinate = (coordinate: "x" | "y", value: number) => {
+    onUpdate(coordinate === "x" ? { x: value } : { y: value });
+  };
+  const commitCoordinate = (coordinate: "x" | "y", value: string) => {
+    updateCoordinate(coordinate, snapCoordinateToGrid(parseCoordinateInput(value), { enabled: gridSnapEnabled, stepM: gridSnapStepM }));
+  };
   const handleSupportTypeChange = (supportType: StructureNode["supportType"]) => {
     onUpdate({
       supportType,
@@ -97,7 +109,8 @@ export function FrameNodeEditor({
             type="number"
             step="0.1"
             value={node.x}
-            onChange={(event) => onUpdate({ x: Number(event.target.value) || 0 })}
+            onChange={(event) => updateCoordinate("x", parseCoordinateInput(event.target.value))}
+            onBlur={(event) => commitCoordinate("x", event.target.value)}
             className="h-10 min-w-0 font-mono text-xs"
           />
         </div>
@@ -109,7 +122,8 @@ export function FrameNodeEditor({
             type="number"
             step="0.1"
             value={node.y}
-            onChange={(event) => onUpdate({ y: Number(event.target.value) || 0 })}
+            onChange={(event) => updateCoordinate("y", parseCoordinateInput(event.target.value))}
+            onBlur={(event) => commitCoordinate("y", event.target.value)}
             className="h-10 min-w-0 font-mono text-xs"
           />
         </div>

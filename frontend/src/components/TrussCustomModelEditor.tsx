@@ -8,6 +8,7 @@ import { TrussNodeEditor } from "./TrussNodeEditor";
 import { TrussObjectNavigator, type TrussSelectedObject } from "./TrussObjectNavigator";
 import { TrussTableSection, type TrussAdvancedSection } from "./TrussTableSection";
 import { TrussTextModelSection } from "./TrussTextModelSection";
+import { GridSnapControls } from "./GridSnapControls";
 import {
   createConnectedTrussMemberByNodeId,
   createTrussMemberLoadDraft,
@@ -72,6 +73,8 @@ export function TrussCustomModelEditor({
   const [selectedObject, setSelectedObject] = useState<TrussSelectedObject>({ type: "node", id: value.nodes[0]?.id ?? "" });
   const [nodeConnectionTargetId, setNodeConnectionTargetId] = useState("");
   const [advancedSectionId, setAdvancedSectionId] = useState<TrussAdvancedSection>("nodes");
+  const [gridSnapEnabled, setGridSnapEnabled] = useState(false);
+  const [gridSnapStepM, setGridSnapStepM] = useState(0.5);
   const visibleSectionId = normalizeModuleSectionId("truss", activeSectionId) ?? "truss-template";
   const memberTerm = modelObjectMemberTerm("truss");
   const isSectionVisible = (sectionId: string) => visibleSectionId === sectionId;
@@ -387,6 +390,8 @@ export function TrussCustomModelEditor({
           onConnectionTargetChange={setNodeConnectionTargetId}
           onAddMemberBetweenNodes={addMemberBetweenNodes}
           memberConnectionExists={(startId, endId) => trussMemberExists(value.members, startId, endId)}
+          gridSnapEnabled={gridSnapEnabled}
+          gridSnapStepM={gridSnapStepM}
         />
       );
     }
@@ -583,6 +588,12 @@ export function TrussCustomModelEditor({
             </Button>
           </div>
         </div>
+        <GridSnapControls
+          enabled={gridSnapEnabled}
+          stepM={gridSnapStepM}
+          onEnabledChange={setGridSnapEnabled}
+          onStepChange={setGridSnapStepM}
+        />
         {renderSelectedEditor()}
       </section>
       ) : null}
@@ -603,6 +614,10 @@ export function TrussCustomModelEditor({
         onMemberRemove={removeMember}
         onLoadUpdate={updateLoad}
         onLoadRemove={removeLoad}
+        gridSnapEnabled={gridSnapEnabled}
+        gridSnapStepM={gridSnapStepM}
+        onGridSnapEnabledChange={setGridSnapEnabled}
+        onGridSnapStepChange={setGridSnapStepM}
       />
       ) : null}
     </div>

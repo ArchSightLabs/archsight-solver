@@ -10,6 +10,7 @@ import { FrameObjectNavigator, type FrameSelectedObject } from "./FrameObjectNav
 import { FrameTableSection, type FrameAdvancedSection } from "./FrameTableSection";
 import { FrameTemplateSection } from "./FrameTemplateSection";
 import { FrameTextModelSection } from "./FrameTextModelSection";
+import { GridSnapControls } from "./GridSnapControls";
 import { ArrowRight, ArrowUp, Copy, FlipHorizontal, FlipVertical, Plus, Layers3 } from "lucide-react";
 import {
   createConnectedFrameMember,
@@ -89,6 +90,8 @@ export function FrameCustomModelEditor({
   const [selectedObject, setSelectedObject] = useState<FrameSelectedObject>({ type: "node", id: value.nodes[0]?.id ?? "" });
   const [nodeConnectionTargetId, setNodeConnectionTargetId] = useState("");
   const [advancedSectionId, setAdvancedSectionId] = useState<FrameAdvancedSection>("nodes");
+  const [gridSnapEnabled, setGridSnapEnabled] = useState(false);
+  const [gridSnapStepM, setGridSnapStepM] = useState(0.5);
   const visibleSectionId = normalizeModuleSectionId("frame", activeSectionId) ?? "frame-template";
   const memberTerm = modelObjectMemberTerm("frame");
   const isSectionVisible = (sectionId: string) => visibleSectionId === sectionId;
@@ -521,6 +524,8 @@ export function FrameCustomModelEditor({
           onConnectionTargetChange={setNodeConnectionTargetId}
           onAddMemberBetweenNodes={addMemberBetweenNodes}
           memberConnectionExists={(startId, endId) => frameMemberExists(value.members, startId, endId)}
+          gridSnapEnabled={gridSnapEnabled}
+          gridSnapStepM={gridSnapStepM}
         />
       );
     }
@@ -684,6 +689,12 @@ export function FrameCustomModelEditor({
             </Button>
           </div>
         </div>
+        <GridSnapControls
+          enabled={gridSnapEnabled}
+          stepM={gridSnapStepM}
+          onEnabledChange={setGridSnapEnabled}
+          onStepChange={setGridSnapStepM}
+        />
         {renderSelectedEditor()}
       </section>
       ) : null}
@@ -706,6 +717,10 @@ export function FrameCustomModelEditor({
         onMemberRemove={removeMember}
         onLoadUpdate={updateLoad}
         onLoadRemove={removeLoad}
+        gridSnapEnabled={gridSnapEnabled}
+        gridSnapStepM={gridSnapStepM}
+        onGridSnapEnabledChange={setGridSnapEnabled}
+        onGridSnapStepChange={setGridSnapStepM}
       />
       ) : null}
     </div>

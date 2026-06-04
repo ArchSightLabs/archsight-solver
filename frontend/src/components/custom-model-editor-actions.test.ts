@@ -64,3 +64,34 @@ test("框架和桁架表格页使用可回写的批量编辑器", () => {
   assert.match(trussEditor, /onMemberUpdate=\{updateMember\}/u);
   assert.match(trussEditor, /onLoadUpdate=\{updateLoad\}/u);
 });
+
+test("框架和桁架坐标编辑接入网格吸附控件", () => {
+  const frameEditor = componentSource("FrameCustomModelEditor.tsx");
+  const trussEditor = componentSource("TrussCustomModelEditor.tsx");
+  const frameTable = componentSource("FrameTableSection.tsx");
+  const trussTable = componentSource("TrussTableSection.tsx");
+  const gridSnapControls = componentSource("GridSnapControls.tsx");
+  const frameNodeEditor = componentSource("FrameNodeEditor.tsx");
+  const trussNodeEditor = componentSource("TrussNodeEditor.tsx");
+
+  assert.match(frameEditor, /GridSnapControls/u);
+  assert.match(frameEditor, /gridSnapEnabled/u);
+  assert.match(frameEditor, /gridSnapStepM/u);
+  assert.match(trussEditor, /GridSnapControls/u);
+  assert.match(trussEditor, /gridSnapEnabled/u);
+  assert.match(trussEditor, /gridSnapStepM/u);
+
+  assert.match(frameTable, /GridSnapControls/u);
+  assert.match(frameTable, /gridSnapEnabled=\{gridSnapEnabled\}/u);
+  assert.match(trussTable, /GridSnapControls/u);
+  assert.match(trussTable, /gridSnapEnabled=\{gridSnapEnabled\}/u);
+  assert.match(gridSnapControls, /min="0\.01"/u);
+  assert.match(gridSnapControls, /step="0\.01"/u);
+
+  assert.match(frameNodeEditor, /snapCoordinateToGrid/u);
+  assert.match(frameNodeEditor, /gridSnapEnabled/u);
+  assert.match(frameNodeEditor, /onBlur=\{\(event\) => commitCoordinate\("x", event\.target\.value\)\}/u);
+  assert.match(trussNodeEditor, /snapCoordinateToGrid/u);
+  assert.match(trussNodeEditor, /gridSnapEnabled/u);
+  assert.match(trussNodeEditor, /onBlur=\{\(event\) => commitCoordinate\("x", event\.target\.value\)\}/u);
+});
