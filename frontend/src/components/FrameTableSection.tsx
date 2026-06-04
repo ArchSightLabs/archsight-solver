@@ -1,10 +1,10 @@
 import { Layers3, Link2, MapPin, Settings2 } from "lucide-react";
 import type { FrameLoad, FrameLoadCase, FrameLoadCombination, StructureMember, StructureNode } from "../types/structure.ts";
 import { modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
-import { nodeSupportLabel } from "../lib/support-vocabulary.ts";
-import { frameDistributedLoadKindLabel } from "../lib/frame-editor-model.ts";
-import { materialIdentityLabelForId, materialIdForMember } from "../lib/material-presets.ts";
 import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
+import { FrameLoadEditor } from "./FrameLoadEditor";
+import { FrameMemberEditor } from "./FrameMemberEditor";
+import { FrameNodeEditor } from "./FrameNodeEditor";
 
 export type FrameAdvancedSection = "nodes" | "members" | "loads" | "loadCases" | "loadCombinations";
 
@@ -13,10 +13,18 @@ interface FrameTableSectionProps {
   members: StructureMember[];
   materialLibrary?: Material[];
   loads: FrameLoad[];
+  nodeOptions: Array<{ value: string; label: string }>;
+  memberOptions: Array<{ value: string; label: string }>;
   loadCases: FrameLoadCase[];
   loadCombinations: FrameLoadCombination[];
   activeSectionId: FrameAdvancedSection;
   onSectionChange: (next: FrameAdvancedSection) => void;
+  onNodeUpdate: (index: number, patch: Partial<StructureNode>) => void;
+  onNodeRemove: (index: number) => void;
+  onMemberUpdate: (index: number, patch: Partial<StructureMember>) => void;
+  onMemberRemove: (index: number) => void;
+  onLoadUpdate: (index: number, patch: Partial<FrameLoad>) => void;
+  onLoadRemove: (index: number) => void;
 }
 
 export function FrameTableSection({
@@ -24,17 +32,21 @@ export function FrameTableSection({
   members,
   materialLibrary = PREDEFINED_MATERIALS,
   loads,
+  nodeOptions,
+  memberOptions,
   loadCases,
   loadCombinations,
   activeSectionId,
   onSectionChange,
+  onNodeUpdate,
+  onNodeRemove,
+  onMemberUpdate,
+  onMemberRemove,
+  onLoadUpdate,
+  onLoadRemove,
 }: FrameTableSectionProps) {
   const vocabulary = modelObjectVocabulary("frame");
-  const distributedLoadValue = (load: Extract<FrameLoad, { type: "distributed" }>) => {
-    const qStart = Number(load.qStartKnPerM ?? load.wyKnPerM ?? 0);
-    const qEnd = Number(load.qEndKnPerM ?? load.qStartKnPerM ?? load.wyKnPerM ?? qStart);
-    return Math.abs(qStart - qEnd) < 1e-9 ? `${qStart} kN/m` : `${qStart} ~ ${qEnd} kN/m`;
-  };
+  const fieldLabelClass = "text-[10px] font-black tracking-widest text-muted-foreground";
   const sections: Array<{ id: FrameAdvancedSection; label: string; count: number }> = [
     { id: "nodes", label: vocabulary.nodeGroupLabel, count: nodes.length },
     { id: "members", label: vocabulary.memberGroupLabel, count: members.length },
@@ -75,15 +87,21 @@ export function FrameTableSection({
                 <MapPin className="h-3.5 w-3.5 text-primary" />
                 {vocabulary.nodeGroupLabel}
               </div>
-              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">节点编号 / 横坐标 / 纵坐标 / 支座类型</span>
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">表格批量编辑</span>
             </div>
             <div className="space-y-2">
-              {nodes.map((node) => (
-                <div key={node.id} className="grid grid-cols-3 gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 text-xs">
-                  <span className="font-bold">{node.id}</span>
-                  <span className="font-mono">({node.x.toFixed(2)}, {node.y.toFixed(2)}) m</span>
-                  <span>{node.supportType && node.supportType !== "free" ? nodeSupportLabel(node.supportType) : "自由"}</span>
-                </div>
+              {nodes.map((node, index) => (
+                <FrameNodeEditor
+                  key={node.id}
+                  node={node}
+                  nodeIndex={index}
+                  nodeCount={nodes.length}
+                  nodeOptions={nodeOptions}
+                  fieldLabelClass={fieldLabelClass}
+                  onUpdate={(patch) => onNodeUpdate(index, patch)}
+                  onRemove={() => onNodeRemove(index)}
+                  variant="table"
+                />
               ))}
               {nodes.length === 0 && <div className="p-4 text-center text-xs text-muted-foreground">暂无节点</div>}
             </div>
@@ -97,15 +115,21 @@ export function FrameTableSection({
                 <Layers3 className="h-3.5 w-3.5 text-primary" />
                 {vocabulary.memberGroupLabel}
               </div>
-              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">编号 / 连接 / 材料</span>
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">表格批量编辑</span>
             </div>
             <div className="space-y-2">
-              {members.map((member) => (
-                <div key={member.id} className="grid grid-cols-3 gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 text-xs">
-                  <span className="font-bold">{member.id}</span>
-                  <span className="font-mono">{member.start} - {member.end}</span>
-                  <span className="truncate text-muted-foreground">{materialIdentityLabelForId(materialIdForMember(member, materialLibrary), materialLibrary)}</span>
-                </div>
+              {members.map((member, index) => (
+                <FrameMemberEditor
+                  key={member.id}
+                  member={member}
+                  memberIndex={index}
+                  nodeOptions={nodeOptions}
+                  materialLibrary={materialLibrary}
+                  fieldLabelClass={fieldLabelClass}
+                  onUpdate={(patch) => onMemberUpdate(index, patch)}
+                  onRemove={() => onMemberRemove(index)}
+                  variant="table"
+                />
               ))}
               {members.length === 0 && <div className="p-4 text-center text-xs text-muted-foreground">暂无{vocabulary.memberGroupLabel}</div>}
             </div>
@@ -122,17 +146,18 @@ export function FrameTableSection({
             </div>
             <div className="space-y-2">
               {loads.map((load, index) => (
-                <div key={index} className="grid grid-cols-3 gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 text-xs">
-                  <span className="font-bold">荷载 {index + 1}</span>
-                  <span>{load.type === "nodal" ? `节点 (${load.node})` : `单元 (${load.member})`}</span>
-                  <span className="font-mono text-muted-foreground">
-                    {load.type === "nodal"
-                      ? `Fx: ${load.fxKn ?? 0} kN, Fy: ${load.fyKn ?? 0} kN`
-                      : load.type === "member_point"
-                        ? `P: ${load.forceKn ?? 0} kN`
-                        : `${frameDistributedLoadKindLabel(load)} ${distributedLoadValue(load)}`}
-                  </span>
-                </div>
+                <FrameLoadEditor
+                  key={`${load.type}-${index}`}
+                  load={load}
+                  index={index}
+                  nodes={nodes}
+                  members={members}
+                  nodeOptions={nodeOptions}
+                  memberOptions={memberOptions}
+                  fieldLabelClass={fieldLabelClass}
+                  onUpdate={(patch) => onLoadUpdate(index, patch)}
+                  onRemove={() => onLoadRemove(index)}
+                />
               ))}
               {loads.length === 0 && <div className="p-4 text-center text-xs text-muted-foreground">暂无基本荷载</div>}
             </div>

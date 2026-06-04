@@ -593,8 +593,16 @@ export function TrussCustomModelEditor({
         members={value.members}
         materialLibrary={materialLibrary}
         loads={value.loads}
+        nodeOptions={nodeOptions}
+        memberOptions={memberOptions}
         activeSectionId={advancedSectionId}
         onSectionChange={setAdvancedSectionId}
+        onNodeUpdate={updateNode}
+        onNodeRemove={removeNode}
+        onMemberUpdate={updateMember}
+        onMemberRemove={removeMember}
+        onLoadUpdate={updateLoad}
+        onLoadRemove={removeLoad}
       />
       ) : null}
     </div>
