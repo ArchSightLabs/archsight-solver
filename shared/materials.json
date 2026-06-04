@@ -4,6 +4,7 @@
     "name": "自定义 (手动输入)",
     "youngModulusGPa": 206,
     "densityKgPerM3": 7850,
+    "thermalExpansionPerC": 0.000012,
     "category": "custom",
     "note": "手动输入材料参数；计算仅使用弹性模量 E，密度用于自重或材料说明。"
   },
@@ -12,6 +13,7 @@
     "name": "Q235 碳素结构钢",
     "youngModulusGPa": 206,
     "densityKgPerM3": 7850,
+    "thermalExpansionPerC": 0.000012,
     "category": "steel",
     "note": "常用结构钢预设；强度设计值、稳定、连接和规范设计不由本求解器自动判定。"
   },
@@ -20,6 +22,7 @@
     "name": "Q345 低合金高强度结构钢",
     "youngModulusGPa": 210,
     "densityKgPerM3": 7850,
+    "thermalExpansionPerC": 0.000012,
     "category": "steel",
     "note": "常用低合金结构钢预设；强度设计值、稳定、连接和规范设计不由本求解器自动判定。"
   },
@@ -28,6 +31,7 @@
     "name": "C30 混凝土",
     "youngModulusGPa": 30,
     "densityKgPerM3": 2500,
+    "thermalExpansionPerC": 0.00001,
     "category": "concrete",
     "note": "普通混凝土弹性模量近似值；裂缝、徐变、收缩和配筋设计不在当前线弹性求解范围内。"
   },
@@ -36,6 +40,7 @@
     "name": "C35 混凝土",
     "youngModulusGPa": 31.5,
     "densityKgPerM3": 2500,
+    "thermalExpansionPerC": 0.00001,
     "category": "concrete",
     "note": "普通混凝土弹性模量近似值；裂缝、徐变、收缩和配筋设计不在当前线弹性求解范围内。"
   },
@@ -44,6 +49,7 @@
     "name": "C40 混凝土",
     "youngModulusGPa": 32.5,
     "densityKgPerM3": 2500,
+    "thermalExpansionPerC": 0.00001,
     "category": "concrete",
     "note": "普通混凝土弹性模量近似值；裂缝、徐变、收缩和配筋设计不在当前线弹性求解范围内。"
   },
@@ -52,6 +58,7 @@
     "name": "C50 混凝土",
     "youngModulusGPa": 34.5,
     "densityKgPerM3": 2500,
+    "thermalExpansionPerC": 0.00001,
     "category": "concrete",
     "note": "普通混凝土弹性模量近似值；裂缝、徐变、收缩和配筋设计不在当前线弹性求解范围内。"
   }

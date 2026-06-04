@@ -99,6 +99,12 @@ function scaleFrameLoad(load: FrameLoad, factor: number): FrameLoad {
       forceKn: (load.forceKn ?? 0) * factor,
     };
   }
+  if (load.type === "temperature") {
+    return {
+      ...load,
+      deltaTempC: (load.deltaTempC ?? 0) * factor,
+    };
+  }
   return {
     ...load,
     wyKnPerM: load.wyKnPerM === undefined ? undefined : load.wyKnPerM * factor,

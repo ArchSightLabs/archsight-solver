@@ -171,6 +171,7 @@ export function FrameTableSection({
                   index={index}
                   nodes={nodes}
                   members={members}
+                  materialLibrary={materialLibrary}
                   nodeOptions={nodeOptions}
                   memberOptions={memberOptions}
                   fieldLabelClass={fieldLabelClass}

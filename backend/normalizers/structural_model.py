@@ -3,11 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
+from backend.common.material_catalog import get_material_spec
 from backend.common.numbers import to_float
 from backend.common.support_catalog import support_constraint_dof_map, support_constraint_dofs as catalog_support_constraint_dofs, support_labels
 from backend.normalizers.section_library import resolve_section
 
 
+DEFAULT_THERMAL_EXPANSION_PER_C = 1.2e-5
 FRAME_SUPPORT_LABELS = support_labels("frame")
 TRUSS_SUPPORT_LABELS = support_labels("truss")
 SUPPORT_DOF_MAP = support_constraint_dof_map()
@@ -96,6 +98,8 @@ class StructuralLoad:
             return {"type": "nodal", "node": self.target, **self.values}
         if self.type == "member_point":
             return {"type": "member_point", "member": self.target, **self.values}
+        if self.type == "temperature":
+            return {"type": "temperature", "member": self.target, **self.values}
         return {"type": "distributed", "member": self.target, **self.values}
 
 
@@ -546,8 +550,12 @@ def expand_loads_for_split_members(raw_loads: Sequence[Dict[str, Any]], split_ma
         load = dict(raw_load)
         load_type = str(load.get("type") or "").strip().lower()
         member_id = str(load.get("member") or "")
-        if load_type not in {"distributed", "member_point"} or member_id not in split_map:
+        if load_type not in {"distributed", "member_point", "temperature"} or member_id not in split_map:
             expanded_loads.append(load)
+            continue
+        if load_type == "temperature":
+            for segment_id, _, _ in split_map[member_id]:
+                expanded_loads.append({**load, "member": segment_id})
             continue
         if load_type == "distributed":
             direction = load.get("direction", "local_y")
@@ -688,6 +696,7 @@ def parse_loads(
 ) -> List[StructuralLoad]:
     node_ids = {node.id for node in nodes}
     member_ids = {member.id for member in members}
+    member_by_id = {member.id: member for member in members}
     loads: List[StructuralLoad] = []
     for load in raw_loads:
         load_type = str(load.get("type") or "nodal").strip().lower()
@@ -729,10 +738,23 @@ def parse_loads(
                     values=parse_member_point_load_values(load),
                 )
             )
+        elif load_type == "temperature":
+            if not allow_distributed:
+                raise ValueError("桁架当前仅支持节点荷载")
+            member_id = str(load.get("member") or "")
+            if member_id not in member_ids:
+                raise ValueError("构件荷载引用了不存在的构件")
+            loads.append(
+                StructuralLoad(
+                    type="temperature",
+                    target=member_id,
+                    values=parse_temperature_load_values(load, member=member_by_id.get(member_id)),
+                )
+            )
         elif not allow_distributed:
             raise ValueError("桁架当前仅支持节点荷载")
         else:
-            raise ValueError("荷载类型必须为 nodal、distributed 或 member_point")
+            raise ValueError("荷载类型必须为 nodal、distributed、member_point 或 temperature")
     return loads
 
 
@@ -861,6 +883,28 @@ def parse_member_point_load_values(load: Mapping[str, Any]) -> Dict[str, Any]:
         "direction": direction,
         "forceKn": to_float(load.get("forceKn", load.get("magnitudeKn", load.get("pKn", 0.0))), 0.0),
         "positionRatio": position_ratio,
+    }
+
+
+def material_thermal_expansion_per_c(material_id: Optional[str]) -> float:
+    material = get_material_spec(material_id)
+    if material:
+        return material.thermal_expansion_per_c
+    return DEFAULT_THERMAL_EXPANSION_PER_C
+
+
+def parse_temperature_load_values(load: Mapping[str, Any], *, member: StructuralMember | None = None) -> Dict[str, Any]:
+    delta_temp = to_float(
+        load.get("deltaTempC", load.get("temperatureDeltaC", load.get("deltaTC", load.get("valueC", 0.0)))),
+        0.0,
+    )
+    alpha_default = material_thermal_expansion_per_c(member.material_id if member else None)
+    alpha = to_float(load.get("alphaPerC", load.get("thermalExpansionPerC", alpha_default)), alpha_default)
+    if alpha < 0.0:
+        raise ValueError("构件温度荷载线膨胀系数 alphaPerC 不能为负")
+    return {
+        "deltaTempC": delta_temp,
+        "alphaPerC": alpha,
     }
 
 

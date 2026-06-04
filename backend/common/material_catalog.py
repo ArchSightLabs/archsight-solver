@@ -13,6 +13,7 @@ class MaterialSpec:
     name: str
     young_modulus_gpa: float
     density_kg_per_m3: float
+    thermal_expansion_per_c: float
     category: str
     note: str
 
@@ -34,6 +35,7 @@ def material_catalog() -> Tuple[MaterialSpec, ...]:
             name=str(item["name"]),
             young_modulus_gpa=float(item["youngModulusGPa"]),
             density_kg_per_m3=float(item["densityKgPerM3"]),
+            thermal_expansion_per_c=float(item.get("thermalExpansionPerC", 1.2e-5)),
             category=str(item.get("category", "")),
             note=str(item.get("note", "")),
         )
@@ -76,6 +78,7 @@ def material_report_rows(material_id: Any, *, include_name: bool = False) -> Lis
             ["材料类别", _CATEGORY_LABELS.get(material.category, material.category or "未分类")],
             ["材料库弹性模量 E (GPa)", material.young_modulus_gpa],
             ["材料库密度 ρ (kg/m³)", material.density_kg_per_m3],
+            ["材料库线膨胀系数 α (1/°C)", material.thermal_expansion_per_c],
             ["工程说明", material.note],
         ]
     )

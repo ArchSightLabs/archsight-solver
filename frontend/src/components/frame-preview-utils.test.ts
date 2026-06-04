@@ -104,6 +104,29 @@ test("buildFrameLoadMarkers respects partial distributed load range", () => {
   }
 });
 
+test("buildFrameLoadMarkers renders temperature load as a member guide", () => {
+  const load = { type: "temperature" as const, member: "B1", deltaTempC: 30, alphaPerC: 1.2e-5 };
+  const loadLabels = buildFrameLoadLabelMap([load]);
+  const markers = buildFrameLoadMarkers(
+    load,
+    0,
+    {
+      nodeMap: new Map([
+        ["N1", { x: 100, y: 320 }],
+        ["N2", { x: 340, y: 320 }],
+      ]),
+      memberMap: new Map([["B1", { start: "N1", end: "N2" }]]),
+      loadLabel: loadLabels.get(0),
+    }
+  );
+
+  assert.equal(markers.length, 1);
+  assert.equal(markers[0].type, "distributed-guide");
+  assert.equal(markers[0].label, "T1=30.0 °C");
+  assert.equal(markers[0].x1, 100);
+  assert.equal(markers[0].x2, 340);
+});
+
 test("buildFrameLoadMarkers skips distributed arrows that overlap reserved point loads", () => {
   const load = { type: "distributed" as const, member: "B1", wyKnPerM: -18 };
   const loadLabels = buildFrameLoadLabelMap([load]);

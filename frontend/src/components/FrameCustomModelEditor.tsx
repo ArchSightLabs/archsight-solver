@@ -117,7 +117,9 @@ export function FrameCustomModelEditor({
         ? `节点荷载 ${index + 1}（${load.node}）`
         : load.type === "member_point"
           ? `集中荷载 ${index + 1}（${load.member}）`
-          : `${frameDistributedLoadKindLabel(load)} ${index + 1}（${load.member}）`,
+          : load.type === "temperature"
+            ? `温度荷载 ${index + 1}（${load.member}）`
+            : `${frameDistributedLoadKindLabel(load)} ${index + 1}（${load.member}）`,
     })),
     [value.loads]
   );
@@ -478,6 +480,7 @@ export function FrameCustomModelEditor({
           loadCases={value.loadCases}
           nodes={value.nodes}
           members={value.members}
+          materialLibrary={materialLibrary}
           nodeOptions={nodeOptions}
           memberOptions={memberOptions}
           fieldLabelClass={fieldLabelClass}
@@ -557,6 +560,7 @@ export function FrameCustomModelEditor({
         index={loadIndex}
         nodes={value.nodes}
         members={value.members}
+        materialLibrary={materialLibrary}
         nodeOptions={nodeOptions}
         memberOptions={memberOptions}
         fieldLabelClass={fieldLabelClass}

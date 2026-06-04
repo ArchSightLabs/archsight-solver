@@ -54,15 +54,16 @@ def _frame_stability_summary(solution: Dict[str, Any], options: Dict[str, Any]) 
     members = {member["id"]: member for member in solution["structure"].get("members", [])}
     compression_ratios: List[Dict[str, Any]] = []
     for result in solution.get("memberResults", []):
-        axial_kn = min(float(result.get("axialStartKn", 0.0)), float(result.get("axialEndKn", 0.0)))
-        if axial_kn >= 0:
+        # Frame member end-force recovery uses compression positive and tension negative.
+        axial_kn = max(float(result.get("axialStartKn", 0.0)), float(result.get("axialEndKn", 0.0)))
+        if axial_kn <= 0:
             continue
         member = members.get(result["memberId"], {})
         length = max(float(result.get("lengthM", 0.0)), 1e-9)
         e = float(member.get("E_GPa", 210.0)) * 1e9
         i = float(member.get("I_cm4", 8000.0)) * 1e-8
         pcr_kn = math.pi**2 * e * i / (length**2) / 1000.0
-        compression_kn = abs(axial_kn)
+        compression_kn = axial_kn
         if pcr_kn <= 0 or compression_kn <= 0:
             continue
         compression_ratios.append(
@@ -180,6 +181,10 @@ def _scale_load(load: Dict[str, Any], factor: float) -> Dict[str, Any]:
     if load["type"] == "member_point":
         if "forceKn" in scaled:
             scaled["forceKn"] = float(scaled["forceKn"]) * factor
+        return scaled
+    if load["type"] == "temperature":
+        if "deltaTempC" in scaled:
+            scaled["deltaTempC"] = float(scaled["deltaTempC"]) * factor
         return scaled
     for key in ("wyKnPerM", "qStartKnPerM", "qEndKnPerM"):
         if key in scaled:

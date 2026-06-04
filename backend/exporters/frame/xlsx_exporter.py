@@ -113,6 +113,7 @@ def build_summary_tables(solution: Dict[str, Any], material_name: str):
             ["节点荷载方向", "fxKn 为全局 X 正向，fyKn 为全局 Y 正向，mzKnM 为节点力矩"],
             ["构件分布荷载方向", "qStartKnPerM/qEndKnPerM 表示起止强度，startRatio/endRatio 表示构件内作用范围；旧字段 wyKnPerM 等价于全跨 local_y"],
             ["构件集中荷载方向", "member_point 使用 forceKn 与 positionRatio 表示构件内集中力；全局 Y 正值向上，局部 y 正值沿构件局部 +y"],
+            ["构件温度荷载", "temperature 使用 deltaTempC 与 alphaPerC 表示均匀温差自由伸缩；正温差表示升温伸长"],
             ["构件内力曲线", "memberDiagrams 按构件局部坐标输出轴力、剪力、正负号按结构力学弯矩图约定的弯矩和局部 y 向位移测站值"],
             ["位移单位", "节点平动位移以 mm 输出，节点转角以 deg 输出"],
             ["内力单位", "轴力/剪力以 kN 输出，弯矩以 kN·m 输出"],

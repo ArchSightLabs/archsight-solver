@@ -16,6 +16,7 @@ import {
   memberMaterialEngineeringNote,
   normalizeProjectCustomMaterials,
   selectableMaterialPresets,
+  thermalExpansionForMaterial,
   youngModulusForMaterial,
 } from "./material-presets.ts";
 import { memberMaterialPresetHint, memberPropertyLabels } from "./member-property-vocabulary.ts";
@@ -28,6 +29,9 @@ test("共享材料目录保留结构工程材料名称和 E/密度", () => {
   assert.equal(q345?.name, "Q345 低合金高强度结构钢");
   assert.equal(q345?.youngModulus, 210);
   assert.equal(q345?.density, 7850);
+  assert.equal(q345?.thermalExpansionPerC, 0.000012);
+  assert.equal(thermalExpansionForMaterial("q345"), 0.000012);
+  assert.equal(thermalExpansionForMaterial("c30"), 0.00001);
   assert.match(materialOptionLabel(q345!), /E=210 GPa/u);
   assert.match(materialOptionLabel(custom!), /手动 E/u);
   assert.doesNotMatch(materialOptionLabel(custom!), /E=206 GPa/u);
@@ -60,7 +64,7 @@ test("材料下拉只列系统预设并使用短选项", () => {
 
 test("工程自定义材料进入材料库下拉且不能覆盖系统内置材料", () => {
   const customMaterials = normalizeProjectCustomMaterials([
-    { id: "timber-c24", name: "C24 结构木材", youngModulus: 11, density: 420 },
+    { id: "timber-c24", name: "C24 结构木材", youngModulus: 11, density: 420, thermalExpansionPerC: 0.000005 },
     { id: "q345", name: "非法覆盖", youngModulus: 1, density: 1 },
   ]);
   const library = materialLibraryFromCustomMaterials(customMaterials);
@@ -73,6 +77,7 @@ test("工程自定义材料进入材料库下拉且不能覆盖系统内置材�
   assert.equal(timber?.badge, "自定义");
   assert.equal(materialOptionDescription(customMaterials[0]), "自定义 · E=11 GPa · ρ=420 kg/m³");
   assert.equal(youngModulusForMaterial("timber-c24", 210, library), 11);
+  assert.equal(thermalExpansionForMaterial("timber-c24", 0.000012, library), 0.000005);
   assert.equal(materialLabelForId("timber-c24", library), "TIMBER-C24");
   assert.equal(
     memberElasticityDistributionLabel([{ materialId: "timber-c24", E_GPa: 11 }], "构件", "timber-c24", library),

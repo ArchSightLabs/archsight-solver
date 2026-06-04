@@ -78,6 +78,8 @@ LOAD,point,12,0.75
 | 节点力 Fx、Fy | kN |
 | 节点弯矩 Mz | kN·m |
 | 构件线荷载 | kN/m |
+| 构件均匀温差 ΔT | °C |
+| 线膨胀系数 α | 1/°C |
 | 节点平动弹性约束刚度 | kN/m |
 | 节点转动弹性约束刚度 | kN·m/rad |
 
@@ -96,6 +98,7 @@ LOAD,节点号,Fx_kN,Fy_kN,Mz_kN_m
 DLOAD,构件序号,qStart,qEnd,方向
 ELOAD,构件序号,荷载类型,荷载值,方向
 PLOAD,构件序号,集中力,位置比例,方向
+TLOAD,构件序号,温差C,线膨胀系数
 CASE,工况编号,工况名称
 CASELOAD,工况编号,<NLOAD/DLOAD/PLOAD...>
 COMB,组合编号,组合名称,标签
@@ -105,6 +108,8 @@ FACTOR,组合编号,工况编号,系数
 `N`、`E`、`NSUPT`、`PROP`、`NLOAD`、`DLOAD` 兼容常见结构程序的短命令风格。`MEMBER`、`LOAD`、`NSPRING` 提供更直观的 ArchSight 显式写法。`NSPRING` 可写作 `SPRING`，自由度支持 `ux`、`uy`、`rz`；`ux/uy` 刚度单位为 kN/m，`rz` 刚度单位为 kN·m/rad，刚度必须大于 0。
 
 `材料编号` 可省略；省略时系统会根据 `E_GPa` 尝试匹配材料库，无法匹配时记为 `custom`。求解刚度仍以 `E_GPa`、`A_cm2`、`I_cm4` 为准。
+
+`TLOAD` 表示二维框架构件均匀温度荷载，正温差表示自由伸长；文本模型暂不表达截面温度梯度、瞬态热传导或徐变松弛。
 
 ### 示例
 

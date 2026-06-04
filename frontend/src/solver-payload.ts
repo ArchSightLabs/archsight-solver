@@ -204,6 +204,19 @@ function normalizeFrameLoad(load: FrameLoad): FrameLoad {
     };
   }
 
+  if (load.type === "temperature") {
+    const normalizedLoad: Extract<FrameLoad, { type: "temperature" }> = {
+      type: "temperature",
+      member: String(load.member ?? "M1").trim() || "M1",
+      deltaTempC: Number.isFinite(load.deltaTempC) ? Number(load.deltaTempC) : 0,
+    };
+    if ("alphaPerC" in load) {
+      const alpha = Number(load.alphaPerC);
+      normalizedLoad.alphaPerC = Number.isFinite(alpha) && alpha >= 0 ? alpha : 1.2e-5;
+    }
+    return normalizedLoad;
+  }
+
   return {
     type: "nodal",
     node: String(load.node ?? "N1").trim() || "N1",

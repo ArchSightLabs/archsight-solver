@@ -1,5 +1,7 @@
 import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
 
+export const DEFAULT_THERMAL_EXPANSION_PER_C = 1.2e-5;
+
 export interface MaterialDropdownOption {
   value: string;
   label: string;
@@ -28,6 +30,8 @@ function normalizeProjectCustomMaterial(rawMaterial: unknown): Material | null {
   const candidate = rawMaterial && typeof rawMaterial === "object" ? rawMaterial as Partial<Material> & {
     youngModulusGPa?: unknown;
     densityKgPerM3?: unknown;
+    thermalExpansionPerC?: unknown;
+    alphaPerC?: unknown;
     A_cm2?: unknown;
     I_cm4?: unknown;
   } : {};
@@ -35,6 +39,7 @@ function normalizeProjectCustomMaterial(rawMaterial: unknown): Material | null {
   const name = String(candidate.name ?? "").trim();
   const youngModulus = Number(candidate.youngModulus ?? candidate.youngModulusGPa);
   const density = Number(candidate.density ?? candidate.densityKgPerM3);
+  const thermalExpansionPerC = Number(candidate.thermalExpansionPerC ?? candidate.alphaPerC);
   const sectionAreaCm2 = Number(candidate.sectionAreaCm2 ?? candidate.A_cm2);
   const momentOfInertiaCm4 = Number(candidate.momentOfInertiaCm4 ?? candidate.I_cm4);
   if (
@@ -54,6 +59,7 @@ function normalizeProjectCustomMaterial(rawMaterial: unknown): Material | null {
     name,
     youngModulus,
     density,
+    ...(Number.isFinite(thermalExpansionPerC) && thermalExpansionPerC >= 0 ? { thermalExpansionPerC } : {}),
     ...(Number.isFinite(sectionAreaCm2) && sectionAreaCm2 > 0 ? { sectionAreaCm2 } : {}),
     ...(Number.isFinite(momentOfInertiaCm4) && momentOfInertiaCm4 > 0 ? { momentOfInertiaCm4 } : {}),
     category: "custom",
@@ -234,6 +240,16 @@ export function materialElasticityLabelForMember(
 export function youngModulusForMaterial(materialId: string, fallback: number, materials: Material[] = PREDEFINED_MATERIALS): number {
   if (materialId === "custom") return fallback;
   return materials.find((material) => material.id === materialId)?.youngModulus ?? fallback;
+}
+
+export function thermalExpansionForMaterial(
+  materialId: string | undefined,
+  fallback = DEFAULT_THERMAL_EXPANSION_PER_C,
+  materials: Material[] = PREDEFINED_MATERIALS,
+): number {
+  if (materialId === "custom") return fallback;
+  const thermalExpansionPerC = materials.find((material) => material.id === materialId)?.thermalExpansionPerC;
+  return Number.isFinite(thermalExpansionPerC) && Number(thermalExpansionPerC) >= 0 ? Number(thermalExpansionPerC) : fallback;
 }
 
 export function sectionAreaForMaterial(materialId: string, fallback: number, materials: Material[] = PREDEFINED_MATERIALS): number {

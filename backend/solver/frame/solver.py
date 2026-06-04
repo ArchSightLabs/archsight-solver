@@ -61,13 +61,33 @@ def solve_frame_system(structure: Dict[str, Any], assembly: Dict[str, Any]) -> D
     if constraint_rank < 3:
         raise ValueError("框架约束条件不足，系统无稳定自由度可求解")
     free_dofs = [i for i in range(ndof) if i not in constrained_dofs]
-    if not free_dofs:
-        raise ValueError("框架约束条件过多，系统无自由度可求解")
 
     if not has_general_constraint:
         prescribed_displacements = np.zeros(ndof, dtype=float)
         for dof, value in direct_constraint_values.items():
             prescribed_displacements[dof] = value
+        if not free_dofs:
+            reactions = np.asarray(stiffness @ prescribed_displacements - load_vector, dtype=float).reshape(ndof)
+            diagnostics = {
+                "equilibriumRmsRelativeError": 0.0,
+                "equilibriumMaxResidualN": 0.0,
+                "constraintRank": constraint_rank,
+                "freeDofCount": 0,
+                "prescribedDofCount": _prescribed_count(constraint_target),
+                "solver": {
+                    "solverBackend": assembly.get("solver_backend", "dense"),
+                    "globalDofCount": ndof,
+                    "freeDofCount": 0,
+                },
+            }
+            return {
+                "constrained_dofs": constrained_dofs,
+                "free_dofs": free_dofs,
+                "constraint_matrix": constraint_matrix,
+                "displacements": prescribed_displacements,
+                "reactions": reactions,
+                "diagnostics": diagnostics,
+            }
         solved = solve_free_dofs(
             stiffness=stiffness,
             load_vector=load_vector,

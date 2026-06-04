@@ -155,6 +155,8 @@ def test_shared_contract_field_matrix_covers_cross_stack_fields():
         assert set(frame_contract["distributedLoadFields"]).issubset(distributed)
         member_point = _one_of_branch_by_type(load_schema, "member_point")["properties"]
         assert set(frame_contract["memberPointLoadFields"]).issubset(member_point)
+        temperature = _one_of_branch_by_type(load_schema, "temperature")["properties"]
+        assert set(frame_contract["temperatureLoadFields"]).issubset(temperature)
 
         structure_properties = schema["properties"]["structure"]["properties"]
         assert set(frame_contract["structureFields"]).issubset(structure_properties)

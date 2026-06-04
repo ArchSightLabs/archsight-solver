@@ -11,6 +11,7 @@ def test_shared_material_catalog_preserves_engineering_names() -> None:
     assert catalog["q345"].name == "Q345 低合金高强度结构钢"
     assert catalog["q345"].young_modulus_gpa == 210.0
     assert catalog["q345"].density_kg_per_m3 == 7850.0
+    assert catalog["q345"].thermal_expansion_per_c == 1.2e-5
     assert "规范设计" in catalog["q345"].note
 
 
@@ -25,6 +26,7 @@ def test_material_report_rows_explain_calculation_scope() -> None:
 
     assert "材料名称: Q345 低合金高强度结构钢" in text
     assert "材料库弹性模量 E (GPa): 210.0" in text
+    assert "材料库线膨胀系数 α (1/°C): 1.2e-05" in text
     assert "规范设计" in text
 
     unknown_rows = material_report_rows("steel-verify")

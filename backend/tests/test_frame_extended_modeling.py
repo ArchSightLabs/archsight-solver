@@ -252,6 +252,158 @@ def test_frame_member_point_load_acts_inside_member_and_uses_sagging_positive_mo
     assert data["preview"]["loads"][0]["type"] == "member_point"
 
 
+def test_frame_temperature_load_expands_free_member_without_reaction(client):
+    payload = {
+        "analysisType": "frame",
+        "projectName": "frame-temperature-free-expansion",
+        "materialId": "q345",
+        "structure": {
+            "template": "explicit",
+            "nodes": [
+                {"id": "N1", "x": 0.0, "y": 0.0, "supportType": "fixed"},
+                {"id": "N2", "x": 4.0, "y": 0.0, "supportType": "free"},
+            ],
+            "members": [
+                {"id": "B1", "start": "N1", "end": "N2", "E_GPa": 210, "A_cm2": 220, "I_cm4": 15000, "kind": "beam"},
+            ],
+            "loads": [
+                {"type": "temperature", "member": "B1", "deltaTempC": 30.0, "alphaPerC": 1e-5},
+            ],
+        },
+    }
+
+    response = client.post("/api/calculate", json=payload)
+
+    assert response.status_code == 200
+    data = response.get_json()
+    node_results = {item["nodeId"]: item for item in data["nodeResults"]}
+    assert node_results["N2"]["uxMm"] == pytest.approx(1.2, abs=1e-6)
+    assert node_results["N2"]["uyMm"] == pytest.approx(0.0, abs=1e-9)
+    assert max(
+        abs(node_results[node_id][key])
+        for node_id in ("N1", "N2")
+        for key in ("reactionFxKn", "reactionFyKn", "reactionMzKnM")
+    ) < 1e-6
+    assert data["structure"]["loads"] == [{"type": "temperature", "member": "B1", "deltaTempC": 30.0, "alphaPerC": 1e-5}]
+    assert data["diagnostics"]["equilibrium"]["rmsRelativeError"] < 1e-9
+
+
+def test_frame_temperature_load_restrained_member_generates_compression_and_reactions(client):
+    payload = {
+        "analysisType": "frame",
+        "projectName": "frame-temperature-restrained-expansion",
+        "materialId": "q345",
+        "analysisOptions": {"pDelta": True, "buckling": True},
+        "structure": {
+            "template": "explicit",
+            "nodes": [
+                {"id": "N1", "x": 0.0, "y": 0.0, "supportType": "fixed"},
+                {"id": "N2", "x": 4.0, "y": 0.0, "supportType": "pinned"},
+            ],
+            "members": [
+                {"id": "B1", "start": "N1", "end": "N2", "E_GPa": 210, "A_cm2": 220, "I_cm4": 15000, "kind": "beam"},
+            ],
+            "loads": [
+                {"type": "temperature", "member": "B1", "deltaTempC": 30.0, "alphaPerC": 1e-5},
+            ],
+        },
+    }
+
+    response = client.post("/api/calculate", json=payload)
+
+    assert response.status_code == 200
+    data = response.get_json()
+    expected_compression_kn = 210e9 * 220e-4 * 1e-5 * 30.0 / 1000.0
+    node_results = {item["nodeId"]: item for item in data["nodeResults"]}
+    member = data["memberResults"][0]
+    assert node_results["N1"]["reactionFxKn"] == pytest.approx(expected_compression_kn, rel=1e-9)
+    assert node_results["N2"]["reactionFxKn"] == pytest.approx(-expected_compression_kn, rel=1e-9)
+    assert max(abs(node_results[node_id]["uxMm"]) for node_id in ("N1", "N2")) < 1e-9
+    assert member["axialStartKn"] == pytest.approx(expected_compression_kn, rel=1e-9)
+    assert member["axialEndKn"] == pytest.approx(expected_compression_kn, rel=1e-9)
+    assert data["buckling"]["controllingMembers"][0]["memberId"] == "B1"
+    assert data["buckling"]["controllingMembers"][0]["compressionKn"] == pytest.approx(expected_compression_kn, rel=1e-6)
+    assert data["secondOrder"]["amplificationFactor"] > 1.0
+    assert data["diagnostics"]["equilibrium"]["rmsRelativeError"] < 1e-9
+
+
+def test_frame_temperature_load_fully_restrained_member_returns_reactions(client):
+    payload = {
+        "analysisType": "frame",
+        "projectName": "frame-temperature-fixed-fixed",
+        "materialId": "q345",
+        "structure": {
+            "template": "explicit",
+            "nodes": [
+                {"id": "N1", "x": 0.0, "y": 0.0, "supportType": "fixed"},
+                {"id": "N2", "x": 4.0, "y": 0.0, "supportType": "fixed"},
+            ],
+            "members": [
+                {"id": "B1", "start": "N1", "end": "N2", "E_GPa": 210, "A_cm2": 220, "I_cm4": 15000, "kind": "beam"},
+            ],
+            "loads": [
+                {"type": "temperature", "member": "B1", "deltaTempC": 30.0, "alphaPerC": 1e-5},
+            ],
+        },
+    }
+
+    response = client.post("/api/calculate", json=payload)
+
+    assert response.status_code == 200
+    data = response.get_json()
+    expected_compression_kn = 210e9 * 220e-4 * 1e-5 * 30.0 / 1000.0
+    node_results = {item["nodeId"]: item for item in data["nodeResults"]}
+    member = data["memberResults"][0]
+    assert data["diagnostics"]["freeDofCount"] == 0
+    assert data["diagnostics"]["solver"]["freeDofCount"] == 0
+    assert node_results["N1"]["reactionFxKn"] == pytest.approx(expected_compression_kn, rel=1e-9)
+    assert node_results["N2"]["reactionFxKn"] == pytest.approx(-expected_compression_kn, rel=1e-9)
+    assert member["axialStartKn"] == pytest.approx(expected_compression_kn, rel=1e-9)
+    assert member["axialEndKn"] == pytest.approx(expected_compression_kn, rel=1e-9)
+    assert data["diagnostics"]["equilibrium"]["rmsRelativeError"] == pytest.approx(0.0, abs=1e-12)
+
+
+def test_frame_temperature_load_combination_scales_delta_temperature(client):
+    payload = {
+        "analysisType": "frame",
+        "projectName": "frame-temperature-combination",
+        "materialId": "q345",
+        "structure": {
+            "template": "explicit",
+            "nodes": [
+                {"id": "N1", "x": 0.0, "y": 0.0, "supportType": "fixed"},
+                {"id": "N2", "x": 4.0, "y": 0.0, "supportType": "pinned"},
+            ],
+            "members": [
+                {"id": "B1", "start": "N1", "end": "N2", "E_GPa": 210, "A_cm2": 220, "I_cm4": 15000, "kind": "beam"},
+            ],
+            "loads": [],
+            "loadCases": [
+                {
+                    "id": "TL",
+                    "title": "Temperature",
+                    "loads": [{"type": "temperature", "member": "B1", "deltaTempC": 30.0, "alphaPerC": 1e-5}],
+                },
+            ],
+            "loadCombinations": [
+                {"id": "SLS-T", "title": "0.5T", "factors": {"TL": 0.5}},
+            ],
+        },
+    }
+
+    response = client.post("/api/calculate", json=payload)
+
+    assert response.status_code == 200
+    data = response.get_json()
+    expected_case_kn = 210e9 * 220e-4 * 1e-5 * 30.0 / 1000.0
+    expected_combination_kn = expected_case_kn * 0.5
+    assert data["loadCaseResults"][0]["memberResults"][0]["axialStartKn"] == pytest.approx(expected_case_kn, rel=1e-9)
+    assert data["loadCombinationResults"][0]["memberResults"][0]["axialStartKn"] == pytest.approx(expected_combination_kn, rel=1e-9)
+    assert data["memberResults"][0]["axialStartKn"] == pytest.approx(expected_combination_kn, rel=1e-9)
+    assert data["structure"]["loadCombinations"][0]["factors"] == {"TL": 0.5}
+    assert data["loadCombinationResults"][0]["diagnostics"]["equilibrium"]["rmsRelativeError"] < 1e-9
+
+
 def test_frame_partial_distributed_load_uses_member_range_and_sagging_moment(client):
     payload = {
         "analysisType": "frame",

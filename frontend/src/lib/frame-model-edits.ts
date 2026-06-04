@@ -35,7 +35,7 @@ export interface FrameArrayOptions extends Omit<FrameCopyOptions, "copyIndex"> {
 }
 
 function memberLoadTargets(load: FrameLoad): load is Extract<FrameLoad, { member: string }> {
-  return load.type === "distributed" || load.type === "member_point";
+  return load.type === "distributed" || load.type === "member_point" || load.type === "temperature";
 }
 
 function uniqueId(baseId: string, usedIds: Set<string>, copyIndex: number): string {

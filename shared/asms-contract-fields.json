@@ -16,6 +16,7 @@
     "memberFields": ["materialId", "E_GPa", "A_cm2", "I_cm4", "endReleases", "internalHinges"],
     "distributedLoadFields": ["qStartKnPerM", "qEndKnPerM", "startRatio", "endRatio"],
     "memberPointLoadFields": ["forceKn", "positionRatio"],
+    "temperatureLoadFields": ["deltaTempC", "alphaPerC"],
     "structureFields": ["loadCases", "loadCombinations"],
     "frontendTypePath": "frontend/src/types/structure.ts",
     "frontendTypeTokens": [
@@ -26,6 +27,7 @@
       "endReleases?:",
       "internalHinges?: FrameInternalHinge[]",
       "type: \"member_point\"",
+      "type: \"temperature\"",
       "startRatio?: number",
       "endRatio?: number",
       "loadCases?: FrameLoadCase[]",
@@ -42,6 +44,7 @@
       "startRatio,",
       "endRatio,",
       "type: \"member_point\"",
+      "type: \"temperature\"",
       "loadCases:",
       "loadCombinations:"
     ],
@@ -56,6 +59,8 @@
       "startRatio",
       "endRatio",
       "member_point",
+      "temperature",
+      "deltaTempC",
       "loadCases",
       "loadCombinations"
     ]

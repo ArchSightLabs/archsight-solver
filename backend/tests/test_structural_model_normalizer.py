@@ -112,6 +112,7 @@ def test_shared_structural_model_preserves_springs_releases_and_load_direction()
         raw_loads=[
             {"type": "distributed", "member": "B1", "direction": "global_y", "qStartKnPerM": -8, "qEndKnPerM": -12},
             {"type": "member_point", "member": "B1", "direction": "local_y", "forceKn": -10, "positionRatio": 0.5},
+            {"type": "temperature", "member": "B1", "deltaTempC": 25, "alphaPerC": 1.1e-5},
         ],
         labels=FRAME_SUPPORT_LABELS,
         include_bending=True,
@@ -128,6 +129,33 @@ def test_shared_structural_model_preserves_springs_releases_and_load_direction()
     assert structure["loads"] == [
         {"type": "distributed", "member": "B1", "direction": "global_y", "qStartKnPerM": -8.0, "qEndKnPerM": -12.0, "startRatio": 0.0, "endRatio": 1.0},
         {"type": "member_point", "member": "B1", "direction": "local_y", "forceKn": -10.0, "positionRatio": 0.5},
+        {"type": "temperature", "member": "B1", "deltaTempC": 25.0, "alphaPerC": 1.1e-5},
+    ]
+
+
+def test_frame_temperature_load_defaults_alpha_from_member_material():
+    model = build_structural_model(
+        analysis_type="frame",
+        template="explicit",
+        raw_nodes=[
+            {"id": "N1", "x": 0, "y": 0, "supportType": "fixed"},
+            {"id": "N2", "x": 4, "y": 0, "supportType": "roller"},
+        ],
+        raw_members=[
+            {"id": "B1", "start": "N1", "end": "N2", "materialId": "c30", "E_GPa": 30, "A_cm2": 120, "I_cm4": 8000},
+        ],
+        raw_loads=[
+            {"type": "temperature", "member": "B1", "deltaTempC": 20},
+        ],
+        labels=FRAME_SUPPORT_LABELS,
+        include_bending=True,
+        allow_distributed=True,
+        min_nodes_error="frame needs at least two nodes",
+        min_members_error="frame needs at least one member",
+    )
+
+    assert model.to_structure_contract(include_bending=True)["loads"] == [
+        {"type": "temperature", "member": "B1", "deltaTempC": 20.0, "alphaPerC": 1e-5},
     ]
 
 
@@ -179,6 +207,32 @@ def test_frame_partial_distributed_load_is_mapped_to_split_member_segments():
     assert request["structure"]["loads"] == [
         {"type": "distributed", "member": "B1_1", "direction": "local_y", "qStartKnPerM": -6.0, "qEndKnPerM": -8.0, "startRatio": 0.5, "endRatio": 1.0},
         {"type": "distributed", "member": "B1_2", "direction": "local_y", "qStartKnPerM": -8.0, "qEndKnPerM": -10.0, "startRatio": 0.0, "endRatio": 0.5},
+    ]
+
+
+def test_frame_temperature_load_is_copied_to_split_member_segments():
+    request = normalize_frame_request(
+        {
+            "analysisType": "frame",
+            "structure": {
+                "template": "explicit",
+                "nodes": [
+                    {"id": "N1", "x": 0, "y": 0, "supportType": "fixed"},
+                    {"id": "N2", "x": 4, "y": 0, "supportType": "roller"},
+                ],
+                "members": [
+                    {"id": "B1", "start": "N1", "end": "N2", "E_GPa": 210, "A_cm2": 120, "I_cm4": 8000, "internalHinges": [{"ratio": 0.5}]},
+                ],
+                "loads": [
+                    {"type": "temperature", "member": "B1", "deltaTempC": 20, "alphaPerC": 1.2e-5},
+                ],
+            },
+        }
+    )
+
+    assert request["structure"]["loads"] == [
+        {"type": "temperature", "member": "B1_1", "deltaTempC": 20.0, "alphaPerC": 1.2e-5},
+        {"type": "temperature", "member": "B1_2", "deltaTempC": 20.0, "alphaPerC": 1.2e-5},
     ]
 
 

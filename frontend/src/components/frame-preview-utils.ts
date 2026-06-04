@@ -56,6 +56,7 @@ export interface FrameLoadLabelSet {
   moment?: string;
   memberPoint?: string;
   distributed?: string;
+  thermal?: string;
 }
 
 export interface FrameGeometryDimension {
@@ -169,12 +170,17 @@ export function formatFrameDistributedLoadLabel(
   return `${label}=${valueLabel} kN/m${rangeLabel}`;
 }
 
+export function formatFrameTemperatureLoadLabel(label: string, deltaTempC: number) {
+  return `${label}=${frameLoadMagnitude(deltaTempC)} °C`;
+}
+
 export function buildFrameLoadLabelMap(loads: FrameLoad[]) {
   const labels = new Map<number, FrameLoadLabelSet>();
   let forceCount = 0;
   let momentCount = 0;
   let memberPointCount = 0;
   let distributedCount = 0;
+  let thermalCount = 0;
 
   loads.forEach((load, index) => {
     const label: FrameLoadLabelSet = {};
@@ -191,6 +197,9 @@ export function buildFrameLoadLabelMap(loads: FrameLoad[]) {
     } else if (load.type === "member_point") {
       memberPointCount += 1;
       label.memberPoint = `P${memberPointCount}`;
+    } else if (load.type === "temperature") {
+      thermalCount += 1;
+      label.thermal = `T${thermalCount}`;
     } else {
       distributedCount += 1;
       label.distributed = `q${distributedCount}`;
@@ -336,6 +345,30 @@ export function buildFrameLoadMarkers(load: FrameLoad, index: number, context: F
         labelY: headY - screenDirection.y * (arrowLength + 10),
         textAnchor: "middle",
         key: `${index}-member-point`,
+      },
+    ];
+  }
+
+  if (load.type === "temperature") {
+    const deltaTempC = Number(load.deltaTempC ?? 0);
+    const offsetDirection = memberLoadDirection("local_y", -1, start, end);
+    const guideOffset = 30;
+    const guideStartX = start.x - offsetDirection.x * guideOffset;
+    const guideStartY = start.y - offsetDirection.y * guideOffset;
+    const guideEndX = end.x - offsetDirection.x * guideOffset;
+    const guideEndY = end.y - offsetDirection.y * guideOffset;
+    return [
+      {
+        type: "distributed-guide",
+        x1: guideStartX,
+        y1: guideStartY,
+        x2: guideEndX,
+        y2: guideEndY,
+        label: formatFrameTemperatureLoadLabel(context.loadLabel?.thermal ?? `T${index + 1}`, deltaTempC),
+        labelX: (guideStartX + guideEndX) / 2,
+        labelY: (guideStartY + guideEndY) / 2 - 8,
+        textAnchor: "middle",
+        key: `${index}-temperature-guide`,
       },
     ];
   }

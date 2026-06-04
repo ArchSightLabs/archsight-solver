@@ -299,8 +299,20 @@ MEMBER_POINT_LOAD_SCHEMA: Dict[str, Any] = {
     "additionalProperties": True,
 }
 
+MEMBER_TEMPERATURE_LOAD_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "required": ["type", "member", "deltaTempC"],
+    "properties": {
+        "type": {"type": "string", "enum": ["temperature"]},
+        "member": {"type": "string"},
+        "deltaTempC": {"type": "number", "description": "构件均匀温差，单位 °C；正值表示升温自由伸长。"},
+        "alphaPerC": {"type": "number", "minimum": 0, "description": "线膨胀系数，单位 1/°C；省略时优先使用构件材料库 thermalExpansionPerC，未知材料回退 1.2e-5。"},
+    },
+    "additionalProperties": True,
+}
+
 STRUCTURAL_LOAD_SCHEMA: Dict[str, Any] = {
-    "oneOf": [NODAL_LOAD_SCHEMA, MEMBER_DISTRIBUTED_LOAD_SCHEMA, MEMBER_POINT_LOAD_SCHEMA]
+    "oneOf": [NODAL_LOAD_SCHEMA, MEMBER_DISTRIBUTED_LOAD_SCHEMA, MEMBER_POINT_LOAD_SCHEMA, MEMBER_TEMPERATURE_LOAD_SCHEMA]
 }
 
 TRUSS_MEMBER_LOAD_SCHEMA: Dict[str, Any] = {

@@ -16,6 +16,7 @@ E,2,4,1,1,1,1,1,1
 PROP,2,2,210,220,15000,beam
 DLOAD,2,-18,-12,global_y,0.2,0.8
 PLOAD,2,-12,0.5,global_y
+TLOAD,2,30,0.000011
 NLOAD,4,1,24,0
 NLOAD,4,2,5
 `);
@@ -23,7 +24,7 @@ NLOAD,4,2,5
   assert.ok(result.collections);
   assert.equal(result.collections.nodes.length, 4);
   assert.equal(result.collections.members.length, 3);
-  assert.equal(result.collections.loads.length, 4);
+  assert.equal(result.collections.loads.length, 5);
   assert.equal(result.collections.nodes[0]?.supportType, "fixed");
   assert.equal(result.collections.nodes[1]?.supportType, "pinned");
   assert.equal(result.collections.nodes[2]?.supportType, "free");
@@ -47,13 +48,19 @@ NLOAD,4,2,5
     direction: "global_y",
   });
   assert.deepEqual(result.collections.loads[2], {
+    type: "temperature",
+    member: "M2",
+    deltaTempC: 30,
+    alphaPerC: 0.000011,
+  });
+  assert.deepEqual(result.collections.loads[3], {
     type: "nodal",
     node: "N4",
     fxKn: 24,
     fyKn: 0,
     mzKnM: 0,
   });
-  assert.deepEqual(result.collections.loads[3], {
+  assert.deepEqual(result.collections.loads[4], {
     type: "nodal",
     node: "N4",
     fxKn: 0,
@@ -148,6 +155,7 @@ test("serializeFrameTextModel uses sequential SM element numbers for named membe
     loads: [
       { type: "distributed", member: "B1", qStartKnPerM: -18, qEndKnPerM: -18, direction: "global_y", startRatio: 0.15, endRatio: 0.85 },
       { type: "member_point", member: "B1", forceKn: -12, positionRatio: 0.5, direction: "global_y" },
+      { type: "temperature", member: "B1", deltaTempC: 30, alphaPerC: 1.2e-5 },
     ],
   });
 
@@ -155,6 +163,7 @@ test("serializeFrameTextModel uses sequential SM element numbers for named membe
   assert.match(text, /PROP,2,2,210,220,15000,beam,q345/u);
   assert.match(text, /DLOAD,2,-18,-18,global_y,0.15,0.85/u);
   assert.match(text, /PLOAD,2,-12,0.5,global_y/u);
+  assert.match(text, /TLOAD,2,30,0\.000012/u);
 });
 
 test("serializeFrameTextModel round-trips load cases and combinations", () => {
@@ -180,24 +189,30 @@ test("serializeFrameTextModel round-trips load cases and combinations", () => {
         title: "风荷载",
         loads: [{ type: "nodal", node: "N3", fxKn: 16, fyKn: 0, mzKnM: 0 }],
       },
+      {
+        id: "TL",
+        title: "温度",
+        loads: [{ type: "temperature", member: "B1", deltaTempC: 25, alphaPerC: 1.1e-5 }],
+      },
     ],
     loadCombinations: [
-      { id: "ULS1", title: "基本组合", factors: { DL: 1.2, WL: 1.4 }, tags: ["ULS", "包络"] },
+      { id: "ULS1", title: "基本组合", factors: { DL: 1.2, WL: 1.4, TL: 1.0 }, tags: ["ULS", "包络"] },
     ],
   });
 
   assert.match(text, /CASE,DL,恒载/u);
   assert.match(text, /CASELOAD,DL,DLOAD,2,-12,-12,global_y,0,1/u);
+  assert.match(text, /CASELOAD,TL,TLOAD,2,25,0\.000011/u);
   assert.match(text, /COMB,ULS1,基本组合,ULS\/包络/u);
   assert.match(text, /FACTOR,ULS1,WL,1.4/u);
 
   const restored = parseFrameTextModel(text);
 
   assert.ok(restored.collections);
-  assert.equal(restored.collections.loadCases?.length, 2);
+  assert.equal(restored.collections.loadCases?.length, 3);
   assert.equal(restored.collections.loadCases?.[0]?.loads.length, 1);
   assert.equal(restored.collections.loadCombinations?.length, 1);
-  assert.deepEqual(restored.collections.loadCombinations?.[0]?.factors, { DL: 1.2, WL: 1.4 });
+  assert.deepEqual(restored.collections.loadCombinations?.[0]?.factors, { DL: 1.2, WL: 1.4, TL: 1.0 });
 });
 
 test("parseFrameTextModel filters invalid load case loads and combination factors", () => {

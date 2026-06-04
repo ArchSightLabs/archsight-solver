@@ -117,6 +117,23 @@ def point_load_local_vector(
     )
 
 
+def temperature_load_local_vector(E: float, A: float, alpha_per_c: float, delta_temp_c: float) -> np.ndarray:
+    free_expansion_force = float(E) * float(A) * float(alpha_per_c) * float(delta_temp_c)
+    if abs(free_expansion_force) < 1e-12:
+        return np.zeros(6, dtype=float)
+    return np.array(
+        [
+            -free_expansion_force,
+            0.0,
+            0.0,
+            free_expansion_force,
+            0.0,
+            0.0,
+        ],
+        dtype=float,
+    )
+
+
 def apply_rotational_releases(k_local: np.ndarray, f_local: np.ndarray, release_dofs: list[int]) -> tuple[np.ndarray, np.ndarray]:
     if not release_dofs:
         return k_local, f_local

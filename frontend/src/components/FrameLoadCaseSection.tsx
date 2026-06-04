@@ -4,12 +4,14 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { FrameLoadEditor } from "./FrameLoadEditor";
 import type { DropdownOption } from "./ui/DropdownSelect";
+import type { Material } from "../types/material.ts";
 import type { FrameLoad, FrameLoadCase, StructureMember, StructureNode } from "../types/structure.ts";
 
 interface FrameLoadCaseSectionProps {
   loadCases: FrameLoadCase[];
   nodes: StructureNode[];
   members: StructureMember[];
+  materialLibrary?: Material[];
   nodeOptions: DropdownOption[];
   memberOptions: DropdownOption[];
   fieldLabelClass: string;
@@ -25,6 +27,7 @@ export function FrameLoadCaseSection({
   loadCases,
   nodes,
   members,
+  materialLibrary,
   nodeOptions,
   memberOptions,
   fieldLabelClass,
@@ -80,6 +83,7 @@ export function FrameLoadCaseSection({
                     index={loadIndex}
                     nodes={nodes}
                     members={members}
+                    materialLibrary={materialLibrary}
                     nodeOptions={nodeOptions}
                     memberOptions={memberOptions}
                     fieldLabelClass={fieldLabelClass}

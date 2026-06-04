@@ -84,7 +84,14 @@ export interface FrameMemberPointLoad {
   positionRatio?: number;
 }
 
-export type FrameLoad = FrameNodalLoad | FrameDistributedLoad | FrameMemberPointLoad;
+export interface FrameTemperatureLoad {
+  type: "temperature";
+  member: string;
+  deltaTempC?: number;
+  alphaPerC?: number;
+}
+
+export type FrameLoad = FrameNodalLoad | FrameDistributedLoad | FrameMemberPointLoad | FrameTemperatureLoad;
 
 export interface FrameLoadCase {
   id: string;

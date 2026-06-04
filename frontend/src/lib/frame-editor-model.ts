@@ -28,6 +28,7 @@ export const FRAME_LOAD_TYPE_OPTIONS = [
   { value: "nodal", label: "节点荷载" },
   { value: "distributed", label: "分布荷载" },
   { value: "member_point", label: "集中荷载" },
+  { value: "temperature", label: "温度荷载" },
 ];
 
 export const FRAME_LOAD_DIRECTION_OPTIONS: Array<{ value: FrameLoadDirection; label: string }> = [
@@ -234,7 +235,7 @@ export function createFrameLoadDraft(index: number, nodes: StructureNode[], memb
   const fallbackNodeId = nodes[0]?.id ?? "N1";
   const fallbackMemberId = members[0]?.id ?? "M1";
 
-  if (index % 3 === 1 && members.length > 0) {
+  if (index % 4 === 1 && members.length > 0) {
     return {
       type: "distributed",
       member: members[index % members.length]?.id ?? fallbackMemberId,
@@ -246,13 +247,22 @@ export function createFrameLoadDraft(index: number, nodes: StructureNode[], memb
     };
   }
 
-  if (index % 3 === 2 && members.length > 0) {
+  if (index % 4 === 2 && members.length > 0) {
     return {
       type: "member_point",
       member: members[index % members.length]?.id ?? fallbackMemberId,
       direction: "local_y",
       forceKn: -10,
       positionRatio: 0.5,
+    };
+  }
+
+  if (index % 4 === 3 && members.length > 0) {
+    return {
+      type: "temperature",
+      member: members[index % members.length]?.id ?? fallbackMemberId,
+      deltaTempC: 30,
+      alphaPerC: 1.2e-5,
     };
   }
 

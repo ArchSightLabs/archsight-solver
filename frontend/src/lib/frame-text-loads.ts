@@ -82,6 +82,16 @@ function parseMemberPointLoad(tokens: string[]): FrameLoad {
   };
 }
 
+function parseTemperatureLoad(tokens: string[]): FrameLoad {
+  const alpha = toNumber(tokens[3]) ?? 1.2e-5;
+  return {
+    type: "temperature",
+    member: memberId(tokens[1], "M1"),
+    deltaTempC: toNumber(tokens[2]) ?? 0,
+    alphaPerC: Math.max(0, alpha),
+  };
+}
+
 export function parseFrameTextLoad(tokens: string[]): FrameLoad | null {
   const command = tokens[0]?.toUpperCase();
   if (command === "NLOAD" || command === "LOAD") {
@@ -92,6 +102,9 @@ export function parseFrameTextLoad(tokens: string[]): FrameLoad | null {
   }
   if (command === "PLOAD" || command === "MLOAD") {
     return parseMemberPointLoad(tokens);
+  }
+  if (command === "TLOAD" || command === "TEMPLOAD") {
+    return parseTemperatureLoad(tokens);
   }
   return null;
 }
@@ -126,6 +139,9 @@ export function serializeFrameTextLoad(load: FrameLoad, nodeNumbers: Map<string,
   }
   if (load.type === "member_point") {
     return [`PLOAD,${memberNumbers.get(load.member) ?? 1},${load.forceKn ?? 0},${load.positionRatio ?? 0.5},${load.direction ?? "local_y"}`];
+  }
+  if (load.type === "temperature") {
+    return [`TLOAD,${memberNumbers.get(load.member) ?? 1},${load.deltaTempC ?? 0},${load.alphaPerC ?? 1.2e-5}`];
   }
   return [`DLOAD,${memberNumbers.get(load.member) ?? 1},${load.qStartKnPerM ?? load.wyKnPerM ?? 0},${load.qEndKnPerM ?? load.wyKnPerM ?? 0},${load.direction ?? "local_y"},${load.startRatio ?? 0},${load.endRatio ?? 1}`];
 }

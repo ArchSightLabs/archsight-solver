@@ -4,7 +4,7 @@ import { nodeSupportLabel } from "../../lib/support-vocabulary";
 import { modelCanvasLabelPolicy, shouldShowSteppedLabel } from "../../lib/model-canvas-label-policy";
 import { FRAME_MODEL_CANVAS_BASE_SIZE, type ModelCanvasSize } from "../../lib/model-canvas-sizing";
 import { STRUCTURE_NODE_RADII, STRUCTURE_VISUAL_STROKES } from "../../lib/structure-visual-tokens";
-import { buildFrameDimensionLegendRows, buildFrameLoadLabelMap, formatFrameDistributedLoadLabel, formatFrameForceLoadLabel, frameMemberDimensionValueLabel, type FrameGeometryDimension } from "../frame-preview-utils";
+import { buildFrameDimensionLegendRows, buildFrameLoadLabelMap, formatFrameDistributedLoadLabel, formatFrameForceLoadLabel, formatFrameTemperatureLoadLabel, frameMemberDimensionValueLabel, type FrameGeometryDimension } from "../frame-preview-utils";
 import type { FrameLoad, FrameLoadDirection, StructureNode, SupportType } from "../../types/structure";
 import type { WorkbenchSelection } from "../../types/workbench-selection";
 import { MODEL_DIMENSION_TEXT_WEIGHT, SVG_TEXT_FONT, clampRatio, svgInteractiveProps } from "./shared";
@@ -327,6 +327,26 @@ export function FrameSketch({
               />,
             ];
           }
+          if (load.type === "temperature") {
+            const direction = frameMemberLoadDirection(startNode, endNode, "local_y", -1);
+            const selectedStroke = selection?.mode === "frame" && selection.type === "load" && selection.id === `load-${index}` ? FRAME_LOAD_SELECTED_STROKE_WIDTH : FRAME_LOAD_STROKE_WIDTH;
+            const guideStart = frameMemberPoint(startNode, endNode, 0);
+            const guideEnd = frameMemberPoint(startNode, endNode, 1);
+            const guideOffset = 34;
+            return [
+              <line
+                key={`${index}-temperature-guide`}
+                {...svgInteractiveProps<SVGLineElement>(`选择框架荷载 ${index + 1}`, () => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` }))}
+                x1={guideStart.x - direction.x * guideOffset}
+                y1={guideStart.y - direction.y * guideOffset}
+                x2={guideEnd.x - direction.x * guideOffset}
+                y2={guideEnd.y - direction.y * guideOffset}
+                strokeWidth={selectedStroke}
+                strokeDasharray="7 4"
+                opacity="0.85"
+              />,
+            ];
+          }
           const q = getFrameLoadValue(load);
           if (!q) return [];
           const { startRatio, endRatio, qStart, qEnd } = getFrameDistributedLoadRange(load);
@@ -439,6 +459,19 @@ export function FrameSketch({
             return (
               <text key={`${index}-member-point-label`} x={label.x} y={label.y} textAnchor="middle">
                 {formatFrameForceLoadLabel(frameLoadLabelMap.get(index)?.memberPoint ?? `P${index + 1}`, force)}
+              </text>
+            );
+          }
+          if (load.type === "temperature") {
+            const direction = frameMemberLoadDirection(startNode, endNode, "local_y", -1);
+            const memberMid = frameMemberPoint(startNode, endNode, 0.5);
+            const label = {
+              x: memberMid.x - direction.x * 52,
+              y: memberMid.y - direction.y * 52,
+            };
+            return (
+              <text key={`${index}-temperature-label`} x={label.x} y={label.y} textAnchor="middle">
+                {formatFrameTemperatureLoadLabel(frameLoadLabelMap.get(index)?.thermal ?? `T${index + 1}`, load.deltaTempC ?? 0)}
               </text>
             );
           }

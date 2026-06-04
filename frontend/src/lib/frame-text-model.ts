@@ -367,6 +367,14 @@ export function parseFrameTextModel(text: string): FrameTextParseResult {
       continue;
     }
 
+    if (command === "TLOAD" || command === "TEMPLOAD") {
+      const load = parseFrameTextLoad(tokens);
+      if (load) {
+        loads.push(load);
+      }
+      continue;
+    }
+
     if (applyFrameTextLoadCaseCommand({ command, tokens, lineNumber: lineIndex + 1, state: loadCaseState, parseLoadTokens: parseFrameTextLoad, diagnostics })) {
       continue;
     }
@@ -434,7 +442,7 @@ export function serializeFrameTextModel(collections: FrameTextCollections): stri
   const memberNumbers = new Map(collections.members.map((member, index) => [member.id, memberNumber(member.id, index)]));
   const lines = [
     "# ArchSight 平面框架文本模型",
-    "# 兼容 SM 常用子集：N / E / NSUPT / NLOAD / ELOAD；扩展支持 PROP / DLOAD / PLOAD。",
+    "# 兼容 SM 常用子集：N / E / NSUPT / NLOAD / ELOAD；扩展支持 PROP / DLOAD / PLOAD / TLOAD。",
     "",
     "# 节点：N,节点号,x,y",
     ...collections.nodes.map((node, index) => `N,${nodeNumber(node.id, index)},${node.x},${node.y}`),
@@ -468,7 +476,7 @@ export function serializeFrameTextModel(collections: FrameTextCollections): stri
     "# 荷载",
     ...collections.loads.flatMap((load) => serializeFrameTextLoad(load, nodeNumbers, memberNumbers)),
     "",
-    "# 荷载工况扩展：CASE,工况编号,工况名称；CASELOAD,工况编号,<NLOAD/DLOAD/PLOAD...>",
+    "# 荷载工况扩展：CASE,工况编号,工况名称；CASELOAD,工况编号,<NLOAD/DLOAD/PLOAD/TLOAD...>",
     ...frameTextLoadCaseLines(collections.loadCases ?? [], (load) => serializeFrameTextLoad(load, nodeNumbers, memberNumbers)),
     "",
     "# 荷载组合扩展：COMB,组合编号,组合名称,标签；FACTOR,组合编号,工况编号,系数",

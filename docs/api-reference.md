@@ -193,14 +193,14 @@ Content-Type: application/json
 
 构件字段说明：`members[].materialId` 为材料库编号，用于保留材料语义、计算书材料摘要和前端编辑口径；`E_GPa`、`A_cm2`、`I_cm4` 仍是线弹性求解的刚度与截面输入。`endReleases` 表示构件端部 `rz` 释放，`internalHinges` 表示构件内部铰，`ratio` 为相对构件起点的位置比例。
 
-荷载字段说明：构件分布荷载可用 `qStartKnPerM` / `qEndKnPerM` 表示线性强度，`startRatio` / `endRatio` 表示作用范围。构件集中荷载使用 `member_point`、`forceKn` 和 `positionRatio`。`loadCases` 与 `loadCombinations` 用于多工况与组合包络。
+荷载字段说明：构件分布荷载可用 `qStartKnPerM` / `qEndKnPerM` 表示线性强度，`startRatio` / `endRatio` 表示作用范围。构件集中荷载使用 `member_point`、`forceKn` 和 `positionRatio`。均匀温度荷载使用 `temperature`、`deltaTempC` 和 `alphaPerC`，正温差表示构件自由伸长；当 `alphaPerC` 省略时，框架规范化链路会优先读取构件 `materialId` 对应材料库的 `thermalExpansionPerC`，再回退到 `1.2e-5`。当前温度荷载仅覆盖二维框架静力线弹性下的构件均匀温差，不覆盖截面温度梯度、瞬态热传导或徐变松弛。`loadCases` 与 `loadCombinations` 用于多工况与组合包络。
 
 关键输出：
 
 - `summary.maxDisplacementMm`：最大节点位移，单位 mm。
 - `summary.maxMomentKnM`：最大构件弯矩，单位 kN·m。
 - `nodeResults[].uxMm / uyMm / rzRad`：节点位移与转角。
-- `memberResults[].axialStartKn / shearStartKn / momentStartKnM`：杆端内力。
+- `memberResults[].axialStartKn / shearStartKn / momentStartKnM`：杆端内力；框架轴力结果沿用当前杆端内力约定，受压为正、受拉为负。
 - `equilibriumRmsRelativeError`：整体平衡残差指标。
 
 ## POST /api/preview

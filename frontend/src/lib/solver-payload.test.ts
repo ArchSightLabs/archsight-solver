@@ -136,6 +136,7 @@ test("buildFramePayload preserves advanced frame modeling fields", () => {
   workspace.customLoads = [
     { type: "distributed", member: "B1", direction: "global_y", qStartKnPerM: -8, qEndKnPerM: -12, startRatio: 0.2, endRatio: 0.8 },
     { type: "member_point", member: "B1", direction: "local_y", forceKn: -12, positionRatio: 0.5 },
+    { type: "temperature", member: "B1", deltaTempC: 30, alphaPerC: 1.1e-5 },
   ];
   workspace.customLoadCases = [
     {
@@ -148,8 +149,13 @@ test("buildFramePayload preserves advanced frame modeling fields", () => {
       title: "风载",
       loads: [{ type: "nodal", node: "N4", fxKn: 12, fyKn: 0, mzKnM: 0 }],
     },
+    {
+      id: "TL",
+      title: "温度",
+      loads: [{ type: "temperature", member: "B1", deltaTempC: 20, alphaPerC: 1.2e-5 }],
+    },
   ];
-  workspace.customLoadCombinations = [{ id: "ULS1", title: "基本组合", factors: { DL: 1.2, WL: 1.5 }, tags: ["ULS", "包络"] }];
+  workspace.customLoadCombinations = [{ id: "ULS1", title: "基本组合", factors: { DL: 1.2, WL: 1.5, TL: 1.0 }, tags: ["ULS", "包络"] }];
 
   const payload = buildFramePayload(workspace);
 
@@ -162,8 +168,10 @@ test("buildFramePayload preserves advanced frame modeling fields", () => {
   assert.deepEqual(payload.structure.members[1]?.internalHinges, [{ ratio: 0.5 }]);
   assert.deepEqual(payload.structure.loads[0], { type: "distributed", member: "B1", direction: "global_y", qStartKnPerM: -8, qEndKnPerM: -12, startRatio: 0.2, endRatio: 0.8 });
   assert.deepEqual(payload.structure.loads[1], { type: "member_point", member: "B1", direction: "local_y", forceKn: -12, positionRatio: 0.5 });
-  assert.equal(payload.structure.loadCases?.length, 2);
-  assert.deepEqual(payload.structure.loadCombinations?.[0]?.factors, { DL: 1.2, WL: 1.5 });
+  assert.deepEqual(payload.structure.loads[2], { type: "temperature", member: "B1", deltaTempC: 30, alphaPerC: 1.1e-5 });
+  assert.equal(payload.structure.loadCases?.length, 3);
+  assert.deepEqual(payload.structure.loadCases?.[2]?.loads[0], { type: "temperature", member: "B1", deltaTempC: 20, alphaPerC: 1.2e-5 });
+  assert.deepEqual(payload.structure.loadCombinations?.[0]?.factors, { DL: 1.2, WL: 1.5, TL: 1.0 });
   assert.deepEqual(payload.structure.loadCombinations?.[0]?.tags, ["ULS", "包络"]);
 });
 
@@ -253,7 +261,7 @@ test("normalizeFrameWorkspaceState canonicalizes load case ids and preserves adv
     customMembers: [
       { id: "B1", start: "N1", end: "N2", materialId: "q235", E_GPa: 206, A_cm2: 220, I_cm4: 15000, kind: "beam", endReleases: { end: ["rz"] }, internalHinges: [{ ratio: 0.5 }] },
     ],
-    customLoads: [{ type: "member_point", member: "B1", direction: "global_y", forceKn: -8, positionRatio: 1.2 }],
+    customLoads: [{ type: "temperature", member: "B1", deltaTempC: 28, alphaPerC: -1 }],
     customLoadCases: [{ id: " DL ", title: "恒载", loads: [{ type: "nodal", node: "N2", fxKn: 0, fyKn: -10, mzKnM: 0 }] }],
     customLoadCombinations: [{ id: " ULS1 ", title: "基本组合", factors: { " DL ": 1.2 }, tags: [" ULS ", "包络", "ULS", ""] }],
   } as Partial<FrameWorkspaceState>);
@@ -265,7 +273,7 @@ test("normalizeFrameWorkspaceState canonicalizes load case ids and preserves adv
   assert.equal(cloned.customMembers[0].materialId, "q235");
   assert.deepEqual(cloned.customMembers[0].endReleases?.end, ["rz"]);
   assert.deepEqual(cloned.customMembers[0].internalHinges, [{ ratio: 0.5 }]);
-  assert.deepEqual(cloned.customLoads[0], { type: "member_point", member: "B1", direction: "global_y", forceKn: -8, positionRatio: 1 });
+  assert.deepEqual(cloned.customLoads[0], { type: "temperature", member: "B1", deltaTempC: 28, alphaPerC: 1.2e-5 });
   assert.equal(cloned.customLoadCases[0].id, "DL");
   assert.equal(cloned.customLoadCombinations[0].id, "ULS1");
   assert.deepEqual(cloned.customLoadCombinations[0].factors, { DL: 1.2 });

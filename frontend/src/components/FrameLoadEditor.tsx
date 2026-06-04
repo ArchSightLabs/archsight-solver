@@ -8,7 +8,9 @@ import {
   FRAME_LOAD_TYPE_OPTIONS,
   frameDistributedLoadKindLabel,
 } from "../lib/frame-editor-model.ts";
+import { thermalExpansionForMaterial } from "../lib/material-presets.ts";
 import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
+import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
 import type { FrameLoad, FrameLoadDirection, StructureMember, StructureNode } from "../types/structure.ts";
 
 interface FrameLoadEditorProps {
@@ -16,6 +18,7 @@ interface FrameLoadEditorProps {
   index: number;
   nodes: StructureNode[];
   members: StructureMember[];
+  materialLibrary?: Material[];
   nodeOptions: DropdownOption[];
   memberOptions: DropdownOption[];
   fieldLabelClass: string;
@@ -32,6 +35,7 @@ export function FrameLoadEditor({
   index,
   nodes,
   members,
+  materialLibrary = PREDEFINED_MATERIALS,
   nodeOptions,
   memberOptions,
   fieldLabelClass,
@@ -39,6 +43,14 @@ export function FrameLoadEditor({
   onRemove,
 }: FrameLoadEditorProps) {
   const memberTerm = modelObjectMemberTerm("frame");
+  const temperatureAlphaForMember = (memberId: string) => {
+    const member = members.find((item) => item.id === memberId);
+    return thermalExpansionForMaterial(member?.materialId, 1.2e-5, materialLibrary);
+  };
+  const shouldRefreshTemperatureAlpha = (previousMemberId: string, currentAlpha: number | undefined) => {
+    if (currentAlpha == null) return true;
+    return Math.abs(Number(currentAlpha) - temperatureAlphaForMember(previousMemberId)) < 1e-12;
+  };
   const loadTypeOptions =
     load.type === "distributed"
       ? FRAME_LOAD_TYPE_OPTIONS.map((option) => option.value === "distributed" ? { ...option, label: frameDistributedLoadKindLabel(load) } : option)
@@ -74,6 +86,16 @@ export function FrameLoadEditor({
                 } as FrameLoad);
                 return;
               }
+              if (nextValue === "temperature") {
+                const member = "member" in load ? load.member : members[0]?.id ?? "M1";
+                onUpdate({
+                  type: "temperature",
+                  member,
+                  deltaTempC: "deltaTempC" in load ? load.deltaTempC ?? 30 : 30,
+                  alphaPerC: "alphaPerC" in load ? load.alphaPerC ?? temperatureAlphaForMember(member) : temperatureAlphaForMember(member),
+                } as FrameLoad);
+                return;
+              }
               onUpdate({
                 type: "nodal",
                 node: nodes[0]?.id ?? "N1",
@@ -96,7 +118,24 @@ export function FrameLoadEditor({
         ) : (
           <div className="space-y-1">
             <div className={fieldLabelClass}>作用{memberTerm}</div>
-            <DropdownSelect value={load.member} onChange={(nextValue) => onUpdate({ member: nextValue })} options={memberOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${index + 1} 条荷载作用${memberTerm}`} />
+            <DropdownSelect
+              value={load.member}
+              onChange={(nextValue) => {
+                if (load.type !== "temperature") {
+                  onUpdate({ member: nextValue });
+                  return;
+                }
+                onUpdate(
+                  shouldRefreshTemperatureAlpha(load.member, load.alphaPerC)
+                    ? { member: nextValue, alphaPerC: temperatureAlphaForMember(nextValue) }
+                    : { member: nextValue },
+                );
+              }}
+              options={memberOptions}
+              className="text-xs font-mono"
+              menuClassName="text-xs font-mono"
+              ariaLabel={`第 ${index + 1} 条荷载作用${memberTerm}`}
+            />
           </div>
         )}
         <div className="flex items-end">
@@ -164,6 +203,32 @@ export function FrameLoadEditor({
               max="1"
               value={load.endRatio ?? 1}
               onChange={(e) => onUpdate({ endRatio: clampRatio(Number(e.target.value)) })}
+              className="h-10 min-w-0 font-mono text-xs"
+            />
+          </div>
+        </div>
+      ) : load.type === "temperature" ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="space-y-1">
+            <div className={fieldLabelClass}>温差 ΔT（°C）</div>
+            <Input
+              aria-label={`第 ${index + 1} 条荷载温差`}
+              type="number"
+              step="1"
+              value={load.deltaTempC ?? 30}
+              onChange={(e) => onUpdate({ deltaTempC: Number(e.target.value) || 0 })}
+              className="h-10 min-w-0 font-mono text-xs"
+            />
+          </div>
+          <div className="space-y-1">
+            <div className={fieldLabelClass}>线膨胀系数 α（1/°C）</div>
+            <Input
+              aria-label={`第 ${index + 1} 条荷载线膨胀系数`}
+              type="number"
+              step="0.000001"
+              min="0"
+              value={load.alphaPerC ?? 1.2e-5}
+              onChange={(e) => onUpdate({ alphaPerC: Math.max(0, Number(e.target.value) || 0) })}
               className="h-10 min-w-0 font-mono text-xs"
             />
           </div>

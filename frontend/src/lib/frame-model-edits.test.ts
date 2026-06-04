@@ -26,6 +26,7 @@ const frameCollections = (): FrameEditorCollections => ({
     { type: "nodal", node: "N3", fyKn: -10 },
     { type: "distributed", member: "C1", direction: "global_y", qStartKnPerM: -6, qEndKnPerM: -6 },
     { type: "member_point", member: "B1", forceKn: -4, positionRatio: 0.5 },
+    { type: "temperature", member: "C1", deltaTempC: 30, alphaPerC: 1.2e-5 },
   ],
   loadCases: [
     {
@@ -34,6 +35,7 @@ const frameCollections = (): FrameEditorCollections => ({
       loads: [
         { type: "nodal", node: "N3", fyKn: -10 },
         { type: "distributed", member: "C1", direction: "global_y", qStartKnPerM: -6, qEndKnPerM: -6 },
+        { type: "temperature", member: "C1", deltaTempC: 30, alphaPerC: 1.2e-5 },
       ],
     },
   ],
@@ -74,11 +76,17 @@ test("updateFrameMemberCollections renames member loads in base loads and load c
   assert.ok(result);
   assert.equal(result.next.members[0]?.id, "C10");
   const baseLoad = result.next.loads[1];
+  const temperatureLoad = result.next.loads[3];
   const loadCaseLoad = result.next.loadCases[0]?.loads[1];
+  const loadCaseTemperatureLoad = result.next.loadCases[0]?.loads[2];
   assert.equal(baseLoad?.type, "distributed");
   assert.equal(baseLoad && "member" in baseLoad ? baseLoad.member : "", "C10");
+  assert.equal(temperatureLoad?.type, "temperature");
+  assert.equal(temperatureLoad && "member" in temperatureLoad ? temperatureLoad.member : "", "C10");
   assert.equal(loadCaseLoad?.type, "distributed");
   assert.equal(loadCaseLoad && "member" in loadCaseLoad ? loadCaseLoad.member : "", "C10");
+  assert.equal(loadCaseTemperatureLoad?.type, "temperature");
+  assert.equal(loadCaseTemperatureLoad && "member" in loadCaseTemperatureLoad ? loadCaseTemperatureLoad.member : "", "C10");
 });
 
 test("copyFrameCollections duplicates selected subgraph with rewritten loads", () => {
@@ -89,13 +97,15 @@ test("copyFrameCollections duplicates selected subgraph with rewritten loads", (
     ["N3_C1", 12, 3],
   ]);
   assert.deepEqual(next.members[2], { id: "C1_C1", start: "N1_C1", end: "N3_C1", elementType: "frame", E_GPa: 210, A_cm2: 120, I_cm4: 8000 });
-  assert.deepEqual(next.loads.slice(3), [
+  assert.deepEqual(next.loads.slice(4), [
     { type: "nodal", node: "N3_C1", fyKn: -10 },
     { type: "distributed", member: "C1_C1", direction: "global_y", qStartKnPerM: -6, qEndKnPerM: -6 },
+    { type: "temperature", member: "C1_C1", deltaTempC: 30, alphaPerC: 1.2e-5 },
   ]);
-  assert.deepEqual(next.loadCases[0]?.loads.slice(2), [
+  assert.deepEqual(next.loadCases[0]?.loads.slice(3), [
     { type: "nodal", node: "N3_C1", fyKn: -10 },
     { type: "distributed", member: "C1_C1", direction: "global_y", qStartKnPerM: -6, qEndKnPerM: -6 },
+    { type: "temperature", member: "C1_C1", deltaTempC: 30, alphaPerC: 1.2e-5 },
   ]);
 });
 

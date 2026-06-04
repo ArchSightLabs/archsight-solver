@@ -223,6 +223,17 @@ function normalizeFrameLoads(rawLoads: unknown, nodes: StructureNode[], members:
         positionRatio: Number.isFinite(ratio) ? Math.min(Math.max(ratio, 0), 1) : 0.5,
       };
     }
+    if (candidate?.type === "temperature") {
+      const temperatureFallback = fallback && fallback.type === "temperature" ? fallback : fallbackLoads.find((item) => item.type === "temperature") ?? null;
+      const deltaTempC = Number(candidate.deltaTempC ?? temperatureFallback?.deltaTempC ?? 30);
+      const alphaPerC = Number(candidate.alphaPerC ?? temperatureFallback?.alphaPerC ?? 1.2e-5);
+      return {
+        type: "temperature" as const,
+        member: pickExistingId(candidate.member, memberIds, temperatureFallback?.member ?? memberIds[0] ?? "M1"),
+        deltaTempC: Number.isFinite(deltaTempC) ? deltaTempC : 30,
+        alphaPerC: Number.isFinite(alphaPerC) && alphaPerC >= 0 ? alphaPerC : 1.2e-5,
+      };
+    }
     const nodalCandidate = candidate?.type === "nodal" ? candidate : null;
     const nodalFallback = fallback && fallback.type === "nodal" ? fallback : fallbackLoads[0] && fallbackLoads[0].type === "nodal" ? fallbackLoads[0] : null;
     const fxKn = nodalCandidate?.fxKn;

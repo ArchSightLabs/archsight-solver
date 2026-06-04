@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 import numpy as np
 
 from backend.common.numbers import to_float
-from backend.solver.frame.elements import apply_rotational_releases, distributed_load_local_vector, member_stiffness_local, member_transform, point_load_local_vector
+from backend.solver.frame.elements import apply_rotational_releases, distributed_load_local_vector, member_stiffness_local, member_transform, point_load_local_vector, temperature_load_local_vector
 from backend.solver.linear_system import add_diagonal_stiffness, add_local_stiffness, create_stiffness_matrix, select_solver_backend
 
 
@@ -129,6 +129,17 @@ def assemble_global_system(structure: Dict[str, Any], solver_backend: str = "aut
                         "xM": position_ratio * length,
                     }
                 )
+            elif load["type"] == "temperature" and load["member"] == member["id"]:
+                delta_temp_c, alpha_per_c = _temperature_load_contract(load)
+                f_base_local += temperature_load_local_vector(e, a, alpha_per_c, delta_temp_c)
+                load_components.append(
+                    {
+                        "type": "temperature",
+                        "deltaTempC": delta_temp_c,
+                        "alphaPerC": alpha_per_c,
+                        "freeStrain": alpha_per_c * delta_temp_c,
+                    }
+                )
 
         release_dofs = _release_dofs(member.get("endReleases", {}))
         k_local, f_local = apply_rotational_releases(k_base_local, f_base_local, release_dofs)
@@ -207,6 +218,12 @@ def _member_point_load_contract(load: Dict[str, Any]) -> tuple[float, float, str
     position_ratio = min(1.0, max(0.0, to_float(load.get("positionRatio", load.get("ratio", 0.5)), 0.5)))
     direction = str(load.get("direction") or "local_y").lower()
     return force, position_ratio, direction
+
+
+def _temperature_load_contract(load: Dict[str, Any]) -> tuple[float, float]:
+    delta_temp = to_float(load.get("deltaTempC", load.get("temperatureDeltaC", load.get("deltaTC", 0.0))), 0.0)
+    alpha = to_float(load.get("alphaPerC", load.get("thermalExpansionPerC", 1.2e-5)), 1.2e-5)
+    return delta_temp, alpha
 
 
 def _load_components_to_local(direction: str, q_kn_per_m: float, cosine: float, sine: float) -> tuple[float, float]:

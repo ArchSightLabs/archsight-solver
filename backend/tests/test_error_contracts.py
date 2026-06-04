@@ -225,23 +225,6 @@ def test_persistence_mode_error_contract(client, monkeypatch):
                 "structure": {
                     "template": "explicit",
                     "nodes": [
-                        {"id": "N1", "x": 0.0, "y": 0.0, "supportType": "fixed"},
-                        {"id": "N2", "x": 4.0, "y": 0.0, "supportType": "fixed"},
-                    ],
-                    "members": [
-                        {"id": "B1", "start": "N1", "end": "N2", "E_GPa": 210, "A_cm2": 220, "I_cm4": 15000, "kind": "beam"},
-                    ],
-                    "loads": [],
-                },
-            },
-            "框架约束条件过多，系统无自由度可求解",
-        ),
-        (
-            lambda: {
-                **_frame_base_payload(),
-                "structure": {
-                    "template": "explicit",
-                    "nodes": [
                         {"id": "N1", "x": 0.0, "y": 0.0, "supportType": "free"},
                         {"id": "N2", "x": 4.0, "y": 0.0, "supportType": "free"},
                     ],
@@ -287,7 +270,7 @@ def test_persistence_mode_error_contract(client, monkeypatch):
                     "loads": [{"type": "thermal", "member": "B1"}],
                 },
             },
-            "荷载类型必须为 nodal、distributed 或 member_point",
+            "荷载类型必须为 nodal、distributed、member_point 或 temperature",
         ),
     ],
 )
