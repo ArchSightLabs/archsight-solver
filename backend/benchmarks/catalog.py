@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Iterable, Mapping
 
+from backend.benchmarks.verification_levels import normalize_verification_metadata
+
 ROOT = Path(__file__).resolve().parents[2]
 BENCHMARK_CATALOG_PATH = Path(__file__).resolve().with_name("benchmark_cases.json")
 LEGACY_LOCAL_SPEC_CATALOG_PATH = ROOT / "specs" / "004-open-source-structure-solver" / "contracts" / "benchmark-cases.json"
@@ -12,7 +14,11 @@ LEGACY_LOCAL_SPEC_CATALOG_PATH = ROOT / "specs" / "004-open-source-structure-sol
 def load_benchmark_catalog() -> Dict[str, Any]:
     catalog_path = BENCHMARK_CATALOG_PATH if BENCHMARK_CATALOG_PATH.exists() else LEGACY_LOCAL_SPEC_CATALOG_PATH
     with catalog_path.open("r", encoding="utf-8") as f:
-        return json.load(f)
+        catalog = json.load(f)
+    for case in catalog.get("cases", []):
+        if isinstance(case, dict):
+            case["verification"] = normalize_verification_metadata(case.get("verification", {}))
+    return catalog
 
 
 def iter_benchmark_cases(category: str | None = None) -> Iterable[Mapping[str, Any]]:

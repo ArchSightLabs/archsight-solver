@@ -98,7 +98,7 @@ export function ProjectTreePanel({
           </div>
           <div className="space-y-1.5 text-muted-foreground">
             <div className="font-mono text-[11px] text-foreground">{activeObject.benchmark.caseId}</div>
-            <div>{activeObject.benchmark.sourceLabel}</div>
+            <div>{activeObject.benchmark.verificationLevelLabel} · {activeObject.benchmark.sourceLabel}</div>
             {activeObject.benchmark.metricSummary ? <div>{activeObject.benchmark.metricSummary}</div> : null}
             {activeObject.benchmark.expectedSummary ? <div>{activeObject.benchmark.expectedSummary}</div> : null}
             {activeObject.benchmark.toleranceSummary ? <div>{activeObject.benchmark.toleranceSummary}</div> : null}

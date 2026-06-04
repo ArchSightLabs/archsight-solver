@@ -12,6 +12,7 @@ def test_benchmark_runner_executes_single_case_with_metric_checks():
 
     assert result["status"] == "pass"
     assert result["caseId"] == "BM-001"
+    assert result["verification"]["verificationLevel"] in {"A", "B", "C", "D"}
     assert {check["metric"] for check in result["checks"]} >= {"最大构件弯矩(kN·m)", "跨中挠度(mm)"}
 
 
@@ -27,5 +28,7 @@ def test_benchmark_report_keeps_public_examples_entrypoint():
     report = build_report()
 
     assert "## 界面入口" in report
+    assert "## 验证等级" in report
+    assert "A 级验证" in report
     assert "GET /api/examples/projects" in report
     assert "公开案例" in report

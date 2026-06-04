@@ -340,10 +340,12 @@ def _active_benchmark_rows(solution: Mapping[str, Any]) -> List[List[str]]:
     if not case_id:
         return []
     source = str(benchmark.get("sourceLabel") or benchmark.get("sourceType") or "验证来源")
+    level = str(benchmark.get("verificationLevelLabel") or benchmark.get("verificationLevel") or "未标注")
     reference = str(benchmark.get("reference") or benchmark.get("method") or "当前计算书导出时随分析对象传入")
     expected = str(benchmark.get("expectedSummary") or _format_mapping_summary(benchmark.get("expected", {})))
     tolerance = str(benchmark.get("toleranceSummary") or _format_mapping_summary(benchmark.get("tolerances", {})))
     rows = [
+        ["当前算例验证等级", level, "A=教材解析解；B=独立刚度法；C=工程软件对标；D=内部回归"],
         ["当前算例来源", f"{case_id} / {source}", reference],
     ]
     if expected:

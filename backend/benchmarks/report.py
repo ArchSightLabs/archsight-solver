@@ -22,6 +22,7 @@ def build_report() -> str:
     catalog = load_benchmark_catalog()
     suite = evaluate_benchmark_suite()
     source_types = sorted({result["verification"].get("sourceType", "") for result in suite["results"]})
+    verification_levels = sorted({result["verification"].get("verificationLevel", "") for result in suite["results"]})
 
     lines = [
         "# ArchSight Solver 公开验证集报告",
@@ -30,6 +31,7 @@ def build_report() -> str:
         f"- 算例数量：{suite['total']}",
         f"- 通过数量：{suite['passed']}",
         f"- 未通过数量：{suite['failed']}",
+        f"- 验证等级：{', '.join(verification_levels)}",
         f"- 来源类型：{', '.join(source_types)}",
         "",
         "## 结论",
@@ -51,16 +53,27 @@ def build_report() -> str:
         "",
         "开发者也可以通过 `GET /api/examples/projects` 读取同一组公开验证工程，用于第三方平台对标、自动化演示或 Agent 集成样例。",
         "",
+        "## 验证等级",
+        "",
+        "| 等级 | 口径 |",
+        "|---|---|",
+        "| A | 教材解析解或标准公式。 |",
+        "| B | 独立刚度法基线或独立矩阵法算例。 |",
+        "| C | 版本明确的工程软件对标。 |",
+        "| D | 项目内部回归基线，只用于防止行为漂移。 |",
+        "",
         "## 算例明细",
         "",
-        "| 算例 | 类型 | 状态 | 关键校核 |",
-        "|---|---|---|---|",
+        "| 算例 | 类型 | 验证等级 | 状态 | 关键校核 |",
+        "|---|---|---|---|---|",
     ]
 
     for result in suite["results"]:
         status = "通过" if result["passed"] else "未通过"
+        verification = result["verification"]
+        level = verification.get("verificationLevelLabel") or verification.get("verificationLevel") or "未标注"
         lines.append(
-            f"| `{result['caseId']}` | {result['category']} | {status} | {_format_check_summary(result['checks'])} |"
+            f"| `{result['caseId']}` | {result['category']} | {level} | {status} | {_format_check_summary(result['checks'])} |"
         )
 
     lines.extend(

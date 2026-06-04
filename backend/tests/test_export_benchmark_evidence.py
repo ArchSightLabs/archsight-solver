@@ -31,6 +31,7 @@ def test_export_evidence_tables_include_public_benchmark_source_and_expected_val
     evidence = build_evidence_tables(report, "truss", "测试材料")["校核证据"]
     rows = evidence.astype(str).values.tolist()
 
+    assert any(row[0] == "当前算例验证等级" and row[1] == "B 级验证" for row in rows)
     assert any(row[0] == "当前算例来源" and "truss-simple-roof" in row[1] for row in rows)
     assert any(row[0] == "当前算例标准值" and "标准值：" in row[1] for row in rows)
     assert any(row[0] == "当前算例容许误差" and "容许误差：" in row[1] for row in rows)

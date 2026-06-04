@@ -78,6 +78,8 @@ def test_public_examples_api_returns_importable_projects(client):
     assert len(data["projects"]) == 3
     benchmark = data["projects"][0]["project"]["objects"][0]["benchmark"]
     assert benchmark["caseId"]
+    assert benchmark["verificationLevel"] in {"A", "B", "C", "D"}
+    assert benchmark["verificationLevelLabel"].endswith("级验证")
     assert benchmark["expectedSummary"].startswith("标准值：")
     assert benchmark["toleranceSummary"].startswith("容许误差：")
 
@@ -88,5 +90,8 @@ def test_public_examples_endpoint_is_published_in_openapi():
     assert "/api/examples/projects" in document["paths"]
     assert "public-example-projects-response" in document["components"]["schemas"]
     benchmark_schema = document["components"]["schemas"]["public-example-projects-response"]["properties"]["projects"]["items"]["properties"]["project"]["properties"]["objects"]["items"]["properties"]["benchmark"]
+    assert "verificationLevels" in document["components"]["schemas"]["public-example-projects-response"]["properties"]["projects"]["items"]["properties"]
+    assert "verificationLevel" in benchmark_schema["properties"]
+    assert "verificationLevelLabel" in benchmark_schema["properties"]
     assert "expectedSummary" in benchmark_schema["properties"]
     assert "toleranceSummary" in benchmark_schema["properties"]

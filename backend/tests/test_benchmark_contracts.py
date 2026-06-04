@@ -20,6 +20,13 @@ ALLOWED_VERIFICATION_SOURCE_TYPES = {
     "internal-regression",
 }
 
+EXPECTED_VERIFICATION_LEVEL_BY_SOURCE_TYPE = {
+    "textbook-analytical": "A",
+    "independent-stiffness-baseline": "B",
+    "engineering-software": "C",
+    "internal-regression": "D",
+}
+
 PROFESSIONAL_METRICS_BY_CATEGORY = {
     "beam": {"最大挠度", "峰值位置", "支座反力", "构件弯矩", "剪力", "支座数量"},
     "frame": {"最大节点位移", "节点位移", "构件弯矩", "支座反力", "节点数量", "构件数量"},
@@ -64,6 +71,9 @@ def test_benchmark_cases_have_traceable_verification_metadata(case):
     verification = case["verification"]
 
     assert verification["sourceType"] in ALLOWED_VERIFICATION_SOURCE_TYPES
+    assert verification["verificationLevel"] == EXPECTED_VERIFICATION_LEVEL_BY_SOURCE_TYPE[verification["sourceType"]]
+    assert verification["verificationLevelLabel"] == f"{verification['verificationLevel']} 级验证"
+    assert verification["verificationLevelDescription"].strip()
     assert verification["reference"].strip()
     assert verification["method"].strip()
     assert isinstance(verification["checkedMetrics"], list)

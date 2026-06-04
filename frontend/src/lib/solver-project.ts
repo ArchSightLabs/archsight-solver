@@ -38,6 +38,9 @@ export interface BenchmarkCaseSource {
   purpose: string;
   sourceType: string;
   sourceLabel: string;
+  verificationLevel: string;
+  verificationLevelLabel: string;
+  verificationLevelDescription: string;
   reference: string;
   method: string;
   sourceLinks: string[];
@@ -231,6 +234,9 @@ function normalizeBenchmarkCaseSource(rawSource: unknown): BenchmarkCaseSource |
     purpose: String(source.purpose ?? ""),
     sourceType: String(source.sourceType ?? "internal-regression"),
     sourceLabel: String(source.sourceLabel ?? source.sourceType ?? "验证来源"),
+    verificationLevel: String(source.verificationLevel ?? "D"),
+    verificationLevelLabel: String(source.verificationLevelLabel ?? "D 级验证"),
+    verificationLevelDescription: String(source.verificationLevelDescription ?? ""),
     reference: String(source.reference ?? ""),
     method: String(source.method ?? ""),
     sourceLinks: Array.isArray(source.sourceLinks) ? source.sourceLinks.map((link) => String(link)).filter(Boolean) : [],

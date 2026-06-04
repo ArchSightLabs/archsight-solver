@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from backend.benchmarks.catalog import ROOT, load_benchmark_catalog
+from backend.benchmarks.verification_levels import normalize_verification_metadata
 
 
 TEMPLATE_BENCHMARK_MAP_PATH = ROOT / "data" / "verification" / "template_benchmark_map.json"
@@ -30,6 +31,11 @@ CATEGORY_LABELS = {
 
 def _source_label(source_type: str) -> str:
     return SOURCE_LABELS.get(source_type, source_type or "未标注")
+
+
+def _verification_level_label(verification: Mapping[str, Any]) -> str:
+    normalized = normalize_verification_metadata(verification)
+    return str(normalized.get("verificationLevelLabel") or normalized.get("verificationLevel") or "未标注")
 
 
 def _format_mapping(values: Mapping[str, Any]) -> str:
@@ -127,8 +133,8 @@ def build_catalog_summary() -> str:
                 "",
                 f"- 算例数量：{len(category_cases)}",
                 "",
-                "| Case ID | 名称 | 目的 | 验证来源 | 校核指标 | 标准值 | 容许误差 |",
-                "|---|---|---|---|---|---|---|",
+                "| Case ID | 名称 | 目的 | 验证等级 | 验证来源 | 校核指标 | 标准值 | 容许误差 |",
+                "|---|---|---|---|---|---|---|---|",
             ]
         )
         for case in category_cases:
@@ -140,6 +146,7 @@ def build_catalog_summary() -> str:
                 f"`{case.get('id', '—')}` | "
                 f"{case.get('title', '—')} | "
                 f"{case.get('purpose', '—')} | "
+                f"{_verification_level_label(verification)} | "
                 f"{_source_label(source_type)} | "
                 f"{_format_metrics(metrics)} | "
                 f"{_format_mapping(case.get('expected', {}) if isinstance(case.get('expected', {}), Mapping) else {})} | "

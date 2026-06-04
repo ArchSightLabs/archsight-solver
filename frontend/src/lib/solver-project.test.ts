@@ -148,6 +148,9 @@ test("规范化项目时保留公开验证算例元数据", () => {
           purpose: "验证基础梁系求解。",
           sourceType: "textbook-analytical",
           sourceLabel: "教材解析解",
+          verificationLevel: "A",
+          verificationLevelLabel: "A 级验证",
+          verificationLevelDescription: "教材解析解或标准公式",
           reference: "delta_max = 5qL^4/(384EI)",
           method: "按最大挠度校核",
           sourceLinks: ["https://example.com/reference"],
@@ -162,7 +165,29 @@ test("规范化项目时保留公开验证算例元数据", () => {
 
   assert.equal(normalized.objects[0].benchmark?.caseId, "beam-simply-supported-uniform");
   assert.equal(normalized.objects[0].benchmark?.sourceLabel, "教材解析解");
+  assert.equal(normalized.objects[0].benchmark?.verificationLevel, "A");
+  assert.equal(normalized.objects[0].benchmark?.verificationLevelLabel, "A 级验证");
   assert.deepEqual(normalized.objects[0].benchmark?.checkedMetrics, ["最大挠度"]);
+});
+
+test("规范化旧公开验证算例时回填内部回归等级", () => {
+  const project = createDefaultSolverProject(new Date("2026-05-21T12:00:00.000Z"));
+  const normalized = normalizeSolverProject({
+    ...project,
+    objects: [
+      {
+        ...project.objects[0],
+        benchmark: {
+          caseId: "truss-warren-roof",
+          sourceType: "internal-regression",
+          sourceLabel: "内部回归算例",
+        },
+      },
+    ],
+  });
+
+  assert.equal(normalized.objects[0].benchmark?.verificationLevel, "D");
+  assert.equal(normalized.objects[0].benchmark?.verificationLevelLabel, "D 级验证");
 });
 
 test("公开验证算例展示名自动补两位连续编号", () => {
@@ -175,6 +200,9 @@ test("公开验证算例展示名自动补两位连续编号", () => {
       purpose: "验证桁架杆件轴力。",
       sourceType: "internal-regression",
       sourceLabel: "内部回归算例",
+      verificationLevel: "D",
+      verificationLevelLabel: "D 级验证",
+      verificationLevelDescription: "内部回归基线",
       reference: "",
       method: "",
       sourceLinks: [],

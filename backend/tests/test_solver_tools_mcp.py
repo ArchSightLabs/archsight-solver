@@ -83,10 +83,12 @@ def test_benchmark_tools_list_and_run_cases():
     listed = list_benchmark_cases({"category": "frame-beam-verify"})
     assert listed["status"] == "pass"
     assert any(case["id"] == "BM-001" for case in listed["cases"])
+    assert all(case["verificationLevel"] in {"A", "B", "C", "D"} for case in listed["cases"])
 
     result = run_benchmark_case({"caseId": "BM-001"})
     assert result["capabilityId"] == "solver.benchmark_case_run"
     assert result["status"] == "pass"
+    assert result["verification"]["verificationLevel"] in {"A", "B", "C", "D"}
     assert any(check["metric"] == "跨中挠度(mm)" for check in result["checks"])
 
 

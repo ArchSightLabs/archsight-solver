@@ -335,6 +335,9 @@ def _benchmark_meta(case: Mapping[str, Any]) -> Dict[str, Any]:
         "purpose": case.get("purpose", ""),
         "sourceType": source_type,
         "sourceLabel": SOURCE_LABELS.get(source_type, source_type),
+        "verificationLevel": verification.get("verificationLevel", "D") if isinstance(verification, Mapping) else "D",
+        "verificationLevelLabel": verification.get("verificationLevelLabel", "D 级验证") if isinstance(verification, Mapping) else "D 级验证",
+        "verificationLevelDescription": verification.get("verificationLevelDescription", "") if isinstance(verification, Mapping) else "",
         "reference": verification.get("reference", "") if isinstance(verification, Mapping) else "",
         "method": verification.get("method", "") if isinstance(verification, Mapping) else "",
         "sourceLinks": verification.get("sourceLinks", []) if isinstance(verification, Mapping) else [],
@@ -407,6 +410,11 @@ def build_public_validation_projects() -> Dict[str, Any]:
             for case in group_cases
             if isinstance(case.get("verification", {}), Mapping)
         })
+        verification_levels = sorted({
+            str(case.get("verification", {}).get("verificationLevel", "D"))
+            for case in group_cases
+            if isinstance(case.get("verification", {}), Mapping)
+        })
         project = _project_from_group(group, group_cases, str(catalog.get("updatedAt", "")))
         projects.append({
             "id": group["id"],
@@ -416,6 +424,7 @@ def build_public_validation_projects() -> Dict[str, Any]:
             "caseCategories": sorted(group["caseCategories"]),
             "caseCount": len(group_cases),
             "sourceTypes": source_types,
+            "verificationLevels": verification_levels,
             "project": project,
         })
     return {

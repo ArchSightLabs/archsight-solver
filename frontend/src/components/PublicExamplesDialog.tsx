@@ -23,6 +23,7 @@ interface PublicExampleProject {
   caseCategories: string[];
   caseCount: number;
   sourceTypes: string[];
+  verificationLevels: string[];
   project: SolverProject;
 }
 
@@ -41,6 +42,14 @@ function sourceTypeLabel(sourceType: string) {
 function objectTypeLabel(type: string) {
   if (type === "frame" || type === "truss" || type === "beam") return analysisVocabulary(type).systemLabel;
   return type;
+}
+
+function verificationLevelLabel(level: string) {
+  if (level === "A") return "A 级验证";
+  if (level === "B") return "B 级验证";
+  if (level === "C") return "C 级验证";
+  if (level === "D") return "D 级验证";
+  return level;
 }
 
 function createSelectedProject(project: SolverProject, selectedObjects: SolverProject["objects"]): SolverProject {
@@ -213,6 +222,11 @@ export function PublicExamplesDialog({ onClose, onOpenProject }: PublicExamplesD
                   <h2 className="text-lg font-black tracking-tight">{selectedProject.title}</h2>
                   <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">{selectedProject.description}</p>
                   <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">
+                    {selectedProject.verificationLevels.map((level) => (
+                      <span key={level} className="rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+                        {verificationLevelLabel(level)}
+                      </span>
+                    ))}
                     {selectedProject.sourceTypes.map((sourceType) => (
                       <span key={sourceType} className="rounded-md border border-slate-300 bg-white px-2.5 py-1 dark:border-slate-700 dark:bg-slate-900">
                         {sourceTypeLabel(sourceType)}
@@ -279,7 +293,7 @@ export function PublicExamplesDialog({ onClose, onOpenProject }: PublicExamplesD
                       <div className="mt-3 space-y-1.5 text-xs leading-5 text-muted-foreground">
                         <div className="flex items-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-200">
                           <ShieldCheck className="h-3.5 w-3.5" />
-                          {object.benchmark?.sourceLabel}
+                          {object.benchmark?.verificationLevelLabel} · {object.benchmark?.sourceLabel}
                         </div>
                         {object.benchmark?.purpose ? <div>{object.benchmark.purpose}</div> : null}
                         {object.benchmark?.metricSummary ? <div>{object.benchmark.metricSummary}</div> : null}

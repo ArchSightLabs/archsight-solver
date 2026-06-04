@@ -265,6 +265,8 @@ def list_benchmark_cases(arguments: Mapping[str, Any]) -> Dict[str, Any]:
             "title": case["title"],
             "purpose": case["purpose"],
             "sourceType": case.get("verification", {}).get("sourceType"),
+            "verificationLevel": case.get("verification", {}).get("verificationLevel"),
+            "verificationLevelLabel": case.get("verification", {}).get("verificationLevelLabel"),
             "checkedMetrics": case.get("verification", {}).get("checkedMetrics", []),
         }
         for case in iter_benchmark_cases(category)

@@ -15,6 +15,8 @@ def test_benchmark_catalog_summary_contains_every_case_and_template_mapping():
     summary = build_catalog_summary()
 
     assert "# Benchmark 算例目录摘要" in summary
+    assert "验证等级" in summary
+    assert "A 级验证" in summary
     assert "## 模板验证映射" in summary
     for case in catalog["cases"]:
         assert f"`{case['id']}`" in summary
