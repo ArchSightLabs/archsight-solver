@@ -77,6 +77,26 @@ FRAME_ROTATIONAL_SPRING_SCHEMA: Dict[str, Any] = {
     "additionalProperties": False,
 }
 
+FRAME_TRANSLATIONAL_SUPPORT_DISPLACEMENT_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "required": ["dof", "displacementMm"],
+    "properties": {
+        "dof": {"type": "string", "enum": ["ux", "uy", "n"]},
+        "displacementMm": {"type": "number", "description": "支座强制平动位移，单位 mm；n 表示带法向角滚动支座的法向位移。"},
+    },
+    "additionalProperties": False,
+}
+
+FRAME_ROTATIONAL_SUPPORT_DISPLACEMENT_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "required": ["dof", "rotationDeg"],
+    "properties": {
+        "dof": {"type": "string", "enum": ["rz"]},
+        "rotationDeg": {"type": "number", "description": "支座强制转角，单位 °。"},
+    },
+    "additionalProperties": False,
+}
+
 BEAM_TRANSLATIONAL_SPRING_SCHEMA: Dict[str, Any] = {
     "type": "object",
     "required": ["dof", "stiffnessKnPerM"],
@@ -149,6 +169,11 @@ NODE_SCHEMA: Dict[str, Any] = {
             "description": "节点弹性约束；ux/uy 使用 stiffnessKnPerM，rz 使用 stiffnessKnMPerRad。",
             "items": {"oneOf": [FRAME_TRANSLATIONAL_SPRING_SCHEMA, FRAME_ROTATIONAL_SPRING_SCHEMA]},
         },
+        "supportDisplacements": {
+            "type": "array",
+            "description": "框架节点支座位移；ux/uy/n 使用 displacementMm，rz 使用 rotationDeg，仅对相应刚性约束自由度生效。",
+            "items": {"oneOf": [FRAME_TRANSLATIONAL_SUPPORT_DISPLACEMENT_SCHEMA, FRAME_ROTATIONAL_SUPPORT_DISPLACEMENT_SCHEMA]},
+        },
         "condensedDofs": {
             "type": "array",
             "description": "内部铰等高级建模产生的节点凝聚自由度。",
@@ -177,6 +202,7 @@ TRUSS_NODE_SCHEMA: Dict[str, Any] = {
             {"required": ["supportAngleDeg"]},
             {"required": ["rollerAngleDeg"]},
             {"required": ["springs"]},
+            {"required": ["supportDisplacements"]},
             {"required": ["condensedDofs"]},
         ],
     },

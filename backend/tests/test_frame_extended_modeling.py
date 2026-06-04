@@ -130,6 +130,69 @@ def test_frame_elastic_support_reduces_vertical_displacement(client):
     assert abs(spring_tip["reactionFyKn"]) > 0.0
 
 
+def test_frame_support_displacement_generates_redundant_reactions(client):
+    payload = {
+        "analysisType": "frame",
+        "projectName": "支座沉降回归",
+        "materialId": "q345",
+        "structure": {
+            "template": "explicit",
+            "nodes": [
+                {"id": "N1", "x": 0.0, "y": 0.0, "supportType": "fixed"},
+                {"id": "N2", "x": 4.0, "y": 0.0, "supportType": "roller", "supportDisplacements": [{"dof": "uy", "displacementMm": -10.0}]},
+            ],
+            "members": [
+                {"id": "B1", "start": "N1", "end": "N2", "E_GPa": 210, "A_cm2": 220, "I_cm4": 15000, "kind": "beam"},
+            ],
+            "loads": [],
+        },
+    }
+
+    response = client.post("/api/calculate", json=payload)
+
+    assert response.status_code == 200
+    data = response.get_json()
+    node_results = {item["nodeId"]: item for item in data["nodeResults"]}
+    expected_reaction_kn = 3 * 210e9 * (15000 * 1e-8) * (-0.01) / (4.0**3) / 1000.0
+    assert node_results["N2"]["uyMm"] == pytest.approx(-10.0, abs=1e-6)
+    assert node_results["N2"]["reactionFyKn"] == pytest.approx(expected_reaction_kn, rel=1e-6)
+    assert data["structure"]["nodes"][1]["supportDisplacements"] == [{"dof": "uy", "displacementMm": -10.0}]
+    assert data["diagnostics"]["solver"]["freeDofCount"] == 2
+    assert data["diagnostics"]["equilibrium"]["rmsRelativeError"] < 1e-9
+
+
+def test_frame_support_displacement_rejects_inconsistent_boundary_constraints(client):
+    payload = {
+        "analysisType": "frame",
+        "projectName": "支座位移矛盾约束回归",
+        "materialId": "q345",
+        "structure": {
+            "template": "explicit",
+            "nodes": [
+                {"id": "N1", "x": 0.0, "y": 0.0, "supportType": "fixed"},
+                {
+                    "id": "N2",
+                    "x": 4.0,
+                    "y": 0.0,
+                    "supportType": "roller",
+                    "supportAngleDeg": 0.0,
+                    "supportDisplacements": [{"dof": "n", "displacementMm": 5.0}],
+                    "condensedDofs": ["ux"],
+                },
+            ],
+            "members": [
+                {"id": "B1", "start": "N1", "end": "N2", "E_GPa": 210, "A_cm2": 220, "I_cm4": 15000, "kind": "beam"},
+            ],
+            "loads": [],
+        },
+    }
+
+    response = client.post("/api/calculate", json=payload)
+
+    assert response.status_code == 400
+    assert "支座位移约束" in response.get_json()["error"]["message"]
+
+
 def test_frame_rotational_spring_portal_benchmark_trend(client):
     soft = client.post("/api/calculate", json=_portal_payload_with_rotational_springs(1000.0)).get_json()
     stiff = client.post("/api/calculate", json=_portal_payload_with_rotational_springs(50000.0)).get_json()

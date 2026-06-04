@@ -1,5 +1,6 @@
 import type { BeamSupportConfig, BeamSupportDof, BeamSupportSpring, BeamSupportType } from "../types/beam.ts";
 import type { FrameSpring, FrameSupportDof, StructureNode, SupportType, TrussSupportDof, TrussSupportType } from "../types/structure.ts";
+import { frameSupportDisplacementMagnitude } from "./frame-support-displacements.ts";
 import sharedSupports from "../../../shared/supports.json" with { type: "json" };
 
 export interface SupportOption<T extends string> {
@@ -21,7 +22,7 @@ export interface SupportChoiceOption<T extends string> {
 type SupportGroup = "beam" | "frame" | "truss";
 export type SupportDofMode = "fixed" | "spring" | "free";
 
-type FrameNodeSupportState = Pick<StructureNode, "supportType" | "supportAngleDeg" | "springs">;
+type FrameNodeSupportState = Pick<StructureNode, "supportType" | "supportAngleDeg" | "springs" | "supportDisplacements">;
 
 export interface BeamSupportDofRow {
   dof: BeamSupportDof;
@@ -227,6 +228,11 @@ function frameSpringSummary(spring: FrameSpring): string {
   return `${spring.dof} 弹性约束 ${compactSupportNumber(frameSpringStiffness(spring))} ${unit}`;
 }
 
+function frameSupportDisplacementSummary(displacement: NonNullable<FrameNodeSupportState["supportDisplacements"]>[number]): string {
+  const unit = displacement.dof === "rz" ? "deg" : "mm";
+  return `${displacement.dof} 支座位移 ${compactSupportNumber(frameSupportDisplacementMagnitude(displacement))} ${unit}`;
+}
+
 function frameSupportConstraintDofs(type: SupportType | undefined): FrameSupportDof[] {
   if (type === "fixed") return ["ux", "uy", "rz"];
   if (type === "pinned") return ["ux", "uy"];
@@ -239,7 +245,7 @@ function formatSupportAngle(value: number): string {
 }
 
 export function hasFrameSupportBoundary(node: FrameNodeSupportState): boolean {
-  return (node.supportType ?? "free") !== "free" || (node.springs ?? []).some(isPositiveFrameSpring);
+  return (node.supportType ?? "free") !== "free" || (node.springs ?? []).some(isPositiveFrameSpring) || (node.supportDisplacements ?? []).length > 0;
 }
 
 export function frameNodeSupportStateDetail(node: FrameNodeSupportState): string {
@@ -257,6 +263,7 @@ export function frameNodeSupportStateDetail(node: FrameNodeSupportState): string
   }
 
   parts.push(...activeSprings.map(frameSpringSummary));
+  parts.push(...(node.supportDisplacements ?? []).map(frameSupportDisplacementSummary));
 
   if (supportType === "roller" && Number.isFinite(node.supportAngleDeg)) {
     parts.push(springDofs.has("rz") ? "释放切向位移" : "释放切向位移、rz");

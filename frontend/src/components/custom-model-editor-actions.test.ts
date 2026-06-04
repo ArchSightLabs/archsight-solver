@@ -95,3 +95,13 @@ test("框架和桁架坐标编辑接入网格吸附控件", () => {
   assert.match(trussNodeEditor, /gridSnapEnabled/u);
   assert.match(trussNodeEditor, /onBlur=\{\(event\) => commitCoordinate\("x", event\.target\.value\)\}/u);
 });
+
+test("frame node editor wires support displacement field", () => {
+  const frameNodeEditor = componentSource("FrameNodeEditor.tsx");
+  const supportDisplacementField = componentSource("FrameSupportDisplacementField.tsx");
+
+  assert.match(frameNodeEditor, /FrameSupportDisplacementField/u);
+  assert.match(frameNodeEditor, /supportDisplacements/u);
+  assert.match(supportDisplacementField, /frameSupportDisplacementOptions/u);
+  assert.match(supportDisplacementField, /支座位移/u);
+});

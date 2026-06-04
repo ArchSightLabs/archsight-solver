@@ -112,6 +112,28 @@ test("serializeFrameTextModel preserves node elastic constraints", () => {
   assert.deepEqual(restored.collections.nodes[1]?.springs, [{ dof: "uy", stiffnessKnPerM: 12000 }]);
 });
 
+test("serializeFrameTextModel preserves support displacements", () => {
+  const text = serializeFrameTextModel({
+    nodes: [
+      { id: "N1", x: 0, y: 0, supportType: "fixed", supportDisplacements: [{ dof: "rz", rotationDeg: 0.2 }] },
+      { id: "N2", x: 4, y: 0, supportType: "roller", supportAngleDeg: 45, supportDisplacements: [{ dof: "n", displacementMm: -2.5 }] },
+    ],
+    members: [
+      { id: "B1", start: "N1", end: "N2", elementType: "frame", E_GPa: 210, A_cm2: 240, I_cm4: 12000, kind: "beam" },
+    ],
+    loads: [],
+  });
+
+  assert.match(text, /NSDISP,1,rz,0\.2/u);
+  assert.match(text, /NSDISP,2,n,-2\.5/u);
+
+  const restored = parseFrameTextModel(text);
+
+  assert.ok(restored.collections);
+  assert.deepEqual(restored.collections.nodes[0]?.supportDisplacements, [{ dof: "rz", rotationDeg: 0.2 }]);
+  assert.deepEqual(restored.collections.nodes[1]?.supportDisplacements, [{ dof: "n", displacementMm: -2.5 }]);
+});
+
 test("serializeFrameTextModel uses sequential SM element numbers for named members", () => {
   const text = serializeFrameTextModel({
     nodes: [

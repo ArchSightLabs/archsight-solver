@@ -2,6 +2,7 @@ import { createPortalFrameModelFromState } from "./lib/workspace-state.ts";
 import { MAX_FRAME_MEMBERS, MAX_FRAME_NODES, MAX_TRUSS_MEMBERS, MAX_TRUSS_NODES } from "./lib/solver-limits.ts";
 import { materialIdForYoungModulus } from "./lib/material-presets.ts";
 import { modelObjectCountPhrase, modelObjectMemberTerm } from "./lib/model-object-vocabulary.ts";
+import { normalizeFrameSupportDisplacements } from "./lib/frame-support-displacements.ts";
 import type { BeamApiPayload, BeamLinearLoadConfig, BeamSpanConfig, BeamWorkspaceState } from "./types/beam.ts";
 import type {
   FrameFormPayload,
@@ -270,6 +271,7 @@ function normalizeCustomFrameCollections(value: FrameWorkspaceState) {
       supportAngleDeg: Number.isFinite(node.supportAngleDeg) ? Number(node.supportAngleDeg) : undefined,
       condensedDofs: node.condensedDofs?.length ? node.condensedDofs : undefined,
       springs: node.springs?.length ? node.springs.map((spring) => ({ ...spring })) : undefined,
+      supportDisplacements: normalizeFrameSupportDisplacements(node),
     })),
     members: value.customMembers.map((member, index) => ({
       id: String(member.id ?? `M${index + 1}`).trim() || `M${index + 1}`,

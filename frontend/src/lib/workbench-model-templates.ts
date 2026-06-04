@@ -81,6 +81,7 @@ function cloneFrameNodes(nodes: StructureNode[]): StructureNode[] {
     ...node,
     condensedDofs: node.condensedDofs ? [...node.condensedDofs] : undefined,
     springs: node.springs?.map((spring) => ({ ...spring })),
+    supportDisplacements: node.supportDisplacements?.map((displacement) => ({ ...displacement })),
   }));
 }
 

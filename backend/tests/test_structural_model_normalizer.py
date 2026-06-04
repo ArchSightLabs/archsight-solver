@@ -89,7 +89,14 @@ def test_shared_structural_model_preserves_springs_releases_and_load_direction()
         template="explicit",
         raw_nodes=[
             {"id": "N1", "x": 0, "y": 0, "supportType": "fixed"},
-            {"id": "N2", "x": 4, "y": 0, "supportType": "free", "springs": [{"dof": "uy", "stiffnessKnPerM": 12000}]},
+            {
+                "id": "N2",
+                "x": 4,
+                "y": 0,
+                "supportType": "pinned",
+                "springs": [{"dof": "rz", "stiffnessKnMPerRad": 12000}],
+                "supportDisplacements": [{"dof": "uy", "displacementMm": -2.5}],
+            },
         ],
         raw_members=[
             {
@@ -114,7 +121,8 @@ def test_shared_structural_model_preserves_springs_releases_and_load_direction()
     )
 
     structure = model.to_structure_contract(include_bending=True)
-    assert structure["nodes"][1]["springs"] == [{"dof": "uy", "stiffnessKnPerM": 12000.0}]
+    assert structure["nodes"][1]["springs"] == [{"dof": "rz", "stiffnessKnMPerRad": 12000.0}]
+    assert structure["nodes"][1]["supportDisplacements"] == [{"dof": "uy", "displacementMm": -2.5}]
     assert structure["members"][0]["elementType"] == "frame"
     assert structure["members"][0]["endReleases"] == {"end": ["rz"]}
     assert structure["loads"] == [
@@ -281,6 +289,24 @@ def test_truss_normalizer_rejects_frame_only_node_boundary_fields(node_patch, ex
         normalize_truss_request(payload)
 
 
+def test_truss_normalizer_rejects_frame_support_displacements():
+    payload = {
+        "analysisType": "truss",
+        "structure": {
+            "template": "explicit",
+            "nodes": [
+                {"id": "N1", "x": 0, "y": 0, "supportType": "pinned", "supportDisplacements": [{"dof": "uy", "displacementMm": -1.0}]},
+                {"id": "N2", "x": 4, "y": 0, "supportType": "roller"},
+            ],
+            "members": [{"id": "M1", "start": "N1", "end": "N2", "E_GPa": 210, "A_cm2": 24}],
+            "loads": [],
+        },
+    }
+
+    with pytest.raises(ValueError, match="桁架节点不支持支座位移"):
+        normalize_truss_request(payload)
+
+
 def test_shared_structural_model_preserves_load_combination_tags():
     model = build_structural_model(
         analysis_type="frame",
@@ -347,6 +373,24 @@ def test_shared_structural_model_validates_extended_frame_contract(payload_patch
     payload["structure"].update(payload_patch)
 
     with pytest.raises(ValueError, match=expected_error):
+        normalize_frame_request(payload)
+
+
+def test_frame_normalizer_rejects_support_displacement_on_released_dof():
+    payload = {
+        "analysisType": "frame",
+        "structure": {
+            "template": "explicit",
+            "nodes": [
+                {"id": "N1", "x": 0, "y": 0, "supportType": "free", "supportDisplacements": [{"dof": "uy", "displacementMm": -1.0}]},
+                {"id": "N2", "x": 1, "y": 0, "supportType": "fixed"},
+            ],
+            "members": [{"id": "M1", "start": "N1", "end": "N2"}],
+            "loads": [],
+        },
+    }
+
+    with pytest.raises(ValueError, match="支座位移只能定义在当前支座的刚性约束自由度上"):
         normalize_frame_request(payload)
 
 

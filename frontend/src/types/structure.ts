@@ -15,10 +15,15 @@ export interface ResultViewSettings {
 
 export type SupportType = FrameSupportType;
 export type FrameLoadDirection = "local_y" | "global_y";
+export type FrameSupportDisplacementDof = FrameSupportDof | "n";
 
 export type FrameSpring =
   | { dof: "ux" | "uy"; stiffnessKnPerM: number }
   | { dof: "rz"; stiffnessKnMPerRad: number };
+
+export type FrameSupportDisplacement =
+  | { dof: "ux" | "uy" | "n"; displacementMm: number }
+  | { dof: "rz"; rotationDeg: number };
 
 export interface StructureNode {
   id: string;
@@ -28,6 +33,7 @@ export interface StructureNode {
   supportAngleDeg?: number;
   condensedDofs?: FrameSupportDof[];
   springs?: FrameSpring[];
+  supportDisplacements?: FrameSupportDisplacement[];
 }
 
 export interface FrameInternalHinge {

@@ -6,6 +6,7 @@ import type {
   FrameLoadCase,
   FrameLoadCombination,
   FrameSpring,
+  FrameSupportDisplacement,
   FrameWorkspaceState,
   StructureMember,
   StructureNode,
@@ -85,10 +86,15 @@ function cloneSprings(springs: FrameSpring[] | undefined): FrameSpring[] | undef
   return springs?.map((spring) => ({ ...spring }));
 }
 
+function cloneSupportDisplacements(displacements: FrameSupportDisplacement[] | undefined): FrameSupportDisplacement[] | undefined {
+  return displacements?.map((displacement) => ({ ...displacement }));
+}
+
 export function cloneNodes(nodes: StructureNode[]): StructureNode[] {
   return nodes.map((node) => ({
     ...node,
     springs: cloneSprings(node.springs),
+    supportDisplacements: cloneSupportDisplacements(node.supportDisplacements),
     condensedDofs: node.condensedDofs ? [...node.condensedDofs] : undefined,
   }));
 }

@@ -11,7 +11,7 @@
     }
   },
   "frame": {
-    "nodeFields": ["supportAngleDeg", "springs"],
+    "nodeFields": ["supportAngleDeg", "springs", "supportDisplacements"],
     "springFields": ["stiffnessKnPerM", "stiffnessKnMPerRad"],
     "memberFields": ["materialId", "E_GPa", "A_cm2", "I_cm4", "endReleases", "internalHinges"],
     "distributedLoadFields": ["qStartKnPerM", "qEndKnPerM", "startRatio", "endRatio"],
@@ -21,6 +21,7 @@
     "frontendTypeTokens": [
       "supportAngleDeg?: number",
       "springs?: FrameSpring[]",
+      "supportDisplacements?: FrameSupportDisplacement[]",
       "materialId?: string",
       "endReleases?:",
       "internalHinges?: FrameInternalHinge[]",
@@ -34,6 +35,7 @@
     "payloadTokens": [
       "supportAngleDeg:",
       "springs:",
+      "supportDisplacements:",
       "materialId:",
       "endReleases:",
       "internalHinges:",
@@ -46,6 +48,7 @@
     "docTokens": [
       "supportAngleDeg",
       "springs",
+      "supportDisplacements",
       "节点弹性约束",
       "materialId",
       "endReleases",
@@ -62,7 +65,7 @@
     "nodalLoadFields": ["fxKn", "fyKn"],
     "memberLoadFields": ["direction", "wyKnPerM", "qStartKnPerM", "qEndKnPerM", "selfWeightKnPerM"],
     "structureFields": ["loadCases", "loadCombinations"],
-    "forbiddenNodeFields": ["supportAngleDeg", "rollerAngleDeg", "springs", "condensedDofs"],
+    "forbiddenNodeFields": ["supportAngleDeg", "rollerAngleDeg", "springs", "supportDisplacements", "condensedDofs"],
     "frontendTypePath": "frontend/src/types/structure.ts",
     "frontendTypeTokens": [
       "selfWeightKnPerM?: number",

@@ -126,6 +126,7 @@ test("buildFramePayload preserves advanced frame modeling fields", () => {
     supportType: "roller",
     supportAngleDeg: 45,
     springs: [{ dof: "uy", stiffnessKnPerM: 12000 }],
+    supportDisplacements: [{ dof: "n", displacementMm: -2.5 }],
   };
   workspace.customMembers[1] = {
     ...workspace.customMembers[1],
@@ -156,6 +157,7 @@ test("buildFramePayload preserves advanced frame modeling fields", () => {
   assert.equal(payload.structure.nodes[1]?.supportAngleDeg, 45);
   assert.equal(payload.structure.members[1]?.elementType, "frame");
   assert.deepEqual(payload.structure.nodes[1]?.springs, [{ dof: "uy", stiffnessKnPerM: 12000 }]);
+  assert.deepEqual(payload.structure.nodes[1]?.supportDisplacements, [{ dof: "n", displacementMm: -2.5 }]);
   assert.deepEqual(payload.structure.members[1]?.endReleases, { start: ["rz"] });
   assert.deepEqual(payload.structure.members[1]?.internalHinges, [{ ratio: 0.5 }]);
   assert.deepEqual(payload.structure.loads[0], { type: "distributed", member: "B1", direction: "global_y", qStartKnPerM: -8, qEndKnPerM: -12, startRatio: 0.2, endRatio: 0.8 });
@@ -246,7 +248,7 @@ test("normalizeFrameWorkspaceState canonicalizes load case ids and preserves adv
     frameMode: "custom",
     customNodes: [
       { id: "N1", x: 0, y: 0, supportType: "fixed" },
-      { id: "N2", x: 4, y: 0, supportType: "roller", supportAngleDeg: 45, springs: [{ dof: "uy", stiffnessKnPerM: 12000 }] },
+      { id: "N2", x: 4, y: 0, supportType: "roller", supportAngleDeg: 45, springs: [{ dof: "uy", stiffnessKnPerM: 12000 }], supportDisplacements: [{ dof: "n", displacementMm: -2.5 }] },
     ],
     customMembers: [
       { id: "B1", start: "N1", end: "N2", materialId: "q235", E_GPa: 206, A_cm2: 220, I_cm4: 15000, kind: "beam", endReleases: { end: ["rz"] }, internalHinges: [{ ratio: 0.5 }] },
@@ -259,6 +261,7 @@ test("normalizeFrameWorkspaceState canonicalizes load case ids and preserves adv
 
   assert.equal(cloned.customNodes[1].supportAngleDeg, 45);
   assert.deepEqual(cloned.customNodes[1].springs, [{ dof: "uy", stiffnessKnPerM: 12000 }]);
+  assert.deepEqual(cloned.customNodes[1].supportDisplacements, [{ dof: "n", displacementMm: -2.5 }]);
   assert.equal(cloned.customMembers[0].materialId, "q235");
   assert.deepEqual(cloned.customMembers[0].endReleases?.end, ["rz"]);
   assert.deepEqual(cloned.customMembers[0].internalHinges, [{ ratio: 0.5 }]);

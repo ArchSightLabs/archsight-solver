@@ -22,6 +22,7 @@ class StructuralNode:
     support_angle_deg: Optional[float] = None
     condensed_dofs: List[str] = field(default_factory=list)
     springs: List[Dict[str, Any]] = field(default_factory=list)
+    support_displacements: List[Dict[str, Any]] = field(default_factory=list)
 
     def to_contract(self) -> Dict[str, Any]:
         data: Dict[str, Any] = {
@@ -36,6 +37,8 @@ class StructuralNode:
             data["condensedDofs"] = self.condensed_dofs
         if self.springs:
             data["springs"] = self.springs
+        if self.support_displacements:
+            data["supportDisplacements"] = self.support_displacements
         return data
 
 
@@ -190,9 +193,11 @@ def parse_nodes(
     allow_springs: bool = True,
     allow_support_angle: bool = True,
     allow_condensed_dofs: bool = True,
+    allow_support_displacements: bool = True,
     unsupported_springs_error: str = "当前结构对象不支持节点弹性约束",
     unsupported_support_angle_error: str = "当前结构对象不支持滚动支座法向角",
     unsupported_condensed_dofs_error: str = "当前结构对象不支持节点凝聚自由度",
+    unsupported_support_displacements_error: str = "当前结构对象不支持支座位移",
 ) -> List[StructuralNode]:
     nodes: List[StructuralNode] = []
     seen_ids: set[str] = set()
@@ -207,17 +212,23 @@ def parse_nodes(
             raise ValueError(unsupported_support_angle_error)
         if not allow_condensed_dofs and node.get("condensedDofs") not in (None, "", []):
             raise ValueError(unsupported_condensed_dofs_error)
+        if not allow_support_displacements and node.get("supportDisplacements") not in (None, "", []):
+            raise ValueError(unsupported_support_displacements_error)
         springs = parse_node_springs(node.get("springs", []))
         support_angle_deg = parse_support_angle(node.get("supportAngleDeg", node.get("rollerAngleDeg")))
+        support_type = parse_support_type(node.get("supportType", node.get("support", "free")), labels)
+        support_displacements = parse_node_support_displacements(node.get("supportDisplacements", []))
+        validate_node_support_displacements(support_type, support_angle_deg, support_displacements)
         nodes.append(
             StructuralNode(
                 id=node_id,
                 x=to_float(node.get("x"), 0.0),
                 y=to_float(node.get("y"), 0.0),
-                support_type=parse_support_type(node.get("supportType", node.get("support", "free")), labels),
+                support_type=support_type,
                 support_angle_deg=support_angle_deg,
                 condensed_dofs=parse_condensed_dofs(node.get("condensedDofs", [])),
                 springs=springs,
+                support_displacements=support_displacements,
             )
         )
     if len(nodes) < 2:
@@ -280,6 +291,58 @@ def parse_node_springs(raw_springs: Any) -> List[Dict[str, Any]]:
             raise ValueError("节点弹性约束刚度必须大于 0")
         springs.append({"dof": dof, key: stiffness})
     return springs
+
+
+def parse_node_support_displacements(raw_displacements: Any) -> List[Dict[str, Any]]:
+    if raw_displacements in (None, ""):
+        return []
+    if not isinstance(raw_displacements, Sequence) or isinstance(raw_displacements, (str, bytes)):
+        raise ValueError("支座位移必须使用 supportDisplacements 数组定义")
+    displacements: List[Dict[str, Any]] = []
+    seen_dofs: set[str] = set()
+    for displacement in raw_displacements:
+        if not isinstance(displacement, Mapping):
+            raise ValueError("支座位移必须使用对象定义")
+        dof = str(displacement.get("dof") or "").strip().lower()
+        if dof not in {"ux", "uy", "rz", "n"}:
+            raise ValueError("支座位移自由度必须为 ux、uy、rz 或 n")
+        if dof in seen_dofs:
+            continue
+        seen_dofs.add(dof)
+        if dof == "rz":
+            rotation_deg = to_float(
+                displacement.get("rotationDeg", displacement.get("valueDeg", displacement.get("value"))),
+                0.0,
+            )
+            displacements.append({"dof": dof, "rotationDeg": rotation_deg})
+            continue
+        displacement_mm = to_float(
+            displacement.get(
+                "displacementMm",
+                displacement.get("settlementMm", displacement.get("valueMm", displacement.get("value"))),
+            ),
+            0.0,
+        )
+        displacements.append({"dof": dof, "displacementMm": displacement_mm})
+    return displacements
+
+
+def validate_node_support_displacements(support_type: str, support_angle_deg: Optional[float], support_displacements: Sequence[Dict[str, Any]]) -> None:
+    if not support_displacements:
+        return
+    if support_type == "fixed":
+        allowed = {"ux", "uy", "rz"}
+    elif support_type == "pinned":
+        allowed = {"ux", "uy"}
+    elif support_type == "roller" and support_angle_deg is not None:
+        allowed = {"n"}
+    elif support_type == "roller":
+        allowed = {"uy"}
+    else:
+        allowed = set()
+    invalid = [str(displacement.get("dof")) for displacement in support_displacements if str(displacement.get("dof")) not in allowed]
+    if invalid:
+        raise ValueError("支座位移只能定义在当前支座的刚性约束自由度上")
 
 
 def parse_end_releases(raw_releases: Any, *, include_bending: bool) -> Dict[str, List[str]]:
@@ -832,9 +895,11 @@ def build_structural_model(
         allow_springs=include_bending,
         allow_support_angle=include_bending,
         allow_condensed_dofs=include_bending,
+        allow_support_displacements=include_bending,
         unsupported_springs_error="桁架节点不支持节点弹性约束；当前桁架支座仅使用 pinned、roller、free 刚性平动约束",
         unsupported_support_angle_error="桁架节点不支持滚动支座法向角；当前 roller 固定约束 uy、释放 ux",
         unsupported_condensed_dofs_error="桁架节点不支持凝聚/转角释放自由度；桁架节点仅含 ux、uy 平动自由度",
+        unsupported_support_displacements_error="桁架节点不支持支座位移；当前桁架支座仅使用 pinned、roller、free 刚性平动约束",
     )
     members = parse_members(
         raw_members,

@@ -4,6 +4,7 @@ import type {
   FrameLoadCombination,
   FrameLoadDirection,
   FrameSpring,
+  FrameSupportDisplacement,
   FrameWorkspaceState,
   StructureMember,
   StructureNode,
@@ -54,6 +55,29 @@ function normalizeSprings(rawSprings: unknown): FrameSpring[] | undefined {
   return springs.length ? springs : undefined;
 }
 
+function normalizeSupportDisplacements(rawDisplacements: unknown): FrameSupportDisplacement[] | undefined {
+  if (!Array.isArray(rawDisplacements)) {
+    return undefined;
+  }
+  const displacements = rawDisplacements
+    .slice(0, 6)
+    .map((displacement) => {
+      const candidate = displacement && typeof displacement === "object" ? (displacement as Record<string, unknown>) : {};
+      const dof = candidate.dof === "ux" || candidate.dof === "uy" || candidate.dof === "rz" || candidate.dof === "n" ? candidate.dof : null;
+      if (!dof) {
+        return null;
+      }
+      if (dof === "rz") {
+        const rotationDeg = Number(candidate.rotationDeg ?? candidate.valueDeg ?? candidate.value);
+        return Number.isFinite(rotationDeg) ? { dof, rotationDeg } : null;
+      }
+      const displacementMm = Number(candidate.displacementMm ?? candidate.settlementMm ?? candidate.valueMm ?? candidate.value);
+      return Number.isFinite(displacementMm) ? { dof, displacementMm } : null;
+    })
+    .filter((displacement): displacement is FrameSupportDisplacement => Boolean(displacement));
+  return displacements.length ? displacements : undefined;
+}
+
 function normalizeEndReleases(rawReleases: unknown): StructureMember["endReleases"] {
   if (!rawReleases || typeof rawReleases !== "object") {
     return undefined;
@@ -95,6 +119,7 @@ function normalizeStructureNodes(rawNodes: unknown, fallbackNodes: StructureNode
         ? candidate.condensedDofs.filter((dof): dof is "ux" | "uy" | "rz" => dof === "ux" || dof === "uy" || dof === "rz")
         : undefined,
       springs: normalizeSprings(candidate.springs),
+      supportDisplacements: normalizeSupportDisplacements(candidate.supportDisplacements),
     };
   });
 }

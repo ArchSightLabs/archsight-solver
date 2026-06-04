@@ -52,11 +52,15 @@ def solve_free_dofs(
     free_dofs: Sequence[int],
     singular_message: str,
     backend: str,
+    prescribed_displacements: np.ndarray | None = None,
 ) -> Dict[str, Any]:
     free_dof_list = list(free_dofs)
+    prescribed = np.zeros(load_vector.shape[0], dtype=float) if prescribed_displacements is None else np.asarray(prescribed_displacements, dtype=float)
+    if prescribed.shape[0] != load_vector.shape[0]:
+        raise ValueError(singular_message)
     if issparse(stiffness):
         k_ff = stiffness[free_dof_list, :][:, free_dof_list].tocsc()
-        f_f = load_vector[free_dof_list]
+        f_f = load_vector[free_dof_list] - np.asarray(stiffness[free_dof_list, :] @ prescribed, dtype=float).reshape(len(free_dof_list))
         try:
             with warnings.catch_warnings():
                 warnings.simplefilter("error", MatrixRankWarning)
@@ -69,14 +73,15 @@ def solve_free_dofs(
         sparse_density = float(sparse_nnz / max(1, k_ff.shape[0] * k_ff.shape[1]))
     else:
         k_ff = stiffness[np.ix_(free_dof_list, free_dof_list)]
-        f_f = load_vector[free_dof_list]
+        all_dofs = list(range(load_vector.shape[0]))
+        f_f = load_vector[free_dof_list] - stiffness[np.ix_(free_dof_list, all_dofs)] @ prescribed
         if np.linalg.matrix_rank(k_ff) < len(free_dof_list):
             raise ValueError(singular_message)
         solved = np.linalg.solve(k_ff, f_f)
         sparse_nnz = None
         sparse_density = None
 
-    displacement = np.zeros(load_vector.shape[0], dtype=float)
+    displacement = prescribed.copy()
     displacement[free_dof_list] = solved
     reactions = stiffness @ displacement - load_vector
     reactions = np.asarray(reactions, dtype=float).reshape(load_vector.shape[0])

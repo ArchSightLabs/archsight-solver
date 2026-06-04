@@ -8,7 +8,7 @@ import {
   trussSupportDetail,
 } from "../lib/support-vocabulary.ts";
 import { cn } from "@/lib/utils";
-import type { FrameSpring, SupportType, TrussSupportType } from "../types/structure.ts";
+import type { FrameSpring, StructureNode, SupportType, TrussSupportType } from "../types/structure.ts";
 
 interface CommonNodeSupportFieldProps {
   fieldLabelClass: string;
@@ -24,6 +24,7 @@ interface FrameNodeSupportFieldProps extends CommonNodeSupportFieldProps {
   onSupportTypeChange: (nextSupportType: SupportType) => void;
   supportAngleDeg?: number;
   springs?: FrameSpring[];
+  supportDisplacements?: StructureNode["supportDisplacements"];
 }
 
 interface TrussNodeSupportFieldProps extends CommonNodeSupportFieldProps {
@@ -50,7 +51,7 @@ export function NodeSupportField(props: NodeSupportFieldProps) {
   const value = props.supportType ?? "free";
   const detail = isTruss
     ? trussSupportDetail(value)
-    : frameNodeSupportStateDetail({ supportType: value, supportAngleDeg: props.supportAngleDeg, springs: props.springs });
+    : frameNodeSupportStateDetail({ supportType: value, supportAngleDeg: props.supportAngleDeg, springs: props.springs, supportDisplacements: props.supportDisplacements });
 
   const handleChange = (nextValue: string) => {
     if (isTruss) {

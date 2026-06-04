@@ -1,4 +1,4 @@
-import type { FrameLoad, FrameLoadCase, FrameLoadCombination, FrameSpring, StructureMember, StructureNode } from "../types/structure.ts";
+import type { FrameLoad, FrameLoadCase, FrameLoadCombination, FrameSpring, FrameSupportDisplacement, FrameSupportDisplacementDof, StructureMember, StructureNode } from "../types/structure.ts";
 import {
   parseTextModelNumber,
   parseTextModelNumericCode,
@@ -62,12 +62,28 @@ function frameSpringDof(value: string | undefined): FrameSpring["dof"] | null {
   return null;
 }
 
+function frameSupportDisplacementDof(value: string | undefined): FrameSupportDisplacementDof | null {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (normalized === "ux" || normalized === "uy" || normalized === "rz" || normalized === "n") {
+    return normalized;
+  }
+  return null;
+}
+
 function frameSpring(dof: FrameSpring["dof"], stiffness: number): FrameSpring {
   return dof === "rz" ? { dof, stiffnessKnMPerRad: stiffness } : { dof, stiffnessKnPerM: stiffness };
 }
 
+function frameSupportDisplacement(dof: FrameSupportDisplacementDof, value: number): FrameSupportDisplacement {
+  return dof === "rz" ? { dof, rotationDeg: value } : { dof, displacementMm: value };
+}
+
 function frameSpringStiffness(spring: FrameSpring): number {
   return spring.dof === "rz" ? spring.stiffnessKnMPerRad : spring.stiffnessKnPerM;
+}
+
+function frameSupportDisplacementValue(displacement: FrameSupportDisplacement): number {
+  return displacement.dof === "rz" ? displacement.rotationDeg : displacement.displacementMm;
 }
 
 function defaultMember(id: string, start: string, end: string, patch: Partial<StructureMember> = {}): StructureMember {
@@ -259,6 +275,30 @@ export function parseFrameTextModel(text: string): FrameTextParseResult {
       continue;
     }
 
+    if (command === "NSDISP" || command === "SDISP" || command === "SUPPORTDISP" || command === "支座位移") {
+      const id = nodeId(tokens[1], "N1");
+      const node = rawNodes.find((item) => item.id === id);
+      if (!node) {
+        diagnostics.push(`第 ${lineIndex + 1} 行：支座位移引用了不存在的节点 ${id}。`);
+        continue;
+      }
+      const dof = frameSupportDisplacementDof(tokens[2]);
+      if (!dof) {
+        diagnostics.push(`第 ${lineIndex + 1} 行：支座位移自由度必须为 ux、uy、rz 或 n。`);
+        continue;
+      }
+      const value = toNumber(tokens[3]);
+      if (value === null) {
+        diagnostics.push(`第 ${lineIndex + 1} 行：支座位移缺少有效数值。`);
+        continue;
+      }
+      node.supportDisplacements = [
+        ...(node.supportDisplacements ?? []).filter((displacement) => displacement.dof !== dof),
+        frameSupportDisplacement(dof, value),
+      ];
+      continue;
+    }
+
     if (command === "PROP") {
       const targetStart = getNumberedMember(members, tokens[1] ?? "");
       const usesRange = tokens.length >= 7;
@@ -408,6 +448,11 @@ export function serializeFrameTextModel(collections: FrameTextCollections): stri
       (node.springs ?? [])
         .filter((spring) => frameSpringStiffness(spring) > 0)
         .map((spring) => `NSPRING,${nodeNumbers.get(node.id) ?? 1},${spring.dof},${frameSpringStiffness(spring)}`)
+    ),
+    "# 支座位移：NSDISP,节点号,自由度,位移或转角；ux/uy/n 单位 mm，rz 单位 deg",
+    ...collections.nodes.flatMap((node) =>
+      (node.supportDisplacements ?? [])
+        .map((displacement) => `NSDISP,${nodeNumbers.get(node.id) ?? 1},${displacement.dof},${frameSupportDisplacementValue(displacement)}`)
     ),
     "",
     "# 构件：E,起点节点号,终点节点号,ux1,uy1,rz1,ux2,uy2,rz2",

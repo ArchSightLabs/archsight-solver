@@ -7,6 +7,7 @@ import { DeferredIdInput } from "./ui/DeferredIdInput";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { FrameNodeSpringField } from "./FrameNodeSpringField";
+import { FrameSupportDisplacementField } from "./FrameSupportDisplacementField";
 import { NodeSupportField } from "./NodeSupportField";
 import { SelectedNodeConnectionPanel } from "./SelectedNodeConnectionPanel";
 
@@ -51,6 +52,7 @@ export function FrameNodeEditor({
   const angleLabel = supportAngleLabel();
   const showSupportAngle = supportAngleApplies(node.supportType);
   const showSpringField = isSelectedVariant || (node.springs?.length ?? 0) > 0;
+  const showSupportDisplacementField = isSelectedVariant || (node.supportDisplacements?.length ?? 0) > 0;
   const parseCoordinateInput = (value: string) => (value === "" ? 0 : Number(value) || 0);
   const updateCoordinate = (coordinate: "x" | "y", value: number) => {
     onUpdate(coordinate === "x" ? { x: value } : { y: value });
@@ -62,6 +64,7 @@ export function FrameNodeEditor({
     onUpdate({
       supportType,
       supportAngleDeg: supportAngleApplies(supportType) ? node.supportAngleDeg : undefined,
+      supportDisplacements: undefined,
     });
   };
 
@@ -96,6 +99,7 @@ export function FrameNodeEditor({
           supportType={node.supportType}
           supportAngleDeg={node.supportAngleDeg}
           springs={node.springs}
+          supportDisplacements={node.supportDisplacements}
           onSupportTypeChange={handleSupportTypeChange}
           fieldLabelClass={fieldLabelClass}
           ariaLabel={`${labelPrefix}支座类型`}
@@ -172,6 +176,15 @@ export function FrameNodeEditor({
           fieldLabelClass={fieldLabelClass}
           onChange={(springs) => onUpdate({ springs })}
           showHint={false}
+          compactWhenEmpty={!isSelectedVariant}
+        />
+      ) : null}
+
+      {showSupportDisplacementField ? (
+        <FrameSupportDisplacementField
+          node={node}
+          fieldLabelClass={fieldLabelClass}
+          onChange={(supportDisplacements) => onUpdate({ supportDisplacements })}
           compactWhenEmpty={!isSelectedVariant}
         />
       ) : null}
