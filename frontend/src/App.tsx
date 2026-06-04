@@ -80,8 +80,12 @@ function App() {
     setModelPreviewStyle,
     setProject,
     setReportExportOptions,
+    undoWorkspaceChange,
     updateProjectInfo,
     updateWorkspace,
+    redoWorkspaceChange,
+    canUndoWorkspace,
+    canRedoWorkspace,
     workspace,
   } = useSolverProjectDocument();
   const reportExportOptions = project.settings.reportExportOptions;
@@ -214,6 +218,35 @@ function App() {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isFileMenuOpen]);
+
+  useEffect(() => {
+    const isEditableTarget = (target: globalThis.EventTarget | null) => {
+      if (!(target instanceof HTMLElement)) return false;
+      return target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
+    };
+    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (isEditableTarget(event.target) || !(event.ctrlKey || event.metaKey)) {
+        return;
+      }
+      const key = event.key.toLowerCase();
+      if (key === "z" && event.shiftKey) {
+        event.preventDefault();
+        redoWorkspaceChange();
+        return;
+      }
+      if (key === "z") {
+        event.preventDefault();
+        undoWorkspaceChange();
+        return;
+      }
+      if (key === "y") {
+        event.preventDefault();
+        redoWorkspaceChange();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [redoWorkspaceChange, undoWorkspaceChange]);
 
   const analysisMode = workspace.analysisMode;
   const activeObjectPageState = pageStateByObjectId[activeAnalysisObject.id] ?? {};
@@ -370,7 +403,11 @@ function App() {
         onOpenProjectFile={handleOpenProjectFile}
         onOpenPublicExamples={() => setIsPublicExamplesOpen(true)}
         onOpenSystemSettings={() => setIsSystemSettingsOpen(true)}
+        onRedoWorkspace={redoWorkspaceChange}
         onSaveProjectFile={(forceSaveAs) => void handleSaveProjectFile(forceSaveAs)}
+        onUndoWorkspace={undoWorkspaceChange}
+        canRedoWorkspace={canRedoWorkspace}
+        canUndoWorkspace={canUndoWorkspace}
         setIsDark={setIsDark}
         setIsFileMenuOpen={setIsFileMenuOpen}
       />

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import type { ModelPreviewStyle } from "../types/beam";
 import type { Material } from "../types/material";
 import type { ReportExportOptions } from "../lib/report-options";
@@ -22,6 +22,14 @@ import {
   type SolverProject,
 } from "../lib/solver-project";
 import type { ProjectFileHandle } from "../lib/project-file";
+import {
+  createEmptyWorkspaceHistory,
+  pushWorkspaceHistory,
+  redoWorkspaceHistory,
+  undoWorkspaceHistory,
+  workspaceStatesEqual,
+  type WorkspaceHistoryState,
+} from "../lib/workspace-history";
 
 const LEGACY_REPORT_EXPORT_OPTIONS_STORAGE_KEY = "archsight-solver.report-export-options";
 
@@ -86,14 +94,51 @@ function createInitialProjectDocumentState(): InitialProjectDocumentState {
 
 export function useSolverProjectDocument() {
   const [initialDocumentState] = useState(createInitialProjectDocumentState);
-  const [project, setProject] = useState<SolverProject>(initialDocumentState.project);
+  const [project, setProjectState] = useState<SolverProject>(initialDocumentState.project);
   const [projectFileHandle, setProjectFileHandle] = useState<ProjectFileHandle | null>(null);
   const [projectFileName, setProjectFileName] = useState<string | null>(initialDocumentState.projectFileName);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(initialDocumentState.lastSavedAt);
   const [isProjectDirty, setIsProjectDirty] = useState(initialDocumentState.isProjectDirty);
   const [fileStatusMessage, setFileStatusMessage] = useState<string | null>(initialDocumentState.fileStatusMessage);
+  const [workspaceHistory, setWorkspaceHistoryState] = useState<WorkspaceHistoryState>(createEmptyWorkspaceHistory);
+  const projectRef = useRef(project);
+  const activeObjectIdRef = useRef(project.activeObjectId);
+  const workspaceHistoryRef = useRef(workspaceHistory);
   const workspace = useMemo(() => createWorkspaceFromProject(project), [project]);
   const activeAnalysisObject = useMemo(() => getActiveAnalysisObject(project), [project]);
+
+  const setWorkspaceHistory = useCallback((nextHistory: WorkspaceHistoryState) => {
+    workspaceHistoryRef.current = nextHistory;
+    setWorkspaceHistoryState(nextHistory);
+  }, []);
+
+  const resetWorkspaceHistory = useCallback(() => {
+    setWorkspaceHistory(createEmptyWorkspaceHistory());
+  }, [setWorkspaceHistory]);
+
+  const setProject: Dispatch<SetStateAction<SolverProject>> = useCallback((next) => {
+    setProjectState((current) => {
+      const nextProject = typeof next === "function" ? next(current) : next;
+      projectRef.current = nextProject;
+      return nextProject;
+    });
+  }, []);
+
+  useEffect(() => {
+    projectRef.current = project;
+  }, [project]);
+
+  useEffect(() => {
+    workspaceHistoryRef.current = workspaceHistory;
+  }, [workspaceHistory]);
+
+  useEffect(() => {
+    if (activeObjectIdRef.current === project.activeObjectId) {
+      return;
+    }
+    activeObjectIdRef.current = project.activeObjectId;
+    resetWorkspaceHistory();
+  }, [project.activeObjectId, resetWorkspaceHistory]);
 
   useEffect(() => {
     const storage = browserLocalStorage();
@@ -115,13 +160,48 @@ export function useSolverProjectDocument() {
   }, []);
 
   const updateWorkspace: Dispatch<SetStateAction<WorkspaceState>> = useCallback((next) => {
+    const currentProject = projectRef.current;
+    const currentWorkspace = createWorkspaceFromProject(currentProject);
+    const nextWorkspace = typeof next === "function" ? next(currentWorkspace) : next;
+    if (workspaceStatesEqual(currentWorkspace, nextWorkspace)) {
+      return;
+    }
+    setWorkspaceHistory(pushWorkspaceHistory(workspaceHistoryRef.current, currentWorkspace, nextWorkspace));
     markProjectDirty();
-    setProject((current) => {
-      const currentWorkspace = createWorkspaceFromProject(current);
-      const nextWorkspace = typeof next === "function" ? next(currentWorkspace) : next;
-      return updateActiveAnalysisObjectWorkspace(current, nextWorkspace);
-    });
-  }, [markProjectDirty]);
+    const nextProject = updateActiveAnalysisObjectWorkspace(currentProject, nextWorkspace);
+    projectRef.current = nextProject;
+    setProjectState(nextProject);
+  }, [markProjectDirty, setWorkspaceHistory]);
+
+  const undoWorkspaceChange = useCallback(() => {
+    const currentProject = projectRef.current;
+    const currentWorkspace = createWorkspaceFromProject(currentProject);
+    const result = undoWorkspaceHistory(workspaceHistoryRef.current, currentWorkspace);
+    if (!result) {
+      return;
+    }
+    setWorkspaceHistory(result.history);
+    markProjectDirty();
+    setFileStatusMessage("已撤销上一步建模编辑。");
+    const nextProject = updateActiveAnalysisObjectWorkspace(currentProject, result.workspace);
+    projectRef.current = nextProject;
+    setProjectState(nextProject);
+  }, [markProjectDirty, setWorkspaceHistory]);
+
+  const redoWorkspaceChange = useCallback(() => {
+    const currentProject = projectRef.current;
+    const currentWorkspace = createWorkspaceFromProject(currentProject);
+    const result = redoWorkspaceHistory(workspaceHistoryRef.current, currentWorkspace);
+    if (!result) {
+      return;
+    }
+    setWorkspaceHistory(result.history);
+    markProjectDirty();
+    setFileStatusMessage("已重做下一步建模编辑。");
+    const nextProject = updateActiveAnalysisObjectWorkspace(currentProject, result.workspace);
+    projectRef.current = nextProject;
+    setProjectState(nextProject);
+  }, [markProjectDirty, setWorkspaceHistory]);
 
   const setReportExportOptions = useCallback((options: ReportExportOptions) => {
     markProjectDirty();
@@ -133,7 +213,7 @@ export function useSolverProjectDocument() {
       },
       updatedAt: new Date().toISOString(),
     }));
-  }, [markProjectDirty]);
+  }, [markProjectDirty, setProject]);
 
   const setModelPreviewStyle = useCallback((style: ModelPreviewStyle) => {
     markProjectDirty();
@@ -145,7 +225,7 @@ export function useSolverProjectDocument() {
       },
       updatedAt: new Date().toISOString(),
     }));
-  }, [markProjectDirty]);
+  }, [markProjectDirty, setProject]);
 
   const setCustomMaterials = useCallback((customMaterials: Material[]) => {
     markProjectDirty();
@@ -157,7 +237,7 @@ export function useSolverProjectDocument() {
       },
       updatedAt: new Date().toISOString(),
     }));
-  }, [markProjectDirty]);
+  }, [markProjectDirty, setProject]);
 
   const updateProjectInfo = useCallback((next: ProjectInfo) => {
     const normalizedProjectInfo = normalizeProjectInfo(next);
@@ -171,7 +251,7 @@ export function useSolverProjectDocument() {
       },
       updatedAt: new Date().toISOString(),
     }));
-  }, [markProjectDirty]);
+  }, [markProjectDirty, setProject]);
 
   const replaceProject = useCallback((
     nextProject: SolverProject,
@@ -186,7 +266,9 @@ export function useSolverProjectDocument() {
     setLastSavedAt(savedAt);
     setIsProjectDirty(false);
     setFileStatusMessage(message);
-  }, []);
+    activeObjectIdRef.current = nextProject.activeObjectId;
+    resetWorkspaceHistory();
+  }, [resetWorkspaceHistory, setProject]);
 
   const clearProjectFileLink = useCallback((message: string) => {
     setProjectFileHandle(null);
@@ -214,6 +296,10 @@ export function useSolverProjectDocument() {
     setReportExportOptions,
     updateProjectInfo,
     updateWorkspace,
+    undoWorkspaceChange,
+    redoWorkspaceChange,
+    canUndoWorkspace: workspaceHistory.past.length > 0,
+    canRedoWorkspace: workspaceHistory.future.length > 0,
     workspace,
   };
 }
