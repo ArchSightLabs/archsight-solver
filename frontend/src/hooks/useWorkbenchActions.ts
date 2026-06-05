@@ -1,5 +1,5 @@
 import type React from "react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import type { AnalysisMode, FrameFormPayload, TrussFormPayload } from "../types/structure";
 import type { BeamApiPayload, BeamCalculationResults, SensitivityResults } from "../types/beam";
 import type { FrameCalculationResults, TrussCalculationResults } from "../types/structure";
@@ -57,6 +57,7 @@ export function useWorkbenchActions(
   const [exportingFormat, setExportingFormat] = useState<ExportFormat | null>(null);
   const [operationNotice, setOperationNotice] = useState<WorkbenchOperationNotice | null>(null);
   const [latestPayload, setLatestPayload] = useState<CalculationPayload | null>(null);
+  const [latestSubmittedState, setLatestSubmittedState] = useState<unknown | null>(null);
   const { analysisMode, beam, frame, truss } = workspace;
 
   const buildCurrentPayload = useCallback((options: { notifyOnValidationError?: boolean } = {}): CalculationPayload | null => {
@@ -85,16 +86,8 @@ export function useWorkbenchActions(
     return buildBeamPayload(beam, projectName);
   }, [analysisMode, beam, frame, projectName, truss]);
 
-  const currentPayloadString = useMemo(() => {
-    const payload = buildCurrentPayload();
-    return payload ? JSON.stringify(payload) : null;
-  }, [buildCurrentPayload]);
-
-  const latestPayloadString = useMemo(() => {
-    return latestPayload ? JSON.stringify(latestPayload) : null;
-  }, [latestPayload]);
-
-  const isDirty = latestPayloadString !== null && latestPayloadString !== currentPayloadString;
+  const activeState = workspace[analysisMode];
+  const isDirty = latestSubmittedState !== null && latestSubmittedState !== activeState;
 
   const handleSolve = async (data: CalculationPayload): Promise<AnalysisResults> => {
     const analysisType: AnalysisMode = data.analysisType === "frame" ? "frame" : data.analysisType === "truss" ? "truss" : "beam";
@@ -117,6 +110,7 @@ export function useWorkbenchActions(
       const result = normalizeAnalysisResponse(await response.json());
       setAnalysisData(result);
       setLatestPayload(data);
+      setLatestSubmittedState(workspace[analysisType]);
       setSensitivityData(null); // Reset sensitivity on new solve
       setCompactWorkbenchView("results");
       setOperationNotice(operationCompletedNotice("solve", analysisType));
@@ -174,6 +168,7 @@ export function useWorkbenchActions(
       }
       setSensitivityData(data);
       setLatestPayload(currentPayload);
+      setLatestSubmittedState(workspace[workspace.analysisMode]);
       setOperationNotice(operationCompletedNotice("sensitivity", workspace.analysisMode));
     } catch (error) {
       setOperationNotice(operationFailedNotice("sensitivity", error instanceof Error ? error.message : String(error)));

@@ -5,7 +5,7 @@ import threading
 import time
 import uuid
 from concurrent.futures import Future, ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, Mapping
 
 from flask import Blueprint, jsonify, request, url_for
@@ -17,7 +17,7 @@ from backend.services.job_store import load_job as _load_job
 from backend.services.job_store import prune_completed_jobs as _prune_completed_job_records
 from backend.services.job_store import store_job as _store_job
 from backend.services.job_store import update_job as _update_job
-from backend.services.job_store import load_active_jobs_meta as _load_active_jobs_meta
+from backend.services.job_store import bulk_fail_stale_jobs as _bulk_fail_stale_jobs
 
 jobs_bp = Blueprint("jobs", __name__)
 
@@ -185,14 +185,17 @@ def _reconcile_local_job_handle(record: Mapping[str, Any]) -> Dict[str, Any]:
 
 def reconcile_all_orphans() -> int:
     """找出当前未完成但 worker 进程已丢失的作业并标记为失败，返回修复的作业数。"""
-    active_records = _load_active_jobs_meta()
-    reconciled_count = 0
-    for record in active_records:
-        original_status = record.get("status")
-        updated_record = _reconcile_local_job_handle(record)
-        if updated_record.get("status") != original_status:
-            reconciled_count += 1
-    return reconciled_count
+    if os.environ.get("ARCHSIGHT_SOLVER_DISABLE_ORPHAN_CHECK") == "1":
+        return 0
+
+    with _lock:
+        exclude_jobs = list(_futures.keys())
+
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(seconds=HEARTBEAT_TIMEOUT_SECONDS)
+    cutoff_str = cutoff.isoformat()
+
+    return _bulk_fail_stale_jobs(cutoff_str, exclude_jobs)
 
 
 @jobs_bp.route("/jobs", methods=["POST"])

@@ -84,6 +84,7 @@ def _connect() -> sqlite3.Connection:
         connection.execute("ALTER TABLE solver_jobs ADD COLUMN worker_process_id INTEGER")
     if "last_heartbeat_at" not in existing_columns:
         connection.execute("ALTER TABLE solver_jobs ADD COLUMN last_heartbeat_at TEXT")
+    connection.execute("CREATE INDEX IF NOT EXISTS idx_solver_jobs_status_heartbeat ON solver_jobs(status, last_heartbeat_at)")
     return connection
 
 
@@ -174,6 +175,33 @@ def load_active_jobs_meta() -> list[Dict[str, Any]]:
             "FROM solver_jobs WHERE status IN ('queued', 'running')"
         ).fetchall()
     return [_row_to_record_meta(row) for row in rows if row is not None]
+
+
+def bulk_fail_stale_jobs(cutoff_iso_string: str, exclude_job_ids: list[str]) -> int:
+    with _connect() as connection:
+        # Convert JSON objects to strings manually for standard _json_dump consistency
+        error_json = _json_dump({
+            "code": "COMMON_ASYNC_JOB_ORPHANED",
+            "message": "异步作业心跳超时或句柄丢失，请重新提交作业。",
+        })
+        completed_at = cutoff_iso_string
+        updated_at = cutoff_iso_string
+
+        params = [error_json, completed_at, updated_at, cutoff_iso_string]
+        exclude_placeholders = ""
+        if exclude_job_ids:
+            exclude_placeholders = " AND job_id NOT IN ({})".format(", ".join("?" for _ in exclude_job_ids))
+            params.extend(exclude_job_ids)
+
+        query = f"""
+            UPDATE solver_jobs 
+            SET status = 'failed', error_json = ?, completed_at = ?, updated_at = ?
+            WHERE status IN ('queued', 'running') 
+              AND last_heartbeat_at < ?
+              {exclude_placeholders}
+        """
+        cursor = connection.execute(query, params)
+        return cursor.rowcount
 
 
 def update_job(job_id: str, **updates: Any) -> Dict[str, Any] | None:
