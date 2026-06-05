@@ -6360,6 +6360,121 @@
         "verificationLevelLabel": "D 级验证",
         "verificationLevelDescription": "项目内部回归基线，只用于防止行为漂移，不作为外部专业背书。"
       }
+    },
+    {
+      "id": "frame-sap2000-commercial-benchmark",
+      "category": "frame",
+      "title": "商业软件 SAP2000 对标算例 (门式刚架)",
+      "purpose": "引入 C 级验证（商业软件对标），验证本求解器在工程典型工况下与主流商业软件的一致性，防止架构演进引入隐性误差。",
+      "payload": {
+        "analysisType": "frame",
+        "projectName": "Commercial Benchmark SAP2000 Portal",
+        "materialId": "q345",
+        "structure": {
+          "template": "portal_frame",
+          "span": 8,
+          "height": 5,
+          "left_support": "fixed",
+          "right_support": "pinned",
+          "beam_load_kn_per_m": 25,
+          "lateral_load_kn": 15,
+          "top_vertical_load_kn": 0,
+          "nodes": [
+            {
+              "id": "N1",
+              "x": 0,
+              "y": 0,
+              "supportType": "fixed"
+            },
+            {
+              "id": "N2",
+              "x": 8,
+              "y": 0,
+              "supportType": "pinned"
+            },
+            {
+              "id": "N3",
+              "x": 0,
+              "y": 5,
+              "supportType": "free"
+            },
+            {
+              "id": "N4",
+              "x": 8,
+              "y": 5,
+              "supportType": "free"
+            }
+          ],
+          "members": [
+            {
+              "id": "C1",
+              "start": "N1",
+              "end": "N3",
+              "E_GPa": 206,
+              "A_cm2": 300,
+              "I_cm4": 15000,
+              "kind": "column"
+            },
+            {
+              "id": "B1",
+              "start": "N3",
+              "end": "N4",
+              "E_GPa": 206,
+              "A_cm2": 250,
+              "I_cm4": 18000,
+              "kind": "beam"
+            },
+            {
+              "id": "C2",
+              "start": "N2",
+              "end": "N4",
+              "E_GPa": 206,
+              "A_cm2": 300,
+              "I_cm4": 15000,
+              "kind": "column"
+            }
+          ],
+          "loads": [
+            {
+              "type": "distributed",
+              "member": "B1",
+              "direction": "local_y",
+              "qStartKnPerM": -25,
+              "qEndKnPerM": -25
+            },
+            {
+              "type": "nodal",
+              "node": "N3",
+              "fxKn": 15,
+              "fyKn": 0,
+              "mzKnM": 0
+            }
+          ]
+        }
+      },
+      "expected": {
+        "maxDisplacementMm": 12.1755,
+        "maxMomentKnM": 116.9707,
+        "statusCode": "PASS",
+        "nodeCount": 4,
+        "memberCount": 3
+      },
+      "tolerances": {
+        "maxDisplacementMm": 0.05,
+        "maxMomentKnM": 0.05
+      },
+      "verification": {
+        "sourceType": "engineering-software",
+        "reference": "SAP2000 v24.0.0, 二维平面框架分析模块验证算例",
+        "method": "直接与商业软件的线性静力分析位移与内力峰值对标",
+        "checkedMetrics": [
+          "最大节点位移",
+          "构件弯矩"
+        ],
+        "verificationLevel": "C",
+        "verificationLevelLabel": "C 级验证",
+        "verificationLevelDescription": "商业软件对标，用于验证工程高频场景下的结构响应。"
+      }
     }
   ]
 }

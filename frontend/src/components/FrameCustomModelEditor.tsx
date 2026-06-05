@@ -641,7 +641,7 @@ export function FrameCustomModelEditor({
               className="h-8 rounded-xl"
             >
               <Copy className="mr-1.5 h-3.5 w-3.5" />
-              复制
+              复制 [实验性]
             </Button>
             <Button
               variant="outline"
@@ -652,7 +652,7 @@ export function FrameCustomModelEditor({
               className="h-8 rounded-xl"
             >
               <FlipVertical className="mr-1.5 h-3.5 w-3.5" />
-              X 镜像
+              X 镜像 [实验性]
             </Button>
             <Button
               variant="outline"
@@ -663,7 +663,7 @@ export function FrameCustomModelEditor({
               className="h-8 rounded-xl"
             >
               <FlipHorizontal className="mr-1.5 h-3.5 w-3.5" />
-              Y 镜像
+              Y 镜像 [实验性]
             </Button>
             <Button
               variant="outline"
@@ -674,7 +674,7 @@ export function FrameCustomModelEditor({
               className="h-8 rounded-xl"
             >
               <ArrowRight className="mr-1.5 h-3.5 w-3.5" />
-              X 阵列
+              X 阵列 [实验性]
             </Button>
             <Button
               variant="outline"
@@ -685,7 +685,7 @@ export function FrameCustomModelEditor({
               className="h-8 rounded-xl"
             >
               <ArrowUp className="mr-1.5 h-3.5 w-3.5" />
-              Y 阵列
+              Y 阵列 [实验性]
             </Button>
             <Button variant="outline" size="sm" onClick={addNode} className="h-8 rounded-xl">
               <Plus className="mr-1.5 h-3.5 w-3.5" />

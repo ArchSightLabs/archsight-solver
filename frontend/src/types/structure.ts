@@ -311,11 +311,26 @@ export interface TrussMemberLoad {
 
 export type TrussLoad = TrussNodalLoad | TrussMemberLoad;
 
+export interface TrussLoadCase {
+  id: string;
+  title: string;
+  loads: TrussLoad[];
+}
+
+export interface TrussLoadCombination {
+  id: string;
+  title: string;
+  factors: Record<string, number>;
+  tags?: string[];
+}
+
 export interface TrussStructure {
   template: "explicit";
   nodes: TrussNode[];
   members: TrussMember[];
   loads: TrussLoad[];
+  loadCases?: TrussLoadCase[];
+  loadCombinations?: TrussLoadCombination[];
 }
 
 export interface TrussFormPayload {
@@ -332,6 +347,8 @@ export interface TrussWorkspaceState {
   customNodes: TrussNode[];
   customMembers: TrussMember[];
   customLoads: TrussLoad[];
+  customLoadCases: TrussLoadCase[];
+  customLoadCombinations: TrussLoadCombination[];
   viewSettings?: ResultViewSettings;
 }
 
@@ -401,6 +418,7 @@ export interface TrussCalculationResults {
   preview?: TrussPreviewData;
   diagram?: unknown;
   summary: TrussSummary;
+  diagnostics?: FrameDiagnostics;
   payload: TrussFormPayload;
   structure: TrussStructure;
   nodeResults: TrussNodeResult[];

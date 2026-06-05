@@ -65,6 +65,19 @@ export type BeamLoadInput =
   | { type: 'point'; pointLoadKn: number; x: number; enabled?: boolean }
   | { type: 'linear'; qStartKnPerM: number; qEndKnPerM: number; start: number; end: number; enabled?: boolean };
 
+export interface BeamLoadCase {
+  id: string;
+  title: string;
+  loads: BeamLoadInput[];
+}
+
+export interface BeamLoadCombination {
+  id: string;
+  title: string;
+  factors: Record<string, number>;
+  tags?: string[];
+}
+
 export interface BeamWorkspaceState {
   projectName: string;
   materialId: string;
@@ -90,11 +103,15 @@ export interface BeamWorkspaceState {
   supports: BeamSupportConfig[];
   compareEnabled: boolean;
   scenarios: ComparisonScenario[];
+  customLoadCases: BeamLoadCase[];
+  customLoadCombinations: BeamLoadCombination[];
   viewSettings?: import("./structure.ts").ResultViewSettings;
 }
 
 export interface BeamApiPayload extends BeamForm {
   loads?: BeamLoadInput[];
+  loadCases?: BeamLoadCase[];
+  loadCombinations?: BeamLoadCombination[];
   pointLoad?: number;
   pointLoadKn?: number;
   pointLoadPositionRatio?: number;

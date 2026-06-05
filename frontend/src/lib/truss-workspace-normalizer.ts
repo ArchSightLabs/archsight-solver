@@ -1,4 +1,11 @@
-import type { TrussLoad, TrussMember, TrussSupportType, TrussWorkspaceState } from "../types/structure.ts";
+import type {
+  TrussLoad,
+  TrussLoadCase,
+  TrussLoadCombination,
+  TrussMember,
+  TrussSupportType,
+  TrussWorkspaceState,
+} from "../types/structure.ts";
 import {
   createDefaultTrussCollections,
   createDefaultTrussWorkspaceState,
@@ -109,6 +116,65 @@ function normalizeTrussLoads(
   });
 }
 
+function normalizeTrussLoadCases(
+  rawLoadCases: unknown,
+  nodes: TrussWorkspaceState["customNodes"],
+): TrussLoadCase[] {
+  if (!Array.isArray(rawLoadCases)) {
+    return [];
+  }
+  const seen = new Set<string>();
+  return rawLoadCases.slice(0, 12).map((loadCase, index) => {
+    const candidate = loadCase && typeof loadCase === "object" ? loadCase as Partial<TrussLoadCase> : {};
+    const id = normalizeTextId(String(candidate.id ?? "").trim(), `LC${index + 1}`, seen, "LC", index);
+    return {
+      id,
+      title: String(candidate.title ?? id).trim() || id,
+      loads: normalizeTrussLoads(candidate.loads, nodes, []),
+    };
+  });
+}
+
+function normalizeCombinationTags(rawTags: unknown): string[] {
+  if (!Array.isArray(rawTags)) {
+    return [];
+  }
+  const tags: string[] = [];
+  const seen = new Set<string>();
+  for (const rawTag of rawTags) {
+    const tag = String(rawTag).trim();
+    if (!tag || seen.has(tag)) continue;
+    seen.add(tag);
+    tags.push(tag);
+  }
+  return tags;
+}
+
+function normalizeTrussLoadCombinations(rawCombinations: unknown, loadCases: TrussLoadCase[]): TrussLoadCombination[] {
+  if (!Array.isArray(rawCombinations) || loadCases.length === 0) {
+    return [];
+  }
+  const caseIds = new Set(loadCases.map((loadCase) => loadCase.id));
+  const seen = new Set<string>();
+  return rawCombinations.slice(0, 12).map((combination, index) => {
+    const candidate = combination && typeof combination === "object" ? combination as Partial<TrussLoadCombination> : {};
+    const id = normalizeTextId(String(candidate.id ?? "").trim(), `COMB${index + 1}`, seen, "COMB", index);
+    const rawFactors = candidate.factors && typeof candidate.factors === "object" ? candidate.factors : {};
+    const factors = Object.fromEntries(
+      Object.entries(rawFactors)
+        .map(([caseId, factor]) => [caseId.trim(), factor] as const)
+        .filter(([caseId]) => caseIds.has(caseId))
+        .map(([caseId, factor]) => [caseId, Number.isFinite(factor) ? Number(factor) : 0])
+    );
+    return {
+      id,
+      title: String(candidate.title ?? id).trim() || id,
+      factors,
+      tags: normalizeCombinationTags(candidate.tags),
+    };
+  });
+}
+
 export function normalizeTrussWorkspaceState(value: Partial<TrussWorkspaceState> | null | undefined): TrussWorkspaceState {
   const base = createDefaultTrussWorkspaceState();
   const collections = createDefaultTrussCollections();
@@ -118,6 +184,8 @@ export function normalizeTrussWorkspaceState(value: Partial<TrussWorkspaceState>
   const customMembers = normalizeTrussMembers(customMembersRaw, customNodes, collections.members);
   const customLoadsRaw = value?.customLoads ?? collections.loads;
   const customLoads = normalizeTrussLoads(customLoadsRaw, customNodes, collections.loads);
+  const customLoadCases = normalizeTrussLoadCases(value?.customLoadCases, customNodes);
+  const customLoadCombinations = normalizeTrussLoadCombinations(value?.customLoadCombinations, customLoadCases);
 
   return {
     ...base,
@@ -127,6 +195,8 @@ export function normalizeTrussWorkspaceState(value: Partial<TrussWorkspaceState>
     customNodes,
     customMembers,
     customLoads,
+    customLoadCases,
+    customLoadCombinations,
     viewSettings: value?.viewSettings ? { ...value.viewSettings } : base.viewSettings,
   };
 }

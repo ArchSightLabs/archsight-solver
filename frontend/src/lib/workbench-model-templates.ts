@@ -16,7 +16,7 @@ export interface BeamModelTemplate {
   description: string;
   tags: string[];
   validationRefs: TemplateValidationRef[];
-  state: Omit<BeamWorkspaceState, "compareEnabled" | "scenarios" | "materials">;
+  state: Omit<BeamWorkspaceState, "compareEnabled" | "scenarios" | "materials" | "customLoadCases" | "customLoadCombinations">;
 }
 
 export interface FrameModelTemplate {
@@ -855,6 +855,8 @@ export function cloneBeamModelTemplate(template: BeamModelTemplate): BeamWorkspa
     })),
     compareEnabled: false,
     scenarios: [],
+    customLoadCases: [],
+    customLoadCombinations: [],
   };
 }
 
@@ -893,5 +895,7 @@ export function applyTrussModelTemplate(workspace: TrussWorkspaceState, template
     customNodes: collections.nodes,
     customMembers: collections.members,
     customLoads: collections.loads,
+    customLoadCases: [],
+    customLoadCombinations: [],
   };
 }

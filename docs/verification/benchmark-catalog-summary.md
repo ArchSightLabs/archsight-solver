@@ -3,7 +3,7 @@
 > 本文件由 `python -m backend.benchmarks.catalog_summary --output docs/verification/benchmark-catalog-summary.md` 生成。`backend/benchmarks/benchmark_cases.json` 仍是机器事实源。
 
 - 算例目录版本：2026-06-04
-- 算例总数：60
+- 算例总数：61
 - 用途：帮助人工快速阅读算例目的、验证来源、关键指标、标准值和容许误差。
 
 ## 二维平面桁架
@@ -30,7 +30,7 @@
 
 ## 二维平面框架
 
-- 算例数量：16
+- 算例数量：17
 
 | Case ID | 名称 | 目的 | 验证等级 | 验证来源 | 校核指标 | 标准值 | 容许误差 |
 |---|---|---|---|---|---|---|---|
@@ -50,6 +50,7 @@
 | `frame-two-bay-asymmetric-load` | 两跨单层框架非对称荷载 | 扩展两跨框架非对称竖向和水平荷载回归。 | D 级验证 | 内部回归算例 | 最大节点位移、构件弯矩、节点数量、构件数量 | maxDisplacementMm=0.8678；maxMomentKnM=44.0042；statusCode=PASS；nodeCount=6；memberCount=5 | maxDisplacementMm=0.01；maxMomentKnM=0.01 |
 | `frame-portal-member-point-quarter` | 门式刚架梁四分点集中荷载 | 扩展框架构件内集中荷载回归。 | D 级验证 | 内部回归算例 | 最大节点位移、构件弯矩、节点数量、构件数量 | maxDisplacementMm=2.3208；maxMomentKnM=24.7257；statusCode=PASS；nodeCount=4；memberCount=3 | maxDisplacementMm=0.01；maxMomentKnM=0.01 |
 | `frame-elastic-column-base` | 弹性柱脚门式刚架回归 | 扩展框架柱脚转动弹簧回归。 | D 级验证 | 内部回归算例 | 最大节点位移、构件弯矩、节点数量、构件数量 | maxDisplacementMm=4.2507；maxMomentKnM=46.6847；statusCode=PASS；nodeCount=4；memberCount=3 | maxDisplacementMm=0.01；maxMomentKnM=0.01 |
+| `frame-sap2000-commercial-benchmark` | 商业软件 SAP2000 对标算例 (门式刚架) | 引入 C 级验证（商业软件对标），验证本求解器在工程典型工况下与主流商业软件的一致性，防止架构演进引入隐性误差。 | C 级验证 | 工程软件对标 | 最大节点位移、构件弯矩 | maxDisplacementMm=12.1755；maxMomentKnM=116.9707；statusCode=PASS；nodeCount=4；memberCount=3 | maxDisplacementMm=0.05；maxMomentKnM=0.05 |
 
 ## 桁架专项验证
 

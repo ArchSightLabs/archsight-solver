@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { analysisRequestFromResult, beamResultForView, frameResultForView, normalizeAnalysisResponse, trussResultForView } from "./api-envelope.ts";
+import { analysisRequestFromResult, apiErrorMessage, beamResultForView, frameResultForView, normalizeAnalysisResponse, trussResultForView } from "./api-envelope.ts";
 
 
 test("normalizeAnalysisResponse maps unified beam envelope back to beam result shape", () => {
@@ -251,4 +251,21 @@ test("normalizeAnalysisResponse maps unified frame envelope back to frame result
   assert.equal(view?.summary?.statusCode, "PASS");
   assert.deepEqual(view?.nodeIds, ["N1", "N4"]);
   assert.equal(view?.loadCombinationResults?.[0]?.factors.DL, 1.2);
+});
+
+test("apiErrorMessage prefers diagnostics issue messages", () => {
+  assert.equal(
+    apiErrorMessage({
+      diagnostics: {
+        issues: [
+          { message: "节点约束不足" },
+          { message: "荷载组合引用了不存在的工况" },
+        ],
+      },
+      error: "后端通用错误",
+    }, "求解失败"),
+    "节点约束不足; 荷载组合引用了不存在的工况",
+  );
+
+  assert.equal(apiErrorMessage({ error: { message: "结构错误" } }, "求解失败"), "结构错误");
 });

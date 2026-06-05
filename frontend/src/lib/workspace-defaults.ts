@@ -1,4 +1,12 @@
-import type { BeamSpanConfig, BeamSupportConfig, BeamWorkspaceState, ComparisonScenario } from "../types/beam.ts";
+import type {
+  BeamLoadCase,
+  BeamLoadCombination,
+  BeamLoadInput,
+  BeamSpanConfig,
+  BeamSupportConfig,
+  BeamWorkspaceState,
+  ComparisonScenario,
+} from "../types/beam.ts";
 import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
 import type {
   AnalysisMode,
@@ -11,6 +19,8 @@ import type {
   StructureMember,
   StructureNode,
   SupportType,
+  TrussLoadCase,
+  TrussLoadCombination,
   TrussWorkspaceState,
 } from "../types/structure.ts";
 
@@ -116,6 +126,25 @@ export function cloneLoads(loads: FrameLoad[]): FrameLoad[] {
   return loads.map((load) => ({ ...load })) as FrameLoad[];
 }
 
+export function cloneBeamLoads(loads: BeamLoadInput[]): BeamLoadInput[] {
+  return loads.map((load) => ({ ...load })) as BeamLoadInput[];
+}
+
+export function cloneBeamLoadCases(loadCases: BeamLoadCase[]): BeamLoadCase[] {
+  return loadCases.map((loadCase) => ({
+    ...loadCase,
+    loads: cloneBeamLoads(loadCase.loads),
+  }));
+}
+
+export function cloneBeamLoadCombinations(combinations: BeamLoadCombination[]): BeamLoadCombination[] {
+  return combinations.map((combination) => ({
+    ...combination,
+    factors: { ...combination.factors },
+    tags: [...(combination.tags ?? [])],
+  }));
+}
+
 export function cloneFrameLoadCases(loadCases: FrameLoadCase[]): FrameLoadCase[] {
   return loadCases.map((loadCase) => ({
     ...loadCase,
@@ -141,6 +170,21 @@ export function cloneTrussMembers(members: TrussWorkspaceState["customMembers"])
 
 export function cloneTrussLoads(loads: TrussWorkspaceState["customLoads"]): TrussWorkspaceState["customLoads"] {
   return loads.map((load) => ({ ...load }));
+}
+
+export function cloneTrussLoadCases(loadCases: TrussLoadCase[]): TrussLoadCase[] {
+  return loadCases.map((loadCase) => ({
+    ...loadCase,
+    loads: cloneTrussLoads(loadCase.loads),
+  }));
+}
+
+export function cloneTrussLoadCombinations(combinations: TrussLoadCombination[]): TrussLoadCombination[] {
+  return combinations.map((combination) => ({
+    ...combination,
+    factors: { ...combination.factors },
+    tags: [...(combination.tags ?? [])],
+  }));
 }
 
 export function createDefaultFrameCollections(): FrameCollections {
@@ -253,6 +297,8 @@ export function createDefaultBeamWorkspaceState(): BeamWorkspaceState {
     supports: defaultBeamSupports("continuous", spans),
     compareEnabled: false,
     scenarios: [...DEFAULT_SCENARIOS],
+    customLoadCases: [],
+    customLoadCombinations: [],
     viewSettings: {
       showLoads: true,
       showDisplacement: true,
@@ -303,6 +349,8 @@ export function createDefaultTrussWorkspaceState(): TrussWorkspaceState {
     customNodes: cloneTrussNodes(collections.nodes),
     customMembers: cloneTrussMembers(collections.members),
     customLoads: cloneTrussLoads(collections.loads),
+    customLoadCases: [],
+    customLoadCombinations: [],
     viewSettings: {
       showLoads: true,
       showDisplacement: true,
@@ -330,6 +378,8 @@ export function cloneBeamWorkspaceState(value: BeamWorkspaceState): BeamWorkspac
     linearLoads: (value.linearLoads ?? []).map((load) => ({ ...load })),
     pointLoads: value.pointLoads.map((load) => ({ ...load })),
     scenarios: value.scenarios.map((scenario) => ({ ...scenario })),
+    customLoadCases: cloneBeamLoadCases(value.customLoadCases ?? []),
+    customLoadCombinations: cloneBeamLoadCombinations(value.customLoadCombinations ?? []),
     viewSettings: value.viewSettings ? { ...value.viewSettings } : undefined,
   };
 }
@@ -352,6 +402,8 @@ export function cloneTrussWorkspaceState(value: TrussWorkspaceState): TrussWorks
     customNodes: cloneTrussNodes(value.customNodes),
     customMembers: cloneTrussMembers(value.customMembers),
     customLoads: cloneTrussLoads(value.customLoads),
+    customLoadCases: cloneTrussLoadCases(value.customLoadCases ?? []),
+    customLoadCombinations: cloneTrussLoadCombinations(value.customLoadCombinations ?? []),
     viewSettings: value.viewSettings ? { ...value.viewSettings } : undefined,
   };
 }

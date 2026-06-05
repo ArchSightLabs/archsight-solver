@@ -1,11 +1,11 @@
 # ArchSight Solver 公开验证集报告
 
 - 算例目录版本：2026-06-04
-- 算例数量：60
-- 通过数量：60
+- 算例数量：61
+- 通过数量：61
 - 未通过数量：0
-- 验证等级：A, B, D
-- 来源类型：independent-stiffness-baseline, internal-regression, textbook-analytical
+- 验证等级：A, B, C, D
+- 来源类型：engineering-software, independent-stiffness-baseline, internal-regression, textbook-analytical
 
 ## 结论
 
@@ -17,7 +17,7 @@
 
 - 梁系公开验证工程：22 个梁系分析对象。
 - 二维平面桁架公开验证工程：16 个桁架分析对象。
-- 二维平面框架公开验证工程：22 个框架与框架梁退化分析对象。
+- 二维平面框架公开验证工程：23 个框架与框架梁退化分析对象。
 
 每个分析对象均保留 `caseId`、来源类型、校核指标、标准值、容许误差和可用出处链接。打开工程后可直接查看模型、运行计算、查看图形结果并导出计算书，无需重新输入参数建模。
 
@@ -96,6 +96,7 @@
 | `truss-cantilever-tip-single` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=6（标准 6）；杆件数量=9（标准 9） |
 | `truss-cantilever-tip-horizontal` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=6（标准 6）；杆件数量=9（标准 9） |
 | `truss-cantilever-member-weight` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=6（标准 6）；杆件数量=9（标准 9） |
+| `frame-sap2000-commercial-benchmark` | frame | C 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；构件数量=3（标准 3） |
 
 ## 使用方式
 

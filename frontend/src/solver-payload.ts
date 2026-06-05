@@ -3,7 +3,15 @@ import { MAX_FRAME_MEMBERS, MAX_FRAME_NODES, MAX_TRUSS_MEMBERS, MAX_TRUSS_NODES 
 import { materialIdForYoungModulus } from "./lib/material-presets.ts";
 import { modelObjectCountPhrase, modelObjectMemberTerm } from "./lib/model-object-vocabulary.ts";
 import { normalizeFrameSupportDisplacements } from "./lib/frame-support-displacements.ts";
-import type { BeamApiPayload, BeamLinearLoadConfig, BeamSpanConfig, BeamWorkspaceState } from "./types/beam.ts";
+import type {
+  BeamApiPayload,
+  BeamLinearLoadConfig,
+  BeamLoadCase,
+  BeamLoadCombination,
+  BeamLoadInput,
+  BeamSpanConfig,
+  BeamWorkspaceState,
+} from "./types/beam.ts";
 import type {
   FrameFormPayload,
   FrameLoad,
@@ -13,6 +21,8 @@ import type {
   StructureNode,
   TrussFormPayload,
   TrussLoad,
+  TrussLoadCase,
+  TrussLoadCombination,
   TrussNode,
   TrussSupportType,
   TrussWorkspaceState,
@@ -92,10 +102,91 @@ function buildBeamLoads(value: BeamWorkspaceState) {
   ];
 }
 
+function normalizeBeamLoadPosition(value: unknown, fallback: number, totalLength: number): number {
+  const position = Number(value);
+  if (!Number.isFinite(position)) {
+    return Math.min(Math.max(fallback, 0), totalLength);
+  }
+  return Math.min(Math.max(position, 0), totalLength);
+}
+
+function normalizeBeamCaseLoad(load: BeamLoadInput, totalLength: number): BeamLoadInput {
+  if (load.type === "point") {
+    return {
+      type: "point",
+      pointLoadKn: Number.isFinite(load.pointLoadKn) ? Number(load.pointLoadKn) : 0,
+      x: normalizeBeamLoadPosition(load.x, 0.5 * totalLength, totalLength),
+    };
+  }
+  if (load.type === "linear") {
+    let start = normalizeBeamLoadPosition(load.start, 0, totalLength);
+    let end = normalizeBeamLoadPosition(load.end, totalLength, totalLength);
+    let qStartKnPerM = Number.isFinite(load.qStartKnPerM) ? Number(load.qStartKnPerM) : 0;
+    let qEndKnPerM = Number.isFinite(load.qEndKnPerM) ? Number(load.qEndKnPerM) : qStartKnPerM;
+    if (end < start) {
+      [start, end] = [end, start];
+      [qStartKnPerM, qEndKnPerM] = [qEndKnPerM, qStartKnPerM];
+    }
+    return { type: "linear", qStartKnPerM, qEndKnPerM, start, end };
+  }
+  const normalized: BeamLoadInput = {
+    type: "uniform",
+    qKnPerM: Number.isFinite(load.qKnPerM) ? Number(load.qKnPerM) : 0,
+  };
+  if (Number.isFinite(load.start) || Number.isFinite(load.end)) {
+    let start = normalizeBeamLoadPosition(load.start, 0, totalLength);
+    let end = normalizeBeamLoadPosition(load.end, totalLength, totalLength);
+    if (end < start) {
+      [start, end] = [end, start];
+    }
+    normalized.start = start;
+    normalized.end = end;
+  }
+  return normalized;
+}
+
+function normalizeBeamLoadCases(loadCases: BeamLoadCase[], totalLength: number): BeamLoadCase[] {
+  return loadCases.map((loadCase, index) => {
+    const id = String(loadCase.id ?? `LC${index + 1}`).trim() || `LC${index + 1}`;
+    return {
+      id,
+      title: String(loadCase.title ?? id).trim() || id,
+      loads: loadCase.loads.map((load) => normalizeBeamCaseLoad(load, totalLength)),
+    };
+  });
+}
+
+function normalizeBeamLoadCombinations(combinations: BeamLoadCombination[], loadCases: BeamLoadCase[]): BeamLoadCombination[] {
+  const caseIds = new Set(loadCases.map((loadCase) => loadCase.id));
+  return combinations.map((combination, index) => {
+    const id = String(combination.id ?? `COMB${index + 1}`).trim() || `COMB${index + 1}`;
+    const factors = Object.fromEntries(
+      Object.entries(combination.factors ?? {})
+        .map(([caseId, factor]) => [caseId.trim(), factor] as const)
+        .filter(([caseId]) => caseIds.has(caseId))
+        .map(([caseId, factor]) => [caseId, Number.isFinite(factor) ? Number(factor) : 0])
+    );
+    return {
+      id,
+      title: String(combination.title ?? id).trim() || id,
+      factors,
+      tags: normalizeCombinationTags(combination.tags),
+    };
+  });
+}
+
 export function buildBeamPayload(value: BeamWorkspaceState, projectName = value.projectName): BeamApiPayload {
   const loads = buildBeamLoads(value);
   const loadType = beamLoadType(value);
   const primaryPointLoad = value.pointLoads[0];
+  const totalLength = Math.max(value.spans.reduce((sum, span) => sum + span.length, 0), 1e-9);
+  const loadCases = normalizeBeamLoadCases(value.customLoadCases ?? [], totalLength);
+  const optionalLoadCaseFields = loadCases.length
+    ? {
+        loadCases,
+        loadCombinations: normalizeBeamLoadCombinations(value.customLoadCombinations ?? [], loadCases),
+      }
+    : {};
   return {
     analysisType: "beam",
     spans: value.spans.map((span) => span.length),
@@ -133,6 +224,7 @@ export function buildBeamPayload(value: BeamWorkspaceState, projectName = value.
     })),
     freq: value.freq,
     duration: value.duration,
+    ...optionalLoadCaseFields,
   };
 }
 
@@ -261,7 +353,7 @@ function normalizeFrameLoadCombinations(combinations: FrameLoadCombination[], lo
   });
 }
 
-function normalizeCombinationTags(tags: FrameLoadCombination["tags"]): string[] {
+function normalizeCombinationTags(tags: readonly string[] | undefined): string[] {
   const normalized: string[] = [];
   const seen = new Set<string>();
   for (const rawTag of tags ?? []) {
@@ -316,6 +408,9 @@ function normalizeCustomTrussCollections(value: TrussWorkspaceState) {
     A_cm2: Number.isFinite(member.A_cm2) ? Number(member.A_cm2) : 24,
     kind: String(member.kind ?? "generic").trim() || "generic",
   }));
+  const fallbackMemberId = members[0]?.id ?? "M1";
+  const loads = value.customLoads.map((load) => normalizeTrussLoad(load, fallbackMemberId)) as TrussLoad[];
+  const loadCases = normalizeTrussLoadCases(value.customLoadCases ?? [], fallbackMemberId);
   return {
     nodes: value.customNodes.map((node, index) => ({
       id: String(node.id ?? `N${index + 1}`).trim() || `N${index + 1}`,
@@ -324,27 +419,63 @@ function normalizeCustomTrussCollections(value: TrussWorkspaceState) {
       supportType: normalizeTrussSupportType(node.supportType),
     })),
     members,
-    loads: value.customLoads.map((load) => {
-      if (load.type === "distributed" || load.type === "member_load" || load.type === "member") {
-        return {
-          type: load.type,
-          member: String(load.member ?? members[0]?.id ?? "M1").trim() || members[0]?.id || "M1",
-          direction: load.direction === "global_x" ? "global_x" : "global_y",
-          wyKnPerM: Number.isFinite(load.wyKnPerM) ? Number(load.wyKnPerM) : undefined,
-          qStartKnPerM: Number.isFinite(load.qStartKnPerM) ? Number(load.qStartKnPerM) : undefined,
-          qEndKnPerM: Number.isFinite(load.qEndKnPerM) ? Number(load.qEndKnPerM) : undefined,
-          selfWeightKnPerM: Number.isFinite(load.selfWeightKnPerM) ? Number(load.selfWeightKnPerM) : undefined,
-        };
-      }
-      const nodalLoad = load.type === "nodal" ? load : null;
-      return {
-        type: "nodal" as const,
-        node: String(nodalLoad?.node ?? "N1").trim() || "N1",
-        fxKn: Number.isFinite(nodalLoad?.fxKn) ? Number(nodalLoad?.fxKn) : 0,
-        fyKn: Number.isFinite(nodalLoad?.fyKn) ? Number(nodalLoad?.fyKn) : 0,
-      };
-    }) as TrussLoad[],
+    loads,
+    loadCases,
+    loadCombinations: normalizeTrussLoadCombinations(value.customLoadCombinations ?? [], loadCases),
   };
+}
+
+function normalizeTrussLoad(load: TrussLoad, fallbackMemberId: string): TrussLoad {
+  if (load.type === "distributed" || load.type === "member_load" || load.type === "member") {
+    return {
+      type: load.type,
+      member: String(load.member ?? fallbackMemberId).trim() || fallbackMemberId,
+      direction: load.direction === "global_x" ? "global_x" : "global_y",
+      wyKnPerM: Number.isFinite(load.wyKnPerM) ? Number(load.wyKnPerM) : undefined,
+      qStartKnPerM: Number.isFinite(load.qStartKnPerM) ? Number(load.qStartKnPerM) : undefined,
+      qEndKnPerM: Number.isFinite(load.qEndKnPerM) ? Number(load.qEndKnPerM) : undefined,
+      selfWeightKnPerM: Number.isFinite(load.selfWeightKnPerM) ? Number(load.selfWeightKnPerM) : undefined,
+    };
+  }
+  if (load.type === "nodal") {
+    return {
+      type: "nodal",
+      node: String(load.node ?? "N1").trim() || "N1",
+      fxKn: Number.isFinite(load.fxKn) ? Number(load.fxKn) : 0,
+      fyKn: Number.isFinite(load.fyKn) ? Number(load.fyKn) : 0,
+    };
+  }
+  return { type: "nodal", node: "N1", fxKn: 0, fyKn: 0 };
+}
+
+function normalizeTrussLoadCases(loadCases: TrussLoadCase[], fallbackMemberId: string): TrussLoadCase[] {
+  return loadCases.map((loadCase, index) => {
+    const id = String(loadCase.id ?? `LC${index + 1}`).trim() || `LC${index + 1}`;
+    return {
+      id,
+      title: String(loadCase.title ?? id).trim() || id,
+      loads: loadCase.loads.map((load) => normalizeTrussLoad(load, fallbackMemberId)),
+    };
+  });
+}
+
+function normalizeTrussLoadCombinations(combinations: TrussLoadCombination[], loadCases: TrussLoadCase[]): TrussLoadCombination[] {
+  const caseIds = new Set(loadCases.map((loadCase) => loadCase.id));
+  return combinations.map((combination, index) => {
+    const id = String(combination.id ?? `COMB${index + 1}`).trim() || `COMB${index + 1}`;
+    const factors = Object.fromEntries(
+      Object.entries(combination.factors ?? {})
+        .map(([caseId, factor]) => [caseId.trim(), factor] as const)
+        .filter(([caseId]) => caseIds.has(caseId))
+        .map(([caseId, factor]) => [caseId, Number.isFinite(factor) ? Number(factor) : 0])
+    );
+    return {
+      id,
+      title: String(combination.title ?? id).trim() || id,
+      factors,
+      tags: normalizeCombinationTags(combination.tags),
+    };
+  });
 }
 
 function normalizeTrussSupportType(supportType: TrussNode["supportType"] | "fixed" | undefined): TrussSupportType {
@@ -535,7 +666,7 @@ export function buildFramePayload(value: FrameWorkspaceState, projectName = valu
 }
 
 export function validateCustomTrussWorkspace(value: TrussWorkspaceState): string | null {
-  const { nodes, members, loads } = normalizeCustomTrussCollections(value);
+  const { nodes, members, loads, loadCases } = normalizeCustomTrussCollections(value);
   const memberTerm = modelObjectMemberTerm("truss");
 
   if (nodes.length < 2) {
@@ -569,10 +700,27 @@ export function validateCustomTrussWorkspace(value: TrussWorkspaceState): string
   const availableNodeIds = new Set(nodeIds);
   const availableMemberIds = new Set(members.map((member) => member.id));
   if (
-    loads.some((load) => load.type === "nodal" && !availableNodeIds.has(load.node)) ||
-    loads.some((load) => load.type !== "nodal" && !availableMemberIds.has(load.member))
+    loads.some((load) => trussLoadReferenceMissing(load, availableNodeIds, availableMemberIds)) ||
+    loadCases.some((loadCase) =>
+      loadCase.loads.some((load) => trussLoadReferenceMissing(load, availableNodeIds, availableMemberIds))
+    )
   ) {
     return `荷载引用了不存在的节点或${memberTerm}。`;
+  }
+
+  const loadCaseIds = loadCases.map((loadCase) => loadCase.id.trim());
+  if (new Set(loadCaseIds).size !== loadCaseIds.length) {
+    return "荷载工况 ID 不能重复。";
+  }
+  const loadCaseSet = new Set(loadCaseIds);
+  if ((value.customLoadCombinations ?? []).some((combination) => Object.keys(combination.factors).some((caseId) => !loadCaseSet.has(caseId.trim())))) {
+    return "荷载组合引用了不存在的工况。";
+  }
+  if ((value.customLoadCombinations ?? []).some((combination) => Object.keys(combination.factors).length === 0)) {
+    return "荷载组合 factors 不能为空。";
+  }
+  if ((value.customLoadCombinations ?? []).some((combination) => Object.values(combination.factors).every((factor) => Math.abs(Number(factor) || 0) < 1e-12))) {
+    return "荷载组合 factors 不能全部为 0。";
   }
 
   const supportWarning = trussSupportStabilityWarning(nodes);
@@ -583,6 +731,13 @@ export function validateCustomTrussWorkspace(value: TrussWorkspaceState): string
   return null;
 }
 
+function trussLoadReferenceMissing(load: TrussLoad, nodeIds: Set<string>, memberIds: Set<string>): boolean {
+  if (load.type === "nodal") {
+    return !nodeIds.has(load.node);
+  }
+  return !memberIds.has(load.member);
+}
+
 export function buildTrussPayload(value: TrussWorkspaceState, projectName = value.projectName): TrussFormPayload | null {
   const validationError = validateCustomTrussWorkspace(value);
   if (validationError) {
@@ -590,6 +745,12 @@ export function buildTrussPayload(value: TrussWorkspaceState, projectName = valu
   }
 
   const custom = normalizeCustomTrussCollections(value);
+  const optionalLoadCaseFields = custom.loadCases.length
+    ? {
+        loadCases: custom.loadCases,
+        loadCombinations: custom.loadCombinations,
+      }
+    : {};
   return {
     analysisType: "truss",
     projectName,
@@ -599,6 +760,7 @@ export function buildTrussPayload(value: TrussWorkspaceState, projectName = valu
       nodes: custom.nodes,
       members: custom.members,
       loads: custom.loads,
+      ...optionalLoadCaseFields,
     },
   };
 }

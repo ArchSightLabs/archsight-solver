@@ -116,11 +116,31 @@
       </button>
     </div>
     <header>
-      <span class="tag">当前版本 v1.3.0</span>
+      <span class="tag">当前版本 v1.4.0</span>
       <h1>版本发布记录</h1>
     </header>
 
     <section class="release-list" aria-label="版本发布记录">
+      <article class="release">
+        <div class="release-head">
+          <h2>v1.4.0</h2>
+          <span class="date">发布时间：2026-06-05</span>
+        </div>
+          <p class="section-label">相对 v1.3.0 的发布定位</p>
+          <ul>
+            <li>v1.4.0 聚焦“专业建模效率 + 荷载场景增强”，不新增第四类分析对象，继续收紧梁系、二维平面框架和二维平面桁架三类核心模块的建模、求解、导出和验证链路。</li>
+            <li>工作台补齐撤销 / 重做、网格吸附、表格批量编辑、复制 / 镜像 / 阵列等规则构造能力；批量构造按钮以“[实验性]”标识保留能力边界。</li>
+            <li>多工况 / 荷载组合状态扩展到梁系、二维平面框架和二维平面桁架的前端状态、工程文件恢复和求解 payload，降低模式切换或工程文件往返时的工况数据丢失风险。</li>
+            <li>诊断错误解析优先展示后端 <code>diagnostics.issues</code> 明细，避免求解器返回结构化诊断时被前端 fallback 文案覆盖。</li>
+            <li>公开 benchmark 扩展到 61 个通过算例，新增门式刚架 SAP2000 C 级商业软件对标算例，并同步生成验证报告与目录摘要。</li>
+          </ul>
+          <p class="section-label">质量门禁</p>
+          <ul>
+            <li>前端类型检查、lint 和单元测试覆盖工况透传、诊断错误展示、模板应用和 payload 构造。</li>
+            <li>后端 benchmark runner 覆盖 61 个公开验证算例，验证文档由 benchmark 数据事实源重新生成。</li>
+          </ul>
+      </article>
+
       <article class="release">
         <div class="release-head">
           <h2>v1.3.0</h2>

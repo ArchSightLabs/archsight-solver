@@ -1,4 +1,15 @@
-import type { BeamLinearLoadConfig, BeamPointLoadConfig, BeamSpanConfig, BeamSupportConfig, BeamSupportDof, BeamSupportType, BeamWorkspaceState } from "../types/beam.ts";
+import type {
+  BeamLinearLoadConfig,
+  BeamLoadCase,
+  BeamLoadCombination,
+  BeamLoadInput,
+  BeamPointLoadConfig,
+  BeamSpanConfig,
+  BeamSupportConfig,
+  BeamSupportDof,
+  BeamSupportType,
+  BeamWorkspaceState,
+} from "../types/beam.ts";
 import type { Material } from "../types/material.ts";
 import {
   DEFAULT_BEAM_MATERIALS,
@@ -174,6 +185,108 @@ function pickBeamMaterialId(candidate: unknown, materials: Material[], fallback:
   return materials[0]?.id ?? fallback;
 }
 
+function normalizeBeamLoadPosition(value: unknown, fallback: number, totalLength: number): number {
+  const position = Number(value);
+  if (!Number.isFinite(position)) {
+    return Math.min(Math.max(fallback, 0), totalLength);
+  }
+  return Math.min(Math.max(position, 0), totalLength);
+}
+
+function normalizeBeamCaseLoad(rawLoad: unknown, totalLength: number): BeamLoadInput {
+  const load = rawLoad && typeof rawLoad === "object" ? rawLoad as Record<string, unknown> : {};
+  const rawType = String(load.type ?? "uniform").trim().toLowerCase();
+  if (rawType === "point") {
+    return {
+      type: "point",
+      pointLoadKn: Number.isFinite(load.pointLoadKn) ? Number(load.pointLoadKn) : Number.isFinite(load.magnitudeKn) ? Number(load.magnitudeKn) : 0,
+      x: normalizeBeamLoadPosition(load.x ?? load.position, 0.5 * totalLength, totalLength),
+    };
+  }
+  if (rawType === "linear" || rawType === "distributed") {
+    let start = normalizeBeamLoadPosition(load.start ?? load.startM, 0, totalLength);
+    let end = normalizeBeamLoadPosition(load.end ?? load.endM, totalLength, totalLength);
+    let qStartKnPerM = Number.isFinite(load.qStartKnPerM) ? Number(load.qStartKnPerM) : Number.isFinite(load.wyKnPerM) ? Number(load.wyKnPerM) : 0;
+    let qEndKnPerM = Number.isFinite(load.qEndKnPerM) ? Number(load.qEndKnPerM) : Number.isFinite(load.wyKnPerM) ? Number(load.wyKnPerM) : qStartKnPerM;
+    if (end < start) {
+      [start, end] = [end, start];
+      [qStartKnPerM, qEndKnPerM] = [qEndKnPerM, qStartKnPerM];
+    }
+    return { type: "linear", qStartKnPerM, qEndKnPerM, start, end };
+  }
+  const normalized: BeamLoadInput = {
+    type: "uniform",
+    qKnPerM: Number.isFinite(load.qKnPerM) ? Number(load.qKnPerM) : Number.isFinite(load.q) ? Number(load.q) : 0,
+  };
+  if (Number.isFinite(load.start) || Number.isFinite(load.end) || Number.isFinite(load.startM) || Number.isFinite(load.endM)) {
+    let start = normalizeBeamLoadPosition(load.start ?? load.startM, 0, totalLength);
+    let end = normalizeBeamLoadPosition(load.end ?? load.endM, totalLength, totalLength);
+    if (end < start) {
+      [start, end] = [end, start];
+    }
+    normalized.start = start;
+    normalized.end = end;
+  }
+  return normalized;
+}
+
+function normalizeBeamLoadCases(rawLoadCases: unknown, totalLength: number): BeamLoadCase[] {
+  if (!Array.isArray(rawLoadCases)) {
+    return [];
+  }
+  const seen = new Set<string>();
+  return rawLoadCases.slice(0, 12).map((loadCase, index) => {
+    const candidate = loadCase && typeof loadCase === "object" ? loadCase as Partial<BeamLoadCase> : {};
+    const id = normalizeTextId(String(candidate.id ?? "").trim(), `LC${index + 1}`, seen, "LC", index);
+    const rawLoads = Array.isArray(candidate.loads) ? candidate.loads : [];
+    return {
+      id,
+      title: String(candidate.title ?? id).trim() || id,
+      loads: rawLoads.map((load) => normalizeBeamCaseLoad(load, totalLength)),
+    };
+  });
+}
+
+function normalizeCombinationTags(rawTags: unknown): string[] {
+  if (!Array.isArray(rawTags)) {
+    return [];
+  }
+  const tags: string[] = [];
+  const seen = new Set<string>();
+  for (const rawTag of rawTags) {
+    const tag = String(rawTag).trim();
+    if (!tag || seen.has(tag)) continue;
+    seen.add(tag);
+    tags.push(tag);
+  }
+  return tags;
+}
+
+function normalizeBeamLoadCombinations(rawCombinations: unknown, loadCases: BeamLoadCase[]): BeamLoadCombination[] {
+  if (!Array.isArray(rawCombinations) || loadCases.length === 0) {
+    return [];
+  }
+  const caseIds = new Set(loadCases.map((loadCase) => loadCase.id));
+  const seen = new Set<string>();
+  return rawCombinations.slice(0, 12).map((combination, index) => {
+    const candidate = combination && typeof combination === "object" ? combination as Partial<BeamLoadCombination> : {};
+    const id = normalizeTextId(String(candidate.id ?? "").trim(), `COMB${index + 1}`, seen, "COMB", index);
+    const rawFactors = candidate.factors && typeof candidate.factors === "object" ? candidate.factors : {};
+    const factors = Object.fromEntries(
+      Object.entries(rawFactors)
+        .map(([caseId, factor]) => [caseId.trim(), factor] as const)
+        .filter(([caseId]) => caseIds.has(caseId))
+        .map(([caseId, factor]) => [caseId, Number.isFinite(factor) ? Number(factor) : 0])
+    );
+    return {
+      id,
+      title: String(candidate.title ?? id).trim() || id,
+      factors,
+      tags: normalizeCombinationTags(candidate.tags),
+    };
+  });
+}
+
 function materialById(materials: Material[], id: string): Material | undefined {
   return materials.find((material) => material.id === id);
 }
@@ -207,6 +320,8 @@ export function normalizeBeamWorkspaceState(value: Partial<BeamWorkspaceState> |
   });
   const beamType = value?.beamType === "simply_supported" || value?.beamType === "cantilever" || value?.beamType === "continuous" ? value.beamType : base.beamType;
   const totalLength = beamSpanBoundaries(normalizedSpans).at(-1) ?? DEFAULT_BEAM_SPAN.length;
+  const customLoadCases = normalizeBeamLoadCases(value?.customLoadCases, totalLength);
+  const customLoadCombinations = normalizeBeamLoadCombinations(value?.customLoadCombinations, customLoadCases);
   const fallbackSupports = defaultBeamSupports(beamType, normalizedSpans);
   const hasModernLoadFields =
     value?.uniformLoadEnabled !== undefined ||
@@ -252,6 +367,8 @@ export function normalizeBeamWorkspaceState(value: Partial<BeamWorkspaceState> |
   return {
     ...base,
     ...value,
+    customLoadCases,
+    customLoadCombinations,
     materials,
     materialId,
     beamType,

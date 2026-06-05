@@ -224,6 +224,7 @@ export function trussResultForView(result: LegacyAnalysisResults | null): TrussC
     preview: (envelopeResults?.preview ?? legacy.preview) as TrussCalculationResults["preview"],
     diagram: (envelopeResults?.diagram ?? legacy.diagram) as TrussCalculationResults["diagram"],
     summary: (envelopeResults?.summary ?? legacy.summary) as TrussCalculationResults["summary"],
+    diagnostics: (envelope?.diagnostics ?? legacy.diagnostics) as TrussCalculationResults["diagnostics"],
     payload: (envelope?.request ?? legacy.payload) as TrussCalculationResults["payload"],
     structure: (envelope?.model?.structure ?? legacy.structure) as TrussCalculationResults["structure"],
     nodeResults: (envelopeResults?.nodeResults ?? legacy.nodeResults ?? []) as TrussCalculationResults["nodeResults"],
@@ -240,7 +241,15 @@ export function apiErrorMessage(raw: unknown, fallback: string): string {
   if (!raw || typeof raw !== "object") {
     return fallback;
   }
-  const body = raw as ErrorEnvelope;
+  const body = raw as ErrorEnvelope & { diagnostics?: { issues?: { message?: string }[] } };
+
+  if (Array.isArray(body.diagnostics?.issues) && body.diagnostics.issues.length > 0) {
+    const messages = body.diagnostics.issues.map((i) => i?.message).filter(Boolean);
+    if (messages.length > 0) {
+      return messages.join("; ");
+    }
+  }
+
   if (typeof body.error === "string") {
     return body.error;
   }

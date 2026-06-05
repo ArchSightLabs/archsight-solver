@@ -2,7 +2,17 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { buildBeamPayload, buildFramePayload, buildTrussPayload, validateCustomFrameWorkspace, validateCustomTrussWorkspace } from "../solver-payload.ts";
 import { MAX_FRAME_MEMBERS, MAX_FRAME_NODES, MAX_TRUSS_MEMBERS, MAX_TRUSS_NODES } from "./solver-limits.ts";
-import { cloneFrameWorkspaceState, createDefaultBeamWorkspaceState, createDefaultFrameWorkspaceState, createDefaultTrussWorkspaceState, normalizeFrameWorkspaceState, normalizeTrussWorkspaceState } from "./workspace-state.ts";
+import {
+  cloneBeamWorkspaceState,
+  cloneFrameWorkspaceState,
+  createDefaultBeamWorkspaceState,
+  createDefaultFrameWorkspaceState,
+  createDefaultTrussWorkspaceState,
+  normalizeBeamWorkspaceState,
+  normalizeFrameWorkspaceState,
+  normalizeTrussWorkspaceState,
+} from "./workspace-state.ts";
+import type { BeamWorkspaceState } from "../types/beam.ts";
 import type { FrameWorkspaceState, TrussWorkspaceState } from "../types/structure.ts";
 
 test("buildBeamPayload serializes configurable load inputs", () => {
@@ -96,6 +106,27 @@ test("buildBeamPayload serializes multiple linear beam loads", () => {
     { type: "linear", qStartKnPerM: 6, qEndKnPerM: 18, start: 1.95, end: 11.049999999999999 },
     { type: "linear", qStartKnPerM: 12, qEndKnPerM: 18, start: 3.9, end: 7.8 },
   ]);
+});
+
+test("normalizeBeamWorkspaceState and buildBeamPayload preserve load cases and combinations", () => {
+  const workspace = normalizeBeamWorkspaceState({
+    ...createDefaultBeamWorkspaceState(),
+    spans: [{ length: 5, E: 210, I: 4500 }],
+    customLoadCases: [{ id: " DL ", title: "恒载", loads: [{ type: "uniform", qKnPerM: 8, start: 4, end: 1 }] }],
+    customLoadCombinations: [{ id: " ULS1 ", title: "基本组合", factors: { " DL ": 1.2 }, tags: [" ULS ", "包络", "ULS", ""] }],
+  } as Partial<BeamWorkspaceState>);
+  const cloned = cloneBeamWorkspaceState(workspace);
+
+  assert.equal(cloned.customLoadCases[0].id, "DL");
+  assert.deepEqual(cloned.customLoadCases[0].loads[0], { type: "uniform", qKnPerM: 8, start: 1, end: 4 });
+  assert.equal(cloned.customLoadCombinations[0].id, "ULS1");
+  assert.deepEqual(cloned.customLoadCombinations[0].factors, { DL: 1.2 });
+  assert.deepEqual(cloned.customLoadCombinations[0].tags, ["ULS", "包络"]);
+
+  const payload = buildBeamPayload(cloned);
+
+  assert.deepEqual(payload.loadCases?.[0], { id: "DL", title: "恒载", loads: [{ type: "uniform", qKnPerM: 8, start: 1, end: 4 }] });
+  assert.deepEqual(payload.loadCombinations?.[0], { id: "ULS1", title: "基本组合", factors: { DL: 1.2 }, tags: ["ULS", "包络"] });
 });
 
 test("buildTrussPayload serializes the default truss workspace", () => {
@@ -415,4 +446,34 @@ test("normalizeTrussWorkspaceState and buildTrussPayload preserve rod material i
   assert.ok(payload);
   assert.equal(payload.structure.members[0]?.materialId, "q235");
   assert.equal(payload.structure.members[1]?.materialId, "q345");
+});
+
+test("normalizeTrussWorkspaceState and buildTrussPayload preserve load cases and combinations", () => {
+  const workspace = normalizeTrussWorkspaceState({
+    ...createDefaultTrussWorkspaceState(),
+    customLoadCases: [{ id: " VL ", title: "竖向荷载", loads: [{ type: "nodal", node: "N3", fxKn: 0, fyKn: -12 }] }],
+    customLoadCombinations: [{ id: " COMB1 ", title: "基本组合", factors: { " VL ": 1.2 }, tags: [" ULS ", "包络", "ULS", ""] }],
+  } as Partial<TrussWorkspaceState>);
+
+  const payload = buildTrussPayload(workspace);
+
+  assert.ok(payload);
+  assert.equal(workspace.customLoadCases[0].id, "VL");
+  assert.equal(payload.structure.loadCases?.[0]?.id, "VL");
+  assert.deepEqual(payload.structure.loadCases?.[0]?.loads[0], { type: "nodal", node: "N3", fxKn: 0, fyKn: -12 });
+  assert.deepEqual(payload.structure.loadCombinations?.[0], { id: "COMB1", title: "基本组合", factors: { VL: 1.2 }, tags: ["ULS", "包络"] });
+});
+
+test("validateCustomTrussWorkspace rejects invalid load combination factors", () => {
+  const workspace = createDefaultTrussWorkspaceState();
+  workspace.customLoadCases = [{ id: "VL", title: "竖向荷载", loads: [{ type: "nodal", node: "N3", fxKn: 0, fyKn: -12 }] }];
+  workspace.customLoadCombinations = [{ id: "COMB1", title: "基本组合", factors: { VL: 0 } }];
+
+  assert.equal(validateCustomTrussWorkspace(workspace), "荷载组合 factors 不能全部为 0。");
+
+  workspace.customLoadCombinations = [{ id: "COMB1", title: "基本组合", factors: {} }];
+  assert.equal(validateCustomTrussWorkspace(workspace), "荷载组合 factors 不能为空。");
+
+  workspace.customLoadCombinations = [{ id: "COMB1", title: "基本组合", factors: { WL: 1.0 } }];
+  assert.equal(validateCustomTrussWorkspace(workspace), "荷载组合引用了不存在的工况。");
 });
