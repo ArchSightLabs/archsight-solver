@@ -272,6 +272,12 @@ export interface FrameCalculationResults {
   member_shear_data: number[];
   member_moment_data: number[];
   error?: string;
+  meta?: {
+    generatedAt?: string;
+    modelHash?: string;
+    requestHash?: string;
+    jobId?: string;
+  };
 }
 
 export interface TrussNode {
@@ -430,4 +436,10 @@ export interface TrussCalculationResults {
   member_axial_data: Array<{ memberId: string; axialForceKn: number }>;
   solution?: unknown;
   error?: string;
+  meta?: {
+    generatedAt?: string;
+    modelHash?: string;
+    requestHash?: string;
+    jobId?: string;
+  };
 }

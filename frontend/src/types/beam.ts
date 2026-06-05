@@ -144,6 +144,12 @@ export interface BeamCalculationResults {
   summary?: BeamSummary;
   payload?: BeamApiPayload;
   error?: string;
+  meta?: {
+    generatedAt?: string;
+    modelHash?: string;
+    requestHash?: string;
+    jobId?: string;
+  };
 }
 
 export interface BeamSupport {

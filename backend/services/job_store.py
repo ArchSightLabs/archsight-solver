@@ -24,6 +24,7 @@ JOB_COLUMNS = {
     "startedAt": "started_at",
     "completedAt": "completed_at",
     "workerProcessId": "worker_process_id",
+    "lastHeartbeatAt": "last_heartbeat_at",
 }
 
 JSON_FIELDS = {"payload", "result", "error", "warnings", "infos"}
@@ -73,13 +74,16 @@ def _connect() -> sqlite3.Connection:
             updated_at TEXT NOT NULL,
             started_at TEXT,
             completed_at TEXT,
-            worker_process_id INTEGER
+            worker_process_id INTEGER,
+            last_heartbeat_at TEXT
         )
         """
     )
     existing_columns = {row["name"] for row in connection.execute("PRAGMA table_info(solver_jobs)").fetchall()}
     if "worker_process_id" not in existing_columns:
         connection.execute("ALTER TABLE solver_jobs ADD COLUMN worker_process_id INTEGER")
+    if "last_heartbeat_at" not in existing_columns:
+        connection.execute("ALTER TABLE solver_jobs ADD COLUMN last_heartbeat_at TEXT")
     return connection
 
 
@@ -102,6 +106,25 @@ def _row_to_record(row: sqlite3.Row | None) -> Dict[str, Any] | None:
         "startedAt": row["started_at"],
         "completedAt": row["completed_at"],
         "workerProcessId": row["worker_process_id"],
+        "lastHeartbeatAt": row["last_heartbeat_at"],
+    }
+
+
+def _row_to_record_meta(row: sqlite3.Row | None) -> Dict[str, Any] | None:
+    if row is None:
+        return None
+    return {
+        "jobId": row["job_id"],
+        "clientJobId": row["client_job_id"],
+        "operation": row["operation"],
+        "status": row["status"],
+        "cancelRequested": bool(row["cancel_requested"]),
+        "createdAt": row["created_at"],
+        "updatedAt": row["updated_at"],
+        "startedAt": row["started_at"],
+        "completedAt": row["completed_at"],
+        "workerProcessId": row["worker_process_id"],
+        "lastHeartbeatAt": row["last_heartbeat_at"],
     }
 
 
@@ -112,9 +135,9 @@ def store_job(record: Mapping[str, Any]) -> None:
             INSERT INTO solver_jobs (
                 job_id, client_job_id, operation, payload_json, status,
                 result_json, error_json, warnings_json, infos_json,
-                cancel_requested, created_at, updated_at, started_at, completed_at, worker_process_id
+                cancel_requested, created_at, updated_at, started_at, completed_at, worker_process_id, last_heartbeat_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 record["jobId"],
@@ -132,6 +155,7 @@ def store_job(record: Mapping[str, Any]) -> None:
                 record.get("startedAt"),
                 record.get("completedAt"),
                 record.get("workerProcessId"),
+                record.get("lastHeartbeatAt"),
             ),
         )
 
@@ -140,6 +164,16 @@ def load_job(job_id: str) -> Dict[str, Any] | None:
     with _connect() as connection:
         row = connection.execute("SELECT * FROM solver_jobs WHERE job_id = ?", (job_id,)).fetchone()
     return _row_to_record(row)
+
+
+def load_active_jobs_meta() -> list[Dict[str, Any]]:
+    with _connect() as connection:
+        rows = connection.execute(
+            "SELECT job_id, client_job_id, operation, status, cancel_requested, "
+            "created_at, updated_at, started_at, completed_at, worker_process_id, last_heartbeat_at "
+            "FROM solver_jobs WHERE status IN ('queued', 'running')"
+        ).fetchall()
+    return [_row_to_record_meta(row) for row in rows if row is not None]
 
 
 def update_job(job_id: str, **updates: Any) -> Dict[str, Any] | None:

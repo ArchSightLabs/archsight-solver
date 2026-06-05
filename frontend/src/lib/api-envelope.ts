@@ -25,6 +25,13 @@ export type UnifiedAnalysisEnvelope = {
     series?: Record<string, unknown>;
   };
   diagnostics?: unknown;
+  meta?: {
+    generatedAt?: string;
+    modelHash?: string;
+    requestHash?: string;
+    compat?: { legacyFields?: string[] };
+    jobId?: string;
+  };
 } & Record<string, unknown>;
 
 export type EnvelopeBackedAnalysisResults = LegacyAnalysisResults & {

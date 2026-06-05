@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import os
-import sys
 import threading
+import time
 import uuid
 from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import datetime, timezone
@@ -17,6 +17,7 @@ from backend.services.job_store import load_job as _load_job
 from backend.services.job_store import prune_completed_jobs as _prune_completed_job_records
 from backend.services.job_store import store_job as _store_job
 from backend.services.job_store import update_job as _update_job
+from backend.services.job_store import load_active_jobs_meta as _load_active_jobs_meta
 
 jobs_bp = Blueprint("jobs", __name__)
 
@@ -24,13 +25,45 @@ MAX_WORKERS = max(1, int(os.environ.get("ARCHSIGHT_SOLVER_JOB_WORKERS", "4")))
 MAX_JOBS = max(16, int(os.environ.get("ARCHSIGHT_SOLVER_MAX_JOBS", "128")))
 SUPPORTED_OPERATIONS = {"calculate", "preview", "sensitivity"}
 ACTIVE_STATUSES = {"queued", "running"}
+HEARTBEAT_TIMEOUT_SECONDS = 30.0
 
 _executor = ThreadPoolExecutor(max_workers=MAX_WORKERS, thread_name_prefix="solver-job")
 _futures: Dict[str, Future[Any]] = {}
 _lock = threading.Lock()
 
+
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _parse_heartbeat_at(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _heartbeat_loop() -> None:
+    while True:
+        try:
+            with _lock:
+                active_job_ids = list(_futures.keys())
+            if active_job_ids:
+                now = _utc_now()
+                for job_id in active_job_ids:
+                    _update_job(job_id, lastHeartbeatAt=now)
+        except Exception:
+            pass  # pragma: no cover
+        time.sleep(5.0)
+
+
+_heartbeat_thread = threading.Thread(target=_heartbeat_loop, daemon=True, name="solver-heartbeat")
+_heartbeat_thread.start()
 
 
 def _job_public_view(record: Mapping[str, Any], *, include_result: bool = False) -> Dict[str, Any]:
@@ -118,52 +151,6 @@ def _prune_completed_jobs() -> None:
                 _futures.pop(job_id, None)
 
 
-def _process_is_alive(process_id: Any) -> bool:
-    try:
-        pid = int(process_id)
-    except (TypeError, ValueError):
-        return False
-    if pid <= 0:
-        return False
-    if sys.platform == "win32":
-        return _windows_process_is_alive(pid)
-    try:
-        os.kill(pid, 0)
-    except PermissionError:
-        return True
-    except OSError:
-        return False
-    return True
-
-
-def _windows_process_is_alive(pid: int) -> bool:
-    try:
-        import ctypes
-        from ctypes import wintypes
-    except ImportError:  # pragma: no cover - platform safety fallback
-        return False
-
-    process_query_limited_information = 0x1000
-    still_active = 259
-    kernel32 = ctypes.windll.kernel32
-    kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
-    kernel32.OpenProcess.restype = wintypes.HANDLE
-    kernel32.GetExitCodeProcess.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
-    kernel32.GetExitCodeProcess.restype = wintypes.BOOL
-    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
-    kernel32.CloseHandle.restype = wintypes.BOOL
-    handle = kernel32.OpenProcess(process_query_limited_information, False, pid)
-    if not handle:
-        return False
-    try:
-        exit_code = wintypes.DWORD()
-        if not kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code)):
-            return False
-        return exit_code.value == still_active
-    finally:
-        kernel32.CloseHandle(handle)
-
-
 def _reconcile_local_job_handle(record: Mapping[str, Any]) -> Dict[str, Any]:
     if record.get("status") not in ACTIVE_STATUSES:
         return dict(record)
@@ -176,14 +163,11 @@ def _reconcile_local_job_handle(record: Mapping[str, Any]) -> Dict[str, Any]:
     if os.environ.get("ARCHSIGHT_SOLVER_DISABLE_ORPHAN_CHECK") == "1":
         return dict(record)
 
-    worker_process_id = record.get("workerProcessId")
-    current_process_id = os.getpid()
-    try:
-        owner_process_id = int(worker_process_id) if worker_process_id is not None else None
-    except (TypeError, ValueError):
-        owner_process_id = None
-    if owner_process_id is not None and owner_process_id != current_process_id and _process_is_alive(owner_process_id):
-        return dict(record)
+    heartbeat_at = _parse_heartbeat_at(record.get("lastHeartbeatAt") or record.get("updatedAt"))
+    if heartbeat_at is not None:
+        now = datetime.now(timezone.utc)
+        if (now - heartbeat_at).total_seconds() < HEARTBEAT_TIMEOUT_SECONDS:
+            return dict(record)
 
     completed_at = _utc_now()
     updated = _update_job(
@@ -191,12 +175,24 @@ def _reconcile_local_job_handle(record: Mapping[str, Any]) -> Dict[str, Any]:
         status="failed",
         error={
             "code": "COMMON_ASYNC_JOB_ORPHANED",
-            "message": "异步作业执行进程已重启或本地线程句柄丢失，请重新提交作业。",
+            "message": "异步作业心跳超时或句柄丢失，请重新提交作业。",
         },
         completedAt=completed_at,
         updatedAt=completed_at,
     )
     return updated or dict(record)
+
+
+def reconcile_all_orphans() -> int:
+    """找出当前未完成但 worker 进程已丢失的作业并标记为失败，返回修复的作业数。"""
+    active_records = _load_active_jobs_meta()
+    reconciled_count = 0
+    for record in active_records:
+        original_status = record.get("status")
+        updated_record = _reconcile_local_job_handle(record)
+        if updated_record.get("status") != original_status:
+            reconciled_count += 1
+    return reconciled_count
 
 
 @jobs_bp.route("/jobs", methods=["POST"])
@@ -230,6 +226,7 @@ def submit_job():
         "payload": dict(payload),
         "status": "queued",
         "workerProcessId": os.getpid(),
+        "lastHeartbeatAt": now,
         "createdAt": now,
         "updatedAt": now,
         "warnings": [],
@@ -293,10 +290,14 @@ def cancel_job(job_id: str):
     if record["status"] in {"succeeded", "failed", "cancelled"}:
         return jsonify(_job_public_view(record))
     updated = _update_job(job_id, cancelRequested=True, updatedAt=_utc_now())
+    cancelled_before_start = False
     with _lock:
         future = _futures.get(job_id)
         if future is not None and future.cancel():
-            completed_at = _utc_now()
-            updated = _update_job(job_id, status="cancelled", completedAt=completed_at, updatedAt=completed_at)
+            _futures.pop(job_id, None)
+            cancelled_before_start = True
+    if cancelled_before_start:
+        completed_at = _utc_now()
+        updated = _update_job(job_id, status="cancelled", completedAt=completed_at, updatedAt=completed_at)
     view = _job_public_view(updated or record)
     return jsonify(view)

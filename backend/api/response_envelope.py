@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import datetime, timezone
 from typing import Any, Dict
 
@@ -7,6 +9,11 @@ from backend.persistence.policy import enforce_supported_persistence_policy
 
 
 FROZEN_LEGACY_TOP_LEVEL_FIELDS = ("beam", "frame", "truss", "solution", "payload")
+
+
+def _stable_hash(data: Any) -> str:
+    serialized = json.dumps(data, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
 
 def _collect_series(response: Dict[str, Any]) -> Dict[str, Any]:
@@ -81,6 +88,8 @@ def attach_unified_envelope(
     legacy_fields = [key for key in FROZEN_LEGACY_TOP_LEVEL_FIELDS if key in response]
     response["meta"] = {
         "generatedAt": datetime.now(timezone.utc).isoformat(),
+        "requestHash": _stable_hash(request_echo),
+        "modelHash": _stable_hash(structure_model),
         "compat": {
             "legacyFields": legacy_fields,
         },

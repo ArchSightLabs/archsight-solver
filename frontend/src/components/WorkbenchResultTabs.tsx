@@ -33,6 +33,7 @@ interface WorkbenchResultTabsProps {
   onActiveTabChange?: (tabId: string) => void;
   workspace: import("../lib/workspace-state").WorkspaceState;
   updateWorkspace: import("react").Dispatch<import("react").SetStateAction<import("../lib/workspace-state").WorkspaceState>>;
+  isDirty?: boolean;
 }
 
 export function WorkbenchResultTabs({
@@ -53,6 +54,7 @@ export function WorkbenchResultTabs({
   onActiveTabChange,
   workspace,
   updateWorkspace,
+  isDirty,
 }: WorkbenchResultTabsProps) {
   const tabs = resultTabsForMode(analysisMode);
   const [activeTabState, setActiveTabState] = useState({ mode: analysisMode, tabId: tabs[0].id });
@@ -64,6 +66,7 @@ export function WorkbenchResultTabs({
   const frameDisplayOptions = useMemo(() => buildFrameDisplayOptions(frameResults), [frameResults]);
   const activeFrameDisplayOption = frameDisplayOptions.find((option) => option.source === frameDisplayState.source && option.id === frameDisplayState.id) ?? frameDisplayOptions[0];
   const displayedFrameResults = useMemo(() => buildDisplayedFrameResults(frameResults, activeFrameDisplayOption), [activeFrameDisplayOption, frameResults]);
+  const modelHash = analysisMode === "frame" ? frameResults?.meta?.modelHash : analysisMode === "truss" ? trussResults?.meta?.modelHash : beamResults?.meta?.modelHash;
   const handleSelectTab = (tabId: string) => {
     setActiveTabState({ mode: analysisMode, tabId });
     onActiveTabChange?.(tabId);
@@ -95,6 +98,23 @@ export function WorkbenchResultTabs({
                   {activeFrameDisplayOption.label}
                 </span>
               ) : null}
+              {hasResults && !isDirty && (
+                <span className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-medium text-slate-500 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-400">
+                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  已同步
+                </span>
+              )}
+              {hasResults && isDirty && (
+                <span className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-medium text-amber-600 dark:border-amber-900/30 dark:bg-amber-900/20 dark:text-amber-400">
+                  <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
+                  参数已修改 (需重新计算)
+                </span>
+              )}
+              {modelHash && (
+                <span className="font-mono text-[9px] text-slate-400 dark:text-slate-500 truncate max-w-[120px] sm:max-w-[200px]" title={`模型签名: ${modelHash}`}>
+                  {modelHash.substring(0, 12)}
+                </span>
+              )}
             </div>
             {analysisMode === "frame" && frameDisplayOptions.length > 1 ? (
               <div className="flex max-w-3xl flex-wrap gap-2 pt-1">

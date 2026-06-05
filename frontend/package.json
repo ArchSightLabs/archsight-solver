@@ -10,6 +10,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src && tsc --noEmit",
+    "validate:version": "python ../scripts/check_versions.py",
+    "validate": "npm run lint && npm run validate:version",
     "test:unit": "node scripts/run-unit-tests.mjs",
     "test:visual": "playwright test",
     "test:visual:export-docx": "playwright test workbench-export-docx.spec.ts --project=chromium --workers=1 && playwright test workbench-export-docx.spec.ts --project=firefox --workers=1 && playwright test workbench-export-docx.spec.ts --project=webkit --workers=1",

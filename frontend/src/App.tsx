@@ -125,6 +125,7 @@ function App() {
     handleSensitivity,
     isScanning,
     isSolving,
+    isDirty,
     markRuntimePersisted,
     operationNotice,
     resetRuntimeForNewAnalysisObject,
@@ -516,6 +517,7 @@ function App() {
                   onActiveTabChange={setActiveResultTab}
                   workspace={workspace}
                   updateWorkspace={updateWorkspace}
+                  isDirty={isDirty}
                 />
               </section>
             )}

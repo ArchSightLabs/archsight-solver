@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Button } from "./ui/button";
+import { WorkbenchTabsLayout } from "./layout/WorkbenchTabsLayout";
 import { FrameBasicSection } from "./FrameBasicSection";
 import { FrameLoadCaseSection } from "./FrameLoadCaseSection";
 import { FrameLoadCombinationSection } from "./FrameLoadCombinationSection";
@@ -42,7 +43,6 @@ import {
   type FrameEditorCollections,
 } from "../lib/frame-model-edits.ts";
 import { FRAME_MODEL_TEMPLATES, cloneFrameModelTemplate } from "../lib/workbench-model-templates.ts";
-import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
 import { memberElasticityDistributionLabel, momentOfInertiaForMaterial, sectionAreaForMaterial, youngModulusForMaterial } from "../lib/material-presets.ts";
 import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import { frameSupportStabilityWarning } from "../solver-payload.ts";
@@ -92,9 +92,7 @@ export function FrameCustomModelEditor({
   const [advancedSectionId, setAdvancedSectionId] = useState<FrameAdvancedSection>("nodes");
   const [gridSnapEnabled, setGridSnapEnabled] = useState(false);
   const [gridSnapStepM, setGridSnapStepM] = useState(0.5);
-  const visibleSectionId = normalizeModuleSectionId("frame", activeSectionId) ?? "frame-template";
   const memberTerm = modelObjectMemberTerm("frame");
-  const isSectionVisible = (sectionId: string) => visibleSectionId === sectionId;
 
   const nodeOptions = useMemo(
     () => value.nodes.map((node) => ({ value: node.id, label: node.id })),
@@ -571,162 +569,159 @@ export function FrameCustomModelEditor({
   };
 
   return (
-    <div className="space-y-5">
-      {isSectionVisible("frame-basic") ? (
-      <FrameBasicSection
-        materialId={materialId}
-        materialLibrary={materialLibrary}
-        memberElasticitySummary={memberElasticitySummary}
-        nodeCount={value.nodes.length}
-        memberCount={value.members.length}
-        supportCount={supportCount}
-        loadCount={value.loads.length}
-        modelWarnings={modelWarnings}
-        onMaterialChange={onMaterialChange}
-      />
-      ) : null}
-
-      {isSectionVisible("frame-text") ? (
-      <FrameTextModelSection
-        draft={frameTextModel.draft}
-        message={frameTextModel.message}
-        diagnostics={frameTextModel.diagnostics}
-        metrics={frameTextModel.metrics}
-        onDraftChange={frameTextModel.previewDraft}
-        onExport={frameTextModel.exportTextModel}
-        onCheck={frameTextModel.checkDraft}
-        onImport={frameTextModel.importDraft}
-      />
-      ) : null}
-
-      {isSectionVisible("frame-template") ? (
-      <FrameTemplateSection onApplyTemplate={applyTypicalCase} />
-      ) : null}
-
-      {isSectionVisible("frame-object") ? (
-      <FrameObjectNavigator
-        nodes={value.nodes}
-        members={value.members}
-        materialLibrary={materialLibrary}
-        nodeOptions={nodeOptions}
-        loadOptions={loadOptions}
-        selectedObject={resolvedSelectedObject}
-        fieldLabelClass={fieldLabelClass}
-        memberConnectionStartId={memberConnection.startNodeId}
-        memberConnectionEndId={memberConnection.endNodeId}
-        memberConnectionDisabledReason={memberConnection.disabledReason}
-        onSelectObject={(next) => selectObject(next)}
-        onMemberConnectionStartChange={memberConnection.updateStartNodeId}
-        onMemberConnectionEndChange={memberConnection.updateEndNodeId}
-        onAddMemberConnection={() => addMemberBetweenNodes(memberConnection.startNodeId, memberConnection.endNodeId)}
-        onAddLoad={addLoad}
-      />
-      ) : null}
-
-      {isSectionVisible("frame-object") ? (
-      <section id="frame-selected-editor" className="space-y-3 rounded-2xl border border-white/8 bg-white/[0.03] p-4 scroll-mt-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="eyebrow flex items-center gap-2">
-            <Layers3 className="h-3.5 w-3.5 text-primary" />
-            属性编辑
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-semibold text-muted-foreground">{geometryEditTarget.label}</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={copyGeometryTarget}
-              disabled={geometryEditDisabled}
-              title="复制当前几何对象并沿 X 向错开"
-              className="h-8 rounded-xl"
-            >
-              <Copy className="mr-1.5 h-3.5 w-3.5" />
-              复制 [实验性]
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => mirrorGeometryTarget("x")}
-              disabled={geometryEditDisabled}
-              title="按 X 轴镜像当前几何对象"
-              className="h-8 rounded-xl"
-            >
-              <FlipVertical className="mr-1.5 h-3.5 w-3.5" />
-              X 镜像 [实验性]
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => mirrorGeometryTarget("y")}
-              disabled={geometryEditDisabled}
-              title="按 Y 轴镜像当前几何对象"
-              className="h-8 rounded-xl"
-            >
-              <FlipHorizontal className="mr-1.5 h-3.5 w-3.5" />
-              Y 镜像 [实验性]
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => arrayGeometryTarget("x")}
-              disabled={geometryEditDisabled}
-              title="沿 X 向生成 2 份阵列副本"
-              className="h-8 rounded-xl"
-            >
-              <ArrowRight className="mr-1.5 h-3.5 w-3.5" />
-              X 阵列 [实验性]
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => arrayGeometryTarget("y")}
-              disabled={geometryEditDisabled}
-              title="沿 Y 向生成 2 份阵列副本"
-              className="h-8 rounded-xl"
-            >
-              <ArrowUp className="mr-1.5 h-3.5 w-3.5" />
-              Y 阵列 [实验性]
-            </Button>
-            <Button variant="outline" size="sm" onClick={addNode} className="h-8 rounded-xl">
-              <Plus className="mr-1.5 h-3.5 w-3.5" />
-              新增节点并连接
-            </Button>
-          </div>
-        </div>
-        <GridSnapControls
-          enabled={gridSnapEnabled}
-          stepM={gridSnapStepM}
-          onEnabledChange={setGridSnapEnabled}
-          onStepChange={setGridSnapStepM}
-        />
-        {renderSelectedEditor()}
-      </section>
-      ) : null}
-
-      {isSectionVisible("frame-table") ? (
-      <FrameTableSection
-        nodes={value.nodes}
-        members={value.members}
-        materialLibrary={materialLibrary}
-        loads={value.loads}
-        nodeOptions={nodeOptions}
-        memberOptions={memberOptions}
-        loadCases={value.loadCases}
-        loadCombinations={value.loadCombinations}
-        activeSectionId={advancedSectionId}
-        onSectionChange={setAdvancedSectionId}
-        onNodeUpdate={updateNode}
-        onNodeRemove={removeNode}
-        onMemberUpdate={updateMember}
-        onMemberRemove={removeMember}
-        onLoadUpdate={updateLoad}
-        onLoadRemove={removeLoad}
-        gridSnapEnabled={gridSnapEnabled}
-        gridSnapStepM={gridSnapStepM}
-        onGridSnapEnabledChange={setGridSnapEnabled}
-        onGridSnapStepChange={setGridSnapStepM}
-      />
-      ) : null}
-    </div>
+    <WorkbenchTabsLayout
+      mode="frame"
+      activeSectionId={activeSectionId}
+      tabs={{
+        template: <FrameTemplateSection onApplyTemplate={applyTypicalCase} />,
+        basic: (
+          <FrameBasicSection
+            materialId={materialId}
+            materialLibrary={materialLibrary}
+            memberElasticitySummary={memberElasticitySummary}
+            nodeCount={value.nodes.length}
+            memberCount={value.members.length}
+            supportCount={supportCount}
+            loadCount={value.loads.length}
+            modelWarnings={modelWarnings}
+            onMaterialChange={onMaterialChange}
+          />
+        ),
+        object: (
+          <>
+            <FrameObjectNavigator
+              nodes={value.nodes}
+              members={value.members}
+              materialLibrary={materialLibrary}
+              nodeOptions={nodeOptions}
+              loadOptions={loadOptions}
+              selectedObject={resolvedSelectedObject}
+              fieldLabelClass={fieldLabelClass}
+              memberConnectionStartId={memberConnection.startNodeId}
+              memberConnectionEndId={memberConnection.endNodeId}
+              memberConnectionDisabledReason={memberConnection.disabledReason}
+              onSelectObject={(next) => selectObject(next)}
+              onMemberConnectionStartChange={memberConnection.updateStartNodeId}
+              onMemberConnectionEndChange={memberConnection.updateEndNodeId}
+              onAddMemberConnection={() => addMemberBetweenNodes(memberConnection.startNodeId, memberConnection.endNodeId)}
+              onAddLoad={addLoad}
+            />
+            <section id="frame-selected-editor" className="space-y-3 rounded-2xl border border-white/8 bg-white/[0.03] p-4 scroll-mt-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="eyebrow flex items-center gap-2">
+                  <Layers3 className="h-3.5 w-3.5 text-primary" />
+                  属性编辑
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-semibold text-muted-foreground">{geometryEditTarget.label}</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={copyGeometryTarget}
+                    disabled={geometryEditDisabled}
+                    title="复制当前几何对象并沿 X 向错开"
+                    className="h-8 rounded-xl"
+                  >
+                    <Copy className="mr-1.5 h-3.5 w-3.5" />
+                    复制 [实验性]
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => mirrorGeometryTarget("x")}
+                    disabled={geometryEditDisabled}
+                    title="按 X 轴镜像当前几何对象"
+                    className="h-8 rounded-xl"
+                  >
+                    <FlipVertical className="mr-1.5 h-3.5 w-3.5" />
+                    X 镜像 [实验性]
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => mirrorGeometryTarget("y")}
+                    disabled={geometryEditDisabled}
+                    title="按 Y 轴镜像当前几何对象"
+                    className="h-8 rounded-xl"
+                  >
+                    <FlipHorizontal className="mr-1.5 h-3.5 w-3.5" />
+                    Y 镜像 [实验性]
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => arrayGeometryTarget("x")}
+                    disabled={geometryEditDisabled}
+                    title="沿 X 向生成 2 份阵列副本"
+                    className="h-8 rounded-xl"
+                  >
+                    <ArrowRight className="mr-1.5 h-3.5 w-3.5" />
+                    X 阵列 [实验性]
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => arrayGeometryTarget("y")}
+                    disabled={geometryEditDisabled}
+                    title="沿 Y 向生成 2 份阵列副本"
+                    className="h-8 rounded-xl"
+                  >
+                    <ArrowUp className="mr-1.5 h-3.5 w-3.5" />
+                    Y 阵列 [实验性]
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={addNode} className="h-8 rounded-xl">
+                    <Plus className="mr-1.5 h-3.5 w-3.5" />
+                    新增节点并连接
+                  </Button>
+                </div>
+              </div>
+              <GridSnapControls
+                enabled={gridSnapEnabled}
+                stepM={gridSnapStepM}
+                onEnabledChange={setGridSnapEnabled}
+                onStepChange={setGridSnapStepM}
+              />
+              {renderSelectedEditor()}
+            </section>
+          </>
+        ),
+        text: (
+          <FrameTextModelSection
+            draft={frameTextModel.draft}
+            message={frameTextModel.message}
+            diagnostics={frameTextModel.diagnostics}
+            metrics={frameTextModel.metrics}
+            onDraftChange={frameTextModel.previewDraft}
+            onExport={frameTextModel.exportTextModel}
+            onCheck={frameTextModel.checkDraft}
+            onImport={frameTextModel.importDraft}
+          />
+        ),
+        table: (
+          <FrameTableSection
+            nodes={value.nodes}
+            members={value.members}
+            materialLibrary={materialLibrary}
+            loads={value.loads}
+            nodeOptions={nodeOptions}
+            memberOptions={memberOptions}
+            loadCases={value.loadCases}
+            loadCombinations={value.loadCombinations}
+            activeSectionId={advancedSectionId}
+            onSectionChange={setAdvancedSectionId}
+            onNodeUpdate={updateNode}
+            onNodeRemove={removeNode}
+            onMemberUpdate={updateMember}
+            onMemberRemove={removeMember}
+            onLoadUpdate={updateLoad}
+            onLoadRemove={removeLoad}
+            gridSnapEnabled={gridSnapEnabled}
+            gridSnapStepM={gridSnapStepM}
+            onGridSnapEnabledChange={setGridSnapEnabled}
+            onGridSnapStepChange={setGridSnapStepM}
+          />
+        ),
+      }}
+    />
   );
 }

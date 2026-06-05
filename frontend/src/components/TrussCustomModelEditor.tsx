@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Button } from "./ui/button";
 import { ArrowRight, ArrowUp, Copy, FlipHorizontal, FlipVertical, Plus, Triangle } from "lucide-react";
+import { WorkbenchTabsLayout } from "./layout/WorkbenchTabsLayout";
 import { TrussLoadEditor } from "./TrussLoadEditor";
 import { TrussBasicSection } from "./TrussBasicSection";
 import { TrussMemberEditor } from "./TrussMemberEditor";
@@ -31,7 +32,6 @@ import {
   updateTrussNodeCollections,
   type TrussEditorCollections,
 } from "../lib/truss-model-edits.ts";
-import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
 import { memberElasticityDistributionLabel, sectionAreaForMaterial, youngModulusForMaterial } from "../lib/material-presets.ts";
 import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import { trussSupportStabilityWarning } from "../solver-payload.ts";
@@ -75,9 +75,7 @@ export function TrussCustomModelEditor({
   const [advancedSectionId, setAdvancedSectionId] = useState<TrussAdvancedSection>("nodes");
   const [gridSnapEnabled, setGridSnapEnabled] = useState(false);
   const [gridSnapStepM, setGridSnapStepM] = useState(0.5);
-  const visibleSectionId = normalizeModuleSectionId("truss", activeSectionId) ?? "truss-template";
   const memberTerm = modelObjectMemberTerm("truss");
-  const isSectionVisible = (sectionId: string) => visibleSectionId === sectionId;
 
   const nodeOptions = useMemo(
     () => value.nodes.map((node) => ({ value: node.id, label: node.id })),
@@ -434,192 +432,191 @@ export function TrussCustomModelEditor({
   };
 
   return (
-    <div className="space-y-5">
-      {isSectionVisible("truss-basic") ? (
-      <TrussBasicSection
-        materialId={materialId}
-        materialLibrary={materialLibrary}
-        memberElasticitySummary={memberElasticitySummary}
-        nodeCount={value.nodes.length}
-        memberCount={value.members.length}
-        supportCount={supportCount}
-        loadCount={value.loads.length}
-        modelWarnings={modelWarnings}
-        onMaterialChange={onMaterialChange}
-      />
-      ) : null}
-
-      {isSectionVisible("truss-text") ? (
-      <TrussTextModelSection
-        draft={trussTextModel.draft}
-        message={trussTextModel.message}
-        diagnostics={trussTextModel.diagnostics}
-        metrics={trussTextModel.metrics}
-        onDraftChange={trussTextModel.previewDraft}
-        onExport={trussTextModel.exportTextModel}
-        onCheck={trussTextModel.checkDraft}
-        onImport={trussTextModel.importDraft}
-      />
-      ) : null}
-
-      {isSectionVisible("truss-template") ? (
-      <section id="truss-template" className="space-y-3 rounded-2xl border border-white/8 bg-white/[0.03] p-4 scroll-mt-4">
-        <div className="grid grid-cols-1 gap-2">
-          {TRUSS_MODEL_TEMPLATES.map((template, index) => (
-            <button
-              key={template.id}
-              type="button"
-              onClick={() => applyTypicalCase(template.id)}
-              className="rounded-xl border border-white/8 bg-slate-950/20 p-3 text-left transition-colors hover:border-primary/35 hover:bg-primary/5"
-            >
-              <div className="flex min-w-0 items-start gap-2">
-                <span className="mt-0.5 shrink-0 rounded border border-white/8 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-muted-foreground">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <div className="min-w-0">
-                  <div className="text-sm font-bold leading-snug">{template.title}</div>
-                  <div className="mt-1 flex flex-wrap gap-1.5">
-                    {template.tags?.slice(0, 3).map((tag) => (
-                      <span key={tag} className="rounded border border-white/8 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                        {tag}
-                      </span>
-                    ))}
-                    <span className="rounded border border-white/8 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                      {template.members.length} {memberTerm}
+    <WorkbenchTabsLayout
+      mode="truss"
+      activeSectionId={activeSectionId}
+      tabs={{
+        template: (
+          <section id="truss-template" className="space-y-3 rounded-2xl border border-white/8 bg-white/[0.03] p-4 scroll-mt-4">
+            <div className="grid grid-cols-1 gap-2">
+              {TRUSS_MODEL_TEMPLATES.map((template, index) => (
+                <button
+                  key={template.id}
+                  type="button"
+                  onClick={() => applyTypicalCase(template.id)}
+                  className="rounded-xl border border-white/8 bg-slate-950/20 p-3 text-left transition-colors hover:border-primary/35 hover:bg-primary/5"
+                >
+                  <div className="flex min-w-0 items-start gap-2">
+                    <span className="mt-0.5 shrink-0 rounded border border-white/8 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-muted-foreground">
+                      {String(index + 1).padStart(2, "0")}
                     </span>
+                    <div className="min-w-0">
+                      <div className="text-sm font-bold leading-snug">{template.title}</div>
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {template.tags?.slice(0, 3).map((tag) => (
+                          <span key={tag} className="rounded border border-white/8 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                            {tag}
+                          </span>
+                        ))}
+                        <span className="rounded border border-white/8 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                          {template.members.length} {memberTerm}
+                        </span>
+                      </div>
+                    </div>
                   </div>
+                </button>
+              ))}
+            </div>
+          </section>
+        ),
+        basic: (
+          <TrussBasicSection
+            materialId={materialId}
+            materialLibrary={materialLibrary}
+            memberElasticitySummary={memberElasticitySummary}
+            nodeCount={value.nodes.length}
+            memberCount={value.members.length}
+            supportCount={supportCount}
+            loadCount={value.loads.length}
+            modelWarnings={modelWarnings}
+            onMaterialChange={onMaterialChange}
+          />
+        ),
+        object: (
+          <>
+            <TrussObjectNavigator
+              nodes={value.nodes}
+              members={value.members}
+              materialLibrary={materialLibrary}
+              nodeOptions={nodeOptions}
+              loadOptions={loadOptions}
+              selectedObject={resolvedSelectedObject}
+              supportCount={supportCount}
+              fieldLabelClass={fieldLabelClass}
+              memberConnectionStartId={memberConnection.startNodeId}
+              memberConnectionEndId={memberConnection.endNodeId}
+              memberConnectionDisabledReason={memberConnection.disabledReason}
+              onSelectObject={(next) => selectObject(next)}
+              onMemberConnectionStartChange={memberConnection.updateStartNodeId}
+              onMemberConnectionEndChange={memberConnection.updateEndNodeId}
+              onAddMemberConnection={() => addMemberBetweenNodes(memberConnection.startNodeId, memberConnection.endNodeId)}
+              onAddNodalLoad={addNodalLoad}
+              onAddMemberLoad={addMemberLoad}
+            />
+            <section id="truss-selected-editor" className="space-y-3 rounded-2xl border border-white/8 bg-white/[0.03] p-4 scroll-mt-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="eyebrow flex items-center gap-2">
+                  <Triangle className="h-3.5 w-3.5 text-primary" />
+                  属性编辑
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-semibold text-muted-foreground">{geometryEditTarget.label}</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={copyGeometryTarget}
+                    disabled={geometryEditDisabled}
+                    title="复制当前几何对象并沿 X 向错开"
+                    className="h-8 rounded-xl"
+                  >
+                    <Copy className="mr-1.5 h-3.5 w-3.5" />
+                    复制 [实验性]
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => mirrorGeometryTarget("x")}
+                    disabled={geometryEditDisabled}
+                    title="按 X 轴镜像当前几何对象"
+                    className="h-8 rounded-xl"
+                  >
+                    <FlipVertical className="mr-1.5 h-3.5 w-3.5" />
+                    X 镜像 [实验性]
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => mirrorGeometryTarget("y")}
+                    disabled={geometryEditDisabled}
+                    title="按 Y 轴镜像当前几何对象"
+                    className="h-8 rounded-xl"
+                  >
+                    <FlipHorizontal className="mr-1.5 h-3.5 w-3.5" />
+                    Y 镜像 [实验性]
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => arrayGeometryTarget("x")}
+                    disabled={geometryEditDisabled}
+                    title="沿 X 向生成 2 份阵列副本"
+                    className="h-8 rounded-xl"
+                  >
+                    <ArrowRight className="mr-1.5 h-3.5 w-3.5" />
+                    X 阵列 [实验性]
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => arrayGeometryTarget("y")}
+                    disabled={geometryEditDisabled}
+                    title="沿 Y 向生成 2 份阵列副本"
+                    className="h-8 rounded-xl"
+                  >
+                    <ArrowUp className="mr-1.5 h-3.5 w-3.5" />
+                    Y 阵列 [实验性]
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={addNode} className="h-8 rounded-xl">
+                    <Plus className="mr-1.5 h-3.5 w-3.5" />
+                    新增节点
+                  </Button>
                 </div>
               </div>
-            </button>
-          ))}
-        </div>
-      </section>
-      ) : null}
-
-      {isSectionVisible("truss-object") ? (
-      <TrussObjectNavigator
-        nodes={value.nodes}
-        members={value.members}
-        materialLibrary={materialLibrary}
-        nodeOptions={nodeOptions}
-        loadOptions={loadOptions}
-        selectedObject={resolvedSelectedObject}
-        supportCount={supportCount}
-        fieldLabelClass={fieldLabelClass}
-        memberConnectionStartId={memberConnection.startNodeId}
-        memberConnectionEndId={memberConnection.endNodeId}
-        memberConnectionDisabledReason={memberConnection.disabledReason}
-        onSelectObject={(next) => selectObject(next)}
-        onMemberConnectionStartChange={memberConnection.updateStartNodeId}
-        onMemberConnectionEndChange={memberConnection.updateEndNodeId}
-        onAddMemberConnection={() => addMemberBetweenNodes(memberConnection.startNodeId, memberConnection.endNodeId)}
-        onAddNodalLoad={addNodalLoad}
-        onAddMemberLoad={addMemberLoad}
-      />
-      ) : null}
-
-      {isSectionVisible("truss-object") ? (
-      <section id="truss-selected-editor" className="space-y-3 rounded-2xl border border-white/8 bg-white/[0.03] p-4 scroll-mt-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="eyebrow flex items-center gap-2">
-            <Triangle className="h-3.5 w-3.5 text-primary" />
-            属性编辑
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-semibold text-muted-foreground">{geometryEditTarget.label}</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={copyGeometryTarget}
-              disabled={geometryEditDisabled}
-              title="复制当前几何对象并沿 X 向错开"
-              className="h-8 rounded-xl"
-            >
-              <Copy className="mr-1.5 h-3.5 w-3.5" />
-              复制 [实验性]
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => mirrorGeometryTarget("x")}
-              disabled={geometryEditDisabled}
-              title="按 X 轴镜像当前几何对象"
-              className="h-8 rounded-xl"
-            >
-              <FlipVertical className="mr-1.5 h-3.5 w-3.5" />
-              X 镜像 [实验性]
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => mirrorGeometryTarget("y")}
-              disabled={geometryEditDisabled}
-              title="按 Y 轴镜像当前几何对象"
-              className="h-8 rounded-xl"
-            >
-              <FlipHorizontal className="mr-1.5 h-3.5 w-3.5" />
-              Y 镜像 [实验性]
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => arrayGeometryTarget("x")}
-              disabled={geometryEditDisabled}
-              title="沿 X 向生成 2 份阵列副本"
-              className="h-8 rounded-xl"
-            >
-              <ArrowRight className="mr-1.5 h-3.5 w-3.5" />
-              X 阵列 [实验性]
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => arrayGeometryTarget("y")}
-              disabled={geometryEditDisabled}
-              title="沿 Y 向生成 2 份阵列副本"
-              className="h-8 rounded-xl"
-            >
-              <ArrowUp className="mr-1.5 h-3.5 w-3.5" />
-              Y 阵列 [实验性]
-            </Button>
-            <Button variant="outline" size="sm" onClick={addNode} className="h-8 rounded-xl">
-              <Plus className="mr-1.5 h-3.5 w-3.5" />
-              新增节点
-            </Button>
-          </div>
-        </div>
-        <GridSnapControls
-          enabled={gridSnapEnabled}
-          stepM={gridSnapStepM}
-          onEnabledChange={setGridSnapEnabled}
-          onStepChange={setGridSnapStepM}
-        />
-        {renderSelectedEditor()}
-      </section>
-      ) : null}
-
-      {isSectionVisible("truss-table") ? (
-      <TrussTableSection
-        nodes={value.nodes}
-        members={value.members}
-        materialLibrary={materialLibrary}
-        loads={value.loads}
-        nodeOptions={nodeOptions}
-        memberOptions={memberOptions}
-        activeSectionId={advancedSectionId}
-        onSectionChange={setAdvancedSectionId}
-        onNodeUpdate={updateNode}
-        onNodeRemove={removeNode}
-        onMemberUpdate={updateMember}
-        onMemberRemove={removeMember}
-        onLoadUpdate={updateLoad}
-        onLoadRemove={removeLoad}
-        gridSnapEnabled={gridSnapEnabled}
-        gridSnapStepM={gridSnapStepM}
-        onGridSnapEnabledChange={setGridSnapEnabled}
-        onGridSnapStepChange={setGridSnapStepM}
-      />
-      ) : null}
-    </div>
+              <GridSnapControls
+                enabled={gridSnapEnabled}
+                stepM={gridSnapStepM}
+                onEnabledChange={setGridSnapEnabled}
+                onStepChange={setGridSnapStepM}
+              />
+              {renderSelectedEditor()}
+            </section>
+          </>
+        ),
+        text: (
+          <TrussTextModelSection
+            draft={trussTextModel.draft}
+            message={trussTextModel.message}
+            diagnostics={trussTextModel.diagnostics}
+            metrics={trussTextModel.metrics}
+            onDraftChange={trussTextModel.previewDraft}
+            onExport={trussTextModel.exportTextModel}
+            onCheck={trussTextModel.checkDraft}
+            onImport={trussTextModel.importDraft}
+          />
+        ),
+        table: (
+          <TrussTableSection
+            nodes={value.nodes}
+            members={value.members}
+            materialLibrary={materialLibrary}
+            loads={value.loads}
+            nodeOptions={nodeOptions}
+            memberOptions={memberOptions}
+            activeSectionId={advancedSectionId}
+            onSectionChange={setAdvancedSectionId}
+            onNodeUpdate={updateNode}
+            onNodeRemove={removeNode}
+            onMemberUpdate={updateMember}
+            onMemberRemove={removeMember}
+            onLoadUpdate={updateLoad}
+            onLoadRemove={removeLoad}
+            gridSnapEnabled={gridSnapEnabled}
+            gridSnapStepM={gridSnapStepM}
+            onGridSnapEnabledChange={setGridSnapEnabled}
+            onGridSnapStepChange={setGridSnapStepM}
+          />
+        ),
+      }}
+    />
   );
 }

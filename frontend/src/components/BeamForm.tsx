@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { WorkbenchTabsLayout } from "./layout/WorkbenchTabsLayout";
 import { BeamBasicSection } from "./BeamBasicSection";
 import { BeamLoadEditor } from "./BeamLoadEditor";
 import {
@@ -24,7 +25,6 @@ import { createDefaultBeamSupports, createDefaultBeamWorkspaceState } from "../l
 import { applyBeamModelTemplate, type BeamModelTemplate } from "../lib/workbench-model-templates.ts";
 import { useBeamTextModel } from "../hooks/useBeamTextModel.ts";
 import { MAX_BEAM_SPANS } from "../lib/solver-limits.ts";
-import { normalizeModuleSectionId } from "../lib/workbench-navigation.ts";
 
 interface BeamFormProps {
   value: BeamWorkspaceState;
@@ -46,8 +46,6 @@ const FIELD_LABEL_CLASS = "text-[10px] font-black tracking-widest text-muted-for
 
 export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMaterialLibraryChange, onChange, activeSectionId, selection, onSelectionChange }: BeamFormProps) {
   const [selectedObject, setSelectedObject] = useState<BeamSelectedObject>({ type: "span", id: spanId(0) });
-  const visibleSectionId = normalizeModuleSectionId("beam", activeSectionId) ?? "beam-template";
-  const isSectionVisible = (sectionId: string) => visibleSectionId === sectionId;
   const materialLibrary = projectMaterialLibrary?.length ? projectMaterialLibrary : value.materials?.length ? value.materials : PREDEFINED_MATERIALS;
   const materialOptions = useMemo(
     () => materialDropdownOptions(materialLibrary),
@@ -266,65 +264,63 @@ export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMat
   };
 
   return (
-    <div className="space-y-4">
-      {isSectionVisible("beam-basic") ? (
-      <BeamBasicSection
-        materialId={value.materialId}
-        materialLibrary={materialLibrary}
-        materialOptions={materialOptions}
-        spanCount={value.spans.length}
-        supportCount={value.supports.length}
-        totalLength={totalLength}
-        formLabelClass={FORM_LABEL_CLASS}
-        formControlClass={FORM_CONTROL_CLASS}
-        formSelectMenuClass={FORM_SELECT_MENU_CLASS}
-        formSelectOptionClass={FORM_SELECT_OPTION_CLASS}
-        onMaterialChange={(nextValue) => updateWorkspace("materialId", nextValue)}
-        onReset={() => onChange(DEFAULT_BEAM_STATE)}
-      />
-      ) : null}
-
-      {isSectionVisible("beam-template") ? (
-      <BeamTemplateSection onApplyTemplate={applyTypicalCase} />
-      ) : null}
-
-      {isSectionVisible("beam-object") ? (
-      <BeamObjectNavigator
-        spans={value.spans}
-        supports={value.supports}
-        selectedObject={resolvedSelectedObject}
-        loadSummary={loadSummary}
-        maxSpans={MAX_BEAM_SPANS}
-        fieldLabelClass={FIELD_LABEL_CLASS}
-        selectedEditor={renderSelectedEditor()}
-        materialLabelForSpan={materialIdentityForSpan}
-        onSelectObject={(next) => selectObject(next)}
-        onAddSpan={addSpan}
-      />
-      ) : null}
-
-      {isSectionVisible("beam-text") ? (
-      <BeamTextModelSection
-        draft={beamTextModel.draft}
-        message={beamTextModel.message}
-        diagnostics={beamTextModel.diagnostics}
-        metrics={beamTextModel.metrics}
-        onDraftChange={beamTextModel.previewDraft}
-        onExport={beamTextModel.exportTextModel}
-        onCheck={beamTextModel.checkDraft}
-        onImport={beamTextModel.importDraft}
-      />
-      ) : null}
-
-      {isSectionVisible("beam-table") ? (
-      <BeamTableSection
-        spans={value.spans}
-        supports={value.supports}
-        loadSummary={loadSummary}
-        fieldLabelClass={FIELD_LABEL_CLASS}
-        materialLabelForSpan={materialIdentityForSpan}
-      />
-      ) : null}
-    </div>
+    <WorkbenchTabsLayout
+      mode="beam"
+      activeSectionId={activeSectionId}
+      tabs={{
+        template: <BeamTemplateSection onApplyTemplate={applyTypicalCase} />,
+        basic: (
+          <BeamBasicSection
+            materialId={value.materialId}
+            materialLibrary={materialLibrary}
+            materialOptions={materialOptions}
+            spanCount={value.spans.length}
+            supportCount={value.supports.length}
+            totalLength={totalLength}
+            formLabelClass={FORM_LABEL_CLASS}
+            formControlClass={FORM_CONTROL_CLASS}
+            formSelectMenuClass={FORM_SELECT_MENU_CLASS}
+            formSelectOptionClass={FORM_SELECT_OPTION_CLASS}
+            onMaterialChange={(nextValue) => updateWorkspace("materialId", nextValue)}
+            onReset={() => onChange(DEFAULT_BEAM_STATE)}
+          />
+        ),
+        object: (
+          <BeamObjectNavigator
+            spans={value.spans}
+            supports={value.supports}
+            selectedObject={resolvedSelectedObject}
+            loadSummary={loadSummary}
+            maxSpans={MAX_BEAM_SPANS}
+            fieldLabelClass={FIELD_LABEL_CLASS}
+            selectedEditor={renderSelectedEditor()}
+            materialLabelForSpan={materialIdentityForSpan}
+            onSelectObject={(next) => selectObject(next)}
+            onAddSpan={addSpan}
+          />
+        ),
+        text: (
+          <BeamTextModelSection
+            draft={beamTextModel.draft}
+            message={beamTextModel.message}
+            diagnostics={beamTextModel.diagnostics}
+            metrics={beamTextModel.metrics}
+            onDraftChange={beamTextModel.previewDraft}
+            onExport={beamTextModel.exportTextModel}
+            onCheck={beamTextModel.checkDraft}
+            onImport={beamTextModel.importDraft}
+          />
+        ),
+        table: (
+          <BeamTableSection
+            spans={value.spans}
+            supports={value.supports}
+            loadSummary={loadSummary}
+            fieldLabelClass={FIELD_LABEL_CLASS}
+            materialLabelForSpan={materialIdentityForSpan}
+          />
+        ),
+      }}
+    />
   );
 }

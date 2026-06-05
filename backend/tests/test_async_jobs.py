@@ -1,14 +1,24 @@
 import os
 import sys
 import time
+from datetime import datetime, timezone
 
 import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from app import app
-from backend.api.jobs import _futures, _load_job
+from backend.api.jobs import _futures, _load_job, reconcile_all_orphans
 from backend.services.job_store import store_job
+
+
+class CancelableFuture:
+    def __init__(self) -> None:
+        self.cancel_called = False
+
+    def cancel(self) -> bool:
+        self.cancel_called = True
+        return True
 
 
 @pytest.fixture
@@ -82,6 +92,7 @@ def test_async_job_result_is_read_from_shared_store_not_future_memory(client):
 
 def test_async_job_marks_orphaned_running_job_failed_after_process_restart(client):
     now = "2026-05-31T00:00:00+00:00"
+    stale_heartbeat = "2026-05-31T00:00:00+00:00"  # definitely older than 30s from actual 'now'
     store_job(
         {
             "jobId": "orphaned-running",
@@ -89,6 +100,7 @@ def test_async_job_marks_orphaned_running_job_failed_after_process_restart(clien
             "operation": "calculate",
             "payload": _beam_payload(),
             "status": "running",
+            "lastHeartbeatAt": stale_heartbeat,
             "createdAt": now,
             "updatedAt": now,
             "startedAt": now,
@@ -137,6 +149,7 @@ def test_async_job_disables_orphan_check_when_env_var_set(client, monkeypatch):
 
 def test_async_job_cancel_reconciles_orphaned_running_job(client):
     now = "2026-05-31T00:00:00+00:00"
+    stale_heartbeat = "2026-05-31T00:00:00+00:00"
     store_job(
         {
             "jobId": "orphaned-cancel",
@@ -144,6 +157,7 @@ def test_async_job_cancel_reconciles_orphaned_running_job(client):
             "operation": "calculate",
             "payload": _beam_payload(),
             "status": "running",
+            "lastHeartbeatAt": stale_heartbeat,
             "createdAt": now,
             "updatedAt": now,
             "startedAt": now,
@@ -161,9 +175,8 @@ def test_async_job_cancel_reconciles_orphaned_running_job(client):
     assert payload["error"]["code"] == "COMMON_ASYNC_JOB_ORPHANED"
 
 
-def test_async_job_keeps_active_job_owned_by_alive_process_pending(client, monkeypatch):
-    owner_pid = os.getpid()
-    now = "2026-05-31T00:00:00+00:00"
+def test_async_job_keeps_active_job_owned_by_alive_process_pending(client):
+    now = datetime.now(timezone.utc).isoformat()
     store_job(
         {
             "jobId": "other-worker-running",
@@ -171,7 +184,7 @@ def test_async_job_keeps_active_job_owned_by_alive_process_pending(client, monke
             "operation": "calculate",
             "payload": _beam_payload(),
             "status": "running",
-            "workerProcessId": owner_pid,
+            "lastHeartbeatAt": now,
             "createdAt": now,
             "updatedAt": now,
             "startedAt": now,
@@ -180,7 +193,6 @@ def test_async_job_keeps_active_job_owned_by_alive_process_pending(client, monke
         }
     )
     _futures.clear()
-    monkeypatch.setattr("backend.api.jobs.os.getpid", lambda: owner_pid + 100000)
 
     status_response = client.get("/api/jobs/other-worker-running")
     result_response = client.get("/api/jobs/other-worker-running/result")
@@ -191,8 +203,89 @@ def test_async_job_keeps_active_job_owned_by_alive_process_pending(client, monke
     assert result_response.get_json()["status"] == "running"
 
 
+def test_async_job_accepts_naive_recent_heartbeat(client):
+    now = datetime.now().isoformat()
+    store_job(
+        {
+            "jobId": "naive-heartbeat-running",
+            "clientJobId": "other-worker",
+            "operation": "calculate",
+            "payload": _beam_payload(),
+            "status": "running",
+            "lastHeartbeatAt": now,
+            "createdAt": now,
+            "updatedAt": now,
+            "startedAt": now,
+            "warnings": [],
+            "infos": [],
+        }
+    )
+    _futures.clear()
+
+    status_response = client.get("/api/jobs/naive-heartbeat-running")
+
+    assert status_response.status_code == 200
+    assert status_response.get_json()["status"] == "running"
+
+
+def test_async_job_cancel_removes_future_when_cancelled_before_start(client):
+    now = datetime.now(timezone.utc).isoformat()
+    store_job(
+        {
+            "jobId": "queued-cancel",
+            "clientJobId": "cancel-before-start",
+            "operation": "calculate",
+            "payload": _beam_payload(),
+            "status": "queued",
+            "lastHeartbeatAt": now,
+            "createdAt": now,
+            "updatedAt": now,
+            "warnings": [],
+            "infos": [],
+        }
+    )
+    future = CancelableFuture()
+    _futures.clear()
+    _futures["queued-cancel"] = future
+
+    cancel_response = client.delete("/api/jobs/queued-cancel")
+
+    assert cancel_response.status_code == 200
+    assert cancel_response.get_json()["status"] == "cancelled"
+    assert future.cancel_called is True
+    assert "queued-cancel" not in _futures
+
+
 def test_async_job_rejects_unsupported_operation(client):
     response = client.post("/api/jobs", json={"operation": "unknown", "payload": _beam_payload()})
 
     assert response.status_code == 400
     assert response.get_json()["error"]["code"] == "COMMON_UNSUPPORTED_ASYNC_OPERATION"
+
+
+def test_reconcile_all_orphans_on_startup(client):
+    now = "2026-05-31T00:00:00+00:00"
+    stale_heartbeat = "2026-05-31T00:00:00+00:00"
+
+    store_job(
+        {
+            "jobId": "startup-orphan",
+            "clientJobId": "lost-worker",
+            "operation": "calculate",
+            "payload": _beam_payload(),
+            "status": "running",
+            "lastHeartbeatAt": stale_heartbeat,
+            "createdAt": now,
+            "updatedAt": now,
+            "startedAt": now,
+            "warnings": [],
+            "infos": [],
+        }
+    )
+    _futures.clear()
+
+    reconcile_all_orphans()
+
+    job = _load_job("startup-orphan")
+    assert job["status"] == "failed"
+    assert job["error"]["code"] == "COMMON_ASYNC_JOB_ORPHANED"

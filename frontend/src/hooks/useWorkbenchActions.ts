@@ -1,5 +1,5 @@
 import type React from "react";
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { AnalysisMode, FrameFormPayload, TrussFormPayload } from "../types/structure";
 import type { BeamApiPayload, BeamCalculationResults, SensitivityResults } from "../types/beam";
 import type { FrameCalculationResults, TrussCalculationResults } from "../types/structure";
@@ -57,29 +57,44 @@ export function useWorkbenchActions(
   const [exportingFormat, setExportingFormat] = useState<ExportFormat | null>(null);
   const [operationNotice, setOperationNotice] = useState<WorkbenchOperationNotice | null>(null);
   const [latestPayload, setLatestPayload] = useState<CalculationPayload | null>(null);
-  const buildCurrentPayload = (): CalculationPayload | null => {
-    const { analysisMode } = workspace;
+  const { analysisMode, beam, frame, truss } = workspace;
 
+  const buildCurrentPayload = useCallback((options: { notifyOnValidationError?: boolean } = {}): CalculationPayload | null => {
     if (analysisMode === "truss") {
-      const validationError = validateCustomTrussWorkspace(workspace.truss);
+      const validationError = validateCustomTrussWorkspace(truss);
       if (validationError) {
-        setOperationNotice(validationNotice(validationError));
+        if (options.notifyOnValidationError) {
+          setOperationNotice(validationNotice(validationError));
+        }
         return null;
       }
-      return buildTrussPayload(workspace.truss, projectName);
+      return buildTrussPayload(truss, projectName);
     }
 
     if (analysisMode === "frame") {
-      const validationError = validateCustomFrameWorkspace(workspace.frame);
+      const validationError = validateCustomFrameWorkspace(frame);
       if (validationError) {
-        setOperationNotice(validationNotice(validationError));
+        if (options.notifyOnValidationError) {
+          setOperationNotice(validationNotice(validationError));
+        }
         return null;
       }
-      return buildFramePayload(workspace.frame, projectName);
+      return buildFramePayload(frame, projectName);
     }
 
-    return buildBeamPayload(workspace.beam, projectName);
-  };
+    return buildBeamPayload(beam, projectName);
+  }, [analysisMode, beam, frame, projectName, truss]);
+
+  const currentPayloadString = useMemo(() => {
+    const payload = buildCurrentPayload();
+    return payload ? JSON.stringify(payload) : null;
+  }, [buildCurrentPayload]);
+
+  const latestPayloadString = useMemo(() => {
+    return latestPayload ? JSON.stringify(latestPayload) : null;
+  }, [latestPayload]);
+
+  const isDirty = latestPayloadString !== null && latestPayloadString !== currentPayloadString;
 
   const handleSolve = async (data: CalculationPayload): Promise<AnalysisResults> => {
     const analysisType: AnalysisMode = data.analysisType === "frame" ? "frame" : data.analysisType === "truss" ? "truss" : "beam";
@@ -116,7 +131,7 @@ export function useWorkbenchActions(
   };
 
   const handleRunCurrentModule = () => {
-    const payload = buildCurrentPayload();
+    const payload = buildCurrentPayload({ notifyOnValidationError: true });
     if (payload) {
       return handleSolve(payload);
     }
@@ -124,7 +139,7 @@ export function useWorkbenchActions(
   };
 
   const handleSensitivity = async (config: { range: number; steps: number; targetSpanIndex: number; responseMetric: string }) => {
-    const currentPayload = buildCurrentPayload();
+    const currentPayload = buildCurrentPayload({ notifyOnValidationError: true });
     if (!currentPayload) {
       return;
     }
@@ -240,6 +255,7 @@ export function useWorkbenchActions(
     setSensitivityData,
     isSolving,
     isScanning,
+    isDirty,
     exportingFormat,
     operationNotice,
     setOperationNotice,
