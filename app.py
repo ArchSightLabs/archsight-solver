@@ -51,6 +51,7 @@ def create_app(*, static_folder: str | os.PathLike[str] | None = None) -> Flask:
         static_folder=str(static_folder or ROOT_DIR / "frontend" / "dist"),
         static_url_path="/",
     )
+    flask_app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB limit for JSON payloads
     setup_logging(flask_app)
     register_blueprints(flask_app, API_BLUEPRINTS)
     register_request_hooks(flask_app)
