@@ -10,8 +10,6 @@ import {
   Save,
   Settings,
   Sun,
-  Redo2,
-  Undo2,
 } from "lucide-react";
 import { Button } from "./ui/button";
 
@@ -25,17 +23,13 @@ interface AppHeaderProps {
   isDark: boolean;
   isFileMenuOpen: boolean;
   isProjectDirty: boolean;
-  canRedoWorkspace: boolean;
-  canUndoWorkspace: boolean;
   releaseNotesHref: string;
   onNewProjectFile: () => void;
   onOpenBenchmarkSubmission: () => void;
   onOpenProjectFile: () => void;
   onOpenPublicExamples: () => void;
   onOpenSystemSettings: () => void;
-  onRedoWorkspace: () => void;
   onSaveProjectFile: (forceSaveAs?: boolean) => void;
-  onUndoWorkspace: () => void;
   setIsDark: Dispatch<SetStateAction<boolean>>;
   setIsFileMenuOpen: Dispatch<SetStateAction<boolean>>;
 }
@@ -50,17 +44,13 @@ export function AppHeader({
   isDark,
   isFileMenuOpen,
   isProjectDirty,
-  canRedoWorkspace,
-  canUndoWorkspace,
   releaseNotesHref,
   onNewProjectFile,
   onOpenBenchmarkSubmission,
   onOpenProjectFile,
   onOpenPublicExamples,
   onOpenSystemSettings,
-  onRedoWorkspace,
   onSaveProjectFile,
-  onUndoWorkspace,
   setIsDark,
   setIsFileMenuOpen,
 }: AppHeaderProps) {
@@ -99,28 +89,6 @@ export function AppHeader({
 
           <div className={`flex flex-wrap items-center justify-start xl:justify-end ${isCompactWorkbench ? "gap-2" : "gap-3"}`}>
             <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.035] p-1 shadow-sm shadow-black/5 dark:bg-white/[0.025]">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onUndoWorkspace}
-                disabled={!canUndoWorkspace}
-                aria-label="撤销建模编辑"
-                title="撤销建模编辑"
-                className={`rounded-lg font-bold text-foreground hover:bg-primary/10 ${isCompactWorkbench ? "h-9 w-9" : "h-10 w-10"}`}
-              >
-                <Undo2 className={isCompactWorkbench ? "h-3.5 w-3.5" : "h-4 w-4"} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onRedoWorkspace}
-                disabled={!canRedoWorkspace}
-                aria-label="重做建模编辑"
-                title="重做建模编辑"
-                className={`rounded-lg font-bold text-foreground hover:bg-primary/10 ${isCompactWorkbench ? "h-9 w-9" : "h-10 w-10"}`}
-              >
-                <Redo2 className={isCompactWorkbench ? "h-3.5 w-3.5" : "h-4 w-4"} />
-              </Button>
               <Button
                 variant="ghost"
                 onClick={onNewProjectFile}

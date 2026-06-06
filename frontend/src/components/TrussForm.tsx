@@ -11,11 +11,22 @@ interface TrussFormProps {
   activeSectionId?: string;
   selection?: TrussWorkbenchSelection | null;
   onSelectionChange?: (next: TrussWorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
+  gridSnapEnabled?: boolean;
+  gridSnapStepM?: number;
 }
 
 const DEFAULT_SECTION_ID = "truss-template";
 
-export function TrussForm({ value, materialLibrary, onChange, activeSectionId, selection, onSelectionChange }: TrussFormProps) {
+export function TrussForm({
+  value,
+  materialLibrary,
+  onChange,
+  activeSectionId,
+  selection,
+  onSelectionChange,
+  gridSnapEnabled = false,
+  gridSnapStepM = 0.5,
+}: TrussFormProps) {
   const visibleSectionId = normalizeModuleSectionId("truss", activeSectionId) ?? DEFAULT_SECTION_ID;
   return (
     <TrussCustomModelEditor
@@ -38,6 +49,8 @@ export function TrussForm({ value, materialLibrary, onChange, activeSectionId, s
       selection={selection}
       onSelectionChange={onSelectionChange}
       activeSectionId={visibleSectionId}
+      gridSnapEnabled={gridSnapEnabled}
+      gridSnapStepM={gridSnapStepM}
     />
   );
 }

@@ -6,16 +6,27 @@ function source(path: string) {
   return readFileSync(new URL(path, import.meta.url), "utf-8");
 }
 
-test("workspace undo and redo controls are wired into the header", () => {
+test("workspace undo and redo controls are moved out of the global header", () => {
   const appHeader = source("./AppHeader.tsx");
-  assert.match(appHeader, /Undo2/u);
-  assert.match(appHeader, /Redo2/u);
-  assert.match(appHeader, /canUndoWorkspace/u);
-  assert.match(appHeader, /canRedoWorkspace/u);
-  assert.match(appHeader, /onUndoWorkspace/u);
-  assert.match(appHeader, /onRedoWorkspace/u);
-  assert.match(appHeader, /disabled=\{!canUndoWorkspace\}/u);
-  assert.match(appHeader, /disabled=\{!canRedoWorkspace\}/u);
+  assert.doesNotMatch(appHeader, /Undo2/u);
+  assert.doesNotMatch(appHeader, /Redo2/u);
+  assert.doesNotMatch(appHeader, /canUndoWorkspace/u);
+  assert.doesNotMatch(appHeader, /canRedoWorkspace/u);
+  assert.doesNotMatch(appHeader, /onUndoWorkspace/u);
+  assert.doesNotMatch(appHeader, /onRedoWorkspace/u);
+});
+
+test("workspace undo and redo controls are wired into the parameter modeling toolbar", () => {
+  const modelCanvas = source("./WorkbenchModelCanvas.tsx");
+  assert.match(modelCanvas, /Undo2/u);
+  assert.match(modelCanvas, /Redo2/u);
+  assert.match(modelCanvas, /canUndoWorkspace/u);
+  assert.match(modelCanvas, /canRedoWorkspace/u);
+  assert.match(modelCanvas, /onUndoWorkspace/u);
+  assert.match(modelCanvas, /onRedoWorkspace/u);
+  assert.match(modelCanvas, /role="toolbar" aria-label="建模历史"/u);
+  assert.match(modelCanvas, /disabled=\{!canUndoWorkspace\}/u);
+  assert.match(modelCanvas, /disabled=\{!canRedoWorkspace\}/u);
 });
 
 test("workspace history is exposed by the project document hook", () => {

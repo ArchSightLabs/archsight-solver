@@ -5,7 +5,6 @@ import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
 import { TrussLoadEditor } from "./TrussLoadEditor";
 import { TrussMemberEditor } from "./TrussMemberEditor";
 import { TrussNodeEditor } from "./TrussNodeEditor";
-import { GridSnapControls } from "./GridSnapControls";
 
 export type TrussAdvancedSection = "nodes" | "members" | "loads";
 
@@ -26,8 +25,6 @@ interface TrussTableSectionProps {
   onLoadRemove: (index: number) => void;
   gridSnapEnabled: boolean;
   gridSnapStepM: number;
-  onGridSnapEnabledChange: (enabled: boolean) => void;
-  onGridSnapStepChange: (stepM: number) => void;
 }
 
 export function TrussTableSection({
@@ -47,8 +44,6 @@ export function TrussTableSection({
   onLoadRemove,
   gridSnapEnabled,
   gridSnapStepM,
-  onGridSnapEnabledChange,
-  onGridSnapStepChange,
 }: TrussTableSectionProps) {
   const vocabulary = modelObjectVocabulary("truss");
   const fieldLabelClass = "text-[10px] font-black tracking-widest text-muted-foreground";
@@ -81,14 +76,6 @@ export function TrussTableSection({
             </button>
           );
         })}
-      </div>
-      <div className="mt-4">
-        <GridSnapControls
-          enabled={gridSnapEnabled}
-          stepM={gridSnapStepM}
-          onEnabledChange={onGridSnapEnabledChange}
-          onStepChange={onGridSnapStepChange}
-        />
       </div>
       <div className="mt-4 space-y-5">
         {activeSectionId === "nodes" ? (

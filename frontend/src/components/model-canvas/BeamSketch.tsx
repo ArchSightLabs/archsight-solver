@@ -6,8 +6,9 @@ import { modelObjectMemberTerm } from "../../lib/model-object-vocabulary";
 import { STRUCTURE_NODE_RADII, STRUCTURE_VISUAL_STROKES } from "../../lib/structure-visual-tokens";
 import type { WorkspaceState } from "../../lib/workspace-state";
 import type { ModelPreviewStyle } from "../../types/beam";
-import type { WorkbenchSelection } from "../../types/workbench-selection";
-import { MODEL_DIMENSION_TEXT_WEIGHT, SVG_TEXT_FONT, clampRatio, formatMagnitude, svgInteractiveProps } from "./shared";
+import type { WorkbenchSelection, WorkbenchSelectionOptions } from "../../types/workbench-selection";
+import { sameWorkbenchSelection, selectionSetContains } from "../../lib/workbench-selection-utils";
+import { MODEL_DIMENSION_TEXT_WEIGHT, SVG_TEXT_FONT, clampRatio, formatMagnitude, isAdditiveSelectionEvent, svgCanvasSelectionProps, svgInteractiveProps } from "./shared";
 
 const BEAM_SKETCH_AXIS_Y = 150;
 const BEAM_LOAD_BOTTOM_GUIDE_Y = BEAM_SKETCH_AXIS_Y - 38;
@@ -142,13 +143,15 @@ export function BeamSketch({
   canvasSize = BEAM_MODEL_CANVAS_BASE_SIZE,
   modelPreviewStyle = "simple",
   selection,
+  selectionSet = [],
   onSelect,
 }: {
   beam: WorkspaceState["beam"];
   canvasSize?: ModelCanvasSize;
   modelPreviewStyle?: ModelPreviewStyle;
   selection?: WorkbenchSelection | null;
-  onSelect?: (next: WorkbenchSelection) => void;
+  selectionSet?: WorkbenchSelection[];
+  onSelect?: (next: WorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
 }) {
   const total = Math.max(1, beam.spans.reduce((sum, span) => sum + span.length, 0));
   const memberTerm = modelObjectMemberTerm("beam");
@@ -229,6 +232,12 @@ export function BeamSketch({
         "--beam-sketch-selected": "var(--model-load)",
       } as CSSProperties)
     : undefined;
+  const isSelected = (item: WorkbenchSelection) => selectionSetContains(selectionSet, item) || sameWorkbenchSelection(selection, item);
+  const activateSelection = (item: WorkbenchSelection, event?: { shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean }) => {
+    onSelect?.(item, { additive: isAdditiveSelectionEvent(event) });
+  };
+  const loadSelection = { mode: "beam", type: "load", id: "primary" } as const;
+  const loadSelected = isSelected(loadSelection);
 
   return (
     <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} className="h-full w-full" style={beamSketchStyle} data-model-canvas="beam" data-label-density={labelPolicy.density}>
@@ -241,7 +250,8 @@ export function BeamSketch({
       </g>
       <line x1={beamStart} y1={BEAM_SKETCH_AXIS_Y} x2={beamEnd} y2={BEAM_SKETCH_AXIS_Y} stroke="var(--beam-sketch-member)" strokeWidth={STRUCTURE_VISUAL_STROKES.modelBeamMember} strokeLinecap="square" />
       {segments.map((segment) => {
-        const selected = selection?.mode === "beam" && selection.type === "span" && selection.id === `span-${segment.index}`;
+        const spanSelection = { mode: "beam", type: "span", id: `span-${segment.index}` } as const;
+        const selected = isSelected(spanSelection);
         const dimension = spanDimensions[segment.index];
         const showLabel = shouldShowSteppedLabel({
           index: segment.index,
@@ -250,7 +260,11 @@ export function BeamSketch({
           selected,
         });
         return (
-          <g key={segment.index} {...svgInteractiveProps(`选择梁系${memberTerm} ${beamMemberIds[segment.index]}`, () => onSelect?.({ mode: "beam", type: "span", id: `span-${segment.index}` }))}>
+          <g
+            key={segment.index}
+            {...svgInteractiveProps(`选择梁系${memberTerm} ${beamMemberIds[segment.index]}`, (event) => activateSelection(spanSelection, event))}
+            {...svgCanvasSelectionProps(spanSelection)}
+          >
             {dimension ? <title>{dimension.title}</title> : null}
             <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="transparent" strokeWidth="20" strokeLinecap="round" />
             {selected ? <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="var(--beam-sketch-selected)" strokeWidth={STRUCTURE_VISUAL_STROKES.modelSelectedMember} strokeLinecap="round" opacity="0.45" /> : null}
@@ -270,9 +284,14 @@ export function BeamSketch({
       })}
       {beam.supports.map((support, index) => {
         const x = beamStart + (support.x / total) * (beamEnd - beamStart);
-        const selected = selection?.mode === "beam" && selection.type === "support" && selection.id === `support-${index}`;
+        const supportSelection = { mode: "beam", type: "support", id: `support-${index}` } as const;
+        const selected = isSelected(supportSelection);
         return (
-          <g key={support.id} {...svgInteractiveProps(`选择梁系支座 ${support.id}`, () => onSelect?.({ mode: "beam", type: "support", id: `support-${index}` }))}>
+          <g
+            key={support.id}
+            {...svgInteractiveProps(`选择梁系支座 ${support.id}`, (event) => activateSelection(supportSelection, event))}
+            {...svgCanvasSelectionProps(supportSelection)}
+          >
             <title>{`梁系支座 ${support.id}`}</title>
             <rect x={x - 24} y="148" width="48" height="58" rx="12" fill={selected ? "var(--beam-sketch-selected)" : "transparent"} opacity={selected ? "0.1" : "0"} />
             {support.type === "fixed" ? (
@@ -294,9 +313,12 @@ export function BeamSketch({
           </g>
         );
       })}
-      <g {...svgInteractiveProps("选择梁系荷载", () => onSelect?.({ mode: "beam", type: "load", id: "primary" }))}>
+      <g
+        {...svgInteractiveProps("选择梁系荷载", (event) => activateSelection(loadSelection, event))}
+        {...svgCanvasSelectionProps(loadSelection)}
+      >
         <rect x={beamStart - 20} y="24" width={beamEnd - beamStart + 40} height="125" fill="transparent" />
-        {selection?.mode === "beam" && selection.type === "load" ? <rect x={beamStart - 16} y="28" width={beamEnd - beamStart + 32} height="118" rx="14" fill="var(--beam-sketch-selected)" opacity="0.07" /> : null}
+        {loadSelected ? <rect x={beamStart - 16} y="28" width={beamEnd - beamStart + 32} height="118" rx="14" fill="var(--beam-sketch-selected)" opacity="0.07" /> : null}
         {uniformRange ? (
           <g>
             <line x1={uniformRange.startX} y1={uniformGuideY} x2={uniformRange.endX} y2={uniformGuideY} stroke="var(--beam-sketch-load)" strokeWidth="1.5" opacity="0.9" />
@@ -322,7 +344,7 @@ export function BeamSketch({
           </g>
         )}
         <g>
-        <g stroke="var(--beam-sketch-load)" strokeWidth={selection?.mode === "beam" && selection.type === "load" ? "1.55" : "1.15"}>
+        <g stroke="var(--beam-sketch-load)" strokeWidth={loadSelected ? "1.55" : "1.15"}>
           {beam.uniformLoadEnabled ? visibleUniformArrows.map((x, index) => (
             <path key={`uniform-${index}`} d={`M${x.toFixed(1)} ${(uniformGuideY + 4).toFixed(1)} L${x.toFixed(1)} ${BEAM_DISTRIBUTED_LOAD_TIP_Y}`} markerEnd="url(#modelDistributedArrow)" />
           )) : null}
@@ -335,7 +357,7 @@ export function BeamSketch({
             });
           })}
         </g>
-        <g stroke="var(--beam-sketch-load)" strokeWidth={selection?.mode === "beam" && selection.type === "load" ? "2.8" : "1.9"}>
+        <g stroke="var(--beam-sketch-load)" strokeWidth={loadSelected ? "2.8" : "1.9"}>
           {pointLoads.map((load, index) => {
             const x = beamStart + (beamEnd - beamStart) * clampRatio(load.positionRatio, 0.5);
             const labelY = pointLabelBaseY + (index % 2) * 16;
@@ -395,7 +417,7 @@ export function BeamSketch({
             index: label.index,
             total: nodeLabels.length,
             step: labelPolicy.nodeLabelStep,
-            selected: selection?.mode === "beam" && selection.type === "support" && selection.id === `support-${label.index}`,
+            selected: isSelected({ mode: "beam", type: "support", id: `support-${label.index}` }),
           }) ? (
             <g key={`node-label-${label.index}`}>
               <circle cx={label.labelX} cy={BEAM_NODE_BADGE_Y} r="8.5" fill="var(--beam-sketch-badge-fill)" stroke="var(--beam-sketch-badge-stroke)" strokeWidth="1.5" />

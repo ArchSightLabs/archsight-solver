@@ -1,6 +1,23 @@
-import { Minus, Plus, RotateCcw, ZoomIn } from "lucide-react";
+import { useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  ArrowRight,
+  ArrowUp,
+  Copy,
+  FlipHorizontal,
+  FlipVertical,
+  Link2,
+  Maximize2,
+  Minus,
+  Plus,
+  Redo2,
+  RotateCcw,
+  Trash2,
+  Undo2,
+  ZoomIn,
+} from "lucide-react";
 import { GlassCard } from "./ui/GlassCard";
 import { Button } from "./ui/button";
+import { GridSnapControls } from "./GridSnapControls";
 import { BeamSketch } from "./model-canvas/BeamSketch";
 import { FrameSketch } from "./model-canvas/FrameSketch";
 import { TrussSketch } from "./model-canvas/TrussSketch";
@@ -14,20 +31,167 @@ import {
   useModelCanvasZoom,
 } from "../hooks/useModelCanvasZoom";
 import type { AnalysisMode } from "../types/structure";
-import type { WorkbenchSelection } from "../types/workbench-selection";
+import type { WorkbenchSelection, WorkbenchSelectionOptions } from "../types/workbench-selection";
 import type { ModelPreviewStyle } from "../types/beam";
 import { modelObjectMetricRows } from "../lib/model-object-vocabulary";
 import { modelCanvasBoardStyle, workbenchModelCanvasSize } from "../lib/model-canvas-sizing";
+import type { ModelGeometryAction, ModelGeometryToolbarState } from "../lib/model-workflow-actions";
+import { snapCoordinateToGrid } from "../lib/node-coordinate-snap";
+import {
+  frameCanvasPointToModel,
+  trussCanvasPointToModel,
+  type CanvasPoint,
+  type ModelCanvasNodeDragPreview,
+} from "../lib/model-canvas-projection";
+import {
+  selectionSetContains,
+  uniqueWorkbenchSelections,
+  workbenchSelectionFromCanvasDataset,
+} from "../lib/workbench-selection-utils";
+
 interface WorkbenchModelCanvasProps {
   workspace: WorkspaceState;
   mode: AnalysisMode;
   compact?: boolean;
   modelPreviewStyle?: ModelPreviewStyle;
   selection?: WorkbenchSelection | null;
-  onSelect?: (next: WorkbenchSelection) => void;
+  selectionSet?: WorkbenchSelection[];
+  canDeleteSelection?: boolean;
+  canRedoWorkspace?: boolean;
+  canUndoWorkspace?: boolean;
+  geometryToolbar?: ModelGeometryToolbarState | null;
+  gridSnapEnabled?: boolean;
+  gridSnapStepM?: number;
+  onDeleteSelection?: () => void;
+  onGeometryAction?: (action: ModelGeometryAction) => void;
+  onGridSnapEnabledChange?: (enabled: boolean) => void;
+  onGridSnapStepChange?: (stepM: number) => void;
+  onMoveNode?: (mode: Extract<AnalysisMode, "frame" | "truss">, nodeId: string, point: CanvasPoint) => void;
+  onRedoWorkspace?: () => void;
+  onSelect?: (next: WorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
+  onSelectionSetChange?: (next: WorkbenchSelection[], options?: WorkbenchSelectionOptions) => void;
+  onUndoWorkspace?: () => void;
 }
 
-export function WorkbenchModelCanvas({ workspace, mode, compact = false, modelPreviewStyle = "simple", selection, onSelect }: WorkbenchModelCanvasProps) {
+interface MarqueeSelectionState {
+  pointerId: number;
+  startClientX: number;
+  startClientY: number;
+  currentClientX: number;
+  currentClientY: number;
+  additive: boolean;
+  active: boolean;
+}
+
+interface NodeDragState {
+  pointerId: number;
+  mode: Extract<AnalysisMode, "frame" | "truss">;
+  nodeId: string;
+  svg: globalThis.SVGSVGElement;
+  lastPoint: CanvasPoint;
+  moved: boolean;
+}
+
+const GEOMETRY_ACTIONS: Array<{ id: ModelGeometryAction; label: string; shortLabel: string; icon: typeof Copy; transform: boolean }> = [
+  { id: "copy", label: "复制当前几何对象", shortLabel: "复制", icon: Copy, transform: true },
+  { id: "mirror-x", label: "按 X 轴镜像当前几何对象", shortLabel: "X 镜像", icon: FlipVertical, transform: true },
+  { id: "mirror-y", label: "按 Y 轴镜像当前几何对象", shortLabel: "Y 镜像", icon: FlipHorizontal, transform: true },
+  { id: "array-x", label: "沿 X 向生成阵列副本", shortLabel: "X 阵列", icon: ArrowRight, transform: true },
+  { id: "array-y", label: "沿 Y 向生成阵列副本", shortLabel: "Y 阵列", icon: ArrowUp, transform: true },
+  { id: "add-connected-node", label: "新增节点并连接", shortLabel: "连接", icon: Plus, transform: false },
+];
+
+function clientPointToSvgPoint(event: ReactPointerEvent<HTMLElement>, svg: globalThis.SVGSVGElement): CanvasPoint | null {
+  const matrix = svg.getScreenCTM();
+  if (!matrix) return null;
+  const point = svg.createSVGPoint();
+  point.x = event.clientX;
+  point.y = event.clientY;
+  const next = point.matrixTransform(matrix.inverse());
+  return { x: next.x, y: next.y };
+}
+
+function clientRectFromMarquee(marquee: MarqueeSelectionState) {
+  const left = Math.min(marquee.startClientX, marquee.currentClientX);
+  const top = Math.min(marquee.startClientY, marquee.currentClientY);
+  const right = Math.max(marquee.startClientX, marquee.currentClientX);
+  const bottom = Math.max(marquee.startClientY, marquee.currentClientY);
+  return { left, top, right, bottom, width: right - left, height: bottom - top };
+}
+
+type ClientRectLike = ReturnType<typeof clientRectFromMarquee>;
+
+function intersectClientRects(left: globalThis.DOMRect, right: globalThis.DOMRect): ClientRectLike {
+  const rectLeft = Math.max(left.left, right.left);
+  const rectTop = Math.max(left.top, right.top);
+  const rectRight = Math.min(left.right, right.right);
+  const rectBottom = Math.min(left.bottom, right.bottom);
+  return {
+    left: rectLeft,
+    top: rectTop,
+    right: Math.max(rectLeft, rectRight),
+    bottom: Math.max(rectTop, rectBottom),
+    width: Math.max(0, rectRight - rectLeft),
+    height: Math.max(0, rectBottom - rectTop),
+  };
+}
+
+function clampClientRect(rect: ClientRectLike, boundary: ClientRectLike): ClientRectLike {
+  const left = Math.max(rect.left, boundary.left);
+  const top = Math.max(rect.top, boundary.top);
+  const right = Math.min(rect.right, boundary.right);
+  const bottom = Math.min(rect.bottom, boundary.bottom);
+  return {
+    left,
+    top,
+    right: Math.max(left, right),
+    bottom: Math.max(top, bottom),
+    width: Math.max(0, right - left),
+    height: Math.max(0, bottom - top),
+  };
+}
+
+function rectsIntersect(left: globalThis.DOMRect, right: ClientRectLike): boolean {
+  return left.right >= right.left && left.left <= right.right && left.bottom >= right.top && left.top <= right.bottom;
+}
+
+function isSelectionModifier(event: ReactPointerEvent<HTMLElement>) {
+  return event.shiftKey || event.ctrlKey || event.metaKey;
+}
+
+function isCanvasControlTarget(target: globalThis.EventTarget | null): boolean {
+  return target instanceof globalThis.Element && Boolean(target.closest("button,input,textarea,select,[role='toolbar']"));
+}
+
+export function WorkbenchModelCanvas({
+  workspace,
+  mode,
+  compact = false,
+  modelPreviewStyle = "simple",
+  selection,
+  selectionSet = [],
+  canDeleteSelection = false,
+  canRedoWorkspace = false,
+  canUndoWorkspace = false,
+  geometryToolbar,
+  gridSnapEnabled = false,
+  gridSnapStepM = 0.5,
+  onDeleteSelection,
+  onGeometryAction,
+  onGridSnapEnabledChange,
+  onGridSnapStepChange,
+  onMoveNode,
+  onRedoWorkspace,
+  onSelect,
+  onSelectionSetChange,
+  onUndoWorkspace,
+}: WorkbenchModelCanvasProps) {
+  const surfaceRef = useRef<HTMLDivElement | null>(null);
+  const boardRef = useRef<HTMLDivElement | null>(null);
+  const marqueeRef = useRef<MarqueeSelectionState | null>(null);
+  const nodeDragRef = useRef<NodeDragState | null>(null);
+  const [marqueeStyle, setMarqueeStyle] = useState<CSSProperties | null>(null);
+  const [nodeDragPreview, setNodeDragPreview] = useState<ModelCanvasNodeDragPreview | null>(null);
   const {
     canvasScrollRef,
     commitZoomDraft,
@@ -48,11 +212,317 @@ export function WorkbenchModelCanvas({ workspace, mode, compact = false, modelPr
   const canvasSize = workbenchModelCanvasSize(workspace, mode);
   const boardStyle = modelCanvasBoardStyle(canvasSize, zoomPercent, canvasViewportSize);
   const metricGridClass = metrics.length > 3 ? "sm:grid-cols-2 xl:grid-cols-4" : "sm:grid-cols-3";
+  const hasHistoryActions = Boolean(onUndoWorkspace && onRedoWorkspace);
+  const canShowGridSnapTool = (mode === "frame" || mode === "truss") && Boolean(onGridSnapEnabledChange && onGridSnapStepChange);
+  const canMarqueeSelect = Boolean(onSelectionSetChange);
+  const canvasCursorClass = isCanvasDragging
+    ? "cursor-grabbing"
+    : canMarqueeSelect
+      ? "cursor-crosshair"
+      : showZoomControls
+        ? "cursor-grab"
+        : "";
+  const marqueeStyleFromState = (nextMarquee: MarqueeSelectionState): CSSProperties | null => {
+    if (!nextMarquee.active) return null;
+    const surface = surfaceRef.current;
+    const board = boardRef.current;
+    const scrollArea = canvasScrollRef.current;
+    if (!surface || !board || !scrollArea) return null;
+    const boundary = intersectClientRects(board.getBoundingClientRect(), scrollArea.getBoundingClientRect());
+    const rect = clampClientRect(clientRectFromMarquee(nextMarquee), boundary);
+    if (rect.width <= 0 || rect.height <= 0) return null;
+    const surfaceRect = surface.getBoundingClientRect();
+    return {
+      position: "absolute",
+      left: rect.left - surfaceRect.left,
+      top: rect.top - surfaceRect.top,
+      width: rect.width,
+      height: rect.height,
+    };
+  };
+
+  const selectFromMarquee = (nextMarquee: MarqueeSelectionState) => {
+    const board = boardRef.current;
+    const scrollArea = canvasScrollRef.current;
+    if (!board || !onSelectionSetChange) return;
+    const rect = scrollArea
+      ? clampClientRect(
+          clientRectFromMarquee(nextMarquee),
+          intersectClientRects(board.getBoundingClientRect(), scrollArea.getBoundingClientRect()),
+        )
+      : clientRectFromMarquee(nextMarquee);
+    const selected = Array.from(board.querySelectorAll<globalThis.SVGGraphicsElement>("[data-canvas-selection-key]"))
+      .filter((element) => element.dataset.canvasMode === mode)
+      .filter((element) => rectsIntersect(element.getBoundingClientRect(), rect))
+      .map((element) => workbenchSelectionFromCanvasDataset(element.dataset))
+      .filter((item): item is WorkbenchSelection => Boolean(item));
+    const next = nextMarquee.additive
+      ? uniqueWorkbenchSelections([...selectionSet, ...selected])
+      : uniqueWorkbenchSelections(selected);
+    onSelectionSetChange(next, { openEditor: false });
+  };
+
+  const snapModelPoint = (point: CanvasPoint): CanvasPoint => ({
+    x: Number(snapCoordinateToGrid(point.x, { enabled: gridSnapEnabled, stepM: gridSnapStepM }).toFixed(3)),
+    y: Number(snapCoordinateToGrid(point.y, { enabled: gridSnapEnabled, stepM: gridSnapStepM }).toFixed(3)),
+  });
+
+  const startNodeDrag = (event: ReactPointerEvent<HTMLDivElement>): boolean => {
+    if (event.button !== 0 || (mode !== "frame" && mode !== "truss") || !onMoveNode) return false;
+    if (!(event.target instanceof globalThis.Element)) return false;
+    const target = event.target.closest<globalThis.SVGGraphicsElement>("[data-canvas-draggable-node='true']");
+    const svg = target?.ownerSVGElement;
+    if (!target || !svg) return false;
+    const draggedSelection = workbenchSelectionFromCanvasDataset(target.dataset);
+    if (!draggedSelection || draggedSelection.mode !== mode || draggedSelection.type !== "node") return false;
+    const svgPoint = clientPointToSvgPoint(event, svg);
+    if (!svgPoint) return false;
+    const modelPoint = mode === "frame"
+      ? frameCanvasPointToModel(workspace, canvasSize, svgPoint)
+      : trussCanvasPointToModel(workspace, canvasSize, svgPoint);
+    const nextPoint = snapModelPoint(modelPoint);
+
+    nodeDragRef.current = {
+      pointerId: event.pointerId,
+      mode,
+      nodeId: draggedSelection.id,
+      svg,
+      lastPoint: nextPoint,
+      moved: false,
+    };
+    setNodeDragPreview({ mode, nodeId: draggedSelection.id, ...nextPoint });
+    event.currentTarget.setPointerCapture(event.pointerId);
+    if (!selectionSetContains(selectionSet, draggedSelection)) {
+      onSelect?.(draggedSelection, { additive: isSelectionModifier(event), openEditor: false });
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    return true;
+  };
+
+  const startMarqueeSelection = (event: ReactPointerEvent<HTMLDivElement>): boolean => {
+    if (event.button !== 0 || !onSelectionSetChange || isCanvasControlTarget(event.target)) return false;
+    if (!(event.target instanceof globalThis.Element) || event.target.closest("[data-canvas-selection-key]")) return false;
+    if (!event.target.closest(".model-canvas-board")) return false;
+    const next: MarqueeSelectionState = {
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      currentClientX: event.clientX,
+      currentClientY: event.clientY,
+      additive: isSelectionModifier(event),
+      active: false,
+    };
+    marqueeRef.current = next;
+    setMarqueeStyle(null);
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
+    return true;
+  };
+
+  const finishNodeDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = nodeDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return false;
+    if (drag.moved) {
+      onMoveNode?.(drag.mode, drag.nodeId, drag.lastPoint);
+    }
+    nodeDragRef.current = null;
+    setNodeDragPreview(null);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    return true;
+  };
+
+  const finishMarqueeSelection = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const nextMarquee = marqueeRef.current;
+    if (!nextMarquee || nextMarquee.pointerId !== event.pointerId) return false;
+    if (nextMarquee.active) {
+      selectFromMarquee(nextMarquee);
+    } else if (!nextMarquee.additive) {
+      onSelectionSetChange?.([], { openEditor: false });
+    }
+    marqueeRef.current = null;
+    setMarqueeStyle(null);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    event.preventDefault();
+    return true;
+  };
+
+  const handleWorkbenchCanvasPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (startNodeDrag(event)) return;
+    if (startMarqueeSelection(event)) return;
+    handleCanvasPointerDown(event);
+  };
+
+  const handleWorkbenchCanvasPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = nodeDragRef.current;
+    if (drag && drag.pointerId === event.pointerId) {
+      const svgPoint = clientPointToSvgPoint(event, drag.svg);
+      if (!svgPoint) return;
+      const modelPoint = drag.mode === "frame"
+        ? frameCanvasPointToModel(workspace, canvasSize, svgPoint)
+        : trussCanvasPointToModel(workspace, canvasSize, svgPoint);
+      const nextPoint = snapModelPoint(modelPoint);
+      drag.lastPoint = nextPoint;
+      drag.moved = true;
+      setNodeDragPreview({ mode: drag.mode, nodeId: drag.nodeId, ...nextPoint });
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    const nextMarquee = marqueeRef.current;
+    if (nextMarquee && nextMarquee.pointerId === event.pointerId) {
+      const active = nextMarquee.active || Math.hypot(event.clientX - nextMarquee.startClientX, event.clientY - nextMarquee.startClientY) >= 4;
+      const updated = {
+        ...nextMarquee,
+        currentClientX: event.clientX,
+        currentClientY: event.clientY,
+        active,
+      };
+      marqueeRef.current = updated;
+      setMarqueeStyle(marqueeStyleFromState(updated));
+      event.preventDefault();
+      return;
+    }
+
+    handleCanvasPointerMove(event);
+  };
+
+  const handleWorkbenchCanvasPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (finishNodeDrag(event)) return;
+    if (finishMarqueeSelection(event)) return;
+    finishCanvasDrag(event);
+  };
+
+  const handleWorkbenchCanvasPointerCancel = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (nodeDragRef.current?.pointerId === event.pointerId) {
+      nodeDragRef.current = null;
+      setNodeDragPreview(null);
+    }
+    if (marqueeRef.current?.pointerId === event.pointerId) {
+      marqueeRef.current = null;
+      setMarqueeStyle(null);
+    }
+    finishCanvasDrag(event);
+  };
+
+  const fitCanvasToViewport = () => {
+    const scrollArea = canvasScrollRef.current;
+    const viewportWidth = canvasViewportSize?.width ?? scrollArea?.clientWidth ?? 0;
+    const viewportHeight = canvasViewportSize?.height ?? scrollArea?.clientHeight ?? 0;
+    if (viewportWidth <= 0 || viewportHeight <= 0) {
+      commitZoomPercent(MODEL_CANVAS_DEFAULT_ZOOM_PERCENT);
+      return;
+    }
+    const fitPercent = Math.floor(
+      Math.min(
+        MODEL_CANVAS_DEFAULT_ZOOM_PERCENT,
+        ((viewportWidth - 24) / canvasSize.width) * MODEL_CANVAS_DEFAULT_ZOOM_PERCENT,
+        ((viewportHeight - 24) / canvasSize.height) * MODEL_CANVAS_DEFAULT_ZOOM_PERCENT,
+      ),
+    );
+    commitZoomPercent(Math.max(MODEL_CANVAS_MIN_ZOOM_PERCENT, fitPercent));
+    setShowZoomControls(true);
+    window.requestAnimationFrame(() => {
+      if (!scrollArea) return;
+      scrollArea.scrollLeft = 0;
+      scrollArea.scrollTop = 0;
+    });
+  };
 
   return (
     <GlassCard className="overflow-hidden">
-      <div className={`model-canvas-surface relative flex flex-col gap-3 px-4 py-4 ${compact ? "h-[260px]" : "h-[448px]"}`} data-preview-style={modelPreviewStyle}>
-        <div className="flex h-8 items-center justify-end">
+      <div ref={surfaceRef} className={`model-canvas-surface relative flex flex-col gap-3 px-4 py-4 ${compact ? "h-[340px]" : "h-[560px]"}`} data-preview-style={modelPreviewStyle}>
+        <div className="flex min-h-8 flex-wrap items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            {hasHistoryActions ? (
+              <div className="flex items-center gap-1 rounded-xl border border-slate-200/80 bg-white/[0.88] p-1 shadow-sm backdrop-blur dark:border-slate-700/80 dark:bg-slate-950/[0.82]" role="toolbar" aria-label="建模历史">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={onUndoWorkspace}
+                  disabled={!canUndoWorkspace}
+                  aria-label="撤销建模编辑"
+                  title="撤销建模编辑"
+                  className="h-7 w-7 rounded-lg"
+                >
+                  <Undo2 className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={onRedoWorkspace}
+                  disabled={!canRedoWorkspace}
+                  aria-label="重做建模编辑"
+                  title="重做建模编辑"
+                  className="h-7 w-7 rounded-lg"
+                >
+                  <Redo2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ) : null}
+            {geometryToolbar && onGeometryAction ? (
+              <div className="flex min-w-0 flex-wrap items-center gap-1 rounded-xl border border-slate-200/80 bg-white/[0.88] p-1 shadow-sm backdrop-blur dark:border-slate-700/80 dark:bg-slate-950/[0.82]" role="toolbar" aria-label="几何建模工具">
+                <span className="hidden max-w-24 truncate px-2 text-[10px] font-black text-slate-500 dark:text-slate-400 sm:inline" title={geometryToolbar.targetLabel}>
+                  {geometryToolbar.targetLabel}
+                </span>
+                {GEOMETRY_ACTIONS.map((item) => {
+                  const Icon = item.id === "add-connected-node" && geometryToolbar.connectsSelectedNodes ? Link2 : item.icon;
+                  const disabled = item.transform ? !geometryToolbar.canTransform : !geometryToolbar.canAddConnectedNode;
+                  const label = item.id === "add-connected-node" ? geometryToolbar.addConnectedNodeLabel : item.label;
+                  return (
+                    <Button
+                      key={item.id}
+                      type="button"
+                      variant="ghost"
+                      size={compact ? "icon" : "sm"}
+                      onClick={() => onGeometryAction(item.id)}
+                      disabled={disabled}
+                      aria-label={label}
+                      title={label}
+                      className={`${compact ? "h-7 w-7" : "h-7 px-2"} rounded-lg text-[11px] font-bold`}
+                    >
+                      <Icon className={`${compact ? "" : "mr-1.5"} h-3.5 w-3.5`} />
+                      {compact ? <span className="sr-only">{item.shortLabel}</span> : item.shortLabel}
+                    </Button>
+                  );
+                })}
+                {onDeleteSelection ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size={compact ? "icon" : "sm"}
+                    onClick={onDeleteSelection}
+                    disabled={!canDeleteSelection}
+                    aria-label="删除所选对象"
+                    title="删除所选对象（Delete）"
+                    className={`${compact ? "h-7 w-7" : "h-7 px-2"} rounded-lg text-[11px] font-bold text-rose-700 hover:text-rose-800 dark:text-rose-200 dark:hover:text-rose-100`}
+                  >
+                    <Trash2 className={`${compact ? "" : "mr-1.5"} h-3.5 w-3.5`} />
+                    {compact ? <span className="sr-only">删除</span> : "删除"}
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
+            {canShowGridSnapTool ? (
+              <GridSnapControls
+                enabled={gridSnapEnabled}
+                stepM={gridSnapStepM}
+                variant="toolbar"
+                compact={compact}
+                onEnabledChange={(next) => onGridSnapEnabledChange?.(next)}
+                onStepChange={(next) => onGridSnapStepChange?.(next)}
+              />
+            ) : null}
+          </div>
           <div className="flex items-center gap-1 rounded-xl border border-slate-200/80 bg-white/[0.88] p-1 shadow-sm backdrop-blur dark:border-slate-700/80 dark:bg-slate-950/[0.82]">
             {showZoomControls ? (
               <>
@@ -123,6 +593,17 @@ export function WorkbenchModelCanvas({ workspace, mode, compact = false, modelPr
               type="button"
               variant="ghost"
               size="icon"
+              className="h-7 w-7 rounded-lg"
+              aria-label="适应视图"
+              title="适应视图"
+              onClick={fitCanvasToViewport}
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
               className={`h-7 w-7 rounded-lg ${showZoomControls ? "bg-sky-100 text-sky-700 dark:bg-sky-400/15 dark:text-sky-100" : ""}`}
               aria-label={showZoomControls ? "隐藏工作台缩放" : "显示工作台缩放"}
               aria-pressed={showZoomControls}
@@ -135,23 +616,53 @@ export function WorkbenchModelCanvas({ workspace, mode, compact = false, modelPr
         </div>
         <div
           ref={canvasScrollRef}
-          className={`min-h-0 flex-1 overflow-auto ${showZoomControls ? (isCanvasDragging ? "cursor-grabbing" : "cursor-grab") : ""}`}
-          onPointerDown={handleCanvasPointerDown}
-          onPointerMove={handleCanvasPointerMove}
-          onPointerUp={finishCanvasDrag}
-          onPointerCancel={finishCanvasDrag}
+          data-model-canvas-scroll="true"
+          className={`min-h-0 flex-1 overflow-auto ${canvasCursorClass}`}
+          onPointerDown={handleWorkbenchCanvasPointerDown}
+          onPointerMove={handleWorkbenchCanvasPointerMove}
+          onPointerUp={handleWorkbenchCanvasPointerUp}
+          onPointerCancel={handleWorkbenchCanvasPointerCancel}
           onClickCapture={handleCanvasClickCapture}
         >
-          <div className="model-canvas-board" style={boardStyle}>
+          <div ref={boardRef} data-model-canvas-board="true" className="model-canvas-board" style={boardStyle}>
             {mode === "beam" ? (
-              <BeamSketch beam={workspace.beam} canvasSize={canvasSize} modelPreviewStyle={modelPreviewStyle} selection={selection} onSelect={onSelect} />
+              <BeamSketch
+                beam={workspace.beam}
+                canvasSize={canvasSize}
+                modelPreviewStyle={modelPreviewStyle}
+                selection={selection}
+                selectionSet={selectionSet}
+                onSelect={onSelect}
+              />
             ) : mode === "frame" ? (
-              <FrameSketch workspace={workspace} canvasSize={canvasSize} selection={selection} onSelect={onSelect} />
+              <FrameSketch
+                workspace={workspace}
+                canvasSize={canvasSize}
+                selection={selection}
+                selectionSet={selectionSet}
+                dragPreview={nodeDragPreview}
+                onSelect={onSelect}
+              />
             ) : (
-              <TrussSketch workspace={workspace} canvasSize={canvasSize} selection={selection} onSelect={onSelect} />
+              <TrussSketch
+                workspace={workspace}
+                canvasSize={canvasSize}
+                selection={selection}
+                selectionSet={selectionSet}
+                dragPreview={nodeDragPreview}
+                onSelect={onSelect}
+              />
             )}
           </div>
         </div>
+        {marqueeStyle ? (
+          <div
+            aria-hidden="true"
+            data-model-canvas-marquee="true"
+            className="pointer-events-none absolute rounded-sm border border-sky-500/80 bg-sky-400/10 shadow-[0_0_0_1px_rgba(14,165,233,0.22)]"
+            style={marqueeStyle}
+          />
+        ) : null}
       </div>
       <div className={`grid gap-px border-t border-slate-200/70 bg-slate-200/70 dark:border-slate-700/70 dark:bg-slate-700/70 ${metricGridClass}`}>
         {metrics.map((item) => (

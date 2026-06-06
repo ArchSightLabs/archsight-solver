@@ -1,22 +1,24 @@
-import { createPortalFrameModelFromState, type WorkspaceState } from "../../lib/workspace-state";
+import type { WorkspaceState } from "../../lib/workspace-state";
 import { modelObjectMemberTerm } from "../../lib/model-object-vocabulary";
 import { nodeSupportLabel } from "../../lib/support-vocabulary";
 import { modelCanvasLabelPolicy, shouldShowSteppedLabel } from "../../lib/model-canvas-label-policy";
 import { FRAME_MODEL_CANVAS_BASE_SIZE, type ModelCanvasSize } from "../../lib/model-canvas-sizing";
+import {
+  FRAME_SKETCH_PADDING,
+  createGraphCanvasProjector,
+  frameCanvasModel,
+  type ModelCanvasNodeDragPreview,
+} from "../../lib/model-canvas-projection";
 import { STRUCTURE_NODE_RADII, STRUCTURE_VISUAL_STROKES } from "../../lib/structure-visual-tokens";
 import { buildFrameDimensionLegendRows, buildFrameLoadLabelMap, formatFrameDistributedLoadLabel, formatFrameForceLoadLabel, formatFrameTemperatureLoadLabel, frameMemberDimensionValueLabel, type FrameGeometryDimension } from "../frame-preview-utils";
 import type { FrameLoad, FrameLoadDirection, StructureNode, SupportType } from "../../types/structure";
-import type { WorkbenchSelection } from "../../types/workbench-selection";
-import { MODEL_DIMENSION_TEXT_WEIGHT, SVG_TEXT_FONT, clampRatio, svgInteractiveProps } from "./shared";
+import type { WorkbenchSelection, WorkbenchSelectionOptions } from "../../types/workbench-selection";
+import { sameWorkbenchSelection, selectionSetContains } from "../../lib/workbench-selection-utils";
+import { MODEL_DIMENSION_TEXT_WEIGHT, SVG_TEXT_FONT, clampRatio, isAdditiveSelectionEvent, svgCanvasSelectionProps, svgInteractiveProps } from "./shared";
 
 const FRAME_LOAD_STROKE_WIDTH = STRUCTURE_VISUAL_STROKES.modelFrameLoad;
 const FRAME_LOAD_SELECTED_STROKE_WIDTH = STRUCTURE_VISUAL_STROKES.modelFrameSelectedLoad;
 const FRAME_LOAD_GUIDE_STROKE_WIDTH = STRUCTURE_VISUAL_STROKES.modelFrameLoadGuide;
-const FRAME_SKETCH_LEFT_PAD = 165;
-const FRAME_SKETCH_RIGHT_PAD = 165;
-const FRAME_SKETCH_TOP_PAD = 90;
-const FRAME_SKETCH_BOTTOM_PAD = 75;
-
 function getFrameLoadValue(load: Extract<FrameLoad, { type: "distributed" }>) {
   const start = Number.isFinite(load.qStartKnPerM) ? Number(load.qStartKnPerM) : Number(load.wyKnPerM ?? 0);
   const end = Number.isFinite(load.qEndKnPerM) ? Number(load.qEndKnPerM) : start;
@@ -135,47 +137,38 @@ export function FrameSketch({
   workspace,
   canvasSize = FRAME_MODEL_CANVAS_BASE_SIZE,
   selection,
+  selectionSet = [],
+  dragPreview,
   onSelect,
 }: {
   workspace: WorkspaceState;
   canvasSize?: ModelCanvasSize;
   selection?: WorkbenchSelection | null;
-  onSelect?: (next: WorkbenchSelection) => void;
+  selectionSet?: WorkbenchSelection[];
+  dragPreview?: ModelCanvasNodeDragPreview | null;
+  onSelect?: (next: WorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
 }) {
-  const model =
-    workspace.frame.frameMode === "custom"
-      ? {
-          nodes: workspace.frame.customNodes,
-          members: workspace.frame.customMembers,
-          loads: workspace.frame.customLoads,
-        }
-      : createPortalFrameModelFromState(workspace.frame);
+  const model = frameCanvasModel(workspace, dragPreview);
+  const projectionModel = frameCanvasModel(workspace);
   const nodes = model.nodes;
   const members = model.members;
   const loads = model.loads;
   const memberTerm = modelObjectMemberTerm("frame");
-  const xs = nodes.map((node) => node.x);
-  const ys = nodes.map((node) => node.y);
-  const minX = Math.min(...xs, 0);
-  const maxX = Math.max(...xs, 1);
-  const minY = Math.min(...ys, 0);
-  const maxY = Math.max(...ys, 1);
-  const drawableWidth = Math.max(240, canvasSize.width - FRAME_SKETCH_LEFT_PAD - FRAME_SKETCH_RIGHT_PAD);
-  const drawableHeight = Math.max(150, canvasSize.height - FRAME_SKETCH_TOP_PAD - FRAME_SKETCH_BOTTOM_PAD);
-  const map = (point: Pick<StructureNode, "x" | "y">) => ({
-    x: FRAME_SKETCH_LEFT_PAD + ((point.x - minX) / Math.max(1, maxX - minX)) * drawableWidth,
-    y: canvasSize.height - FRAME_SKETCH_BOTTOM_PAD - ((point.y - minY) / Math.max(1, maxY - minY)) * drawableHeight,
-  });
+  const { toCanvas: map } = createGraphCanvasProjector(projectionModel.nodes, canvasSize, FRAME_SKETCH_PADDING);
   const nodeMap = new Map(nodes.map((node) => [node.id, map(node)]));
   const rawNodeMap = new Map(nodes.map((node) => [node.id, node]));
   const memberMap = new Map(members.map((member) => [member.id, member]));
-  const topY = Math.min(...nodes.map((node) => map(node).y), FRAME_SKETCH_TOP_PAD);
-  const bottomY = Math.max(...nodes.map((node) => map(node).y), canvasSize.height - FRAME_SKETCH_BOTTOM_PAD);
-  const leftX = Math.min(...nodes.map((node) => map(node).x), FRAME_SKETCH_LEFT_PAD);
-  const rightX = Math.max(...nodes.map((node) => map(node).x), canvasSize.width - FRAME_SKETCH_RIGHT_PAD);
+  const topY = Math.min(...nodes.map((node) => map(node).y), FRAME_SKETCH_PADDING.top);
+  const bottomY = Math.max(...nodes.map((node) => map(node).y), canvasSize.height - FRAME_SKETCH_PADDING.bottom);
+  const leftX = Math.min(...nodes.map((node) => map(node).x), FRAME_SKETCH_PADDING.left);
+  const rightX = Math.max(...nodes.map((node) => map(node).x), canvasSize.width - FRAME_SKETCH_PADDING.right);
   const frameCenter = { x: (leftX + rightX) / 2, y: (topY + bottomY) / 2 };
   const frameDimensionLegendX = Math.max(20, leftX - 112);
   const frameLoadLabelMap = buildFrameLoadLabelMap(loads);
+  const isSelected = (item: WorkbenchSelection) => selectionSetContains(selectionSet, item) || sameWorkbenchSelection(selection, item);
+  const activateSelection = (item: WorkbenchSelection, event?: { shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean }) => {
+    onSelect?.(item, { additive: isAdditiveSelectionEvent(event) });
+  };
   const frameDimensions: FrameGeometryDimension[] = members.flatMap((member) => {
     const start = rawNodeMap.get(member.start);
     const end = rawNodeMap.get(member.end);
@@ -231,7 +224,8 @@ export function FrameSketch({
           const start = nodeMap.get(member.start);
           const end = nodeMap.get(member.end);
           if (!start || !end) return null;
-          const selected = selection?.mode === "frame" && selection.type === "member" && selection.id === member.id;
+          const memberSelection = { mode: "frame", type: "member", id: member.id } as const;
+          const selected = isSelected(memberSelection);
           const label = frameMemberLabelPlacement(start, end, frameCenter);
           const showLabel = shouldShowSteppedLabel({
             index,
@@ -240,7 +234,11 @@ export function FrameSketch({
             selected,
           });
           return (
-            <g key={member.id} {...svgInteractiveProps(`选择框架${memberTerm} ${member.id}`, () => onSelect?.({ mode: "frame", type: "member", id: member.id }))}>
+            <g
+              key={member.id}
+              {...svgInteractiveProps(`选择框架${memberTerm} ${member.id}`, (event) => activateSelection(memberSelection, event))}
+              {...svgCanvasSelectionProps(memberSelection)}
+            >
               <title>{`框架${memberTerm} ${member.id}`}</title>
               <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="transparent" strokeWidth="18" />
               <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} strokeWidth={selected ? STRUCTURE_VISUAL_STROKES.modelFrameSelectedMember : STRUCTURE_VISUAL_STROKES.modelMember} stroke={selected ? "var(--model-load)" : "var(--model-member)"} opacity={selected ? "0.85" : "1"} />
@@ -269,9 +267,14 @@ export function FrameSketch({
       <g fill="var(--model-node)">
         {nodes.map((node) => {
           const point = nodeMap.get(node.id);
-          const selected = selection?.mode === "frame" && selection.type === "node" && selection.id === node.id;
+          const nodeSelection = { mode: "frame", type: "node", id: node.id } as const;
+          const selected = isSelected(nodeSelection);
           return point ? (
-            <g key={node.id} {...svgInteractiveProps(`选择框架节点 ${node.id}`, () => onSelect?.({ mode: "frame", type: "node", id: node.id }))}>
+            <g
+              key={node.id}
+              {...svgInteractiveProps(`选择框架节点 ${node.id}`, (event) => activateSelection(nodeSelection, event))}
+              {...svgCanvasSelectionProps(nodeSelection, { draggableNode: true })}
+            >
               <title>{`框架节点 ${node.id}`}</title>
               <FrameSupportMarker type={node.supportType} x={point.x} y={point.y} selected={Boolean(selected)} angleDeg={node.supportAngleDeg} />
               <circle cx={point.x} cy={point.y} r={selected ? "11" : "8"} fill="transparent" />
@@ -282,11 +285,13 @@ export function FrameSketch({
       </g>
       <g stroke="var(--model-load)" strokeWidth={FRAME_LOAD_STROKE_WIDTH}>
         {loads.flatMap((load, index) => {
+          const loadSelection = { mode: "frame", type: "load", id: `load-${index}` } as const;
+          const loadSelected = isSelected(loadSelection);
           if (load.type === "nodal") {
             const point = nodeMap.get(load.node);
             if (!point) return [];
             const items = [];
-            const selectedStroke = selection?.mode === "frame" && selection.type === "load" && selection.id === `load-${index}` ? FRAME_LOAD_SELECTED_STROKE_WIDTH : FRAME_LOAD_STROKE_WIDTH;
+            const selectedStroke = loadSelected ? FRAME_LOAD_SELECTED_STROKE_WIDTH : FRAME_LOAD_STROKE_WIDTH;
             if (load.fxKn) {
               const sign = load.fxKn >= 0 ? 1 : -1;
               const x1 = point.x - sign * 48;
@@ -301,7 +306,11 @@ export function FrameSketch({
             }
             return items.length
               ? [
-                  <g key={`${index}-nodal-load`} {...svgInteractiveProps(`选择框架荷载 ${index + 1}`, () => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` }))}>
+                  <g
+                    key={`${index}-nodal-load`}
+                    {...svgInteractiveProps(`选择框架荷载 ${index + 1}`, (event) => activateSelection(loadSelection, event))}
+                    {...svgCanvasSelectionProps(loadSelection)}
+                  >
                     {items}
                   </g>,
                 ]
@@ -320,23 +329,25 @@ export function FrameSketch({
             return [
               <path
                 key={`${index}-member-point`}
-                {...svgInteractiveProps<SVGPathElement>(`选择框架荷载 ${index + 1}`, () => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` }))}
+                {...svgInteractiveProps<SVGPathElement>(`选择框架荷载 ${index + 1}`, (event) => activateSelection(loadSelection, event))}
+                {...svgCanvasSelectionProps(loadSelection)}
                 d={`M${point.x - direction.x * 54} ${point.y - direction.y * 54} L${point.x - direction.x * 10} ${point.y - direction.y * 10}`}
                 markerEnd="url(#frameArrow)"
-                strokeWidth={selection?.mode === "frame" && selection.type === "load" && selection.id === `load-${index}` ? FRAME_LOAD_SELECTED_STROKE_WIDTH : FRAME_LOAD_STROKE_WIDTH}
+                strokeWidth={loadSelected ? FRAME_LOAD_SELECTED_STROKE_WIDTH : FRAME_LOAD_STROKE_WIDTH}
               />,
             ];
           }
           if (load.type === "temperature") {
             const direction = frameMemberLoadDirection(startNode, endNode, "local_y", -1);
-            const selectedStroke = selection?.mode === "frame" && selection.type === "load" && selection.id === `load-${index}` ? FRAME_LOAD_SELECTED_STROKE_WIDTH : FRAME_LOAD_STROKE_WIDTH;
+            const selectedStroke = loadSelected ? FRAME_LOAD_SELECTED_STROKE_WIDTH : FRAME_LOAD_STROKE_WIDTH;
             const guideStart = frameMemberPoint(startNode, endNode, 0);
             const guideEnd = frameMemberPoint(startNode, endNode, 1);
             const guideOffset = 34;
             return [
               <line
                 key={`${index}-temperature-guide`}
-                {...svgInteractiveProps<SVGLineElement>(`选择框架荷载 ${index + 1}`, () => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` }))}
+                {...svgInteractiveProps<SVGLineElement>(`选择框架荷载 ${index + 1}`, (event) => activateSelection(loadSelection, event))}
+                {...svgCanvasSelectionProps(loadSelection)}
                 x1={guideStart.x - direction.x * guideOffset}
                 y1={guideStart.y - direction.y * guideOffset}
                 x2={guideEnd.x - direction.x * guideOffset}
@@ -352,7 +363,7 @@ export function FrameSketch({
           const { startRatio, endRatio, qStart, qEnd } = getFrameDistributedLoadRange(load);
           const representative = Math.abs(qStart) >= Math.abs(qEnd) ? qStart : qEnd;
           const guideDirection = frameMemberLoadDirection(startNode, endNode, load.direction, representative || q);
-          const selectedStroke = selection?.mode === "frame" && selection.type === "load" && selection.id === `load-${index}` ? FRAME_LOAD_SELECTED_STROKE_WIDTH : FRAME_LOAD_STROKE_WIDTH;
+          const selectedStroke = loadSelected ? FRAME_LOAD_SELECTED_STROKE_WIDTH : FRAME_LOAD_STROKE_WIDTH;
           const guideOffset = 45;
           const guideStart = frameMemberPoint(startNode, endNode, startRatio);
           const guideEnd = frameMemberPoint(startNode, endNode, endRatio);
@@ -390,7 +401,11 @@ export function FrameSketch({
             );
           }
           return [
-            <g key={`${index}-dist-load`} {...svgInteractiveProps(`选择框架荷载 ${index + 1}`, () => onSelect?.({ mode: "frame", type: "load", id: `load-${index}` }))}>
+            <g
+              key={`${index}-dist-load`}
+              {...svgInteractiveProps(`选择框架荷载 ${index + 1}`, (event) => activateSelection(loadSelection, event))}
+              {...svgCanvasSelectionProps(loadSelection)}
+            >
               {items}
             </g>,
           ];
@@ -399,7 +414,7 @@ export function FrameSketch({
       <g fill="var(--model-label)" fontSize="11.5" fontWeight="600" fontFamily={SVG_TEXT_FONT}>
         {nodes.map((node, index) => {
           const label = nodeLabel(node);
-          const selected = selection?.mode === "frame" && selection.type === "node" && selection.id === node.id;
+          const selected = isSelected({ mode: "frame", type: "node", id: node.id });
           const pinned = Boolean(node.supportType && node.supportType !== "free");
           const showLabel = shouldShowSteppedLabel({
             index,

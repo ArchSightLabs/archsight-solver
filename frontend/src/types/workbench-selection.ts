@@ -18,5 +18,6 @@ export type TrussWorkbenchSelection =
 export type WorkbenchSelection = BeamWorkbenchSelection | FrameWorkbenchSelection | TrussWorkbenchSelection;
 
 export interface WorkbenchSelectionOptions {
+  additive?: boolean;
   openEditor?: boolean;
 }

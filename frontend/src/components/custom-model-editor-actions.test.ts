@@ -6,34 +6,37 @@ function componentSource(fileName: string) {
   return readFileSync(new URL(`./${fileName}`, import.meta.url), "utf-8");
 }
 
-test("框架对象页接入复制、镜像和阵列编辑入口", () => {
-  const source = componentSource("FrameCustomModelEditor.tsx");
+test("参数建模内部工具栏接入框架复制、镜像和阵列动作", () => {
+  const toolbar = componentSource("WorkbenchModelCanvas.tsx");
+  const actions = readFileSync(new URL("../lib/model-workflow-actions.ts", import.meta.url), "utf-8");
+  const frameEditor = componentSource("FrameCustomModelEditor.tsx");
 
-  assert.match(source, /copyFrameCollections\(value/u);
-  assert.match(source, /mirrorFrameCollections\(value/u);
-  assert.match(source, /arrayFrameCollections\(value/u);
-  assert.match(source, /selectGeneratedFrameGeometry/u);
-  assert.match(source, /geometryEditTarget\.label/u);
-  assert.match(source, /onClick=\{copyGeometryTarget\}/u);
-  assert.match(source, /onClick=\{\(\) => mirrorGeometryTarget\("x"\)\}/u);
-  assert.match(source, /onClick=\{\(\) => mirrorGeometryTarget\("y"\)\}/u);
-  assert.match(source, /onClick=\{\(\) => arrayGeometryTarget\("x"\)\}/u);
-  assert.match(source, /onClick=\{\(\) => arrayGeometryTarget\("y"\)\}/u);
+  assert.match(toolbar, /role="toolbar" aria-label="几何建模工具"/u);
+  assert.match(toolbar, /ModelGeometryAction/u);
+  assert.match(actions, /copyFrameCollections\(collections/u);
+  assert.match(actions, /mirrorFrameCollections\(collections/u);
+  assert.match(actions, /arrayFrameCollections\(collections/u);
+  assert.match(actions, /selectGeneratedFrameGeometry/u);
+  assert.match(actions, /applyFrameConnectedNode/u);
+  assert.doesNotMatch(frameEditor, /复制 \[实验性\]/u);
+  assert.doesNotMatch(frameEditor, /X 镜像 \[实验性\]/u);
+  assert.doesNotMatch(frameEditor, /Y 阵列 \[实验性\]/u);
 });
 
-test("桁架对象页接入复制、镜像和阵列编辑入口", () => {
-  const source = componentSource("TrussCustomModelEditor.tsx");
+test("参数建模内部工具栏接入桁架复制、镜像和阵列动作", () => {
+  const toolbar = componentSource("WorkbenchModelCanvas.tsx");
+  const actions = readFileSync(new URL("../lib/model-workflow-actions.ts", import.meta.url), "utf-8");
+  const trussEditor = componentSource("TrussCustomModelEditor.tsx");
 
-  assert.match(source, /copyTrussCollections\(value/u);
-  assert.match(source, /mirrorTrussCollections\(value/u);
-  assert.match(source, /arrayTrussCollections\(value/u);
-  assert.match(source, /selectGeneratedTrussGeometry/u);
-  assert.match(source, /geometryEditTarget\.label/u);
-  assert.match(source, /onClick=\{copyGeometryTarget\}/u);
-  assert.match(source, /onClick=\{\(\) => mirrorGeometryTarget\("x"\)\}/u);
-  assert.match(source, /onClick=\{\(\) => mirrorGeometryTarget\("y"\)\}/u);
-  assert.match(source, /onClick=\{\(\) => arrayGeometryTarget\("x"\)\}/u);
-  assert.match(source, /onClick=\{\(\) => arrayGeometryTarget\("y"\)\}/u);
+  assert.match(toolbar, /role="toolbar" aria-label="几何建模工具"/u);
+  assert.match(actions, /copyTrussCollections\(collections/u);
+  assert.match(actions, /mirrorTrussCollections\(collections/u);
+  assert.match(actions, /arrayTrussCollections\(collections/u);
+  assert.match(actions, /selectGeneratedTrussGeometry/u);
+  assert.match(actions, /applyTrussConnectedNode/u);
+  assert.doesNotMatch(trussEditor, /复制 \[实验性\]/u);
+  assert.doesNotMatch(trussEditor, /X 镜像 \[实验性\]/u);
+  assert.doesNotMatch(trussEditor, /Y 阵列 \[实验性\]/u);
 });
 
 test("框架和桁架表格页使用可回写的批量编辑器", () => {
@@ -65,7 +68,9 @@ test("框架和桁架表格页使用可回写的批量编辑器", () => {
   assert.match(trussEditor, /onLoadUpdate=\{updateLoad\}/u);
 });
 
-test("框架和桁架坐标编辑接入网格吸附控件", () => {
+test("框架和桁架坐标编辑共享主控画布网格吸附工具", () => {
+  const app = readFileSync(new URL("../App.tsx", import.meta.url), "utf-8");
+  const toolbar = componentSource("WorkbenchModelCanvas.tsx");
   const frameEditor = componentSource("FrameCustomModelEditor.tsx");
   const trussEditor = componentSource("TrussCustomModelEditor.tsx");
   const frameTable = componentSource("FrameTableSection.tsx");
@@ -74,19 +79,28 @@ test("框架和桁架坐标编辑接入网格吸附控件", () => {
   const frameNodeEditor = componentSource("FrameNodeEditor.tsx");
   const trussNodeEditor = componentSource("TrussNodeEditor.tsx");
 
-  assert.match(frameEditor, /GridSnapControls/u);
+  assert.match(app, /const \[gridSnapEnabled, setGridSnapEnabled\] = useState\(false\)/u);
+  assert.match(app, /onGridSnapEnabledChange=\{setGridSnapEnabled\}/u);
+  assert.match(toolbar, /<GridSnapControls/u);
+  assert.match(toolbar, /variant="toolbar"/u);
+  assert.match(toolbar, /snapCoordinateToGrid/u);
+  assert.match(toolbar, /const snapModelPoint/u);
+  assert.match(gridSnapControls, /role=\{isToolbar \? "toolbar" : undefined\}/u);
+  assert.match(gridSnapControls, /aria-label=\{isToolbar \? "网格吸附工具" : undefined\}/u);
+  assert.match(gridSnapControls, /min="0\.01"/u);
+  assert.match(gridSnapControls, /step="0\.01"/u);
+
+  assert.doesNotMatch(frameEditor, /<GridSnapControls/u);
   assert.match(frameEditor, /gridSnapEnabled/u);
   assert.match(frameEditor, /gridSnapStepM/u);
-  assert.match(trussEditor, /GridSnapControls/u);
+  assert.doesNotMatch(trussEditor, /<GridSnapControls/u);
   assert.match(trussEditor, /gridSnapEnabled/u);
   assert.match(trussEditor, /gridSnapStepM/u);
 
-  assert.match(frameTable, /GridSnapControls/u);
+  assert.doesNotMatch(frameTable, /GridSnapControls/u);
   assert.match(frameTable, /gridSnapEnabled=\{gridSnapEnabled\}/u);
-  assert.match(trussTable, /GridSnapControls/u);
+  assert.doesNotMatch(trussTable, /GridSnapControls/u);
   assert.match(trussTable, /gridSnapEnabled=\{gridSnapEnabled\}/u);
-  assert.match(gridSnapControls, /min="0\.01"/u);
-  assert.match(gridSnapControls, /step="0\.01"/u);
 
   assert.match(frameNodeEditor, /snapCoordinateToGrid/u);
   assert.match(frameNodeEditor, /gridSnapEnabled/u);
@@ -104,4 +118,27 @@ test("frame node editor wires support displacement field", () => {
   assert.match(frameNodeEditor, /supportDisplacements/u);
   assert.match(supportDisplacementField, /frameSupportDisplacementOptions/u);
   assert.match(supportDisplacementField, /支座位移/u);
+});
+
+test("主控建模画布暴露框选、拖动节点和删除入口", () => {
+  const toolbar = componentSource("WorkbenchModelCanvas.tsx");
+  const frameSketch = componentSource("model-canvas/FrameSketch.tsx");
+  const trussSketch = componentSource("model-canvas/TrussSketch.tsx");
+  const app = readFileSync(new URL("../App.tsx", import.meta.url), "utf-8");
+
+  assert.match(toolbar, /data-model-canvas-marquee/u);
+  assert.match(toolbar, /cursor-crosshair/u);
+  assert.match(toolbar, /clampClientRect\(clientRectFromMarquee\(nextMarquee\), boundary\)/u);
+  assert.match(toolbar, /position: "absolute"/u);
+  assert.doesNotMatch(toolbar, /position: "fixed"/u);
+  assert.match(toolbar, /data-canvas-draggable-node/u);
+  assert.match(toolbar, /删除所选对象/u);
+  assert.match(toolbar, /onMoveNode/u);
+  assert.match(toolbar, /onSelectionSetChange/u);
+  assert.match(frameSketch, /selectionSet/u);
+  assert.match(frameSketch, /svgCanvasSelectionProps\(nodeSelection, \{ draggableNode: true \}\)/u);
+  assert.match(trussSketch, /selectionSet/u);
+  assert.match(trussSketch, /svgCanvasSelectionProps\(nodeSelection, \{ draggableNode: true \}\)/u);
+  assert.match(app, /deleteModelSelections/u);
+  assert.match(app, /moveModelCanvasNode/u);
 });

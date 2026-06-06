@@ -201,8 +201,8 @@ test("默认平面框架主控建模画布不触发内嵌滚动", async ({ page 
 
   const metrics = await canvasMetrics(page);
 
-  expect(metrics.viewBoxWidth).toBe(900);
-  expect(metrics.viewBoxHeight).toBe(360);
+  expect(metrics.viewBoxWidth).toBe(1080);
+  expect(metrics.viewBoxHeight).toBe(460);
   expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.scrollClientWidth + 1);
   expect(metrics.scrollHeight).toBeLessThanOrEqual(metrics.scrollClientHeight + 1);
 });
@@ -227,7 +227,7 @@ test("梁系跨段支座增多后主控建模画布扩展并触发滚动", async
   const labelMetrics = await canvasLabelMetrics(page);
 
   expect(metrics.viewBoxWidth).toBeGreaterThan(900);
-  expect(metrics.viewBoxHeight).toBeGreaterThanOrEqual(300);
+  expect(metrics.viewBoxHeight).toBeGreaterThanOrEqual(340);
   expect(metrics.scrollWidth).toBeGreaterThan(metrics.scrollClientWidth);
   expect(metrics.boardWidth).toBeGreaterThan(metrics.scrollClientWidth);
   expect(labelMetrics.density).toBe("normal");
@@ -339,7 +339,7 @@ test("平面桁架节点杆件增多后主控建模画布扩展并触发滚动",
   const labelMetrics = await canvasLabelMetrics(page);
 
   expect(metrics.viewBoxWidth).toBeGreaterThan(900);
-  expect(metrics.viewBoxHeight).toBeGreaterThanOrEqual(360);
+  expect(metrics.viewBoxHeight).toBeGreaterThanOrEqual(460);
   expect(metrics.scrollWidth).toBeGreaterThan(metrics.scrollClientWidth);
   expect(metrics.boardWidth).toBeGreaterThan(metrics.scrollClientWidth);
   expect(labelMetrics.density).toBe("dense");

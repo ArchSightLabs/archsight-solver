@@ -5,7 +5,6 @@ import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
 import { FrameLoadEditor } from "./FrameLoadEditor";
 import { FrameMemberEditor } from "./FrameMemberEditor";
 import { FrameNodeEditor } from "./FrameNodeEditor";
-import { GridSnapControls } from "./GridSnapControls";
 
 export type FrameAdvancedSection = "nodes" | "members" | "loads" | "loadCases" | "loadCombinations";
 
@@ -28,8 +27,6 @@ interface FrameTableSectionProps {
   onLoadRemove: (index: number) => void;
   gridSnapEnabled: boolean;
   gridSnapStepM: number;
-  onGridSnapEnabledChange: (enabled: boolean) => void;
-  onGridSnapStepChange: (stepM: number) => void;
 }
 
 export function FrameTableSection({
@@ -51,8 +48,6 @@ export function FrameTableSection({
   onLoadRemove,
   gridSnapEnabled,
   gridSnapStepM,
-  onGridSnapEnabledChange,
-  onGridSnapStepChange,
 }: FrameTableSectionProps) {
   const vocabulary = modelObjectVocabulary("frame");
   const fieldLabelClass = "text-[10px] font-black tracking-widest text-muted-foreground";
@@ -87,14 +82,6 @@ export function FrameTableSection({
             </button>
           );
         })}
-      </div>
-      <div className="mt-4">
-        <GridSnapControls
-          enabled={gridSnapEnabled}
-          stepM={gridSnapStepM}
-          onEnabledChange={onGridSnapEnabledChange}
-          onStepChange={onGridSnapStepChange}
-        />
       </div>
       <div className="mt-4 space-y-5">
         {activeSectionId === "nodes" ? (

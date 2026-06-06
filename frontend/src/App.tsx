@@ -35,11 +35,33 @@ import { createInitialSolverProject, useSolverProjectDocument } from "./hooks/us
 import { useVisitStats } from "./hooks/useVisitStats";
 import { useWorkbenchRuntime } from "./hooks/useWorkbenchRuntime";
 import { APP_VERSION, BUSUANZI_VISIT_STATS_ENABLED } from "./lib/app-metadata";
+import {
+  applyModelGeometryAction,
+  canDeleteModelSelections,
+  deleteModelSelections,
+  modelGeometryToolbarState,
+  moveModelCanvasNode,
+  type ModelGeometryAction,
+} from "./lib/model-workflow-actions";
+import { normalizeGridSnapStep } from "./lib/node-coordinate-snap";
+import type { CanvasPoint } from "./lib/model-canvas-projection";
+import {
+  filterSelectionSetForMode,
+  primarySelectionForMode,
+  replaceSelectionSetForMode,
+  toggleWorkbenchSelection,
+  uniqueWorkbenchSelections,
+} from "./lib/workbench-selection-utils";
 
 type AnalysisObjectPageState = {
   moduleSectionId?: string;
   resultTabId?: string;
 };
+
+interface WorkbenchSelectionState {
+  primary: WorkbenchSelection | null;
+  items: WorkbenchSelection[];
+}
 
 const HIDDEN_VISIT_STATS_STYLE = {
   position: "absolute",
@@ -55,7 +77,11 @@ const USER_MANUAL_HREF = "/docs/user-manual.html";
 function App() {
   const { isDark, setIsDark, clientId } = useWorkbenchSession();
   const [pageStateByObjectId, setPageStateByObjectId] = useState<Record<string, AnalysisObjectPageState>>({});
-  const [workbenchSelection, setWorkbenchSelection] = useState<WorkbenchSelection | null>(null);
+  const [workbenchSelectionState, setWorkbenchSelectionState] = useState<WorkbenchSelectionState>({ primary: null, items: [] });
+  const [gridSnapEnabled, setGridSnapEnabled] = useState(false);
+  const [gridSnapStepM, setGridSnapStepM] = useState(0.5);
+  const workbenchSelection = workbenchSelectionState.primary;
+  const workbenchSelectionSet = workbenchSelectionState.items;
   const [isNewAnalysisObjectDialogOpen, setIsNewAnalysisObjectDialogOpen] = useState(false);
   const [projectInfoDialogMode, setProjectInfoDialogMode] = useState<"create" | "edit" | null>(null);
   const [isSystemSettingsOpen, setIsSystemSettingsOpen] = useState(false);
@@ -105,10 +131,10 @@ function App() {
     workbenchGridStyle,
   } = useResizableWorkbenchLayout(isSystemSettingsOpen);
   const resetWorkbenchContext = useCallback(() => {
-    setWorkbenchSelection(null);
+    setWorkbenchSelectionState({ primary: null, items: [] });
   }, []);
   const resetAllPageState = useCallback(() => {
-    setWorkbenchSelection(null);
+    setWorkbenchSelectionState({ primary: null, items: [] });
     setPageStateByObjectId({});
   }, []);
   const visitStats = useVisitStats();
@@ -320,8 +346,15 @@ function App() {
   });
   const fileDisplayName = projectFileName ?? "未选择文件";
   const fileStateLabel = isProjectDirty ? "未保存" : lastSavedAt ? "已保存" : "新建项目";
-  const handleWorkbenchSelectionChange = (next: WorkbenchSelection, options?: WorkbenchSelectionOptions) => {
-    setWorkbenchSelection(next);
+  const handleWorkbenchSelectionChange = useCallback((next: WorkbenchSelection, options?: WorkbenchSelectionOptions) => {
+    setWorkbenchSelectionState((current) => {
+      const scoped = filterSelectionSetForMode(current.items, next.mode);
+      const nextForMode = options?.additive ? toggleWorkbenchSelection(scoped, next) : [next];
+      return {
+        primary: nextForMode.at(-1) ?? null,
+        items: replaceSelectionSetForMode(current.items, next.mode, nextForMode),
+      };
+    });
     if (options?.openEditor === false) {
       return;
     }
@@ -329,7 +362,94 @@ function App() {
     if (moduleSections.some((section) => section.id === selectedEditorId)) {
       setActiveModuleSection(selectedEditorId);
     }
-  };
+  }, [moduleSections, setActiveModuleSection]);
+  const handleWorkbenchSelectionSetChange = useCallback((next: WorkbenchSelection[], options?: WorkbenchSelectionOptions) => {
+    const scoped = uniqueWorkbenchSelections(next.filter((selection) => selection.mode === analysisMode));
+    setWorkbenchSelectionState((current) => ({
+      primary: scoped.at(-1) ?? null,
+      items: replaceSelectionSetForMode(current.items, analysisMode, scoped),
+    }));
+    if (options?.openEditor === false || scoped.length === 0) {
+      return;
+    }
+    const selectedEditorId = objectNavigatorSectionId(analysisMode);
+    if (moduleSections.some((section) => section.id === selectedEditorId)) {
+      setActiveModuleSection(selectedEditorId);
+    }
+  }, [analysisMode, moduleSections, setActiveModuleSection]);
+  const activeWorkbenchSelectionSet = useMemo(
+    () => filterSelectionSetForMode(workbenchSelectionSet, analysisMode),
+    [analysisMode, workbenchSelectionSet],
+  );
+  const activeWorkbenchSelection = primarySelectionForMode(workbenchSelection, workbenchSelectionSet, analysisMode);
+  const modelGeometryToolbar = useMemo(
+    () => modelGeometryToolbarState(workspace, activeWorkbenchSelection, activeWorkbenchSelectionSet),
+    [activeWorkbenchSelection, activeWorkbenchSelectionSet, workspace],
+  );
+  const canDeleteWorkbenchSelection = useMemo(
+    () => canDeleteModelSelections(workspace, activeWorkbenchSelectionSet),
+    [activeWorkbenchSelectionSet, workspace],
+  );
+  const handleGridSnapStepChange = useCallback((stepM: number) => {
+    setGridSnapStepM(normalizeGridSnapStep(stepM));
+  }, []);
+  const handleModelGeometryAction = useCallback((action: ModelGeometryAction) => {
+    const result = applyModelGeometryAction({
+      workspace,
+      selection: activeWorkbenchSelection,
+      selectionSet: activeWorkbenchSelectionSet,
+      action,
+      materialLibrary: projectMaterialLibrary,
+    });
+    if (!result) return;
+    updateWorkspace(result.workspace);
+    if (result.selection) {
+      handleWorkbenchSelectionChange(result.selection, { openEditor: false });
+    }
+  }, [activeWorkbenchSelection, activeWorkbenchSelectionSet, handleWorkbenchSelectionChange, projectMaterialLibrary, updateWorkspace, workspace]);
+  const handleDeleteWorkbenchSelection = useCallback(() => {
+    const result = deleteModelSelections({
+      workspace,
+      selections: activeWorkbenchSelectionSet,
+    });
+    if (!result) return;
+    updateWorkspace(result.workspace);
+    setWorkbenchSelectionState((current) => ({
+      primary: null,
+      items: replaceSelectionSetForMode(current.items, analysisMode, []),
+    }));
+  }, [activeWorkbenchSelectionSet, analysisMode, updateWorkspace, workspace]);
+  const handleMoveWorkbenchNode = useCallback((mode: "frame" | "truss", nodeId: string, point: CanvasPoint) => {
+    const result = moveModelCanvasNode({
+      workspace,
+      mode,
+      nodeId,
+      point,
+    });
+    if (!result) return;
+    updateWorkspace(result.workspace);
+    if (result.selection) {
+      handleWorkbenchSelectionChange(result.selection, { openEditor: false });
+    }
+  }, [handleWorkbenchSelectionChange, updateWorkspace, workspace]);
+  useEffect(() => {
+    const isEditableTarget = (target: globalThis.EventTarget | null) => {
+      if (!(target instanceof HTMLElement)) return false;
+      return target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
+    };
+    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (isEditableTarget(event.target) || workbenchView !== "model" || (event.key !== "Delete" && event.key !== "Backspace")) {
+        return;
+      }
+      if (!canDeleteModelSelections(workspace, activeWorkbenchSelectionSet)) {
+        return;
+      }
+      event.preventDefault();
+      handleDeleteWorkbenchSelection();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeWorkbenchSelectionSet, handleDeleteWorkbenchSelection, workbenchView, workspace]);
   const handleCreateProjectWithInfo = (next: ProjectInfo) => {
     replaceProject(createInitialSolverProject(next), null, null, null, "新建项目");
     resetAllPageState();
@@ -363,6 +483,8 @@ function App() {
         activeSectionId={activeModuleSectionId}
         selection={trussSelection}
         onSelectionChange={handleWorkbenchSelectionChange}
+        gridSnapEnabled={gridSnapEnabled}
+        gridSnapStepM={gridSnapStepM}
       />
     ) : (
       <FrameForm
@@ -372,6 +494,8 @@ function App() {
         activeSectionId={activeModuleSectionId}
         selection={frameSelection}
         onSelectionChange={handleWorkbenchSelectionChange}
+        gridSnapEnabled={gridSnapEnabled}
+        gridSnapStepM={gridSnapStepM}
       />
     );
 
@@ -404,11 +528,7 @@ function App() {
         onOpenProjectFile={handleOpenProjectFile}
         onOpenPublicExamples={() => setIsPublicExamplesOpen(true)}
         onOpenSystemSettings={() => setIsSystemSettingsOpen(true)}
-        onRedoWorkspace={redoWorkspaceChange}
         onSaveProjectFile={(forceSaveAs) => void handleSaveProjectFile(forceSaveAs)}
-        onUndoWorkspace={undoWorkspaceChange}
-        canRedoWorkspace={canRedoWorkspace}
-        canUndoWorkspace={canUndoWorkspace}
         setIsDark={setIsDark}
         setIsFileMenuOpen={setIsFileMenuOpen}
       />
@@ -484,8 +604,23 @@ function App() {
                 mode={analysisMode}
                 compact={isCompactWorkbench}
                 modelPreviewStyle={project.settings.modelPreviewStyle}
-                selection={workbenchSelection?.mode === analysisMode ? workbenchSelection : null}
+                selection={activeWorkbenchSelection}
+                selectionSet={activeWorkbenchSelectionSet}
+                canDeleteSelection={canDeleteWorkbenchSelection}
+                canRedoWorkspace={canRedoWorkspace}
+                canUndoWorkspace={canUndoWorkspace}
+                geometryToolbar={modelGeometryToolbar}
+                gridSnapEnabled={gridSnapEnabled}
+                gridSnapStepM={gridSnapStepM}
+                onDeleteSelection={handleDeleteWorkbenchSelection}
+                onGeometryAction={handleModelGeometryAction}
+                onGridSnapEnabledChange={setGridSnapEnabled}
+                onGridSnapStepChange={handleGridSnapStepChange}
+                onMoveNode={handleMoveWorkbenchNode}
+                onRedoWorkspace={redoWorkspaceChange}
                 onSelect={handleWorkbenchSelectionChange}
+                onSelectionSetChange={handleWorkbenchSelectionSetChange}
+                onUndoWorkspace={undoWorkspaceChange}
               />
             ) : workbenchView === "sensitivity" ? (
               <WorkbenchSensitivityPanel

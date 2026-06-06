@@ -1,19 +1,21 @@
 import { buildTrussMemberLengthDimension, buildTrussMemberLengthLegendRows, buildTrussSupportMarkerGeometry } from "../truss-preview-utils";
 import { modelCanvasLabelPolicy, shouldShowSteppedLabel } from "../../lib/model-canvas-label-policy";
 import { TRUSS_MODEL_CANVAS_BASE_SIZE, type ModelCanvasSize } from "../../lib/model-canvas-sizing";
+import {
+  TRUSS_SKETCH_PADDING,
+  createGraphCanvasProjector,
+  trussCanvasModel,
+  type ModelCanvasNodeDragPreview,
+} from "../../lib/model-canvas-projection";
 import { modelObjectMemberTerm } from "../../lib/model-object-vocabulary";
 import { STRUCTURE_NODE_RADII, STRUCTURE_VISUAL_STROKES } from "../../lib/structure-visual-tokens";
 import type { WorkspaceState } from "../../lib/workspace-state";
 import type { TrussLoad } from "../../types/structure";
-import type { WorkbenchSelection } from "../../types/workbench-selection";
-import { MODEL_DIMENSION_TEXT_WEIGHT, SVG_TEXT_FONT, formatMagnitude, formatSignedMagnitude, svgInteractiveProps } from "./shared";
+import type { WorkbenchSelection, WorkbenchSelectionOptions } from "../../types/workbench-selection";
+import { sameWorkbenchSelection, selectionSetContains } from "../../lib/workbench-selection-utils";
+import { MODEL_DIMENSION_TEXT_WEIGHT, SVG_TEXT_FONT, formatMagnitude, formatSignedMagnitude, isAdditiveSelectionEvent, svgCanvasSelectionProps, svgInteractiveProps } from "./shared";
 
 type TrussMemberLoad = Extract<TrussLoad, { type: "distributed" | "member_load" | "member" }>;
-
-const TRUSS_SKETCH_LEFT_PAD = 110;
-const TRUSS_SKETCH_RIGHT_PAD = 110;
-const TRUSS_SKETCH_TOP_PAD = 90;
-const TRUSS_SKETCH_BOTTOM_PAD = 80;
 
 function trussMemberLabelPlacement(start: { x: number; y: number }, end: { x: number; y: number }, center: { x: number; y: number }) {
   const midX = (start.x + end.x) / 2;
@@ -112,36 +114,35 @@ export function TrussSketch({
   workspace,
   canvasSize = TRUSS_MODEL_CANVAS_BASE_SIZE,
   selection,
+  selectionSet = [],
+  dragPreview,
   onSelect,
 }: {
   workspace: WorkspaceState;
   canvasSize?: ModelCanvasSize;
   selection?: WorkbenchSelection | null;
-  onSelect?: (next: WorkbenchSelection) => void;
+  selectionSet?: WorkbenchSelection[];
+  dragPreview?: ModelCanvasNodeDragPreview | null;
+  onSelect?: (next: WorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
 }) {
-  const nodes = workspace.truss.customNodes;
-  const members = workspace.truss.customMembers;
-  const loads = workspace.truss.customLoads;
+  const model = trussCanvasModel(workspace, dragPreview);
+  const projectionModel = trussCanvasModel(workspace);
+  const nodes = model.nodes;
+  const members = model.members;
+  const loads = model.loads;
   const memberTerm = modelObjectMemberTerm("truss");
-  const xs = nodes.map((node) => node.x);
-  const ys = nodes.map((node) => node.y);
-  const minX = Math.min(...xs, 0);
-  const maxX = Math.max(...xs, 1);
-  const minY = Math.min(...ys, 0);
-  const maxY = Math.max(...ys, 1);
-  const drawableWidth = Math.max(240, canvasSize.width - TRUSS_SKETCH_LEFT_PAD - TRUSS_SKETCH_RIGHT_PAD);
-  const drawableHeight = Math.max(150, canvasSize.height - TRUSS_SKETCH_TOP_PAD - TRUSS_SKETCH_BOTTOM_PAD);
-  const map = (point: { x: number; y: number }) => ({
-    x: TRUSS_SKETCH_LEFT_PAD + ((point.x - minX) / Math.max(1, maxX - minX)) * drawableWidth,
-    y: canvasSize.height - TRUSS_SKETCH_BOTTOM_PAD - ((point.y - minY) / Math.max(1, maxY - minY)) * drawableHeight,
-  });
+  const { drawableWidth, drawableHeight, toCanvas: map } = createGraphCanvasProjector(projectionModel.nodes, canvasSize, TRUSS_SKETCH_PADDING);
   const nodeMap = new Map(nodes.map((node) => [node.id, map(node)]));
   const rawNodeMap = new Map(nodes.map((node) => [node.id, node]));
   const memberMap = new Map(members.map((member) => [member.id, member]));
-  const trussCenterX = TRUSS_SKETCH_LEFT_PAD + drawableWidth / 2;
-  const trussMidY = canvasSize.height - TRUSS_SKETCH_BOTTOM_PAD - drawableHeight / 2;
-  const trussLeftX = Math.min(...nodes.map((node) => nodeMap.get(node.id)?.x ?? TRUSS_SKETCH_LEFT_PAD), TRUSS_SKETCH_LEFT_PAD);
+  const trussCenterX = TRUSS_SKETCH_PADDING.left + drawableWidth / 2;
+  const trussMidY = canvasSize.height - TRUSS_SKETCH_PADDING.bottom - drawableHeight / 2;
+  const trussLeftX = Math.min(...nodes.map((node) => nodeMap.get(node.id)?.x ?? TRUSS_SKETCH_PADDING.left), TRUSS_SKETCH_PADDING.left);
   const memberLengthLegendX = Math.max(20, trussLeftX - 86);
+  const isSelected = (item: WorkbenchSelection) => selectionSetContains(selectionSet, item) || sameWorkbenchSelection(selection, item);
+  const activateSelection = (item: WorkbenchSelection, event?: { shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean }) => {
+    onSelect?.(item, { additive: isAdditiveSelectionEvent(event) });
+  };
   const memberLengthDimensions = members.flatMap((member) => {
     const start = nodeMap.get(member.start);
     const end = nodeMap.get(member.end);
@@ -184,7 +185,8 @@ export function TrussSketch({
         const start = nodeMap.get(member.start);
         const end = nodeMap.get(member.end);
         if (!start || !end) return null;
-        const selected = selection?.mode === "truss" && selection.type === "member" && selection.id === member.id;
+        const memberSelection = { mode: "truss", type: "member", id: member.id } as const;
+        const selected = isSelected(memberSelection);
         const label = trussMemberLabelPlacement(start, end, { x: trussCenterX, y: trussMidY });
         const dimension = memberLengthDimensionById.get(member.id);
         const showLabel = shouldShowSteppedLabel({
@@ -193,9 +195,12 @@ export function TrussSketch({
           step: labelPolicy.memberLabelStep,
           selected,
         });
-        const interact = svgInteractiveProps(`选择桁架${memberTerm} ${member.id}`, () => onSelect?.({ mode: "truss", type: "member", id: member.id }));
         return (
-          <g key={member.id} role={interact.role} tabIndex={interact.tabIndex} aria-label={interact["aria-label"]} className={interact.className} onClick={interact.onClick} onKeyDown={interact.onKeyDown}>
+          <g
+            key={member.id}
+            {...svgInteractiveProps(`选择桁架${memberTerm} ${member.id}`, (event) => activateSelection(memberSelection, event))}
+            {...svgCanvasSelectionProps(memberSelection)}
+          >
             <title>{dimension?.title ?? `桁架${memberTerm} ${member.id}`}</title>
             <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="transparent" strokeWidth="18" strokeLinecap="round" />
             <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke={selected ? "var(--model-load)" : "var(--model-member)"} strokeWidth={selected ? STRUCTURE_VISUAL_STROKES.modelTrussSelectedMember : STRUCTURE_VISUAL_STROKES.modelMember} strokeLinecap="round" opacity={selected ? "0.85" : "1"} />
@@ -225,7 +230,8 @@ export function TrussSketch({
         const point = nodeMap.get(node.id);
         if (!point) return null;
         const label = getNodeLabel(point);
-        const selected = selection?.mode === "truss" && selection.type === "node" && selection.id === node.id;
+        const nodeSelection = { mode: "truss", type: "node", id: node.id } as const;
+        const selected = isSelected(nodeSelection);
         const pinned = node.supportType === "pinned" || node.supportType === "roller";
         const showLabel = shouldShowSteppedLabel({
           index,
@@ -234,9 +240,12 @@ export function TrussSketch({
           selected,
           pinned,
         });
-        const interact = svgInteractiveProps(`选择桁架节点 ${node.id}`, () => onSelect?.({ mode: "truss", type: "node", id: node.id }));
         return (
-          <g key={node.id} role={interact.role} tabIndex={interact.tabIndex} aria-label={interact["aria-label"]} className={interact.className} onClick={interact.onClick} onKeyDown={interact.onKeyDown}>
+          <g
+            key={node.id}
+            {...svgInteractiveProps(`选择桁架节点 ${node.id}`, (event) => activateSelection(nodeSelection, event))}
+            {...svgCanvasSelectionProps(nodeSelection, { draggableNode: true })}
+          >
             <title>{`桁架节点 ${node.id}`}</title>
             <TrussSupportMarker type={node.supportType} x={point.x} y={point.y} selected={selected} />
             <circle cx={point.x} cy={point.y} r={selected ? STRUCTURE_NODE_RADII.modelSelected : STRUCTURE_NODE_RADII.model} fill={selected ? "var(--model-load)" : "var(--model-node)"} />
@@ -250,6 +259,8 @@ export function TrussSketch({
       })}
       <g stroke="var(--model-load)" strokeWidth="1.9">
         {loads.flatMap((load, index) => {
+          const loadSelection = { mode: "truss", type: "load", id: `load-${index}` } as const;
+          const loadSelected = isSelected(loadSelection);
           if (load.type === "temperature") return [];
           if (load.type !== "nodal") {
             const member = memberMap.get(load.member);
@@ -265,7 +276,7 @@ export function TrussSketch({
             const { startForce, endForce } = trussEquivalentNodalForces(qStart, qEnd, memberLength);
             const maxForce = Math.max(Math.abs(startForce), Math.abs(endForce), 1e-9);
             const guide = trussOffsetSegment(start, end, { x: trussCenterX, y: trussMidY }, 18);
-            const selected = selection?.mode === "truss" && selection.type === "load" && selection.id === `load-${index}`;
+            const selected = loadSelected;
             const labelGuide = trussOffsetSegment(start, end, { x: trussCenterX, y: trussMidY }, 32);
             const labelMid = pointOnSegment(labelGuide.start, labelGuide.end, 0.5);
             const labelAngle = readableSegmentAngle(guide.start, guide.end);
@@ -273,9 +284,12 @@ export function TrussSketch({
               { key: "start", force: startForce, anchor: pointOnSegment(start, end, 0) },
               { key: "end", force: endForce, anchor: pointOnSegment(start, end, 1) },
             ];
-            const interact = svgInteractiveProps(`选择桁架荷载 ${index + 1}`, () => onSelect?.({ mode: "truss", type: "load", id: `load-${index}` }));
             const items = [
-              <g key={`${index}-member-load`} role={interact.role} tabIndex={interact.tabIndex} aria-label={interact["aria-label"]} className={interact.className} onClick={interact.onClick} onKeyDown={interact.onKeyDown}>
+              <g
+                key={`${index}-member-load`}
+                {...svgInteractiveProps(`选择桁架荷载 ${index + 1}`, (event) => activateSelection(loadSelection, event))}
+                {...svgCanvasSelectionProps(loadSelection)}
+              >
                 <line x1={guide.start.x} y1={guide.start.y} x2={guide.end.x} y2={guide.end.y} strokeWidth={selected ? "2.8" : "1.6"} strokeDasharray="5 4" opacity="0.85" />
                 {equivalentArrows.map((arrow) => {
                   if (Math.abs(arrow.force) <= 1e-9) return null;
@@ -313,7 +327,7 @@ export function TrussSketch({
           const point = nodeMap.get(load.node);
           if (!point) return [];
           const items = [];
-          const selectedStroke = selection?.mode === "truss" && selection.type === "load" && selection.id === `load-${index}` ? "3.2" : "1.9";
+          const selectedStroke = loadSelected ? "3.2" : "1.9";
           if (load.fxKn) {
             const sign = load.fxKn >= 0 ? 1 : -1;
             const x1 = point.x - sign * 48;
@@ -363,9 +377,12 @@ export function TrussSketch({
             );
           }
           if (items.length === 0) return [];
-          const interact = svgInteractiveProps(`选择桁架荷载 ${index + 1}`, () => onSelect?.({ mode: "truss", type: "load", id: `load-${index}` }));
           return [
-            <g key={`${index}-nodal-load`} role={interact.role} tabIndex={interact.tabIndex} aria-label={interact["aria-label"]} className={interact.className} onClick={interact.onClick} onKeyDown={interact.onKeyDown}>
+            <g
+              key={`${index}-nodal-load`}
+              {...svgInteractiveProps(`选择桁架荷载 ${index + 1}`, (event) => activateSelection(loadSelection, event))}
+              {...svgCanvasSelectionProps(loadSelection)}
+            >
               {items}
             </g>,
           ];
