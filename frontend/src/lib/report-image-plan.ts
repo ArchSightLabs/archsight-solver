@@ -1,5 +1,5 @@
 import type { BeamCalculationResults, SensitivityResults } from "../types/beam.ts";
-import type { AnalysisMode, FrameCalculationResults, TrussCalculationResults } from "../types/structure.ts";
+import type { AnalysisMode, FrameCalculationResults, ModelLabelOffsets, ResultViewSettings, TrussCalculationResults } from "../types/structure.ts";
 import {
   BEAM_REPORT_OVERLAY_FIGURES,
   BEAM_REPORT_TRADITIONAL_FIGURES,
@@ -21,17 +21,23 @@ export interface ReportImagePlanInput {
   trussResults: TrussCalculationResults | null;
   sensitivityData: SensitivityResults | null;
   reportOptions?: ReportExportOptions;
-  viewSettings?: import("../types/structure.ts").ResultViewSettings | null;
+  viewSettings?: ResultViewSettings | null;
+  modelLabelOffsets?: ModelLabelOffsets | null;
 }
 
+type ReportImagePlanVisualOptions = {
+  viewSettings?: ResultViewSettings | null;
+  modelLabelOffsets?: ModelLabelOffsets | null;
+};
+
 export type ReportImagePlanItem =
-  | { key: "beam.preview"; label: string; kind: "beamPreview"; viewSettings?: import("../types/structure.ts").ResultViewSettings | null }
-  | { key: string; label: string; kind: "beamOverlay"; figure: BeamReportFigure; viewSettings?: import("../types/structure.ts").ResultViewSettings | null }
-  | { key: string; label: string; kind: "beamTraditional"; figure: BeamReportFigure; viewSettings?: import("../types/structure.ts").ResultViewSettings | null }
-  | { key: "frame.preview"; label: string; kind: "framePreview"; viewSettings?: import("../types/structure.ts").ResultViewSettings | null }
-  | { key: string; label: string; kind: "frameOverlay"; figure: FrameMemberReportFigure; viewSettings?: import("../types/structure.ts").ResultViewSettings | null }
-  | { key: "truss.preview"; label: string; kind: "trussPreview"; viewSettings?: import("../types/structure.ts").ResultViewSettings | null }
-  | { key: string; label: string; kind: "trussOverlay"; figure: TrussReportFigure; viewSettings?: import("../types/structure.ts").ResultViewSettings | null }
+  | ({ key: "beam.preview"; label: string; kind: "beamPreview" } & ReportImagePlanVisualOptions)
+  | ({ key: string; label: string; kind: "beamOverlay"; figure: BeamReportFigure } & ReportImagePlanVisualOptions)
+  | ({ key: string; label: string; kind: "beamTraditional"; figure: BeamReportFigure } & ReportImagePlanVisualOptions)
+  | ({ key: "frame.preview"; label: string; kind: "framePreview" } & ReportImagePlanVisualOptions)
+  | ({ key: string; label: string; kind: "frameOverlay"; figure: FrameMemberReportFigure } & ReportImagePlanVisualOptions)
+  | ({ key: "truss.preview"; label: string; kind: "trussPreview" } & ReportImagePlanVisualOptions)
+  | ({ key: string; label: string; kind: "trussOverlay"; figure: TrussReportFigure } & ReportImagePlanVisualOptions)
   | { key: "sensitivity.response"; label: string; kind: "sensitivity" };
 
 export function reportFigureFlags(options: ReportExportOptions) {
@@ -56,16 +62,20 @@ export function buildReportImagePlan(input: ReportImagePlanInput): ReportImagePl
   const options = reportExportOptionsForMode(input.analysisMode, input.reportOptions ?? DEFAULT_REPORT_EXPORT_OPTIONS);
   const { includeFigures, includeOverlay, includeTraditional, includeAll } = reportFigureFlags(options);
   const plan: ReportImagePlanItem[] = [];
+  const visualOptions: ReportImagePlanVisualOptions = {
+    viewSettings: input.viewSettings,
+    modelLabelOffsets: input.modelLabelOffsets,
+  };
 
   if (includeFigures && input.analysisMode === "beam" && input.beamResults) {
-    plan.push({ key: "beam.preview", label: analysisVocabulary("beam").previewFigureLabel, kind: "beamPreview", viewSettings: input.viewSettings });
+    plan.push({ key: "beam.preview", label: analysisVocabulary("beam").previewFigureLabel, kind: "beamPreview", ...visualOptions });
     if (includeOverlay) {
       plan.push(...reportFiguresForScope(BEAM_REPORT_OVERLAY_FIGURES, includeAll).map((figure) => ({
         key: figure.imageKey,
         label: `梁系${figure.title}`,
         kind: "beamOverlay" as const,
         figure,
-        viewSettings: input.viewSettings,
+        ...visualOptions,
       })));
     }
     if (includeTraditional) {
@@ -74,33 +84,33 @@ export function buildReportImagePlan(input: ReportImagePlanInput): ReportImagePl
         label: figure.title,
         kind: "beamTraditional" as const,
         figure,
-        viewSettings: input.viewSettings,
+        ...visualOptions,
       })));
     }
   }
 
   if (includeFigures && input.analysisMode === "frame" && input.frameResults) {
-    plan.push({ key: "frame.preview", label: analysisVocabulary("frame").previewFigureLabel, kind: "framePreview", viewSettings: input.viewSettings });
+    plan.push({ key: "frame.preview", label: analysisVocabulary("frame").previewFigureLabel, kind: "framePreview", ...visualOptions });
     if (includeOverlay || includeTraditional) {
       plan.push(...reportFiguresForScope(FRAME_REPORT_MEMBER_FIGURES, includeAll).map((figure) => ({
         key: figure.overlayImageKey,
         label: `${modelObjectMemberTerm("frame")}${figure.title}`,
         kind: "frameOverlay" as const,
         figure,
-        viewSettings: input.viewSettings,
+        ...visualOptions,
       })));
     }
   }
 
   if (includeFigures && input.analysisMode === "truss" && input.trussResults) {
-    plan.push({ key: "truss.preview", label: analysisVocabulary("truss").previewFigureLabel, kind: "trussPreview", viewSettings: input.viewSettings });
+    plan.push({ key: "truss.preview", label: analysisVocabulary("truss").previewFigureLabel, kind: "trussPreview", ...visualOptions });
     if (includeOverlay || includeTraditional) {
       plan.push(...reportFiguresForScope(TRUSS_REPORT_OVERLAY_FIGURES, includeAll).map((figure) => ({
         key: figure.imageKey,
         label: `平面桁架${figure.title}`,
         kind: "trussOverlay" as const,
         figure,
-        viewSettings: input.viewSettings,
+        ...visualOptions,
       })));
     }
   }

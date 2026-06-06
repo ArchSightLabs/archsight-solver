@@ -23,6 +23,33 @@ test("参数建模内部工具栏接入框架复制、镜像和阵列动作", ()
   assert.doesNotMatch(frameEditor, /Y 阵列 \[实验性\]/u);
 });
 
+test("结果预览和模型叠加工程图同步建模标注偏移", () => {
+  const resultContent = componentSource("WorkbenchResultContent.tsx");
+  const beamPreview = componentSource("BeamPreview.tsx");
+  const beamDiagrams = componentSource("BeamResultDiagrams.tsx");
+  const framePreview = componentSource("FramePreview.tsx");
+  const frameDiagrams = componentSource("FrameMemberDiagrams.tsx");
+  const trussPreview = componentSource("TrussPreview.tsx");
+  const trussDiagrams = componentSource("TrussResultDiagrams.tsx");
+
+  assert.match(resultContent, /modelLabelOffsets=\{workspace\.beam\.modelLabelOffsets\}/u);
+  assert.match(resultContent, /modelLabelOffsets=\{workspace\.frame\.modelLabelOffsets\}/u);
+  assert.match(resultContent, /modelLabelOffsets=\{workspace\.truss\.modelLabelOffsets\}/u);
+
+  for (const source of [beamPreview, beamDiagrams, framePreview, frameDiagrams, trussPreview, trussDiagrams]) {
+    assert.match(source, /modelLabelTransformFromOffsets/u);
+    assert.match(source, /data-result-label-id="dimension-legend"/u);
+    assert.match(source, /data-result-surface=/u);
+  }
+
+  assert.match(beamPreview, /member:\$\{dimension\.memberId\}/u);
+  assert.match(beamDiagrams, /node:\$\{node\.id \?\? `\$\{node\.index \+ 1\}`\}/u);
+  assert.match(framePreview, /frameResultLoadLabelId/u);
+  assert.match(frameDiagrams, /member:\$\{member\.id\}/u);
+  assert.match(trussPreview, /load:\$\{load\.key\.replace\("-", ":"\)\}/u);
+  assert.match(trussDiagrams, /node:\$\{node\.id\}/u);
+});
+
 test("参数建模内部工具栏接入桁架复制、镜像和阵列动作", () => {
   const toolbar = componentSource("WorkbenchModelCanvas.tsx");
   const actions = readFileSync(new URL("../lib/model-workflow-actions.ts", import.meta.url), "utf-8");

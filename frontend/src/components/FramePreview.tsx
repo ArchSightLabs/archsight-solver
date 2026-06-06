@@ -9,11 +9,13 @@ import { RESULT_PREVIEW_BASE_SIZE, resultPreviewCanvasSize, resultPreviewSvgStyl
 import { summaryMetricLabel } from "../lib/result-metrics";
 import { STRUCTURE_NODE_RADII, STRUCTURE_STATE_COLORS, STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
 import type { ResultViewSettings } from "../types/structure";
+import { modelLabelTransformFromOffsets, type ModelLabelOffsets } from "../lib/model-label-overrides";
 
 interface FramePreviewProps {
   frame: FramePreviewData | null;
   compact?: boolean;
   viewSettings: ResultViewSettings;
+  modelLabelOffsets?: ModelLabelOffsets;
   onChangeViewSettings: (settings: ResultViewSettings) => void;
 }
 
@@ -115,11 +117,23 @@ function hingeMarker(x: number, y: number, key: string) {
   );
 }
 
-export function FramePreview({ frame, compact = false, viewSettings, onChangeViewSettings }: FramePreviewProps) {
+function frameResultLoadLabelId(markerKey: string) {
+  const index = markerKey.match(/^(\d+)-/u)?.[1];
+  if (index === undefined) return null;
+  if (markerKey.endsWith("-fx")) return `load:${index}:fx`;
+  if (markerKey.endsWith("-fy")) return `load:${index}:fy`;
+  if (markerKey.endsWith("-member-point")) return `load:${index}:member-point`;
+  if (markerKey.endsWith("-temperature-guide")) return `load:${index}:temperature`;
+  if (markerKey.endsWith("-distributed-guide")) return `load:${index}:distributed`;
+  return null;
+}
+
+export function FramePreview({ frame, compact = false, viewSettings, modelLabelOffsets, onChangeViewSettings }: FramePreviewProps) {
   const { showLoads, showDisplacement, showExtremeLabel, displacementScale: manualDeformationScale } = viewSettings;
   const objectVocabulary = modelObjectVocabulary("frame");
   const memberTerm = modelObjectMemberTerm("frame");
   const { canvasScrollRef, isCanvasDragging, handleCanvasPointerDown, handleCanvasPointerMove, finishCanvasDrag, handleCanvasClickCapture } = useCanvasDrag();
+  const labelTransform = (id: string) => modelLabelTransformFromOffsets(modelLabelOffsets, id);
   const padding = compact ? 52 : PADDING;
   const canvasSize = useMemo(
     () => frame ? resultPreviewCanvasSize(frame.nodes, frame.members.length) : RESULT_PREVIEW_BASE_SIZE,
@@ -341,7 +355,17 @@ export function FramePreview({ frame, compact = false, viewSettings, onChangeVie
           </defs>
 
           {dimensionLegendRows.length ? (
-            <g fontFamily="Fira Code" fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke">
+            <g
+              fontFamily="Fira Code"
+              fill="var(--structure-preview-label)"
+              stroke="var(--structure-preview-text-halo)"
+              strokeWidth="4"
+              paintOrder="stroke"
+              transform={labelTransform("dimension-legend")}
+              data-result-mode="frame"
+              data-result-surface="preview"
+              data-result-label-id="dimension-legend"
+            >
               {dimensionLegendRows.map((row, index) => (
                 <text key={`frame-preview-dimension-${index}`} x={layout.dimensionLegendX} y={28 + index * 16} fontSize={compact ? "10" : "12"} fontWeight="600">
                   {row}
@@ -368,7 +392,20 @@ export function FramePreview({ frame, compact = false, viewSettings, onChangeVie
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
-                <text x={label.x} y={label.y} fill="var(--structure-preview-label)" textAnchor={label.textAnchor} dominantBaseline="middle" fontSize={compact ? "9" : "11"} fontFamily="Fira Code" fontWeight="700">
+                <text
+                  x={label.x}
+                  y={label.y}
+                  fill="var(--structure-preview-label)"
+                  textAnchor={label.textAnchor}
+                  dominantBaseline="middle"
+                  fontSize={compact ? "9" : "11"}
+                  fontFamily="Fira Code"
+                  fontWeight="700"
+                  transform={labelTransform(`member:${member.id}`)}
+                  data-result-mode="frame"
+                  data-result-surface="preview"
+                  data-result-label-id={`member:${member.id}`}
+                >
                   {member.id}
                 </text>
                 {member.endReleases?.start?.includes("rz") ? hingeMarker(start.x, start.y, `${member.id}-start-release`) : null}
@@ -405,7 +442,18 @@ export function FramePreview({ frame, compact = false, viewSettings, onChangeVie
               <g key={node.id}>
                 {supportMarker((node.supportType ?? "free") as SupportType, point.x, point.y, node.supportAngleDeg)}
                 <circle cx={point.x} cy={point.y} r={STRUCTURE_NODE_RADII.preview} fill="var(--structure-preview-node)" />
-                <text x={label.x} y={label.y} textAnchor={label.anchor} fill="var(--structure-preview-node-label)" fontSize={compact ? "9" : "11"} fontFamily="Fira Code">
+                <text
+                  x={label.x}
+                  y={label.y}
+                  textAnchor={label.anchor}
+                  fill="var(--structure-preview-node-label)"
+                  fontSize={compact ? "9" : "11"}
+                  fontFamily="Fira Code"
+                  transform={labelTransform(`node:${node.id}`)}
+                  data-result-mode="frame"
+                  data-result-surface="preview"
+                  data-result-label-id={`node:${node.id}`}
+                >
                   {node.id}
                 </text>
                 {springMarkers(node, point.x, point.y)}
@@ -454,7 +502,9 @@ export function FramePreview({ frame, compact = false, viewSettings, onChangeVie
             </g>
           ) : null}
 
-          {showLoads && loadMarkers.map((load, index) => (
+          {showLoads && loadMarkers.map((load, index) => {
+            const loadLabelId = frameResultLoadLabelId(load.key);
+            return (
             <g key={load.key ?? `${load.type}-${index}`}>
               {load.type === "moment" ? (
                 <path
@@ -491,12 +541,23 @@ export function FramePreview({ frame, compact = false, viewSettings, onChangeVie
                 />
               )}
               {load.label ? (
-                <text x={load.labelX} y={load.labelY} fill="var(--structure-preview-label)" textAnchor={load.textAnchor ?? "start"} fontSize={compact ? "9" : "11"} fontFamily="Fira Code">
+                <text
+                  x={load.labelX}
+                  y={load.labelY}
+                  fill="var(--structure-preview-label)"
+                  textAnchor={load.textAnchor ?? "start"}
+                  fontSize={compact ? "9" : "11"}
+                  fontFamily="Fira Code"
+                  transform={loadLabelId ? labelTransform(loadLabelId) : undefined}
+                  data-result-mode="frame"
+                  data-result-surface="preview"
+                  data-result-label-id={loadLabelId ?? undefined}
+                >
                   {load.label}
                 </text>
               ) : null}
             </g>
-          ))}
+          )})}
         </svg>
       </div>
 

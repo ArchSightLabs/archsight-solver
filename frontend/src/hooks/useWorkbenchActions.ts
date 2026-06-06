@@ -210,6 +210,7 @@ export function useWorkbenchActions(
                 sensitivityData,
                 reportOptions: effectiveReportOptions,
                 viewSettings: workspace.analysisMode === "beam" ? workspace.beam.viewSettings : workspace.analysisMode === "frame" ? workspace.frame.viewSettings : workspace.truss.viewSettings,
+                modelLabelOffsets: workspace.analysisMode === "beam" ? workspace.beam.modelLabelOffsets : workspace.analysisMode === "frame" ? workspace.frame.modelLabelOffsets : workspace.truss.modelLabelOffsets,
               }),
             }
           : exportPayload;

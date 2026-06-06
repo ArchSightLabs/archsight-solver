@@ -1,4 +1,4 @@
-import type { FrameCalculationResults, TrussCalculationResults } from "../types/structure.ts";
+import type { FrameCalculationResults, ModelLabelOffsets, ResultViewSettings, TrussCalculationResults } from "../types/structure.ts";
 import {
   buildFrameDimensionLegendRows,
   buildFrameGeometryDimensions,
@@ -32,6 +32,7 @@ import {
 import {
   renderOption,
 } from "./report-rendering.ts";
+import { modelLabelOffsetFromOffsets } from "./model-label-overrides.ts";
 import { modelObjectMemberTerm } from "./model-object-vocabulary.ts";
 import { RESULT_PREVIEW_BASE_SIZE, resultPreviewCanvasSize } from "./result-preview-sizing.ts";
 import { STRUCTURE_REPORT_COLORS, STRUCTURE_RESULT_COLORS, STRUCTURE_VISUAL_STROKES } from "./structure-visual-tokens.ts";
@@ -42,6 +43,7 @@ type ReportStructureLoadRenderer = (
     layout: ReportStructureLayout;
     nodeById: Map<string, ReportNode>;
     memberById: Map<string, ReportMember>;
+    modelLabelOffsets?: ModelLabelOffsets | null;
   },
 ) => void;
 
@@ -74,6 +76,25 @@ function framePreviewExtraNodes(preview: FrameReportPreview) {
 
 function trussPreviewExtraNodes(preview: TrussReportPreview) {
   return preview.deformedNodes.map((node) => ({ x: node.x, y: node.y }));
+}
+
+function reportLabelOffset(modelLabelOffsets: ModelLabelOffsets | null | undefined, labelId: string) {
+  return modelLabelOffsetFromOffsets(modelLabelOffsets, labelId);
+}
+
+function frameReportLoadLabelId(markerKey: string) {
+  const index = markerKey.match(/^(\d+)-/u)?.[1];
+  if (index === undefined) return null;
+  if (markerKey.endsWith("-fx")) return `load:${index}:fx`;
+  if (markerKey.endsWith("-fy")) return `load:${index}:fy`;
+  if (markerKey.endsWith("-member-point")) return `load:${index}:member-point`;
+  if (markerKey.endsWith("-temperature-guide")) return `load:${index}:temperature`;
+  if (markerKey.endsWith("-distributed-guide")) return `load:${index}:distributed`;
+  return null;
+}
+
+function trussReportLoadLabelId(markerKey: string) {
+  return `load:${markerKey.replace("-", ":")}`;
 }
 
 export function frameReportCanvasSize(preview: FrameReportPreview): ReportCanvasSize {
@@ -168,15 +189,17 @@ function addFrameLoadGraphics(
       loadLabel: loadLabelMap.get(index),
     });
     markers.forEach((marker) => {
+      const labelId = frameReportLoadLabelId(marker.key);
+      const labelOffset = labelId ? reportLabelOffset(context.modelLabelOffsets, labelId) : undefined;
       if (marker.type === "force") {
         addArrow(graphics, marker.x1, marker.y1, marker.x2, marker.y2);
-        addLoadLabel(graphics, marker.label, marker.labelX, marker.labelY, marker.textAnchor);
+        addLoadLabel(graphics, marker.label, marker.labelX, marker.labelY, marker.textAnchor, labelOffset);
       } else if (marker.type === "distributed-guide") {
         graphics.push({ type: "line", shape: marker, style: { stroke: LOAD_STROKE, lineWidth: 1.5, lineDash: [5, 4] } });
-        addLoadLabel(graphics, marker.label, marker.labelX, marker.labelY, marker.textAnchor);
+        addLoadLabel(graphics, marker.label, marker.labelX, marker.labelY, marker.textAnchor, labelOffset);
       } else {
         graphics.push({ type: "circle", shape: { cx: marker.cx, cy: marker.cy, r: marker.radius }, style: { stroke: LOAD_STROKE, lineWidth: 2, fill: "transparent" } });
-        addLoadLabel(graphics, marker.label, marker.labelX, marker.labelY, marker.textAnchor);
+        addLoadLabel(graphics, marker.label, marker.labelX, marker.labelY, marker.textAnchor, labelOffset);
       }
     });
   });
@@ -194,20 +217,20 @@ function addTrussLoadGraphics(
     if (!point) return;
     buildTrussLoadMarkers(point, load, index).forEach((marker) => {
       addArrow(graphics, marker.x1, marker.y1, marker.x2, marker.y2);
-      addLoadLabel(graphics, marker.label, marker.labelX, marker.labelY);
+      addLoadLabel(graphics, marker.label, marker.labelX, marker.labelY, "start", reportLabelOffset(context.modelLabelOffsets, trussReportLoadLabelId(marker.key)));
     });
   });
 }
 
-export async function renderFramePreview(results: FrameCalculationResults, viewSettings?: import("../types/structure").ResultViewSettings | null) {
+export async function renderFramePreview(results: FrameCalculationResults, viewSettings?: ResultViewSettings | null, modelLabelOffsets?: ModelLabelOffsets | null) {
   const preview = results.frame ?? results.preview;
   const canvasSize = preview ? frameReportCanvasSize(preview) : REPORT_IMAGE_BASE_SIZE;
-  const graphics = buildFramePreviewGraphics(results, canvasSize, viewSettings);
+  const graphics = buildFramePreviewGraphics(results, canvasSize, viewSettings, modelLabelOffsets);
   if (!graphics.length) return "";
   return renderReportGraphics(graphics, canvasSize);
 }
 
-export function buildFramePreviewGraphics(results: FrameCalculationResults, canvasSize?: ReportCanvasSize, viewSettings?: import("../types/structure").ResultViewSettings | null): ReportGraphic[] {
+export function buildFramePreviewGraphics(results: FrameCalculationResults, canvasSize?: ReportCanvasSize, viewSettings?: ResultViewSettings | null, modelLabelOffsets?: ModelLabelOffsets | null): ReportGraphic[] {
   const preview = results.frame ?? results.preview;
   if (!preview) return [];
   const effectiveCanvasSize = canvasSize ?? frameReportCanvasSize(preview);
@@ -222,18 +245,19 @@ export function buildFramePreviewGraphics(results: FrameCalculationResults, canv
     dimensionRows: buildFrameDimensionLegendRows(buildFrameGeometryDimensions(preview.nodes, preview.members), 240, 12),
     renderLoads: viewSettings?.showLoads !== false ? ((graphics, context) => addFrameLoadGraphics(graphics, preview.loads, context)) : undefined,
     showDisplacement: viewSettings?.showDisplacement !== false,
+    modelLabelOffsets,
   });
 }
 
-export async function renderTrussPreview(results: TrussCalculationResults, viewSettings?: import("../types/structure").ResultViewSettings | null) {
+export async function renderTrussPreview(results: TrussCalculationResults, viewSettings?: ResultViewSettings | null, modelLabelOffsets?: ModelLabelOffsets | null) {
   const preview = results.truss ?? results.preview;
   const canvasSize = preview ? trussReportCanvasSize(preview) : REPORT_IMAGE_BASE_SIZE;
-  const graphics = buildTrussPreviewGraphics(results, canvasSize, viewSettings);
+  const graphics = buildTrussPreviewGraphics(results, canvasSize, viewSettings, modelLabelOffsets);
   if (!graphics.length) return "";
   return renderReportGraphics(graphics, canvasSize);
 }
 
-export function buildTrussPreviewGraphics(results: TrussCalculationResults, canvasSize?: ReportCanvasSize, viewSettings?: import("../types/structure").ResultViewSettings | null): ReportGraphic[] {
+export function buildTrussPreviewGraphics(results: TrussCalculationResults, canvasSize?: ReportCanvasSize, viewSettings?: ResultViewSettings | null, modelLabelOffsets?: ModelLabelOffsets | null): ReportGraphic[] {
   const preview = results.truss ?? results.preview;
   if (!preview) return [];
   const effectiveCanvasSize = canvasSize ?? trussReportCanvasSize(preview);
@@ -248,13 +272,14 @@ export function buildTrussPreviewGraphics(results: TrussCalculationResults, canv
     dimensionRows: buildTrussMemberLengthLegendRows(buildTrussMemberLengthDimensions(preview.nodes, preview.members), 240, 12),
     renderLoads: viewSettings?.showLoads !== false ? ((graphics, context) => addTrussLoadGraphics(graphics, preview.loads, context)) : undefined,
     showDisplacement: viewSettings?.showDisplacement !== false,
+    modelLabelOffsets,
   });
 }
 
-export async function renderFrameOverlay(results: FrameCalculationResults, metric: "momentKnM" | "shearKn" | "axialKn" | "deflectionMm", viewSettings?: import("../types/structure").ResultViewSettings | null) {
+export async function renderFrameOverlay(results: FrameCalculationResults, metric: "momentKnM" | "shearKn" | "axialKn" | "deflectionMm", viewSettings?: ResultViewSettings | null, modelLabelOffsets?: ModelLabelOffsets | null) {
   const preview = results.frame ?? results.preview;
   const canvasSize = preview ? frameReportCanvasSize(preview) : REPORT_IMAGE_BASE_SIZE;
-  const graphics = buildFrameOverlayGraphics(results, metric, canvasSize, viewSettings);
+  const graphics = buildFrameOverlayGraphics(results, metric, canvasSize, viewSettings, modelLabelOffsets);
   if (!graphics.length) return "";
   return renderReportGraphics(graphics, canvasSize);
 }
@@ -263,7 +288,8 @@ export function buildFrameOverlayGraphics(
   results: FrameCalculationResults,
   metric: "momentKnM" | "shearKn" | "axialKn" | "deflectionMm",
   canvasSize?: ReportCanvasSize,
-  viewSettings?: import("../types/structure").ResultViewSettings | null,
+  viewSettings?: ResultViewSettings | null,
+  modelLabelOffsets?: ModelLabelOffsets | null,
 ): ReportGraphic[] {
   const preview = results.frame ?? results.preview;
   if (!preview) return [];
@@ -301,7 +327,7 @@ export function buildFrameOverlayGraphics(
     `平面框架 ${metricConfig.label}（模型叠加）`,
     extreme ? `控制值 ${extreme.value.toFixed(3)} ${metricConfig.unit}，${memberTerm} ${extreme.memberId}，s=${extreme.stationM.toFixed(2)} m` : `无${memberTerm}测站数据`,
   );
-  addDimensionLegend(graphics, buildFrameDimensionLegendRows(buildFrameGeometryDimensions(nodes, members), 240, 12));
+  addDimensionLegend(graphics, buildFrameDimensionLegendRows(buildFrameGeometryDimensions(nodes, members), 240, 12), 74, reportLabelOffset(modelLabelOffsets, "dimension-legend"));
   for (const member of members) {
     const startNode = byId.get(member.start);
     const endNode = byId.get(member.end);
@@ -343,12 +369,12 @@ export function buildFrameOverlayGraphics(
     const startNode = byId.get(member.start);
     const endNode = byId.get(member.end);
     if (!startNode || !endNode) continue;
-    addMemberLabel(graphics, member.id, layout.map(startNode), layout.map(endNode), layout.center);
+    addMemberLabel(graphics, member.id, layout.map(startNode), layout.map(endNode), layout.center, reportLabelOffset(modelLabelOffsets, `member:${member.id}`));
   }
   for (const node of nodes) {
     const point = layout.map(node);
     addFrameSupportMarker(graphics, node.supportType, point, node.supportAngleDeg);
-    addNode(graphics, node.id, point, layout.center);
+    addNode(graphics, node.id, point, layout.center, reportLabelOffset(modelLabelOffsets, `node:${node.id}`));
   }
   if (extreme && extremePoint && viewSettings?.showExtremeLabel !== false) {
     addControlCallout(graphics, {
@@ -363,15 +389,15 @@ export function buildFrameOverlayGraphics(
   return graphics;
 }
 
-export async function renderTrussOverlay(results: TrussCalculationResults, metric: "axial" | "displacement", viewSettings?: import("../types/structure").ResultViewSettings | null) {
+export async function renderTrussOverlay(results: TrussCalculationResults, metric: "axial" | "displacement", viewSettings?: ResultViewSettings | null, modelLabelOffsets?: ModelLabelOffsets | null) {
   const preview = results.truss ?? results.preview;
   const canvasSize = preview ? trussReportCanvasSize(preview) : REPORT_IMAGE_BASE_SIZE;
-  const graphics = buildTrussOverlayGraphics(results, metric, canvasSize, viewSettings);
+  const graphics = buildTrussOverlayGraphics(results, metric, canvasSize, viewSettings, modelLabelOffsets);
   if (!graphics.length) return "";
   return renderReportGraphics(graphics, canvasSize);
 }
 
-export function buildTrussOverlayGraphics(results: TrussCalculationResults, metric: "axial" | "displacement", canvasSize?: ReportCanvasSize, viewSettings?: import("../types/structure").ResultViewSettings | null): ReportGraphic[] {
+export function buildTrussOverlayGraphics(results: TrussCalculationResults, metric: "axial" | "displacement", canvasSize?: ReportCanvasSize, viewSettings?: ResultViewSettings | null, modelLabelOffsets?: ModelLabelOffsets | null): ReportGraphic[] {
   const preview = results.truss ?? results.preview;
   if (!preview) return [];
   const memberTerm = modelObjectMemberTerm("truss");
@@ -393,7 +419,7 @@ export function buildTrussOverlayGraphics(results: TrussCalculationResults, metr
     metric === "axial" ? `平面桁架 ${memberTerm}轴力图（模型叠加）` : "平面桁架 节点位移图（模型叠加）",
     metric === "axial" && controlAxial ? `控制轴力 ${controlAxial.axialForceKn.toFixed(3)} kN，${memberTerm} ${controlAxial.memberId}` : controlNode ? `控制位移 ${controlNode.displacementMm.toFixed(3)} mm，节点 ${controlNode.nodeId}` : "",
   );
-  addDimensionLegend(graphics, buildTrussMemberLengthLegendRows(buildTrussMemberLengthDimensions(preview.nodes, preview.members), 240, 12));
+  addDimensionLegend(graphics, buildTrussMemberLengthLegendRows(buildTrussMemberLengthDimensions(preview.nodes, preview.members), 240, 12), 74, reportLabelOffset(modelLabelOffsets, "dimension-legend"));
   for (const member of preview.members) {
     const startNode = byId.get(member.start);
     const endNode = byId.get(member.end);
@@ -427,12 +453,12 @@ export function buildTrussOverlayGraphics(results: TrussCalculationResults, metr
     const startNode = byId.get(member.start);
     const endNode = byId.get(member.end);
     if (!startNode || !endNode) continue;
-    addMemberLabel(graphics, member.id, layout.map(startNode), layout.map(endNode), layout.center);
+    addMemberLabel(graphics, member.id, layout.map(startNode), layout.map(endNode), layout.center, reportLabelOffset(modelLabelOffsets, `member:${member.id}`));
   }
   for (const node of nodes) {
     const point = layout.map(node);
     addTrussSupportMarker(graphics, node.supportType, point);
-    addNode(graphics, node.id, point, layout.center);
+    addNode(graphics, node.id, point, layout.center, reportLabelOffset(modelLabelOffsets, `node:${node.id}`));
     if (metric === "displacement" && controlNode?.nodeId === node.id) {
       const deformed = deformedById.get(node.id);
       controlPoint = deformed ? layout.map(deformed) : point;
@@ -463,6 +489,7 @@ function buildStructurePreviewGraphics(
     dimensionRows,
     renderLoads,
     showDisplacement,
+    modelLabelOffsets,
   }: {
     systemLabel: string;
     memberTerm: string;
@@ -474,6 +501,7 @@ function buildStructurePreviewGraphics(
     dimensionRows: string[];
     renderLoads?: ReportStructureLoadRenderer;
     showDisplacement?: boolean;
+    modelLabelOffsets?: ModelLabelOffsets | null;
   },
 ) {
   const layout = buildReportStructureLayout(nodes, showDisplacement !== false ? deformedNodes : [], canvasSize.width, canvasSize.height);
@@ -483,7 +511,7 @@ function buildStructurePreviewGraphics(
   const graphics: ReportGraphic[] = [];
   addImageBackground(graphics, canvasSize);
   addReportHeader(graphics, `${systemLabel}受力变形示意`, `蓝色为放大后的变形线；节点、${memberTerm}编号、尺寸与荷载标注同图显示`);
-  addDimensionLegend(graphics, dimensionRows);
+  addDimensionLegend(graphics, dimensionRows, 74, reportLabelOffset(modelLabelOffsets, "dimension-legend"));
   for (const member of members) {
     const start = byId.get(member.start);
     const end = byId.get(member.end);
@@ -491,7 +519,7 @@ function buildStructurePreviewGraphics(
       const startPoint = layout.map(start);
       const endPoint = layout.map(end);
       graphics.push({ type: "line", shape: { x1: startPoint.x, y1: startPoint.y, x2: endPoint.x, y2: endPoint.y }, style: { stroke: BASE_MEMBER_STROKE, lineWidth: showDisplacement !== false ? 1.5 : STRUCTURE_VISUAL_STROKES.reportBaseMember, lineDash: showDisplacement !== false ? [6, 4] : undefined } });
-      addMemberLabel(graphics, member.id, startPoint, endPoint, layout.center);
+      addMemberLabel(graphics, member.id, startPoint, endPoint, layout.center, reportLabelOffset(modelLabelOffsets, `member:${member.id}`));
     }
     if (showDisplacement !== false) {
       const d0 = deformedById.get(member.start);
@@ -506,9 +534,9 @@ function buildStructurePreviewGraphics(
   for (const node of nodes) {
     const point = layout.map(node);
     supportMarker(graphics, node.supportType, point, node.supportAngleDeg);
-    addNode(graphics, node.id, point, layout.center);
+    addNode(graphics, node.id, point, layout.center, reportLabelOffset(modelLabelOffsets, `node:${node.id}`));
   }
-  renderLoads?.(graphics, { layout, nodeById: byId, memberById });
+  renderLoads?.(graphics, { layout, nodeById: byId, memberById, modelLabelOffsets });
   return graphics;
 }
 

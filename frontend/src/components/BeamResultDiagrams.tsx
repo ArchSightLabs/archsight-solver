@@ -15,6 +15,7 @@ import { sensitivityResponseMetricLabel } from "../lib/result-metrics";
 import { STRUCTURE_NODE_RADII, STRUCTURE_RESULT_COLORS, STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
 import { useCanvasDrag } from "../hooks/useModelCanvasZoom";
 import { ResultDiagramCard, ResultDiagramEmptyState, ResultDiagramMetricBadge, ResultDiagramMetricGallery } from "./ResultDiagramLayout";
+import { modelLabelTransformFromOffsets, type ModelLabelOffsets } from "../lib/model-label-overrides";
 
 interface BeamDiagramMetric {
   key: BeamDiagramMetricKey;
@@ -31,6 +32,7 @@ interface BeamResultDiagramsProps {
   metricKey?: BeamDiagramMetricKey;
   showMetricTabs?: boolean;
   heading?: string;
+  modelLabelOffsets?: ModelLabelOffsets;
 }
 
 type SvgPoint = { x: number; y: number };
@@ -243,12 +245,13 @@ function beamXData(results: BeamCalculationResults, beam: BeamPreviewData) {
   return [0, beam.totalLength || 1];
 }
 
-export function BeamResultDiagrams({ results, compact = false, metricKey, showMetricTabs = true, heading = "工程图" }: BeamResultDiagramsProps) {
+export function BeamResultDiagrams({ results, compact = false, metricKey, showMetricTabs = true, heading = "工程图", modelLabelOffsets }: BeamResultDiagramsProps) {
   const [selectedMetricState, setSelectedMetricState] = useState<BeamDiagramSelectionKey>("all");
   const selectedMetricKey = metricKey ?? selectedMetricState;
   const selectedMetric = getMetric(selectedMetricKey === "all" ? DEFAULT_BEAM_DIAGRAM_METRIC_KEY : selectedMetricKey);
   const { canvasScrollRef, isCanvasDragging, handleCanvasPointerDown, handleCanvasPointerMove, finishCanvasDrag, handleCanvasClickCapture } = useCanvasDrag();
   const beam = results?.beam ?? null;
+  const labelTransform = (id: string) => modelLabelTransformFromOffsets(modelLabelOffsets, id);
 
   const diagram = useMemo(() => {
     if (!results || !beam) return null;
@@ -345,7 +348,7 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
         selectedMetric={selectedMetric}
         onSelect={(key) => setSelectedMetricState(key)}
         renderMetric={(metric) => (
-          <BeamResultDiagrams key={metric.key} results={results} compact={compact} metricKey={metric.key} showMetricTabs={false} heading={metric.title} />
+          <BeamResultDiagrams key={metric.key} results={results} compact={compact} metricKey={metric.key} showMetricTabs={false} heading={metric.title} modelLabelOffsets={modelLabelOffsets} />
         )}
       />
     );
@@ -379,7 +382,17 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
           <text x="32" y="30" fill="var(--structure-preview-label)" fontSize={compact ? "10" : "12"} fontFamily={DIAGRAM_LABEL_FONT} fontWeight={DIAGRAM_LABEL_WEIGHT}>
             梁长={formatBeamDimensionLength(diagram.totalLength)}
           </text>
-          <g fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth={STATION_TEXT_HALO_WIDTH} paintOrder="stroke" fontFamily={DIAGRAM_LABEL_FONT}>
+          <g
+            fill="var(--structure-preview-label)"
+            stroke="var(--structure-preview-text-halo)"
+            strokeWidth={STATION_TEXT_HALO_WIDTH}
+            paintOrder="stroke"
+            fontFamily={DIAGRAM_LABEL_FONT}
+            transform={labelTransform("dimension-legend")}
+            data-result-mode="beam"
+            data-result-surface="diagram"
+            data-result-label-id="dimension-legend"
+          >
             {diagram.spanDimensionLegendRows.map((row, index) => (
               <text key={`span-dimension-legend-${index}`} x={SPAN_DIMENSION_LEGEND_X} y={SPAN_DIMENSION_LEGEND_Y + index * SPAN_DIMENSION_LEGEND_GAP} fontSize={compact ? "10" : "12"} fontWeight={DIAGRAM_LABEL_WEIGHT}>
                 {row}
@@ -415,10 +428,17 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
             return (
               <g key={node.index}>
                 <circle cx={x} cy={BEAM_Y} r={NODE_RADIUS} fill={node.support ? "var(--structure-preview-node)" : "var(--structure-preview-guide)"} />
-                <circle cx={badgeX} cy={badgeY} r={compact ? "6.5" : "7.5"} fill="var(--structure-preview-badge-fill)" stroke="var(--structure-preview-badge-stroke)" strokeWidth="1.2" />
-                <text x={badgeX} y={badgeY} fill="var(--structure-preview-badge-text)" textAnchor="middle" dominantBaseline="middle" fontSize={compact ? "7.5" : "8.5"} fontFamily={DIAGRAM_LABEL_FONT} fontWeight={DIAGRAM_LABEL_WEIGHT}>
-                  {node.id ?? `${node.index + 1}`}
-                </text>
+                <g
+                  transform={labelTransform(`node:${node.id ?? `${node.index + 1}`}`)}
+                  data-result-mode="beam"
+                  data-result-surface="diagram"
+                  data-result-label-id={`node:${node.id ?? `${node.index + 1}`}`}
+                >
+                  <circle cx={badgeX} cy={badgeY} r={compact ? "6.5" : "7.5"} fill="var(--structure-preview-badge-fill)" stroke="var(--structure-preview-badge-stroke)" strokeWidth="1.2" />
+                  <text x={badgeX} y={badgeY} fill="var(--structure-preview-badge-text)" textAnchor="middle" dominantBaseline="middle" fontSize={compact ? "7.5" : "8.5"} fontFamily={DIAGRAM_LABEL_FONT} fontWeight={DIAGRAM_LABEL_WEIGHT}>
+                    {node.id ?? `${node.index + 1}`}
+                  </text>
+                </g>
               </g>
             );
           })}
@@ -428,7 +448,13 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
               const midX = (dimension.start + dimension.end) / 2;
               if (!dimension.label) return null;
               return (
-                <g key={`span-member-label-${dimension.index}`}>
+                <g
+                  key={`span-member-label-${dimension.index}`}
+                  transform={labelTransform(`member:${dimension.memberId}`)}
+                  data-result-mode="beam"
+                  data-result-surface="diagram"
+                  data-result-label-id={`member:${dimension.memberId}`}
+                >
                   <title>{dimension.title}</title>
                   <text
                     x={midX}

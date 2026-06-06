@@ -18,6 +18,130 @@ function canvasItem(page: Page, type: "node" | "member" | "load", id: string) {
   return page.locator(`[data-canvas-mode="frame"][data-canvas-type="${type}"][data-canvas-id="${id}"]`);
 }
 
+type FramePayload = {
+  analysisType: "frame";
+  structure: {
+    nodes: Array<{ id: string; x: number; y: number; supportType?: string }>;
+    members: Array<{ id: string; start: string; end: string; kind?: string }>;
+    loads?: unknown[];
+  };
+};
+
+function frameMemberLength(payload: FramePayload, member: { start: string; end: string }) {
+  const start = payload.structure.nodes.find((node) => node.id === member.start);
+  const end = payload.structure.nodes.find((node) => node.id === member.end);
+  if (!start || !end) return 1;
+  return Math.hypot(end.x - start.x, end.y - start.y) || 1;
+}
+
+function frameCalculationEnvelope(payload: FramePayload) {
+  const nodes = payload.structure.nodes;
+  const members = payload.structure.members;
+  const nodeResults = nodes.map((node, index) => ({
+    nodeId: node.id,
+    x: node.x,
+    y: node.y,
+    supportType: node.supportType ?? "free",
+    uxMm: index * 0.2,
+    uyMm: index === nodes.length - 1 ? -1.2 : 0,
+    rotationDeg: 0,
+    resultantMm: index === nodes.length - 1 ? 1.2 : 0,
+    reactionFxKn: 0,
+    reactionFyKn: 0,
+    reactionMzKnM: 0,
+  }));
+  const memberResults = members.map((member, index) => ({
+    memberId: member.id,
+    kind: member.kind ?? "member",
+    startNode: member.start,
+    endNode: member.end,
+    axialStartKn: 8 + index,
+    shearStartKn: 5 + index,
+    momentStartKnM: 10 + index,
+    axialEndKn: -(8 + index),
+    shearEndKn: -(5 + index),
+    momentEndKnM: -(10 + index),
+    maxAbsAxialKn: 8 + index,
+    maxAbsShearKn: 5 + index,
+    maxAbsMomentKnM: 10 + index,
+    lengthM: frameMemberLength(payload, member),
+  }));
+  const memberDiagrams = members.map((member, index) => ({
+    memberId: member.id,
+    stationsM: [0, frameMemberLength(payload, member) / 2, frameMemberLength(payload, member)],
+    stations: [0, 0.5, 1],
+    axialKn: [5 + index, 6 + index, 4 + index],
+    shearKn: [7 + index, 0, -(7 + index)],
+    momentKnM: [0, 12 + index, 0],
+    deflectionMm: [0, -(0.4 + index * 0.1), 0],
+  }));
+  const summary = {
+    allowableMm: 20,
+    maxDisplacementMm: 1.2,
+    maxVerticalMm: 1.2,
+    maxRotationDeg: 0,
+    maxMomentKnM: 12,
+    maxDisplacementNodeId: nodes.at(-1)?.id ?? null,
+    status: "PASS",
+    statusCode: "PASS",
+    method: "mock frame solver",
+  };
+  const preview = {
+    analysisType: "frame",
+    structureType: "explicit",
+    structureTypeLabel: "frame",
+    nodes,
+    members,
+    loads: payload.structure.loads ?? [],
+    nodeResults,
+    memberResults,
+    memberDiagrams,
+    deformedNodes: nodes.map((node, index) => ({ nodeId: node.id, x: node.x + index * 0.01, y: node.y - index * 0.01 })),
+    deformationScale: 1,
+    summary,
+    warnings: [],
+  };
+  return {
+    success: true,
+    operation: "calculate",
+    version: "v1",
+    analysisType: "frame",
+    request: payload,
+    model: { analysisType: "frame", structure: payload.structure },
+    results: {
+      summary,
+      preview,
+      diagram: {},
+      nodeResults,
+      memberResults,
+      memberDiagrams,
+      nodeIds: nodes.map((node) => node.id),
+      memberIds: members.map((member) => member.id),
+      series: {
+        ux_data: nodeResults.map((node) => node.uxMm),
+        uy_data: nodeResults.map((node) => node.uyMm),
+        rz_data: nodeResults.map((node) => node.rotationDeg),
+        member_axial_data: memberResults.map((member) => member.maxAbsAxialKn),
+        member_shear_data: memberResults.map((member) => member.maxAbsShearKn),
+        member_moment_data: memberResults.map((member) => member.maxAbsMomentKnM),
+      },
+    },
+    diagnostics: { status: "PASS", statusCode: "PASS" },
+    errors: [],
+  };
+}
+
+async function routeFrameCalculate(page: Page) {
+  await page.route("**/api/calculate", async (route) => {
+    const payload = route.request().postDataJSON() as FramePayload;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(frameCalculationEnvelope(payload)),
+    });
+  });
+}
+
 async function expectElementInsideCanvas(page: Page, selector: string, canvasSelector: string) {
   const elementBox = await page.locator(selector).boundingBox();
   const canvasBox = await page.locator(canvasSelector).boundingBox();
@@ -146,6 +270,37 @@ test("框架画布支持拖动并重置模型标注", async ({ page }) => {
   await expect(page.getByRole("toolbar", { name: "标注工具" })).toBeVisible();
   await page.getByRole("button", { name: "重置所选标注位置" }).click();
   await expect(label).not.toHaveAttribute("transform", /translate/u);
+});
+
+test("框架结果预览和工程图同步建模标注偏移", async ({ page }) => {
+  await routeFrameCalculate(page);
+  await openFrameWorkbench(page);
+
+  const label = page.locator('[data-canvas-mode="frame"][data-canvas-type="label"][data-canvas-id="dimension-legend"]');
+  await expect(label).toBeVisible();
+  const labelBox = await label.boundingBox();
+  expect(labelBox).not.toBeNull();
+  if (!labelBox) return;
+
+  await page.mouse.move(labelBox.x + labelBox.width / 2, labelBox.y + labelBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(labelBox.x + labelBox.width / 2 + 90, labelBox.y + labelBox.height / 2 + 42, { steps: 8 });
+  await page.mouse.up();
+  await expect(label).toHaveAttribute("transform", /translate\(/u);
+  const movedTransform = await label.getAttribute("transform");
+  expect(movedTransform).toBeTruthy();
+  if (!movedTransform) return;
+
+  await page.getByRole("tab", { name: /结构计算/ }).click();
+  await page.getByRole("button", { name: "运行平面框架计算" }).click();
+
+  const previewLabel = page.locator('[data-result-mode="frame"][data-result-surface="preview"][data-result-label-id="dimension-legend"]').first();
+  await expect(previewLabel).toBeVisible();
+  await expect(previewLabel).toHaveAttribute("transform", movedTransform);
+
+  const diagramLabel = page.locator('[data-result-mode="frame"][data-result-surface="diagram"][data-result-label-id="dimension-legend"]').first();
+  await expect(diagramLabel).toBeVisible();
+  await expect(diagramLabel).toHaveAttribute("transform", movedTransform);
 });
 
 test("桁架画布标注连续拖动不会移出画布可见范围", async ({ page }) => {

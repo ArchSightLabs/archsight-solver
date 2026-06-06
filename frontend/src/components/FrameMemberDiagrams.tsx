@@ -29,6 +29,7 @@ import { STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
 import { useCanvasDrag } from "../hooks/useModelCanvasZoom";
 import { ResultDiagramCard, ResultDiagramEmptyState, ResultDiagramMetricBadge, ResultDiagramMetricGallery } from "./ResultDiagramLayout";
 import { buildFrameDimensionLegendRows, buildFrameGeometryDimensions, frameMemberLabelPlacement } from "./frame-preview-utils";
+import { modelLabelTransformFromOffsets, type ModelLabelOffsets } from "../lib/model-label-overrides";
 
 interface FrameMemberDiagramsProps {
   frame: FramePreviewData | null;
@@ -37,6 +38,7 @@ interface FrameMemberDiagramsProps {
   metricKey?: FrameDiagramMetricKey;
   showMetricTabs?: boolean;
   heading?: string;
+  modelLabelOffsets?: ModelLabelOffsets;
 }
 
 type SvgPoint = { x: number; y: number };
@@ -146,14 +148,17 @@ function FrameStructureDiagram({
   diagrams,
   metric,
   compact,
+  modelLabelOffsets,
 }: {
   frame: FramePreviewData;
   diagrams: FrameMemberDiagram[];
   metric: FrameDiagramMetric;
   compact: boolean;
+  modelLabelOffsets?: ModelLabelOffsets;
 }) {
   const padding = compact ? 68 : 88;
   const { canvasScrollRef, isCanvasDragging, handleCanvasPointerDown, handleCanvasPointerMove, finishCanvasDrag, handleCanvasClickCapture } = useCanvasDrag();
+  const labelTransform = (id: string) => modelLabelTransformFromOffsets(modelLabelOffsets, id);
   const canvasSize = useMemo(() => resultPreviewCanvasSize(frame.nodes, frame.members.length), [frame]);
   const layout = useMemo(() => buildNodeLayout(frame, padding, canvasSize), [frame, padding, canvasSize]);
   const diagramsByMember = useMemo(() => new Map(diagrams.map((diagram) => [diagram.memberId, diagram])), [diagrams]);
@@ -339,7 +344,17 @@ function FrameStructureDiagram({
           <line key={ratio} x1="42" y1={canvasSize.height * ratio} x2={canvasSize.width - 42} y2={canvasSize.height * ratio} stroke="var(--frame-diagram-grid)" strokeDasharray="6 8" />
         ))}
         {dimensionLegendRows.length ? (
-          <g fontFamily="Fira Code" fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke">
+          <g
+            fontFamily="Fira Code"
+            fill="var(--structure-preview-label)"
+            stroke="var(--structure-preview-text-halo)"
+            strokeWidth="4"
+            paintOrder="stroke"
+            transform={labelTransform("dimension-legend")}
+            data-result-mode="frame"
+            data-result-surface="diagram"
+            data-result-label-id="dimension-legend"
+          >
             {labelLayouts.get("dimension-legend")?.lines.map((line, index) => (
               <text key={`frame-diagram-dimension-${index}`} x={line.x} y={line.y} textAnchor={labelLayouts.get("dimension-legend")?.textAnchor} fontSize={line.fontSize} fontWeight="600">
                 {line.text}
@@ -395,6 +410,10 @@ function FrameStructureDiagram({
               fontSize={compact ? "9" : "11"}
               fontFamily="Fira Code"
               fontWeight="700"
+              transform={labelTransform(`member:${member.id}`)}
+              data-result-mode="frame"
+              data-result-surface="diagram"
+              data-result-label-id={`member:${member.id}`}
             >
               {member.id}
             </text>
@@ -422,6 +441,10 @@ function FrameStructureDiagram({
                   fontSize={line.fontSize}
                   fontFamily="Fira Code"
                   fontWeight="700"
+                  transform={labelTransform(`node:${node.id}`)}
+                  data-result-mode="frame"
+                  data-result-surface="diagram"
+                  data-result-label-id={`node:${node.id}`}
                 >
                   {line.text}
                 </text>
@@ -457,7 +480,7 @@ function FrameStructureDiagram({
   );
 }
 
-export function FrameMemberDiagrams({ frame, diagrams, compact = false, metricKey, showMetricTabs = true, heading = "工程图" }: FrameMemberDiagramsProps) {
+export function FrameMemberDiagrams({ frame, diagrams, compact = false, metricKey, showMetricTabs = true, heading = "工程图", modelLabelOffsets }: FrameMemberDiagramsProps) {
   const [selectedMetricState, setSelectedMetricState] = useState<FrameDiagramSelectionKey>("all");
   const selectedMetricKey = metricKey ?? selectedMetricState;
   const selectedMetric = getFrameDiagramMetric(selectedMetricKey === "all" ? DEFAULT_FRAME_DIAGRAM_METRIC_KEY : selectedMetricKey);
@@ -478,7 +501,7 @@ export function FrameMemberDiagrams({ frame, diagrams, compact = false, metricKe
         selectedMetric={selectedMetric}
         onSelect={(key) => setSelectedMetricState(key)}
         renderMetric={(metric) => (
-          <FrameMemberDiagrams key={metric.key} frame={frame} diagrams={diagrams} compact={compact} metricKey={metric.key} showMetricTabs={false} heading={metric.title} />
+          <FrameMemberDiagrams key={metric.key} frame={frame} diagrams={diagrams} compact={compact} metricKey={metric.key} showMetricTabs={false} heading={metric.title} modelLabelOffsets={modelLabelOffsets} />
         )}
       />
     );
@@ -496,7 +519,7 @@ export function FrameMemberDiagrams({ frame, diagrams, compact = false, metricKe
         ) : null
       }
     >
-      <FrameStructureDiagram frame={frame} diagrams={diagrams} metric={selectedMetric} compact={compact} />
+      <FrameStructureDiagram frame={frame} diagrams={diagrams} metric={selectedMetric} compact={compact} modelLabelOffsets={modelLabelOffsets} />
     </ResultDiagramCard>
   );
 }

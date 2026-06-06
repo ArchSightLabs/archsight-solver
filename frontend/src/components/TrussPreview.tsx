@@ -8,11 +8,13 @@ import { useCanvasDrag } from "../hooks/useModelCanvasZoom";
 import { RESULT_PREVIEW_BASE_SIZE, resultPreviewCanvasSize, resultPreviewSvgStyle, type ResultPreviewCanvasSize } from "../lib/result-preview-sizing";
 import { autoTrussDisplacementDisplayScale } from "../lib/truss-result-diagrams";
 import { STRUCTURE_NODE_RADII, STRUCTURE_STATE_COLORS, STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
+import { modelLabelTransformFromOffsets, type ModelLabelOffsets } from "../lib/model-label-overrides";
 
 interface TrussPreviewProps {
   truss: TrussPreviewData | null;
   compact?: boolean;
   viewSettings: ResultViewSettings;
+  modelLabelOffsets?: ModelLabelOffsets;
   onChangeViewSettings: (settings: ResultViewSettings) => void;
 }
 
@@ -87,11 +89,12 @@ function memberLabelPlacement(start: { x: number; y: number }, end: { x: number;
   };
 }
 
-export function TrussPreview({ truss, compact = false, viewSettings, onChangeViewSettings }: TrussPreviewProps) {
+export function TrussPreview({ truss, compact = false, viewSettings, modelLabelOffsets, onChangeViewSettings }: TrussPreviewProps) {
   const { showLoads, showDisplacement, showExtremeLabel, displacementScale: manualDisplacementScale } = viewSettings;
   const objectVocabulary = modelObjectVocabulary("truss");
   const memberTerm = modelObjectMemberTerm("truss");
   const { canvasScrollRef, isCanvasDragging, handleCanvasPointerDown, handleCanvasPointerMove, finishCanvasDrag, handleCanvasClickCapture } = useCanvasDrag();
+  const labelTransform = (id: string) => modelLabelTransformFromOffsets(modelLabelOffsets, id);
   const padding = compact ? 54 : PADDING;
   const canvasSize = useMemo(
     () => truss ? resultPreviewCanvasSize(truss.nodes, truss.members.length) : RESULT_PREVIEW_BASE_SIZE,
@@ -307,7 +310,17 @@ export function TrussPreview({ truss, compact = false, viewSettings, onChangeVie
           </defs>
 
           {dimensionLegendRows.length ? (
-            <g fontFamily={svgTextFont} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke">
+            <g
+              fontFamily={svgTextFont}
+              fill="var(--structure-preview-label)"
+              stroke="var(--structure-preview-text-halo)"
+              strokeWidth="4"
+              paintOrder="stroke"
+              transform={labelTransform("dimension-legend")}
+              data-result-mode="truss"
+              data-result-surface="preview"
+              data-result-label-id="dimension-legend"
+            >
               {dimensionLegendRows.map((row, index) => (
                 <text key={`truss-preview-dimension-${index}`} x={layout.dimensionLegendX} y={28 + index * 16} fontSize={compact ? "10" : "12"} fontWeight="600">
                   {row}
@@ -321,6 +334,7 @@ export function TrussPreview({ truss, compact = false, viewSettings, onChangeVie
             const end = layout.nodeMap.get(member.end);
             if (!start || !end) return null;
             const label = memberLabelPlacement(start, end, canvasSize);
+            const memberLabelTransform = labelTransform(`member:${member.id}`);
             return (
               <g key={member.id}>
                 <line
@@ -334,22 +348,29 @@ export function TrussPreview({ truss, compact = false, viewSettings, onChangeVie
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
-                <text
-                  x={label.x}
-                  y={label.y}
-                  transform={`rotate(${label.angle} ${label.x} ${label.y})`}
-                  fill="var(--structure-preview-label)"
-                  stroke="var(--structure-preview-text-halo)"
-                  strokeWidth="4"
-                  paintOrder="stroke"
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  fontSize={compact ? "9" : "11"}
-                  fontWeight="500"
-                  fontFamily={svgTextFont}
+                <g
+                  transform={memberLabelTransform}
+                  data-result-mode="truss"
+                  data-result-surface="preview"
+                  data-result-label-id={`member:${member.id}`}
                 >
-                  {member.id}
-                </text>
+                  <text
+                    x={label.x}
+                    y={label.y}
+                    fill="var(--structure-preview-label)"
+                    stroke="var(--structure-preview-text-halo)"
+                    strokeWidth="4"
+                    paintOrder="stroke"
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fontSize={compact ? "9" : "11"}
+                    fontWeight="500"
+                    fontFamily={svgTextFont}
+                    transform={`rotate(${label.angle} ${label.x} ${label.y})`}
+                  >
+                    {member.id}
+                  </text>
+                </g>
               </g>
             );
           })}
@@ -383,7 +404,18 @@ export function TrussPreview({ truss, compact = false, viewSettings, onChangeVie
             return (
               <g key={node.id}>
                 <circle cx={point.x} cy={point.y} r={STRUCTURE_NODE_RADII.preview} fill="var(--structure-preview-node)" />
-                <text x={label.x} y={label.y} textAnchor={label.anchor} fill="var(--structure-preview-node-label)" fontSize={compact ? "9" : "11"} fontFamily={svgTextFont}>
+                <text
+                  x={label.x}
+                  y={label.y}
+                  textAnchor={label.anchor}
+                  fill="var(--structure-preview-node-label)"
+                  fontSize={compact ? "9" : "11"}
+                  fontFamily={svgTextFont}
+                  transform={labelTransform(`node:${node.id}`)}
+                  data-result-mode="truss"
+                  data-result-surface="preview"
+                  data-result-label-id={`node:${node.id}`}
+                >
                   {node.id}
                 </text>
                 {supportMarker(supportType, point.x, point.y)}
@@ -431,7 +463,9 @@ export function TrussPreview({ truss, compact = false, viewSettings, onChangeVie
             </g>
           ) : null}
 
-          {showLoads && loadMarkers.map((load) => (
+          {showLoads && loadMarkers.map((load) => {
+            const loadLabelId = `load:${load.key.replace("-", ":")}`;
+            return (
             <g key={load.key}>
               <line x1={load.x1} y1={load.y1} x2={load.x2} y2={load.y2} stroke="var(--structure-preview-load)" strokeWidth="2" markerEnd="url(#trussLoadArrow)" />
               <text
@@ -444,11 +478,15 @@ export function TrussPreview({ truss, compact = false, viewSettings, onChangeVie
                 fontSize={compact ? "9" : "11"}
                 fontWeight="500"
                 fontFamily={svgTextFont}
+                transform={labelTransform(loadLabelId)}
+                data-result-mode="truss"
+                data-result-surface="preview"
+                data-result-label-id={loadLabelId}
               >
                 {load.label}
               </text>
             </g>
-          ))}
+          )})}
         </svg>
       </div>
 

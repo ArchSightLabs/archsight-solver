@@ -82,6 +82,14 @@ export function modelLabelTransform(offset: ModelLabelOffset): string | undefine
   return isZeroModelLabelOffset(offset) ? undefined : `translate(${offset.dx} ${offset.dy})`;
 }
 
+export function modelLabelOffsetFromOffsets(offsets: ModelLabelOffsets | null | undefined, labelId: string): ModelLabelOffset {
+  return offsets?.[labelId] ?? { dx: 0, dy: 0 };
+}
+
+export function modelLabelTransformFromOffsets(offsets: ModelLabelOffsets | null | undefined, labelId: string): string | undefined {
+  return modelLabelTransform(offsets?.[labelId] ?? { dx: 0, dy: 0 });
+}
+
 export function modelLabelOffsetCount(offsets: ModelLabelOffsets | undefined): number {
   return offsets ? Object.keys(offsets).length : 0;
 }

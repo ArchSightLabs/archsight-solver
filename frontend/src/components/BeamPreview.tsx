@@ -7,11 +7,13 @@ import { formatEngineeringValue } from "../lib/engineering-format";
 import { summaryMetricLabel } from "../lib/result-metrics";
 import { STRUCTURE_STATE_COLORS, STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
 import { useCanvasDrag } from "../hooks/useModelCanvasZoom";
+import { modelLabelTransformFromOffsets, type ModelLabelOffsets } from "../lib/model-label-overrides";
 
 interface BeamPreviewProps {
   beam?: BeamPreviewData | null;
   compact?: boolean;
   viewSettings: ResultViewSettings;
+  modelLabelOffsets?: ModelLabelOffsets;
   onChangeViewSettings: (settings: ResultViewSettings) => void;
 }
 
@@ -122,13 +124,14 @@ function placePeakDeflectionLabel(peakPoint: { x: number; y: number }, signedDef
   };
 }
 
-export function BeamPreview({ beam, compact = false, viewSettings, onChangeViewSettings }: BeamPreviewProps) {
+export function BeamPreview({ beam, compact = false, viewSettings, modelLabelOffsets, onChangeViewSettings }: BeamPreviewProps) {
   const { showLoads, showDisplacement, showExtremeLabel, displacementScale: manualDeflectionScale } = viewSettings;
   
   const totalLength = beam?.totalLength || 1;
   const layoutScalePxPerM = BEAM_LEN / totalLength;
 
   const { canvasScrollRef, isCanvasDragging, handleCanvasPointerDown, handleCanvasPointerMove, finishCanvasDrag, handleCanvasClickCapture } = useCanvasDrag();
+  const labelTransform = (id: string) => modelLabelTransformFromOffsets(modelLabelOffsets, id);
   const mapX = useCallback((x: number) => BEAM_LEFT + (x / totalLength) * BEAM_LEN, [totalLength]);
   const maxAbsDeflectionMm = useMemo(() => {
     const vals = (beam?.curve || []).map((p) => Math.abs(p.vMm));
@@ -386,7 +389,17 @@ export function BeamPreview({ beam, compact = false, viewSettings, onChangeViewS
             </marker>
           </defs>
 
-          <g fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="3" paintOrder="stroke" fontFamily={svgTextFont}>
+          <g
+            fill="var(--structure-preview-label)"
+            stroke="var(--structure-preview-text-halo)"
+            strokeWidth="3"
+            paintOrder="stroke"
+            fontFamily={svgTextFont}
+            transform={labelTransform("dimension-legend")}
+            data-result-mode="beam"
+            data-result-surface="preview"
+            data-result-label-id="dimension-legend"
+          >
             {dimensionLegendRows.map((row, index) => (
               <text key={`beam-preview-dimension-${index}`} x="32" y={28 + index * 15} fontSize={compact ? "10" : "12"} fontWeight="600">
                 {row}
@@ -403,7 +416,18 @@ export function BeamPreview({ beam, compact = false, viewSettings, onChangeViewS
               if (!dimension.label) return null;
               const midX = (dimension.start + dimension.end) / 2;
               return (
-                <text key={`beam-preview-span-${dimension.index}`} x={midX} y={SPAN_MEMBER_LABEL_Y} textAnchor="middle" fontSize={compact ? "10" : "12"} fontWeight="600">
+                <text
+                  key={`beam-preview-span-${dimension.index}`}
+                  x={midX}
+                  y={SPAN_MEMBER_LABEL_Y}
+                  textAnchor="middle"
+                  fontSize={compact ? "10" : "12"}
+                  fontWeight="600"
+                  transform={labelTransform(`member:${dimension.memberId}`)}
+                  data-result-mode="beam"
+                  data-result-surface="preview"
+                  data-result-label-id={`member:${dimension.memberId}`}
+                >
                   {dimension.label}
                 </text>
               );
@@ -446,10 +470,17 @@ export function BeamPreview({ beam, compact = false, viewSettings, onChangeViewS
             return (
               <g key={i}>
                 <circle cx={x} cy={BEAM_Y} r="4" fill={n.support ? "var(--structure-preview-node)" : "var(--structure-preview-guide)"} />
-                <circle cx={badgeX} cy={badgeY} r={compact ? "7" : "8"} fill="var(--structure-preview-badge-fill)" stroke="var(--structure-preview-badge-stroke)" strokeWidth="1.3" />
-                <text x={badgeX} y={badgeY} fill="var(--structure-preview-badge-text)" textAnchor="middle" dominantBaseline="middle" fontSize={compact ? "8" : "9"} fontWeight="700" fontFamily={svgTextFont}>
-                  {n.id ?? `${i + 1}`}
-                </text>
+                <g
+                  transform={labelTransform(`node:${n.id ?? `${i + 1}`}`)}
+                  data-result-mode="beam"
+                  data-result-surface="preview"
+                  data-result-label-id={`node:${n.id ?? `${i + 1}`}`}
+                >
+                  <circle cx={badgeX} cy={badgeY} r={compact ? "7" : "8"} fill="var(--structure-preview-badge-fill)" stroke="var(--structure-preview-badge-stroke)" strokeWidth="1.3" />
+                  <text x={badgeX} y={badgeY} fill="var(--structure-preview-badge-text)" textAnchor="middle" dominantBaseline="middle" fontSize={compact ? "8" : "9"} fontWeight="700" fontFamily={svgTextFont}>
+                    {n.id ?? `${i + 1}`}
+                  </text>
+                </g>
               </g>
             );
           })}
@@ -471,7 +502,12 @@ export function BeamPreview({ beam, compact = false, viewSettings, onChangeViewS
                 />
               ))}
               <text x={band.labelX} y={band.labelY} fill="var(--structure-preview-label)" textAnchor="middle" fontSize="11"
-                stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke" fontWeight="500" fontFamily={svgTextFont}>
+                stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke" fontWeight="500" fontFamily={svgTextFont}
+                transform={band.type === "uniform" ? labelTransform("load:uniform") : undefined}
+                data-result-mode="beam"
+                data-result-surface="preview"
+                data-result-label-id={band.type === "uniform" ? "load:uniform" : undefined}
+              >
                 {band.label}
               </text>
             </g>

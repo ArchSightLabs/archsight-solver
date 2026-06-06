@@ -1,4 +1,5 @@
 import type { BeamCalculationResults, BeamPreviewData, BeamSupportType } from "../types/beam.ts";
+import type { ModelLabelOffsets, ResultViewSettings } from "../types/structure.ts";
 import { findBeamDiagramKeyPoints, type BeamDiagramKeyPointKind, type BeamDiagramMetricKey } from "./beam-diagram-key-points.ts";
 import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments, formatBeamDimensionLength, type BeamSpanDimension } from "./beam-span-dimensions.ts";
 import {
@@ -9,6 +10,7 @@ import {
   type DiagramPlacedLabel,
 } from "./diagram-label-layout.ts";
 import { formatEngineeringValue } from "./engineering-format.ts";
+import { modelLabelTransformFromOffsets } from "./model-label-overrides.ts";
 import { STRUCTURE_NODE_RADII, STRUCTURE_OBJECT_COLORS, STRUCTURE_RESULT_COLORS, STRUCTURE_VISUAL_STROKES } from "./structure-visual-tokens.ts";
 
 interface BeamDiagramMetric {
@@ -92,6 +94,11 @@ function escapeSvg(value: string | number) {
 
 function n(value: number) {
   return Number.isFinite(value) ? value.toFixed(2) : "0.00";
+}
+
+function labelTransformAttr(modelLabelOffsets: ModelLabelOffsets | null | undefined, labelId: string) {
+  const transform = modelLabelTransformFromOffsets(modelLabelOffsets, labelId);
+  return transform ? ` transform="${escapeSvg(transform)}"` : "";
 }
 
 function pathFromPoints(points: SvgPoint[]) {
@@ -291,7 +298,7 @@ export function beamReportMetricToDiagramMetric(metric: "moment" | "shear" | "de
   return "deflectionMm";
 }
 
-export function buildBeamResultDiagramSvg(results: BeamCalculationResults, metricKey: BeamDiagramMetricKey, compact = false, viewSettings?: import("../types/structure").ResultViewSettings | null) {
+export function buildBeamResultDiagramSvg(results: BeamCalculationResults, metricKey: BeamDiagramMetricKey, compact = false, viewSettings?: ResultViewSettings | null, modelLabelOffsets?: ModelLabelOffsets | null) {
   const beam = results.beam;
   if (!beam) return "";
 
@@ -354,7 +361,7 @@ export function buildBeamResultDiagramSvg(results: BeamCalculationResults, metri
     )
     .join("")}
   <text x="32" y="30" fill="${COLORS.label}" font-size="${compact ? 10 : 12}" font-family="${DIAGRAM_LABEL_FONT}" font-weight="${DIAGRAM_LABEL_WEIGHT}">梁长=${escapeSvg(formatBeamDimensionLength(totalLength))}</text>
-  <g fill="${COLORS.label}" stroke="${COLORS.textHalo}" stroke-width="${STATION_TEXT_HALO_WIDTH}" paint-order="stroke" font-family="${DIAGRAM_LABEL_FONT}">
+  <g fill="${COLORS.label}" stroke="${COLORS.textHalo}" stroke-width="${STATION_TEXT_HALO_WIDTH}" paint-order="stroke" font-family="${DIAGRAM_LABEL_FONT}"${labelTransformAttr(modelLabelOffsets, "dimension-legend")}>
     ${spanDimensionLegendRows
       .map(
         (row, index) =>
@@ -379,7 +386,8 @@ export function buildBeamResultDiagramSvg(results: BeamCalculationResults, metri
       const x = mapX(node.x);
       const badgeX = x + NODE_BADGE_OFFSET_X;
       const badgeY = BEAM_Y + NODE_BADGE_OFFSET_Y;
-      return String.raw`<g><circle cx="${n(x)}" cy="${BEAM_Y}" r="${NODE_RADIUS}" fill="${node.support ? COLORS.node : COLORS.guide}" /><circle cx="${n(badgeX)}" cy="${n(badgeY)}" r="7.5" fill="${COLORS.badgeFill}" stroke="${COLORS.badgeStroke}" stroke-width="1.2" /><text x="${n(badgeX)}" y="${n(badgeY)}" fill="${COLORS.badgeText}" text-anchor="middle" dominant-baseline="middle" font-size="8.5" font-family="${DIAGRAM_LABEL_FONT}" font-weight="${DIAGRAM_LABEL_WEIGHT}">${escapeSvg(node.id ?? `${index + 1}`)}</text></g>`;
+      const nodeId = node.id ?? `${index + 1}`;
+      return String.raw`<g><circle cx="${n(x)}" cy="${BEAM_Y}" r="${NODE_RADIUS}" fill="${node.support ? COLORS.node : COLORS.guide}" /><g${labelTransformAttr(modelLabelOffsets, `node:${nodeId}`)}><circle cx="${n(badgeX)}" cy="${n(badgeY)}" r="7.5" fill="${COLORS.badgeFill}" stroke="${COLORS.badgeStroke}" stroke-width="1.2" /><text x="${n(badgeX)}" y="${n(badgeY)}" fill="${COLORS.badgeText}" text-anchor="middle" dominant-baseline="middle" font-size="8.5" font-family="${DIAGRAM_LABEL_FONT}" font-weight="${DIAGRAM_LABEL_WEIGHT}">${escapeSvg(nodeId)}</text></g></g>`;
     })
     .join("")}
   <g fill="${COLORS.label}" font-family="${DIAGRAM_LABEL_FONT}">
@@ -388,7 +396,7 @@ export function buildBeamResultDiagramSvg(results: BeamCalculationResults, metri
         const midX = (dimension.start + dimension.end) / 2;
         if (!dimension.label) return "";
         return String.raw`
-        <g>
+        <g${labelTransformAttr(modelLabelOffsets, `member:${dimension.memberId}`)}>
           <title>${escapeSvg(dimension.title)}</title>
           <text x="${n(midX)}" y="${SPAN_MEMBER_LABEL_Y}" text-anchor="middle" font-size="${compact ? 10 : 12}" font-weight="${DIAGRAM_LABEL_WEIGHT}" stroke="${COLORS.textHalo}" stroke-width="${STATION_TEXT_HALO_WIDTH}" paint-order="stroke">${escapeSvg(dimension.label)}</text>
         </g>`;

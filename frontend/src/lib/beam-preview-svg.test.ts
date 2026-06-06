@@ -122,6 +122,60 @@ test("buildBeamResultDiagramSvg uses workbench-style span dimensions and key poi
   assert.match(svg, /stroke="#2563eb" stroke-opacity="0\.82"/);
 });
 
+test("report beam SVGs reuse model label offsets for result labels", () => {
+  const beam: BeamPreviewData = {
+    beamType: "continuous",
+    beamTypeLabel: "continuous",
+    loadType: "uniform",
+    loadTypeLabel: "鍧囧竷鑽疯浇",
+    spans: [4, 4],
+    spanIds: ["B1", "B2"],
+    totalLength: 8,
+    supports: [
+      { label: "S1", x: 0, type: "pinned" },
+      { label: "S2", x: 4, type: "pinned" },
+      { label: "S3", x: 8, type: "roller" },
+    ],
+    nodes: [
+      { index: 0, id: "N1", x: 0, support: true },
+      { index: 1, id: "N2", x: 4, support: true },
+      { index: 2, id: "N3", x: 8, support: true },
+    ],
+    loads: [{ type: "uniform", x: 4, startX: 0, endX: 8, length: 8, intensityKnPerM: 10 }],
+    curve: [],
+    spanSummaries: [],
+    maxDeflection: { valueM: 0, valueMm: 0, xM: 0, spanIndex: 0 },
+    reactions: [],
+    warnings: [],
+  };
+  const results: BeamCalculationResults = {
+    x_data: [0, 4, 8],
+    moment_data: [0, -20, 0],
+    shear_data: [],
+    v_data: [],
+    t_data: [],
+    q_t_data: [],
+    beam,
+  };
+  const modelLabelOffsets = {
+    "dimension-legend": { dx: 12, dy: -6 },
+    "member:B1": { dx: -8, dy: 5 },
+    "node:N2": { dx: 6, dy: 7 },
+    "load:uniform": { dx: 18, dy: 9 },
+  };
+
+  const previewSvg = buildBeamPreviewSvg(beam, null, modelLabelOffsets);
+  const diagramSvg = buildBeamResultDiagramSvg(results, "momentKnM", false, null, modelLabelOffsets);
+
+  assert.match(previewSvg, /transform="translate\(12 -6\)"/u);
+  assert.match(previewSvg, /transform="translate\(-8 5\)"/u);
+  assert.match(previewSvg, /transform="translate\(6 7\)"/u);
+  assert.match(previewSvg, /transform="translate\(18 9\)"/u);
+  assert.match(diagramSvg, /transform="translate\(12 -6\)"/u);
+  assert.match(diagramSvg, /transform="translate\(-8 5\)"/u);
+  assert.match(diagramSvg, /transform="translate\(6 7\)"/u);
+});
+
 test("assertReportImagesReady prevents frontend DOCX export from falling back to simplified backend figures", () => {
   const beam: BeamPreviewData = {
     beamType: "continuous",

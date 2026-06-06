@@ -26,6 +26,7 @@ import {
   type TrussDiagramMetricKey,
 } from "../lib/truss-result-diagrams";
 import { ResultDiagramCard, ResultDiagramEmptyState, ResultDiagramMetricBadge, ResultDiagramMetricGallery } from "./ResultDiagramLayout";
+import { modelLabelTransformFromOffsets, type ModelLabelOffsets } from "../lib/model-label-overrides";
 import {
   buildTrussMemberLengthDimensions,
   buildTrussMemberLengthLegendRows,
@@ -41,6 +42,7 @@ interface TrussResultDiagramsProps {
   metricKey?: TrussDiagramMetricKey;
   showMetricTabs?: boolean;
   heading?: string;
+  modelLabelOffsets?: ModelLabelOffsets;
 }
 
 const PADDING = 72;
@@ -110,12 +112,13 @@ function placedById(labels: DiagramPlacedLabel[]) {
   return new Map(labels.map((label) => [label.id, label]));
 }
 
-export function TrussResultDiagrams({ truss, compact = false, metricKey, showMetricTabs = true, heading = "工程图" }: TrussResultDiagramsProps) {
+export function TrussResultDiagrams({ truss, compact = false, metricKey, showMetricTabs = true, heading = "工程图", modelLabelOffsets }: TrussResultDiagramsProps) {
   const [selectedMetricState, setSelectedMetricState] = useState<TrussDiagramSelectionKey>("all");
   const [manualDisplacementScale, setManualDisplacementScale] = useState<number | null>(null);
   const selectedMetricKey = metricKey ?? selectedMetricState;
   const selectedMetric = getTrussDiagramMetric(selectedMetricKey === "all" ? DEFAULT_TRUSS_DIAGRAM_METRIC_KEY : selectedMetricKey);
   const { canvasScrollRef, isCanvasDragging, handleCanvasPointerDown, handleCanvasPointerMove, finishCanvasDrag, handleCanvasClickCapture } = useCanvasDrag();
+  const labelTransform = (id: string) => modelLabelTransformFromOffsets(modelLabelOffsets, id);
   const padding = compact ? 54 : PADDING;
   const canvasSize = useMemo(
     () => truss ? resultPreviewCanvasSize(truss.nodes, truss.members.length) : RESULT_PREVIEW_BASE_SIZE,
@@ -342,7 +345,7 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
         selectedMetric={selectedMetric}
         onSelect={(key) => setSelectedMetricState(key)}
         renderMetric={(metric) => (
-          <TrussResultDiagrams key={metric.key} truss={truss} compact={compact} metricKey={metric.key} showMetricTabs={false} heading={metric.title} />
+          <TrussResultDiagrams key={metric.key} truss={truss} compact={compact} metricKey={metric.key} showMetricTabs={false} heading={metric.title} modelLabelOffsets={modelLabelOffsets} />
         )}
       />
     );
@@ -409,7 +412,17 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
             <line key={ratio} x1="42" y1={canvasSize.height * ratio} x2={canvasSize.width - 42} y2={canvasSize.height * ratio} stroke="var(--frame-diagram-grid)" strokeDasharray="6 8" />
           ))}
           {dimensionLegendRows.length ? (
-            <g fontFamily={svgTextFont} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke">
+            <g
+              fontFamily={svgTextFont}
+              fill="var(--structure-preview-label)"
+              stroke="var(--structure-preview-text-halo)"
+              strokeWidth="4"
+              paintOrder="stroke"
+              transform={labelTransform("dimension-legend")}
+              data-result-mode="truss"
+              data-result-surface="diagram"
+              data-result-label-id="dimension-legend"
+            >
               {labelLayouts.get("dimension-legend")?.lines.map((line, index) => (
                 <text key={`truss-diagram-dimension-${index}`} x={line.x} y={line.y} textAnchor={labelLayouts.get("dimension-legend")?.textAnchor} fontSize={line.fontSize} fontWeight="600">
                   {line.text}
@@ -438,14 +451,44 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
                   <>
                     <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke={axialColor} strokeOpacity="0.82" strokeWidth={strokeWidth} strokeLinecap="round" />
                     {label && line ? (
-                      <text x={line.x} y={line.y} fill={axialColor} stroke="var(--structure-preview-text-halo)" strokeWidth="5" paintOrder="stroke" textAnchor={label.textAnchor} fontSize={line.fontSize} fontFamily="Fira Code" fontWeight="600">
+                      <text
+                        x={line.x}
+                        y={line.y}
+                        fill={axialColor}
+                        stroke="var(--structure-preview-text-halo)"
+                        strokeWidth="5"
+                        paintOrder="stroke"
+                        textAnchor={label.textAnchor}
+                        fontSize={line.fontSize}
+                        fontFamily="Fira Code"
+                        fontWeight="600"
+                        transform={labelTransform(`member:${member.id}`)}
+                        data-result-mode="truss"
+                        data-result-surface="diagram"
+                        data-result-label-id={`member:${member.id}`}
+                      >
                         {line.text}
                       </text>
                     ) : null}
                   </>
                 ) : (
                   label && line ? (
-                    <text x={line.x} y={line.y} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke" textAnchor={label.textAnchor} fontSize={line.fontSize} fontFamily={svgTextFont} fontWeight="500">
+                    <text
+                      x={line.x}
+                      y={line.y}
+                      fill="var(--structure-preview-label)"
+                      stroke="var(--structure-preview-text-halo)"
+                      strokeWidth="4"
+                      paintOrder="stroke"
+                      textAnchor={label.textAnchor}
+                      fontSize={line.fontSize}
+                      fontFamily={svgTextFont}
+                      fontWeight="500"
+                      transform={labelTransform(`member:${member.id}`)}
+                      data-result-mode="truss"
+                      data-result-surface="diagram"
+                      data-result-label-id={`member:${member.id}`}
+                    >
                       {line.text}
                     </text>
                   ) : null
@@ -477,7 +520,21 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
               <g key={node.id}>
                 <circle cx={point.x} cy={point.y} r="4.5" fill="var(--structure-preview-node)" />
                 {label && line ? (
-                  <text x={line.x} y={line.y} textAnchor={label.textAnchor} fill="var(--structure-preview-node-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke" fontSize={line.fontSize} fontFamily="Fira Code">
+                  <text
+                    x={line.x}
+                    y={line.y}
+                    textAnchor={label.textAnchor}
+                    fill="var(--structure-preview-node-label)"
+                    stroke="var(--structure-preview-text-halo)"
+                    strokeWidth="4"
+                    paintOrder="stroke"
+                    fontSize={line.fontSize}
+                    fontFamily="Fira Code"
+                    transform={labelTransform(`node:${node.id}`)}
+                    data-result-mode="truss"
+                    data-result-surface="diagram"
+                    data-result-label-id={`node:${node.id}`}
+                  >
                     {line.text}
                   </text>
                 ) : null}

@@ -1,6 +1,8 @@
 import type { BeamLoadMarker, BeamPreviewData, BeamSupport } from "../types/beam";
+import type { ModelLabelOffsets, ResultViewSettings } from "../types/structure.ts";
 import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments, formatBeamDimensionLength } from "./beam-span-dimensions.ts";
 import { formatEngineeringValue } from "./engineering-format.ts";
+import { modelLabelTransformFromOffsets } from "./model-label-overrides.ts";
 import { STRUCTURE_OBJECT_COLORS, STRUCTURE_STATE_COLORS, STRUCTURE_VISUAL_STROKES } from "./structure-visual-tokens.ts";
 
 type BeamLoadArrow = BeamLoadMarker & {
@@ -73,6 +75,11 @@ function escapeSvg(value: string | number) {
 
 function n(value: number) {
   return Number.isFinite(value) ? value.toFixed(1) : "0.0";
+}
+
+function labelTransformAttr(modelLabelOffsets: ModelLabelOffsets | null | undefined, labelId: string) {
+  const transform = modelLabelTransformFromOffsets(modelLabelOffsets, labelId);
+  return transform ? ` transform="${escapeSvg(transform)}"` : "";
 }
 
 function distributedArrowXs(startX: number, endX: number) {
@@ -236,7 +243,7 @@ function supportSvg(support: BeamSupport, x: number) {
     </g>`;
 }
 
-export function buildBeamPreviewSvg(beam: BeamPreviewData, viewSettings?: import("../types/structure").ResultViewSettings | null) {
+export function buildBeamPreviewSvg(beam: BeamPreviewData, viewSettings?: ResultViewSettings | null, modelLabelOffsets?: ModelLabelOffsets | null) {
   const showLoads = viewSettings?.showLoads ?? true;
   const showDisplacementLayer = viewSettings?.showDisplacement ?? true;
   const showExtremeLabel = viewSettings?.showExtremeLabel ?? true;
@@ -273,7 +280,7 @@ export function buildBeamPreviewSvg(beam: BeamPreviewData, viewSettings?: import
     </marker>
   </defs>
   <rect x="0" y="0" width="${BEAM_PREVIEW_SVG_WIDTH}" height="${BEAM_PREVIEW_SVG_HEIGHT}" fill="${PREVIEW_COLORS.background}" />
-  <g fill="${PREVIEW_COLORS.label}" stroke="${PREVIEW_COLORS.textHalo}" stroke-width="3" paint-order="stroke" font-family="${SVG_TEXT_FONT}">
+  <g fill="${PREVIEW_COLORS.label}" stroke="${PREVIEW_COLORS.textHalo}" stroke-width="3" paint-order="stroke" font-family="${SVG_TEXT_FONT}"${labelTransformAttr(modelLabelOffsets, "dimension-legend")}>
     ${dimensionLegendRows.map((row, index) => `<text x="32" y="${28 + index * 15}" font-size="12" font-weight="600">${escapeSvg(row)}</text>`).join("")}
   </g>
   <line x1="${BEAM_LEFT}" y1="${BEAM_Y}" x2="${BEAM_RIGHT}" y2="${BEAM_Y}" stroke="url(#beamReportGrad)" stroke-width="${STRUCTURE_VISUAL_STROKES.previewMember}" stroke-linecap="round" />
@@ -281,7 +288,7 @@ export function buildBeamPreviewSvg(beam: BeamPreviewData, viewSettings?: import
     ${spanDimensions.map((dimension) => {
       if (!dimension.label) return "";
       const midX = (dimension.start + dimension.end) / 2;
-      return `<text x="${n(midX)}" y="${SPAN_MEMBER_LABEL_Y}" text-anchor="middle" font-size="12" font-weight="700">${escapeSvg(dimension.label)}</text>`;
+      return `<text x="${n(midX)}" y="${SPAN_MEMBER_LABEL_Y}" text-anchor="middle" font-size="12" font-weight="700"${labelTransformAttr(modelLabelOffsets, `member:${dimension.memberId}`)}>${escapeSvg(dimension.label)}</text>`;
     }).join("")}
   </g>
   ${(beam.supports ?? []).map((support) => supportSvg(support, mapX(support.x))).join("")}
@@ -290,7 +297,8 @@ export function buildBeamPreviewSvg(beam: BeamPreviewData, viewSettings?: import
       const x = mapX(node.x);
       const badgeX = x + NODE_BADGE_OFFSET_X;
       const badgeY = BEAM_Y + NODE_BADGE_OFFSET_Y;
-      return `<g><circle cx="${n(x)}" cy="${BEAM_Y}" r="4" fill="${node.support ? PREVIEW_COLORS.node : PREVIEW_COLORS.guide}" /><circle cx="${n(badgeX)}" cy="${n(badgeY)}" r="8" fill="${PREVIEW_COLORS.badgeFill}" stroke="${PREVIEW_COLORS.badgeStroke}" stroke-width="1.3" /><text x="${n(badgeX)}" y="${n(badgeY)}" fill="${PREVIEW_COLORS.badgeText}" text-anchor="middle" dominant-baseline="middle" font-size="9" font-weight="700" font-family="${SVG_TEXT_FONT}">${escapeSvg(node.id ?? `${index + 1}`)}</text></g>`;
+      const nodeId = node.id ?? `${index + 1}`;
+      return `<g><circle cx="${n(x)}" cy="${BEAM_Y}" r="4" fill="${node.support ? PREVIEW_COLORS.node : PREVIEW_COLORS.guide}" /><g${labelTransformAttr(modelLabelOffsets, `node:${nodeId}`)}><circle cx="${n(badgeX)}" cy="${n(badgeY)}" r="8" fill="${PREVIEW_COLORS.badgeFill}" stroke="${PREVIEW_COLORS.badgeStroke}" stroke-width="1.3" /><text x="${n(badgeX)}" y="${n(badgeY)}" fill="${PREVIEW_COLORS.badgeText}" text-anchor="middle" dominant-baseline="middle" font-size="9" font-weight="700" font-family="${SVG_TEXT_FONT}">${escapeSvg(nodeId)}</text></g></g>`;
     })
     .join("")}
   ${showLoads ? loadBands
@@ -299,7 +307,7 @@ export function buildBeamPreviewSvg(beam: BeamPreviewData, viewSettings?: import
       <g>
         <line x1="${n(band.startX)}" y1="${n(band.guideY)}" x2="${n(band.endX)}" y2="${n(band.guideY)}" stroke="${PREVIEW_COLORS.load}" stroke-width="1.7" opacity="0.86" />
         ${band.arrowXs.map((x) => `<line x1="${n(x)}" y1="${n(band.arrowStartY)}" x2="${n(x)}" y2="${n(band.arrowEndY)}" stroke="${PREVIEW_COLORS.load}" stroke-width="1.8" marker-end="url(#beamReportArrowLoad)" />`).join("")}
-        <text x="${n(band.labelX)}" y="${n(band.labelY)}" fill="${PREVIEW_COLORS.label}" text-anchor="middle" font-size="11" stroke="${PREVIEW_COLORS.textHalo}" stroke-width="4" paint-order="stroke" font-weight="500" font-family="${SVG_TEXT_FONT}">${escapeSvg(band.label)}</text>
+        <text x="${n(band.labelX)}" y="${n(band.labelY)}" fill="${PREVIEW_COLORS.label}" text-anchor="middle" font-size="11" stroke="${PREVIEW_COLORS.textHalo}" stroke-width="4" paint-order="stroke" font-weight="500" font-family="${SVG_TEXT_FONT}"${band.key.startsWith("uniform") ? labelTransformAttr(modelLabelOffsets, "load:uniform") : ""}>${escapeSvg(band.label)}</text>
       </g>`,
     )
     .join("") : ""}

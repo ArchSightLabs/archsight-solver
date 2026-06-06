@@ -30,6 +30,7 @@ export type ReportNode = { id: string; x: number; y: number; supportType?: strin
 export type ReportMember = { id?: string; start: string; end: string };
 export type ReportGraphic = Record<string, unknown>;
 export type ReportPoint = { x: number; y: number };
+export type ReportLabelOffset = { dx?: number; dy?: number };
 
 export interface ReportStructureLayout {
   map: (point: { x: number; y: number }) => ReportPoint;
@@ -93,12 +94,12 @@ export function addReportHeader(graphics: ReportGraphic[], title: string, subtit
   }
 }
 
-export function addDimensionLegend(graphics: ReportGraphic[], rows: string[], top = 74) {
+export function addDimensionLegend(graphics: ReportGraphic[], rows: string[], top = 74, offset?: ReportLabelOffset) {
   rows.forEach((row, index) => {
     graphics.push({
       type: "text",
-      left: 28,
-      top: top + index * 17,
+      left: 28 + (offset?.dx ?? 0),
+      top: top + index * 17 + (offset?.dy ?? 0),
       style: {
         text: row,
         fill: DIMENSION_TEXT,
@@ -112,14 +113,14 @@ export function addDimensionLegend(graphics: ReportGraphic[], rows: string[], to
   });
 }
 
-export function addNode(graphics: ReportGraphic[], id: string, point: ReportPoint, center: ReportPoint) {
+export function addNode(graphics: ReportGraphic[], id: string, point: ReportPoint, center: ReportPoint, labelOffset?: ReportLabelOffset) {
   const side = point.x < center.x ? -1 : 1;
   graphics.push(
     { type: "circle", shape: { cx: point.x, cy: point.y, r: STRUCTURE_NODE_RADII.report }, style: { fill: NODE_FILL } },
     {
       type: "text",
-      left: point.x + side * 14,
-      top: point.y - 24,
+      left: point.x + side * 14 + (labelOffset?.dx ?? 0),
+      top: point.y - 24 + (labelOffset?.dy ?? 0),
       style: {
         text: id,
         fill: STRUCTURE_REPORT_COLORS.label,
@@ -134,13 +135,13 @@ export function addNode(graphics: ReportGraphic[], id: string, point: ReportPoin
   );
 }
 
-export function addMemberLabel(graphics: ReportGraphic[], id: string | undefined, start: ReportPoint, end: ReportPoint, center: ReportPoint) {
+export function addMemberLabel(graphics: ReportGraphic[], id: string | undefined, start: ReportPoint, end: ReportPoint, center: ReportPoint, labelOffset?: ReportLabelOffset) {
   if (!id) return;
   const label = frameMemberLabelPlacement(start, end, center, 28);
   graphics.push({
     type: "text",
-    left: label.x,
-    top: label.y - 7,
+    left: label.x + (labelOffset?.dx ?? 0),
+    top: label.y - 7 + (labelOffset?.dy ?? 0),
     style: {
       text: id,
       fill: STRUCTURE_REPORT_COLORS.label,
@@ -194,12 +195,12 @@ export function addArrow(graphics: ReportGraphic[], x1: number, y1: number, x2: 
   );
 }
 
-export function addLoadLabel(graphics: ReportGraphic[], text: string | undefined, x: number, y: number, align: "start" | "middle" | "end" = "start") {
+export function addLoadLabel(graphics: ReportGraphic[], text: string | undefined, x: number, y: number, align: "start" | "middle" | "end" = "start", labelOffset?: ReportLabelOffset) {
   if (!text) return;
   graphics.push({
     type: "text",
-    left: x,
-    top: y - 8,
+    left: x + (labelOffset?.dx ?? 0),
+    top: y - 8 + (labelOffset?.dy ?? 0),
     style: {
       text,
       fill: LOAD_LABEL,

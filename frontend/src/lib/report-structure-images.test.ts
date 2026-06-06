@@ -46,6 +46,19 @@ function backgroundShape(graphics: ReportGraphic[]): { width: number; height: nu
   };
 }
 
+function graphicTextPosition(graphics: ReportGraphic[], matcher: string | RegExp): { left: number; top: number } {
+  const graphic = graphics.find((item) => {
+    const style = item.style as { text?: unknown } | undefined;
+    if (typeof style?.text !== "string") return false;
+    return typeof matcher === "string" ? style.text === matcher : matcher.test(style.text);
+  });
+  assert.ok(graphic, `缂哄皯鍥惧舰鏂囧瓧锛?{matcher}`);
+  return {
+    left: Number((graphic as { left?: unknown }).left ?? 0),
+    top: Number((graphic as { top?: unknown }).top ?? 0),
+  };
+}
+
 test("桁架计算书图形节点保留铰支座与滚动支座差异", () => {
   const preview = {
     analysisType: "truss",
@@ -216,6 +229,72 @@ test("框架计算书预览图随大模型扩展画布并压缩等长构件图�
   assert.deepEqual(backgroundShape(graphics), canvasSize);
   assertGraphicText(graphics, "M1=M2=M3=M4=3 m");
   assertGraphicText(graphics, "M45=M46=M47=3 m");
+});
+
+test("frame report preview graphics reuse model label offsets", () => {
+  const results = {
+    analysisType: "frame",
+    frame: {
+      analysisType: "frame",
+      structureType: "explicit",
+      structureTypeLabel: "浜岀淮骞抽潰妗嗘灦",
+      nodes: [
+        { id: "N1", x: 0, y: 0, supportType: "fixed" },
+        { id: "N2", x: 6, y: 0, supportType: "fixed" },
+        { id: "N3", x: 0, y: 4, supportType: "free" },
+        { id: "N4", x: 6, y: 4, supportType: "free" },
+      ],
+      members: [
+        { id: "C1", start: "N1", end: "N3", kind: "column" },
+        { id: "B1", start: "N3", end: "N4", kind: "beam" },
+        { id: "C2", start: "N2", end: "N4", kind: "column" },
+      ],
+      loads: [
+        { type: "distributed", member: "B1", wyKnPerM: -18, direction: "global_y" },
+        { type: "nodal", node: "N4", fxKn: -24 },
+      ],
+      deformedNodes: [
+        { nodeId: "N1", x: 0, y: 0 },
+        { nodeId: "N2", x: 6, y: 0 },
+        { nodeId: "N3", x: 0.12, y: 3.98 },
+        { nodeId: "N4", x: 6.1, y: 3.96 },
+      ],
+    },
+  } as unknown as FrameCalculationResults;
+
+  const baseline = buildFramePreviewGraphics(results);
+  const shifted = buildFramePreviewGraphics(results, undefined, undefined, {
+    "dimension-legend": { dx: 24, dy: -8 },
+    "member:B1": { dx: -12, dy: 5 },
+    "node:N4": { dx: 7, dy: -9 },
+    "load:0:distributed": { dx: 18, dy: 6 },
+    "load:1:fx": { dx: -14, dy: 11 },
+  });
+
+  const dimensionBase = graphicTextPosition(baseline, "B1=6 m");
+  const dimensionShifted = graphicTextPosition(shifted, "B1=6 m");
+  assert.equal(dimensionShifted.left, dimensionBase.left + 24);
+  assert.equal(dimensionShifted.top, dimensionBase.top - 8);
+
+  const memberBase = graphicTextPosition(baseline, "B1");
+  const memberShifted = graphicTextPosition(shifted, "B1");
+  assert.equal(memberShifted.left, memberBase.left - 12);
+  assert.equal(memberShifted.top, memberBase.top + 5);
+
+  const nodeBase = graphicTextPosition(baseline, "N4");
+  const nodeShifted = graphicTextPosition(shifted, "N4");
+  assert.equal(nodeShifted.left, nodeBase.left + 7);
+  assert.equal(nodeShifted.top, nodeBase.top - 9);
+
+  const distributedBase = graphicTextPosition(baseline, /q\d+=18\.0 kN\/m/u);
+  const distributedShifted = graphicTextPosition(shifted, /q\d+=18\.0 kN\/m/u);
+  assert.equal(distributedShifted.left, distributedBase.left + 18);
+  assert.equal(distributedShifted.top, distributedBase.top + 6);
+
+  const forceBase = graphicTextPosition(baseline, /F\d+=24\.0 kN/u);
+  const forceShifted = graphicTextPosition(shifted, /F\d+=24\.0 kN/u);
+  assert.equal(forceShifted.left, forceBase.left - 14);
+  assert.equal(forceShifted.top, forceBase.top + 11);
 });
 
 test("框架计算书叠加图保留结果图名称控制值和模型编号", () => {
