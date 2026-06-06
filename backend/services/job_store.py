@@ -4,13 +4,16 @@ import json
 import os
 import sqlite3
 import tempfile
+from contextlib import closing
 from pathlib import Path
+from threading import Lock
 from typing import Any, Dict, Mapping
 
 
 JOB_COLUMNS = {
     "jobId": "job_id",
     "clientJobId": "client_job_id",
+    "tenantId": "tenant_id",
     "operation": "operation",
     "payload": "payload_json",
     "status": "status",
@@ -28,6 +31,12 @@ JOB_COLUMNS = {
 }
 
 JSON_FIELDS = {"payload", "result", "error", "warnings", "infos"}
+_initialized_db_paths: set[Path] = set()
+_init_lock = Lock()
+
+
+class DuplicateClientJobError(ValueError):
+    """Raised when a tenant-scoped clientJobId already has a persisted job."""
 
 
 def job_db_path() -> Path:
@@ -56,35 +65,44 @@ def _connect() -> sqlite3.Connection:
     connection = sqlite3.connect(db_path, timeout=30)
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA busy_timeout=30000")
-    connection.execute("PRAGMA journal_mode=WAL")
-    connection.execute(
-        """
-        CREATE TABLE IF NOT EXISTS solver_jobs (
-            job_id TEXT PRIMARY KEY,
-            client_job_id TEXT,
-            operation TEXT NOT NULL,
-            payload_json TEXT NOT NULL,
-            status TEXT NOT NULL,
-            result_json TEXT,
-            error_json TEXT,
-            warnings_json TEXT NOT NULL,
-            infos_json TEXT NOT NULL,
-            cancel_requested INTEGER NOT NULL DEFAULT 0,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL,
-            started_at TEXT,
-            completed_at TEXT,
-            worker_process_id INTEGER,
-            last_heartbeat_at TEXT
-        )
-        """
-    )
-    existing_columns = {row["name"] for row in connection.execute("PRAGMA table_info(solver_jobs)").fetchall()}
-    if "worker_process_id" not in existing_columns:
-        connection.execute("ALTER TABLE solver_jobs ADD COLUMN worker_process_id INTEGER")
-    if "last_heartbeat_at" not in existing_columns:
-        connection.execute("ALTER TABLE solver_jobs ADD COLUMN last_heartbeat_at TEXT")
-    connection.execute("CREATE INDEX IF NOT EXISTS idx_solver_jobs_status_heartbeat ON solver_jobs(status, last_heartbeat_at)")
+    resolved_db_path = db_path.resolve()
+    with _init_lock:
+        if resolved_db_path not in _initialized_db_paths:
+            connection.execute("PRAGMA journal_mode=WAL")
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS solver_jobs (
+                    job_id TEXT PRIMARY KEY,
+                    client_job_id TEXT,
+                    tenant_id TEXT NOT NULL DEFAULT 'default',
+                    operation TEXT NOT NULL,
+                    payload_json TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    result_json TEXT,
+                    error_json TEXT,
+                    warnings_json TEXT NOT NULL,
+                    infos_json TEXT NOT NULL,
+                    cancel_requested INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    started_at TEXT,
+                    completed_at TEXT,
+                    worker_process_id INTEGER,
+                    last_heartbeat_at TEXT
+                )
+                """
+            )
+            existing_columns = {row["name"] for row in connection.execute("PRAGMA table_info(solver_jobs)").fetchall()}
+            if "tenant_id" not in existing_columns:
+                connection.execute("ALTER TABLE solver_jobs ADD COLUMN tenant_id TEXT NOT NULL DEFAULT 'default'")
+            if "worker_process_id" not in existing_columns:
+                connection.execute("ALTER TABLE solver_jobs ADD COLUMN worker_process_id INTEGER")
+            if "last_heartbeat_at" not in existing_columns:
+                connection.execute("ALTER TABLE solver_jobs ADD COLUMN last_heartbeat_at TEXT")
+            connection.execute("CREATE INDEX IF NOT EXISTS idx_solver_jobs_status_heartbeat ON solver_jobs(status, last_heartbeat_at)")
+            connection.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_solver_jobs_tenant_client_unique ON solver_jobs(tenant_id, client_job_id) WHERE client_job_id IS NOT NULL")
+            connection.commit()
+            _initialized_db_paths.add(resolved_db_path)
     return connection
 
 
@@ -94,6 +112,7 @@ def _row_to_record(row: sqlite3.Row | None) -> Dict[str, Any] | None:
     return {
         "jobId": row["job_id"],
         "clientJobId": row["client_job_id"],
+        "tenantId": row["tenant_id"],
         "operation": row["operation"],
         "payload": _json_load(row["payload_json"], {}),
         "status": row["status"],
@@ -117,6 +136,7 @@ def _row_to_record_meta(row: sqlite3.Row | None) -> Dict[str, Any] | None:
     return {
         "jobId": row["job_id"],
         "clientJobId": row["client_job_id"],
+        "tenantId": row["tenant_id"],
         "operation": row["operation"],
         "status": row["status"],
         "cancelRequested": bool(row["cancel_requested"]),
@@ -130,47 +150,62 @@ def _row_to_record_meta(row: sqlite3.Row | None) -> Dict[str, Any] | None:
 
 
 def store_job(record: Mapping[str, Any]) -> None:
-    with _connect() as connection:
-        connection.execute(
-            """
-            INSERT INTO solver_jobs (
-                job_id, client_job_id, operation, payload_json, status,
-                result_json, error_json, warnings_json, infos_json,
-                cancel_requested, created_at, updated_at, started_at, completed_at, worker_process_id, last_heartbeat_at
+    with closing(_connect()) as connection, connection:
+        try:
+            connection.execute(
+                """
+                INSERT INTO solver_jobs (
+                    job_id, client_job_id, tenant_id, operation, payload_json, status,
+                    result_json, error_json, warnings_json, infos_json,
+                    cancel_requested, created_at, updated_at, started_at, completed_at, worker_process_id, last_heartbeat_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    record["jobId"],
+                    record.get("clientJobId"),
+                    record.get("tenantId", "default"),
+                    record["operation"],
+                    _json_dump(record["payload"]),
+                    record["status"],
+                    _json_dump(record.get("result")) if record.get("result") is not None else None,
+                    _json_dump(record.get("error")) if record.get("error") is not None else None,
+                    _json_dump(record.get("warnings", [])),
+                    _json_dump(record.get("infos", [])),
+                    1 if record.get("cancelRequested") else 0,
+                    record["createdAt"],
+                    record["updatedAt"],
+                    record.get("startedAt"),
+                    record.get("completedAt"),
+                    record.get("workerProcessId"),
+                    record.get("lastHeartbeatAt"),
+                ),
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                record["jobId"],
-                record.get("clientJobId"),
-                record["operation"],
-                _json_dump(record["payload"]),
-                record["status"],
-                _json_dump(record.get("result")) if record.get("result") is not None else None,
-                _json_dump(record.get("error")) if record.get("error") is not None else None,
-                _json_dump(record.get("warnings", [])),
-                _json_dump(record.get("infos", [])),
-                1 if record.get("cancelRequested") else 0,
-                record["createdAt"],
-                record["updatedAt"],
-                record.get("startedAt"),
-                record.get("completedAt"),
-                record.get("workerProcessId"),
-                record.get("lastHeartbeatAt"),
-            ),
-        )
+        except sqlite3.IntegrityError as exc:
+            if "solver_jobs.tenant_id, solver_jobs.client_job_id" in str(exc):
+                raise DuplicateClientJobError(str(exc)) from exc
+            raise
 
 
 def load_job(job_id: str) -> Dict[str, Any] | None:
-    with _connect() as connection:
+    with closing(_connect()) as connection:
         row = connection.execute("SELECT * FROM solver_jobs WHERE job_id = ?", (job_id,)).fetchone()
     return _row_to_record(row)
 
 
+def load_job_by_client_id(client_job_id: str, *, tenant_id: str = "default") -> Dict[str, Any] | None:
+    with closing(_connect()) as connection:
+        row = connection.execute(
+            "SELECT * FROM solver_jobs WHERE tenant_id = ? AND client_job_id = ? ORDER BY created_at DESC LIMIT 1",
+            (tenant_id, client_job_id)
+        ).fetchone()
+    return _row_to_record(row)
+
+
 def load_active_jobs_meta() -> list[Dict[str, Any]]:
-    with _connect() as connection:
+    with closing(_connect()) as connection:
         rows = connection.execute(
-            "SELECT job_id, client_job_id, operation, status, cancel_requested, "
+            "SELECT job_id, client_job_id, tenant_id, operation, status, cancel_requested, "
             "created_at, updated_at, started_at, completed_at, worker_process_id, last_heartbeat_at "
             "FROM solver_jobs WHERE status IN ('queued', 'running')"
         ).fetchall()
@@ -178,7 +213,7 @@ def load_active_jobs_meta() -> list[Dict[str, Any]]:
 
 
 def bulk_fail_stale_jobs(cutoff_iso_string: str, exclude_job_ids: list[str]) -> int:
-    with _connect() as connection:
+    with closing(_connect()) as connection, connection:
         # Convert JSON objects to strings manually for standard _json_dump consistency
         error_json = _json_dump({
             "code": "COMMON_ASYNC_JOB_ORPHANED",
@@ -219,13 +254,13 @@ def update_job(job_id: str, **updates: Any) -> Dict[str, Any] | None:
         else:
             values.append(value)
     values.append(job_id)
-    with _connect() as connection:
+    with closing(_connect()) as connection, connection:
         connection.execute(f"UPDATE solver_jobs SET {', '.join(assignments)} WHERE job_id = ?", values)
     return load_job(job_id)
 
 
 def prune_completed_jobs(max_jobs: int) -> list[str]:
-    with _connect() as connection:
+    with closing(_connect()) as connection, connection:
         total = int(connection.execute("SELECT COUNT(*) FROM solver_jobs").fetchone()[0])
         if total <= max_jobs:
             return []

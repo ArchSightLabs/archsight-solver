@@ -263,6 +263,15 @@ def test_async_job_rejects_unsupported_operation(client):
     assert response.get_json()["error"]["code"] == "COMMON_UNSUPPORTED_ASYNC_OPERATION"
 
 
+def test_async_job_rejects_non_string_client_job_id(client):
+    response = client.post("/api/jobs", json={"operation": "calculate", "payload": _beam_payload(), "clientJobId": {"id": "bad"}})
+
+    assert response.status_code == 400
+    data = response.get_json()
+    assert data["error"]["code"] == "COMMON_INVALID_CLIENT_JOB_ID"
+    assert "clientJobId" in data["error"]["message"]
+
+
 def test_reconcile_all_orphans_on_startup(client):
     now = "2026-05-31T00:00:00+00:00"
     stale_heartbeat = "2026-05-31T00:00:00+00:00"
@@ -289,3 +298,40 @@ def test_reconcile_all_orphans_on_startup(client):
     job = _load_job("startup-orphan")
     assert job["status"] == "failed"
     assert job["error"]["code"] == "COMMON_ASYNC_JOB_ORPHANED"
+
+
+def test_async_job_submission_is_idempotent_by_client_id(client):
+    payload = _beam_payload()
+
+    response1 = client.post("/api/jobs", json={"operation": "calculate", "payload": payload, "clientJobId": "idempotent-test-123"})
+    assert response1.status_code == 202
+    job_id1 = response1.get_json()["jobId"]
+    assert response1.get_json()["meta"].get("idempotentHit") is None
+
+    response2 = client.post("/api/jobs", json={"operation": "calculate", "payload": payload, "clientJobId": "idempotent-test-123"})
+    assert response2.status_code in (200, 202)
+    job_id2 = response2.get_json()["jobId"]
+    assert response2.get_json()["meta"].get("idempotentHit") is True
+
+    assert job_id1 == job_id2
+
+
+def test_async_job_client_id_idempotency_is_scoped_by_tenant(client):
+    payload = _beam_payload()
+    request_body = {"operation": "calculate", "payload": payload, "clientJobId": "tenant-scoped-client-id"}
+
+    tenant_a_first = client.post("/api/jobs", json=request_body, headers={"X-Tenant-Id": "tenant-a"})
+    tenant_b_first = client.post("/api/jobs", json=request_body, headers={"X-Tenant-Id": "tenant-b"})
+    tenant_a_second = client.post("/api/jobs", json=request_body, headers={"X-Tenant-Id": "tenant-a"})
+
+    assert tenant_a_first.status_code == 202
+    assert tenant_b_first.status_code == 202
+    assert tenant_a_second.status_code in (200, 202)
+
+    tenant_a_first_job_id = tenant_a_first.get_json()["jobId"]
+    tenant_b_first_job_id = tenant_b_first.get_json()["jobId"]
+    tenant_a_second_data = tenant_a_second.get_json()
+
+    assert tenant_a_first_job_id != tenant_b_first_job_id
+    assert tenant_a_second_data["jobId"] == tenant_a_first_job_id
+    assert tenant_a_second_data["meta"]["idempotentHit"] is True

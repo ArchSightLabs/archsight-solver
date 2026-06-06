@@ -13,7 +13,9 @@ from flask import Blueprint, jsonify, request, url_for
 from backend.api.errors import ApiError, error_payload
 from backend.api.sensitivity import build_sensitivity_response
 from backend.api.calculation_response import build_calculation_response
+from backend.services.job_store import DuplicateClientJobError
 from backend.services.job_store import load_job as _load_job
+from backend.services.job_store import load_job_by_client_id as _load_job_by_client_id
 from backend.services.job_store import prune_completed_jobs as _prune_completed_job_records
 from backend.services.job_store import store_job as _store_job
 from backend.services.job_store import update_job as _update_job
@@ -34,6 +36,44 @@ _lock = threading.Lock()
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _tenant_id_from_request() -> str:
+    tenant_id = str(request.headers.get("X-Tenant-Id") or "default").strip()
+    return tenant_id[:128] if tenant_id else "default"
+
+
+def _client_job_id_from_payload(data: Mapping[str, Any]) -> str | None:
+    value = data.get("clientJobId")
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError("clientJobId 必须是字符串")
+    client_job_id = value.strip()
+    return client_job_id[:128] if client_job_id else None
+
+
+def _job_submission_response(record: Mapping[str, Any], *, idempotent_hit: bool) -> Any:
+    status_url = url_for("jobs.get_job", job_id=record["jobId"], _external=False)
+    status = str(record["status"])
+    response = jsonify(
+        {
+            "success": True,
+            "operation": "submit_job",
+            "version": "v1",
+            "jobId": record["jobId"],
+            "status": status,
+            "statusUrl": status_url,
+            "resultUrl": url_for("jobs.get_job_result", job_id=record["jobId"], _external=False),
+            "retryAfterSeconds": 1,
+            "meta": {"generatedAt": _utc_now(), **({"idempotentHit": True} if idempotent_hit else {})},
+        }
+    )
+    response.status_code = 200 if status in {"succeeded", "failed", "cancelled"} else 202
+    response.headers["Location"] = status_url
+    if response.status_code == 202:
+        response.headers["Retry-After"] = "1"
+    return response
 
 
 def _parse_heartbeat_at(value: Any) -> datetime | None:
@@ -220,11 +260,22 @@ def submit_job():
     if not isinstance(payload, Mapping):
         return jsonify(error_payload("payload 必须是结构求解输入对象", operation="submit_job")), 400
 
+    tenant_id = _tenant_id_from_request()
+    try:
+        client_job_id = _client_job_id_from_payload(data)
+    except ValueError as exc:
+        return jsonify(error_payload(str(exc), operation="submit_job", code="COMMON_INVALID_CLIENT_JOB_ID")), 400
+    if client_job_id:
+        existing_job = _load_job_by_client_id(client_job_id, tenant_id=tenant_id)
+        if existing_job:
+            return _job_submission_response(existing_job, idempotent_hit=True)
+
     job_id = uuid.uuid4().hex
     now = _utc_now()
     record: Dict[str, Any] = {
         "jobId": job_id,
-        "clientJobId": data.get("clientJobId"),
+        "clientJobId": client_job_id,
+        "tenantId": tenant_id,
         "operation": operation,
         "payload": dict(payload),
         "status": "queued",
@@ -237,28 +288,18 @@ def submit_job():
     }
 
     _prune_completed_jobs()
-    _store_job(record)
     with _lock:
+        try:
+            _store_job(record)
+        except DuplicateClientJobError:
+            if client_job_id:
+                existing_job = _load_job_by_client_id(client_job_id, tenant_id=tenant_id)
+                if existing_job:
+                    return _job_submission_response(existing_job, idempotent_hit=True)
+            raise
         _futures[job_id] = _executor.submit(_run_job, job_id)
 
-    status_url = url_for("jobs.get_job", job_id=job_id, _external=False)
-    response = jsonify(
-        {
-            "success": True,
-            "operation": "submit_job",
-            "version": "v1",
-            "jobId": job_id,
-            "status": "queued",
-            "statusUrl": status_url,
-            "resultUrl": url_for("jobs.get_job_result", job_id=job_id, _external=False),
-            "retryAfterSeconds": 1,
-            "meta": {"generatedAt": _utc_now()},
-        }
-    )
-    response.status_code = 202
-    response.headers["Location"] = status_url
-    response.headers["Retry-After"] = "1"
-    return response
+    return _job_submission_response(record, idempotent_hit=False)
 
 
 @jobs_bp.route("/jobs/<job_id>", methods=["GET"])
