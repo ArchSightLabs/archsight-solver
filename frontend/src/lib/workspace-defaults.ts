@@ -23,6 +23,7 @@ import type {
   TrussLoadCombination,
   TrussWorkspaceState,
 } from "../types/structure.ts";
+import { cloneModelLabelOffsets } from "./model-label-overrides.ts";
 
 export interface WorkspaceState {
   analysisMode: AnalysisMode;
@@ -380,6 +381,7 @@ export function cloneBeamWorkspaceState(value: BeamWorkspaceState): BeamWorkspac
     scenarios: value.scenarios.map((scenario) => ({ ...scenario })),
     customLoadCases: cloneBeamLoadCases(value.customLoadCases ?? []),
     customLoadCombinations: cloneBeamLoadCombinations(value.customLoadCombinations ?? []),
+    modelLabelOffsets: cloneModelLabelOffsets(value.modelLabelOffsets),
     viewSettings: value.viewSettings ? { ...value.viewSettings } : undefined,
   };
 }
@@ -392,6 +394,7 @@ export function cloneFrameWorkspaceState(value: FrameWorkspaceState): FrameWorks
     customLoads: cloneLoads(value.customLoads),
     customLoadCases: cloneFrameLoadCases(value.customLoadCases ?? []),
     customLoadCombinations: cloneFrameLoadCombinations(value.customLoadCombinations ?? []),
+    modelLabelOffsets: cloneModelLabelOffsets(value.modelLabelOffsets),
     viewSettings: value.viewSettings ? { ...value.viewSettings } : undefined,
   };
 }
@@ -404,6 +407,7 @@ export function cloneTrussWorkspaceState(value: TrussWorkspaceState): TrussWorks
     customLoads: cloneTrussLoads(value.customLoads),
     customLoadCases: cloneTrussLoadCases(value.customLoadCases ?? []),
     customLoadCombinations: cloneTrussLoadCombinations(value.customLoadCombinations ?? []),
+    modelLabelOffsets: cloneModelLabelOffsets(value.modelLabelOffsets),
     viewSettings: value.viewSettings ? { ...value.viewSettings } : undefined,
   };
 }

@@ -106,3 +106,25 @@ test("框架画布将网格吸附作为建模工具栏控件", async ({ page }) 
   await snapToggle.click();
   await expect(page.getByRole("button", { name: "关闭节点坐标网格吸附" })).toHaveAttribute("aria-pressed", "true");
 });
+
+test("框架画布支持拖动并重置模型标注", async ({ page }) => {
+  await openFrameWorkbench(page);
+
+  const label = page.locator('[data-canvas-mode="frame"][data-canvas-type="label"][data-canvas-id="dimension-legend"]');
+  await expect(label).toBeVisible();
+  await expect(label).not.toHaveAttribute("transform", /translate/u);
+
+  const labelBox = await label.boundingBox();
+  expect(labelBox).not.toBeNull();
+  if (!labelBox) return;
+
+  await page.mouse.move(labelBox.x + labelBox.width / 2, labelBox.y + labelBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(labelBox.x + labelBox.width / 2 + 90, labelBox.y + labelBox.height / 2 + 42, { steps: 8 });
+  await page.mouse.up();
+
+  await expect(label).toHaveAttribute("transform", /translate\(/u);
+  await expect(page.getByRole("toolbar", { name: "标注工具" })).toBeVisible();
+  await page.getByRole("button", { name: "重置所选标注位置" }).click();
+  await expect(label).not.toHaveAttribute("transform", /translate/u);
+});

@@ -11,6 +11,7 @@ import {
   Plus,
   Redo2,
   RotateCcw,
+  Tag,
   Trash2,
   Undo2,
   ZoomIn,
@@ -36,6 +37,11 @@ import type { ModelPreviewStyle } from "../types/beam";
 import { modelObjectMetricRows } from "../lib/model-object-vocabulary";
 import { modelCanvasBoardStyle, workbenchModelCanvasSize } from "../lib/model-canvas-sizing";
 import type { ModelGeometryAction, ModelGeometryToolbarState } from "../lib/model-workflow-actions";
+import {
+  modelLabelOffsetForMode,
+  type ModelCanvasLabelDragPreview,
+  type ModelLabelOffset,
+} from "../lib/model-label-overrides";
 import { snapCoordinateToGrid } from "../lib/node-coordinate-snap";
 import {
   frameCanvasPointToModel,
@@ -62,12 +68,17 @@ interface WorkbenchModelCanvasProps {
   geometryToolbar?: ModelGeometryToolbarState | null;
   gridSnapEnabled?: boolean;
   gridSnapStepM?: number;
+  labelOffsetCount?: number;
+  canResetSelectedLabel?: boolean;
   onDeleteSelection?: () => void;
   onGeometryAction?: (action: ModelGeometryAction) => void;
   onGridSnapEnabledChange?: (enabled: boolean) => void;
   onGridSnapStepChange?: (stepM: number) => void;
+  onMoveLabel?: (mode: AnalysisMode, labelId: string, offset: ModelLabelOffset) => void;
   onMoveNode?: (mode: Extract<AnalysisMode, "frame" | "truss">, nodeId: string, point: CanvasPoint) => void;
   onRedoWorkspace?: () => void;
+  onResetAllLabels?: () => void;
+  onResetSelectedLabel?: () => void;
   onSelect?: (next: WorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
   onSelectionSetChange?: (next: WorkbenchSelection[], options?: WorkbenchSelectionOptions) => void;
   onUndoWorkspace?: () => void;
@@ -89,6 +100,17 @@ interface NodeDragState {
   nodeId: string;
   svg: globalThis.SVGSVGElement;
   lastPoint: CanvasPoint;
+  moved: boolean;
+}
+
+interface LabelDragState {
+  pointerId: number;
+  mode: AnalysisMode;
+  labelId: string;
+  svg: globalThis.SVGSVGElement;
+  startPoint: CanvasPoint;
+  startOffset: ModelLabelOffset;
+  lastOffset: ModelLabelOffset;
   moved: boolean;
 }
 
@@ -176,12 +198,17 @@ export function WorkbenchModelCanvas({
   geometryToolbar,
   gridSnapEnabled = false,
   gridSnapStepM = 0.5,
+  labelOffsetCount = 0,
+  canResetSelectedLabel = false,
   onDeleteSelection,
   onGeometryAction,
   onGridSnapEnabledChange,
   onGridSnapStepChange,
+  onMoveLabel,
   onMoveNode,
   onRedoWorkspace,
+  onResetAllLabels,
+  onResetSelectedLabel,
   onSelect,
   onSelectionSetChange,
   onUndoWorkspace,
@@ -189,8 +216,10 @@ export function WorkbenchModelCanvas({
   const surfaceRef = useRef<HTMLDivElement | null>(null);
   const boardRef = useRef<HTMLDivElement | null>(null);
   const marqueeRef = useRef<MarqueeSelectionState | null>(null);
+  const labelDragRef = useRef<LabelDragState | null>(null);
   const nodeDragRef = useRef<NodeDragState | null>(null);
   const [marqueeStyle, setMarqueeStyle] = useState<CSSProperties | null>(null);
+  const [labelDragPreview, setLabelDragPreview] = useState<ModelCanvasLabelDragPreview | null>(null);
   const [nodeDragPreview, setNodeDragPreview] = useState<ModelCanvasNodeDragPreview | null>(null);
   const {
     canvasScrollRef,
@@ -214,6 +243,7 @@ export function WorkbenchModelCanvas({
   const metricGridClass = metrics.length > 3 ? "sm:grid-cols-2 xl:grid-cols-4" : "sm:grid-cols-3";
   const hasHistoryActions = Boolean(onUndoWorkspace && onRedoWorkspace);
   const canShowGridSnapTool = (mode === "frame" || mode === "truss") && Boolean(onGridSnapEnabledChange && onGridSnapStepChange);
+  const hasLabelTools = Boolean(onMoveLabel) && (selection?.type === "label" || labelOffsetCount > 0);
   const canMarqueeSelect = Boolean(onSelectionSetChange);
   const canvasCursorClass = isCanvasDragging
     ? "cursor-grabbing"
@@ -255,9 +285,9 @@ export function WorkbenchModelCanvas({
       .filter((element) => element.dataset.canvasMode === mode)
       .filter((element) => rectsIntersect(element.getBoundingClientRect(), rect))
       .map((element) => workbenchSelectionFromCanvasDataset(element.dataset))
-      .filter((item): item is WorkbenchSelection => Boolean(item));
+      .filter((item): item is WorkbenchSelection => item !== null && item.type !== "label");
     const next = nextMarquee.additive
-      ? uniqueWorkbenchSelections([...selectionSet, ...selected])
+      ? uniqueWorkbenchSelections([...selectionSet.filter((item) => item.type !== "label"), ...selected])
       : uniqueWorkbenchSelections(selected);
     onSelectionSetChange(next, { openEditor: false });
   };
@@ -266,6 +296,38 @@ export function WorkbenchModelCanvas({
     x: Number(snapCoordinateToGrid(point.x, { enabled: gridSnapEnabled, stepM: gridSnapStepM }).toFixed(3)),
     y: Number(snapCoordinateToGrid(point.y, { enabled: gridSnapEnabled, stepM: gridSnapStepM }).toFixed(3)),
   });
+
+  const startLabelDrag = (event: ReactPointerEvent<HTMLDivElement>): boolean => {
+    if (event.button !== 0 || !onMoveLabel) return false;
+    if (!(event.target instanceof globalThis.Element)) return false;
+    const target = event.target.closest<globalThis.SVGGraphicsElement>("[data-canvas-draggable-label='true']");
+    const svg = target?.ownerSVGElement;
+    if (!target || !svg) return false;
+    const draggedSelection = workbenchSelectionFromCanvasDataset(target.dataset);
+    if (!draggedSelection || draggedSelection.type !== "label") return false;
+    const svgPoint = clientPointToSvgPoint(event, svg);
+    if (!svgPoint) return false;
+    const startOffset = modelLabelOffsetForMode(workspace, draggedSelection.mode, draggedSelection.id);
+
+    labelDragRef.current = {
+      pointerId: event.pointerId,
+      mode: draggedSelection.mode,
+      labelId: draggedSelection.id,
+      svg,
+      startPoint: svgPoint,
+      startOffset,
+      lastOffset: startOffset,
+      moved: false,
+    };
+    setLabelDragPreview({ mode: draggedSelection.mode, labelId: draggedSelection.id, offset: startOffset });
+    event.currentTarget.setPointerCapture(event.pointerId);
+    if (!selectionSetContains(selectionSet, draggedSelection)) {
+      onSelect?.(draggedSelection, { additive: isSelectionModifier(event), openEditor: false });
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    return true;
+  };
 
   const startNodeDrag = (event: ReactPointerEvent<HTMLDivElement>): boolean => {
     if (event.button !== 0 || (mode !== "frame" && mode !== "truss") || !onMoveNode) return false;
@@ -336,6 +398,22 @@ export function WorkbenchModelCanvas({
     return true;
   };
 
+  const finishLabelDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = labelDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return false;
+    if (drag.moved) {
+      onMoveLabel?.(drag.mode, drag.labelId, drag.lastOffset);
+    }
+    labelDragRef.current = null;
+    setLabelDragPreview(null);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    return true;
+  };
+
   const finishMarqueeSelection = (event: ReactPointerEvent<HTMLDivElement>) => {
     const nextMarquee = marqueeRef.current;
     if (!nextMarquee || nextMarquee.pointerId !== event.pointerId) return false;
@@ -354,12 +432,29 @@ export function WorkbenchModelCanvas({
   };
 
   const handleWorkbenchCanvasPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (startLabelDrag(event)) return;
     if (startNodeDrag(event)) return;
     if (startMarqueeSelection(event)) return;
     handleCanvasPointerDown(event);
   };
 
   const handleWorkbenchCanvasPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const labelDrag = labelDragRef.current;
+    if (labelDrag && labelDrag.pointerId === event.pointerId) {
+      const svgPoint = clientPointToSvgPoint(event, labelDrag.svg);
+      if (!svgPoint) return;
+      const nextOffset = {
+        dx: Number((labelDrag.startOffset.dx + svgPoint.x - labelDrag.startPoint.x).toFixed(2)),
+        dy: Number((labelDrag.startOffset.dy + svgPoint.y - labelDrag.startPoint.y).toFixed(2)),
+      };
+      labelDrag.lastOffset = nextOffset;
+      labelDrag.moved = labelDrag.moved || Math.hypot(svgPoint.x - labelDrag.startPoint.x, svgPoint.y - labelDrag.startPoint.y) >= 2;
+      setLabelDragPreview({ mode: labelDrag.mode, labelId: labelDrag.labelId, offset: nextOffset });
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
     const drag = nodeDragRef.current;
     if (drag && drag.pointerId === event.pointerId) {
       const svgPoint = clientPointToSvgPoint(event, drag.svg);
@@ -395,6 +490,7 @@ export function WorkbenchModelCanvas({
   };
 
   const handleWorkbenchCanvasPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (finishLabelDrag(event)) return;
     if (finishNodeDrag(event)) return;
     if (finishMarqueeSelection(event)) return;
     finishCanvasDrag(event);
@@ -404,6 +500,10 @@ export function WorkbenchModelCanvas({
     if (nodeDragRef.current?.pointerId === event.pointerId) {
       nodeDragRef.current = null;
       setNodeDragPreview(null);
+    }
+    if (labelDragRef.current?.pointerId === event.pointerId) {
+      labelDragRef.current = null;
+      setLabelDragPreview(null);
     }
     if (marqueeRef.current?.pointerId === event.pointerId) {
       marqueeRef.current = null;
@@ -522,6 +622,39 @@ export function WorkbenchModelCanvas({
                 onStepChange={(next) => onGridSnapStepChange?.(next)}
               />
             ) : null}
+            {hasLabelTools ? (
+              <div className="flex min-w-0 flex-wrap items-center gap-1 rounded-xl border border-slate-200/80 bg-white/[0.88] p-1 shadow-sm backdrop-blur dark:border-slate-700/80 dark:bg-slate-950/[0.82]" role="toolbar" aria-label="标注工具">
+                <span className="hidden max-w-24 truncate px-2 text-[10px] font-black text-slate-500 dark:text-slate-400 sm:inline" title={selection?.type === "label" ? selection.id : `${labelOffsetCount} 个已微调标注`}>
+                  {selection?.type === "label" ? "当前标注" : `标注 ${labelOffsetCount}`}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size={compact ? "icon" : "sm"}
+                  onClick={onResetSelectedLabel}
+                  disabled={!canResetSelectedLabel}
+                  aria-label="重置所选标注位置"
+                  title="重置所选标注位置"
+                  className={`${compact ? "h-7 w-7" : "h-7 px-2"} rounded-lg text-[11px] font-bold`}
+                >
+                  <Tag className={`${compact ? "" : "mr-1.5"} h-3.5 w-3.5`} />
+                  {compact ? <span className="sr-only">重置所选</span> : "重置所选"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size={compact ? "icon" : "sm"}
+                  onClick={onResetAllLabels}
+                  disabled={labelOffsetCount === 0}
+                  aria-label="重置全部标注位置"
+                  title="重置全部标注位置"
+                  className={`${compact ? "h-7 w-7" : "h-7 px-2"} rounded-lg text-[11px] font-bold`}
+                >
+                  <RotateCcw className={`${compact ? "" : "mr-1.5"} h-3.5 w-3.5`} />
+                  {compact ? <span className="sr-only">全部重置</span> : "全部重置"}
+                </Button>
+              </div>
+            ) : null}
           </div>
           <div className="flex items-center gap-1 rounded-xl border border-slate-200/80 bg-white/[0.88] p-1 shadow-sm backdrop-blur dark:border-slate-700/80 dark:bg-slate-950/[0.82]">
             {showZoomControls ? (
@@ -632,6 +765,7 @@ export function WorkbenchModelCanvas({
                 modelPreviewStyle={modelPreviewStyle}
                 selection={selection}
                 selectionSet={selectionSet}
+                labelDragPreview={labelDragPreview}
                 onSelect={onSelect}
               />
             ) : mode === "frame" ? (
@@ -641,6 +775,7 @@ export function WorkbenchModelCanvas({
                 selection={selection}
                 selectionSet={selectionSet}
                 dragPreview={nodeDragPreview}
+                labelDragPreview={labelDragPreview}
                 onSelect={onSelect}
               />
             ) : (
@@ -650,6 +785,7 @@ export function WorkbenchModelCanvas({
                 selection={selection}
                 selectionSet={selectionSet}
                 dragPreview={nodeDragPreview}
+                labelDragPreview={labelDragPreview}
                 onSelect={onSelect}
               />
             )}

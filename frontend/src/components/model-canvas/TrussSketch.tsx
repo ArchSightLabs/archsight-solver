@@ -9,11 +9,16 @@ import {
 } from "../../lib/model-canvas-projection";
 import { modelObjectMemberTerm } from "../../lib/model-object-vocabulary";
 import { STRUCTURE_NODE_RADII, STRUCTURE_VISUAL_STROKES } from "../../lib/structure-visual-tokens";
+import {
+  modelLabelTransform,
+  previewOrStoredModelLabelOffset,
+  type ModelCanvasLabelDragPreview,
+} from "../../lib/model-label-overrides";
 import type { WorkspaceState } from "../../lib/workspace-state";
 import type { TrussLoad } from "../../types/structure";
 import type { WorkbenchSelection, WorkbenchSelectionOptions } from "../../types/workbench-selection";
 import { sameWorkbenchSelection, selectionSetContains } from "../../lib/workbench-selection-utils";
-import { MODEL_DIMENSION_TEXT_WEIGHT, SVG_TEXT_FONT, formatMagnitude, formatSignedMagnitude, isAdditiveSelectionEvent, svgCanvasSelectionProps, svgInteractiveProps } from "./shared";
+import { MODEL_DIMENSION_TEXT_WEIGHT, SVG_TEXT_FONT, formatMagnitude, formatSignedMagnitude, isAdditiveSelectionEvent, svgCanvasSelectionProps, svgInteractiveProps, svgLabelInteractiveProps } from "./shared";
 
 type TrussMemberLoad = Extract<TrussLoad, { type: "distributed" | "member_load" | "member" }>;
 
@@ -116,6 +121,7 @@ export function TrussSketch({
   selection,
   selectionSet = [],
   dragPreview,
+  labelDragPreview,
   onSelect,
 }: {
   workspace: WorkspaceState;
@@ -123,6 +129,7 @@ export function TrussSketch({
   selection?: WorkbenchSelection | null;
   selectionSet?: WorkbenchSelection[];
   dragPreview?: ModelCanvasNodeDragPreview | null;
+  labelDragPreview?: ModelCanvasLabelDragPreview | null;
   onSelect?: (next: WorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
 }) {
   const model = trussCanvasModel(workspace, dragPreview);
@@ -143,6 +150,14 @@ export function TrussSketch({
   const activateSelection = (item: WorkbenchSelection, event?: { shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean }) => {
     onSelect?.(item, { additive: isAdditiveSelectionEvent(event) });
   };
+  const labelSelection = (id: string) => ({ mode: "truss", type: "label", id } as const);
+  const isLabelSelected = (id: string) => isSelected(labelSelection(id));
+  const labelTransform = (id: string) => modelLabelTransform(previewOrStoredModelLabelOffset(workspace.truss.modelLabelOffsets, labelDragPreview, "truss", id));
+  const labelProps = (id: string, title: string) => ({
+    ...svgLabelInteractiveProps(title, (event) => onSelect?.(labelSelection(id), { additive: isAdditiveSelectionEvent(event), openEditor: false })),
+    ...svgCanvasSelectionProps(labelSelection(id), { draggableLabel: true }),
+    transform: labelTransform(id),
+  });
   const memberLengthDimensions = members.flatMap((member) => {
     const start = nodeMap.get(member.start);
     const end = nodeMap.get(member.end);
@@ -175,11 +190,15 @@ export function TrussSketch({
   return (
     <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} className="h-full w-full" data-model-canvas="truss" data-label-density={labelPolicy.density}>
       <g fontFamily={SVG_TEXT_FONT} fill="var(--model-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
-        {memberLengthLegendRows.map((row, index) => (
-          <text key={`truss-member-length-legend-${index}`} x={memberLengthLegendX} y={34 + index * 16} fontSize="12" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT}>
-            {row}
-          </text>
-        ))}
+        {memberLengthLegendRows.length ? (
+          <g {...labelProps("dimension-legend", `移动桁架${memberTerm}长度图例标注`)}>
+            {memberLengthLegendRows.map((row, index) => (
+              <text key={`truss-member-length-legend-${index}`} x={memberLengthLegendX} y={34 + index * 16} fontSize="12" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT} fill={isLabelSelected("dimension-legend") ? "var(--model-load)" : undefined}>
+                {row}
+              </text>
+            ))}
+          </g>
+        ) : null}
       </g>
       {members.map((member, index) => {
         const start = nodeMap.get(member.start);
@@ -205,23 +224,25 @@ export function TrussSketch({
             <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="transparent" strokeWidth="18" strokeLinecap="round" />
             <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke={selected ? "var(--model-load)" : "var(--model-member)"} strokeWidth={selected ? STRUCTURE_VISUAL_STROKES.modelTrussSelectedMember : STRUCTURE_VISUAL_STROKES.modelMember} strokeLinecap="round" opacity={selected ? "0.85" : "1"} />
             {showLabel ? (
-              <text
-                x={label.x}
-                y={label.y}
-                transform={`rotate(${label.angle} ${label.x} ${label.y})`}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                fill={selected ? "var(--model-load)" : "var(--model-label)"}
-                stroke="var(--model-label-halo)"
-                strokeWidth="4"
-                paintOrder="stroke"
-                fontSize="10.5"
-                fontWeight="700"
-                fontFamily={SVG_TEXT_FONT}
-                data-model-label="member"
-              >
-                {member.id}
-              </text>
+              <g {...labelProps(`member:${member.id}`, `移动桁架${memberTerm} ${member.id} 标注`)}>
+                <text
+                  x={label.x}
+                  y={label.y}
+                  transform={`rotate(${label.angle} ${label.x} ${label.y})`}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fill={selected || isLabelSelected(`member:${member.id}`) ? "var(--model-load)" : "var(--model-label)"}
+                  stroke="var(--model-label-halo)"
+                  strokeWidth="4"
+                  paintOrder="stroke"
+                  fontSize="10.5"
+                  fontWeight="700"
+                  fontFamily={SVG_TEXT_FONT}
+                  data-model-label="member"
+                >
+                  {member.id}
+                </text>
+              </g>
             ) : null}
           </g>
         );
@@ -250,9 +271,11 @@ export function TrussSketch({
             <TrussSupportMarker type={node.supportType} x={point.x} y={point.y} selected={selected} />
             <circle cx={point.x} cy={point.y} r={selected ? STRUCTURE_NODE_RADII.modelSelected : STRUCTURE_NODE_RADII.model} fill={selected ? "var(--model-load)" : "var(--model-node)"} />
             {showLabel ? (
-              <text x={label.x} y={label.y} textAnchor={label.anchor} fill="var(--model-label)" fontSize="10.5" fontWeight="400" data-model-label="node">
-                {node.id}
-              </text>
+              <g {...labelProps(`node:${node.id}`, `移动桁架节点 ${node.id} 标注`)}>
+                <text x={label.x} y={label.y} textAnchor={label.anchor} fill={isLabelSelected(`node:${node.id}`) ? "var(--model-load)" : "var(--model-label)"} fontSize="10.5" fontWeight="400" data-model-label="node">
+                  {node.id}
+                </text>
+              </g>
             ) : null}
           </g>
         );
@@ -280,6 +303,7 @@ export function TrussSketch({
             const labelGuide = trussOffsetSegment(start, end, { x: trussCenterX, y: trussMidY }, 32);
             const labelMid = pointOnSegment(labelGuide.start, labelGuide.end, 0.5);
             const labelAngle = readableSegmentAngle(guide.start, guide.end);
+            const labelId = `load:${index}:member`;
             const equivalentArrows = [
               { key: "start", force: startForce, anchor: pointOnSegment(start, end, 0) },
               { key: "end", force: endForce, anchor: pointOnSegment(start, end, 1) },
@@ -304,22 +328,24 @@ export function TrussSketch({
                     />
                   );
                 })}
-                <text
-                  x={labelMid.x}
-                  y={labelMid.y}
-                  transform={`rotate(${labelAngle} ${labelMid.x} ${labelMid.y})`}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  fill="var(--model-load)"
-                  stroke="var(--model-load-halo)"
-                  strokeWidth="3"
-                  paintOrder="stroke"
-                  fontSize="11"
-                  fontWeight="700"
-                  fontFamily={SVG_TEXT_FONT}
-                >
-                  {memberTerm}荷载 {formatSignedMagnitude(qStart)}{Math.abs(qStart - qEnd) > 1e-9 ? `→${formatSignedMagnitude(qEnd)}` : ""} kN/m
-                </text>
+                <g {...labelProps(labelId, `移动桁架${memberTerm}荷载 ${index + 1} 标注`)}>
+                  <text
+                    x={labelMid.x}
+                    y={labelMid.y}
+                    transform={`rotate(${labelAngle} ${labelMid.x} ${labelMid.y})`}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fill="var(--model-load)"
+                    stroke={isLabelSelected(labelId) ? "var(--model-label-halo)" : "var(--model-load-halo)"}
+                    strokeWidth="3"
+                    paintOrder="stroke"
+                    fontSize="11"
+                    fontWeight="700"
+                    fontFamily={SVG_TEXT_FONT}
+                  >
+                    {memberTerm}荷载 {formatSignedMagnitude(qStart)}{Math.abs(qStart - qEnd) > 1e-9 ? `→${formatSignedMagnitude(qEnd)}` : ""} kN/m
+                  </text>
+                </g>
               </g>,
             ];
             return items;
@@ -332,23 +358,26 @@ export function TrussSketch({
             const sign = load.fxKn >= 0 ? 1 : -1;
             const x1 = point.x - sign * 48;
             const x2 = point.x - sign * 10;
+            const labelId = `load:${index}:fx`;
             items.push(
               <g key={`${index}-fx`}>
                 <path d={`M${x1} ${point.y} L${x2} ${point.y}`} markerEnd="url(#trussArrow)" strokeWidth={selectedStroke} />
-                <text
-                  x={x1}
-                  y={point.y - 13}
-                  textAnchor={sign > 0 ? "end" : "start"}
-                  fill="var(--model-load)"
-                  stroke="var(--model-load-halo)"
-                  strokeWidth="3"
-                  paintOrder="stroke"
-                  fontSize="11.5"
-                  fontWeight="600"
-                  fontFamily={SVG_TEXT_FONT}
-                >
-                  水平荷载 {formatMagnitude(load.fxKn)} kN
-                </text>
+                <g {...labelProps(labelId, `移动桁架水平节点荷载 ${index + 1} 标注`)}>
+                  <text
+                    x={x1}
+                    y={point.y - 13}
+                    textAnchor={sign > 0 ? "end" : "start"}
+                    fill="var(--model-load)"
+                    stroke={isLabelSelected(labelId) ? "var(--model-label-halo)" : "var(--model-load-halo)"}
+                    strokeWidth="3"
+                    paintOrder="stroke"
+                    fontSize="11.5"
+                    fontWeight="600"
+                    fontFamily={SVG_TEXT_FONT}
+                  >
+                    水平荷载 {formatMagnitude(load.fxKn)} kN
+                  </text>
+                </g>
               </g>
             );
           }
@@ -356,23 +385,26 @@ export function TrussSketch({
             const sign = load.fyKn >= 0 ? -1 : 1;
             const y1 = point.y - sign * 54;
             const y2 = point.y - sign * 12;
+            const labelId = `load:${index}:fy`;
             items.push(
               <g key={`${index}-fy`}>
                 <path d={`M${point.x} ${y1} L${point.x} ${y2}`} markerEnd="url(#trussArrow)" strokeWidth={selectedStroke} />
-                <text
-                  x={point.x}
-                  y={y1 + (sign > 0 ? -12 : 20)}
-                  textAnchor="middle"
-                  fill="var(--model-load)"
-                  stroke="var(--model-load-halo)"
-                  strokeWidth="3"
-                  paintOrder="stroke"
-                  fontSize="11.5"
-                  fontWeight="600"
-                  fontFamily={SVG_TEXT_FONT}
-                >
-                  竖向荷载 {formatMagnitude(load.fyKn)} kN
-                </text>
+                <g {...labelProps(labelId, `移动桁架竖向节点荷载 ${index + 1} 标注`)}>
+                  <text
+                    x={point.x}
+                    y={y1 + (sign > 0 ? -12 : 20)}
+                    textAnchor="middle"
+                    fill="var(--model-load)"
+                    stroke={isLabelSelected(labelId) ? "var(--model-label-halo)" : "var(--model-load-halo)"}
+                    strokeWidth="3"
+                    paintOrder="stroke"
+                    fontSize="11.5"
+                    fontWeight="600"
+                    fontFamily={SVG_TEXT_FONT}
+                  >
+                    竖向荷载 {formatMagnitude(load.fyKn)} kN
+                  </text>
+                </g>
               </g>
             );
           }

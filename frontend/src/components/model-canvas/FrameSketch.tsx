@@ -10,11 +10,16 @@ import {
   type ModelCanvasNodeDragPreview,
 } from "../../lib/model-canvas-projection";
 import { STRUCTURE_NODE_RADII, STRUCTURE_VISUAL_STROKES } from "../../lib/structure-visual-tokens";
+import {
+  modelLabelTransform,
+  previewOrStoredModelLabelOffset,
+  type ModelCanvasLabelDragPreview,
+} from "../../lib/model-label-overrides";
 import { buildFrameDimensionLegendRows, buildFrameLoadLabelMap, formatFrameDistributedLoadLabel, formatFrameForceLoadLabel, formatFrameTemperatureLoadLabel, frameMemberDimensionValueLabel, type FrameGeometryDimension } from "../frame-preview-utils";
 import type { FrameLoad, FrameLoadDirection, StructureNode, SupportType } from "../../types/structure";
 import type { WorkbenchSelection, WorkbenchSelectionOptions } from "../../types/workbench-selection";
 import { sameWorkbenchSelection, selectionSetContains } from "../../lib/workbench-selection-utils";
-import { MODEL_DIMENSION_TEXT_WEIGHT, SVG_TEXT_FONT, clampRatio, isAdditiveSelectionEvent, svgCanvasSelectionProps, svgInteractiveProps } from "./shared";
+import { MODEL_DIMENSION_TEXT_WEIGHT, SVG_TEXT_FONT, clampRatio, isAdditiveSelectionEvent, svgCanvasSelectionProps, svgInteractiveProps, svgLabelInteractiveProps } from "./shared";
 
 const FRAME_LOAD_STROKE_WIDTH = STRUCTURE_VISUAL_STROKES.modelFrameLoad;
 const FRAME_LOAD_SELECTED_STROKE_WIDTH = STRUCTURE_VISUAL_STROKES.modelFrameSelectedLoad;
@@ -139,6 +144,7 @@ export function FrameSketch({
   selection,
   selectionSet = [],
   dragPreview,
+  labelDragPreview,
   onSelect,
 }: {
   workspace: WorkspaceState;
@@ -146,6 +152,7 @@ export function FrameSketch({
   selection?: WorkbenchSelection | null;
   selectionSet?: WorkbenchSelection[];
   dragPreview?: ModelCanvasNodeDragPreview | null;
+  labelDragPreview?: ModelCanvasLabelDragPreview | null;
   onSelect?: (next: WorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
 }) {
   const model = frameCanvasModel(workspace, dragPreview);
@@ -169,6 +176,14 @@ export function FrameSketch({
   const activateSelection = (item: WorkbenchSelection, event?: { shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean }) => {
     onSelect?.(item, { additive: isAdditiveSelectionEvent(event) });
   };
+  const labelSelection = (id: string) => ({ mode: "frame", type: "label", id } as const);
+  const isLabelSelected = (id: string) => isSelected(labelSelection(id));
+  const labelTransform = (id: string) => modelLabelTransform(previewOrStoredModelLabelOffset(workspace.frame.modelLabelOffsets, labelDragPreview, "frame", id));
+  const labelProps = (id: string, title: string) => ({
+    ...svgLabelInteractiveProps(title, (event) => onSelect?.(labelSelection(id), { additive: isAdditiveSelectionEvent(event), openEditor: false })),
+    ...svgCanvasSelectionProps(labelSelection(id), { draggableLabel: true }),
+    transform: labelTransform(id),
+  });
   const frameDimensions: FrameGeometryDimension[] = members.flatMap((member) => {
     const start = rawNodeMap.get(member.start);
     const end = rawNodeMap.get(member.end);
@@ -213,11 +228,15 @@ export function FrameSketch({
   return (
     <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} className="h-full w-full" data-model-canvas="frame" data-label-density={labelPolicy.density}>
       <g fontFamily={SVG_TEXT_FONT} fill="var(--model-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
-        {frameDimensionLegendRows.map((row, index) => (
-          <text key={`frame-dimension-legend-${index}`} x={frameDimensionLegendX} y={22 + index * 16} fontSize="12" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT}>
-            {row}
-          </text>
-        ))}
+        {frameDimensionLegendRows.length ? (
+          <g {...labelProps("dimension-legend", "移动框架尺寸图例标注")}>
+            {frameDimensionLegendRows.map((row, index) => (
+              <text key={`frame-dimension-legend-${index}`} x={frameDimensionLegendX} y={22 + index * 16} fontSize="12" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT} fill={isLabelSelected("dimension-legend") ? "var(--model-load)" : undefined}>
+                {row}
+              </text>
+            ))}
+          </g>
+        ) : null}
       </g>
       <g stroke="var(--model-member)" strokeLinecap="round" strokeLinejoin="round">
         {members.map((member, index) => {
@@ -243,22 +262,24 @@ export function FrameSketch({
               <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="transparent" strokeWidth="18" />
               <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} strokeWidth={selected ? STRUCTURE_VISUAL_STROKES.modelFrameSelectedMember : STRUCTURE_VISUAL_STROKES.modelMember} stroke={selected ? "var(--model-load)" : "var(--model-member)"} opacity={selected ? "0.85" : "1"} />
               {showLabel ? (
-                <text
-                  x={label.x}
-                  y={label.y}
-                  textAnchor={label.anchor}
-                  dominantBaseline="middle"
-                  fill={selected ? "var(--model-load)" : "var(--model-label)"}
-                  stroke="var(--model-label-halo)"
-                  strokeWidth="4"
-                  paintOrder="stroke"
-                  fontSize="11"
-                  fontWeight="800"
-                  fontFamily={SVG_TEXT_FONT}
-                  data-model-label="member"
-                >
-                  {member.id}
-                </text>
+                <g {...labelProps(`member:${member.id}`, `移动框架${memberTerm} ${member.id} 标注`)}>
+                  <text
+                    x={label.x}
+                    y={label.y}
+                    textAnchor={label.anchor}
+                    dominantBaseline="middle"
+                    fill={selected || isLabelSelected(`member:${member.id}`) ? "var(--model-load)" : "var(--model-label)"}
+                    stroke="var(--model-label-halo)"
+                    strokeWidth="4"
+                    paintOrder="stroke"
+                    fontSize="11"
+                    fontWeight="800"
+                    fontFamily={SVG_TEXT_FONT}
+                    data-model-label="member"
+                  >
+                    {member.id}
+                  </text>
+                </g>
               ) : null}
             </g>
           );
@@ -424,9 +445,11 @@ export function FrameSketch({
             pinned,
           });
           return label && showLabel ? (
-            <text key={node.id} x={label.x} y={label.y} textAnchor={label.anchor} data-model-label="node">
-              {node.id}
-            </text>
+            <g key={node.id} {...labelProps(`node:${node.id}`, `移动框架节点 ${node.id} 标注`)}>
+              <text x={label.x} y={label.y} textAnchor={label.anchor} fill={isLabelSelected(`node:${node.id}`) ? "var(--model-load)" : undefined} data-model-label="node">
+                {node.id}
+              </text>
+            </g>
           ) : null;
         })}
       </g>
@@ -441,19 +464,25 @@ export function FrameSketch({
             const forceLabel = frameLoadLabelMap.get(index)?.force ?? `F${index + 1}`;
             if (load.fxKn) {
               const sign = load.fxKn >= 0 ? 1 : -1;
+              const labelId = `load:${index}:fx`;
               labels.push(
-                <text key={`${index}-fx-label`} x={point.x + sign * 18} y={point.y - 14} textAnchor={sign > 0 ? "start" : "end"}>
-                  {formatFrameForceLoadLabel(frameForceComponentLabel(forceLabel, hasFx, hasFy, "x"), load.fxKn)}
-                </text>
+                <g key={`${index}-fx-label`} {...labelProps(labelId, `移动框架荷载 ${index + 1} 水平分量标注`)}>
+                  <text x={point.x + sign * 18} y={point.y - 14} textAnchor={sign > 0 ? "start" : "end"} fill={isLabelSelected(labelId) ? "var(--model-node)" : undefined}>
+                    {formatFrameForceLoadLabel(frameForceComponentLabel(forceLabel, hasFx, hasFy, "x"), load.fxKn)}
+                  </text>
+                </g>
               );
             }
             if (load.fyKn) {
               const sign = load.fyKn >= 0 ? -1 : 1;
               const labelY = point.y - sign * 70;
+              const labelId = `load:${index}:fy`;
               labels.push(
-                <text key={`${index}-fy-label`} x={point.x} y={labelY} textAnchor="middle">
-                  {formatFrameForceLoadLabel(frameForceComponentLabel(forceLabel, hasFx, hasFy, "y"), load.fyKn)}
-                </text>
+                <g key={`${index}-fy-label`} {...labelProps(labelId, `移动框架荷载 ${index + 1} 竖向分量标注`)}>
+                  <text x={point.x} y={labelY} textAnchor="middle" fill={isLabelSelected(labelId) ? "var(--model-node)" : undefined}>
+                    {formatFrameForceLoadLabel(frameForceComponentLabel(forceLabel, hasFx, hasFy, "y"), load.fyKn)}
+                  </text>
+                </g>
               );
             }
             return labels;
@@ -471,10 +500,13 @@ export function FrameSketch({
               x: point.x - direction.x * 70,
               y: point.y - direction.y * 70,
             };
+            const labelId = `load:${index}:member-point`;
             return (
-              <text key={`${index}-member-point-label`} x={label.x} y={label.y} textAnchor="middle">
-                {formatFrameForceLoadLabel(frameLoadLabelMap.get(index)?.memberPoint ?? `P${index + 1}`, force)}
-              </text>
+              <g key={`${index}-member-point-label`} {...labelProps(labelId, `移动框架${memberTerm}集中荷载 ${index + 1} 标注`)}>
+                <text x={label.x} y={label.y} textAnchor="middle" fill={isLabelSelected(labelId) ? "var(--model-node)" : undefined}>
+                  {formatFrameForceLoadLabel(frameLoadLabelMap.get(index)?.memberPoint ?? `P${index + 1}`, force)}
+                </text>
+              </g>
             );
           }
           if (load.type === "temperature") {
@@ -484,10 +516,13 @@ export function FrameSketch({
               x: memberMid.x - direction.x * 52,
               y: memberMid.y - direction.y * 52,
             };
+            const labelId = `load:${index}:temperature`;
             return (
-              <text key={`${index}-temperature-label`} x={label.x} y={label.y} textAnchor="middle">
-                {formatFrameTemperatureLoadLabel(frameLoadLabelMap.get(index)?.thermal ?? `T${index + 1}`, load.deltaTempC ?? 0)}
-              </text>
+              <g key={`${index}-temperature-label`} {...labelProps(labelId, `移动框架温度荷载 ${index + 1} 标注`)}>
+                <text x={label.x} y={label.y} textAnchor="middle" fill={isLabelSelected(labelId) ? "var(--model-node)" : undefined}>
+                  {formatFrameTemperatureLoadLabel(frameLoadLabelMap.get(index)?.thermal ?? `T${index + 1}`, load.deltaTempC ?? 0)}
+                </text>
+              </g>
             );
           }
           const q = getFrameLoadValue(load);
@@ -504,10 +539,13 @@ export function FrameSketch({
             x: arrowTail.x - direction.x * 14,
             y: arrowTail.y - direction.y * 14,
           };
+          const labelId = `load:${index}:distributed`;
           return (
-            <text key={`${index}-dist-label`} x={label.x} y={label.y} textAnchor="middle">
-              {formatFrameDistributedLoadLabel(frameLoadLabelMap.get(index)?.distributed ?? `q${index + 1}`, qStart, qEnd, startRatio, endRatio)}
-            </text>
+            <g key={`${index}-dist-label`} {...labelProps(labelId, `移动框架分布荷载 ${index + 1} 标注`)}>
+              <text x={label.x} y={label.y} textAnchor="middle" fill={isLabelSelected(labelId) ? "var(--model-node)" : undefined}>
+                {formatFrameDistributedLoadLabel(frameLoadLabelMap.get(index)?.distributed ?? `q${index + 1}`, qStart, qEnd, startRatio, endRatio)}
+              </text>
+            </g>
           );
         })}
       </g>

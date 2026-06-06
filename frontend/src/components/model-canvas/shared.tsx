@@ -23,19 +23,21 @@ interface SvgCanvasSelectionDataProps {
   "data-canvas-type": WorkbenchSelection["type"];
   "data-canvas-id": string;
   "data-canvas-draggable-node"?: "true";
+  "data-canvas-draggable-label"?: "true";
 }
 
 export function isAdditiveSelectionEvent(event: { shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean } | undefined): boolean {
   return Boolean(event?.shiftKey || event?.ctrlKey || event?.metaKey);
 }
 
-export function svgCanvasSelectionProps(selection: WorkbenchSelection, options: { draggableNode?: boolean } = {}): SvgCanvasSelectionDataProps {
+export function svgCanvasSelectionProps(selection: WorkbenchSelection, options: { draggableNode?: boolean; draggableLabel?: boolean } = {}): SvgCanvasSelectionDataProps {
   return {
     "data-canvas-selection-key": workbenchSelectionKey(selection),
     "data-canvas-mode": selection.mode,
     "data-canvas-type": selection.type,
     "data-canvas-id": selection.id,
     "data-canvas-draggable-node": options.draggableNode ? "true" : undefined,
+    "data-canvas-draggable-label": options.draggableLabel ? "true" : undefined,
   };
 }
 
@@ -54,6 +56,30 @@ export function svgInteractiveProps<T extends SVGElement = SVGGElement>(
         return;
       }
       event.preventDefault();
+      onActivate(event);
+    },
+  };
+}
+
+export function svgLabelInteractiveProps<T extends SVGElement = SVGGElement>(
+  label: string,
+  onActivate: (event?: SvgActivationEvent<T>) => void,
+): SVGProps<T> {
+  return {
+    role: "button",
+    tabIndex: 0,
+    "aria-label": label,
+    className: "model-canvas-label-interactive cursor-move",
+    onClick: (event) => {
+      event.stopPropagation();
+      onActivate(event);
+    },
+    onKeyDown: (event: ReactKeyboardEvent<T>) => {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
       onActivate(event);
     },
   };

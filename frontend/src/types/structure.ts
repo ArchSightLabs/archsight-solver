@@ -13,6 +13,13 @@ export interface ResultViewSettings {
   displacementScale: number | null;
 }
 
+export interface ModelLabelOffset {
+  dx: number;
+  dy: number;
+}
+
+export type ModelLabelOffsets = Record<string, ModelLabelOffset>;
+
 export type SupportType = FrameSupportType;
 export type FrameLoadDirection = "local_y" | "global_y";
 export type FrameSupportDisplacementDof = FrameSupportDof | "n";
@@ -152,6 +159,7 @@ export interface FrameWorkspaceState {
   customLoads: FrameLoad[];
   customLoadCases: FrameLoadCase[];
   customLoadCombinations: FrameLoadCombination[];
+  modelLabelOffsets?: ModelLabelOffsets;
   viewSettings?: ResultViewSettings;
 }
 
@@ -366,6 +374,7 @@ export interface TrussWorkspaceState {
   customLoads: TrussLoad[];
   customLoadCases: TrussLoadCase[];
   customLoadCombinations: TrussLoadCombination[];
+  modelLabelOffsets?: ModelLabelOffsets;
   viewSettings?: ResultViewSettings;
 }
 

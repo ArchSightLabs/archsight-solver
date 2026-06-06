@@ -4,11 +4,16 @@ import { modelCanvasLabelPolicy, shouldShowSteppedLabel } from "../../lib/model-
 import { BEAM_MODEL_CANVAS_BASE_SIZE, type ModelCanvasSize } from "../../lib/model-canvas-sizing";
 import { modelObjectMemberTerm } from "../../lib/model-object-vocabulary";
 import { STRUCTURE_NODE_RADII, STRUCTURE_VISUAL_STROKES } from "../../lib/structure-visual-tokens";
+import {
+  modelLabelTransform,
+  previewOrStoredModelLabelOffset,
+  type ModelCanvasLabelDragPreview,
+} from "../../lib/model-label-overrides";
 import type { WorkspaceState } from "../../lib/workspace-state";
 import type { ModelPreviewStyle } from "../../types/beam";
 import type { WorkbenchSelection, WorkbenchSelectionOptions } from "../../types/workbench-selection";
 import { sameWorkbenchSelection, selectionSetContains } from "../../lib/workbench-selection-utils";
-import { MODEL_DIMENSION_TEXT_WEIGHT, SVG_TEXT_FONT, clampRatio, formatMagnitude, isAdditiveSelectionEvent, svgCanvasSelectionProps, svgInteractiveProps } from "./shared";
+import { MODEL_DIMENSION_TEXT_WEIGHT, SVG_TEXT_FONT, clampRatio, formatMagnitude, isAdditiveSelectionEvent, svgCanvasSelectionProps, svgInteractiveProps, svgLabelInteractiveProps } from "./shared";
 
 const BEAM_SKETCH_AXIS_Y = 150;
 const BEAM_LOAD_BOTTOM_GUIDE_Y = BEAM_SKETCH_AXIS_Y - 38;
@@ -144,6 +149,7 @@ export function BeamSketch({
   modelPreviewStyle = "simple",
   selection,
   selectionSet = [],
+  labelDragPreview,
   onSelect,
 }: {
   beam: WorkspaceState["beam"];
@@ -151,6 +157,7 @@ export function BeamSketch({
   modelPreviewStyle?: ModelPreviewStyle;
   selection?: WorkbenchSelection | null;
   selectionSet?: WorkbenchSelection[];
+  labelDragPreview?: ModelCanvasLabelDragPreview | null;
   onSelect?: (next: WorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
 }) {
   const total = Math.max(1, beam.spans.reduce((sum, span) => sum + span.length, 0));
@@ -236,17 +243,27 @@ export function BeamSketch({
   const activateSelection = (item: WorkbenchSelection, event?: { shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean }) => {
     onSelect?.(item, { additive: isAdditiveSelectionEvent(event) });
   };
+  const labelSelection = (id: string) => ({ mode: "beam", type: "label", id } as const);
+  const isLabelSelected = (id: string) => isSelected(labelSelection(id));
+  const labelTransform = (id: string) => modelLabelTransform(previewOrStoredModelLabelOffset(beam.modelLabelOffsets, labelDragPreview, "beam", id));
+  const labelProps = (id: string, title: string) => ({
+    ...svgLabelInteractiveProps(title, (event) => onSelect?.(labelSelection(id), { additive: isAdditiveSelectionEvent(event), openEditor: false })),
+    ...svgCanvasSelectionProps(labelSelection(id), { draggableLabel: true }),
+    transform: labelTransform(id),
+  });
   const loadSelection = { mode: "beam", type: "load", id: "primary" } as const;
   const loadSelected = isSelected(loadSelection);
 
   return (
     <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} className="h-full w-full" style={beamSketchStyle} data-model-canvas="beam" data-label-density={labelPolicy.density}>
       <g fontFamily={SVG_TEXT_FONT} fill="var(--beam-sketch-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
-        {beamDimensionLegendRows.map((row, index) => (
-          <text key={`span-dimension-legend-${index}`} x={beamStart} y={34 + index * 16} fontSize="12" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT}>
-            {row}
-          </text>
-        ))}
+        <g {...labelProps("dimension-legend", "移动梁系尺寸图例标注")}>
+          {beamDimensionLegendRows.map((row, index) => (
+            <text key={`span-dimension-legend-${index}`} x={beamStart} y={34 + index * 16} fontSize="12" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT} fill={isLabelSelected("dimension-legend") ? "var(--beam-sketch-load)" : undefined}>
+              {row}
+            </text>
+          ))}
+        </g>
       </g>
       <line x1={beamStart} y1={BEAM_SKETCH_AXIS_Y} x2={beamEnd} y2={BEAM_SKETCH_AXIS_Y} stroke="var(--beam-sketch-member)" strokeWidth={STRUCTURE_VISUAL_STROKES.modelBeamMember} strokeLinecap="square" />
       {segments.map((segment) => {
@@ -269,9 +286,11 @@ export function BeamSketch({
             <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="transparent" strokeWidth="20" strokeLinecap="round" />
             {selected ? <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="var(--beam-sketch-selected)" strokeWidth={STRUCTURE_VISUAL_STROKES.modelSelectedMember} strokeLinecap="round" opacity="0.45" /> : null}
             {dimension?.label && showLabel ? (
-              <text x={(segment.start + segment.end) / 2} y="176" textAnchor="middle" fontSize="13" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT} fill="var(--beam-sketch-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke" data-model-label="member">
-                {dimension.label}
-              </text>
+              <g {...labelProps(`member:${beamMemberIds[segment.index]}`, `移动梁系${memberTerm} ${beamMemberIds[segment.index]} 标注`)}>
+                <text x={(segment.start + segment.end) / 2} y="176" textAnchor="middle" fontSize="13" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT} fill={isLabelSelected(`member:${beamMemberIds[segment.index]}`) ? "var(--beam-sketch-load)" : "var(--beam-sketch-label)"} stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke" data-model-label="member">
+                  {dimension.label}
+                </text>
+              </g>
             ) : null}
             <circle cx={segment.start} cy={BEAM_SKETCH_AXIS_Y} r={STRUCTURE_NODE_RADII.preview} fill="var(--beam-sketch-node)" />
             {segment.index === segments.length - 1 ? (
@@ -373,29 +392,37 @@ export function BeamSketch({
         <g fontFamily={SVG_TEXT_FONT}>
         {uniformRange ? (
           <g>
-            <text x={uniformLabelX} y={uniformTitleY} textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--beam-sketch-load)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
-              q={formatMagnitude(beam.q)} kN/m
-            </text>
+            <g {...labelProps("load:uniform", "移动梁系均布荷载标注")}>
+              <text x={uniformLabelX} y={uniformTitleY} textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--beam-sketch-load)" stroke={isLabelSelected("load:uniform") ? "var(--beam-sketch-label)" : "var(--model-label-halo)"} strokeWidth="3" paintOrder="stroke">
+                q={formatMagnitude(beam.q)} kN/m
+              </text>
+            </g>
           </g>
         ) : null}
         {linearRanges.length === 1 ? linearRanges.map((range) => {
           const labelX = shiftLoadLabelAwayFromPointLoads((range.startX + range.endX) / 2, pointLoadXs, beamStart + 150, beamEnd - 150, uniformRange ? 1 : -1);
+          const labelId = `load:linear:${range.load.id}`;
           return (
             <g key={`linear-label-${range.load.id}`}>
-              <text x={labelX} y={linearTitleY} textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--beam-sketch-load)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
-                q={formatMagnitude(range.startLoad)}→{formatMagnitude(range.endLoad)} kN/m
-              </text>
+              <g {...labelProps(labelId, `移动梁系线性荷载 ${range.load.id} 标注`)}>
+                <text x={labelX} y={linearTitleY} textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--beam-sketch-load)" stroke={isLabelSelected(labelId) ? "var(--beam-sketch-label)" : "var(--model-label-halo)"} strokeWidth="3" paintOrder="stroke">
+                  q={formatMagnitude(range.startLoad)}→{formatMagnitude(range.endLoad)} kN/m
+                </text>
+              </g>
             </g>
           );
         }) : linearRanges.map((range, index) => {
           const guideY = linearGuideBaseY + index * linearGuideGap;
           const y = guideY - 4;
+          const labelId = `load:linear:${range.load.id}`;
           return (
             <g key={`linear-label-${range.load.id}`}>
               <line x1={beamStart + 4} y1={y - 4} x2={beamStart + 32} y2={y - 4} stroke="var(--beam-sketch-load)" strokeWidth="1.5" strokeDasharray="5 5" />
-              <text x={beamStart + 40} y={y} textAnchor="start" fontSize="11.5" fontWeight="700" fill="var(--beam-sketch-load)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
-                {range.load.id}: {formatMagnitude(range.startLoad)} → {formatMagnitude(range.endLoad)} kN/m
-              </text>
+              <g {...labelProps(labelId, `移动梁系线性荷载 ${range.load.id} 标注`)}>
+                <text x={beamStart + 40} y={y} textAnchor="start" fontSize="11.5" fontWeight="700" fill="var(--beam-sketch-load)" stroke={isLabelSelected(labelId) ? "var(--beam-sketch-label)" : "var(--model-label-halo)"} strokeWidth="3" paintOrder="stroke">
+                  {range.load.id}: {formatMagnitude(range.startLoad)} → {formatMagnitude(range.endLoad)} kN/m
+                </text>
+              </g>
             </g>
           );
         })}
@@ -403,10 +430,13 @@ export function BeamSketch({
           const x = beamStart + (beamEnd - beamStart) * clampRatio(load.positionRatio, 0.5);
           const labelY = pointLabelBaseY + (index % 2) * 16;
           const labelX = Math.min(beamEnd - 64, Math.max(beamStart + 64, x));
+          const labelId = `load:point:${load.id}`;
           return (
-            <text key={`point-label-${load.id}`} x={labelX} y={labelY} textAnchor="middle" fontSize="11.5" fontWeight="700" fill="var(--beam-sketch-load)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
-              {load.id}={formatMagnitude(load.magnitudeKn)} kN
-            </text>
+            <g key={`point-label-${load.id}`} {...labelProps(labelId, `移动梁系集中荷载 ${load.id} 标注`)}>
+              <text x={labelX} y={labelY} textAnchor="middle" fontSize="11.5" fontWeight="700" fill="var(--beam-sketch-load)" stroke={isLabelSelected(labelId) ? "var(--beam-sketch-label)" : "var(--model-label-halo)"} strokeWidth="3" paintOrder="stroke">
+                {load.id}={formatMagnitude(load.magnitudeKn)} kN
+              </text>
+            </g>
           );
         })}
         </g>
@@ -419,9 +449,9 @@ export function BeamSketch({
             step: labelPolicy.nodeLabelStep,
             selected: isSelected({ mode: "beam", type: "support", id: `support-${label.index}` }),
           }) ? (
-            <g key={`node-label-${label.index}`}>
+            <g key={`node-label-${label.index}`} {...labelProps(`node:${beamNodeIds[label.index] ?? label.index + 1}`, `移动梁系节点 ${beamNodeIds[label.index] ?? label.index + 1} 标注`)}>
               <circle cx={label.labelX} cy={BEAM_NODE_BADGE_Y} r="8.5" fill="var(--beam-sketch-badge-fill)" stroke="var(--beam-sketch-badge-stroke)" strokeWidth="1.5" />
-              <text x={label.labelX} y={BEAM_NODE_BADGE_Y + 0.5} textAnchor="middle" dominantBaseline="middle" fontSize="10" fontWeight="800" fill="var(--beam-sketch-badge-text)" data-model-label="node">
+              <text x={label.labelX} y={BEAM_NODE_BADGE_Y + 0.5} textAnchor="middle" dominantBaseline="middle" fontSize="10" fontWeight="800" fill={isLabelSelected(`node:${beamNodeIds[label.index] ?? label.index + 1}`) ? "var(--beam-sketch-load)" : "var(--beam-sketch-badge-text)"} data-model-label="node">
                 {beamNodeIds[label.index] ?? `${label.index + 1}`}
               </text>
             </g>

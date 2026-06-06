@@ -100,7 +100,7 @@ export function TrussCustomModelEditor({
   );
 
   const resolvedSelectedObject = useMemo<TrussSelectedObject>(() => {
-    const current = selection ? { type: selection.type, id: selection.id } : selectedObject;
+    const current = selection && selection.type !== "label" ? { type: selection.type, id: selection.id } : selectedObject;
     if (current.type === "node" && value.nodes.some((node) => node.id === current.id)) return current;
     if (current.type === "member" && value.members.some((member) => member.id === current.id)) return current;
     if (current.type === "load" && value.loads[Number(current.id.replace("load-", ""))]) return current;

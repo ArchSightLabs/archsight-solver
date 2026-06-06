@@ -11,6 +11,7 @@ import {
   createDefaultTrussWorkspaceState,
 } from "./workspace-defaults.ts";
 import { MAX_TRUSS_MEMBERS, MAX_TRUSS_NODES } from "./solver-limits.ts";
+import { normalizeModelLabelOffsets } from "./model-label-overrides.ts";
 import { normalizeTextId, pickExistingId } from "./workspace-normalizer-utils.ts";
 import { materialIdForYoungModulus } from "./material-presets.ts";
 
@@ -213,6 +214,7 @@ export function normalizeTrussWorkspaceState(value: Partial<TrussWorkspaceState>
     customLoads,
     customLoadCases,
     customLoadCombinations,
+    modelLabelOffsets: normalizeModelLabelOffsets(value?.modelLabelOffsets),
     viewSettings: value?.viewSettings ? { ...value.viewSettings } : base.viewSettings,
   };
 }

@@ -105,6 +105,7 @@ export interface BeamWorkspaceState {
   scenarios: ComparisonScenario[];
   customLoadCases: BeamLoadCase[];
   customLoadCombinations: BeamLoadCombination[];
+  modelLabelOffsets?: import("./structure.ts").ModelLabelOffsets;
   viewSettings?: import("./structure.ts").ResultViewSettings;
 }
 

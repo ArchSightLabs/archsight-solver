@@ -142,3 +142,34 @@ test("主控建模画布暴露框选、拖动节点和删除入口", () => {
   assert.match(app, /deleteModelSelections/u);
   assert.match(app, /moveModelCanvasNode/u);
 });
+
+test("主控建模画布支持标注对象拖动和重置", () => {
+  const toolbar = componentSource("WorkbenchModelCanvas.tsx");
+  const shared = componentSource("model-canvas/shared.tsx");
+  const beamSketch = componentSource("model-canvas/BeamSketch.tsx");
+  const frameSketch = componentSource("model-canvas/FrameSketch.tsx");
+  const trussSketch = componentSource("model-canvas/TrussSketch.tsx");
+  const structureTypes = readFileSync(new URL("../types/structure.ts", import.meta.url), "utf-8");
+  const beamTypes = readFileSync(new URL("../types/beam.ts", import.meta.url), "utf-8");
+  const app = readFileSync(new URL("../App.tsx", import.meta.url), "utf-8");
+
+  assert.match(structureTypes, /export type ModelLabelOffsets/u);
+  assert.match(beamTypes, /modelLabelOffsets/u);
+  assert.match(shared, /data-canvas-draggable-label/u);
+  assert.match(shared, /svgLabelInteractiveProps/u);
+  assert.match(toolbar, /startLabelDrag/u);
+  assert.match(toolbar, /ModelCanvasLabelDragPreview/u);
+  assert.match(toolbar, /item\.type !== "label"/u);
+  assert.match(toolbar, /aria-label="标注工具"/u);
+  assert.match(toolbar, /重置所选标注位置/u);
+  assert.match(toolbar, /重置全部标注位置/u);
+  assert.match(app, /handleMoveWorkbenchLabel/u);
+  assert.match(app, /updateModelLabelOffsets/u);
+
+  assert.match(beamSketch, /labelProps\("dimension-legend"/u);
+  assert.match(beamSketch, /modelLabelTransform/u);
+  assert.match(frameSketch, /labelProps\("dimension-legend"/u);
+  assert.match(frameSketch, /load:\$\{index\}:temperature/u);
+  assert.match(trussSketch, /labelProps\("dimension-legend"/u);
+  assert.match(trussSketch, /load:\$\{index\}:member/u);
+});

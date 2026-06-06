@@ -66,15 +66,18 @@ export function workbenchSelectionFromCanvasDataset(dataset: globalThis.DOMStrin
   if (mode === "beam") {
     if (type === "span" || type === "support") return { mode, type, id };
     if (type === "load" && id === "primary") return { mode, type, id };
+    if (type === "label") return { mode, type, id };
     return null;
   }
   if (mode === "frame") {
     if (type === "node" || type === "member" || type === "load") return { mode, type, id };
+    if (type === "label") return { mode, type, id };
     if ((type === "loadCases" || type === "loadCombinations") && id === "all") return { mode, type, id };
     return null;
   }
   if (mode === "truss") {
     if (type === "node" || type === "member" || type === "load") return { mode, type, id };
+    if (type === "label") return { mode, type, id };
   }
   return null;
 }

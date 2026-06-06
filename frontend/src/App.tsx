@@ -43,6 +43,13 @@ import {
   moveModelCanvasNode,
   type ModelGeometryAction,
 } from "./lib/model-workflow-actions";
+import {
+  isZeroModelLabelOffset,
+  modelLabelOffsetCount,
+  modelLabelOffsetsForMode,
+  normalizeModelLabelOffset,
+  type ModelLabelOffset,
+} from "./lib/model-label-overrides";
 import { normalizeGridSnapStep } from "./lib/node-coordinate-snap";
 import type { CanvasPoint } from "./lib/model-canvas-projection";
 import {
@@ -382,22 +389,71 @@ function App() {
     [analysisMode, workbenchSelectionSet],
   );
   const activeWorkbenchSelection = primarySelectionForMode(workbenchSelection, workbenchSelectionSet, analysisMode);
+  const activeGeometrySelectionSet = useMemo(
+    () => activeWorkbenchSelectionSet.filter((selection) => selection.type !== "label"),
+    [activeWorkbenchSelectionSet],
+  );
+  const activeGeometrySelection = activeWorkbenchSelection?.type === "label" ? null : activeWorkbenchSelection;
   const modelGeometryToolbar = useMemo(
-    () => modelGeometryToolbarState(workspace, activeWorkbenchSelection, activeWorkbenchSelectionSet),
-    [activeWorkbenchSelection, activeWorkbenchSelectionSet, workspace],
+    () => activeWorkbenchSelection?.type === "label"
+      ? null
+      : modelGeometryToolbarState(workspace, activeGeometrySelection, activeGeometrySelectionSet),
+    [activeGeometrySelection, activeGeometrySelectionSet, activeWorkbenchSelection, workspace],
   );
   const canDeleteWorkbenchSelection = useMemo(
-    () => canDeleteModelSelections(workspace, activeWorkbenchSelectionSet),
-    [activeWorkbenchSelectionSet, workspace],
+    () => canDeleteModelSelections(workspace, activeGeometrySelectionSet),
+    [activeGeometrySelectionSet, workspace],
   );
+  const activeModelLabelOffsets = modelLabelOffsetsForMode(workspace, analysisMode);
+  const activeModelLabelOffsetCount = modelLabelOffsetCount(activeModelLabelOffsets);
+  const canResetSelectedModelLabel = activeWorkbenchSelection?.type === "label" && Boolean(activeModelLabelOffsets?.[activeWorkbenchSelection.id]);
+  const updateModelLabelOffsets = useCallback((
+    mode: "beam" | "frame" | "truss",
+    updater: (current: Record<string, ModelLabelOffset>) => Record<string, ModelLabelOffset>,
+  ) => {
+    updateWorkspace((current) => {
+      const currentOffsets = { ...(modelLabelOffsetsForMode(current, mode) ?? {}) };
+      const nextOffsets = updater(currentOffsets);
+      const normalizedOffsets = Object.fromEntries(
+        Object.entries(nextOffsets)
+          .map(([labelId, offset]) => [labelId, normalizeModelLabelOffset(offset)] as const)
+          .filter((entry): entry is [string, ModelLabelOffset] => Boolean(entry[1]) && !isZeroModelLabelOffset(entry[1]))
+      );
+      const modelLabelOffsets = Object.keys(normalizedOffsets).length ? normalizedOffsets : undefined;
+      if (mode === "beam") {
+        return { ...current, beam: { ...current.beam, modelLabelOffsets } };
+      }
+      if (mode === "frame") {
+        return { ...current, frame: { ...current.frame, modelLabelOffsets } };
+      }
+      return { ...current, truss: { ...current.truss, modelLabelOffsets } };
+    });
+  }, [updateWorkspace]);
+  const handleMoveWorkbenchLabel = useCallback((mode: "beam" | "frame" | "truss", labelId: string, offset: ModelLabelOffset) => {
+    updateModelLabelOffsets(mode, (current) => ({
+      ...current,
+      [labelId]: offset,
+    }));
+  }, [updateModelLabelOffsets]);
+  const handleResetSelectedModelLabel = useCallback(() => {
+    if (!activeWorkbenchSelection || activeWorkbenchSelection.type !== "label") return;
+    updateModelLabelOffsets(activeWorkbenchSelection.mode, (current) => {
+      const next = { ...current };
+      delete next[activeWorkbenchSelection.id];
+      return next;
+    });
+  }, [activeWorkbenchSelection, updateModelLabelOffsets]);
+  const handleResetAllModelLabels = useCallback(() => {
+    updateModelLabelOffsets(analysisMode, () => ({}));
+  }, [analysisMode, updateModelLabelOffsets]);
   const handleGridSnapStepChange = useCallback((stepM: number) => {
     setGridSnapStepM(normalizeGridSnapStep(stepM));
   }, []);
   const handleModelGeometryAction = useCallback((action: ModelGeometryAction) => {
     const result = applyModelGeometryAction({
       workspace,
-      selection: activeWorkbenchSelection,
-      selectionSet: activeWorkbenchSelectionSet,
+      selection: activeGeometrySelection,
+      selectionSet: activeGeometrySelectionSet,
       action,
       materialLibrary: projectMaterialLibrary,
     });
@@ -406,11 +462,11 @@ function App() {
     if (result.selection) {
       handleWorkbenchSelectionChange(result.selection, { openEditor: false });
     }
-  }, [activeWorkbenchSelection, activeWorkbenchSelectionSet, handleWorkbenchSelectionChange, projectMaterialLibrary, updateWorkspace, workspace]);
+  }, [activeGeometrySelection, activeGeometrySelectionSet, handleWorkbenchSelectionChange, projectMaterialLibrary, updateWorkspace, workspace]);
   const handleDeleteWorkbenchSelection = useCallback(() => {
     const result = deleteModelSelections({
       workspace,
-      selections: activeWorkbenchSelectionSet,
+      selections: activeGeometrySelectionSet,
     });
     if (!result) return;
     updateWorkspace(result.workspace);
@@ -418,7 +474,7 @@ function App() {
       primary: null,
       items: replaceSelectionSetForMode(current.items, analysisMode, []),
     }));
-  }, [activeWorkbenchSelectionSet, analysisMode, updateWorkspace, workspace]);
+  }, [activeGeometrySelectionSet, analysisMode, updateWorkspace, workspace]);
   const handleMoveWorkbenchNode = useCallback((mode: "frame" | "truss", nodeId: string, point: CanvasPoint) => {
     const result = moveModelCanvasNode({
       workspace,
@@ -441,7 +497,7 @@ function App() {
       if (isEditableTarget(event.target) || workbenchView !== "model" || (event.key !== "Delete" && event.key !== "Backspace")) {
         return;
       }
-      if (!canDeleteModelSelections(workspace, activeWorkbenchSelectionSet)) {
+      if (!canDeleteModelSelections(workspace, activeGeometrySelectionSet)) {
         return;
       }
       event.preventDefault();
@@ -449,7 +505,7 @@ function App() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeWorkbenchSelectionSet, handleDeleteWorkbenchSelection, workbenchView, workspace]);
+  }, [activeGeometrySelectionSet, handleDeleteWorkbenchSelection, workbenchView, workspace]);
   const handleCreateProjectWithInfo = (next: ProjectInfo) => {
     replaceProject(createInitialSolverProject(next), null, null, null, "新建项目");
     resetAllPageState();
@@ -461,9 +517,9 @@ function App() {
     setProjectInfoDialogMode(null);
     setFileStatusMessage("已更新工程设置");
   };
-  const beamSelection = workbenchSelection?.mode === "beam" ? (workbenchSelection as BeamWorkbenchSelection) : null;
-  const frameSelection = workbenchSelection?.mode === "frame" ? (workbenchSelection as FrameWorkbenchSelection) : null;
-  const trussSelection = workbenchSelection?.mode === "truss" ? (workbenchSelection as TrussWorkbenchSelection) : null;
+  const beamSelection = workbenchSelection?.mode === "beam" && workbenchSelection.type !== "label" ? (workbenchSelection as BeamWorkbenchSelection) : null;
+  const frameSelection = workbenchSelection?.mode === "frame" && workbenchSelection.type !== "label" ? (workbenchSelection as FrameWorkbenchSelection) : null;
+  const trussSelection = workbenchSelection?.mode === "truss" && workbenchSelection.type !== "label" ? (workbenchSelection as TrussWorkbenchSelection) : null;
   const formContent =
     analysisMode === "beam" ? (
       <BeamForm
@@ -612,12 +668,17 @@ function App() {
                 geometryToolbar={modelGeometryToolbar}
                 gridSnapEnabled={gridSnapEnabled}
                 gridSnapStepM={gridSnapStepM}
+                labelOffsetCount={activeModelLabelOffsetCount}
+                canResetSelectedLabel={canResetSelectedModelLabel}
                 onDeleteSelection={handleDeleteWorkbenchSelection}
                 onGeometryAction={handleModelGeometryAction}
                 onGridSnapEnabledChange={setGridSnapEnabled}
                 onGridSnapStepChange={handleGridSnapStepChange}
+                onMoveLabel={handleMoveWorkbenchLabel}
                 onMoveNode={handleMoveWorkbenchNode}
                 onRedoWorkspace={redoWorkspaceChange}
+                onResetAllLabels={handleResetAllModelLabels}
+                onResetSelectedLabel={handleResetSelectedModelLabel}
                 onSelect={handleWorkbenchSelectionChange}
                 onSelectionSetChange={handleWorkbenchSelectionSetChange}
                 onUndoWorkspace={undoWorkspaceChange}

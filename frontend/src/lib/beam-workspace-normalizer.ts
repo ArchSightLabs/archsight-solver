@@ -19,6 +19,7 @@ import {
   defaultBeamSupports,
 } from "./workspace-defaults.ts";
 import { MAX_BEAM_SPANS } from "./solver-limits.ts";
+import { normalizeModelLabelOffsets } from "./model-label-overrides.ts";
 import { normalizeTextId } from "./workspace-normalizer-utils.ts";
 
 function defaultBeamSupportId(index: number): string {
@@ -398,6 +399,7 @@ export function normalizeBeamWorkspaceState(value: Partial<BeamWorkspaceState> |
           color: String(scenario.color ?? "#38bdf8"),
         }))
       : [],
+    modelLabelOffsets: normalizeModelLabelOffsets(value?.modelLabelOffsets),
     viewSettings: value?.viewSettings ? { ...value.viewSettings } : base.viewSettings,
   };
 }
