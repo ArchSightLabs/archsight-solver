@@ -1,4 +1,4 @@
-import { formatDimensionLegendGroup } from "./dimension-legend-rows.ts";
+import { formatDimensionLegendGroupRows } from "./dimension-legend-rows.ts";
 
 export interface BeamSpanDimension {
   index: number;
@@ -44,7 +44,7 @@ export function buildBeamSpanDimensionLegendRows(dimensions: BeamSpanDimension[]
     return [...items, { memberIds: [dimension.memberId], lengthLabel: dimension.lengthLabel }];
   }, []);
 
-  return groups.map((group) => formatDimensionLegendGroup({ itemIds: group.memberIds, valueLabel: group.lengthLabel }, maxWidthPx, fontSize, "跨"));
+  return groups.flatMap((group) => formatDimensionLegendGroupRows({ itemIds: group.memberIds, valueLabel: group.lengthLabel }, maxWidthPx, fontSize, "跨"));
 }
 
 export function buildBeamSpanDimensionSegments(

@@ -158,6 +158,8 @@ test("主控建模画布支持标注对象拖动和重置", () => {
   assert.match(shared, /data-canvas-draggable-label/u);
   assert.match(shared, /svgLabelInteractiveProps/u);
   assert.match(toolbar, /startLabelDrag/u);
+  assert.match(toolbar, /clampModelLabelOffsetToCanvas/u);
+  assert.match(toolbar, /labelBaseBounds/u);
   assert.match(toolbar, /ModelCanvasLabelDragPreview/u);
   assert.match(toolbar, /item\.type !== "label"/u);
   assert.match(toolbar, /aria-label="标注工具"/u);

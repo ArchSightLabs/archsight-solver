@@ -38,8 +38,10 @@ import { modelObjectMetricRows } from "../lib/model-object-vocabulary";
 import { modelCanvasBoardStyle, workbenchModelCanvasSize } from "../lib/model-canvas-sizing";
 import type { ModelGeometryAction, ModelGeometryToolbarState } from "../lib/model-workflow-actions";
 import {
+  clampModelLabelOffsetToCanvas,
   modelLabelOffsetForMode,
   type ModelCanvasLabelDragPreview,
+  type ModelLabelBounds,
   type ModelLabelOffset,
 } from "../lib/model-label-overrides";
 import { snapCoordinateToGrid } from "../lib/node-coordinate-snap";
@@ -108,6 +110,7 @@ interface LabelDragState {
   mode: AnalysisMode;
   labelId: string;
   svg: globalThis.SVGSVGElement;
+  labelBounds: ModelLabelBounds | null;
   startPoint: CanvasPoint;
   startOffset: ModelLabelOffset;
   lastOffset: ModelLabelOffset;
@@ -123,12 +126,12 @@ const GEOMETRY_ACTIONS: Array<{ id: ModelGeometryAction; label: string; shortLab
   { id: "add-connected-node", label: "新增节点并连接", shortLabel: "连接", icon: Plus, transform: false },
 ];
 
-function clientPointToSvgPoint(event: ReactPointerEvent<HTMLElement>, svg: globalThis.SVGSVGElement): CanvasPoint | null {
+function clientPointToSvgPoint(pointLike: Pick<ReactPointerEvent<HTMLElement>, "clientX" | "clientY">, svg: globalThis.SVGSVGElement): CanvasPoint | null {
   const matrix = svg.getScreenCTM();
   if (!matrix) return null;
   const point = svg.createSVGPoint();
-  point.x = event.clientX;
-  point.y = event.clientY;
+  point.x = pointLike.clientX;
+  point.y = pointLike.clientY;
   const next = point.matrixTransform(matrix.inverse());
   return { x: next.x, y: next.y };
 }
@@ -297,6 +300,41 @@ export function WorkbenchModelCanvas({
     y: Number(snapCoordinateToGrid(point.y, { enabled: gridSnapEnabled, stepM: gridSnapStepM }).toFixed(3)),
   });
 
+  const svgRectFromClientRect = (rect: globalThis.DOMRect, svg: globalThis.SVGSVGElement): ModelLabelBounds | null => {
+    const points = [
+      clientPointToSvgPoint({ clientX: rect.left, clientY: rect.top }, svg),
+      clientPointToSvgPoint({ clientX: rect.right, clientY: rect.top }, svg),
+      clientPointToSvgPoint({ clientX: rect.right, clientY: rect.bottom }, svg),
+      clientPointToSvgPoint({ clientX: rect.left, clientY: rect.bottom }, svg),
+    ].filter((point): point is CanvasPoint => Boolean(point));
+    if (points.length === 0) return null;
+    const xs = points.map((point) => point.x);
+    const ys = points.map((point) => point.y);
+    const left = Math.min(...xs);
+    const top = Math.min(...ys);
+    const right = Math.max(...xs);
+    const bottom = Math.max(...ys);
+    return {
+      x: left,
+      y: top,
+      width: right - left,
+      height: bottom - top,
+    };
+  };
+
+  const labelBaseBounds = (target: globalThis.SVGGraphicsElement, svg: globalThis.SVGSVGElement, offset: ModelLabelOffset): ModelLabelBounds | null => {
+    const rect = target.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return null;
+    const currentBounds = svgRectFromClientRect(rect, svg);
+    return currentBounds
+      ? {
+          ...currentBounds,
+          x: currentBounds.x - offset.dx,
+          y: currentBounds.y - offset.dy,
+        }
+      : null;
+  };
+
   const startLabelDrag = (event: ReactPointerEvent<HTMLDivElement>): boolean => {
     if (event.button !== 0 || !onMoveLabel) return false;
     if (!(event.target instanceof globalThis.Element)) return false;
@@ -308,12 +346,14 @@ export function WorkbenchModelCanvas({
     const svgPoint = clientPointToSvgPoint(event, svg);
     if (!svgPoint) return false;
     const startOffset = modelLabelOffsetForMode(workspace, draggedSelection.mode, draggedSelection.id);
+    const labelBounds = labelBaseBounds(target, svg, startOffset);
 
     labelDragRef.current = {
       pointerId: event.pointerId,
       mode: draggedSelection.mode,
       labelId: draggedSelection.id,
       svg,
+      labelBounds,
       startPoint: svgPoint,
       startOffset,
       lastOffset: startOffset,
@@ -447,9 +487,10 @@ export function WorkbenchModelCanvas({
         dx: Number((labelDrag.startOffset.dx + svgPoint.x - labelDrag.startPoint.x).toFixed(2)),
         dy: Number((labelDrag.startOffset.dy + svgPoint.y - labelDrag.startPoint.y).toFixed(2)),
       };
-      labelDrag.lastOffset = nextOffset;
+      const boundedOffset = clampModelLabelOffsetToCanvas(nextOffset, labelDrag.labelBounds, canvasSize);
+      labelDrag.lastOffset = boundedOffset;
       labelDrag.moved = labelDrag.moved || Math.hypot(svgPoint.x - labelDrag.startPoint.x, svgPoint.y - labelDrag.startPoint.y) >= 2;
-      setLabelDragPreview({ mode: labelDrag.mode, labelId: labelDrag.labelId, offset: nextOffset });
+      setLabelDragPreview({ mode: labelDrag.mode, labelId: labelDrag.labelId, offset: boundedOffset });
       event.preventDefault();
       event.stopPropagation();
       return;

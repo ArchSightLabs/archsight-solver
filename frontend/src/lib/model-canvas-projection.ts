@@ -26,8 +26,8 @@ export interface ModelCanvasNodeDragPreview {
   y: number;
 }
 
-export const FRAME_SKETCH_PADDING: CanvasPadding = { left: 165, right: 165, top: 90, bottom: 75 };
-export const TRUSS_SKETCH_PADDING: CanvasPadding = { left: 110, right: 110, top: 90, bottom: 80 };
+export const FRAME_SKETCH_PADDING: CanvasPadding = { left: 245, right: 245, top: 145, bottom: 120 };
+export const TRUSS_SKETCH_PADDING: CanvasPadding = { left: 190, right: 190, top: 145, bottom: 125 };
 
 function finiteCoordinateBounds(nodes: GraphNode[]) {
   const xs = nodes.map((node) => node.x).filter(Number.isFinite);

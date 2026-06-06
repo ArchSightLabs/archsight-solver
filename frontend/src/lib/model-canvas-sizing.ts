@@ -14,8 +14,8 @@ export interface ModelCanvasViewportSize {
 }
 
 export const BEAM_MODEL_CANVAS_BASE_SIZE: ModelCanvasSize = { width: 1080, height: 340 };
-export const FRAME_MODEL_CANVAS_BASE_SIZE: ModelCanvasSize = { width: 1080, height: 460 };
-export const TRUSS_MODEL_CANVAS_BASE_SIZE: ModelCanvasSize = { width: 1080, height: 460 };
+export const FRAME_MODEL_CANVAS_BASE_SIZE: ModelCanvasSize = { width: 1240, height: 560 };
+export const TRUSS_MODEL_CANVAS_BASE_SIZE: ModelCanvasSize = { width: 1240, height: 560 };
 
 const MODEL_CANVAS_MAX_WIDTH = 24000;
 const MODEL_CANVAS_MAX_HEIGHT = 18000;

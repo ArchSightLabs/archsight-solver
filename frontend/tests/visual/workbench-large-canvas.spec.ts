@@ -201,8 +201,8 @@ test("默认平面框架主控建模画布不触发内嵌滚动", async ({ page 
 
   const metrics = await canvasMetrics(page);
 
-  expect(metrics.viewBoxWidth).toBe(1080);
-  expect(metrics.viewBoxHeight).toBe(460);
+  expect(metrics.viewBoxWidth).toBe(1240);
+  expect(metrics.viewBoxHeight).toBe(560);
   expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.scrollClientWidth + 1);
   expect(metrics.scrollHeight).toBeLessThanOrEqual(metrics.scrollClientHeight + 1);
 });
@@ -339,7 +339,7 @@ test("平面桁架节点杆件增多后主控建模画布扩展并触发滚动",
   const labelMetrics = await canvasLabelMetrics(page);
 
   expect(metrics.viewBoxWidth).toBeGreaterThan(900);
-  expect(metrics.viewBoxHeight).toBeGreaterThanOrEqual(460);
+  expect(metrics.viewBoxHeight).toBeGreaterThanOrEqual(560);
   expect(metrics.scrollWidth).toBeGreaterThan(metrics.scrollClientWidth);
   expect(metrics.boardWidth).toBeGreaterThan(metrics.scrollClientWidth);
   expect(labelMetrics.density).toBe("dense");

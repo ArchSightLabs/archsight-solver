@@ -1,4 +1,4 @@
-import { formatDimensionLegendGroup } from "../lib/dimension-legend-rows.ts";
+import { formatDimensionLegendGroupRows } from "../lib/dimension-legend-rows.ts";
 import type { FrameLoad, FrameLoadDirection } from "../types/structure";
 
 export interface FramePreviewPoint {
@@ -105,7 +105,7 @@ export function buildFrameDimensionLegendRows(dimensions: FrameGeometryDimension
       .values(),
   );
 
-  return groupedDimensions.map((dimension) => formatDimensionLegendGroup({ itemIds: dimension.memberIds, valueLabel: dimension.valueLabel }, maxWidthPx, fontSize, "根"));
+  return groupedDimensions.flatMap((dimension) => formatDimensionLegendGroupRows({ itemIds: dimension.memberIds, valueLabel: dimension.valueLabel }, maxWidthPx, fontSize, "根"));
 }
 
 function memberLoadDirection(

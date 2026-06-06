@@ -9,7 +9,20 @@ export interface ModelCanvasLabelDragPreview {
   offset: ModelLabelOffset;
 }
 
+export interface ModelLabelBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface ModelLabelCanvasBounds {
+  width: number;
+  height: number;
+}
+
 const OFFSET_EPSILON = 0.01;
+export const MODEL_LABEL_CANVAS_PADDING = 8;
 
 export function normalizeModelLabelOffset(value: unknown): ModelLabelOffset | null {
   if (!value || typeof value !== "object") return null;
@@ -71,4 +84,28 @@ export function modelLabelTransform(offset: ModelLabelOffset): string | undefine
 
 export function modelLabelOffsetCount(offsets: ModelLabelOffsets | undefined): number {
   return offsets ? Object.keys(offsets).length : 0;
+}
+
+function clamp(value: number, min: number, max: number) {
+  if (min > max) return (min + max) / 2;
+  return Math.min(max, Math.max(min, value));
+}
+
+export function clampModelLabelOffsetToCanvas(
+  offset: ModelLabelOffset,
+  labelBounds: ModelLabelBounds | null | undefined,
+  canvasBounds: ModelLabelCanvasBounds,
+  padding = MODEL_LABEL_CANVAS_PADDING,
+): ModelLabelOffset {
+  if (!labelBounds || canvasBounds.width <= padding * 2 || canvasBounds.height <= padding * 2) {
+    return offset;
+  }
+  const minDx = padding - labelBounds.x;
+  const maxDx = canvasBounds.width - padding - (labelBounds.x + labelBounds.width);
+  const minDy = padding - labelBounds.y;
+  const maxDy = canvasBounds.height - padding - (labelBounds.y + labelBounds.height);
+  return {
+    dx: Number(clamp(offset.dx, minDx, maxDx).toFixed(2)),
+    dy: Number(clamp(offset.dy, minDy, maxDy).toFixed(2)),
+  };
 }

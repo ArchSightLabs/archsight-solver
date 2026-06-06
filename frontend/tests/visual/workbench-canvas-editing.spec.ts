@@ -7,13 +7,32 @@ async function openFrameWorkbench(page: Page) {
   await expect(page.locator('svg[data-model-canvas="frame"]')).toBeVisible();
 }
 
+async function openTrussWorkbench(page: Page) {
+  await page.addInitScript(() => window.localStorage.clear());
+  await page.goto("/");
+  await page.getByRole("button", { name: /平面桁架-1\s+平面桁架/ }).click();
+  await expect(page.locator('svg[data-model-canvas="truss"]')).toBeVisible();
+}
+
 function canvasItem(page: Page, type: "node" | "member" | "load", id: string) {
   return page.locator(`[data-canvas-mode="frame"][data-canvas-type="${type}"][data-canvas-id="${id}"]`);
 }
 
+async function expectElementInsideCanvas(page: Page, selector: string, canvasSelector: string) {
+  const elementBox = await page.locator(selector).boundingBox();
+  const canvasBox = await page.locator(canvasSelector).boundingBox();
+  expect(elementBox).not.toBeNull();
+  expect(canvasBox).not.toBeNull();
+  if (!elementBox || !canvasBox) return;
+  expect(elementBox.x).toBeGreaterThanOrEqual(canvasBox.x - 1);
+  expect(elementBox.y).toBeGreaterThanOrEqual(canvasBox.y - 1);
+  expect(elementBox.x + elementBox.width).toBeLessThanOrEqual(canvasBox.x + canvasBox.width + 1);
+  expect(elementBox.y + elementBox.height).toBeLessThanOrEqual(canvasBox.y + canvasBox.height + 1);
+}
+
 test("框架画布支持两节点多选连接、拖动节点和 Delete 删除", async ({ page }) => {
   await openFrameWorkbench(page);
-  await expect(page.locator('svg[data-model-canvas="frame"]')).toHaveAttribute("viewBox", "0 0 1080 460");
+  await expect(page.locator('svg[data-model-canvas="frame"]')).toHaveAttribute("viewBox", "0 0 1240 560");
 
   await canvasItem(page, "node", "N1").click();
   await canvasItem(page, "node", "N4").click({ modifiers: ["Control"] });
@@ -127,4 +146,37 @@ test("框架画布支持拖动并重置模型标注", async ({ page }) => {
   await expect(page.getByRole("toolbar", { name: "标注工具" })).toBeVisible();
   await page.getByRole("button", { name: "重置所选标注位置" }).click();
   await expect(label).not.toHaveAttribute("transform", /translate/u);
+});
+
+test("桁架画布标注连续拖动不会移出画布可见范围", async ({ page }) => {
+  await openTrussWorkbench(page);
+
+  const labelSelector = '[data-canvas-mode="truss"][data-canvas-type="label"][data-canvas-id="dimension-legend"]';
+  const canvasSelector = 'svg[data-model-canvas="truss"]';
+  const label = page.locator(labelSelector);
+  await expect(label).toBeVisible();
+
+  let labelBox = await label.boundingBox();
+  let canvasBox = await page.locator(canvasSelector).boundingBox();
+  expect(labelBox).not.toBeNull();
+  expect(canvasBox).not.toBeNull();
+  if (!labelBox || !canvasBox) return;
+
+  await page.mouse.move(labelBox.x + labelBox.width / 2, labelBox.y + labelBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(canvasBox.x - 900, canvasBox.y - 900, { steps: 8 });
+  await page.mouse.up();
+  await expectElementInsideCanvas(page, labelSelector, canvasSelector);
+
+  labelBox = await label.boundingBox();
+  canvasBox = await page.locator(canvasSelector).boundingBox();
+  expect(labelBox).not.toBeNull();
+  expect(canvasBox).not.toBeNull();
+  if (!labelBox || !canvasBox) return;
+
+  await page.mouse.move(labelBox.x + labelBox.width / 2, labelBox.y + labelBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(canvasBox.x + canvasBox.width + 900, canvasBox.y + canvasBox.height + 900, { steps: 8 });
+  await page.mouse.up();
+  await expectElementInsideCanvas(page, labelSelector, canvasSelector);
 });

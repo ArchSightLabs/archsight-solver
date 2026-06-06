@@ -1,5 +1,5 @@
 import { outwardLabelCandidates, type DiagramLabelCandidate, type DiagramLabelRect } from "../lib/diagram-label-layout.ts";
-import { formatDimensionLegendGroup } from "../lib/dimension-legend-rows.ts";
+import { formatDimensionLegendGroupRows } from "../lib/dimension-legend-rows.ts";
 import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import { trussSupportLabel } from "../lib/support-vocabulary.ts";
 import type { TrussSupportType } from "../types/supports.ts";
@@ -125,7 +125,7 @@ export function buildTrussMemberLengthLegendRows(dimensions: TrussMemberLengthDi
       .values(),
   );
 
-  return groupedDimensions.map((dimension) => formatDimensionLegendGroup({ itemIds: dimension.memberIds, valueLabel: dimension.valueLabel }, maxWidthPx, fontSize, "根"));
+  return groupedDimensions.flatMap((dimension) => formatDimensionLegendGroupRows({ itemIds: dimension.memberIds, valueLabel: dimension.valueLabel }, maxWidthPx, fontSize, "根"));
 }
 
 export function buildTrussMemberLengthDimensions(
