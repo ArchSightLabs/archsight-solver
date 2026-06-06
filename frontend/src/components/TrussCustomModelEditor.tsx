@@ -36,7 +36,7 @@ import { memberElasticityDistributionLabel, sectionAreaForMaterial, youngModulus
 import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import { trussSupportStabilityWarning } from "../solver-payload.ts";
 import type { Material } from "../types/material.ts";
-import type { TrussLoad, TrussMember, TrussNode } from "../types/structure.ts";
+import type { TrussLoad, TrussLoadPatch, TrussMember, TrussNode } from "../types/structure.ts";
 import type { TrussWorkbenchSelection, WorkbenchSelectionOptions } from "../types/workbench-selection.ts";
 
 type TrussCollections = TrussEditorCollections;
@@ -359,7 +359,7 @@ export function TrussCustomModelEditor({
     selectObject({ type: "load", id: `load-${nextLoads.length - 1}` });
   };
 
-  const updateLoad = (index: number, patch: Partial<TrussLoad>) => {
+  const updateLoad = (index: number, patch: TrussLoadPatch | TrussLoad) => {
     const next = updateTrussLoadCollections(value, index, patch);
     if (next) commit(next);
   };

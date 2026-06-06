@@ -250,6 +250,7 @@ export function TrussSketch({
       })}
       <g stroke="var(--model-load)" strokeWidth="1.9">
         {loads.flatMap((load, index) => {
+          if (load.type === "temperature") return [];
           if (load.type !== "nodal") {
             const member = memberMap.get(load.member);
             const start = member ? nodeMap.get(member.start) : null;

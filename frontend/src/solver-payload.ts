@@ -409,7 +409,7 @@ function normalizeCustomTrussCollections(value: TrussWorkspaceState) {
     kind: String(member.kind ?? "generic").trim() || "generic",
   }));
   const fallbackMemberId = members[0]?.id ?? "M1";
-  const loads = value.customLoads.map((load) => normalizeTrussLoad(load, fallbackMemberId)) as TrussLoad[];
+  const loads = value.customLoads.map((load) => normalizeTrussLoad(load, fallbackMemberId));
   const loadCases = normalizeTrussLoadCases(value.customLoadCases ?? [], fallbackMemberId);
   return {
     nodes: value.customNodes.map((node, index) => ({
@@ -443,6 +443,15 @@ function normalizeTrussLoad(load: TrussLoad, fallbackMemberId: string): TrussLoa
       node: String(load.node ?? "N1").trim() || "N1",
       fxKn: Number.isFinite(load.fxKn) ? Number(load.fxKn) : 0,
       fyKn: Number.isFinite(load.fyKn) ? Number(load.fyKn) : 0,
+    };
+  }
+  if (load.type === "temperature") {
+    const alphaPerC = Number(load.alphaPerC);
+    return {
+      type: "temperature",
+      member: String(load.member ?? fallbackMemberId).trim() || fallbackMemberId,
+      deltaTempC: Number.isFinite(load.deltaTempC) ? Number(load.deltaTempC) : 0,
+      alphaPerC: Number.isFinite(alphaPerC) && alphaPerC >= 0 ? alphaPerC : 1.2e-5,
     };
   }
   return { type: "nodal", node: "N1", fxKn: 0, fyKn: 0 };

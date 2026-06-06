@@ -1,4 +1,4 @@
-import type { TrussLoad, TrussMember, TrussNode } from "../types/structure.ts";
+import type { TrussLoad, TrussLoadPatch, TrussMember, TrussMemberLoad, TrussNodalLoad, TrussNode, TrussTemperatureLoad } from "../types/structure.ts";
 import { canonicalEditorId, type RenameEditResult } from "./model-edit-utils.ts";
 
 export interface TrussEditorCollections {
@@ -81,6 +81,9 @@ function transformTrussLoad(load: TrussLoad, options: Partial<TrussMirrorOptions
       fxKn: options.axis === "y" && load.fxKn !== undefined ? -load.fxKn : load.fxKn,
       fyKn: options.axis === "x" && load.fyKn !== undefined ? -load.fyKn : load.fyKn,
     });
+  }
+  if (load.type === "temperature") {
+    return { ...load };
   }
   if (load.direction === "global_x" && options.axis === "y") {
     return withoutUndefined({
@@ -236,7 +239,7 @@ export function updateTrussMemberCollections(
   const nextMembers = collections.members.map((member, memberIndex) => (memberIndex === index ? { ...member, ...nextPatch } : member));
   const nextLoads = collections.loads.map((load) => {
     if (renamed && load.type !== "nodal" && load.member === current.id) {
-      return { ...load, member: nextId } as TrussLoad;
+      return { ...load, member: nextId };
     }
     return load;
   });
@@ -262,11 +265,40 @@ export function removeTrussMemberCollections(collections: TrussEditorCollections
   };
 }
 
-export function updateTrussLoadCollections(collections: TrussEditorCollections, index: number, patch: Partial<TrussLoad>): TrussEditorCollections | null {
+function isCompleteTrussLoad(value: TrussLoadPatch | TrussLoad): value is TrussLoad {
+  return "type" in value;
+}
+
+function isNodalLoadPatch(value: TrussLoadPatch): value is Partial<Omit<TrussNodalLoad, "type">> {
+  return "node" in value || "fxKn" in value || "fyKn" in value;
+}
+
+function isMemberLoadPatch(value: TrussLoadPatch): value is Partial<Omit<TrussMemberLoad, "type">> {
+  return "member" in value || "direction" in value || "wyKnPerM" in value || "qStartKnPerM" in value || "qEndKnPerM" in value || "selfWeightKnPerM" in value;
+}
+
+function isTemperatureLoadPatch(value: TrussLoadPatch): value is Partial<Omit<TrussTemperatureLoad, "type">> {
+  return "member" in value || "deltaTempC" in value || "alphaPerC" in value;
+}
+
+function mergeTrussLoadPatch(load: TrussLoad, patch: TrussLoadPatch | TrussLoad): TrussLoad {
+  if (isCompleteTrussLoad(patch)) {
+    return patch;
+  }
+  if (load.type === "nodal") {
+    return isNodalLoadPatch(patch) ? { ...load, ...patch } : load;
+  }
+  if (load.type === "temperature") {
+    return isTemperatureLoadPatch(patch) ? { ...load, ...patch } : load;
+  }
+  return isMemberLoadPatch(patch) ? { ...load, ...patch } : load;
+}
+
+export function updateTrussLoadCollections(collections: TrussEditorCollections, index: number, patch: TrussLoadPatch | TrussLoad): TrussEditorCollections | null {
   if (!collections.loads[index]) return null;
   return {
     ...collections,
-    loads: collections.loads.map((load, loadIndex) => (loadIndex === index ? { ...load, ...patch } as TrussLoad : load)),
+    loads: collections.loads.map((load, loadIndex) => (loadIndex === index ? mergeTrussLoadPatch(load, patch) : load)),
   };
 }
 

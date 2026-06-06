@@ -1,5 +1,5 @@
 import { Link2, MapPin, Triangle } from "lucide-react";
-import type { TrussLoad, TrussMember, TrussNode } from "../types/structure.ts";
+import type { TrussLoad, TrussLoadPatch, TrussMember, TrussNode } from "../types/structure.ts";
 import { modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
 import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
 import { TrussLoadEditor } from "./TrussLoadEditor";
@@ -22,7 +22,7 @@ interface TrussTableSectionProps {
   onNodeRemove: (index: number) => void;
   onMemberUpdate: (index: number, patch: Partial<TrussMember>) => void;
   onMemberRemove: (index: number) => void;
-  onLoadUpdate: (index: number, patch: Partial<TrussLoad> | TrussLoad) => void;
+  onLoadUpdate: (index: number, patch: TrussLoadPatch | TrussLoad) => void;
   onLoadRemove: (index: number) => void;
   gridSnapEnabled: boolean;
   gridSnapStepM: number;

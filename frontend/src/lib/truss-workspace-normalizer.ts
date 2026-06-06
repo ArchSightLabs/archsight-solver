@@ -87,22 +87,37 @@ function normalizeTrussMembers(
 function normalizeTrussLoads(
   rawLoads: unknown,
   nodes: TrussWorkspaceState["customNodes"],
+  members: TrussWorkspaceState["customMembers"],
   fallbackLoads: TrussWorkspaceState["customLoads"]
 ): TrussWorkspaceState["customLoads"] {
   const source = Array.isArray(rawLoads) ? rawLoads : fallbackLoads;
   const nodeIds = nodes.map((node) => node.id);
+  const memberIds = members.map((member) => member.id);
   return source.slice(0, 80).map((load, index) => {
     const fallback = fallbackLoads[index] ?? fallbackLoads[fallbackLoads.length - 1];
     const candidate = load && typeof load === "object" ? (load as TrussLoad) : fallback;
     if (candidate?.type === "distributed" || candidate?.type === "member_load" || candidate?.type === "member") {
       return {
         type: candidate.type,
-        member: String(candidate.member ?? "M1").trim() || "M1",
+        member: pickExistingId(candidate.member, memberIds, memberIds[0] ?? "M1"),
         direction: candidate.direction === "global_x" ? "global_x" : "global_y",
         wyKnPerM: Number.isFinite(candidate.wyKnPerM) ? Number(candidate.wyKnPerM) : undefined,
         qStartKnPerM: Number.isFinite(candidate.qStartKnPerM) ? Number(candidate.qStartKnPerM) : undefined,
         qEndKnPerM: Number.isFinite(candidate.qEndKnPerM) ? Number(candidate.qEndKnPerM) : undefined,
         selfWeightKnPerM: Number.isFinite(candidate.selfWeightKnPerM) ? Number(candidate.selfWeightKnPerM) : undefined,
+      };
+    }
+    if (candidate?.type === "temperature") {
+      const fallbackTemperature = fallback && fallback.type === "temperature"
+        ? fallback
+        : fallbackLoads.find((item) => item.type === "temperature") ?? null;
+      const deltaTempC = Number(candidate.deltaTempC ?? fallbackTemperature?.deltaTempC ?? 30);
+      const alphaPerC = Number(candidate.alphaPerC ?? fallbackTemperature?.alphaPerC ?? 1.2e-5);
+      return {
+        type: "temperature" as const,
+        member: pickExistingId(candidate.member, memberIds, fallbackTemperature?.member ?? memberIds[0] ?? "M1"),
+        deltaTempC: Number.isFinite(deltaTempC) ? deltaTempC : 30,
+        alphaPerC: Number.isFinite(alphaPerC) && alphaPerC >= 0 ? alphaPerC : 1.2e-5,
       };
     }
     const nodalCandidate = candidate?.type === "nodal" ? candidate : null;
@@ -119,6 +134,7 @@ function normalizeTrussLoads(
 function normalizeTrussLoadCases(
   rawLoadCases: unknown,
   nodes: TrussWorkspaceState["customNodes"],
+  members: TrussWorkspaceState["customMembers"],
 ): TrussLoadCase[] {
   if (!Array.isArray(rawLoadCases)) {
     return [];
@@ -130,7 +146,7 @@ function normalizeTrussLoadCases(
     return {
       id,
       title: String(candidate.title ?? id).trim() || id,
-      loads: normalizeTrussLoads(candidate.loads, nodes, []),
+      loads: normalizeTrussLoads(candidate.loads, nodes, members, []),
     };
   });
 }
@@ -183,8 +199,8 @@ export function normalizeTrussWorkspaceState(value: Partial<TrussWorkspaceState>
   const customMembersRaw = value?.customMembers ?? collections.members;
   const customMembers = normalizeTrussMembers(customMembersRaw, customNodes, collections.members);
   const customLoadsRaw = value?.customLoads ?? collections.loads;
-  const customLoads = normalizeTrussLoads(customLoadsRaw, customNodes, collections.loads);
-  const customLoadCases = normalizeTrussLoadCases(value?.customLoadCases, customNodes);
+  const customLoads = normalizeTrussLoads(customLoadsRaw, customNodes, customMembers, collections.loads);
+  const customLoadCases = normalizeTrussLoadCases(value?.customLoadCases, customNodes, customMembers);
   const customLoadCombinations = normalizeTrussLoadCombinations(value?.customLoadCombinations, customLoadCases);
 
   return {

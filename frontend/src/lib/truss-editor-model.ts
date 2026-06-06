@@ -16,6 +16,7 @@ export const TRUSS_MEMBER_KIND_OPTIONS = [
 export const TRUSS_LOAD_TYPE_OPTIONS = [
   { value: "nodal", label: modelObjectLoadLabel("truss", "node") },
   { value: "distributed", label: modelObjectLoadLabel("truss", "member") },
+  { value: "temperature", label: "温度荷载" },
 ];
 
 export const TRUSS_MEMBER_LOAD_DIRECTION_OPTIONS = [
@@ -153,5 +154,15 @@ export function createTrussMemberLoadDraft(members: TrussMember[], preferredMemb
     direction: "global_y",
     qStartKnPerM: -1,
     qEndKnPerM: -1,
+  };
+}
+
+export function createTrussTemperatureLoadDraft(members: TrussMember[], preferredMemberId?: string): TrussLoad {
+  const memberIds = new Set(members.map((member) => member.id));
+  return {
+    type: "temperature",
+    member: preferredMemberId && memberIds.has(preferredMemberId) ? preferredMemberId : members[0]?.id ?? "M1",
+    deltaTempC: 30,
+    alphaPerC: 1.2e-5,
   };
 }

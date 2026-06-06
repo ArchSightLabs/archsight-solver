@@ -315,7 +315,18 @@ export interface TrussMemberLoad {
   selfWeightKnPerM?: number;
 }
 
-export type TrussLoad = TrussNodalLoad | TrussMemberLoad;
+export interface TrussTemperatureLoad {
+  type: "temperature";
+  member: string;
+  deltaTempC?: number;
+  alphaPerC?: number;
+}
+
+export type TrussLoad = TrussNodalLoad | TrussMemberLoad | TrussTemperatureLoad;
+export type TrussLoadPatch =
+  | Partial<Omit<TrussNodalLoad, "type">>
+  | Partial<Omit<TrussMemberLoad, "type">>
+  | Partial<Omit<TrussTemperatureLoad, "type">>;
 
 export interface TrussLoadCase {
   id: string;

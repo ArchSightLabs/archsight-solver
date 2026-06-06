@@ -451,7 +451,15 @@ test("normalizeTrussWorkspaceState and buildTrussPayload preserve rod material i
 test("normalizeTrussWorkspaceState and buildTrussPayload preserve load cases and combinations", () => {
   const workspace = normalizeTrussWorkspaceState({
     ...createDefaultTrussWorkspaceState(),
-    customLoadCases: [{ id: " VL ", title: "竖向荷载", loads: [{ type: "nodal", node: "N3", fxKn: 0, fyKn: -12 }] }],
+    customLoads: [{ type: "temperature", member: "M1", deltaTempC: 24, alphaPerC: -1 }],
+    customLoadCases: [{
+      id: " VL ",
+      title: "竖向荷载",
+      loads: [
+        { type: "nodal", node: "N3", fxKn: 0, fyKn: -12 },
+        { type: "temperature", member: "M1", deltaTempC: 18, alphaPerC: 1.1e-5 },
+      ],
+    }],
     customLoadCombinations: [{ id: " COMB1 ", title: "基本组合", factors: { " VL ": 1.2 }, tags: [" ULS ", "包络", "ULS", ""] }],
   } as Partial<TrussWorkspaceState>);
 
@@ -459,8 +467,11 @@ test("normalizeTrussWorkspaceState and buildTrussPayload preserve load cases and
 
   assert.ok(payload);
   assert.equal(workspace.customLoadCases[0].id, "VL");
+  assert.deepEqual(workspace.customLoads[0], { type: "temperature", member: "M1", deltaTempC: 24, alphaPerC: 1.2e-5 });
+  assert.deepEqual(payload.structure.loads[0], { type: "temperature", member: "M1", deltaTempC: 24, alphaPerC: 1.2e-5 });
   assert.equal(payload.structure.loadCases?.[0]?.id, "VL");
   assert.deepEqual(payload.structure.loadCases?.[0]?.loads[0], { type: "nodal", node: "N3", fxKn: 0, fyKn: -12 });
+  assert.deepEqual(payload.structure.loadCases?.[0]?.loads[1], { type: "temperature", member: "M1", deltaTempC: 18, alphaPerC: 1.1e-5 });
   assert.deepEqual(payload.structure.loadCombinations?.[0], { id: "COMB1", title: "基本组合", factors: { VL: 1.2 }, tags: ["ULS", "包络"] });
 });
 
