@@ -72,6 +72,7 @@ def test_schema_registry_contains_api_and_tool_contracts():
     truss_load_schema = registry["asms-truss-model"]["properties"]["structure"]["properties"]["loads"]["items"]
     assert _one_of_branch_by_type(truss_load_schema, "nodal")["required"] == ["type", "node"]
     assert _one_of_branch_by_type(truss_load_schema, "distributed")["properties"]["direction"]["enum"] == ["global_x", "global_y"]
+    assert _one_of_branch_by_type(truss_load_schema, "temperature")["required"] == ["type", "member", "deltaTempC"]
     assert registry["asms-beam-model"]["properties"]["loadType"]["enum"] == [
         "none",
         "uniform",

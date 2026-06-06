@@ -51,7 +51,8 @@ def recover_member_results(
             geometry["cosine"] * (displacements[e_ux] - displacements[s_ux])
             + geometry["sine"] * (displacements[e_uy] - displacements[s_uy])
         )
-        axial_force_kn = float((geometry["E"] * geometry["A"] / geometry["lengthM"]) * delta / 1000.0)
+        thermal_force_kn = geometry.get("thermalForceKn", 0.0)
+        axial_force_kn = float((geometry["E"] * geometry["A"] / geometry["lengthM"]) * delta / 1000.0) - thermal_force_kn
         axial_forces.append(abs(axial_force_kn))
         stress_mpa = float(axial_force_kn * 10.0 / member["A_cm2"]) if member["A_cm2"] else 0.0
         if abs(axial_force_kn) < 1e-9:

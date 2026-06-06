@@ -350,6 +350,8 @@ def primary_load_type(loads: Sequence[Mapping[str, Any]]) -> str:
 
 def _load_case_load_values(load: Mapping[str, Any], base: Dict[str, Any]) -> Dict[str, Any]:
     raw_type = str(load.get("type", "uniform") or "uniform").strip()
+    if raw_type.lower() == "temperature":
+        raise ValueError("梁对象不支持温度荷载（缺少轴向自由度），请使用框架模型计算温度应力")
     load_type = sanitize_label(LOAD_TYPE_ALIASES.get(raw_type, raw_type), LOAD_TYPE_LABELS, "uniform")
     values = {
         "load_type": load_type,
@@ -493,6 +495,8 @@ def normalize_beam_request(data: Dict[str, Any]) -> Dict[str, Any]:
 
     beam_type = sanitize_label(data.get("beamType", "continuous"), BEAM_TYPE_LABELS, "continuous")
     raw_load_type = str(data.get("loadType", "uniform") or "uniform").strip()
+    if raw_load_type.lower() == "temperature":
+        raise ValueError("梁对象不支持温度荷载（缺少轴向自由度），请使用框架模型计算温度应力")
     load_type = sanitize_label(LOAD_TYPE_ALIASES.get(raw_load_type, raw_load_type), LOAD_TYPE_LABELS, "uniform")
 
     q_kn = to_float(data.get("q"), 0.0)

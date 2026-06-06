@@ -304,6 +304,27 @@ def test_truss_normalizer_maps_legacy_fixed_support_to_pinned():
     assert request["structure"]["nodes"][1]["supportType"] == "roller"
 
 
+def test_truss_temperature_load_defaults_alpha_from_member_material():
+    request = normalize_truss_request(
+        {
+            "analysisType": "truss",
+            "structure": {
+                "template": "explicit",
+                "nodes": [
+                    {"id": "N1", "x": 0, "y": 0, "supportType": "pinned"},
+                    {"id": "N2", "x": 4, "y": 0, "supportType": "roller"},
+                ],
+                "members": [{"id": "M1", "start": "N1", "end": "N2", "materialId": "c30", "E_GPa": 30, "A_cm2": 24}],
+                "loads": [{"type": "temperature", "member": "M1", "deltaTempC": 20}],
+            },
+        }
+    )
+
+    assert request["structure"]["loads"] == [
+        {"type": "temperature", "member": "M1", "deltaTempC": 20.0, "alphaPerC": 1e-5},
+    ]
+
+
 @pytest.mark.parametrize(
     ("node_patch", "expected_error"),
     [

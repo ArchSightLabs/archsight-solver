@@ -37,6 +37,20 @@ def assemble_system(request: Dict[str, Any]) -> Dict[str, Any]:
         e_i, e_j = node_dofs(node_index[member["end"]])
         dofs = [s_i, s_j, e_i, e_j]
         add_local_stiffness(stiffness, dofs, ke)
+
+        thermal_force_kn = 0.0
+        for load in loads:
+            if load.get("type") == "temperature" and load.get("member") == member["id"]:
+                delta_temp = to_float(load.get("deltaTempC", 0.0), 0.0)
+                alpha = to_float(load.get("alphaPerC", 1.2e-5), 1.2e-5)
+                thermal_force_kn += (member["E_GPa"] * 1e9) * (member["A_cm2"] * 1e-4) * alpha * delta_temp / 1000.0
+
+        if abs(thermal_force_kn) > 1e-9:
+            forces[s_i] += -thermal_force_kn * cosine * 1000.0
+            forces[s_j] += -thermal_force_kn * sine * 1000.0
+            forces[e_i] += thermal_force_kn * cosine * 1000.0
+            forces[e_j] += thermal_force_kn * sine * 1000.0
+
         member_geometries.append(
             {
                 "memberId": member["id"],
@@ -48,14 +62,16 @@ def assemble_system(request: Dict[str, Any]) -> Dict[str, Any]:
                 "E": member["E_GPa"] * 1e9,
                 "A": member["A_cm2"] * 1e-4,
                 "kind": member["kind"],
+                "thermalForceKn": thermal_force_kn,
             }
         )
 
     for load in loads:
-        node_idx = node_index[load["node"]]
-        ux, uy = node_dofs(node_idx)
-        forces[ux] += to_float(load.get("fxKn"), 0.0) * 1000.0
-        forces[uy] += to_float(load.get("fyKn"), 0.0) * 1000.0
+        if load.get("type", "nodal") == "nodal":
+            node_idx = node_index[load["node"]]
+            ux, uy = node_dofs(node_idx)
+            forces[ux] += to_float(load.get("fxKn"), 0.0) * 1000.0
+            forces[uy] += to_float(load.get("fyKn"), 0.0) * 1000.0
 
     fixed_dofs: List[int] = []
     support_dofs_by_node: Dict[str, List[int]] = {}

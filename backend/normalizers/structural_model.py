@@ -630,7 +630,7 @@ def preprocess_truss_member_loads(
         if load_type == "nodal":
             equivalent_loads.append(dict(load))
             continue
-        if load_type not in {"distributed", "member_load", "member"}:
+        if load_type not in {"distributed", "member_load", "member", "temperature"}:
             raise ValueError("桁架当前仅支持节点荷载或可等效为节点荷载的构件荷载")
 
         member_id = str(load.get("member") or "")
@@ -642,6 +642,18 @@ def preprocess_truss_member_loads(
         length = ((end_node.x - start_node.x) ** 2 + (end_node.y - start_node.y) ** 2) ** 0.5
         if length <= 0:
             raise ValueError(f"杆件 {member_id} 长度必须大于 0")
+
+        if load_type == "temperature":
+            values = parse_temperature_load_values(load, member=member)
+            # Preserve the temperature load so the solver can apply fixed-end forces AND subtract thermal strains from internal forces.
+            equivalent_loads.append(
+                {
+                    "type": "temperature",
+                    "member": member.id,
+                    **values,
+                }
+            )
+            continue
 
         if "selfWeightKnPerM" in load:
             direction = "global_y"
@@ -739,8 +751,6 @@ def parse_loads(
                 )
             )
         elif load_type == "temperature":
-            if not allow_distributed:
-                raise ValueError("桁架当前仅支持节点荷载")
             member_id = str(load.get("member") or "")
             if member_id not in member_ids:
                 raise ValueError("构件荷载引用了不存在的构件")

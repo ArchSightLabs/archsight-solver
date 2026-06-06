@@ -47,6 +47,35 @@ def test_beam_calculate_response_preserves_span_properties(client):
     assert len(data["payload"]["spanProperties"]) == len(data["payload"]["spans"])
 
 
+def test_beam_legacy_temperature_load_type_is_rejected(client):
+    payload = beam_payload()
+    payload["loadType"] = "temperature"
+
+    response = client.post("/api/calculate", json=payload)
+
+    assert response.status_code == 400
+    data = response.get_json()
+    assert data["error"]["code"] == "BEAM_INVALID_REQUEST"
+    assert "不支持温度荷载" in data["error"]["message"]
+
+
+def test_beam_load_case_temperature_load_is_rejected(client):
+    payload = beam_payload()
+    payload["loadCases"] = [
+        {
+            "id": "TEMP",
+            "loads": [{"type": "temperature", "deltaTempC": 20.0}],
+        }
+    ]
+
+    response = client.post("/api/calculate", json=payload)
+
+    assert response.status_code == 400
+    data = response.get_json()
+    assert data["error"]["code"] == "BEAM_INVALID_REQUEST"
+    assert "不支持温度荷载" in data["error"]["message"]
+
+
 def test_beam_second_span_property_changes_result(client):
     baseline_response = client.post("/api/calculate", json=beam_payload())
     assert baseline_response.status_code == 200
