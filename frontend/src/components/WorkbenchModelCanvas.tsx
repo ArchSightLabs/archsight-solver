@@ -224,6 +224,7 @@ export function WorkbenchModelCanvas({
   const [marqueeStyle, setMarqueeStyle] = useState<CSSProperties | null>(null);
   const [labelDragPreview, setLabelDragPreview] = useState<ModelCanvasLabelDragPreview | null>(null);
   const [nodeDragPreview, setNodeDragPreview] = useState<ModelCanvasNodeDragPreview | null>(null);
+  const [cursorPoint, setCursorPoint] = useState<CanvasPoint | null>(null);
   const {
     canvasScrollRef,
     commitZoomDraft,
@@ -479,6 +480,22 @@ export function WorkbenchModelCanvas({
   };
 
   const handleWorkbenchCanvasPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const svg = boardRef.current?.querySelector("svg");
+    if (svg) {
+      const svgPoint = clientPointToSvgPoint(event, svg);
+      if (svgPoint) {
+        if (mode === "frame") {
+          setCursorPoint(frameCanvasPointToModel(workspace, canvasSize, svgPoint));
+        } else if (mode === "truss") {
+          setCursorPoint(trussCanvasPointToModel(workspace, canvasSize, svgPoint));
+        } else {
+          setCursorPoint(null);
+        }
+      } else {
+        setCursorPoint(null);
+      }
+    }
+
     const labelDrag = labelDragRef.current;
     if (labelDrag && labelDrag.pointerId === event.pointerId) {
       const svgPoint = clientPointToSvgPoint(event, labelDrag.svg);
@@ -538,6 +555,7 @@ export function WorkbenchModelCanvas({
   };
 
   const handleWorkbenchCanvasPointerCancel = (event: ReactPointerEvent<HTMLDivElement>) => {
+    setCursorPoint(null);
     if (nodeDragRef.current?.pointerId === event.pointerId) {
       nodeDragRef.current = null;
       setNodeDragPreview(null);
@@ -624,15 +642,14 @@ export function WorkbenchModelCanvas({
                       key={item.id}
                       type="button"
                       variant="ghost"
-                      size={compact ? "icon" : "sm"}
+                      size="icon"
                       onClick={() => onGeometryAction(item.id)}
                       disabled={disabled}
                       aria-label={label}
                       title={label}
-                      className={`${compact ? "h-7 w-7" : "h-7 px-2"} rounded-lg text-[11px] font-bold`}
+                      className="h-7 w-7 rounded-lg text-slate-700 dark:text-slate-200"
                     >
-                      <Icon className={`${compact ? "" : "mr-1.5"} h-3.5 w-3.5`} />
-                      {compact ? <span className="sr-only">{item.shortLabel}</span> : item.shortLabel}
+                      <Icon className="h-3.5 w-3.5" />
                     </Button>
                   );
                 })}
@@ -640,28 +657,17 @@ export function WorkbenchModelCanvas({
                   <Button
                     type="button"
                     variant="ghost"
-                    size={compact ? "icon" : "sm"}
+                    size="icon"
                     onClick={onDeleteSelection}
                     disabled={!canDeleteSelection}
                     aria-label="删除所选对象"
                     title="删除所选对象（Delete）"
-                    className={`${compact ? "h-7 w-7" : "h-7 px-2"} rounded-lg text-[11px] font-bold text-rose-700 hover:text-rose-800 dark:text-rose-200 dark:hover:text-rose-100`}
+                    className="h-7 w-7 rounded-lg text-rose-700 hover:text-rose-800 dark:text-rose-200 dark:hover:text-rose-100"
                   >
-                    <Trash2 className={`${compact ? "" : "mr-1.5"} h-3.5 w-3.5`} />
-                    {compact ? <span className="sr-only">删除</span> : "删除"}
+                    <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 ) : null}
               </div>
-            ) : null}
-            {canShowGridSnapTool ? (
-              <GridSnapControls
-                enabled={gridSnapEnabled}
-                stepM={gridSnapStepM}
-                variant="toolbar"
-                compact={compact}
-                onEnabledChange={(next) => onGridSnapEnabledChange?.(next)}
-                onStepChange={(next) => onGridSnapStepChange?.(next)}
-              />
             ) : null}
             {hasLabelTools ? (
               <div className="flex min-w-0 flex-wrap items-center gap-1 rounded-xl border border-slate-200/80 bg-white/[0.88] p-1 shadow-sm backdrop-blur dark:border-slate-700/80 dark:bg-slate-950/[0.82]" role="toolbar" aria-label="标注工具">
@@ -796,6 +802,7 @@ export function WorkbenchModelCanvas({
           onPointerMove={handleWorkbenchCanvasPointerMove}
           onPointerUp={handleWorkbenchCanvasPointerUp}
           onPointerCancel={handleWorkbenchCanvasPointerCancel}
+          onPointerLeave={() => setCursorPoint(null)}
           onClickCapture={handleCanvasClickCapture}
         >
           <div ref={boardRef} data-model-canvas-board="true" className="model-canvas-board" style={boardStyle}>
@@ -848,6 +855,27 @@ export function WorkbenchModelCanvas({
             <div className="font-mono text-[15px] font-bold text-slate-900 dark:text-slate-100">{item.value}</div>
           </div>
         ))}
+      </div>
+      <div className="flex h-7 shrink-0 items-center justify-between border-t border-slate-200/50 bg-white/[0.05] px-3 text-[10px] font-mono tracking-wide text-slate-500 backdrop-blur-md dark:border-white/10 dark:text-slate-400">
+        <div className="flex items-center gap-4">
+          {canShowGridSnapTool ? (
+            <GridSnapControls
+              enabled={gridSnapEnabled}
+              stepM={gridSnapStepM}
+              variant="statusbar"
+              compact={true}
+              onEnabledChange={(next) => onGridSnapEnabledChange?.(next)}
+              onStepChange={(next) => onGridSnapStepChange?.(next)}
+            />
+          ) : null}
+        </div>
+        <div className="flex items-center gap-4">
+          {cursorPoint ? (
+            <span className="font-bold opacity-70">
+              X: {cursorPoint.x.toFixed(3)} m &nbsp;&nbsp; Y: {cursorPoint.y.toFixed(3)} m
+            </span>
+          ) : null}
+        </div>
       </div>
     </GlassCard>
   );
