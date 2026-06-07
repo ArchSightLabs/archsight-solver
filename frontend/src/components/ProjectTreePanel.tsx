@@ -1,4 +1,5 @@
 import { ExternalLink, Network, PencilLine, Plus, Ruler, ShieldCheck, Trash2, Triangle } from "lucide-react";
+import { motion } from "framer-motion";
 import { analysisVocabulary } from "../lib/analysis-vocabulary";
 import { getAnalysisObjectDisplayName, type AnalysisObject, type SolverProject } from "../lib/solver-project";
 import { Button } from "./ui/button";
@@ -45,13 +46,23 @@ export function ProjectTreePanel({
               onClick={() => onSelectObject(object.id)}
               aria-label={displayName}
               title={displayName}
-              className={`flex h-10 w-10 items-center justify-center rounded-lg border transition-colors ${
+              className={`relative flex h-10 w-10 items-center justify-center rounded-lg border transition-colors ${
                 active
-                  ? "border-sky-400/55 bg-sky-400/15 text-sky-700 dark:text-sky-200"
-                  : "border-white/10 bg-white/[0.03] text-muted-foreground hover:bg-primary/5 hover:text-foreground"
+                  ? "border-sky-400/40 text-sky-700 dark:text-sky-200"
+                  : "border-transparent text-muted-foreground hover:bg-slate-500/5 hover:text-foreground dark:hover:bg-white/5"
               }`}
             >
-              <ObjectIcon object={object} />
+              {active && (
+                <motion.div
+                  layoutId="project-tree-collapsed-active-bg"
+                  className="absolute inset-0 rounded-lg bg-sky-400/[0.12] dark:bg-sky-400/[0.18]"
+                  initial={false}
+                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                />
+              )}
+              <span className="relative z-10">
+                <ObjectIcon object={object} />
+              </span>
             </button>
           );
         })}
@@ -139,34 +150,51 @@ export function ProjectTreePanel({
                 key={object.id}
                 className={`group relative flex items-center gap-2 overflow-hidden rounded-lg border p-2 transition-colors ${
                   active
-                    ? "border-sky-400/45 bg-sky-400/[0.12] text-foreground shadow-sm shadow-sky-500/10"
-                    : "border-white/10 bg-white/[0.03] text-foreground hover:border-sky-300/60 hover:bg-primary/5"
+                    ? "border-sky-400/30 text-foreground"
+                    : "border-transparent bg-transparent text-foreground hover:bg-slate-500/5 dark:hover:bg-white/5"
                 }`}
               >
-                {active ? <span className="absolute inset-y-2 left-0 w-1 rounded-r-full bg-sky-400" /> : null}
-                <button type="button" onClick={() => onSelectObject(object.id)} className="flex min-w-0 flex-1 items-center gap-2 pl-1 text-left">
-                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${active ? "bg-sky-400 text-slate-950" : "bg-white/[0.04]"}`}>
-                    <ObjectIcon object={object} />
-                  </span>
-                  <span className="min-w-0">
-                    <span className={`block truncate font-bold ${compact ? "text-xs" : "text-sm"}`} title={displayName}>{displayName}</span>
-                    <span className={`block text-[10px] font-bold ${active ? "text-sky-700 dark:text-sky-200" : "text-muted-foreground"}`}>{objectTypeLabel(object)}</span>
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onRemoveObject(object.id)}
-                  disabled={project.objects.length <= 1}
-                  aria-label={`删除${displayName}`}
-                  title={project.objects.length <= 1 ? "至少保留一个分析对象" : "删除分析对象"}
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors ${
-                    active
-                      ? "border-sky-400/20 bg-sky-400/5 text-sky-700 hover:bg-red-500 hover:text-white dark:text-sky-200"
-                      : "border-white/10 bg-white/[0.03] text-muted-foreground hover:bg-red-500/10 hover:text-red-400"
-                  } disabled:cursor-not-allowed disabled:opacity-35`}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                {active && (
+                  <motion.div
+                    layoutId="project-tree-active-bg"
+                    className="absolute inset-0 bg-sky-400/[0.08] shadow-sm shadow-sky-500/10 dark:bg-sky-400/[0.15]"
+                    initial={false}
+                    transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                  />
+                )}
+                {active && (
+                  <motion.div
+                    layoutId="project-tree-active-bar"
+                    className="absolute inset-y-2 left-0 w-1 rounded-r-full bg-sky-500 dark:bg-sky-400"
+                    initial={false}
+                    transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                  />
+                )}
+                <div className="relative z-10 flex min-w-0 flex-1 items-center gap-2">
+                  <button type="button" onClick={() => onSelectObject(object.id)} className="flex min-w-0 flex-1 items-center gap-2 pl-1 text-left">
+                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors ${active ? "bg-sky-500 text-white dark:bg-sky-400 dark:text-slate-950" : "bg-white/[0.04]"}`}>
+                      <ObjectIcon object={object} />
+                    </span>
+                    <span className="min-w-0">
+                      <span className={`block truncate font-bold ${compact ? "text-xs" : "text-sm"}`} title={displayName}>{displayName}</span>
+                      <span className={`block text-[10px] font-bold ${active ? "text-sky-700 dark:text-sky-200" : "text-muted-foreground"}`}>{objectTypeLabel(object)}</span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onRemoveObject(object.id)}
+                    disabled={project.objects.length <= 1}
+                    aria-label={`删除${displayName}`}
+                    title={project.objects.length <= 1 ? "至少保留一个分析对象" : "删除分析对象"}
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors ${
+                      active
+                        ? "border-sky-400/20 bg-sky-400/5 text-sky-700 hover:bg-red-500 hover:text-white dark:text-sky-200"
+                        : "border-transparent bg-transparent text-muted-foreground hover:bg-red-500/10 hover:text-red-400"
+                    } disabled:cursor-not-allowed disabled:opacity-35`}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
             );
           })}

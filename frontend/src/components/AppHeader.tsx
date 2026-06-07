@@ -52,7 +52,7 @@ export function AppHeader({
   const { setIsSystemSettingsOpen, setIsPublicExamplesOpen, setIsBenchmarkSubmissionOpen } = useDialogs();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/8 bg-background/85 backdrop-blur-2xl">
+    <header className="sticky top-0 z-30 border-b border-white/40 bg-white/70 backdrop-blur-2xl shadow-[0_1px_2px_rgba(0,0,0,0.02),0_4px_16px_rgba(0,0,0,0.02)] dark:border-white/10 dark:bg-slate-950/70 dark:shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
       <div className="mx-auto max-w-[118rem] px-4 py-2.5 sm:px-6 sm:py-3">
         <div className={`grid xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center ${isCompactWorkbench ? "gap-3" : "gap-4"}`}>
           <div>

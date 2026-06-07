@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 export interface ModuleSectionNavItem {
@@ -46,13 +47,21 @@ export function ModuleSectionNav({ title, items, activeId, onSelect, behavior = 
             aria-selected={activeId === item.id}
             aria-controls={item.id}
             className={cn(
-              "min-w-0 whitespace-nowrap rounded-md px-2.5 py-1.5 text-[11px] font-semibold transition-colors",
+              "relative flex-1 min-w-0 whitespace-nowrap rounded-md px-2.5 py-1.5 text-center text-[11px] font-semibold transition-colors",
               activeId === item.id
-                ? "bg-sky-400 text-slate-950 shadow-sm shadow-sky-500/15"
-                : "text-slate-500 hover:bg-white/75 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/[0.06] dark:hover:text-slate-100"
+                ? "text-slate-950 dark:text-slate-50"
+                : "text-slate-500 hover:text-slate-950 dark:text-slate-400 dark:hover:text-slate-100"
             )}
           >
-            {item.label}
+            {activeId === item.id && (
+              <motion.div
+                layoutId={`module-nav-active-pill-${title}`}
+                className="absolute inset-0 rounded-md bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05),0_1px_2px_rgba(0,0,0,0.1)] dark:bg-sky-500/20 dark:shadow-[0_0_10px_rgba(14,165,233,0.2)] dark:border dark:border-sky-500/30"
+                initial={false}
+                transition={{ type: "spring", stiffness: 500, damping: 35 }}
+              />
+            )}
+            <span className="relative z-10">{item.label}</span>
           </button>
         ))}
       </div>
