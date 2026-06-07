@@ -841,11 +841,11 @@ export function WorkbenchModelCanvas({
           />
         ) : null}
       </div>
-      <div className={`grid gap-px border-t border-slate-200/70 bg-slate-200/70 dark:border-slate-700/70 dark:bg-slate-700/70 ${metricGridClass}`}>
+      <div className={`flex flex-wrap divide-x divide-slate-200/50 border-t border-slate-200/50 bg-white/[0.03] backdrop-blur-md dark:divide-white/10 dark:border-white/10 ${metricGridClass}`}>
         {metrics.map((item) => (
-          <div key={item.label} className="bg-white/[0.82] px-4 py-3 sm:px-5 sm:py-4 dark:bg-slate-900/[0.62]">
-            <div className="eyebrow mb-1 text-slate-500 dark:text-slate-400">{item.label}</div>
-            <div className="font-mono text-sm font-bold text-slate-950 dark:text-slate-100">{item.value}</div>
+          <div key={item.label} className="flex-1 min-w-[120px] px-4 py-3 sm:px-5 sm:py-4 transition-colors hover:bg-slate-500/5">
+            <div className="eyebrow mb-1 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400">{item.label}</div>
+            <div className="font-mono text-[15px] font-bold text-slate-900 dark:text-slate-100">{item.value}</div>
           </div>
         ))}
       </div>

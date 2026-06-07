@@ -38,7 +38,7 @@ const PEAK_LABEL_MAX_Y = BEAM_PREVIEW_SVG_HEIGHT - 38;
 const SPAN_MEMBER_LABEL_Y = BEAM_Y + 22;
 const NODE_BADGE_OFFSET_X = 10;
 const NODE_BADGE_OFFSET_Y = -18;
-const SVG_TEXT_FONT = "Inter, Microsoft YaHei, system-ui, sans-serif";
+const SVG_TEXT_FONT = "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
 
 const PREVIEW_COLORS = {
   background: "#ffffff",

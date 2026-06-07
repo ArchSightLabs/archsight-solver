@@ -74,8 +74,8 @@ const SPAN_DIMENSION_LEGEND_GAP = 15;
 const CALLOUT_STROKE_WIDTH = 1;
 const VALUE_TEXT_HALO_WIDTH = 3.25;
 const STATION_TEXT_HALO_WIDTH = 2.5;
-const DIAGRAM_LABEL_FONT = "Inter, Microsoft YaHei, system-ui, sans-serif";
-const DIAGRAM_NUMERIC_FONT = "Fira Code, ui-monospace, SFMono-Regular, Consolas, monospace";
+const DIAGRAM_LABEL_FONT = "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
+const DIAGRAM_NUMERIC_FONT = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace";
 const DIAGRAM_LABEL_WEIGHT = 600;
 
 const BEAM_DIAGRAM_METRICS: BeamDiagramMetric[] = [

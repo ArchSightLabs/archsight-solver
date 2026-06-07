@@ -19,7 +19,7 @@ interface TrussPreviewProps {
 }
 
 const PADDING = 72;
-const svgTextFont = "Inter, Microsoft YaHei, system-ui, sans-serif";
+const svgTextFont = "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));

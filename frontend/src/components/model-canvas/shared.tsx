@@ -2,7 +2,7 @@ import { type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouse
 import type { WorkbenchSelection } from "../../types/workbench-selection";
 import { workbenchSelectionKey } from "../../lib/workbench-selection-utils";
 
-export const SVG_TEXT_FONT = "Inter, Microsoft YaHei, system-ui, sans-serif";
+export const SVG_TEXT_FONT = "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
 export const MODEL_DIMENSION_TEXT_WEIGHT = 600;
 
 export function formatMagnitude(value: number) {

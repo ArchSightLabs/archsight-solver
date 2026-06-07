@@ -65,7 +65,7 @@ const POINT_LOAD_ARROW_MARKER_SIZE = 6.5;
 const BEAM_PREVIEW_AUTO_DEFLECTION_TARGET_PX = 80;
 const BEAM_PREVIEW_AUTO_DEFLECTION_TARGET_COMPACT_PX = 64;
 const BEAM_PREVIEW_MANUAL_DEFLECTION_SCALE_CAP = 100000;
-const svgTextFont = "Inter, Microsoft YaHei, system-ui, sans-serif";
+const svgTextFont = "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
