@@ -848,16 +848,8 @@ export function WorkbenchModelCanvas({
           />
         ) : null}
       </div>
-      <div className={`flex flex-wrap divide-x divide-slate-200/50 border-t border-slate-200/50 bg-white/[0.03] backdrop-blur-md dark:divide-white/10 dark:border-white/10 ${metricGridClass}`}>
-        {metrics.map((item) => (
-          <div key={item.label} className="flex-1 min-w-[120px] px-4 py-3 sm:px-5 sm:py-4 transition-colors hover:bg-slate-500/5">
-            <div className="eyebrow mb-1 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400">{item.label}</div>
-            <div className="font-mono text-[15px] font-bold text-slate-900 dark:text-slate-100">{item.value}</div>
-          </div>
-        ))}
-      </div>
       <div className="flex h-7 shrink-0 items-center justify-between border-t border-slate-200/50 bg-white/[0.05] px-3 text-[10px] font-mono tracking-wide text-slate-500 backdrop-blur-md dark:border-white/10 dark:text-slate-400">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           {canShowGridSnapTool ? (
             <GridSnapControls
               enabled={gridSnapEnabled}
@@ -867,6 +859,16 @@ export function WorkbenchModelCanvas({
               onEnabledChange={(next) => onGridSnapEnabledChange?.(next)}
               onStepChange={(next) => onGridSnapStepChange?.(next)}
             />
+          ) : null}
+          {metrics.length > 0 ? (
+            <div className="flex items-center gap-4 border-l border-slate-300/30 pl-4 dark:border-white/10">
+              {metrics.map((item) => (
+                <div key={item.label} className="flex items-baseline gap-1.5">
+                  <span className="font-sans font-black tracking-widest opacity-60">{item.label}</span>
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200">{item.value}</span>
+                </div>
+              ))}
+            </div>
           ) : null}
         </div>
         <div className="flex items-center gap-4">
