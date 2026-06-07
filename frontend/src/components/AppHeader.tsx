@@ -12,6 +12,7 @@ import {
   Sun,
 } from "lucide-react";
 import { Button } from "./ui/button";
+import { useDialogs } from "../contexts/DialogContext";
 
 interface AppHeaderProps {
   appVersion: string;
@@ -25,10 +26,7 @@ interface AppHeaderProps {
   isProjectDirty: boolean;
   releaseNotesHref: string;
   onNewProjectFile: () => void;
-  onOpenBenchmarkSubmission: () => void;
   onOpenProjectFile: () => void;
-  onOpenPublicExamples: () => void;
-  onOpenSystemSettings: () => void;
   onSaveProjectFile: (forceSaveAs?: boolean) => void;
   setIsDark: Dispatch<SetStateAction<boolean>>;
   setIsFileMenuOpen: Dispatch<SetStateAction<boolean>>;
@@ -46,14 +44,13 @@ export function AppHeader({
   isProjectDirty,
   releaseNotesHref,
   onNewProjectFile,
-  onOpenBenchmarkSubmission,
   onOpenProjectFile,
-  onOpenPublicExamples,
-  onOpenSystemSettings,
   onSaveProjectFile,
   setIsDark,
   setIsFileMenuOpen,
 }: AppHeaderProps) {
+  const { setIsSystemSettingsOpen, setIsPublicExamplesOpen, setIsBenchmarkSubmissionOpen } = useDialogs();
+
   return (
     <header className="sticky top-0 z-30 border-b border-white/8 bg-background/85 backdrop-blur-2xl">
       <div className="mx-auto max-w-[118rem] px-4 py-2.5 sm:px-6 sm:py-3">
@@ -115,7 +112,7 @@ export function AppHeader({
               </Button>
               <Button
                 variant="ghost"
-                onClick={onOpenPublicExamples}
+                onClick={() => setIsPublicExamplesOpen(true)}
                 className={`rounded-lg font-bold text-foreground hover:bg-primary/10 ${isCompactWorkbench ? "h-9 px-3 text-xs" : "h-10 px-3.5"}`}
               >
                 <BookOpenCheck className={`mr-2 ${isCompactWorkbench ? "h-3.5 w-3.5" : "h-4 w-4"}`} />
@@ -123,7 +120,7 @@ export function AppHeader({
               </Button>
               <Button
                 variant="ghost"
-                onClick={onOpenBenchmarkSubmission}
+                onClick={() => setIsBenchmarkSubmissionOpen(true)}
                 className={`rounded-lg font-bold text-foreground hover:bg-primary/10 ${isCompactWorkbench ? "h-9 px-3 text-xs" : "h-10 px-3.5"}`}
               >
                 <FileJson className={`mr-2 ${isCompactWorkbench ? "h-3.5 w-3.5" : "h-4 w-4"}`} />
@@ -182,7 +179,7 @@ export function AppHeader({
             </Button>
             <Button
               variant="outline"
-              onClick={onOpenSystemSettings}
+              onClick={() => setIsSystemSettingsOpen(true)}
               className={`rounded-lg border-white/10 bg-white/[0.03] font-bold text-foreground hover:bg-primary/5 ${isCompactWorkbench ? "h-10 px-3 text-xs" : "h-11 px-4"}`}
             >
               <Settings className={`mr-2 ${isCompactWorkbench ? "h-3.5 w-3.5" : "h-4 w-4"}`} />

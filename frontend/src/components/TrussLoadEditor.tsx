@@ -28,6 +28,7 @@ interface TrussLoadEditorProps {
   onUpdate: (patch: TrussLoadPatch | TrussLoad) => void;
   onRemove: () => void;
   variant: "selected" | "table";
+  compact?: boolean;
 }
 
 export function TrussLoadEditor({
@@ -41,7 +42,7 @@ export function TrussLoadEditor({
   onUpdate,
   onRemove,
   variant,
-}: TrussLoadEditorProps) {
+  compact = false }: TrussLoadEditorProps) {
   const isMemberLoad = load.type === "distributed" || load.type === "member_load" || load.type === "member";
   const isTemperatureLoad = load.type === "temperature";
   const isNodalLoad = load.type === "nodal";
@@ -79,9 +80,9 @@ export function TrussLoadEditor({
         <div className="space-y-1">
           <div className={fieldLabelClass}>{!isNodalLoad ? `作用${memberTerm}` : "作用节点"}</div>
           {memberTargetLoad ? (
-            <DropdownSelect value={memberTargetLoad.member} onChange={(nextValue) => onUpdate({ member: nextValue })} options={memberOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${index + 1} 条荷载作用${memberTerm}`} />
+            <DropdownSelect compact={compact} value={memberTargetLoad.member} onChange={(nextValue) => onUpdate({ member: nextValue })} options={memberOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${index + 1} 条荷载作用${memberTerm}`} />
           ) : (
-            <DropdownSelect value={nodalLoad?.node ?? nodes[0]?.id ?? "N1"} onChange={(nextValue) => onUpdate({ node: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${index + 1} 条荷载作用节点`} />
+            <DropdownSelect compact={compact} value={nodalLoad?.node ?? nodes[0]?.id ?? "N1"} onChange={(nextValue) => onUpdate({ node: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${index + 1} 条荷载作用节点`} />
           )}
         </div>
         <div className="flex items-end">
@@ -105,37 +106,37 @@ export function TrussLoadEditor({
           </div>
             <div className="space-y-1">
               <div className={fieldLabelClass}>起点线荷载（kN/m）</div>
-            <Input aria-label={`第 ${index + 1} 条荷载起点线荷载（kN/m）`} type="number" step="0.1" value={memberLoad.qStartKnPerM ?? memberLoad.wyKnPerM ?? 0} onChange={(event) => onUpdate({ qStartKnPerM: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+            <Input compact={compact} aria-label={`第 ${index + 1} 条荷载起点线荷载（kN/m）`} type="number" step="0.1" value={memberLoad.qStartKnPerM ?? memberLoad.wyKnPerM ?? 0} onChange={(event) => onUpdate({ qStartKnPerM: Number(event.target.value) || 0 })} className="min-w-0 font-mono text-xs" />
           </div>
           <div className="space-y-1">
             <div className={fieldLabelClass}>终点线荷载（kN/m）</div>
-            <Input aria-label={`第 ${index + 1} 条荷载终点线荷载（kN/m）`} type="number" step="0.1" value={memberLoad.qEndKnPerM ?? memberLoad.wyKnPerM ?? 0} onChange={(event) => onUpdate({ qEndKnPerM: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+            <Input compact={compact} aria-label={`第 ${index + 1} 条荷载终点线荷载（kN/m）`} type="number" step="0.1" value={memberLoad.qEndKnPerM ?? memberLoad.wyKnPerM ?? 0} onChange={(event) => onUpdate({ qEndKnPerM: Number(event.target.value) || 0 })} className="min-w-0 font-mono text-xs" />
           </div>
           <div className="space-y-1">
             <div className={fieldLabelClass}>自重强度（可选，kN/m）</div>
-            <Input aria-label={`第 ${index + 1} 条荷载自重强度（可选，kN/m）`} type="number" step="0.1" value={memberLoad.selfWeightKnPerM ?? ""} onChange={(event) => onUpdate({ selfWeightKnPerM: event.target.value === "" ? undefined : Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" placeholder={isSelectedVariant ? "留空则按起终点线荷载" : "优先按向下自重换算"} />
+            <Input compact={compact} aria-label={`第 ${index + 1} 条荷载自重强度（可选，kN/m）`} type="number" step="0.1" value={memberLoad.selfWeightKnPerM ?? ""} onChange={(event) => onUpdate({ selfWeightKnPerM: event.target.value === "" ? undefined : Number(event.target.value) || 0 })} className="min-w-0 font-mono text-xs" placeholder={isSelectedVariant ? "留空则按起终点线荷载" : "优先按向下自重换算"} />
           </div>
         </div>
       ) : temperatureLoad ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="space-y-1">
             <div className={fieldLabelClass}>温差（°C）</div>
-            <Input aria-label={`第 ${index + 1} 条荷载温差（°C）`} type="number" step="1" value={temperatureLoad.deltaTempC ?? 0} onChange={(event) => onUpdate({ deltaTempC: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+            <Input compact={compact} aria-label={`第 ${index + 1} 条荷载温差（°C）`} type="number" step="1" value={temperatureLoad.deltaTempC ?? 0} onChange={(event) => onUpdate({ deltaTempC: Number(event.target.value) || 0 })} className="min-w-0 font-mono text-xs" />
           </div>
           <div className="space-y-1">
             <div className={fieldLabelClass}>线膨胀系数（1/°C）</div>
-            <Input aria-label={`第 ${index + 1} 条荷载线膨胀系数`} type="number" step="0.000001" value={temperatureLoad.alphaPerC ?? 1.2e-5} onChange={(event) => onUpdate({ alphaPerC: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+            <Input compact={compact} aria-label={`第 ${index + 1} 条荷载线膨胀系数`} type="number" step="0.000001" value={temperatureLoad.alphaPerC ?? 1.2e-5} onChange={(event) => onUpdate({ alphaPerC: Number(event.target.value) || 0 })} className="min-w-0 font-mono text-xs" />
           </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1">
               <div className={fieldLabelClass}>{isSelectedVariant ? "X 向力（kN）" : "X 向力"}</div>
-            <Input aria-label={`第 ${index + 1} 条荷载 X 向力${isSelectedVariant ? "（kN）" : ""}`} type="number" step="0.1" value={nodalLoad?.fxKn ?? 0} onChange={(event) => onUpdate({ fxKn: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+            <Input compact={compact} aria-label={`第 ${index + 1} 条荷载 X 向力${isSelectedVariant ? "（kN）" : ""}`} type="number" step="0.1" value={nodalLoad?.fxKn ?? 0} onChange={(event) => onUpdate({ fxKn: Number(event.target.value) || 0 })} className="min-w-0 font-mono text-xs" />
           </div>
           <div className="space-y-1">
             <div className={fieldLabelClass}>{isSelectedVariant ? "Y 向力（kN）" : "Y 向力"}</div>
-            <Input aria-label={`第 ${index + 1} 条荷载 Y 向力${isSelectedVariant ? "（kN）" : ""}`} type="number" step="0.1" value={nodalLoad?.fyKn ?? 0} onChange={(event) => onUpdate({ fyKn: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+            <Input compact={compact} aria-label={`第 ${index + 1} 条荷载 Y 向力${isSelectedVariant ? "（kN）" : ""}`} type="number" step="0.1" value={nodalLoad?.fyKn ?? 0} onChange={(event) => onUpdate({ fyKn: Number(event.target.value) || 0 })} className="min-w-0 font-mono text-xs" />
           </div>
         </div>
       )}

@@ -10,7 +10,8 @@ import { FrameForm } from "./components/FrameForm";
 import { TrussForm } from "./components/TrussForm";
 import { ProjectTreePanel } from "./components/ProjectTreePanel";
 import { SystemSettingsPanel } from "./components/SystemSettingsPanel";
-import { WorkbenchDialogs } from "./components/WorkbenchDialogs";
+import { GlobalDialogs } from "./components/GlobalDialogs";
+import { DialogProvider, useDialogs } from "./contexts/DialogContext";
 import { AppHeader } from "./components/AppHeader";
 import { WorkbenchInspectorPanel } from "./components/WorkbenchInspectorPanel";
 import { WorkbenchModelCanvas } from "./components/WorkbenchModelCanvas";
@@ -81,7 +82,7 @@ const HIDDEN_VISIT_STATS_STYLE = {
 const RELEASE_NOTES_HREF = "/docs/release-notes.html";
 const USER_MANUAL_HREF = "/docs/user-manual.html";
 
-function App() {
+function AppContent() {
   const { isDark, setIsDark, clientId } = useWorkbenchSession();
   const [pageStateByObjectId, setPageStateByObjectId] = useState<Record<string, AnalysisObjectPageState>>({});
   const [workbenchSelectionState, setWorkbenchSelectionState] = useState<WorkbenchSelectionState>({ primary: null, items: [] });
@@ -89,14 +90,17 @@ function App() {
   const [gridSnapStepM, setGridSnapStepM] = useState(0.5);
   const workbenchSelection = workbenchSelectionState.primary;
   const workbenchSelectionSet = workbenchSelectionState.items;
-  const [isNewAnalysisObjectDialogOpen, setIsNewAnalysisObjectDialogOpen] = useState(false);
-  const [projectInfoDialogMode, setProjectInfoDialogMode] = useState<"create" | "edit" | null>(null);
-  const [isSystemSettingsOpen, setIsSystemSettingsOpen] = useState(false);
-  const [isTemplateLibraryOpen, setIsTemplateLibraryOpen] = useState(false);
-  const [isPublicExamplesOpen, setIsPublicExamplesOpen] = useState(false);
-  const [isBenchmarkSubmissionOpen, setIsBenchmarkSubmissionOpen] = useState(false);
   const [isFileMenuOpen, setIsFileMenuOpen] = useState(false);
   const fileMenuRef = useRef<HTMLDivElement | null>(null);
+  const {
+    isSystemSettingsDocked,
+    setProjectInfoDialogMode,
+    setIsSystemSettingsOpen,
+    setIsPublicExamplesOpen,
+    setIsTemplateLibraryOpen,
+    setIsNewAnalysisObjectDialogOpen
+  } = useDialogs();
+  
   const {
     activeAnalysisObject,
     clearProjectFileLink,
@@ -131,12 +135,11 @@ function App() {
     handleModuleNavResizeStart,
     isCompactWorkbench,
     isModuleNavCollapsed,
-    isSystemSettingsDocked,
     setIsInspectorCollapsed,
     setIsModuleNavCollapsed,
     showInspectorCollapsed,
     workbenchGridStyle,
-  } = useResizableWorkbenchLayout(isSystemSettingsOpen);
+  } = useResizableWorkbenchLayout(isSystemSettingsDocked);
   const resetWorkbenchContext = useCallback(() => {
     setWorkbenchSelectionState({ primary: null, items: [] });
   }, []);
@@ -190,42 +193,7 @@ function App() {
     setBaselineTemplate,
   } = useTemplateLibrary();
 
-  useEffect(() => {
-    if (!isTemplateLibraryOpen && !isSystemSettingsOpen && !isNewAnalysisObjectDialogOpen && !isPublicExamplesOpen && !isBenchmarkSubmissionOpen && projectInfoDialogMode === null) {
-      return;
-    }
-    const shouldLockScroll =
-      isTemplateLibraryOpen ||
-      isPublicExamplesOpen ||
-      isBenchmarkSubmissionOpen ||
-      (isSystemSettingsOpen && !isSystemSettingsDocked) ||
-      isNewAnalysisObjectDialogOpen ||
-      projectInfoDialogMode !== null;
 
-    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsTemplateLibraryOpen(false);
-        setIsPublicExamplesOpen(false);
-        setIsBenchmarkSubmissionOpen(false);
-        setIsSystemSettingsOpen(false);
-        setIsNewAnalysisObjectDialogOpen(false);
-        setProjectInfoDialogMode(null);
-      }
-    };
-
-    const previousOverflow = document.body.style.overflow;
-    if (shouldLockScroll) {
-      document.body.style.overflow = "hidden";
-    }
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      if (shouldLockScroll) {
-        document.body.style.overflow = previousOverflow;
-      }
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isSystemSettingsDocked, isTemplateLibraryOpen, isPublicExamplesOpen, isBenchmarkSubmissionOpen, isSystemSettingsOpen, isNewAnalysisObjectDialogOpen, projectInfoDialogMode]);
 
   useEffect(() => {
     if (!isFileMenuOpen) {
@@ -530,6 +498,7 @@ function App() {
         activeSectionId={activeModuleSectionId}
         selection={beamSelection}
         onSelectionChange={handleWorkbenchSelectionChange}
+        compact={isCompactWorkbench}
       />
     ) : analysisMode === "truss" ? (
       <TrussForm
@@ -541,6 +510,7 @@ function App() {
         onSelectionChange={handleWorkbenchSelectionChange}
         gridSnapEnabled={gridSnapEnabled}
         gridSnapStepM={gridSnapStepM}
+        compact={isCompactWorkbench}
       />
     ) : (
       <FrameForm
@@ -552,6 +522,7 @@ function App() {
         onSelectionChange={handleWorkbenchSelectionChange}
         gridSnapEnabled={gridSnapEnabled}
         gridSnapStepM={gridSnapStepM}
+        compact={isCompactWorkbench}
       />
     );
 
@@ -580,10 +551,7 @@ function App() {
         isProjectDirty={isProjectDirty}
         releaseNotesHref={RELEASE_NOTES_HREF}
         onNewProjectFile={handleNewProjectFile}
-        onOpenBenchmarkSubmission={() => setIsBenchmarkSubmissionOpen(true)}
         onOpenProjectFile={handleOpenProjectFile}
-        onOpenPublicExamples={() => setIsPublicExamplesOpen(true)}
-        onOpenSystemSettings={() => setIsSystemSettingsOpen(true)}
         onSaveProjectFile={(forceSaveAs) => void handleSaveProjectFile(forceSaveAs)}
         setIsDark={setIsDark}
         setIsFileMenuOpen={setIsFileMenuOpen}
@@ -591,7 +559,7 @@ function App() {
 
       <main className="relative z-10 mx-auto max-w-[118rem] px-4 pb-12 pt-4 sm:px-6 sm:pb-16 sm:pt-6 xl:pb-0">
         <div
-          className="grid grid-cols-1 gap-5 xl:items-start"
+          className="grid grid-cols-1 gap-5 xl:items-start transition-all duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)]"
           style={workbenchGridStyle}
         >
           <aside className="relative hidden xl:block xl:sticky xl:top-24">
@@ -619,9 +587,7 @@ function App() {
                 collapsed={isModuleNavCollapsed}
                 compact={isCompactWorkbench}
                 onSelectObject={handleSelectAnalysisObject}
-                onCreateObject={() => setIsNewAnalysisObjectDialogOpen(true)}
                 onRemoveObject={handleRemoveAnalysisObject}
-                onEditProjectInfo={() => setProjectInfoDialogMode("edit")}
               />
             </GlassCard>
             {!isModuleNavCollapsed && (
@@ -646,9 +612,7 @@ function App() {
                   project={project}
                   compact={isCompactWorkbench}
                   onSelectObject={handleSelectAnalysisObject}
-                  onCreateObject={() => setIsNewAnalysisObjectDialogOpen(true)}
                   onRemoveObject={handleRemoveAnalysisObject}
-                  onEditProjectInfo={() => setProjectInfoDialogMode("edit")}
                 />
               </GlassCard>
             </div>
@@ -757,33 +721,20 @@ function App() {
         </div>
       ) : null}
 
-      <WorkbenchDialogs
-        isSystemSettingsOpen={isSystemSettingsOpen}
-        isSystemSettingsDocked={isSystemSettingsDocked}
+      <GlobalDialogs
         isCompactWorkbench={isCompactWorkbench}
         project={project}
         visitStats={visitStats}
         setModelPreviewStyle={setModelPreviewStyle}
-        setIsTemplateLibraryOpen={setIsTemplateLibraryOpen}
-        setIsSystemSettingsOpen={setIsSystemSettingsOpen}
-        isNewAnalysisObjectDialogOpen={isNewAnalysisObjectDialogOpen}
         objectCountByType={objectCountByType}
         handleCreateAnalysisObject={handleCreateAnalysisObject}
-        setIsNewAnalysisObjectDialogOpen={setIsNewAnalysisObjectDialogOpen}
-        projectInfoDialogMode={projectInfoDialogMode}
         setCustomMaterials={setCustomMaterials}
         handleUpdateProjectInfo={handleUpdateProjectInfo}
         handleCreateProjectWithInfo={handleCreateProjectWithInfo}
-        setProjectInfoDialogMode={setProjectInfoDialogMode}
-        isPublicExamplesOpen={isPublicExamplesOpen}
-        setIsPublicExamplesOpen={setIsPublicExamplesOpen}
         handleOpenPublicExampleProject={handleOpenPublicExampleProject}
-        isBenchmarkSubmissionOpen={isBenchmarkSubmissionOpen}
         benchmarkSubmissionContext={benchmarkSubmissionContext}
         isSolving={isSolving}
         handleRunCurrentModule={handleRunCurrentModule}
-        setIsBenchmarkSubmissionOpen={setIsBenchmarkSubmissionOpen}
-        isTemplateLibraryOpen={isTemplateLibraryOpen}
         analysisMode={analysisMode}
         templates={templates}
         baselineTemplateId={baselineTemplateId}
@@ -801,4 +752,10 @@ function App() {
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <DialogProvider>
+      <AppContent />
+    </DialogProvider>
+  );
+}

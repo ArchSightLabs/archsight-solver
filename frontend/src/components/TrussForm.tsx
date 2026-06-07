@@ -13,6 +13,7 @@ interface TrussFormProps {
   onSelectionChange?: (next: TrussWorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
   gridSnapEnabled?: boolean;
   gridSnapStepM?: number;
+  compact?: boolean;
 }
 
 const DEFAULT_SECTION_ID = "truss-template";
@@ -26,6 +27,7 @@ export function TrussForm({
   onSelectionChange,
   gridSnapEnabled = false,
   gridSnapStepM = 0.5,
+  compact = false 
 }: TrussFormProps) {
   const visibleSectionId = normalizeModuleSectionId("truss", activeSectionId) ?? DEFAULT_SECTION_ID;
   return (
@@ -51,6 +53,7 @@ export function TrussForm({
       activeSectionId={visibleSectionId}
       gridSnapEnabled={gridSnapEnabled}
       gridSnapStepM={gridSnapStepM}
+      compact={compact}
     />
   );
 }

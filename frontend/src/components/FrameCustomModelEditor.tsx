@@ -61,6 +61,7 @@ interface FrameCustomModelEditorProps {
   onSelectionChange?: (next: FrameWorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
   gridSnapEnabled?: boolean;
   gridSnapStepM?: number;
+  compact?: boolean;
 }
 
 export function FrameCustomModelEditor({
@@ -74,7 +75,7 @@ export function FrameCustomModelEditor({
   onSelectionChange,
   gridSnapEnabled = false,
   gridSnapStepM = 0.5,
-}: FrameCustomModelEditorProps) {
+  compact = false }: FrameCustomModelEditorProps) {
   const [selectedObject, setSelectedObject] = useState<FrameSelectedObject>({ type: "node", id: value.nodes[0]?.id ?? "" });
   const [nodeConnectionTargetId, setNodeConnectionTargetId] = useState("");
   const [advancedSectionId, setAdvancedSectionId] = useState<FrameAdvancedSection>("nodes");
@@ -379,7 +380,7 @@ export function FrameCustomModelEditor({
       const member = value.members[index];
       if (!member) return null;
       return (
-        <FrameMemberEditor
+        <FrameMemberEditor compact={compact}
           member={member}
           memberIndex={index}
           nodeOptions={nodeOptions}
@@ -396,7 +397,7 @@ export function FrameCustomModelEditor({
     const load = value.loads[loadIndex];
     if (!load) return null;
     return (
-      <FrameLoadEditor
+      <FrameLoadEditor compact={compact}
         load={load}
         index={loadIndex}
         nodes={value.nodes}
@@ -418,7 +419,7 @@ export function FrameCustomModelEditor({
       tabs={{
         template: <FrameTemplateSection onApplyTemplate={applyTypicalCase} />,
         basic: (
-          <FrameBasicSection
+          <FrameBasicSection compact={compact}
             materialId={materialId}
             materialLibrary={materialLibrary}
             memberElasticitySummary={memberElasticitySummary}

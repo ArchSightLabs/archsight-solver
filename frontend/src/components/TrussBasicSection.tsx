@@ -21,6 +21,7 @@ interface TrussBasicSectionProps {
   loadCount: number;
   modelWarnings: string[];
   onMaterialChange: (nextMaterialId: string) => void;
+  compact?: boolean;
 }
 
 export function TrussBasicSection({
@@ -34,7 +35,7 @@ export function TrussBasicSection({
   loadCount,
   modelWarnings,
   onMaterialChange,
-}: TrussBasicSectionProps) {
+  compact = false }: TrussBasicSectionProps) {
   const formLabelClass = "text-[10px] font-black tracking-widest text-muted-foreground";
   const objectVocabulary = modelObjectVocabulary("truss");
 
@@ -58,13 +59,13 @@ export function TrussBasicSection({
               value={materialId}
               onChange={onMaterialChange}
               options={materialOptions}
-              className="h-10 text-xs font-mono"
+              className="text-xs font-mono"
               menuClassName="text-xs font-mono"
               optionClassName="py-2"
               fallbackSelectedLabel="手动 E"
               menuMaxHeight={240}
               ariaLabel={defaultMaterialAriaLabel("truss")}
-            />
+            compact={compact} />
             <div className="text-[10px] font-semibold leading-relaxed text-muted-foreground">
               {defaultMaterialControlHint("truss", materialId, materialLibrary)}
               {memberElasticitySummary ? <span className="ml-2 text-muted-foreground/80">{memberElasticitySummary}</span> : null}

@@ -6,6 +6,7 @@ interface DeferredIdInputProps {
   value: string;
   onCommit: (nextId: string) => void;
   className?: string;
+  compact?: boolean;
 }
 
 export function DeferredIdInput({ ariaLabel, value, onCommit, className }: DeferredIdInputProps) {

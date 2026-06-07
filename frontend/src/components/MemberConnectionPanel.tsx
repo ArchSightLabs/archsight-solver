@@ -13,6 +13,7 @@ interface MemberConnectionPanelProps {
   onStartNodeChange: (nextId: string) => void;
   onEndNodeChange: (nextId: string) => void;
   onAddConnection: () => void;
+  compact?: boolean;
 }
 
 export function MemberConnectionPanel({
@@ -25,7 +26,7 @@ export function MemberConnectionPanel({
   onStartNodeChange,
   onEndNodeChange,
   onAddConnection,
-}: MemberConnectionPanelProps) {
+  compact = false }: MemberConnectionPanelProps) {
   const canConnect = nodeOptions.length >= 2 && !disabledReason;
 
   return (
@@ -40,7 +41,7 @@ export function MemberConnectionPanel({
             className="text-xs font-mono"
             menuClassName="text-xs font-mono"
             ariaLabel={`新增${memberTerm}起点节点`}
-          />
+          compact={compact} />
         </div>
         <div className="space-y-1">
           <div className={fieldLabelClass}>终点节点</div>
@@ -51,7 +52,7 @@ export function MemberConnectionPanel({
             className="text-xs font-mono"
             menuClassName="text-xs font-mono"
             ariaLabel={`新增${memberTerm}终点节点`}
-          />
+          compact={compact} />
         </div>
         <div className="flex items-end">
           <Button
@@ -60,7 +61,7 @@ export function MemberConnectionPanel({
             size="sm"
             onClick={onAddConnection}
             disabled={!canConnect}
-            className="h-10 rounded-lg px-3"
+            className="rounded-lg px-3"
           >
             <Plus className="mr-1.5 h-3.5 w-3.5" />
             连接为{memberTerm}

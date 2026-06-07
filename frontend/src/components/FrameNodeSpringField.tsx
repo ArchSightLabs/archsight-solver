@@ -18,6 +18,7 @@ interface FrameNodeSpringFieldProps {
   onChange: (nextSprings: FrameSpring[]) => void;
   showHint?: boolean;
   compactWhenEmpty?: boolean;
+  compact?: boolean;
 }
 
 const FRAME_SPRING_DOF_OPTIONS = FRAME_SUPPORT_DOF_ROWS.map((row) => ({ value: row.dof, label: row.label }));
@@ -119,13 +120,13 @@ export function FrameNodeSpringField({
                         : ({ stiffnessKnPerM: Number(event.target.value) || 0 } as Partial<FrameSpring>)
                     )
                   }
-                  className="h-10 min-w-0 font-mono text-xs"
+                  className="min-w-0 font-mono text-xs"
                   placeholder={meta.springLabel}
                 />
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-10 w-10"
+                  className="w-10"
                   onClick={() => onChange(springs.filter((_, index) => index !== springIndex))}
                   aria-label={`删除节点 ${nodeId} 第 ${springIndex + 1} 个弹性约束`}
                 >

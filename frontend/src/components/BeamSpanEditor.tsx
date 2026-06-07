@@ -21,6 +21,7 @@ interface BeamSpanEditorProps {
   onUpdateMaterial: (nextMaterialId: string) => void;
   onUpdateNumber: (field: "length" | "E" | "I", nextValue: number) => void;
   onRemove: () => void;
+  compact?: boolean;
 }
 
 export function BeamSpanEditor({
@@ -37,6 +38,7 @@ export function BeamSpanEditor({
   onUpdateMaterial,
   onUpdateNumber,
   onRemove,
+  compact = false,
 }: BeamSpanEditorProps) {
   const propertyLabels = memberPropertyLabels("beam");
   const memberTerm = modelObjectMemberTerm("beam");
@@ -50,7 +52,7 @@ export function BeamSpanEditor({
           <span className="font-mono">L={span.length} m</span>
           <span className="font-mono">E={span.E} GPa</span>
         </div>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onRemove} disabled={spanCount <= 1} aria-label={`删除 ${memberId}`}>
+        <Button variant="ghost" size={compact ? "compact" : "icon"} className={compact ? "h-6 w-6" : "h-8 w-8"} onClick={onRemove} disabled={spanCount <= 1} aria-label={`删除 ${memberId}`}>
           <Minus className="h-4 w-4 text-rose-300" />
         </Button>
       </div>
@@ -62,7 +64,8 @@ export function BeamSpanEditor({
             ariaLabel={`${spanLabel}编号`}
             value={memberId}
             onCommit={onUpdateId}
-            className="h-9 min-w-0 font-mono text-xs"
+            className="min-w-0 font-mono text-xs"
+            compact={compact}
           />
         </div>
         <div className="space-y-1">
@@ -78,6 +81,7 @@ export function BeamSpanEditor({
             optionClassName={formSelectOptionClass}
             fallbackSelectedLabel="手动 E"
             menuMaxHeight={240}
+            compact={compact}
           />
         </div>
         <div className="space-y-1">
@@ -89,7 +93,8 @@ export function BeamSpanEditor({
             step="0.1"
             value={span.length}
             onChange={(event) => onUpdateNumber("length", Number(event.target.value) || 0)}
-            className="h-9 min-w-0 font-mono text-xs"
+            className="min-w-0 font-mono text-xs"
+            compact={compact}
           />
         </div>
         <div className="space-y-1">
@@ -100,7 +105,8 @@ export function BeamSpanEditor({
             type="number"
             value={span.E}
             onChange={(event) => onUpdateNumber("E", Number(event.target.value) || 0)}
-            className="h-9 min-w-0 font-mono text-xs"
+            className="min-w-0 font-mono text-xs"
+            compact={compact}
           />
         </div>
         <div className="space-y-1 sm:col-span-2">
@@ -111,7 +117,8 @@ export function BeamSpanEditor({
             type="number"
             value={span.I}
             onChange={(event) => onUpdateNumber("I", Number(event.target.value) || 0)}
-            className="h-9 min-w-0 font-mono text-xs"
+            className="min-w-0 font-mono text-xs"
+            compact={compact}
           />
         </div>
       </div>

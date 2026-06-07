@@ -16,6 +16,7 @@ interface CommonNodeSupportFieldProps {
   label?: string;
   ariaLabel?: string;
   showHint?: boolean;
+  compact?: boolean;
 }
 
 interface FrameNodeSupportFieldProps extends CommonNodeSupportFieldProps {
@@ -43,6 +44,7 @@ export function NodeSupportField(props: NodeSupportFieldProps) {
     label = supportConstraintFieldLabel(),
     ariaLabel = "支座类型",
     showHint = false,
+    compact = false,
   } = props;
 
   const isTruss = mode === "truss";
@@ -71,7 +73,7 @@ export function NodeSupportField(props: NodeSupportFieldProps) {
         className="text-xs font-mono"
         menuClassName="text-xs font-mono"
         ariaLabel={ariaLabel}
-      />
+      compact={compact} />
       {showHint ? (
         <div className="truncate text-[10px] font-semibold leading-snug text-muted-foreground">{detail}</div>
       ) : null}

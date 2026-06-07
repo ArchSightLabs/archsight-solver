@@ -21,6 +21,7 @@ interface FrameMemberEditorProps {
   onUpdate: (patch: Partial<StructureMember>) => void;
   onRemove: () => void;
   variant: "selected" | "table";
+  compact?: boolean;
 }
 
 export function FrameMemberEditor({
@@ -32,7 +33,7 @@ export function FrameMemberEditor({
   onUpdate,
   onRemove,
   variant,
-}: FrameMemberEditorProps) {
+  compact = false }: FrameMemberEditorProps) {
   const isSelectedVariant = variant === "selected";
   const memberTerm = modelObjectMemberTerm("frame");
   const labelPrefix = isSelectedVariant ? memberTerm : `第 ${memberIndex + 1} 个${memberTerm}`;
@@ -47,7 +48,7 @@ export function FrameMemberEditor({
             <span>{member.start}-{member.end}</span>
             <span>{member.kind ?? "generic"}</span>
           </div>
-          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={onRemove} aria-label={`删除当前${memberTerm}`}>
+          <Button variant="ghost" size="icon" className="w-9" onClick={onRemove} aria-label={`删除当前${memberTerm}`}>
             <Trash2 className="h-4 w-4 text-rose-300" />
           </Button>
         </div>
@@ -59,7 +60,7 @@ export function FrameMemberEditor({
               ariaLabel={`第 ${memberIndex + 1} 个${memberTerm}编号`}
               value={member.id}
               onCommit={(nextId) => onUpdate({ id: nextId })}
-              className="h-10 min-w-0 font-mono text-xs"
+              className="min-w-0 font-mono text-xs"
             />
           </div>
           <div className="space-y-1">
@@ -85,7 +86,7 @@ export function FrameMemberEditor({
             />
           </div>
           <div className="flex items-end">
-            <Button variant="ghost" size="icon" className="h-10 w-10" onClick={onRemove} aria-label={`删除第 ${memberIndex + 1} 个${memberTerm}`}>
+            <Button variant="ghost" size="icon" className="w-10" onClick={onRemove} aria-label={`删除第 ${memberIndex + 1} 个${memberTerm}`}>
               <Trash2 className="h-4 w-4 text-rose-300" />
             </Button>
           </div>
@@ -102,7 +103,7 @@ export function FrameMemberEditor({
                 ariaLabel={`${memberTerm}编号`}
                 value={member.id}
                 onCommit={(nextId) => onUpdate({ id: nextId })}
-                className="h-10 min-w-0 font-mono text-xs"
+                className="min-w-0 font-mono text-xs"
               />
             </div>
             <div className="space-y-1">
@@ -118,7 +119,7 @@ export function FrameMemberEditor({
             </div>
           </>
         ) : null}
-        <MemberMaterialPresetField
+        <MemberMaterialPresetField compact={compact}
           materialId={member.materialId}
           materialLibrary={materialLibrary}
           youngModulusGPa={member.E_GPa}
@@ -174,7 +175,7 @@ export function FrameMemberEditor({
               const E_GPa = Number(event.target.value) || 0;
               onUpdate({ E_GPa, materialId: materialIdForYoungModulus(E_GPa, materialLibrary) });
             }}
-            className="h-10 min-w-0 font-mono text-xs"
+            className="min-w-0 font-mono text-xs"
           />
         </div>
         <div className="space-y-1">
@@ -185,7 +186,7 @@ export function FrameMemberEditor({
             type="number"
             value={member.A_cm2}
             onChange={(event) => onUpdate({ A_cm2: Number(event.target.value) || 0 })}
-            className="h-10 min-w-0 font-mono text-xs"
+            className="min-w-0 font-mono text-xs"
           />
         </div>
         <div className="space-y-1">
@@ -196,7 +197,7 @@ export function FrameMemberEditor({
             type="number"
             value={member.I_cm4}
             onChange={(event) => onUpdate({ I_cm4: Number(event.target.value) || 0 })}
-            className="h-10 min-w-0 font-mono text-xs"
+            className="min-w-0 font-mono text-xs"
           />
         </div>
         {!isSelectedVariant ? (

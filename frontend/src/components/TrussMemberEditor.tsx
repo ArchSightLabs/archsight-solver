@@ -21,6 +21,7 @@ interface TrussMemberEditorProps {
   onUpdate: (patch: Partial<TrussMember>) => void;
   onRemove: () => void;
   variant: "selected" | "table";
+  compact?: boolean;
 }
 
 export function TrussMemberEditor({
@@ -32,7 +33,7 @@ export function TrussMemberEditor({
   onUpdate,
   onRemove,
   variant,
-}: TrussMemberEditorProps) {
+  compact = false }: TrussMemberEditorProps) {
   const isSelectedVariant = variant === "selected";
   const memberTerm = modelObjectMemberTerm("truss");
   const labelPrefix = isSelectedVariant ? memberTerm : `第 ${memberIndex + 1} 个${memberTerm}`;
@@ -47,7 +48,7 @@ export function TrussMemberEditor({
             <span>{member.start}-{member.end}</span>
             <span>{member.kind ?? "generic"}</span>
           </div>
-          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={onRemove} aria-label={`删除当前${memberTerm}`}>
+          <Button variant="ghost" size="icon" className="w-9" onClick={onRemove} aria-label={`删除当前${memberTerm}`}>
             <Trash2 className="h-4 w-4 text-rose-300" />
           </Button>
         </div>
@@ -59,7 +60,7 @@ export function TrussMemberEditor({
               ariaLabel={`第 ${memberIndex + 1} 个${memberTerm}编号`}
               value={member.id}
               onCommit={(nextId) => onUpdate({ id: nextId })}
-              className="h-10 min-w-0 font-mono text-xs"
+              className="min-w-0 font-mono text-xs"
             />
           </div>
           <div className="space-y-1">
@@ -71,7 +72,7 @@ export function TrussMemberEditor({
             <DropdownSelect value={member.end} onChange={(nextValue) => onUpdate({ end: nextValue })} options={nodeOptions} className="min-w-0 text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${memberIndex + 1} 个${memberTerm}终点节点`} />
           </div>
           <div className="flex items-end md:justify-end">
-            <Button variant="ghost" size="icon" className="h-10 w-10" onClick={onRemove} aria-label={`删除第 ${memberIndex + 1} 个${memberTerm}`}>
+            <Button variant="ghost" size="icon" className="w-10" onClick={onRemove} aria-label={`删除第 ${memberIndex + 1} 个${memberTerm}`}>
               <Trash2 className="h-4 w-4 text-rose-300" />
             </Button>
           </div>
@@ -88,7 +89,7 @@ export function TrussMemberEditor({
                 ariaLabel={`${memberTerm}编号`}
                 value={member.id}
                 onCommit={(nextId) => onUpdate({ id: nextId })}
-                className="h-10 min-w-0 font-mono text-xs"
+                className="min-w-0 font-mono text-xs"
               />
             </div>
             <div className="space-y-1">
@@ -97,7 +98,7 @@ export function TrussMemberEditor({
             </div>
           </>
         ) : null}
-        <MemberMaterialPresetField
+        <MemberMaterialPresetField compact={compact}
           materialId={member.materialId}
           materialLibrary={materialLibrary}
           youngModulusGPa={member.E_GPa}
@@ -137,12 +138,12 @@ export function TrussMemberEditor({
               const E_GPa = Number(event.target.value) || 0;
               onUpdate({ E_GPa, materialId: materialIdForYoungModulus(E_GPa, materialLibrary) });
             }}
-            className="h-10 min-w-0 font-mono text-xs"
+            className="min-w-0 font-mono text-xs"
           />
         </div>
         <div className="space-y-1">
           <div className={fieldLabelClass}>{propertyLabels.sectionArea}</div>
-          <Input aria-label={memberPropertyAriaLabel(labelPrefix, propertyLabels.sectionArea ?? "截面面积（cm²）")} type="number" value={member.A_cm2} onChange={(event) => onUpdate({ A_cm2: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+          <Input aria-label={memberPropertyAriaLabel(labelPrefix, propertyLabels.sectionArea ?? "截面面积（cm²）")} type="number" value={member.A_cm2} onChange={(event) => onUpdate({ A_cm2: Number(event.target.value) || 0 })} className="min-w-0 font-mono text-xs" />
         </div>
         {!isSelectedVariant ? (
           <div className="space-y-1">

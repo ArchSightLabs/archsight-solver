@@ -54,6 +54,7 @@ interface BeamSupportEditorProps {
   fieldLabelClass: string;
   onUpdate: (patch: Partial<BeamSupportConfig>) => void;
   onUpdateId: (nextId: string) => void;
+  compact?: boolean;
 }
 
 export function BeamSupportEditor({
@@ -63,6 +64,7 @@ export function BeamSupportEditor({
   fieldLabelClass,
   onUpdate,
   onUpdateId,
+  compact = false,
 }: BeamSupportEditorProps) {
   const updateSupportType = (type: BeamSupportType) => {
     onUpdate({ type, constraints: constraintsFromType(type), springs: [] });
@@ -165,7 +167,8 @@ export function BeamSupportEditor({
                     step="1000"
                     value={stiffness}
                     onChange={(event) => updateSupportSpring(item.dof, Math.max(Number(event.target.value) || 0, 0))}
-                    className="h-9 min-w-0 font-mono text-xs"
+                    className="min-w-0 font-mono text-xs"
+                    compact={compact}
                   />
                 </div>
               ) : null}
@@ -185,7 +188,8 @@ export function BeamSupportEditor({
             max={totalLength}
             value={support.x}
             onChange={(event) => onUpdate({ x: Math.min(Math.max(Number(event.target.value) || 0, 0), totalLength) })}
-            className="h-10 min-w-0 font-mono text-xs"
+            className="min-w-0 font-mono text-xs"
+            compact={compact}
           />
         </div>
         <div className="space-y-1">
@@ -195,7 +199,8 @@ export function BeamSupportEditor({
             ariaLabel={`第 ${supportIndex + 1} 个支座编号`}
             value={support.id}
             onCommit={onUpdateId}
-            className="h-10 min-w-0 font-mono text-xs"
+            className="min-w-0 font-mono text-xs"
+            compact={compact}
           />
         </div>
       </div>

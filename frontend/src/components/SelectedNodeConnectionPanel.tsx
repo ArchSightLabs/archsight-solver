@@ -16,6 +16,7 @@ interface SelectedNodeConnectionPanelProps {
   duplicateExists: (startNodeId: string, endNodeId: string) => boolean;
   onConnectionTargetChange: (nextId: string) => void;
   onAddConnection: (startNodeId: string, endNodeId: string) => void;
+  compact?: boolean;
 }
 
 export function SelectedNodeConnectionPanel({
@@ -27,7 +28,7 @@ export function SelectedNodeConnectionPanel({
   duplicateExists,
   onConnectionTargetChange,
   onAddConnection,
-}: SelectedNodeConnectionPanelProps) {
+  compact = false }: SelectedNodeConnectionPanelProps) {
   const connectableNodeOptions = connectableNodeOptionsForNode({ currentNodeId, nodeOptions, duplicateExists });
   const resolvedConnectionTargetId = resolveSelectedNodeConnectionTarget({
     currentNodeId,
@@ -49,9 +50,9 @@ export function SelectedNodeConnectionPanel({
               className="text-xs font-mono"
               menuClassName="text-xs font-mono"
               ariaLabel={`连接到节点以新增${memberTerm}`}
-            />
+            compact={compact} />
           ) : (
-            <div className="flex h-10 items-center rounded-md border border-white/8 bg-slate-950/20 px-3 text-xs text-muted-foreground">
+            <div className="flex items-center rounded-md border border-white/8 bg-slate-950/20 px-3 text-xs text-muted-foreground">
               无可连接节点
             </div>
           )}
@@ -62,7 +63,7 @@ export function SelectedNodeConnectionPanel({
             size="sm"
             onClick={() => onAddConnection(currentNodeId, resolvedConnectionTargetId)}
             disabled={!resolvedConnectionTargetId}
-            className="h-10 rounded-lg px-3"
+            className="rounded-lg px-3"
           >
             <Plus className="mr-1.5 h-3.5 w-3.5" />
             新增{memberTerm}

@@ -1,4 +1,3 @@
-import type { Dispatch, SetStateAction } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { SystemSettingsPanel } from "./SystemSettingsPanel";
@@ -9,6 +8,7 @@ import { BenchmarkSubmissionDialog } from "./BenchmarkSubmissionDialog";
 import { TemplateLibraryPanel } from "./TemplateLibraryPanel";
 import { analysisVocabulary } from "../lib/analysis-vocabulary";
 import { createWorkspaceSnapshot } from "../lib/template-library";
+import { useDialogs } from "../contexts/DialogContext";
 import type { SolverProject, ProjectInfo, AnalysisObjectType } from "../lib/solver-project";
 import type { WorkspaceState } from "../lib/workspace-state";
 import type { ModelPreviewStyle } from "../types/beam";
@@ -17,32 +17,21 @@ import type { ProjectTemplate, TemplateSnapshot, Material } from "../types/beam"
 import type { AnalysisMode } from "../types/structure";
 import type { TemplateActionResult } from "../lib/template-library";
 
-interface WorkbenchDialogsProps {
-  isSystemSettingsOpen: boolean;
-  isSystemSettingsDocked: boolean;
+interface GlobalDialogsProps {
   isCompactWorkbench: boolean;
   project: SolverProject;
   visitStats: { pageViews: string; uniqueVisitors: string };
   setModelPreviewStyle: (style: ModelPreviewStyle) => void;
-  setIsTemplateLibraryOpen: Dispatch<SetStateAction<boolean>>;
-  setIsSystemSettingsOpen: Dispatch<SetStateAction<boolean>>;
   
-  isNewAnalysisObjectDialogOpen: boolean;
   objectCountByType: Record<AnalysisObjectType, number>;
   handleCreateAnalysisObject: (type: AnalysisObjectType, name: string) => void;
-  setIsNewAnalysisObjectDialogOpen: Dispatch<SetStateAction<boolean>>;
 
-  projectInfoDialogMode: "create" | "edit" | null;
   setCustomMaterials: (materials: Material[]) => void;
   handleUpdateProjectInfo: (info: ProjectInfo) => void;
   handleCreateProjectWithInfo: (info: ProjectInfo) => void;
-  setProjectInfoDialogMode: Dispatch<SetStateAction<"create" | "edit" | null>>;
 
-  isPublicExamplesOpen: boolean;
-  setIsPublicExamplesOpen: Dispatch<SetStateAction<boolean>>;
   handleOpenPublicExampleProject: (project: SolverProject, title: string) => void;
 
-  isBenchmarkSubmissionOpen: boolean;
   benchmarkSubmissionContext: {
     category: BenchmarkSubmissionCategory;
     payload: unknown;
@@ -52,9 +41,7 @@ interface WorkbenchDialogsProps {
   };
   isSolving: boolean;
   handleRunCurrentModule: () => void;
-  setIsBenchmarkSubmissionOpen: Dispatch<SetStateAction<boolean>>;
 
-  isTemplateLibraryOpen: boolean;
   analysisMode: AnalysisMode;
   templates: ProjectTemplate[];
   baselineTemplateId: string | null;
@@ -65,19 +52,29 @@ interface WorkbenchDialogsProps {
   duplicateTemplate: (templateId: string) => TemplateActionResult<ProjectTemplate>;
   deleteTemplate: (id: string) => TemplateActionResult<void>;
   setBaselineTemplate: (id: string | null) => TemplateActionResult<void>;
+  
   RELEASE_NOTES_HREF: string;
   USER_MANUAL_HREF: string;
 }
 
-export function WorkbenchDialogs({
-  isSystemSettingsOpen, isSystemSettingsDocked, isCompactWorkbench, project, visitStats, setModelPreviewStyle, setIsTemplateLibraryOpen, setIsSystemSettingsOpen,
-  isNewAnalysisObjectDialogOpen, objectCountByType, handleCreateAnalysisObject, setIsNewAnalysisObjectDialogOpen,
-  projectInfoDialogMode, setCustomMaterials, handleUpdateProjectInfo, handleCreateProjectWithInfo, setProjectInfoDialogMode,
-  isPublicExamplesOpen, setIsPublicExamplesOpen, handleOpenPublicExampleProject,
-  isBenchmarkSubmissionOpen, benchmarkSubmissionContext, isSolving, handleRunCurrentModule, setIsBenchmarkSubmissionOpen,
-  isTemplateLibraryOpen, analysisMode, templates, baselineTemplateId, isAtCapacity, saveTemplate, workspace, handleRestoreTemplate, duplicateTemplate, deleteTemplate, setBaselineTemplate,
+export function GlobalDialogs({
+  isCompactWorkbench, project, visitStats, setModelPreviewStyle,
+  objectCountByType, handleCreateAnalysisObject,
+  setCustomMaterials, handleUpdateProjectInfo, handleCreateProjectWithInfo,
+  handleOpenPublicExampleProject,
+  benchmarkSubmissionContext, isSolving, handleRunCurrentModule,
+  analysisMode, templates, baselineTemplateId, isAtCapacity, saveTemplate, workspace, handleRestoreTemplate, duplicateTemplate, deleteTemplate, setBaselineTemplate,
   RELEASE_NOTES_HREF, USER_MANUAL_HREF
-}: WorkbenchDialogsProps) {
+}: GlobalDialogsProps) {
+  const {
+    isSystemSettingsOpen, setIsSystemSettingsOpen, isSystemSettingsDocked,
+    isNewAnalysisObjectDialogOpen, setIsNewAnalysisObjectDialogOpen,
+    projectInfoDialogMode, setProjectInfoDialogMode,
+    isPublicExamplesOpen, setIsPublicExamplesOpen,
+    isBenchmarkSubmissionOpen, setIsBenchmarkSubmissionOpen,
+    isTemplateLibraryOpen, setIsTemplateLibraryOpen
+  } = useDialogs();
+
   return (
     <>
       {isSystemSettingsOpen && !isSystemSettingsDocked && (

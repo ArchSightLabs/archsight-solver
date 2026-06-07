@@ -25,6 +25,7 @@ interface BeamBasicSectionProps {
   formSelectOptionClass: string;
   onMaterialChange: (nextMaterialId: string) => void;
   onReset: () => void;
+  compact?: boolean;
 }
 
 export function BeamBasicSection({
@@ -40,6 +41,7 @@ export function BeamBasicSection({
   formSelectOptionClass,
   onMaterialChange,
   onReset,
+  compact = false,
 }: BeamBasicSectionProps) {
   const objectVocabulary = modelObjectVocabulary("beam");
 
@@ -69,6 +71,7 @@ export function BeamBasicSection({
             fallbackSelectedLabel="手动 E"
             menuMaxHeight={240}
             ariaLabel={defaultMaterialAriaLabel("beam")}
+            compact={compact}
           />
           <div className="text-[10px] font-semibold leading-relaxed text-muted-foreground">
             {defaultMaterialControlHint("beam", materialId, materialLibrary)}

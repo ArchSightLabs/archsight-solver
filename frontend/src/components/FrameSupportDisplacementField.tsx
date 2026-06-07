@@ -16,6 +16,7 @@ interface FrameSupportDisplacementFieldProps {
   fieldLabelClass: string;
   onChange: (nextDisplacements: FrameSupportDisplacement[]) => void;
   compactWhenEmpty?: boolean;
+  compact?: boolean;
 }
 
 function fallbackDisplacementOption(node: FrameSupportDisplacementFieldProps["node"]) {
@@ -102,13 +103,13 @@ export function FrameSupportDisplacementField({
                     const value = Number(event.target.value) || 0;
                     updateDisplacement(index, displacement.dof === "rz" ? { rotationDeg: value } : { displacementMm: value });
                   }}
-                  className="h-10 min-w-0 font-mono text-xs"
+                  className="min-w-0 font-mono text-xs"
                   placeholder={unit}
                 />
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-10 w-10"
+                  className="w-10"
                   onClick={() => onChange(displacements.filter((_, displacementIndex) => displacementIndex !== index))}
                   aria-label={`删除节点 ${node.id} 第 ${index + 1} 个支座位移`}
                 >

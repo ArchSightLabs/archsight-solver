@@ -13,6 +13,7 @@ interface FrameFormProps {
   onSelectionChange?: (next: FrameWorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
   gridSnapEnabled?: boolean;
   gridSnapStepM?: number;
+  compact?: boolean;
 }
 
 const DEFAULT_SECTION_ID = "frame-template";
@@ -26,6 +27,7 @@ export function FrameForm({
   onSelectionChange,
   gridSnapEnabled = false,
   gridSnapStepM = 0.5,
+  compact = false 
 }: FrameFormProps) {
   const visibleSectionId = normalizeModuleSectionId("frame", activeSectionId) ?? DEFAULT_SECTION_ID;
   const commitCollections = (next: {
@@ -64,6 +66,7 @@ export function FrameForm({
       activeSectionId={visibleSectionId}
       gridSnapEnabled={gridSnapEnabled}
       gridSnapStepM={gridSnapStepM}
+      compact={compact}
     />
   );
 }

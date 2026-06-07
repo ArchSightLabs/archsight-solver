@@ -11,8 +11,10 @@ export function GlassCard({ children, glow = false, height, className, ...props 
   return (
     <div
       className={cn(
-        "glass-panel rounded-2xl p-6 transition-all duration-300",
-        glow && "glass-glow",
+        "glass-panel rounded-[1.25rem] p-5 sm:p-6 transition-all duration-300",
+        "bg-white/80 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_1px_rgba(255,255,255,0.7)]",
+        "dark:bg-slate-900/60 dark:border-white/10 dark:shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.05)]",
+        glow && "glass-glow shadow-[0_0_40px_-12px_var(--glass-glow-color),0_20px_60px_-20px_rgba(0,0,0,0.25)] dark:shadow-[0_0_40px_-12px_var(--glass-glow-color),0_20px_60px_-20px_rgba(0,0,0,0.5)]",
         className
       )}
       style={{ height }}

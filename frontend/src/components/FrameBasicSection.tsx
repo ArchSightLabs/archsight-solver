@@ -21,6 +21,7 @@ interface FrameBasicSectionProps {
   loadCount: number;
   modelWarnings: string[];
   onMaterialChange: (nextMaterialId: string) => void;
+  compact?: boolean;
 }
 
 export function FrameBasicSection({
@@ -34,6 +35,7 @@ export function FrameBasicSection({
   loadCount,
   modelWarnings,
   onMaterialChange,
+  compact = false,
 }: FrameBasicSectionProps) {
   const formLabelClass = "text-[10px] font-black tracking-widest text-muted-foreground";
   const objectVocabulary = modelObjectVocabulary("frame");
@@ -58,12 +60,13 @@ export function FrameBasicSection({
               value={materialId}
               onChange={onMaterialChange}
               options={materialOptions}
-              className="h-10 text-xs font-mono"
+              className="text-xs font-mono"
               menuClassName="text-xs font-mono"
               optionClassName="py-2"
               fallbackSelectedLabel="手动 E"
               menuMaxHeight={240}
               ariaLabel={defaultMaterialAriaLabel("frame")}
+              compact={compact}
             />
             <div className="text-[10px] font-semibold leading-relaxed text-muted-foreground">
               {defaultMaterialControlHint("frame", materialId, materialLibrary)}

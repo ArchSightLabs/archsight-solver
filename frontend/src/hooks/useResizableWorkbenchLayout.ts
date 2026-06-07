@@ -36,7 +36,7 @@ function readStoredNumber(key: string) {
   return Number.isFinite(value) ? value : null;
 }
 
-export function useResizableWorkbenchLayout(isSystemSettingsOpen: boolean) {
+export function useResizableWorkbenchLayout(isSystemSettingsDocked: boolean) {
   const [inspectorWidth, setInspectorWidth] = useState(() => {
     const stored = readStoredNumber(INSPECTOR_WIDTH_STORAGE_KEY);
     return stored === null ? DEFAULT_INSPECTOR_WIDTH : clampInspectorWidth(stored);
@@ -54,7 +54,6 @@ export function useResizableWorkbenchLayout(isSystemSettingsOpen: boolean) {
   const isCompactWorkbench = useMediaQuery("(max-width: 1023px)");
   const isWideWorkbench = useMediaQuery("(min-width: 1280px)");
   const showInspectorCollapsed = isWideWorkbench && isInspectorCollapsed;
-  const isSystemSettingsDocked = isSystemSettingsOpen && isWideWorkbench;
   const effectiveInspectorWidth = isSystemSettingsDocked ? Math.min(inspectorWidth, DEFAULT_INSPECTOR_WIDTH) : inspectorWidth;
   const workbenchGridStyle: CSSProperties | undefined = isCompactWorkbench
     ? undefined

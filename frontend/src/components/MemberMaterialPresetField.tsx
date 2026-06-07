@@ -19,6 +19,7 @@ interface MemberMaterialPresetFieldProps {
   label?: string;
   ariaLabel?: string;
   showHint?: boolean;
+  compact?: boolean;
 }
 
 export function MemberMaterialPresetField({

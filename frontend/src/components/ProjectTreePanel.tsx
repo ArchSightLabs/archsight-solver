@@ -2,15 +2,14 @@ import { ExternalLink, Network, PencilLine, Plus, Ruler, ShieldCheck, Trash2, Tr
 import { analysisVocabulary } from "../lib/analysis-vocabulary";
 import { getAnalysisObjectDisplayName, type AnalysisObject, type SolverProject } from "../lib/solver-project";
 import { Button } from "./ui/button";
+import { useDialogs } from "../contexts/DialogContext";
 
 interface ProjectTreePanelProps {
   project: SolverProject;
   collapsed?: boolean;
   compact?: boolean;
   onSelectObject: (objectId: string) => void;
-  onCreateObject: () => void;
   onRemoveObject: (objectId: string) => void;
-  onEditProjectInfo: () => void;
 }
 
 function objectTypeLabel(object: AnalysisObject) {
@@ -28,10 +27,10 @@ export function ProjectTreePanel({
   collapsed = false,
   compact = false,
   onSelectObject,
-  onCreateObject,
   onRemoveObject,
-  onEditProjectInfo,
 }: ProjectTreePanelProps) {
+  const { setIsNewAnalysisObjectDialogOpen, setProjectInfoDialogMode } = useDialogs();
+
   const activeObject = project.objects.find((object) => object.id === project.activeObjectId) ?? project.objects[0];
   if (collapsed) {
     return (
@@ -58,7 +57,7 @@ export function ProjectTreePanel({
         })}
         <button
           type="button"
-          onClick={onCreateObject}
+          onClick={() => setIsNewAnalysisObjectDialogOpen(true)}
           aria-label="新建分析对象"
           title="新建分析对象"
           className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-muted-foreground hover:bg-primary/5 hover:text-foreground"
@@ -81,7 +80,7 @@ export function ProjectTreePanel({
             type="button"
             variant="outline"
             size="icon"
-            onClick={onEditProjectInfo}
+            onClick={() => setProjectInfoDialogMode("edit")}
             aria-label="工程设置"
             title="工程设置"
             className="h-8 w-8 shrink-0 rounded-lg border-white/10 bg-transparent"
@@ -127,7 +126,7 @@ export function ProjectTreePanel({
           <div className="min-w-0">
             <div className="text-xs font-black text-foreground">分析对象</div>
           </div>
-          <Button type="button" variant="outline" size="icon" onClick={onCreateObject} aria-label="新建分析对象" title="新建分析对象" className="h-8 w-8 rounded-lg border-white/10 bg-white/[0.03]">
+          <Button type="button" variant="outline" size="icon" onClick={() => setIsNewAnalysisObjectDialogOpen(true)} aria-label="新建分析对象" title="新建分析对象" className="h-8 w-8 rounded-lg border-white/10 bg-white/[0.03]">
             <Plus className="h-4 w-4" />
           </Button>
         </div>

@@ -13,6 +13,7 @@ interface BeamLoadEditorProps {
   totalLength: number;
   fieldLabelClass: string;
   onChange: (next: BeamWorkspaceState) => void;
+  compact?: boolean;
 }
 
 function LoadStatusBadge({ enabled }: { enabled: boolean }) {
@@ -30,7 +31,7 @@ function LoadStatusBadge({ enabled }: { enabled: boolean }) {
   );
 }
 
-export function BeamLoadEditor({ value, totalLength, fieldLabelClass, onChange }: BeamLoadEditorProps) {
+export function BeamLoadEditor({ value, totalLength, fieldLabelClass, onChange, compact = false }: BeamLoadEditorProps) {
   const activeLinearLoads = activeBeamLinearLoads(value);
   const uniformRange = normalizedBeamRatioRange(value.uniformLoadStartRatio, value.uniformLoadEndRatio);
   const uniformLoadLength = totalLength * (uniformRange.endRatio - uniformRange.startRatio);
@@ -166,15 +167,15 @@ export function BeamLoadEditor({ value, totalLength, fieldLabelClass, onChange }
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1 sm:col-span-2">
                 <div className={fieldLabelClass}>均布荷载 q（kN/m）</div>
-                <Input aria-label="均布荷载 q（kN/m）" type="number" step="0.1" value={value.q} onChange={(event) => updateWorkspace("q", Number(event.target.value) || 0)} className="h-10 min-w-0 font-mono text-xs" />
+                <Input aria-label="均布荷载 q（kN/m）" type="number" step="0.1" value={value.q} onChange={(event) => updateWorkspace("q", Number(event.target.value) || 0)} className="min-w-0 font-mono text-xs" compact={compact} />
               </div>
               <div className="space-y-1">
                 <div className={fieldLabelClass}>起点位置比例（0-1）</div>
-                <Input aria-label="均布荷载起点位置比例（0-1）" type="number" step="0.05" min="0" max="1" value={uniformRange.startRatio} onChange={(event) => updateUniformLoadRange({ uniformLoadStartRatio: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+                <Input aria-label="均布荷载起点位置比例（0-1）" type="number" step="0.05" min="0" max="1" value={uniformRange.startRatio} onChange={(event) => updateUniformLoadRange({ uniformLoadStartRatio: Number(event.target.value) || 0 })} className="min-w-0 font-mono text-xs" compact={compact} />
               </div>
               <div className="space-y-1">
                 <div className={fieldLabelClass}>终点位置比例（0-1）</div>
-                <Input aria-label="均布荷载终点位置比例（0-1）" type="number" step="0.05" min="0" max="1" value={uniformRange.endRatio} onChange={(event) => updateUniformLoadRange({ uniformLoadEndRatio: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+                <Input aria-label="均布荷载终点位置比例（0-1）" type="number" step="0.05" min="0" max="1" value={uniformRange.endRatio} onChange={(event) => updateUniformLoadRange({ uniformLoadEndRatio: Number(event.target.value) || 0 })} className="min-w-0 font-mono text-xs" compact={compact} />
               </div>
               <div className="rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 font-mono text-[11px] text-muted-foreground sm:col-span-2">
                 作用区间 {uniformRange.startRatio.toFixed(2)}-{uniformRange.endRatio.toFixed(2)}，长度 {uniformLoadLength.toFixed(2)} m
@@ -207,19 +208,19 @@ export function BeamLoadEditor({ value, totalLength, fieldLabelClass, onChange }
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <div className={fieldLabelClass}>起点荷载（kN/m）</div>
-                <Input aria-label="线性分布荷载起点荷载（kN/m）" type="number" step="0.1" value={primaryLinearLoad.qStartKnPerM} onChange={(event) => updatePrimaryLinearLoad({ qStartKnPerM: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+                <Input aria-label="线性分布荷载起点荷载（kN/m）" type="number" step="0.1" value={primaryLinearLoad.qStartKnPerM} onChange={(event) => updatePrimaryLinearLoad({ qStartKnPerM: Number(event.target.value) || 0 })} className="min-w-0 font-mono text-xs" compact={compact} />
               </div>
               <div className="space-y-1">
                 <div className={fieldLabelClass}>终点荷载（kN/m）</div>
-                <Input aria-label="线性分布荷载终点荷载（kN/m）" type="number" step="0.1" value={primaryLinearLoad.qEndKnPerM} onChange={(event) => updatePrimaryLinearLoad({ qEndKnPerM: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+                <Input aria-label="线性分布荷载终点荷载（kN/m）" type="number" step="0.1" value={primaryLinearLoad.qEndKnPerM} onChange={(event) => updatePrimaryLinearLoad({ qEndKnPerM: Number(event.target.value) || 0 })} className="min-w-0 font-mono text-xs" compact={compact} />
               </div>
               <div className="space-y-1">
                 <div className={fieldLabelClass}>起点位置比例（0-1）</div>
-                <Input aria-label="线性分布荷载起点位置比例（0-1）" type="number" step="0.05" min="0" max="1" value={primaryLinearLoad.startRatio} onChange={(event) => updatePrimaryLinearLoad({ startRatio: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+                <Input aria-label="线性分布荷载起点位置比例（0-1）" type="number" step="0.05" min="0" max="1" value={primaryLinearLoad.startRatio} onChange={(event) => updatePrimaryLinearLoad({ startRatio: Number(event.target.value) || 0 })} className="min-w-0 font-mono text-xs" compact={compact} />
               </div>
               <div className="space-y-1">
                 <div className={fieldLabelClass}>终点位置比例（0-1）</div>
-                <Input aria-label="线性分布荷载终点位置比例（0-1）" type="number" step="0.05" min="0" max="1" value={primaryLinearLoad.endRatio} onChange={(event) => updatePrimaryLinearLoad({ endRatio: Number(event.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+                <Input aria-label="线性分布荷载终点位置比例（0-1）" type="number" step="0.05" min="0" max="1" value={primaryLinearLoad.endRatio} onChange={(event) => updatePrimaryLinearLoad({ endRatio: Number(event.target.value) || 0 })} className="min-w-0 font-mono text-xs" compact={compact} />
               </div>
             </div>
           ) : null}
@@ -242,11 +243,11 @@ export function BeamLoadEditor({ value, totalLength, fieldLabelClass, onChange }
                 <div key={load.id} className="grid grid-cols-1 gap-3 rounded-lg border border-white/8 bg-white/[0.02] p-3 sm:grid-cols-[1fr_1fr_auto]">
                   <div className="space-y-1">
                     <div className={fieldLabelClass}>{load.id} 集中力（kN）</div>
-                    <Input aria-label={`${load.id} 集中力（kN）`} type="number" step="0.1" value={load.magnitudeKn} onChange={(event) => updatePointLoad(index, { magnitudeKn: Number(event.target.value) || 0 })} className="h-9 min-w-0 font-mono text-xs" />
+                    <Input aria-label={`${load.id} 集中力（kN）`} type="number" step="0.1" value={load.magnitudeKn} onChange={(event) => updatePointLoad(index, { magnitudeKn: Number(event.target.value) || 0 })} className="min-w-0 font-mono text-xs" compact={compact} />
                   </div>
                   <div className="space-y-1">
                     <div className={fieldLabelClass}>作用位置比例（0-1）</div>
-                    <Input aria-label={`${load.id} 作用位置比例（0-1）`} type="number" step="0.05" min="0" max="1" value={load.positionRatio} onChange={(event) => updatePointLoad(index, { positionRatio: Number(event.target.value) || 0 })} className="h-9 min-w-0 font-mono text-xs" />
+                    <Input aria-label={`${load.id} 作用位置比例（0-1）`} type="number" step="0.05" min="0" max="1" value={load.positionRatio} onChange={(event) => updatePointLoad(index, { positionRatio: Number(event.target.value) || 0 })} className="min-w-0 font-mono text-xs" compact={compact} />
                   </div>
                   <Button type="button" variant="ghost" size="icon" className="self-end justify-self-end text-rose-300 hover:bg-rose-500/10" onClick={() => removePointLoad(index)} aria-label={`删除 ${load.id}`}>
                     <Minus className="h-4 w-4" />

@@ -34,17 +34,18 @@ interface BeamFormProps {
   activeSectionId?: string;
   selection?: BeamWorkbenchSelection | null;
   onSelectionChange?: (next: BeamWorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
+  compact?: boolean;
 }
 
 const DEFAULT_SPAN: BeamSpanConfig = { id: "(1)", length: 4, E: 210, I: 4500, materialId: "q345" };
 const DEFAULT_BEAM_STATE = createDefaultBeamWorkspaceState();
 const FORM_LABEL_CLASS = "text-[11px] font-semibold leading-none text-slate-600 dark:text-slate-300";
-const FORM_CONTROL_CLASS = "h-9 border-white/5 bg-primary/[0.03] font-sans text-[12px] font-medium";
+const FORM_CONTROL_CLASS = "border-white/5 bg-primary/[0.03] font-sans text-[12px] font-medium";
 const FORM_SELECT_MENU_CLASS = "font-sans text-[12px]";
 const FORM_SELECT_OPTION_CLASS = "py-2 text-[12px] font-medium";
 const FIELD_LABEL_CLASS = "text-[10px] font-black tracking-widest text-muted-foreground";
 
-export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMaterialLibraryChange, onChange, activeSectionId, selection, onSelectionChange }: BeamFormProps) {
+export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMaterialLibraryChange, onChange, activeSectionId, selection, onSelectionChange, compact = false }: BeamFormProps) {
   const [selectedObject, setSelectedObject] = useState<BeamSelectedObject>({ type: "span", id: spanId(0) });
   const materialLibrary = projectMaterialLibrary?.length ? projectMaterialLibrary : value.materials?.length ? value.materials : PREDEFINED_MATERIALS;
   const materialOptions = useMemo(
@@ -222,7 +223,7 @@ export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMat
 
   const renderSelectedEditor = () => {
     if (resolvedSelectedObject.type === "load") {
-      return <BeamLoadEditor value={value} totalLength={totalLength} fieldLabelClass={FIELD_LABEL_CLASS} onChange={onChange} />;
+      return <BeamLoadEditor value={value} totalLength={totalLength} fieldLabelClass={FIELD_LABEL_CLASS} onChange={onChange} compact={compact} />;
     }
 
     if (resolvedSelectedObject.type === "support") {
@@ -236,6 +237,7 @@ export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMat
           fieldLabelClass={FIELD_LABEL_CLASS}
           onUpdate={(patch) => updateSupport(index, patch)}
           onUpdateId={(nextId) => updateSupportId(index, nextId)}
+          compact={compact}
         />
       ) : null;
     }
@@ -259,6 +261,7 @@ export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMat
         onUpdateMaterial={(nextMaterialId) => updateSpanMaterial(index, nextMaterialId)}
         onUpdateNumber={(field, nextValue) => updateSpan(index, field, nextValue)}
         onRemove={() => removeSpan(index)}
+        compact={compact}
       />
     );
   };
@@ -283,6 +286,7 @@ export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMat
             formSelectOptionClass={FORM_SELECT_OPTION_CLASS}
             onMaterialChange={(nextValue) => updateWorkspace("materialId", nextValue)}
             onReset={() => onChange(DEFAULT_BEAM_STATE)}
+            compact={compact}
           />
         ),
         object: (

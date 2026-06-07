@@ -23,6 +23,7 @@ interface DropdownSelectProps {
   fallbackSelectedLabel?: string;
   menuMaxHeight?: number;
   ariaLabel?: string;
+  compact?: boolean;
 }
 
 export function DropdownSelect({
@@ -36,6 +37,7 @@ export function DropdownSelect({
   fallbackSelectedLabel,
   menuMaxHeight = 320,
   ariaLabel,
+  compact = false,
 }: DropdownSelectProps) {
   const rootRef = React.useRef<HTMLDivElement>(null);
   const menuRef = React.useRef<HTMLDivElement>(null);
@@ -131,7 +133,8 @@ export function DropdownSelect({
         aria-label={ariaLabel ? `${ariaLabel}，当前值：${ariaValueLabel}` : undefined}
         onClick={() => setOpen((current) => !current)}
         className={cn(
-          "flex h-10 w-full items-center justify-between gap-3 rounded-md border border-white/10 px-3 text-left text-sm font-medium outline-none transition-colors",
+          "flex w-full items-center justify-between gap-3 rounded-md border border-white/10 text-left font-medium outline-none transition-colors",
+          compact ? "h-7 px-2 text-xs" : "h-10 px-3 text-sm",
           "bg-white/75 text-slate-950 shadow-sm hover:border-sky-300/70 hover:bg-white/90 focus-visible:ring-1 focus-visible:ring-sky-200/50",
           "dark:border-white/10 dark:bg-slate-950/60 dark:text-slate-100 dark:hover:border-sky-400/40 dark:hover:bg-slate-900/80",
           className
@@ -165,7 +168,8 @@ export function DropdownSelect({
                     aria-selected={isSelected}
                     onClick={() => choose(option.value)}
                     className={cn(
-                      "flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm transition-colors",
+                      "flex w-full items-center justify-between gap-3 text-left transition-colors",
+                      compact ? "px-3 py-1.5 text-xs" : "px-4 py-3 text-sm",
                       "text-slate-700 hover:bg-sky-50 hover:text-sky-700",
                       "dark:text-slate-200 dark:hover:bg-white/8 dark:hover:text-sky-300",
                       index !== 0 && "border-t border-slate-200/70 dark:border-white/8",

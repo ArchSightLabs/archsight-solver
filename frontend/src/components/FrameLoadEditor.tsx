@@ -24,6 +24,7 @@ interface FrameLoadEditorProps {
   fieldLabelClass: string;
   onUpdate: (patch: Partial<FrameLoad>) => void;
   onRemove: () => void;
+  compact?: boolean;
 }
 
 function clampRatio(value: number): number {
@@ -41,7 +42,7 @@ export function FrameLoadEditor({
   fieldLabelClass,
   onUpdate,
   onRemove,
-}: FrameLoadEditorProps) {
+  compact = false }: FrameLoadEditorProps) {
   const memberTerm = modelObjectMemberTerm("frame");
   const temperatureAlphaForMember = (memberId: string) => {
     const member = members.find((item) => item.id === memberId);
@@ -113,7 +114,7 @@ export function FrameLoadEditor({
         {load.type === "nodal" ? (
           <div className="space-y-1">
             <div className={fieldLabelClass}>作用节点</div>
-            <DropdownSelect value={load.node} onChange={(nextValue) => onUpdate({ node: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${index + 1} 条荷载作用节点`} />
+            <DropdownSelect compact={compact} value={load.node} onChange={(nextValue) => onUpdate({ node: nextValue })} options={nodeOptions} className="text-xs font-mono" menuClassName="text-xs font-mono" ariaLabel={`第 ${index + 1} 条荷载作用节点`} />
           </div>
         ) : (
           <div className="space-y-1">
@@ -139,7 +140,7 @@ export function FrameLoadEditor({
           </div>
         )}
         <div className="flex items-end">
-          <Button variant="ghost" size="icon" className="h-10 w-10" onClick={onRemove} aria-label={`删除第 ${index + 1} 条荷载`}>
+          <Button variant="ghost" size="icon" className="w-10" onClick={onRemove} aria-label={`删除第 ${index + 1} 条荷载`}>
             <Trash2 className="h-4 w-4 text-rose-300" />
           </Button>
         </div>
@@ -148,15 +149,15 @@ export function FrameLoadEditor({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <div className="space-y-1">
             <div className={fieldLabelClass}>X 向力（kN）</div>
-            <Input aria-label={`第 ${index + 1} 条荷载 X 向力（kN）`} type="number" step="0.1" value={load.fxKn ?? 0} onChange={(e) => onUpdate({ fxKn: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+            <Input compact={compact} aria-label={`第 ${index + 1} 条荷载 X 向力（kN）`} type="number" step="0.1" value={load.fxKn ?? 0} onChange={(e) => onUpdate({ fxKn: Number(e.target.value) || 0 })} className="min-w-0 font-mono text-xs" />
           </div>
           <div className="space-y-1">
             <div className={fieldLabelClass}>Y 向力（kN）</div>
-            <Input aria-label={`第 ${index + 1} 条荷载 Y 向力（kN）`} type="number" step="0.1" value={load.fyKn ?? 0} onChange={(e) => onUpdate({ fyKn: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+            <Input compact={compact} aria-label={`第 ${index + 1} 条荷载 Y 向力（kN）`} type="number" step="0.1" value={load.fyKn ?? 0} onChange={(e) => onUpdate({ fyKn: Number(e.target.value) || 0 })} className="min-w-0 font-mono text-xs" />
           </div>
           <div className="space-y-1">
             <div className={fieldLabelClass}>节点弯矩（kN·m）</div>
-            <Input aria-label={`第 ${index + 1} 条荷载节点弯矩（kN·m）`} type="number" step="0.1" value={load.mzKnM ?? 0} onChange={(e) => onUpdate({ mzKnM: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+            <Input compact={compact} aria-label={`第 ${index + 1} 条荷载节点弯矩（kN·m）`} type="number" step="0.1" value={load.mzKnM ?? 0} onChange={(e) => onUpdate({ mzKnM: Number(e.target.value) || 0 })} className="min-w-0 font-mono text-xs" />
           </div>
         </div>
       ) : load.type === "distributed" ? (
@@ -174,11 +175,11 @@ export function FrameLoadEditor({
           </div>
           <div className="space-y-1">
             <div className={fieldLabelClass}>起点强度（kN/m）</div>
-            <Input aria-label={`第 ${index + 1} 条荷载起点强度（kN/m）`} type="number" step="0.1" value={load.qStartKnPerM ?? load.wyKnPerM ?? 0} onChange={(e) => onUpdate({ qStartKnPerM: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+            <Input compact={compact} aria-label={`第 ${index + 1} 条荷载起点强度（kN/m）`} type="number" step="0.1" value={load.qStartKnPerM ?? load.wyKnPerM ?? 0} onChange={(e) => onUpdate({ qStartKnPerM: Number(e.target.value) || 0 })} className="min-w-0 font-mono text-xs" />
           </div>
           <div className="space-y-1">
             <div className={fieldLabelClass}>终点强度（kN/m）</div>
-            <Input aria-label={`第 ${index + 1} 条荷载终点强度（kN/m）`} type="number" step="0.1" value={load.qEndKnPerM ?? load.wyKnPerM ?? 0} onChange={(e) => onUpdate({ qEndKnPerM: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+            <Input compact={compact} aria-label={`第 ${index + 1} 条荷载终点强度（kN/m）`} type="number" step="0.1" value={load.qEndKnPerM ?? load.wyKnPerM ?? 0} onChange={(e) => onUpdate({ qEndKnPerM: Number(e.target.value) || 0 })} className="min-w-0 font-mono text-xs" />
           </div>
           <div className="space-y-1">
             <div className={fieldLabelClass}>起点位置 x/L</div>
@@ -190,7 +191,7 @@ export function FrameLoadEditor({
               max="1"
               value={load.startRatio ?? 0}
               onChange={(e) => onUpdate({ startRatio: clampRatio(Number(e.target.value)) })}
-              className="h-10 min-w-0 font-mono text-xs"
+              className="min-w-0 font-mono text-xs"
             />
           </div>
           <div className="space-y-1">
@@ -203,7 +204,7 @@ export function FrameLoadEditor({
               max="1"
               value={load.endRatio ?? 1}
               onChange={(e) => onUpdate({ endRatio: clampRatio(Number(e.target.value)) })}
-              className="h-10 min-w-0 font-mono text-xs"
+              className="min-w-0 font-mono text-xs"
             />
           </div>
         </div>
@@ -217,7 +218,7 @@ export function FrameLoadEditor({
               step="1"
               value={load.deltaTempC ?? 30}
               onChange={(e) => onUpdate({ deltaTempC: Number(e.target.value) || 0 })}
-              className="h-10 min-w-0 font-mono text-xs"
+              className="min-w-0 font-mono text-xs"
             />
           </div>
           <div className="space-y-1">
@@ -229,7 +230,7 @@ export function FrameLoadEditor({
               min="0"
               value={load.alphaPerC ?? 1.2e-5}
               onChange={(e) => onUpdate({ alphaPerC: Math.max(0, Number(e.target.value) || 0) })}
-              className="h-10 min-w-0 font-mono text-xs"
+              className="min-w-0 font-mono text-xs"
             />
           </div>
         </div>
@@ -256,12 +257,12 @@ export function FrameLoadEditor({
               max="1"
               value={load.positionRatio ?? 0.5}
               onChange={(e) => onUpdate({ positionRatio: clampRatio(Number(e.target.value)) })}
-              className="h-10 min-w-0 font-mono text-xs"
+              className="min-w-0 font-mono text-xs"
             />
           </div>
           <div className="space-y-1">
             <div className={fieldLabelClass}>集中力（kN）</div>
-            <Input aria-label={`第 ${index + 1} 条荷载集中力（kN）`} type="number" step="0.1" value={load.forceKn ?? 0} onChange={(e) => onUpdate({ forceKn: Number(e.target.value) || 0 })} className="h-10 min-w-0 font-mono text-xs" />
+            <Input compact={compact} aria-label={`第 ${index + 1} 条荷载集中力（kN）`} type="number" step="0.1" value={load.forceKn ?? 0} onChange={(e) => onUpdate({ forceKn: Number(e.target.value) || 0 })} className="min-w-0 font-mono text-xs" />
           </div>
         </div>
       )}

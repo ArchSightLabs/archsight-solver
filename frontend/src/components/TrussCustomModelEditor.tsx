@@ -46,6 +46,7 @@ interface TrussCustomModelEditorProps {
   onSelectionChange?: (next: TrussWorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
   gridSnapEnabled?: boolean;
   gridSnapStepM?: number;
+  compact?: boolean;
 }
 
 export function TrussCustomModelEditor({
@@ -59,7 +60,7 @@ export function TrussCustomModelEditor({
   onSelectionChange,
   gridSnapEnabled = false,
   gridSnapStepM = 0.5,
-}: TrussCustomModelEditorProps) {
+  compact = false }: TrussCustomModelEditorProps) {
   const [selectedObject, setSelectedObject] = useState<TrussSelectedObject>({ type: "node", id: value.nodes[0]?.id ?? "" });
   const [nodeConnectionTargetId, setNodeConnectionTargetId] = useState("");
   const [advancedSectionId, setAdvancedSectionId] = useState<TrussAdvancedSection>("nodes");
@@ -252,7 +253,7 @@ export function TrussCustomModelEditor({
       const member = value.members[index];
       if (!member) return null;
       return (
-        <TrussMemberEditor
+        <TrussMemberEditor compact={compact}
           member={member}
           memberIndex={index}
           nodeOptions={nodeOptions}
@@ -269,7 +270,7 @@ export function TrussCustomModelEditor({
     const load = value.loads[index];
     if (!load) return null;
     return (
-      <TrussLoadEditor
+      <TrussLoadEditor compact={compact}
         load={load}
         index={index}
         nodes={value.nodes}
@@ -323,7 +324,7 @@ export function TrussCustomModelEditor({
           </section>
         ),
         basic: (
-          <TrussBasicSection
+          <TrussBasicSection compact={compact}
             materialId={materialId}
             materialLibrary={materialLibrary}
             memberElasticitySummary={memberElasticitySummary}
