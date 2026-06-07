@@ -188,7 +188,7 @@ export function TrussSketch({
   };
 
   return (
-    <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} className="h-full w-full" data-model-canvas="truss" data-label-density={labelPolicy.density}>
+    <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} overflow="visible" className="h-full w-full" data-model-canvas="truss" data-label-density={labelPolicy.density}>
       <g fontFamily={SVG_TEXT_FONT} fill="var(--model-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
         {memberLengthLegendRows.length ? (
           <g {...labelProps("dimension-legend", `移动桁架${memberTerm}长度图例标注`)}>

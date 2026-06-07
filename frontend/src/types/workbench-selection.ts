@@ -2,7 +2,8 @@ export type BeamWorkbenchSelection =
   | { mode: "beam"; type: "span"; id: string }
   | { mode: "beam"; type: "support"; id: string }
   | { mode: "beam"; type: "load"; id: "primary" }
-  | { mode: "beam"; type: "label"; id: string };
+  | { mode: "beam"; type: "label"; id: string }
+  | { mode: "beam"; type: "node"; id: string };
 
 export type FrameWorkbenchSelection =
   | { mode: "frame"; type: "node"; id: string }

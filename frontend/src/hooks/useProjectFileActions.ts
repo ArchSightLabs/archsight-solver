@@ -79,7 +79,7 @@ export function useProjectFileActions({
         result.fileName,
         result.handle,
         result.savedAt,
-        result.mode === "download" ? `已下载导出：${result.fileName}` : `${forceSaveAs ? "保存副本" : "保存"}成功：${result.fileName}`
+        result.mode === "download" ? `已下载导出：${result.fileName}` : `${forceSaveAs ? "另存为" : "保存"}成功：${result.fileName}`
       );
     } catch (error) {
       if (isFilePickerAbort(error)) return;

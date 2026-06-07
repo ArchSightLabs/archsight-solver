@@ -15,7 +15,7 @@ import type { WorkbenchSelection, WorkbenchSelectionOptions } from "../../types/
 import { sameWorkbenchSelection, selectionSetContains } from "../../lib/workbench-selection-utils";
 import { MODEL_DIMENSION_TEXT_WEIGHT, SVG_TEXT_FONT, clampRatio, formatMagnitude, isAdditiveSelectionEvent, svgCanvasSelectionProps, svgInteractiveProps, svgLabelInteractiveProps } from "./shared";
 
-const BEAM_SKETCH_AXIS_Y = 150;
+const BEAM_SKETCH_AXIS_Y = 180;
 const BEAM_LOAD_BOTTOM_GUIDE_Y = BEAM_SKETCH_AXIS_Y - 38;
 const BEAM_LOAD_LANE_GAP_Y = 34;
 const BEAM_DISTRIBUTED_LOAD_TIP_Y = BEAM_SKETCH_AXIS_Y;
@@ -223,6 +223,14 @@ export function BeamSketch({
   const uniformLabelX = uniformRange
     ? shiftLoadLabelAwayFromPointLoads((uniformRange.startX + uniformRange.endX) / 2, pointLoadXs, beamStart + 118, beamEnd - 118, -1)
     : beamStart;
+  const topLoadY = Math.min(
+    uniformRange ? uniformTitleY - 14 : 999,
+    linearRanges.length > 0 ? linearTopGuideY - 24 : 999,
+    pointLoads.length > 0 ? pointLabelBaseY - 14 : 999,
+    BEAM_LOAD_BOTTOM_GUIDE_Y - 30
+  );
+  const loadRectTop = Math.max(24, topLoadY);
+  const loadRectHeight = BEAM_LOAD_BOTTOM_GUIDE_Y - loadRectTop + 14;
   const beamSketchStyle: CSSProperties | undefined = modelPreviewStyle === "color"
     ? ({
         "--beam-sketch-member": "var(--model-member)",
@@ -255,9 +263,10 @@ export function BeamSketch({
   const loadSelected = isSelected(loadSelection);
 
   return (
-    <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} className="h-full w-full" style={beamSketchStyle} data-model-canvas="beam" data-label-density={labelPolicy.density}>
+    <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} overflow="visible" className="h-full w-full" style={beamSketchStyle} data-model-canvas="beam" data-label-density={labelPolicy.density}>
       <g fontFamily={SVG_TEXT_FONT} fill="var(--beam-sketch-label)" stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke">
         <g {...labelProps("dimension-legend", "移动梁系尺寸图例标注")}>
+          <rect x={beamStart - 4} y={18} width={200} height={24 + beamDimensionLegendRows.length * 16} fill="transparent" />
           {beamDimensionLegendRows.map((row, index) => (
             <text key={`span-dimension-legend-${index}`} x={beamStart} y={34 + index * 16} fontSize="12" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT} fill={isLabelSelected("dimension-legend") ? "var(--beam-sketch-load)" : undefined}>
               {row}
@@ -287,20 +296,42 @@ export function BeamSketch({
             {selected ? <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="var(--beam-sketch-selected)" strokeWidth={STRUCTURE_VISUAL_STROKES.modelSelectedMember} strokeLinecap="round" opacity="0.45" /> : null}
             {dimension?.label && showLabel ? (
               <g {...labelProps(`member:${beamMemberIds[segment.index]}`, `移动梁系${memberTerm} ${beamMemberIds[segment.index]} 标注`)}>
+                <rect x={(segment.start + segment.end) / 2 - 40} y="156" width={80} height={24} fill="transparent" />
                 <text x={(segment.start + segment.end) / 2} y="176" textAnchor="middle" fontSize="13" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT} fill={isLabelSelected(`member:${beamMemberIds[segment.index]}`) ? "var(--beam-sketch-load)" : "var(--beam-sketch-label)"} stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke" data-model-label="member">
                   {dimension.label}
                 </text>
               </g>
             ) : null}
-            <circle cx={segment.start} cy={BEAM_SKETCH_AXIS_Y} r={STRUCTURE_NODE_RADII.preview} fill="var(--beam-sketch-node)" />
-            {segment.index === segments.length - 1 ? (
-              <>
-                <circle cx={segment.end} cy={BEAM_SKETCH_AXIS_Y} r={STRUCTURE_NODE_RADII.preview} fill="var(--beam-sketch-node)" />
-              </>
-            ) : null}
           </g>
         );
       })}
+      {segments.map((segment) => {
+        const nodeSelection = { mode: "beam", type: "node", id: `node-${segment.index}` } as const;
+        const isNodeSelected = isSelected(nodeSelection);
+        return (
+          <g
+            key={`node-${segment.index}`}
+            {...svgInteractiveProps(`选择梁系节点 ${segment.index}`, (event) => activateSelection(nodeSelection, event))}
+            {...svgCanvasSelectionProps(nodeSelection, { draggableNode: true })}
+          >
+            <circle cx={segment.start} cy={BEAM_SKETCH_AXIS_Y} r={isNodeSelected ? STRUCTURE_NODE_RADII.modelSelected : STRUCTURE_NODE_RADII.preview} fill={isNodeSelected ? "var(--beam-sketch-selected)" : "var(--beam-sketch-node)"} stroke={isNodeSelected ? "var(--model-label-halo)" : "none"} strokeWidth={isNodeSelected ? 2 : 0} />
+          </g>
+        );
+      })}
+      {segments.length > 0 ? (() => {
+        const lastIndex = segments.length;
+        const lastNodeSelection = { mode: "beam", type: "node", id: `node-${lastIndex}` } as const;
+        const isLastNodeSelected = isSelected(lastNodeSelection);
+        return (
+          <g
+            key={`node-${lastIndex}`}
+            {...svgInteractiveProps(`选择梁系节点 ${lastIndex}`, (event) => activateSelection(lastNodeSelection, event))}
+            {...svgCanvasSelectionProps(lastNodeSelection, { draggableNode: true })}
+          >
+            <circle cx={segments[segments.length - 1].end} cy={BEAM_SKETCH_AXIS_Y} r={isLastNodeSelected ? STRUCTURE_NODE_RADII.modelSelected : STRUCTURE_NODE_RADII.preview} fill={isLastNodeSelected ? "var(--beam-sketch-selected)" : "var(--beam-sketch-node)"} stroke={isLastNodeSelected ? "var(--model-label-halo)" : "none"} strokeWidth={isLastNodeSelected ? 2 : 0} />
+          </g>
+        );
+      })() : null}
       {beam.supports.map((support, index) => {
         const x = beamStart + (support.x / total) * (beamEnd - beamStart);
         const supportSelection = { mode: "beam", type: "support", id: `support-${index}` } as const;
@@ -312,21 +343,23 @@ export function BeamSketch({
             {...svgCanvasSelectionProps(supportSelection)}
           >
             <title>{`梁系支座 ${support.id}`}</title>
-            <rect x={x - 24} y="148" width="48" height="58" rx="12" fill={selected ? "var(--beam-sketch-selected)" : "transparent"} opacity={selected ? "0.1" : "0"} />
+            <rect x={x - 24} y="174" width="48" height="44" rx="12" fill={selected ? "var(--beam-sketch-selected)" : "transparent"} opacity={selected ? "0.1" : "0"} />
             {support.type === "fixed" ? (
               <rect x={x - 12} y={BEAM_SKETCH_AXIS_Y} width="24" height="36" rx="2" fill="var(--beam-sketch-support-fill)" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
             ) : support.type === "free" ? (
               <circle cx={x} cy={BEAM_SKETCH_AXIS_Y} r="9" fill="none" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.6" strokeDasharray="3 3" />
             ) : (
               <>
-                <polygon points={`${x - 15},180 ${x + 15},180 ${x},154`} fill="var(--beam-sketch-support-fill)" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
-                <line x1={x - 18} y1="184" x2={x + 18} y2="184" stroke="var(--beam-sketch-support-line)" strokeWidth="2.2" />
+                <polygon points={`${x - 15},206 ${x + 15},206 ${x},180`} fill="var(--beam-sketch-support-fill)" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
                 {support.type === "roller" ? (
                   <>
-                    <circle cx={x - 8} cy="190" r="3" fill="none" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
-                    <circle cx={x + 8} cy="190" r="3" fill="none" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
+                    <circle cx={x - 8} cy="210" r="3" fill="none" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
+                    <circle cx={x + 8} cy="210" r="3" fill="none" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
+                    <line x1={x - 18} y1="214" x2={x + 18} y2="214" stroke="var(--beam-sketch-support-line)" strokeWidth="2.2" />
                   </>
-                ) : null}
+                ) : (
+                  <line x1={x - 18} y1="206" x2={x + 18} y2="206" stroke="var(--beam-sketch-support-line)" strokeWidth="2.2" />
+                )}
               </>
             )}
           </g>
@@ -336,8 +369,8 @@ export function BeamSketch({
         {...svgInteractiveProps("选择梁系荷载", (event) => activateSelection(loadSelection, event))}
         {...svgCanvasSelectionProps(loadSelection)}
       >
-        <rect x={beamStart - 20} y="24" width={beamEnd - beamStart + 40} height="125" fill="transparent" />
-        {loadSelected ? <rect x={beamStart - 16} y="28" width={beamEnd - beamStart + 32} height="118" rx="14" fill="var(--beam-sketch-selected)" opacity="0.07" /> : null}
+        <rect x={beamStart - 20} y={loadRectTop} width={beamEnd - beamStart + 40} height={loadRectHeight} fill="transparent" />
+        {loadSelected ? <rect x={beamStart - 16} y={loadRectTop + 4} width={beamEnd - beamStart + 32} height={loadRectHeight - 8} rx="14" fill="var(--beam-sketch-selected)" opacity="0.07" /> : null}
         {uniformRange ? (
           <g>
             <line x1={uniformRange.startX} y1={uniformGuideY} x2={uniformRange.endX} y2={uniformGuideY} stroke="var(--beam-sketch-load)" strokeWidth="1.5" opacity="0.9" />

@@ -295,9 +295,6 @@ div[class*="text-[9px]"] {
   --beam-sketch-badge-stroke: #111827;
   --beam-sketch-badge-text: #111827;
   --beam-sketch-selected: #0284c7;
-  background:
-    linear-gradient(180deg, rgba(248, 250, 252, 0.72), rgba(241, 245, 249, 0.9)),
-    radial-gradient(circle at 50% 10%, rgba(148, 163, 184, 0.12), transparent 52%);
 }
 
 .model-canvas-surface[data-preview-style="simple"] {
@@ -342,7 +339,6 @@ div[class*="text-[9px]"] {
   --beam-sketch-badge-stroke: #e2e8f0;
   --beam-sketch-badge-text: #f8fafc;
   --beam-sketch-selected: #38bdf8;
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.68), rgba(8, 20, 36, 0.86));
 }
 
 .dark .model-canvas-surface[data-preview-style="simple"] {

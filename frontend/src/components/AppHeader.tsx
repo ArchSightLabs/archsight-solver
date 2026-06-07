@@ -1,11 +1,11 @@
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import {
   BookOpenCheck,
+  ChevronDown,
   FileDown,
   FileJson,
   FilePlus,
   FileUp,
-  MoreHorizontal,
   Moon,
   Save,
   Settings,
@@ -86,24 +86,83 @@ export function AppHeader({
 
           <div className={`flex flex-wrap items-center justify-start xl:justify-end ${isCompactWorkbench ? "gap-2" : "gap-3"}`}>
             <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.035] p-1 shadow-sm shadow-black/5 dark:bg-white/[0.025]">
+              <div ref={fileMenuRef} className="relative">
+                <Button
+                  variant="ghost"
+                  onClick={() => setIsFileMenuOpen((current) => !current)}
+                  aria-haspopup="menu"
+                  aria-expanded={isFileMenuOpen}
+                  aria-label="文件菜单"
+                  title="文件菜单"
+                  className={`rounded-lg font-bold text-foreground hover:bg-primary/10 ${isCompactWorkbench ? "h-9 px-3 text-xs" : "h-10 px-3.5"}`}
+                >
+                  文件 <ChevronDown className={`ml-1 ${isCompactWorkbench ? "h-3.5 w-3.5" : "h-4 w-4"}`} />
+                </Button>
+                {isFileMenuOpen ? (
+                  <div
+                    role="menu"
+                    className="absolute left-0 top-[calc(100%+0.45rem)] z-50 w-52 rounded-lg border border-slate-300 bg-white p-1.5 text-slate-950 shadow-2xl shadow-slate-950/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-50"
+                  >
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setIsFileMenuOpen(false);
+                        onNewProjectFile();
+                      }}
+                      className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 dark:hover:bg-slate-900"
+                    >
+                      <FilePlus className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" />
+                      <span className="block text-sm font-black">新建</span>
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setIsFileMenuOpen(false);
+                        onOpenProjectFile();
+                      }}
+                      className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 dark:hover:bg-slate-900"
+                    >
+                      <FileUp className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" />
+                      <span className="block text-sm font-black">打开</span>
+                    </button>
+                    <div className="my-1 h-px bg-slate-200 dark:bg-slate-800" />
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setIsFileMenuOpen(false);
+                        onSaveProjectFile(false);
+                      }}
+                      className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 dark:hover:bg-slate-900"
+                    >
+                      <Save className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" />
+                      <span className="block text-sm font-black flex-1">保存</span>
+                      <kbd className="ml-auto text-[10px] font-sans font-semibold text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">Ctrl+S</kbd>
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setIsFileMenuOpen(false);
+                        onSaveProjectFile(true);
+                      }}
+                      className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 dark:hover:bg-slate-900"
+                    >
+                      <FileDown className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-300" />
+                      <span className="min-w-0">
+                        <span className="block text-sm font-black">另存为...</span>
+                        <span className="block truncate text-[11px] font-bold text-slate-500 dark:text-slate-400">另存为项目文件</span>
+                      </span>
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+              <div className="mx-0.5 h-5 w-px bg-black/10 dark:bg-white/10" />
               <Button
                 variant="ghost"
-                onClick={onNewProjectFile}
-                className={`rounded-lg font-bold text-foreground hover:bg-primary/10 ${isCompactWorkbench ? "h-9 px-3 text-xs" : "h-10 px-3.5"}`}
-              >
-                <FilePlus className={`mr-2 ${isCompactWorkbench ? "h-3.5 w-3.5" : "h-4 w-4"}`} />
-                新建
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={onOpenProjectFile}
-                className={`rounded-lg font-bold text-foreground hover:bg-primary/10 ${isCompactWorkbench ? "h-9 px-3 text-xs" : "h-10 px-3.5"}`}
-              >
-                <FileUp className={`mr-2 ${isCompactWorkbench ? "h-3.5 w-3.5" : "h-4 w-4"}`} />
-                打开
-              </Button>
-              <Button
-                variant="ghost"
+                title="保存项目 (Ctrl+S)"
                 onClick={() => onSaveProjectFile(false)}
                 className={`rounded-lg font-bold text-foreground hover:bg-primary/10 ${isCompactWorkbench ? "h-9 px-3 text-xs" : "h-10 px-3.5"}`}
               >
@@ -126,42 +185,6 @@ export function AppHeader({
                 <FileJson className={`mr-2 ${isCompactWorkbench ? "h-3.5 w-3.5" : "h-4 w-4"}`} />
                 验证投稿
               </Button>
-              <div ref={fileMenuRef} className="relative">
-                <Button
-                  variant="ghost"
-                  onClick={() => setIsFileMenuOpen((current) => !current)}
-                  aria-haspopup="menu"
-                  aria-expanded={isFileMenuOpen}
-                  aria-label="更多文件操作"
-                  title="更多文件操作"
-                  className={`rounded-lg font-bold text-foreground hover:bg-primary/10 ${isCompactWorkbench ? "h-9 px-2.5" : "h-10 px-3"}`}
-                >
-                  <MoreHorizontal className={isCompactWorkbench ? "h-4 w-4" : "h-5 w-5"} />
-                  <span className="sr-only">更多文件操作</span>
-                </Button>
-                {isFileMenuOpen ? (
-                  <div
-                    role="menu"
-                    className="absolute right-0 top-[calc(100%+0.45rem)] z-50 w-52 rounded-lg border border-slate-300 bg-white p-1.5 text-slate-950 shadow-2xl shadow-slate-950/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-50"
-                  >
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => {
-                        setIsFileMenuOpen(false);
-                        onSaveProjectFile(true);
-                      }}
-                      className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 dark:hover:bg-slate-900"
-                    >
-                      <FileDown className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-300" />
-                      <span className="min-w-0">
-                        <span className="block text-sm font-black">保存副本</span>
-                        <span className="block truncate text-[11px] font-bold text-slate-500 dark:text-slate-400">另存为项目文件</span>
-                      </span>
-                    </button>
-                  </div>
-                ) : null}
-              </div>
             </div>
             <Button
               variant="outline"

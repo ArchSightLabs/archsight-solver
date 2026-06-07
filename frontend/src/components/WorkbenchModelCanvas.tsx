@@ -48,6 +48,7 @@ import { snapCoordinateToGrid } from "../lib/node-coordinate-snap";
 import {
   frameCanvasPointToModel,
   trussCanvasPointToModel,
+  beamCanvasPointToModel,
   type CanvasPoint,
   type ModelCanvasNodeDragPreview,
 } from "../lib/model-canvas-projection";
@@ -77,7 +78,7 @@ interface WorkbenchModelCanvasProps {
   onGridSnapEnabledChange?: (enabled: boolean) => void;
   onGridSnapStepChange?: (stepM: number) => void;
   onMoveLabel?: (mode: AnalysisMode, labelId: string, offset: ModelLabelOffset) => void;
-  onMoveNode?: (mode: Extract<AnalysisMode, "frame" | "truss">, nodeId: string, point: CanvasPoint) => void;
+  onMoveNode?: (mode: AnalysisMode, nodeId: string, point: CanvasPoint) => void;
   onRedoWorkspace?: () => void;
   onResetAllLabels?: () => void;
   onResetSelectedLabel?: () => void;
@@ -98,7 +99,7 @@ interface MarqueeSelectionState {
 
 interface NodeDragState {
   pointerId: number;
-  mode: Extract<AnalysisMode, "frame" | "truss">;
+  mode: AnalysisMode;
   nodeId: string;
   svg: globalThis.SVGSVGElement;
   lastPoint: CanvasPoint;
@@ -244,9 +245,8 @@ export function WorkbenchModelCanvas({
   const metrics = modelObjectMetricRows(workspace, mode);
   const canvasSize = workbenchModelCanvasSize(workspace, mode);
   const boardStyle = modelCanvasBoardStyle(canvasSize, zoomPercent, canvasViewportSize);
-  const metricGridClass = metrics.length > 3 ? "sm:grid-cols-2 xl:grid-cols-4" : "sm:grid-cols-3";
   const hasHistoryActions = Boolean(onUndoWorkspace && onRedoWorkspace);
-  const canShowGridSnapTool = (mode === "frame" || mode === "truss") && Boolean(onGridSnapEnabledChange && onGridSnapStepChange);
+  const canShowGridSnapTool = Boolean(onGridSnapEnabledChange && onGridSnapStepChange);
   const hasLabelTools = Boolean(onMoveLabel) && (selection?.type === "label" || labelOffsetCount > 0);
   const canMarqueeSelect = Boolean(onSelectionSetChange);
   const canvasCursorClass = isCanvasDragging
@@ -371,18 +371,20 @@ export function WorkbenchModelCanvas({
   };
 
   const startNodeDrag = (event: ReactPointerEvent<HTMLDivElement>): boolean => {
-    if (event.button !== 0 || (mode !== "frame" && mode !== "truss") || !onMoveNode) return false;
+    if (event.button !== 0 || !onMoveNode) return false;
     if (!(event.target instanceof globalThis.Element)) return false;
     const target = event.target.closest<globalThis.SVGGraphicsElement>("[data-canvas-draggable-node='true']");
     const svg = target?.ownerSVGElement;
     if (!target || !svg) return false;
     const draggedSelection = workbenchSelectionFromCanvasDataset(target.dataset);
-    if (!draggedSelection || draggedSelection.mode !== mode || draggedSelection.type !== "node") return false;
+    if (!draggedSelection || draggedSelection.mode !== mode || (draggedSelection.type !== "node" && draggedSelection.type !== "support")) return false;
     const svgPoint = clientPointToSvgPoint(event, svg);
     if (!svgPoint) return false;
     const modelPoint = mode === "frame"
       ? frameCanvasPointToModel(workspace, canvasSize, svgPoint)
-      : trussCanvasPointToModel(workspace, canvasSize, svgPoint);
+      : mode === "truss"
+      ? trussCanvasPointToModel(workspace, canvasSize, svgPoint)
+      : beamCanvasPointToModel(workspace, canvasSize, svgPoint);
     const nextPoint = snapModelPoint(modelPoint);
 
     nodeDragRef.current = {
@@ -488,6 +490,8 @@ export function WorkbenchModelCanvas({
           setCursorPoint(frameCanvasPointToModel(workspace, canvasSize, svgPoint));
         } else if (mode === "truss") {
           setCursorPoint(trussCanvasPointToModel(workspace, canvasSize, svgPoint));
+        } else if (mode === "beam") {
+          setCursorPoint(beamCanvasPointToModel(workspace, canvasSize, svgPoint));
         } else {
           setCursorPoint(null);
         }
@@ -519,7 +523,9 @@ export function WorkbenchModelCanvas({
       if (!svgPoint) return;
       const modelPoint = drag.mode === "frame"
         ? frameCanvasPointToModel(workspace, canvasSize, svgPoint)
-        : trussCanvasPointToModel(workspace, canvasSize, svgPoint);
+        : drag.mode === "truss"
+        ? trussCanvasPointToModel(workspace, canvasSize, svgPoint)
+        : beamCanvasPointToModel(workspace, canvasSize, svgPoint);
       const nextPoint = snapModelPoint(modelPoint);
       drag.lastPoint = nextPoint;
       drag.moved = true;

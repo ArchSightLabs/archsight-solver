@@ -14,20 +14,22 @@ interface GraphNode {
   y: number;
 }
 
+import type { AnalysisMode } from "../types/structure";
+
 export interface CanvasPoint {
   x: number;
   y: number;
 }
 
 export interface ModelCanvasNodeDragPreview {
-  mode: "frame" | "truss";
+  mode: AnalysisMode;
   nodeId: string;
   x: number;
   y: number;
 }
 
-export const FRAME_SKETCH_PADDING: CanvasPadding = { left: 245, right: 245, top: 145, bottom: 120 };
-export const TRUSS_SKETCH_PADDING: CanvasPadding = { left: 190, right: 190, top: 145, bottom: 125 };
+export const FRAME_SKETCH_PADDING: CanvasPadding = { left: 245, right: 245, top: 220, bottom: 120 };
+export const TRUSS_SKETCH_PADDING: CanvasPadding = { left: 190, right: 190, top: 220, bottom: 125 };
 
 function finiteCoordinateBounds(nodes: GraphNode[]) {
   const xs = nodes.map((node) => node.x).filter(Number.isFinite);
@@ -40,7 +42,7 @@ function finiteCoordinateBounds(nodes: GraphNode[]) {
   };
 }
 
-function applyNodePreview<T extends GraphNode>(nodes: T[], preview: ModelCanvasNodeDragPreview | null | undefined, mode: "frame" | "truss"): T[] {
+function applyNodePreview<T extends GraphNode>(nodes: T[], preview: ModelCanvasNodeDragPreview | null | undefined, mode: AnalysisMode): T[] {
   if (!preview || preview.mode !== mode) return nodes;
   return nodes.map((node) => (node.id === preview.nodeId ? { ...node, x: preview.x, y: preview.y } : node));
 }
@@ -107,4 +109,14 @@ export function frameCanvasPointToModel(workspace: WorkspaceState, canvasSize: M
 
 export function trussCanvasPointToModel(workspace: WorkspaceState, canvasSize: ModelCanvasSize, point: CanvasPoint): CanvasPoint {
   return createGraphCanvasProjector(workspace.truss.customNodes, canvasSize, TRUSS_SKETCH_PADDING).toModel(point);
+}
+
+export function beamCanvasPointToModel(workspace: WorkspaceState, canvasSize: ModelCanvasSize, point: CanvasPoint): CanvasPoint {
+  const beam = workspace.beam;
+  const total = Math.max(1, beam.spans.reduce((sum, span) => sum + span.length, 0));
+  const BEAM_SKETCH_SIDE_PAD = 96;
+  const beamDrawableWidth = Math.max(220, canvasSize.width - BEAM_SKETCH_SIDE_PAD * 2);
+  const beamStart = BEAM_SKETCH_SIDE_PAD;
+  let x = ((point.x - beamStart) / beamDrawableWidth) * total;
+  return { x, y: 0 };
 }

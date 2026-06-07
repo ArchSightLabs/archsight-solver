@@ -71,7 +71,7 @@ export function GridSnapControls({
           step="0.01"
           value={stepM}
           onChange={(event) => onStepChange(normalizeGridSnapStep(Number(event.target.value)))}
-          className={isToolbar || isStatusbar ? "h-6 w-14 rounded border-none bg-black/5 shadow-inner px-1.5 text-center font-mono text-[10px] font-bold dark:bg-black/20" : "h-8 w-20 font-mono text-xs"}
+          className={isToolbar || isStatusbar ? "h-6 w-14 rounded border-none bg-black/5 shadow-inner px-1.5 text-center font-mono text-[10px] md:text-[10px] font-bold dark:bg-black/20" : "h-8 w-20 font-mono text-xs md:text-xs"}
           aria-label="网格吸附步距（m）"
         />
       </label>

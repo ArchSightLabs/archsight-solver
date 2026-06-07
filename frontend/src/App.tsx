@@ -53,6 +53,7 @@ import {
 } from "./lib/model-label-overrides";
 import { normalizeGridSnapStep } from "./lib/node-coordinate-snap";
 import type { CanvasPoint } from "./lib/model-canvas-projection";
+import type { AnalysisMode } from "./types/structure";
 import {
   filterSelectionSetForMode,
   primarySelectionForMode,
@@ -443,7 +444,7 @@ function AppContent() {
       items: replaceSelectionSetForMode(current.items, analysisMode, []),
     }));
   }, [activeGeometrySelectionSet, analysisMode, updateWorkspace, workspace]);
-  const handleMoveWorkbenchNode = useCallback((mode: "frame" | "truss", nodeId: string, point: CanvasPoint) => {
+  const handleMoveWorkbenchNode = useCallback((mode: AnalysisMode, nodeId: string, point: CanvasPoint) => {
     const result = moveModelCanvasNode({
       workspace,
       mode,
@@ -462,6 +463,11 @@ function AppContent() {
       return target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
     };
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && (event.key === 's' || event.key === 'S')) {
+        event.preventDefault();
+        void handleSaveProjectFile(event.shiftKey);
+        return;
+      }
       if (isEditableTarget(event.target) || workbenchView !== "model" || (event.key !== "Delete" && event.key !== "Backspace")) {
         return;
       }
@@ -473,7 +479,7 @@ function AppContent() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeGeometrySelectionSet, handleDeleteWorkbenchSelection, workbenchView, workspace]);
+  }, [activeGeometrySelectionSet, handleDeleteWorkbenchSelection, handleSaveProjectFile, workbenchView, workspace]);
   const handleCreateProjectWithInfo = (next: ProjectInfo) => {
     replaceProject(createInitialSolverProject(next), null, null, null, "新建项目");
     resetAllPageState();
@@ -559,7 +565,7 @@ function AppContent() {
 
       <main className="relative z-10 mx-auto max-w-[118rem] px-4 pb-12 pt-4 sm:px-6 sm:pb-16 sm:pt-6 xl:pb-0">
         <div
-          className="grid grid-cols-1 gap-5 xl:items-start transition-all duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)]"
+          className="grid grid-cols-1 gap-5 xl:items-stretch transition-all duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] min-h-[calc(100vh-10rem)]"
           style={workbenchGridStyle}
         >
           <aside className="relative hidden xl:block xl:sticky xl:top-24">
@@ -605,8 +611,8 @@ function AppContent() {
             )}
           </aside>
 
-          <section className="min-w-0 space-y-5">
-            <div className="mb-5 xl:hidden">
+          <section className="min-w-0 flex flex-col gap-5">
+            <div className="xl:hidden">
               <GlassCard className="p-3">
                 <ProjectTreePanel
                   project={project}
@@ -619,9 +625,10 @@ function AppContent() {
 
             <WorkbenchViewTabs value={workbenchView} onChange={setWorkbenchView} />
             {workbenchView === "model" ? (
-              <WorkbenchModelCanvas
-                workspace={workspace}
-                mode={analysisMode}
+              <div className="flex-1 flex flex-col min-h-0">
+                <WorkbenchModelCanvas
+                  workspace={workspace}
+                  mode={analysisMode}
                 compact={isCompactWorkbench}
                 modelPreviewStyle={project.settings.modelPreviewStyle}
                 selection={activeWorkbenchSelection}
@@ -646,7 +653,8 @@ function AppContent() {
                 onSelect={handleWorkbenchSelectionChange}
                 onSelectionSetChange={handleWorkbenchSelectionSetChange}
                 onUndoWorkspace={undoWorkspaceChange}
-              />
+                />
+              </div>
             ) : workbenchView === "sensitivity" ? (
               <WorkbenchSensitivityPanel
                 analysisMode={analysisMode}
