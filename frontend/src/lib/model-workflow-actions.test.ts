@@ -106,6 +106,23 @@ test("梁系内部节点拖拽同步相邻跨长和支座边界", () => {
   assert.deepEqual(result.selection, { mode: "beam", type: "node", id: "node-1" });
 });
 
+test("梁系末端支座拖动只更新支座位置", () => {
+  const workspace = createDefaultWorkspaceState();
+  workspace.analysisMode = "beam";
+
+  const result = moveModelCanvasNode({
+    workspace,
+    mode: "beam",
+    nodeId: "support-2",
+    point: { x: 6.5, y: 0 },
+  });
+
+  assert.ok(result);
+  assert.deepEqual(result.workspace.beam.spans.map((span) => span.length), [4, 4]);
+  assert.deepEqual(result.workspace.beam.supports.map((support) => support.x), [0, 4, 6.5]);
+  assert.deepEqual(result.selection, { mode: "beam", type: "support", id: "support-2" });
+});
+
 test("梁系端点节点不执行跨长拖拽", () => {
   const workspace = createDefaultWorkspaceState();
   workspace.analysisMode = "beam";
@@ -116,6 +133,29 @@ test("梁系端点节点不执行跨长拖拽", () => {
     nodeId: "node-0",
     point: { x: 1, y: 0 },
   }), null);
+});
+
+test("梁系删除默认跨段后重排跨段和支座编号", () => {
+  const workspace = createDefaultWorkspaceState();
+  workspace.analysisMode = "beam";
+  workspace.beam.beamType = "continuous";
+  workspace.beam.spans = [
+    { id: "(1)", length: 2, E: 210, I: 4500, materialId: "q345" },
+    { id: "(2)", length: 3, E: 210, I: 4500, materialId: "q345" },
+    { id: "(3)", length: 4, E: 210, I: 4500, materialId: "q345" },
+  ];
+  workspace.beam.supports = createDefaultBeamSupports("continuous", workspace.beam.spans);
+
+  const result = deleteModelSelections({
+    workspace,
+    selections: [{ mode: "beam", type: "span", id: "span-1" }],
+  });
+
+  assert.ok(result);
+  assert.deepEqual(result.workspace.beam.spans.map((span) => span.id), ["(1)", "(2)"]);
+  assert.deepEqual(result.workspace.beam.spans.map((span) => span.length), [2, 4]);
+  assert.deepEqual(result.workspace.beam.supports.map((support) => support.id), ["S1", "S2", "S3"]);
+  assert.deepEqual(result.workspace.beam.supports.map((support) => support.x), [0, 2, 6]);
 });
 
 test("梁系画布增加跨段使用统一跨数上限", () => {

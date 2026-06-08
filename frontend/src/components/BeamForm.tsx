@@ -21,7 +21,7 @@ import { materialDropdownOptions, materialIdentityLabelForId } from "../lib/mate
 import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
 import type { BeamSpanConfig, BeamSupportConfig, BeamWorkspaceState } from "../types/beam.ts";
 import type { BeamWorkbenchSelection, WorkbenchSelectionOptions } from "../types/workbench-selection.ts";
-import { createDefaultBeamSupports, createDefaultBeamWorkspaceState } from "../lib/workspace-state.ts";
+import { createDefaultBeamWorkspaceState, mergeDefaultBeamSupportLayout, renumberDefaultBeamSpanIds } from "../lib/workspace-state.ts";
 import { applyBeamModelTemplate, type BeamModelTemplate } from "../lib/workbench-model-templates.ts";
 import { useBeamTextModel } from "../hooks/useBeamTextModel.ts";
 import { MAX_BEAM_SPANS } from "../lib/solver-limits.ts";
@@ -70,19 +70,7 @@ export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMat
     beamType: BeamWorkspaceState["beamType"],
     spans: BeamSpanConfig[],
     priorSupports: BeamSupportConfig[] = value.supports
-  ) =>
-    createDefaultBeamSupports(beamType, spans).map((support, index, defaults) => {
-      const prior = priorSupports.at(index);
-      const isLastSupport = index === defaults.length - 1;
-      const shouldKeepPriorType = prior && !(beamType === "continuous" && isLastSupport && prior.type === "pinned");
-      return {
-        ...support,
-        id: prior?.id?.trim() || support.id,
-        type: shouldKeepPriorType ? prior.type : support.type,
-        constraints: prior?.constraints ? [...prior.constraints] : support.constraints ? [...support.constraints] : undefined,
-        springs: prior?.springs?.map((spring) => ({ ...spring })),
-      };
-    });
+  ) => mergeDefaultBeamSupportLayout(beamType, spans, priorSupports);
 
   const updateSupport = (index: number, patch: Partial<BeamSupportConfig>) => {
     const supports = value.supports.map((support, supportIndex) =>
@@ -164,7 +152,7 @@ export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMat
 
   const removeSpan = (index: number) => {
     if (value.spans.length <= 1) return;
-    const nextSpans = value.spans.filter((_, i) => i !== index);
+    const nextSpans = renumberDefaultBeamSpanIds(value.spans.filter((_, i) => i !== index));
     const nextBeamType = value.beamType === "continuous" && nextSpans.length === 1 ? "simply_supported" : value.beamType;
     onChange({
       ...value,

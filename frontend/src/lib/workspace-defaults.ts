@@ -258,6 +258,49 @@ export function defaultBeamSupports(beamType: BeamWorkspaceState["beamType"], sp
   }));
 }
 
+const DEFAULT_BEAM_SPAN_ID_PATTERN = /^\(\d+\)$/u;
+const DEFAULT_BEAM_SUPPORT_ID_PATTERN = /^S\d+$/u;
+
+function isDefaultBeamSpanId(id: string | undefined) {
+  const normalized = id?.trim() ?? "";
+  return normalized === "" || DEFAULT_BEAM_SPAN_ID_PATTERN.test(normalized);
+}
+
+function isDefaultBeamSupportId(id: string | undefined) {
+  const normalized = id?.trim() ?? "";
+  return normalized === "" || DEFAULT_BEAM_SUPPORT_ID_PATTERN.test(normalized);
+}
+
+export function renumberDefaultBeamSpanIds(spans: BeamSpanConfig[]): BeamSpanConfig[] {
+  if (!spans.every((span) => isDefaultBeamSpanId(span.id))) {
+    return spans;
+  }
+  return spans.map((span, index) => ({
+    ...span,
+    id: `(${index + 1})`,
+  }));
+}
+
+export function mergeDefaultBeamSupportLayout(
+  beamType: BeamWorkspaceState["beamType"],
+  spans: BeamSpanConfig[],
+  priorSupports: BeamSupportConfig[] = [],
+): BeamSupportConfig[] {
+  const useDefaultSupportIds = priorSupports.every((support) => isDefaultBeamSupportId(support.id));
+  return defaultBeamSupports(beamType, spans).map((support, index, defaults) => {
+    const prior = priorSupports.at(index);
+    const isLastSupport = index === defaults.length - 1;
+    const shouldKeepPriorType = prior && !(beamType === "continuous" && isLastSupport && prior.type === "pinned");
+    return {
+      ...support,
+      id: useDefaultSupportIds ? support.id : prior?.id?.trim() || support.id,
+      type: shouldKeepPriorType ? prior.type : support.type,
+      constraints: prior?.constraints ? [...prior.constraints] : support.constraints ? [...support.constraints] : undefined,
+      springs: prior?.springs?.map((spring) => ({ ...spring })),
+    };
+  });
+}
+
 export { defaultBeamSupports as createDefaultBeamSupports };
 
 export function cloneBeamSupports(supports: BeamSupportConfig[]): BeamSupportConfig[] {

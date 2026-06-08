@@ -23,6 +23,10 @@ const BEAM_DISTRIBUTED_LOAD_TIP_Y = BEAM_SKETCH_AXIS_Y;
 const BEAM_POINT_LOAD_TIP_Y = BEAM_SKETCH_AXIS_Y - 6;
 const BEAM_NODE_BADGE_OFFSET_X = 10;
 const BEAM_NODE_BADGE_Y = BEAM_SKETCH_AXIS_Y - 14;
+const BEAM_MEMBER_LABEL_Y = BEAM_SKETCH_AXIS_Y + 24;
+const BEAM_MEMBER_LABEL_HITBOX_Y = BEAM_SKETCH_AXIS_Y + 4;
+const BEAM_SUPPORT_DRAG_HITBOX_Y = BEAM_SKETCH_AXIS_Y + 8;
+const BEAM_SUPPORT_DRAG_HITBOX_HEIGHT = 34;
 const BEAM_SKETCH_SIDE_PAD = 96;
 
 function activeBeamLinearLoads(beam: WorkspaceState["beam"]) {
@@ -143,6 +147,16 @@ function beamNodePositions(spans: WorkspaceState["beam"]["spans"]) {
 
 function previewBeamWithMovedNode(beam: WorkspaceState["beam"], dragPreview: ModelCanvasNodeDragPreview | null | undefined) {
   if (!dragPreview || dragPreview.mode !== "beam") return beam;
+  const supportMatch = /^support-(\d+)$/.exec(dragPreview.nodeId);
+  if (supportMatch) {
+    const supportIndex = Number.parseInt(supportMatch[1], 10);
+    if (!Number.isInteger(supportIndex) || supportIndex < 0 || supportIndex >= beam.supports.length) return beam;
+    const total = Math.max(0.1, beam.spans.reduce((sum, span) => sum + span.length, 0));
+    const supportX = Number(Math.min(total, Math.max(0, dragPreview.x)).toFixed(3));
+    const supports = beam.supports.map((support, index) => (index === supportIndex ? { ...support, x: supportX } : support));
+    return { ...beam, supports };
+  }
+
   const match = /^node-(\d+)$/.exec(dragPreview.nodeId);
   if (!match) return beam;
   const nodeIndex = Number.parseInt(match[1], 10);
@@ -333,8 +347,8 @@ export function BeamSketch({
             {selected ? <line x1={segment.start} y1={BEAM_SKETCH_AXIS_Y} x2={segment.end} y2={BEAM_SKETCH_AXIS_Y} stroke="var(--beam-sketch-selected)" strokeWidth={STRUCTURE_VISUAL_STROKES.modelSelectedMember} strokeLinecap="round" opacity="0.45" /> : null}
             {dimension?.label && showLabel ? (
               <g {...labelProps(`member:${beamMemberIds[segment.index]}`, `移动梁系${memberTerm} ${beamMemberIds[segment.index]} 标注`)}>
-                <rect x={(segment.start + segment.end) / 2 - 40} y="156" width={80} height={24} fill="transparent" />
-                <text x={(segment.start + segment.end) / 2} y="176" textAnchor="middle" fontSize="13" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT} fill={isLabelSelected(`member:${beamMemberIds[segment.index]}`) ? "var(--beam-sketch-load)" : "var(--beam-sketch-label)"} stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke" data-model-label="member">
+                <rect x={(segment.start + segment.end) / 2 - 40} y={BEAM_MEMBER_LABEL_HITBOX_Y} width={80} height={24} fill="transparent" />
+                <text x={(segment.start + segment.end) / 2} y={BEAM_MEMBER_LABEL_Y} textAnchor="middle" fontSize="13" fontWeight={MODEL_DIMENSION_TEXT_WEIGHT} fill={isLabelSelected(`member:${beamMemberIds[segment.index]}`) ? "var(--beam-sketch-load)" : "var(--beam-sketch-label)"} stroke="var(--model-label-halo)" strokeWidth="3" paintOrder="stroke" data-model-label="member">
                   {dimension.label}
                 </text>
               </g>
@@ -374,33 +388,34 @@ export function BeamSketch({
         const x = beamStart + (support.x / total) * (beamEnd - beamStart);
         const supportSelection = { mode: "beam", type: "support", id: `support-${index}` } as const;
         const selected = isSelected(supportSelection);
-        const isInteriorSupport = index > 0 && index < displayBeam.spans.length;
         return (
           <g
             key={support.id}
             {...svgInteractiveProps(`选择梁系支座 ${support.id}`, (event) => activateSelection(supportSelection, event))}
-            {...svgCanvasSelectionProps(supportSelection, { draggableNode: isInteriorSupport })}
+            {...svgCanvasSelectionProps(supportSelection, { draggableNode: true })}
           >
             <title>{`梁系支座 ${support.id}`}</title>
-            <rect x={x - 24} y="174" width="48" height="44" rx="12" fill={selected ? "var(--beam-sketch-selected)" : "transparent"} opacity={selected ? "0.1" : "0"} />
-            {support.type === "fixed" ? (
-              <rect x={x - 12} y={BEAM_SKETCH_AXIS_Y} width="24" height="36" rx="2" fill="var(--beam-sketch-support-fill)" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
-            ) : support.type === "free" ? (
-              <circle cx={x} cy={BEAM_SKETCH_AXIS_Y} r="9" fill="none" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.6" strokeDasharray="3 3" />
-            ) : (
-              <>
-                <polygon points={`${x - 15},206 ${x + 15},206 ${x},180`} fill="var(--beam-sketch-support-fill)" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
-                {support.type === "roller" ? (
-                  <>
-                    <circle cx={x - 8} cy="210" r="3" fill="none" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
-                    <circle cx={x + 8} cy="210" r="3" fill="none" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
-                    <line x1={x - 18} y1="214" x2={x + 18} y2="214" stroke="var(--beam-sketch-support-line)" strokeWidth="2.2" />
-                  </>
-                ) : (
-                  <line x1={x - 18} y1="206" x2={x + 18} y2="206" stroke="var(--beam-sketch-support-line)" strokeWidth="2.2" />
-                )}
-              </>
-            )}
+            <rect x={x - 24} y={BEAM_SUPPORT_DRAG_HITBOX_Y} width="48" height={BEAM_SUPPORT_DRAG_HITBOX_HEIGHT} rx="12" fill={selected ? "var(--beam-sketch-selected)" : "transparent"} opacity={selected ? "0.1" : "0"} />
+            <g pointerEvents="none">
+              {support.type === "fixed" ? (
+                <rect x={x - 12} y={BEAM_SKETCH_AXIS_Y} width="24" height="36" rx="2" fill="var(--beam-sketch-support-fill)" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
+              ) : support.type === "free" ? (
+                <circle cx={x} cy={BEAM_SKETCH_AXIS_Y} r="9" fill="none" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.6" strokeDasharray="3 3" />
+              ) : (
+                <>
+                  <polygon points={`${x - 15},206 ${x + 15},206 ${x},180`} fill="var(--beam-sketch-support-fill)" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
+                  {support.type === "roller" ? (
+                    <>
+                      <circle cx={x - 8} cy="210" r="3" fill="none" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
+                      <circle cx={x + 8} cy="210" r="3" fill="none" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
+                      <line x1={x - 18} y1="214" x2={x + 18} y2="214" stroke="var(--beam-sketch-support-line)" strokeWidth="2.2" />
+                    </>
+                  ) : (
+                    <line x1={x - 18} y1="206" x2={x + 18} y2="206" stroke="var(--beam-sketch-support-line)" strokeWidth="2.2" />
+                  )}
+                </>
+              )}
+            </g>
           </g>
         );
       })}

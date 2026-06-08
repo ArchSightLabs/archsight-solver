@@ -202,11 +202,22 @@ test("梁系画布支持拖动内部节点并同步支座位置", async ({ page 
   const middleNode = beamCanvasItem(page, "node", "node-1");
   const lastNode = beamCanvasItem(page, "node", "node-2");
   const middleSupport = beamCanvasItem(page, "support", "support-1");
+  const lastSupport = beamCanvasItem(page, "support", "support-2");
+  const firstSpanLabel = page.locator('[data-canvas-mode="beam"][data-canvas-type="label"][data-canvas-id="member:(1)"]');
 
   await expect(middleNode).toHaveAttribute("data-canvas-draggable-node", "true");
   await expect(firstNode).not.toHaveAttribute("data-canvas-draggable-node", "true");
   await expect(lastNode).not.toHaveAttribute("data-canvas-draggable-node", "true");
   await expect(middleSupport).toBeVisible();
+  await expect(lastSupport).toHaveAttribute("data-canvas-draggable-node", "true");
+  await expect(firstSpanLabel).toBeVisible();
+
+  const firstNodeBox = await firstNode.boundingBox();
+  const firstSpanLabelBox = await firstSpanLabel.boundingBox();
+  expect(firstNodeBox).not.toBeNull();
+  expect(firstSpanLabelBox).not.toBeNull();
+  if (!firstNodeBox || !firstSpanLabelBox) return;
+  expect(firstSpanLabelBox.y).toBeGreaterThan(firstNodeBox.y);
 
   const beforeNode = await middleNode.boundingBox();
   expect(beforeNode).not.toBeNull();
@@ -227,6 +238,22 @@ test("梁系画布支持拖动内部节点并同步支座位置", async ({ page 
 
   expect(Math.abs(boxCenterX(afterNode) - startX)).toBeGreaterThan(20);
   expect(Math.abs(boxCenterX(afterSupport) - boxCenterX(afterNode))).toBeLessThan(3);
+
+  const beforeLastSupport = await lastSupport.boundingBox();
+  expect(beforeLastSupport).not.toBeNull();
+  if (!beforeLastSupport) return;
+
+  const lastSupportStartX = boxCenterX(beforeLastSupport);
+  const lastSupportStartY = beforeLastSupport.y + beforeLastSupport.height / 2;
+  await page.mouse.move(lastSupportStartX, lastSupportStartY);
+  await page.mouse.down();
+  await page.mouse.move(lastSupportStartX - 90, lastSupportStartY, { steps: 8 });
+  await page.mouse.up();
+
+  const afterLastSupport = await lastSupport.boundingBox();
+  expect(afterLastSupport).not.toBeNull();
+  if (!afterLastSupport) return;
+  expect(Math.abs(boxCenterX(afterLastSupport) - lastSupportStartX)).toBeGreaterThan(20);
 });
 
 test("框架画布支持框选节点并切换到连接所选节点动作", async ({ page }) => {

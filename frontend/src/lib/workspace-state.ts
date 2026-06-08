@@ -16,6 +16,8 @@ export {
   createDefaultFrameWorkspaceState,
   createDefaultTrussWorkspaceState,
   createDefaultWorkspaceState,
+  mergeDefaultBeamSupportLayout,
+  renumberDefaultBeamSpanIds,
 } from "./workspace-defaults.ts";
 export { normalizeBeamWorkspaceState } from "./beam-workspace-normalizer.ts";
 export { createPortalFrameModelFromState, normalizeFrameWorkspaceState } from "./frame-workspace-normalizer.ts";

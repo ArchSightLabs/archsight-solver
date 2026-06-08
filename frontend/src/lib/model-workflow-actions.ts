@@ -39,7 +39,7 @@ import {
   type TrussEditorCollections,
 } from "./truss-model-edits.ts";
 import { MAX_BEAM_SPANS } from "./solver-limits.ts";
-import { createDefaultBeamSupports, type WorkspaceState } from "./workspace-state.ts";
+import { mergeDefaultBeamSupportLayout, renumberDefaultBeamSpanIds, type WorkspaceState } from "./workspace-state.ts";
 import { filterSelectionSetForMode, uniqueWorkbenchSelections } from "./workbench-selection-utils.ts";
 
 export type ModelGeometryAction =
@@ -136,25 +136,6 @@ function trussWorkspaceWithCollections(workspace: WorkspaceState, collections: T
       customLoads: collections.loads,
     },
   };
-}
-
-function mergeBeamSupportLayout(
-  beamType: WorkspaceState["beam"]["beamType"],
-  spans: WorkspaceState["beam"]["spans"],
-  priorSupports: WorkspaceState["beam"]["supports"],
-): WorkspaceState["beam"]["supports"] {
-  return createDefaultBeamSupports(beamType, spans).map((support, index, defaults) => {
-    const prior = priorSupports.at(index);
-    const isLastSupport = index === defaults.length - 1;
-    const shouldKeepPriorType = prior && !(beamType === "continuous" && isLastSupport && prior.type === "pinned");
-    return {
-      ...support,
-      id: prior?.id?.trim() || support.id,
-      type: shouldKeepPriorType ? prior.type : support.type,
-      constraints: prior?.constraints ? [...prior.constraints] : support.constraints ? [...support.constraints] : undefined,
-      springs: prior?.springs?.map((spring) => ({ ...spring })),
-    };
-  });
 }
 
 function loadIndexFromSelection(selection: WorkbenchSelection): number | null {
@@ -780,6 +761,19 @@ export function moveModelCanvasNode({ workspace, mode, nodeId, point }: MoveMode
     };
   }
   if (mode === "beam") {
+    if (nodeId.startsWith("support-")) {
+      const supportIndex = parseInt(nodeId.replace("support-", ""), 10);
+      if (isNaN(supportIndex) || supportIndex < 0 || supportIndex >= workspace.beam.supports.length) return null;
+      const total = Math.max(0.1, workspace.beam.spans.reduce((sum, span) => sum + span.length, 0));
+      const supportX = Number(Math.min(total, Math.max(0, point.x)).toFixed(3));
+      const supports = workspace.beam.supports.map((support, index) => (index === supportIndex ? { ...support, x: supportX } : support));
+
+      return {
+        workspace: { ...workspace, beam: { ...workspace.beam, supports } },
+        selection: { mode: "beam", type: "support", id: nodeId },
+      };
+    }
+
     if (!nodeId.startsWith("node-")) return null;
     const nodeIndex = parseInt(nodeId.replace("node-", ""), 10);
     if (isNaN(nodeIndex) || nodeIndex <= 0 || nodeIndex >= workspace.beam.spans.length) return null;
@@ -800,7 +794,7 @@ export function moveModelCanvasNode({ workspace, mode, nodeId, point }: MoveMode
 
     spans[nodeIndex - 1] = { ...prevSpan, length: nextPrevLength };
     spans[nodeIndex] = { ...nextSpan, length: nextNextLength };
-    const supports = mergeBeamSupportLayout(workspace.beam.beamType, spans, workspace.beam.supports);
+    const supports = mergeDefaultBeamSupportLayout(workspace.beam.beamType, spans, workspace.beam.supports);
 
     return {
       workspace: { ...workspace, beam: { ...workspace.beam, spans, supports } },
@@ -829,11 +823,11 @@ export function deleteModelSelections({ workspace, selections }: ApplyModelSelec
     const spanSelections = selections.filter((s) => s.mode === "beam" && s.type === "span");
     if (spanSelections.length === 0 || workspace.beam.spans.length <= spanSelections.length) return null;
     const spanIndexesToDelete = spanSelections.map((s) => parseInt(s.id.replace("span-", ""), 10)).filter((i) => !isNaN(i));
-    const newSpans = workspace.beam.spans.filter((_, i) => !spanIndexesToDelete.includes(i));
+    const newSpans = renumberDefaultBeamSpanIds(workspace.beam.spans.filter((_, i) => !spanIndexesToDelete.includes(i)));
     const nextBeamType = workspace.beam.beamType === "continuous" && newSpans.length === 1 ? "simply_supported" : workspace.beam.beamType;
 
     const remainingSupports = workspace.beam.supports.filter((_, i) => !spanIndexesToDelete.includes(i));
-    const supports = mergeBeamSupportLayout(nextBeamType, newSpans, remainingSupports);
+    const supports = mergeDefaultBeamSupportLayout(nextBeamType, newSpans, remainingSupports);
 
     return {
       workspace: { ...workspace, beam: { ...workspace.beam, beamType: nextBeamType, spans: newSpans, supports } },
@@ -962,7 +956,7 @@ export function applyModelGeometryAction({
       });
 
       const nextBeamType = workspace.beam.beamType === "simply_supported" ? "continuous" : workspace.beam.beamType;
-      const supports = mergeBeamSupportLayout(nextBeamType, spans, workspace.beam.supports);
+      const supports = mergeDefaultBeamSupportLayout(nextBeamType, spans, workspace.beam.supports);
 
       return {
         workspace: { ...workspace, beam: { ...workspace.beam, beamType: nextBeamType, spans, supports } },

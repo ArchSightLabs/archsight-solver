@@ -186,10 +186,6 @@ function isSelectionModifier(event: ReactPointerEvent<HTMLElement>) {
 }
 
 function nodeDragIdForSelection(selection: WorkbenchSelection): string | null {
-  if (selection.mode === "beam" && selection.type === "support") {
-    const match = /^support-(\d+)$/.exec(selection.id);
-    return match ? `node-${match[1]}` : null;
-  }
   return selection.id;
 }
 
