@@ -32,10 +32,6 @@ export const REPORT_TEMPLATE_OPTIONS: readonly ReportOptionItem<ReportTemplate>[
 export const REPORT_FIGURE_MODE_OPTIONS: readonly ReportOptionItem<ReportFigureMode>[] = REPORT_OPTIONS.figureModes.map((option) => ({ ...option }));
 export const REPORT_FIGURE_SCOPE_OPTIONS: readonly ReportOptionItem<ReportFigureScope>[] = REPORT_OPTIONS.figureScopes.map((option) => ({ ...option }));
 
-const STRUCTURE_OVERLAY_ONLY_FIGURE_MODE_OPTIONS: readonly ReportOptionItem<ReportFigureMode>[] = [
-  { value: "overlay", label: "不含数据曲线" },
-];
-
 const REPORT_TEMPLATE_VALUES = new Set(REPORT_TEMPLATE_OPTIONS.map((option) => option.value));
 const REPORT_FIGURE_MODE_VALUES = new Set(REPORT_FIGURE_MODE_OPTIONS.map((option) => option.value));
 function isReportTemplate(value: unknown): value is ReportTemplate {
@@ -60,13 +56,13 @@ export function normalizeReportExportOptions(raw: Partial<ReportExportOptions> |
   };
 }
 
-export function reportFigureModeOptionsForMode(mode: AnalysisMode): readonly ReportOptionItem<ReportFigureMode>[] {
-  return mode === "beam" ? REPORT_FIGURE_MODE_OPTIONS : STRUCTURE_OVERLAY_ONLY_FIGURE_MODE_OPTIONS;
+export function reportFigureModeOptionsForMode(_mode: AnalysisMode): readonly ReportOptionItem<ReportFigureMode>[] {
+  return REPORT_FIGURE_MODE_OPTIONS;
 }
 
-export function reportFigureModeValueForMode(mode: AnalysisMode, value: ReportFigureMode): ReportFigureMode {
+export function reportFigureModeValueForMode(_mode: AnalysisMode, value: ReportFigureMode): ReportFigureMode {
   if (value === "traditional") return "overlay";
-  return mode === "beam" ? value : "overlay";
+  return value;
 }
 
 export function reportExportOptionsForMode(mode: AnalysisMode, options: ReportExportOptions): ReportExportOptions {

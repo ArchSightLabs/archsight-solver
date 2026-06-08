@@ -9,6 +9,24 @@ import { formatEngineeringValue, formatLimitRatio, formatUtilizationPercent } fr
 import { buildReportImagePlan } from "./report-image-plan.ts";
 import { assertReportImagesReady, reportImageRequirements } from "./report-image-requirements.ts";
 
+function minimalFrameResults(): FrameCalculationResults {
+  return {
+    nodeIds: ["N1", "N2"],
+    ux_data: [0, 1.2],
+    uy_data: [0, -2.4],
+  } as FrameCalculationResults;
+}
+
+function minimalTrussResults(): TrussCalculationResults {
+  return {
+    nodeIds: ["N1", "N2"],
+    memberIds: ["R1"],
+    ux_data: [0, 0.8],
+    uy_data: [0, -1.6],
+    member_axial_data: [{ memberId: "R1", axialForceKn: 12.5 }],
+  } as TrussCalculationResults;
+}
+
 test("formatEngineeringValue uses up to four decimals and trims trailing zeros", () => {
   assert.equal(formatEngineeringValue(3.8141, "mm"), "3.8141 mm");
   assert.equal(formatEngineeringValue(11.25, "mm"), "11.25 mm");
@@ -241,7 +259,7 @@ test("assertReportImagesReady requires frame and truss preview images before DOC
   const frameInput = {
     analysisMode: "frame" as const,
     beamResults: null,
-    frameResults: {} as FrameCalculationResults,
+    frameResults: minimalFrameResults(),
     trussResults: null,
     sensitivityData: null,
     reportOptions,
@@ -250,14 +268,14 @@ test("assertReportImagesReady requires frame and truss preview images before DOC
     analysisMode: "truss" as const,
     beamResults: null,
     frameResults: null,
-    trussResults: {} as TrussCalculationResults,
+    trussResults: minimalTrussResults(),
     sensitivityData: null,
     reportOptions,
   };
 
   assert.deepEqual(
     reportImageRequirements(frameInput).map((item) => item.key),
-    ["frame.preview", "frame.overlay.moment", "frame.overlay.shear", "frame.overlay.memberDeflection", "frame.overlay.axial"],
+    ["frame.preview", "frame.overlay.moment", "frame.overlay.shear", "frame.overlay.memberDeflection", "frame.overlay.axial", "frame.curve.ux", "frame.curve.uy"],
   );
   assert.throws(
     () => assertReportImagesReady({ "frame.overlay.moment": "data:image/png;base64,test" }, frameInput),
@@ -265,7 +283,7 @@ test("assertReportImagesReady requires frame and truss preview images before DOC
   );
   assert.deepEqual(
     reportImageRequirements(trussInput).map((item) => item.key),
-    ["truss.preview", "truss.overlay.axial", "truss.overlay.displacement"],
+    ["truss.preview", "truss.overlay.axial", "truss.overlay.displacement", "truss.curve.ux", "truss.curve.uy", "truss.curve.axial"],
   );
   assert.throws(
     () => assertReportImagesReady({ "truss.overlay.axial": "data:image/png;base64,test" }, trussInput),
@@ -292,7 +310,7 @@ test("buildReportImagePlan normalizes legacy control scope to all core figure ke
     buildReportImagePlan({
       analysisMode: "frame",
       beamResults: null,
-      frameResults: {} as FrameCalculationResults,
+      frameResults: minimalFrameResults(),
       trussResults: null,
       sensitivityData: null,
       reportOptions,
@@ -305,7 +323,7 @@ test("buildReportImagePlan normalizes legacy control scope to all core figure ke
       analysisMode: "truss",
       beamResults: null,
       frameResults: null,
-      trussResults: {} as TrussCalculationResults,
+      trussResults: minimalTrussResults(),
       sensitivityData: null,
       reportOptions,
     }).map((item) => item.key),
@@ -313,34 +331,34 @@ test("buildReportImagePlan normalizes legacy control scope to all core figure ke
   );
 });
 
-test("框架和桁架计算书图形计划不再混入非 UI 同源传统曲线", () => {
+test("框架和桁架计算书图形计划在包含数据曲线时使用 UI 同源曲线", () => {
   const reportOptions = { template: "complete" as const, figureMode: "both" as const, figureScope: "all" as const };
 
   const framePlan = buildReportImagePlan({
     analysisMode: "frame",
     beamResults: null,
-    frameResults: {} as FrameCalculationResults,
+    frameResults: minimalFrameResults(),
     trussResults: null,
     sensitivityData: null,
     reportOptions,
   });
   assert.deepEqual(
     framePlan.map((item) => item.key),
-    ["frame.preview", "frame.overlay.moment", "frame.overlay.shear", "frame.overlay.memberDeflection", "frame.overlay.axial"],
+    ["frame.preview", "frame.overlay.moment", "frame.overlay.shear", "frame.overlay.memberDeflection", "frame.overlay.axial", "frame.curve.ux", "frame.curve.uy"],
   );
-  assert.deepEqual([...new Set(framePlan.map((item) => item.kind))], ["framePreview", "frameOverlay"]);
+  assert.deepEqual([...new Set(framePlan.map((item) => item.kind))], ["framePreview", "frameOverlay", "frameDataCurve"]);
 
   const trussPlan = buildReportImagePlan({
     analysisMode: "truss",
     beamResults: null,
     frameResults: null,
-    trussResults: {} as TrussCalculationResults,
+    trussResults: minimalTrussResults(),
     sensitivityData: null,
     reportOptions,
   });
   assert.deepEqual(
     trussPlan.map((item) => item.key),
-    ["truss.preview", "truss.overlay.axial", "truss.overlay.displacement"],
+    ["truss.preview", "truss.overlay.axial", "truss.overlay.displacement", "truss.curve.ux", "truss.curve.uy", "truss.curve.axial"],
   );
-  assert.deepEqual([...new Set(trussPlan.map((item) => item.kind))], ["trussPreview", "trussOverlay"]);
+  assert.deepEqual([...new Set(trussPlan.map((item) => item.kind))], ["trussPreview", "trussOverlay", "trussDataCurve"]);
 });

@@ -37,20 +37,15 @@ test("计算书导出选项归一化使用现代默认值回退", () => {
   );
 });
 
-test("计算书图形模式文案按结构体系避免误导传统曲线", () => {
+test("计算书图形模式文案允许各结构体系显式包含数据曲线", () => {
   assert.deepEqual(reportFigureModeOptionsForMode("beam"), sharedReportOptions.figureModes);
-  assert.deepEqual(
-    reportFigureModeOptionsForMode("frame").map((item) => item.label),
-    ["不含数据曲线"],
-  );
-  assert.deepEqual(
-    reportFigureModeOptionsForMode("truss").map((item) => item.label),
-    ["不含数据曲线"],
-  );
+  assert.deepEqual(reportFigureModeOptionsForMode("frame"), sharedReportOptions.figureModes);
+  assert.deepEqual(reportFigureModeOptionsForMode("truss"), sharedReportOptions.figureModes);
   assert.equal(reportFigureModeValueForMode("beam", "both"), "both");
   assert.equal(reportFigureModeValueForMode("beam", "traditional"), "overlay");
   assert.equal(reportFigureModeValueForMode("frame", "traditional"), "overlay");
-  assert.equal(reportFigureModeValueForMode("truss", "both"), "overlay");
+  assert.equal(reportFigureModeValueForMode("frame", "both"), "both");
+  assert.equal(reportFigureModeValueForMode("truss", "both"), "both");
   assert.deepEqual(reportExportOptionsForMode("frame", { template: "complete", figureMode: "traditional", figureScope: "all" }), {
     template: "complete",
     figureMode: "overlay",
@@ -58,7 +53,7 @@ test("计算书图形模式文案按结构体系避免误导传统曲线", () =>
   });
   assert.deepEqual(reportExportOptionsForMode("truss", { template: "brief", figureMode: "both", figureScope: "control" }), {
     template: "standard",
-    figureMode: "overlay",
+    figureMode: "both",
     figureScope: "all",
   });
   assert.deepEqual(reportExportOptionsForMode("beam", { template: "complete", figureMode: "both", figureScope: "all" }), {

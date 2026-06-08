@@ -38,16 +38,26 @@ const reportFigureCatalog = JSON.parse(
   readFileSync(join(specDir, "../../../shared/report-figures.json"), "utf-8"),
 ) as SharedReportFigureCatalog;
 
-function allReportImageKeys(mode: AnalysisMode) {
+function dataCurveImageKeys(mode: AnalysisMode) {
+  if (mode === "frame") {
+    return ["frame.curve.ux", "frame.curve.uy"];
+  }
+  return ["truss.curve.ux", "truss.curve.uy", "truss.curve.axial"];
+}
+
+function allReportImageKeys(mode: AnalysisMode, includeDataCurves = false) {
+  const curveKeys = includeDataCurves ? dataCurveImageKeys(mode) : [];
   if (mode === "frame") {
     return [
       "frame.preview",
       ...reportFigureCatalog.frame.member.map((figure) => figure.overlayImageKey),
+      ...curveKeys,
     ];
   }
   return [
     "truss.preview",
     ...reportFigureCatalog.truss.overlay.map((figure) => figure.imageKey),
+    ...curveKeys,
   ];
 }
 
@@ -293,7 +303,7 @@ async function routeDocxExport(page: Page) {
   return () => observedPayload;
 }
 
-async function solveAndExportDocx(page: Page, mode: AnalysisMode) {
+async function solveAndExportDocx(page: Page, mode: AnalysisMode, options: { includeDataCurves?: boolean } = {}) {
   const labels = Reflect.get(MODE_LABELS, mode);
   await openAnalysisObject(page, labels.object);
   await page.getByRole("tab", { name: /结构计算/ }).click();
@@ -301,6 +311,12 @@ async function solveAndExportDocx(page: Page, mode: AnalysisMode) {
   await expect(page.getByText(labels.complete)).toBeVisible();
 
   await page.getByRole("button", { name: "成果导出" }).click();
+  if (options.includeDataCurves) {
+    await page.getByRole("button", { name: "计算书设置" }).click();
+    const figureModeSelect = page.locator('select[name="reportFigureMode"]');
+    await figureModeSelect.selectOption("both");
+    await expect(figureModeSelect).toHaveValue("both");
+  }
   const [download] = await Promise.all([
     page.waitForEvent("download"),
     page.getByRole("menuitem", { name: /导出计算书/ }).click(),
@@ -330,6 +346,22 @@ for (const mode of ["frame", "truss"] as const) {
     expect(payload?.reportOptions).toMatchObject({ figureMode: "overlay", figureScope: "all" });
     expect(Object.keys(payload?.reportImages ?? {})).toEqual(Reflect.get(MODE_LABELS, mode).imageKeys);
     for (const key of Reflect.get(MODE_LABELS, mode).imageKeys as string[]) {
+      expect(Reflect.get(payload?.reportImages ?? {}, key)).toMatch(/^data:image\/png;base64,/);
+    }
+  });
+
+  test(`${Reflect.get(MODE_LABELS, mode).filename} 数据曲线选项会随计算书一起导出`, async ({ page }) => {
+    const observedExportPayload = await routeDocxExport(page);
+
+    await solveAndExportDocx(page, mode, { includeDataCurves: true });
+
+    const payload = observedExportPayload();
+    const expectedImageKeys = allReportImageKeys(mode, true);
+    expect(payload?.analysisType).toBe(mode);
+    expect(payload?.format).toBe("docx");
+    expect(payload?.reportOptions).toMatchObject({ figureMode: "both", figureScope: "all" });
+    expect(Object.keys(payload?.reportImages ?? {})).toEqual(expectedImageKeys);
+    for (const key of expectedImageKeys) {
       expect(Reflect.get(payload?.reportImages ?? {}, key)).toMatch(/^data:image\/png;base64,/);
     }
   });

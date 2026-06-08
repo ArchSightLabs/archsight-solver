@@ -12,6 +12,7 @@ import {
   type ReportLineSeries,
 } from "./report-rendering";
 import { renderFrameOverlay, renderFramePreview, renderTrussOverlay, renderTrussPreview } from "./report-structure-images";
+import type { DataCurveOption } from "../components/workbench-result-metrics";
 
 export type ReportImages = Record<string, string>;
 
@@ -37,11 +38,17 @@ export async function buildReportImages(input: ReportInput): Promise<ReportImage
       case "frameOverlay":
         if (input.frameResults) images[item.key] = await renderFrameOverlay(input.frameResults, item.figure.metric, item.viewSettings, item.modelLabelOffsets);
         break;
+      case "frameDataCurve":
+        images[item.key] = await renderDataCurveImage(item.curve);
+        break;
       case "trussPreview":
         if (input.trussResults) images[item.key] = await renderTrussPreview(input.trussResults, item.viewSettings, item.modelLabelOffsets);
         break;
       case "trussOverlay":
         if (input.trussResults) images[item.key] = await renderTrussOverlay(input.trussResults, item.figure.metric, item.viewSettings, item.modelLabelOffsets);
+        break;
+      case "trussDataCurve":
+        images[item.key] = await renderDataCurveImage(item.curve);
         break;
       case "sensitivity":
         if (input.sensitivityData) images[item.key] = await renderSensitivityImage(input.sensitivityData);
@@ -77,6 +84,20 @@ async function renderSensitivityImage(sensitivityData: ReportInput["sensitivityD
       color: item.color ?? MEMBER_COLORS[index % MEMBER_COLORS.length],
     })),
     showLegend: true,
+  });
+}
+
+async function renderDataCurveImage(curve: DataCurveOption) {
+  const valueScale = curve.valueScale ?? 1;
+  return renderLineChart({
+    xLabels: curve.xLabels ?? curve.xData.map((value) => String(value)),
+    yLabel: curve.yLabel,
+    unit: curve.unit,
+    series: [{
+      name: curve.title,
+      data: curve.yData.map((value) => value * valueScale),
+      color: curve.color,
+    }],
   });
 }
 

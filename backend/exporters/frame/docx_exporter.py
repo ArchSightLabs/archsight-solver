@@ -19,6 +19,12 @@ from backend.exporters.common.report_figures import (
 from backend.exporters.frame.xlsx_exporter import build_summary_tables
 
 
+FRAME_DATA_CURVE_FIGURES = (
+    ("frame.curve.ux", "节点 X 向位移数据曲线", "mm"),
+    ("frame.curve.uy", "节点 Y 向位移数据曲线", "mm"),
+)
+
+
 def export_docx(
     solution: Dict[str, Any],
     material_name: str,
@@ -115,10 +121,23 @@ def _add_member_diagram_figures(doc, solution: Dict[str, Any], report_images: Op
                 f"图 4-{index} 构件{figure.title}（{figure.unit}，模型叠加工程图）",
             )
             index += 1
+    if include_traditional_figures(options):
+        for image_key, title, unit in FRAME_DATA_CURVE_FIGURES:
+            image = png_from_report_images(report_images, image_key)
+            if not image:
+                missing_labels.append(title)
+                continue
+            add_heading(doc, f"4.{index} {title}")
+            add_png_figure(
+                doc,
+                image,
+                f"图 4-{index} {title}（{unit}，按节点序列绘制）",
+            )
+            index += 1
     if missing_labels:
         add_report_note(
             doc,
-            f"说明：未收到前端同源模型叠加工程图（{'、'.join(missing_labels)}），已跳过对应插图；请从工作台导出 DOCX 以生成与结果页一致的工程图。",
+            f"说明：未收到前端同源工程图或数据曲线（{'、'.join(missing_labels)}），已跳过对应插图；请从工作台导出 DOCX 以生成与结果页一致的图形。",
         )
 
 

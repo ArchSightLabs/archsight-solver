@@ -25,10 +25,15 @@ def _report_image(seed: int = 1) -> str:
     return f"data:image/png;base64,{base64.b64encode(png).decode('ascii')}"
 
 
-def _truss_report_images_for_scope(*, include_all: bool) -> dict[str, str]:
+TRUSS_DATA_CURVE_IMAGE_KEYS = ("truss.curve.ux", "truss.curve.uy", "truss.curve.axial")
+TRUSS_DATA_CURVE_TITLES = ("节点 X 向位移数据曲线", "节点 Y 向位移数据曲线", "杆件轴力数据曲线")
+
+
+def _truss_report_images_for_scope(*, include_all: bool, include_data_curves: bool = False) -> dict[str, str]:
     keys = [
         "truss.preview",
         *(figure.image_key for figure in report_figures_for_scope(TRUSS_REPORT_OVERLAY_FIGURES, include_all=include_all)),
+        *(TRUSS_DATA_CURVE_IMAGE_KEYS if include_data_curves else ()),
     ]
     return {key: _report_image(index) for index, key in enumerate(keys, start=1)}
 
@@ -152,7 +157,7 @@ def test_truss_docx_export_smoke(client):
     assert "3.2 节点竖向位移图" not in full_text
     assert "4.1 杆件轴力图" not in full_text
     assert "计算简图与结果同图显示" not in full_text
-    assert "未收到前端同源模型叠加工程图" in full_text
+    assert "未收到前端同源工程图或数据曲线" in full_text
     assert "杆件轴力图、节点位移图" in full_text
     assert "杆件轴力曲线" not in full_text
     assert "5. 校核结论" in full_text
@@ -162,7 +167,7 @@ def test_truss_docx_export_smoke(client):
 
 def test_truss_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
     figures = report_figures_for_scope(TRUSS_REPORT_OVERLAY_FIGURES, include_all=True)
-    report_images = _truss_report_images_for_scope(include_all=True)
+    report_images = _truss_report_images_for_scope(include_all=True, include_data_curves=True)
 
     response = client.post(
         "/api/export",
@@ -179,19 +184,23 @@ def test_truss_docx_export_uses_ui_overlay_figures_for_complete_scope(client):
     full_text = "\n".join(paragraph.text for paragraph in doc.paragraphs)
 
     assert "3.1 节点水平位移图" not in full_text
-    assert "杆件轴力曲线" not in full_text
     assert "图 2-1 平面桁架受力变形示意（节点、杆件编号、尺寸与荷载标注同图显示；蓝色为放大后的变形线）" in full_text
-    assert list(report_images) == ["truss.preview", *(figure.image_key for figure in figures)]
+    expected_image_keys = ["truss.preview", *(figure.image_key for figure in figures), *TRUSS_DATA_CURVE_IMAGE_KEYS]
+    assert list(report_images) == expected_image_keys
     for index, figure in enumerate(figures, start=1):
         assert f"4.{index} {figure.title}" in full_text
         assert f"图 4-{index} {figure.title}（{figure.unit}，模型叠加工程图）" in full_text
+    for offset, title in enumerate(TRUSS_DATA_CURVE_TITLES, start=1):
+        index = len(figures) + offset
+        assert f"4.{index} {title}" in full_text
+        assert f"图 4-{index} {title}" in full_text
     assert "未收到前端同源受力变形图" not in full_text
-    assert "未收到前端同源模型叠加工程图" not in full_text
-    assert len(doc.inline_shapes) == 1 + len(figures)
+    assert "未收到前端同源工程图或数据曲线" not in full_text
+    assert len(doc.inline_shapes) == 1 + len(figures) + len(TRUSS_DATA_CURVE_IMAGE_KEYS)
     assert_docx_embeds_report_images(
         response.data,
         report_images,
-        ["truss.preview", *(figure.image_key for figure in figures)],
+        expected_image_keys,
     )
 
 
@@ -217,7 +226,7 @@ def test_truss_docx_export_legacy_control_scope_uses_all_core_figures(client):
     for index, figure in enumerate(figures, start=1):
         assert f"4.{index} {figure.title}" in full_text
         assert f"图 4-{index} {figure.title}（{figure.unit}，模型叠加工程图）" in full_text
-    assert "未收到前端同源模型叠加工程图" not in full_text
+    assert "未收到前端同源工程图或数据曲线" not in full_text
     assert len(doc.inline_shapes) == 1 + len(figures)
     assert_docx_embeds_report_images(
         response.data,

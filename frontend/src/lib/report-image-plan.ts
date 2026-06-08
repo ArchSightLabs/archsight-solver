@@ -13,6 +13,7 @@ import {
 import { analysisVocabulary } from "./analysis-vocabulary.ts";
 import { modelObjectMemberTerm } from "./model-object-vocabulary.ts";
 import { DEFAULT_REPORT_EXPORT_OPTIONS, reportExportOptionsForMode, type ReportExportOptions } from "./report-options.ts";
+import { frameDataCurveOptions, trussDataCurveOptions, type DataCurveOption } from "../components/workbench-result-metrics.ts";
 
 export interface ReportImagePlanInput {
   analysisMode: AnalysisMode;
@@ -36,8 +37,10 @@ export type ReportImagePlanItem =
   | ({ key: string; label: string; kind: "beamTraditional"; figure: BeamReportFigure } & ReportImagePlanVisualOptions)
   | ({ key: "frame.preview"; label: string; kind: "framePreview" } & ReportImagePlanVisualOptions)
   | ({ key: string; label: string; kind: "frameOverlay"; figure: FrameMemberReportFigure } & ReportImagePlanVisualOptions)
+  | { key: string; label: string; kind: "frameDataCurve"; curve: DataCurveOption }
   | ({ key: "truss.preview"; label: string; kind: "trussPreview" } & ReportImagePlanVisualOptions)
   | ({ key: string; label: string; kind: "trussOverlay"; figure: TrussReportFigure } & ReportImagePlanVisualOptions)
+  | { key: string; label: string; kind: "trussDataCurve"; curve: DataCurveOption }
   | { key: "sensitivity.response"; label: string; kind: "sensitivity" };
 
 export function reportFigureFlags(options: ReportExportOptions) {
@@ -91,7 +94,7 @@ export function buildReportImagePlan(input: ReportImagePlanInput): ReportImagePl
 
   if (includeFigures && input.analysisMode === "frame" && input.frameResults) {
     plan.push({ key: "frame.preview", label: analysisVocabulary("frame").previewFigureLabel, kind: "framePreview", ...visualOptions });
-    if (includeOverlay || includeTraditional) {
+    if (includeOverlay) {
       plan.push(...reportFiguresForScope(FRAME_REPORT_MEMBER_FIGURES, includeAll).map((figure) => ({
         key: figure.overlayImageKey,
         label: `${modelObjectMemberTerm("frame")}${figure.title}`,
@@ -100,17 +103,33 @@ export function buildReportImagePlan(input: ReportImagePlanInput): ReportImagePl
         ...visualOptions,
       })));
     }
+    if (includeTraditional) {
+      plan.push(...frameDataCurveOptions(input.frameResults).map((curve) => ({
+        key: `frame.curve.${curve.id}`,
+        label: curve.title,
+        kind: "frameDataCurve" as const,
+        curve,
+      })));
+    }
   }
 
   if (includeFigures && input.analysisMode === "truss" && input.trussResults) {
     plan.push({ key: "truss.preview", label: analysisVocabulary("truss").previewFigureLabel, kind: "trussPreview", ...visualOptions });
-    if (includeOverlay || includeTraditional) {
+    if (includeOverlay) {
       plan.push(...reportFiguresForScope(TRUSS_REPORT_OVERLAY_FIGURES, includeAll).map((figure) => ({
         key: figure.imageKey,
         label: `平面桁架${figure.title}`,
         kind: "trussOverlay" as const,
         figure,
         ...visualOptions,
+      })));
+    }
+    if (includeTraditional) {
+      plan.push(...trussDataCurveOptions(input.trussResults).map((curve) => ({
+        key: `truss.curve.${curve.id}`,
+        label: curve.title,
+        kind: "trussDataCurve" as const,
+        curve,
       })));
     }
   }
