@@ -2,6 +2,7 @@ import { type CSSProperties } from "react";
 import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments, formatBeamDimensionLength } from "../../lib/beam-span-dimensions";
 import { modelCanvasLabelPolicy, shouldShowSteppedLabel } from "../../lib/model-canvas-label-policy";
 import { BEAM_MODEL_CANVAS_BASE_SIZE, type ModelCanvasSize } from "../../lib/model-canvas-sizing";
+import type { ModelCanvasNodeDragPreview } from "../../lib/model-canvas-projection";
 import { modelObjectMemberTerm } from "../../lib/model-object-vocabulary";
 import { STRUCTURE_NODE_RADII, STRUCTURE_VISUAL_STROKES } from "../../lib/structure-visual-tokens";
 import {
@@ -129,6 +130,39 @@ function buildBeamNodeLabels(nodeXs: number[], pointLoadXs: number[], beamStart:
   });
 }
 
+function beamNodePositions(spans: WorkspaceState["beam"]["spans"]) {
+  let current = 0;
+  return [
+    0,
+    ...spans.map((span) => {
+      current += span.length;
+      return Number(current.toFixed(3));
+    }),
+  ];
+}
+
+function previewBeamWithMovedNode(beam: WorkspaceState["beam"], dragPreview: ModelCanvasNodeDragPreview | null | undefined) {
+  if (!dragPreview || dragPreview.mode !== "beam") return beam;
+  const match = /^node-(\d+)$/.exec(dragPreview.nodeId);
+  if (!match) return beam;
+  const nodeIndex = Number.parseInt(match[1], 10);
+  if (!Number.isInteger(nodeIndex) || nodeIndex <= 0 || nodeIndex >= beam.spans.length) return beam;
+
+  const spans = [...beam.spans];
+  const prevSpan = spans[nodeIndex - 1];
+  const nextSpan = spans[nodeIndex];
+  const adjacentLength = prevSpan.length + nextSpan.length;
+  const prefixLength = spans.slice(0, nodeIndex - 1).reduce((sum, span) => sum + span.length, 0);
+  const previewPrevLength = Math.max(0.1, Math.min(adjacentLength - 0.1, dragPreview.x - prefixLength));
+  const nextPrevLength = Number(previewPrevLength.toFixed(3));
+  const nextNextLength = Number((adjacentLength - nextPrevLength).toFixed(3));
+  spans[nodeIndex - 1] = { ...prevSpan, length: nextPrevLength };
+  spans[nodeIndex] = { ...nextSpan, length: nextNextLength };
+  const nodeXs = beamNodePositions(spans);
+  const supports = beam.supports.map((support, index) => ({ ...support, x: nodeXs[index] ?? support.x }));
+  return { ...beam, spans, supports };
+}
+
 function shiftLoadLabelAwayFromPointLoads(labelX: number, pointLoadXs: number[], minX: number, maxX: number, preferredDirection: -1 | 1) {
   const clampedX = Math.min(maxX, Math.max(minX, labelX));
   if (!pointLoadXs.some((loadX) => Math.abs(loadX - clampedX) < 92)) {
@@ -149,6 +183,7 @@ export function BeamSketch({
   modelPreviewStyle = "simple",
   selection,
   selectionSet = [],
+  dragPreview,
   labelDragPreview,
   onSelect,
 }: {
@@ -157,34 +192,36 @@ export function BeamSketch({
   modelPreviewStyle?: ModelPreviewStyle;
   selection?: WorkbenchSelection | null;
   selectionSet?: WorkbenchSelection[];
+  dragPreview?: ModelCanvasNodeDragPreview | null;
   labelDragPreview?: ModelCanvasLabelDragPreview | null;
   onSelect?: (next: WorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
 }) {
-  const total = Math.max(1, beam.spans.reduce((sum, span) => sum + span.length, 0));
+  const displayBeam = previewBeamWithMovedNode(beam, dragPreview);
+  const total = Math.max(1, displayBeam.spans.reduce((sum, span) => sum + span.length, 0));
   const memberTerm = modelObjectMemberTerm("beam");
   const beamDrawableWidth = Math.max(220, canvasSize.width - BEAM_SKETCH_SIDE_PAD * 2);
-  const segments = beam.spans.reduce<Array<{ index: number; length: number; start: number; end: number }>>((items, span, index) => {
+  const segments = displayBeam.spans.reduce<Array<{ index: number; length: number; start: number; end: number }>>((items, span, index) => {
     const start = items[index - 1]?.end ?? BEAM_SKETCH_SIDE_PAD;
     const end = start + (span.length / total) * beamDrawableWidth;
     return [...items, { index, length: span.length, start, end }];
   }, []);
   const beamStart = segments[0]?.start ?? BEAM_SKETCH_SIDE_PAD;
   const beamEnd = segments[segments.length - 1]?.end ?? canvasSize.width - BEAM_SKETCH_SIDE_PAD;
-  const beamMemberIds = beam.spans.map((span, index) => beamSpanMemberId(span, index));
-  const beamNodeIds = Array.from({ length: beam.spans.length + 1 }, (_, index) => beamBoundaryNodeId(beam, index));
-  const spanDimensions = buildBeamSpanDimensionSegments(beam.spans.map((span) => span.length), total, beamStart, beamEnd, {
+  const beamMemberIds = displayBeam.spans.map((span, index) => beamSpanMemberId(span, index));
+  const beamNodeIds = Array.from({ length: displayBeam.spans.length + 1 }, (_, index) => beamBoundaryNodeId(displayBeam, index));
+  const spanDimensions = buildBeamSpanDimensionSegments(displayBeam.spans.map((span) => span.length), total, beamStart, beamEnd, {
     memberIds: beamMemberIds,
     nodeIds: beamNodeIds,
   });
   const spanDimensionLegendRows = buildBeamSpanDimensionLegendRows(spanDimensions, 440, 12);
   const beamDimensionLegendRows = [`梁长=${formatBeamDimensionLength(total)}`, ...spanDimensionLegendRows];
-  const uniformRange = beam.uniformLoadEnabled ? buildUniformLoadRange(beam, beamStart, beamEnd) : null;
-  const linearRanges = activeBeamLinearLoads(beam).map((load) => ({
+  const uniformRange = displayBeam.uniformLoadEnabled ? buildUniformLoadRange(displayBeam, beamStart, beamEnd) : null;
+  const linearRanges = activeBeamLinearLoads(displayBeam).map((load) => ({
     load,
     ...buildLinearLoadRange(load, beamStart, beamEnd),
   }));
   const nodeLabelXs = segments.flatMap((segment) => (segment.index === segments.length - 1 ? [segment.start, segment.end] : [segment.start]));
-  const pointLoads = beam.pointLoads ?? [];
+  const pointLoads = displayBeam.pointLoads ?? [];
   const pointLoadXs = pointLoads.map((load) => beamStart + (beamEnd - beamStart) * clampRatio(load.positionRatio, 0.5));
   const nodeLabels = buildBeamNodeLabels(nodeLabelXs, pointLoadXs, beamStart, beamEnd);
   const labelPolicy = modelCanvasLabelPolicy({
@@ -253,7 +290,7 @@ export function BeamSketch({
   };
   const labelSelection = (id: string) => ({ mode: "beam", type: "label", id } as const);
   const isLabelSelected = (id: string) => isSelected(labelSelection(id));
-  const labelTransform = (id: string) => modelLabelTransform(previewOrStoredModelLabelOffset(beam.modelLabelOffsets, labelDragPreview, "beam", id));
+  const labelTransform = (id: string) => modelLabelTransform(previewOrStoredModelLabelOffset(displayBeam.modelLabelOffsets, labelDragPreview, "beam", id));
   const labelProps = (id: string, title: string) => ({
     ...svgLabelInteractiveProps(title, (event) => onSelect?.(labelSelection(id), { additive: isAdditiveSelectionEvent(event), openEditor: false })),
     ...svgCanvasSelectionProps(labelSelection(id), { draggableLabel: true }),
@@ -308,11 +345,12 @@ export function BeamSketch({
       {segments.map((segment) => {
         const nodeSelection = { mode: "beam", type: "node", id: `node-${segment.index}` } as const;
         const isNodeSelected = isSelected(nodeSelection);
+        const isInteriorNode = segment.index > 0 && segment.index < displayBeam.spans.length;
         return (
           <g
             key={`node-${segment.index}`}
             {...svgInteractiveProps(`选择梁系节点 ${segment.index}`, (event) => activateSelection(nodeSelection, event))}
-            {...svgCanvasSelectionProps(nodeSelection, { draggableNode: true })}
+            {...svgCanvasSelectionProps(nodeSelection, { draggableNode: isInteriorNode })}
           >
             <circle cx={segment.start} cy={BEAM_SKETCH_AXIS_Y} r={isNodeSelected ? STRUCTURE_NODE_RADII.modelSelected : STRUCTURE_NODE_RADII.preview} fill={isNodeSelected ? "var(--beam-sketch-selected)" : "var(--beam-sketch-node)"} stroke={isNodeSelected ? "var(--model-label-halo)" : "none"} strokeWidth={isNodeSelected ? 2 : 0} />
           </g>
@@ -326,21 +364,22 @@ export function BeamSketch({
           <g
             key={`node-${lastIndex}`}
             {...svgInteractiveProps(`选择梁系节点 ${lastIndex}`, (event) => activateSelection(lastNodeSelection, event))}
-            {...svgCanvasSelectionProps(lastNodeSelection, { draggableNode: true })}
+            {...svgCanvasSelectionProps(lastNodeSelection)}
           >
             <circle cx={segments[segments.length - 1].end} cy={BEAM_SKETCH_AXIS_Y} r={isLastNodeSelected ? STRUCTURE_NODE_RADII.modelSelected : STRUCTURE_NODE_RADII.preview} fill={isLastNodeSelected ? "var(--beam-sketch-selected)" : "var(--beam-sketch-node)"} stroke={isLastNodeSelected ? "var(--model-label-halo)" : "none"} strokeWidth={isLastNodeSelected ? 2 : 0} />
           </g>
         );
       })() : null}
-      {beam.supports.map((support, index) => {
+      {displayBeam.supports.map((support, index) => {
         const x = beamStart + (support.x / total) * (beamEnd - beamStart);
         const supportSelection = { mode: "beam", type: "support", id: `support-${index}` } as const;
         const selected = isSelected(supportSelection);
+        const isInteriorSupport = index > 0 && index < displayBeam.spans.length;
         return (
           <g
             key={support.id}
             {...svgInteractiveProps(`选择梁系支座 ${support.id}`, (event) => activateSelection(supportSelection, event))}
-            {...svgCanvasSelectionProps(supportSelection)}
+            {...svgCanvasSelectionProps(supportSelection, { draggableNode: isInteriorSupport })}
           >
             <title>{`梁系支座 ${support.id}`}</title>
             <rect x={x - 24} y="174" width="48" height="44" rx="12" fill={selected ? "var(--beam-sketch-selected)" : "transparent"} opacity={selected ? "0.1" : "0"} />
@@ -397,7 +436,7 @@ export function BeamSketch({
         )}
         <g>
         <g stroke="var(--beam-sketch-load)" strokeWidth={loadSelected ? "1.55" : "1.15"}>
-          {beam.uniformLoadEnabled ? visibleUniformArrows.map((x, index) => (
+          {displayBeam.uniformLoadEnabled ? visibleUniformArrows.map((x, index) => (
             <path key={`uniform-${index}`} d={`M${x.toFixed(1)} ${(uniformGuideY + 4).toFixed(1)} L${x.toFixed(1)} ${BEAM_DISTRIBUTED_LOAD_TIP_Y}`} markerEnd="url(#modelDistributedArrow)" />
           )) : null}
           {visibleLinearArrows.flatMap((arrows, loadIndex) => {
@@ -427,7 +466,7 @@ export function BeamSketch({
           <g>
             <g {...labelProps("load:uniform", "移动梁系均布荷载标注")}>
               <text x={uniformLabelX} y={uniformTitleY} textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--beam-sketch-load)" stroke={isLabelSelected("load:uniform") ? "var(--beam-sketch-label)" : "var(--model-label-halo)"} strokeWidth="3" paintOrder="stroke">
-                q={formatMagnitude(beam.q)} kN/m
+                q={formatMagnitude(displayBeam.q)} kN/m
               </text>
             </g>
           </g>

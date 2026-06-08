@@ -109,11 +109,11 @@ test("框架和桁架坐标编辑共享主控画布网格吸附工具", () => {
   assert.match(app, /const \[gridSnapEnabled, setGridSnapEnabled\] = useState\(false\)/u);
   assert.match(app, /onGridSnapEnabledChange=\{setGridSnapEnabled\}/u);
   assert.match(toolbar, /<GridSnapControls/u);
-  assert.match(toolbar, /variant="toolbar"/u);
+  assert.match(toolbar, /variant="statusbar"/u);
   assert.match(toolbar, /snapCoordinateToGrid/u);
   assert.match(toolbar, /const snapModelPoint/u);
-  assert.match(gridSnapControls, /role=\{isToolbar \? "toolbar" : undefined\}/u);
-  assert.match(gridSnapControls, /aria-label=\{isToolbar \? "网格吸附工具" : undefined\}/u);
+  assert.match(gridSnapControls, /role=\{isToolbar \|\| isStatusbar \? "toolbar" : undefined\}/u);
+  assert.match(gridSnapControls, /aria-label=\{isToolbar \|\| isStatusbar \? "网格吸附工具" : undefined\}/u);
   assert.match(gridSnapControls, /min="0\.01"/u);
   assert.match(gridSnapControls, /step="0\.01"/u);
 

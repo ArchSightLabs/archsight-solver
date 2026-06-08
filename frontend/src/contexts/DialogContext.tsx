@@ -3,19 +3,19 @@ import React, { createContext, useContext, useState, useEffect, type ReactNode }
 interface DialogContextValue {
   isNewAnalysisObjectDialogOpen: boolean;
   setIsNewAnalysisObjectDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  
+
   projectInfoDialogMode: "create" | "edit" | null;
   setProjectInfoDialogMode: React.Dispatch<React.SetStateAction<"create" | "edit" | null>>;
-  
+
   isSystemSettingsOpen: boolean;
   setIsSystemSettingsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  
+
   isTemplateLibraryOpen: boolean;
   setIsTemplateLibraryOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  
+
   isPublicExamplesOpen: boolean;
   setIsPublicExamplesOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  
+
   isBenchmarkSubmissionOpen: boolean;
   setIsBenchmarkSubmissionOpen: React.Dispatch<React.SetStateAction<boolean>>;
 

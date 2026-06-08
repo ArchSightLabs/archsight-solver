@@ -35,6 +35,7 @@ export function MemberMaterialPresetField({
   label = "材料预设（回填 E）",
   ariaLabel = `${memberLabel}材料预设（回填弹性模量 E）`,
   showHint = true,
+  compact = false,
 }: MemberMaterialPresetFieldProps) {
   const selectedMaterialId = materialId ?? materialIdForYoungModulus(youngModulusGPa, materialLibrary);
   const materialOptions = materialDropdownOptions(materialLibrary);
@@ -63,6 +64,7 @@ export function MemberMaterialPresetField({
         fallbackSelectedLabel="手动 E"
         menuMaxHeight={240}
         ariaLabel={ariaLabel}
+        compact={compact}
       />
       {showHint ? (
         <div className="text-[10px] font-semibold text-muted-foreground">

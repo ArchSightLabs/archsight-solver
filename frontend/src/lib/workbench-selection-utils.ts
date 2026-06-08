@@ -64,7 +64,7 @@ export function workbenchSelectionFromCanvasDataset(dataset: globalThis.DOMStrin
   if (!mode || !type || !id) return null;
 
   if (mode === "beam") {
-    if (type === "span" || type === "support") return { mode, type, id };
+    if (type === "span" || type === "support" || type === "node") return { mode, type, id };
     if (type === "load" && id === "primary") return { mode, type, id };
     if (type === "label") return { mode, type, id };
     return null;

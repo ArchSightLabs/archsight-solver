@@ -27,7 +27,7 @@ export function TrussForm({
   onSelectionChange,
   gridSnapEnabled = false,
   gridSnapStepM = 0.5,
-  compact = false 
+  compact = false
 }: TrussFormProps) {
   const visibleSectionId = normalizeModuleSectionId("truss", activeSectionId) ?? DEFAULT_SECTION_ID;
   return (

@@ -14,8 +14,22 @@ async function openTrussWorkbench(page: Page) {
   await expect(page.locator('svg[data-model-canvas="truss"]')).toBeVisible();
 }
 
+async function openBeamWorkbench(page: Page) {
+  await page.addInitScript(() => window.localStorage.clear());
+  await page.goto("/");
+  await expect(page.locator('svg[data-model-canvas="beam"]')).toBeVisible();
+}
+
 function canvasItem(page: Page, type: "node" | "member" | "load", id: string) {
   return page.locator(`[data-canvas-mode="frame"][data-canvas-type="${type}"][data-canvas-id="${id}"]`);
+}
+
+function beamCanvasItem(page: Page, type: "node" | "span" | "support", id: string) {
+  return page.locator(`[data-canvas-mode="beam"][data-canvas-type="${type}"][data-canvas-id="${id}"]`);
+}
+
+function boxCenterX(box: { x: number; width: number }) {
+  return box.x + box.width / 2;
 }
 
 type FramePayload = {
@@ -179,6 +193,40 @@ test("框架画布支持两节点多选连接、拖动节点和 Delete 删除", 
 
   await page.keyboard.press("Delete");
   await expect(canvasItem(page, "node", "N3")).toHaveCount(0);
+});
+
+test("梁系画布支持拖动内部节点并同步支座位置", async ({ page }) => {
+  await openBeamWorkbench(page);
+
+  const firstNode = beamCanvasItem(page, "node", "node-0");
+  const middleNode = beamCanvasItem(page, "node", "node-1");
+  const lastNode = beamCanvasItem(page, "node", "node-2");
+  const middleSupport = beamCanvasItem(page, "support", "support-1");
+
+  await expect(middleNode).toHaveAttribute("data-canvas-draggable-node", "true");
+  await expect(firstNode).not.toHaveAttribute("data-canvas-draggable-node", "true");
+  await expect(lastNode).not.toHaveAttribute("data-canvas-draggable-node", "true");
+  await expect(middleSupport).toBeVisible();
+
+  const beforeNode = await middleNode.boundingBox();
+  expect(beforeNode).not.toBeNull();
+  if (!beforeNode) return;
+
+  const startX = boxCenterX(beforeNode);
+  const startY = beforeNode.y + beforeNode.height / 2;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX + 90, startY, { steps: 8 });
+  await page.mouse.up();
+
+  const afterNode = await middleNode.boundingBox();
+  const afterSupport = await middleSupport.boundingBox();
+  expect(afterNode).not.toBeNull();
+  expect(afterSupport).not.toBeNull();
+  if (!afterNode || !afterSupport) return;
+
+  expect(Math.abs(boxCenterX(afterNode) - startX)).toBeGreaterThan(20);
+  expect(Math.abs(boxCenterX(afterSupport) - boxCenterX(afterNode))).toBeLessThan(3);
 });
 
 test("框架画布支持框选节点并切换到连接所选节点动作", async ({ page }) => {

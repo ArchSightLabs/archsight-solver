@@ -101,7 +101,7 @@ function AppContent() {
     setIsTemplateLibraryOpen,
     setIsNewAnalysisObjectDialogOpen
   } = useDialogs();
-  
+
   const {
     activeAnalysisObject,
     clearProjectFileLink,
@@ -183,7 +183,7 @@ function AppContent() {
     updateWorkspace,
     workspace,
   });
-  
+
   const {
     templates,
     baselineTemplateId,

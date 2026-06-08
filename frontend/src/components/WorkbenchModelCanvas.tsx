@@ -185,6 +185,14 @@ function isSelectionModifier(event: ReactPointerEvent<HTMLElement>) {
   return event.shiftKey || event.ctrlKey || event.metaKey;
 }
 
+function nodeDragIdForSelection(selection: WorkbenchSelection): string | null {
+  if (selection.mode === "beam" && selection.type === "support") {
+    const match = /^support-(\d+)$/.exec(selection.id);
+    return match ? `node-${match[1]}` : null;
+  }
+  return selection.id;
+}
+
 function isCanvasControlTarget(target: globalThis.EventTarget | null): boolean {
   return target instanceof globalThis.Element && Boolean(target.closest("button,input,textarea,select,[role='toolbar']"));
 }
@@ -378,6 +386,8 @@ export function WorkbenchModelCanvas({
     if (!target || !svg) return false;
     const draggedSelection = workbenchSelectionFromCanvasDataset(target.dataset);
     if (!draggedSelection || draggedSelection.mode !== mode || (draggedSelection.type !== "node" && draggedSelection.type !== "support")) return false;
+    const dragNodeId = nodeDragIdForSelection(draggedSelection);
+    if (!dragNodeId) return false;
     const svgPoint = clientPointToSvgPoint(event, svg);
     if (!svgPoint) return false;
     const modelPoint = mode === "frame"
@@ -390,12 +400,12 @@ export function WorkbenchModelCanvas({
     nodeDragRef.current = {
       pointerId: event.pointerId,
       mode,
-      nodeId: draggedSelection.id,
+      nodeId: dragNodeId,
       svg,
       lastPoint: nextPoint,
       moved: false,
     };
-    setNodeDragPreview({ mode, nodeId: draggedSelection.id, ...nextPoint });
+    setNodeDragPreview({ mode, nodeId: dragNodeId, ...nextPoint });
     event.currentTarget.setPointerCapture(event.pointerId);
     if (!selectionSetContains(selectionSet, draggedSelection)) {
       onSelect?.(draggedSelection, { additive: isSelectionModifier(event), openEditor: false });
@@ -819,6 +829,7 @@ export function WorkbenchModelCanvas({
                 modelPreviewStyle={modelPreviewStyle}
                 selection={selection}
                 selectionSet={selectionSet}
+                dragPreview={nodeDragPreview}
                 labelDragPreview={labelDragPreview}
                 onSelect={onSelect}
               />
@@ -880,7 +891,9 @@ export function WorkbenchModelCanvas({
         <div className="flex items-center gap-4">
           {cursorPoint ? (
             <span className="font-bold opacity-70">
-              X: {cursorPoint.x.toFixed(3)} m &nbsp;&nbsp; Y: {cursorPoint.y.toFixed(3)} m
+              {mode === "beam"
+                ? `站点 X: ${cursorPoint.x.toFixed(3)} m`
+                : `X: ${cursorPoint.x.toFixed(3)} m   Y: ${cursorPoint.y.toFixed(3)} m`}
             </span>
           ) : null}
         </div>

@@ -27,7 +27,7 @@ export function FrameForm({
   onSelectionChange,
   gridSnapEnabled = false,
   gridSnapStepM = 0.5,
-  compact = false 
+  compact = false
 }: FrameFormProps) {
   const visibleSectionId = normalizeModuleSectionId("frame", activeSectionId) ?? DEFAULT_SECTION_ID;
   const commitCollections = (next: {

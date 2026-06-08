@@ -101,7 +101,7 @@ export function AppHeader({
                 {isFileMenuOpen ? (
                   <div
                     role="menu"
-                    className="absolute left-0 top-[calc(100%+0.45rem)] z-50 w-52 rounded-lg border border-slate-300 bg-white p-1.5 text-slate-950 shadow-2xl shadow-slate-950/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-50"
+                    className="absolute right-0 top-[calc(100%+0.45rem)] z-50 w-52 rounded-lg border border-slate-300 bg-white p-1.5 text-slate-950 shadow-2xl shadow-slate-950/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-50"
                   >
                     <button
                       type="button"

@@ -9,7 +9,7 @@ interface DeferredIdInputProps {
   compact?: boolean;
 }
 
-export function DeferredIdInput({ ariaLabel, value, onCommit, className }: DeferredIdInputProps) {
+export function DeferredIdInput({ ariaLabel, value, onCommit, className, compact = false }: DeferredIdInputProps) {
   const [draft, setDraft] = useState(value);
 
   const commitDraft = () => {
@@ -39,6 +39,7 @@ export function DeferredIdInput({ ariaLabel, value, onCommit, className }: Defer
         }
       }}
       className={className}
+      compact={compact}
     />
   );
 }

@@ -22,7 +22,7 @@ interface GlobalDialogsProps {
   project: SolverProject;
   visitStats: { pageViews: string; uniqueVisitors: string };
   setModelPreviewStyle: (style: ModelPreviewStyle) => void;
-  
+
   objectCountByType: Record<AnalysisObjectType, number>;
   handleCreateAnalysisObject: (type: AnalysisObjectType, name: string) => void;
 
@@ -52,7 +52,7 @@ interface GlobalDialogsProps {
   duplicateTemplate: (templateId: string) => TemplateActionResult<ProjectTemplate>;
   deleteTemplate: (id: string) => TemplateActionResult<void>;
   setBaselineTemplate: (id: string | null) => TemplateActionResult<void>;
-  
+
   RELEASE_NOTES_HREF: string;
   USER_MANUAL_HREF: string;
 }

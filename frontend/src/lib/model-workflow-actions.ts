@@ -38,6 +38,7 @@ import {
   removeTrussNodeCollections,
   type TrussEditorCollections,
 } from "./truss-model-edits.ts";
+import { MAX_BEAM_SPANS } from "./solver-limits.ts";
 import { createDefaultBeamSupports, type WorkspaceState } from "./workspace-state.ts";
 import { filterSelectionSetForMode, uniqueWorkbenchSelections } from "./workbench-selection-utils.ts";
 
@@ -135,6 +136,25 @@ function trussWorkspaceWithCollections(workspace: WorkspaceState, collections: T
       customLoads: collections.loads,
     },
   };
+}
+
+function mergeBeamSupportLayout(
+  beamType: WorkspaceState["beam"]["beamType"],
+  spans: WorkspaceState["beam"]["spans"],
+  priorSupports: WorkspaceState["beam"]["supports"],
+): WorkspaceState["beam"]["supports"] {
+  return createDefaultBeamSupports(beamType, spans).map((support, index, defaults) => {
+    const prior = priorSupports.at(index);
+    const isLastSupport = index === defaults.length - 1;
+    const shouldKeepPriorType = prior && !(beamType === "continuous" && isLastSupport && prior.type === "pinned");
+    return {
+      ...support,
+      id: prior?.id?.trim() || support.id,
+      type: shouldKeepPriorType ? prior.type : support.type,
+      constraints: prior?.constraints ? [...prior.constraints] : support.constraints ? [...support.constraints] : undefined,
+      springs: prior?.springs?.map((spring) => ({ ...spring })),
+    };
+  });
 }
 
 function loadIndexFromSelection(selection: WorkbenchSelection): number | null {
@@ -763,7 +783,7 @@ export function moveModelCanvasNode({ workspace, mode, nodeId, point }: MoveMode
     if (!nodeId.startsWith("node-")) return null;
     const nodeIndex = parseInt(nodeId.replace("node-", ""), 10);
     if (isNaN(nodeIndex) || nodeIndex <= 0 || nodeIndex >= workspace.beam.spans.length) return null;
-    
+
     // Changing the x coordinate of a node means changing the lengths of the two adjacent spans
     const spans = [...workspace.beam.spans];
     const prevSpan = spans[nodeIndex - 1];
@@ -771,17 +791,19 @@ export function moveModelCanvasNode({ workspace, mode, nodeId, point }: MoveMode
     const oldPrevLength = prevSpan.length;
     const oldNextLength = nextSpan.length;
     const totalLength = oldPrevLength + oldNextLength;
-    
+
     // We only care about point.x, and it must be bounded by the outer nodes of the two spans
-    let newPrevLength = point.x - (workspace.beam.spans.slice(0, nodeIndex - 1).reduce((sum: number, s: any) => sum + s.length, 0));
+    let newPrevLength = point.x - workspace.beam.spans.slice(0, nodeIndex - 1).reduce((sum, span) => sum + span.length, 0);
     newPrevLength = Math.max(0.1, Math.min(totalLength - 0.1, newPrevLength)); // ensure min span length of 0.1
-    const newNextLength = totalLength - newPrevLength;
-    
-    spans[nodeIndex - 1] = { ...prevSpan, length: Number(newPrevLength.toFixed(3)) };
-    spans[nodeIndex] = { ...nextSpan, length: Number(newNextLength.toFixed(3)) };
-    
+    const nextPrevLength = Number(newPrevLength.toFixed(3));
+    const nextNextLength = Number((totalLength - nextPrevLength).toFixed(3));
+
+    spans[nodeIndex - 1] = { ...prevSpan, length: nextPrevLength };
+    spans[nodeIndex] = { ...nextSpan, length: nextNextLength };
+    const supports = mergeBeamSupportLayout(workspace.beam.beamType, spans, workspace.beam.supports);
+
     return {
-      workspace: { ...workspace, beam: { ...workspace.beam, spans } },
+      workspace: { ...workspace, beam: { ...workspace.beam, spans, supports } },
       selection: { mode: "beam", type: "node", id: nodeId },
     };
   }
@@ -807,23 +829,11 @@ export function deleteModelSelections({ workspace, selections }: ApplyModelSelec
     const spanSelections = selections.filter((s) => s.mode === "beam" && s.type === "span");
     if (spanSelections.length === 0 || workspace.beam.spans.length <= spanSelections.length) return null;
     const spanIndexesToDelete = spanSelections.map((s) => parseInt(s.id.replace("span-", ""), 10)).filter((i) => !isNaN(i));
-    const newSpans = workspace.beam.spans.filter((_: any, i: number) => !spanIndexesToDelete.includes(i));
+    const newSpans = workspace.beam.spans.filter((_, i) => !spanIndexesToDelete.includes(i));
     const nextBeamType = workspace.beam.beamType === "continuous" && newSpans.length === 1 ? "simply_supported" : workspace.beam.beamType;
-    
-    const remainingSupports = workspace.beam.supports.filter((_: any, i: number) => !spanIndexesToDelete.includes(i));
-    const defaultSupports = createDefaultBeamSupports(nextBeamType, newSpans);
-    const supports = defaultSupports.map((support, index) => {
-      const prior = remainingSupports.at(index);
-      const isLastSupport = index === defaultSupports.length - 1;
-      const shouldKeepPriorType = prior && !(nextBeamType === "continuous" && isLastSupport && prior.type === "pinned");
-      return {
-        ...support,
-        id: prior?.id?.trim() || support.id,
-        type: shouldKeepPriorType ? prior.type : support.type,
-        constraints: prior?.constraints ? [...prior.constraints] : support.constraints ? [...support.constraints] : undefined,
-        springs: prior?.springs?.map((spring) => ({ ...spring })),
-      };
-    });
+
+    const remainingSupports = workspace.beam.supports.filter((_, i) => !spanIndexesToDelete.includes(i));
+    const supports = mergeBeamSupportLayout(nextBeamType, newSpans, remainingSupports);
 
     return {
       workspace: { ...workspace, beam: { ...workspace.beam, beamType: nextBeamType, spans: newSpans, supports } },
@@ -900,7 +910,7 @@ export function modelGeometryToolbarState(
       targetLabel: isSpanSelected ? "选中跨段" : "全模型",
       memberTerm: "跨段",
       canTransform: false,
-      canAddConnectedNode: workspace.beam.spans.length < 12, // MAX_BEAM_SPANS is 12
+      canAddConnectedNode: workspace.beam.spans.length < MAX_BEAM_SPANS,
       connectsSelectedNodes: false,
       addConnectedNodeLabel: "增加跨段",
     };
@@ -932,9 +942,9 @@ export function applyModelGeometryAction({
   if (workspace.analysisMode === "beam") {
     if (action === "add-connected-node") {
       const spans = [...workspace.beam.spans];
-      if (spans.length >= 12) return null; // MAX_BEAM_SPANS
+      if (spans.length >= MAX_BEAM_SPANS) return null;
       const lastSpan = spans[spans.length - 1] ?? { length: 5, E: 30000000, I: 200000 };
-      
+
       const existingIds = new Set(spans.map(s => s.id));
       let suffix = spans.length + 1;
       let nextSpanId = `(${suffix})`;
@@ -952,19 +962,7 @@ export function applyModelGeometryAction({
       });
 
       const nextBeamType = workspace.beam.beamType === "simply_supported" ? "continuous" : workspace.beam.beamType;
-      const defaultSupports = createDefaultBeamSupports(nextBeamType, spans);
-      const supports = defaultSupports.map((support, index) => {
-        const prior = workspace.beam.supports.at(index);
-        const isLastSupport = index === defaultSupports.length - 1;
-        const shouldKeepPriorType = prior && !(nextBeamType === "continuous" && isLastSupport && prior.type === "pinned");
-        return {
-          ...support,
-          id: prior?.id?.trim() || support.id,
-          type: shouldKeepPriorType ? prior.type : support.type,
-          constraints: prior?.constraints ? [...prior.constraints] : support.constraints ? [...support.constraints] : undefined,
-          springs: prior?.springs?.map((spring) => ({ ...spring })),
-        };
-      });
+      const supports = mergeBeamSupportLayout(nextBeamType, spans, workspace.beam.supports);
 
       return {
         workspace: { ...workspace, beam: { ...workspace.beam, beamType: nextBeamType, spans, supports } },
