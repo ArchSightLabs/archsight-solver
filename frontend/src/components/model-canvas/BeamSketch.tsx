@@ -25,8 +25,10 @@ const BEAM_NODE_BADGE_OFFSET_X = 10;
 const BEAM_NODE_BADGE_Y = BEAM_SKETCH_AXIS_Y - 14;
 const BEAM_MEMBER_LABEL_Y = BEAM_SKETCH_AXIS_Y + 24;
 const BEAM_MEMBER_LABEL_HITBOX_Y = BEAM_SKETCH_AXIS_Y + 4;
-const BEAM_SUPPORT_DRAG_HITBOX_Y = BEAM_SKETCH_AXIS_Y + 8;
-const BEAM_SUPPORT_DRAG_HITBOX_HEIGHT = 34;
+const BEAM_SUPPORT_INTERIOR_DRAG_HITBOX_Y = BEAM_SKETCH_AXIS_Y + 8;
+const BEAM_SUPPORT_INTERIOR_DRAG_HITBOX_HEIGHT = 34;
+const BEAM_SUPPORT_ENDPOINT_DRAG_HITBOX_Y = BEAM_SKETCH_AXIS_Y - 16;
+const BEAM_SUPPORT_ENDPOINT_DRAG_HITBOX_HEIGHT = 58;
 const BEAM_SKETCH_SIDE_PAD = 96;
 
 function activeBeamLinearLoads(beam: WorkspaceState["beam"]) {
@@ -312,6 +314,44 @@ export function BeamSketch({
   });
   const loadSelection = { mode: "beam", type: "load", id: "primary" } as const;
   const loadSelected = isSelected(loadSelection);
+  const supportElements = displayBeam.supports.map((support, index) => {
+    const x = beamStart + (support.x / total) * (beamEnd - beamStart);
+    const supportSelection = { mode: "beam", type: "support", id: `support-${index}` } as const;
+    const selected = isSelected(supportSelection);
+    const isEndpointSupport = index === 0 || index === displayBeam.supports.length - 1;
+    const dragHitboxY = isEndpointSupport ? BEAM_SUPPORT_ENDPOINT_DRAG_HITBOX_Y : BEAM_SUPPORT_INTERIOR_DRAG_HITBOX_Y;
+    const dragHitboxHeight = isEndpointSupport ? BEAM_SUPPORT_ENDPOINT_DRAG_HITBOX_HEIGHT : BEAM_SUPPORT_INTERIOR_DRAG_HITBOX_HEIGHT;
+    return (
+      <g
+        key={support.id}
+        {...svgInteractiveProps(`选择梁系支座 ${support.id}`, (event) => activateSelection(supportSelection, event))}
+        {...svgCanvasSelectionProps(supportSelection, { draggableNode: true })}
+      >
+        <title>{`梁系支座 ${support.id}`}</title>
+        <rect x={x - 24} y={dragHitboxY} width="48" height={dragHitboxHeight} rx="12" fill={selected ? "var(--beam-sketch-selected)" : "transparent"} opacity={selected ? "0.1" : "0"} pointerEvents="all" />
+        <g pointerEvents="none">
+          {support.type === "fixed" ? (
+            <rect x={x - 12} y={BEAM_SKETCH_AXIS_Y} width="24" height="36" rx="2" fill="var(--beam-sketch-support-fill)" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
+          ) : support.type === "free" ? (
+            <circle cx={x} cy={BEAM_SKETCH_AXIS_Y} r="9" fill="none" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.6" strokeDasharray="3 3" />
+          ) : (
+            <>
+              <polygon points={`${x - 15},206 ${x + 15},206 ${x},180`} fill="var(--beam-sketch-support-fill)" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
+              {support.type === "roller" ? (
+                <>
+                  <circle cx={x - 8} cy="210" r="3" fill="none" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
+                  <circle cx={x + 8} cy="210" r="3" fill="none" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
+                  <line x1={x - 18} y1="214" x2={x + 18} y2="214" stroke="var(--beam-sketch-support-line)" strokeWidth="2.2" />
+                </>
+              ) : (
+                <line x1={x - 18} y1="206" x2={x + 18} y2="206" stroke="var(--beam-sketch-support-line)" strokeWidth="2.2" />
+              )}
+            </>
+          )}
+        </g>
+      </g>
+    );
+  });
 
   return (
     <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} overflow="visible" className="h-full w-full" style={beamSketchStyle} data-model-canvas="beam" data-label-density={labelPolicy.density}>
@@ -384,41 +424,6 @@ export function BeamSketch({
           </g>
         );
       })() : null}
-      {displayBeam.supports.map((support, index) => {
-        const x = beamStart + (support.x / total) * (beamEnd - beamStart);
-        const supportSelection = { mode: "beam", type: "support", id: `support-${index}` } as const;
-        const selected = isSelected(supportSelection);
-        return (
-          <g
-            key={support.id}
-            {...svgInteractiveProps(`选择梁系支座 ${support.id}`, (event) => activateSelection(supportSelection, event))}
-            {...svgCanvasSelectionProps(supportSelection, { draggableNode: true })}
-          >
-            <title>{`梁系支座 ${support.id}`}</title>
-            <rect x={x - 24} y={BEAM_SUPPORT_DRAG_HITBOX_Y} width="48" height={BEAM_SUPPORT_DRAG_HITBOX_HEIGHT} rx="12" fill={selected ? "var(--beam-sketch-selected)" : "transparent"} opacity={selected ? "0.1" : "0"} />
-            <g pointerEvents="none">
-              {support.type === "fixed" ? (
-                <rect x={x - 12} y={BEAM_SKETCH_AXIS_Y} width="24" height="36" rx="2" fill="var(--beam-sketch-support-fill)" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
-              ) : support.type === "free" ? (
-                <circle cx={x} cy={BEAM_SKETCH_AXIS_Y} r="9" fill="none" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.6" strokeDasharray="3 3" />
-              ) : (
-                <>
-                  <polygon points={`${x - 15},206 ${x + 15},206 ${x},180`} fill="var(--beam-sketch-support-fill)" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
-                  {support.type === "roller" ? (
-                    <>
-                      <circle cx={x - 8} cy="210" r="3" fill="none" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
-                      <circle cx={x + 8} cy="210" r="3" fill="none" stroke="var(--beam-sketch-support-stroke)" strokeWidth="1.4" />
-                      <line x1={x - 18} y1="214" x2={x + 18} y2="214" stroke="var(--beam-sketch-support-line)" strokeWidth="2.2" />
-                    </>
-                  ) : (
-                    <line x1={x - 18} y1="206" x2={x + 18} y2="206" stroke="var(--beam-sketch-support-line)" strokeWidth="2.2" />
-                  )}
-                </>
-              )}
-            </g>
-          </g>
-        );
-      })}
       <g
         {...svgInteractiveProps("选择梁系荷载", (event) => activateSelection(loadSelection, event))}
         {...svgCanvasSelectionProps(loadSelection)}
@@ -528,6 +533,7 @@ export function BeamSketch({
         })}
         </g>
       </g>
+      {supportElements}
       <g fontFamily={SVG_TEXT_FONT}>
         {nodeLabels.map((label) => (
           shouldShowSteppedLabel({

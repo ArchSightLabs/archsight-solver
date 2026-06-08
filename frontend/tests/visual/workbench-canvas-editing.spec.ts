@@ -240,11 +240,13 @@ test("梁系画布支持拖动内部节点并同步支座位置", async ({ page 
   expect(Math.abs(boxCenterX(afterSupport) - boxCenterX(afterNode))).toBeLessThan(3);
 
   const beforeLastSupport = await lastSupport.boundingBox();
+  const beforeLastNode = await lastNode.boundingBox();
   expect(beforeLastSupport).not.toBeNull();
-  if (!beforeLastSupport) return;
+  expect(beforeLastNode).not.toBeNull();
+  if (!beforeLastSupport || !beforeLastNode) return;
 
   const lastSupportStartX = boxCenterX(beforeLastSupport);
-  const lastSupportStartY = beforeLastSupport.y + beforeLastSupport.height / 2;
+  const lastSupportStartY = beforeLastNode.y + beforeLastNode.height / 2;
   await page.mouse.move(lastSupportStartX, lastSupportStartY);
   await page.mouse.down();
   await page.mouse.move(lastSupportStartX - 90, lastSupportStartY, { steps: 8 });
