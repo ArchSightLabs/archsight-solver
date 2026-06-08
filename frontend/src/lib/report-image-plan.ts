@@ -61,12 +61,17 @@ export function activeResultMissingLabel(input: ReportImagePlanInput, options: R
   return null;
 }
 
+function reportViewSettings(viewSettings?: ResultViewSettings | null): ResultViewSettings | null | undefined {
+  if (!viewSettings) return viewSettings;
+  return { ...viewSettings, showExtremeLabel: true };
+}
+
 export function buildReportImagePlan(input: ReportImagePlanInput): ReportImagePlanItem[] {
   const options = reportExportOptionsForMode(input.analysisMode, input.reportOptions ?? DEFAULT_REPORT_EXPORT_OPTIONS);
   const { includeFigures, includeOverlay, includeTraditional, includeAll } = reportFigureFlags(options);
   const plan: ReportImagePlanItem[] = [];
   const visualOptions: ReportImagePlanVisualOptions = {
-    viewSettings: input.viewSettings,
+    viewSettings: reportViewSettings(input.viewSettings),
     modelLabelOffsets: input.modelLabelOffsets,
   };
 

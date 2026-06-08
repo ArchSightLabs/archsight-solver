@@ -331,6 +331,57 @@ test("buildReportImagePlan normalizes legacy control scope to all core figure ke
   );
 });
 
+test("计算书工程图计划即使工作台隐藏极值也强制导出控制点标注", () => {
+  const reportOptions = { template: "standard" as const, figureMode: "overlay" as const, figureScope: "control" as const };
+  const viewSettings = {
+    showLoads: false,
+    showDisplacement: false,
+    showExtremeLabel: false,
+    displacementScale: 18,
+  };
+  const beamResults = {
+    x_data: [0, 4, 8],
+    moment_data: [0, -20, 0],
+    shear_data: [10, 0, -10],
+    v_data: [0, -0.01, 0],
+    t_data: [],
+    q_t_data: [],
+    beam: {
+      beamType: "continuous",
+      beamTypeLabel: "连续梁",
+      loadType: "uniform",
+      loadTypeLabel: "均布荷载",
+      spans: [4, 4],
+      totalLength: 8,
+      supports: [],
+      nodes: [],
+      loads: [],
+      curve: [],
+      spanSummaries: [],
+      maxDeflection: { valueM: -0.01, valueMm: -10, xM: 4, spanIndex: 0 },
+      reactions: [],
+      warnings: [],
+    },
+  } as BeamCalculationResults;
+  const plans = [
+    buildReportImagePlan({ analysisMode: "beam", beamResults, frameResults: null, trussResults: null, sensitivityData: null, reportOptions, viewSettings }),
+    buildReportImagePlan({ analysisMode: "frame", beamResults: null, frameResults: minimalFrameResults(), trussResults: null, sensitivityData: null, reportOptions, viewSettings }),
+    buildReportImagePlan({ analysisMode: "truss", beamResults: null, frameResults: null, trussResults: minimalTrussResults(), sensitivityData: null, reportOptions, viewSettings }),
+  ];
+
+  for (const plan of plans) {
+    const visualItems = plan.filter((item) => "viewSettings" in item);
+    assert.ok(visualItems.length > 0);
+    for (const item of visualItems) {
+      const itemViewSettings = (item as { viewSettings?: typeof viewSettings }).viewSettings;
+      assert.equal(itemViewSettings?.showExtremeLabel, true);
+      assert.equal(itemViewSettings?.showLoads, false);
+      assert.equal(itemViewSettings?.showDisplacement, false);
+      assert.equal(itemViewSettings?.displacementScale, 18);
+    }
+  }
+});
+
 test("框架和桁架计算书图形计划在包含数据曲线时使用 UI 同源曲线", () => {
   const reportOptions = { template: "complete" as const, figureMode: "both" as const, figureScope: "all" as const };
 
