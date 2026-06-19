@@ -13,6 +13,7 @@ interface UseAnalysisObjectManagerOptions {
   applyCurrentRuntimeToProject: (sourceProject: SolverProject) => SolverProject;
   markProjectDirty: () => void;
   onCreatedDialogClose: () => void;
+  onCreatedAnalysisObject?: (object: AnalysisObject) => void;
   project: SolverProject;
   resetRuntimeForNewAnalysisObject: () => void;
   setFileStatusMessage: (message: string) => void;
@@ -24,6 +25,7 @@ export function useAnalysisObjectManager({
   applyCurrentRuntimeToProject,
   markProjectDirty,
   onCreatedDialogClose,
+  onCreatedAnalysisObject,
   project,
   resetRuntimeForNewAnalysisObject,
   setFileStatusMessage,
@@ -45,10 +47,12 @@ export function useAnalysisObjectManager({
 
   const handleCreateAnalysisObject = (type: AnalysisObjectType, name: string) => {
     const nextProject = addAnalysisObjectToProject(applyCurrentRuntimeToProject(project), type, name);
+    const nextObject = getActiveAnalysisObject(nextProject);
     setProject(nextProject);
     resetRuntimeForNewAnalysisObject();
     markProjectDirty();
     setFileStatusMessage(`已新建分析对象：${name}`);
+    onCreatedAnalysisObject?.(nextObject);
     onCreatedDialogClose();
   };
 

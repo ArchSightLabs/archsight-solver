@@ -9,6 +9,7 @@ import { TrussMemberEditor } from "./TrussMemberEditor";
 import { TrussNodeEditor } from "./TrussNodeEditor";
 import { TrussObjectNavigator, type TrussSelectedObject } from "./TrussObjectNavigator";
 import { TrussTableSection, type TrussAdvancedSection } from "./TrussTableSection";
+import { TrussTemplateSection } from "./TrussTemplateSection";
 import { TrussTextModelSection } from "./TrussTextModelSection";
 import {
   createConnectedTrussMemberByNodeId,
@@ -18,6 +19,7 @@ import {
   trussMemberExists,
 } from "../lib/truss-editor-model.ts";
 import { TRUSS_MODEL_TEMPLATES, cloneTrussModelTemplate } from "../lib/workbench-model-templates.ts";
+import { buildParallelChordTrussQuickModel, type TrussQuickModelInput } from "../lib/workbench-quick-models.ts";
 import { useTrussTextModel } from "../hooks/useTrussTextModel.ts";
 import { useNodePairConnection } from "../hooks/useNodePairConnection.ts";
 import {
@@ -47,6 +49,7 @@ interface TrussCustomModelEditorProps {
   materialId: string;
   materialLibrary: Material[];
   onChange: (next: TrussCollections) => void;
+  onRunGeneratedModel?: (next: TrussCollections) => void;
   onMaterialChange: (nextMaterialId: string) => void;
   activeSectionId?: string;
   selection?: TrussWorkbenchSelection | null;
@@ -61,6 +64,7 @@ export function TrussCustomModelEditor({
   materialId,
   materialLibrary,
   onChange,
+  onRunGeneratedModel,
   onMaterialChange,
   activeSectionId,
   selection,
@@ -180,6 +184,58 @@ export function TrussCustomModelEditor({
     });
     selectObject({ type: "node", id: collections.nodes[0]?.id ?? "" }, { openEditor: false });
     trussTextModel.noteTemplateApplied(template.title);
+  };
+
+  const applyTypicalCaseAndRun = (templateId: string) => {
+    const template = TRUSS_MODEL_TEMPLATES.find((item) => item.id === templateId);
+    if (!template) return;
+    const collections = cloneTrussModelTemplate(template);
+    const next = keep({ nodes: collections.nodes, members: collections.members, loads: collections.loads, loadCases: [], loadCombinations: [] });
+    if (onRunGeneratedModel) {
+      onRunGeneratedModel(next);
+    } else {
+      commit(next);
+    }
+    memberConnection.resetToAvailablePair({
+      nodeIds: collections.nodes.map((node) => node.id),
+      duplicateExists: (nextStartId, nextEndId) => trussMemberExists(collections.members, nextStartId, nextEndId),
+    });
+    selectObject({ type: "node", id: collections.nodes[0]?.id ?? "" }, { openEditor: false });
+    trussTextModel.noteTemplateApplied(template.title);
+  };
+
+  const buildQuickModel = (input: TrussQuickModelInput) => buildParallelChordTrussQuickModel({
+      ...input,
+      materialId,
+      youngModulusGPa: defaultMemberElasticityGPa,
+      chordAreaCm2: defaultMemberSectionAreaCm2,
+      webAreaCm2: Math.max(1, Math.round(defaultMemberSectionAreaCm2 * 0.7)),
+    });
+
+  const finishGeneratedModel = (collections: ReturnType<typeof buildParallelChordTrussQuickModel>) => {
+    memberConnection.resetToAvailablePair({
+      nodeIds: collections.nodes.map((node) => node.id),
+      duplicateExists: (nextStartId, nextEndId) => trussMemberExists(collections.members, nextStartId, nextEndId),
+    });
+    selectObject({ type: "node", id: collections.nodes[0]?.id ?? "" }, { openEditor: false });
+    trussTextModel.noteTemplateApplied("平行弦桁架快速生成");
+  };
+
+  const generateQuickModel = (input: TrussQuickModelInput) => {
+    const collections = buildQuickModel(input);
+    commit(keep({ nodes: collections.nodes, members: collections.members, loads: collections.loads, loadCases: [], loadCombinations: [] }));
+    finishGeneratedModel(collections);
+  };
+
+  const generateQuickModelAndRun = (input: TrussQuickModelInput) => {
+    const collections = buildQuickModel(input);
+    const next = keep({ nodes: collections.nodes, members: collections.members, loads: collections.loads, loadCases: [], loadCombinations: [] });
+    if (onRunGeneratedModel) {
+      onRunGeneratedModel(next);
+    } else {
+      commit(next);
+    }
+    finishGeneratedModel(collections);
   };
 
   const updateNode = (index: number, patch: Partial<TrussNode>) => {
@@ -418,37 +474,13 @@ export function TrussCustomModelEditor({
       activeSectionId={activeSectionId}
       tabs={{
         template: (
-          <section id="truss-template" className="space-y-3 rounded-2xl border border-white/8 bg-white/[0.03] p-4 scroll-mt-4">
-            <div className="grid grid-cols-1 gap-2">
-              {TRUSS_MODEL_TEMPLATES.map((template, index) => (
-                <button
-                  key={template.id}
-                  type="button"
-                  onClick={() => applyTypicalCase(template.id)}
-                  className="rounded-xl border border-white/8 bg-slate-950/20 p-3 text-left transition-colors hover:border-primary/35 hover:bg-primary/5"
-                >
-                  <div className="flex min-w-0 items-start gap-2">
-                    <span className="mt-0.5 shrink-0 rounded border border-white/8 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-muted-foreground">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <div className="min-w-0">
-                      <div className="text-sm font-bold leading-snug">{template.title}</div>
-                      <div className="mt-1 flex flex-wrap gap-1.5">
-                        {template.tags?.slice(0, 3).map((tag) => (
-                          <span key={tag} className="rounded border border-white/8 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                            {tag}
-                          </span>
-                        ))}
-                        <span className="rounded border border-white/8 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                          {template.members.length} {memberTerm}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </section>
+          <TrussTemplateSection
+            memberTerm={memberTerm}
+            onApplyTemplate={applyTypicalCase}
+            onApplyTemplateAndRun={applyTypicalCaseAndRun}
+            onGenerateQuickModel={generateQuickModel}
+            onGenerateQuickModelAndRun={generateQuickModelAndRun}
+          />
         ),
         basic: (
           <TrussBasicSection compact={compact}

@@ -95,7 +95,7 @@ export function useWorkbenchActions(
   const activeState = workspace[analysisMode];
   const isDirty = latestSubmittedState !== null && latestSubmittedState !== activeState;
 
-  const handleSolve = async (data: CalculationPayload): Promise<AnalysisResults> => {
+  const handleSolve = async (data: CalculationPayload, submittedState?: unknown): Promise<AnalysisResults> => {
     const analysisType: AnalysisMode = data.analysisType === "frame" ? "frame" : data.analysisType === "truss" ? "truss" : "beam";
     setWorkspace((current) => ({ ...current, analysisMode: analysisType }));
     setIsSolving(true);
@@ -116,7 +116,7 @@ export function useWorkbenchActions(
       const result = normalizeAnalysisResponse(await response.json());
       setAnalysisData(result);
       setLatestPayload(data);
-      setLatestSubmittedState(workspace[analysisType]);
+      setLatestSubmittedState(submittedState ?? workspace[analysisType]);
       setSensitivityData(null); // Reset sensitivity on new solve
       setCompactWorkbenchView("results");
       setOperationNotice(operationCompletedNotice("solve", analysisType));
@@ -137,6 +137,8 @@ export function useWorkbenchActions(
     }
     return Promise.resolve(null);
   };
+
+  const handleRunPayload = (payload: CalculationPayload, submittedState?: unknown) => handleSolve(payload, submittedState);
 
   const handleSensitivity = async (config: { range: number; steps: number; targetSpanIndex: number; responseMetric: string }) => {
     const currentPayload = buildCurrentPayload({ notifyOnValidationError: true });
@@ -263,6 +265,7 @@ export function useWorkbenchActions(
     operationNotice,
     setOperationNotice,
     handleRunCurrentModule,
+    handleRunPayload,
     handleSensitivity,
     handleExport,
   };

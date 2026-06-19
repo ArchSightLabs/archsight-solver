@@ -1,7 +1,7 @@
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { SystemSettingsPanel } from "./SystemSettingsPanel";
-import { NewAnalysisObjectDialog } from "./NewAnalysisObjectDialog";
+import { NewAnalysisObjectDialog, type NewAnalysisObjectStartMode } from "./NewAnalysisObjectDialog";
 import { ProjectInfoDialog } from "./ProjectInfoDialog";
 import { PublicExamplesDialog } from "./PublicExamplesDialog";
 import { BenchmarkSubmissionDialog } from "./BenchmarkSubmissionDialog";
@@ -24,7 +24,7 @@ interface GlobalDialogsProps {
   setModelPreviewStyle: (style: ModelPreviewStyle) => void;
 
   objectCountByType: Record<AnalysisObjectType, number>;
-  handleCreateAnalysisObject: (type: AnalysisObjectType, name: string) => void;
+  handleCreateAnalysisObject: (type: AnalysisObjectType, name: string, startMode: NewAnalysisObjectStartMode) => void;
 
   setCustomMaterials: (materials: Material[]) => void;
   handleUpdateProjectInfo: (info: ProjectInfo) => void;

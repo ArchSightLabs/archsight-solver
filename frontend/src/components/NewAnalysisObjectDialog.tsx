@@ -5,9 +5,11 @@ import type { AnalysisObjectType } from "../lib/solver-project";
 import { defaultAnalysisObjectName } from "../lib/solver-project";
 import { Button } from "./ui/button";
 
+export type NewAnalysisObjectStartMode = "quick" | "object" | "text";
+
 interface NewAnalysisObjectDialogProps {
   existingCountByType: Record<AnalysisObjectType, number>;
-  onCreate: (type: AnalysisObjectType, name: string) => void;
+  onCreate: (type: AnalysisObjectType, name: string, startMode: NewAnalysisObjectStartMode) => void;
   onClose: () => void;
 }
 
@@ -17,8 +19,15 @@ const TYPE_OPTIONS = [
   { type: "frame" as const, label: analysisVocabulary("frame").analysisLabel, icon: Network },
 ];
 
+const START_MODE_OPTIONS: Array<{ mode: NewAnalysisObjectStartMode; label: string; detail: string }> = [
+  { mode: "quick", label: "快速生成", detail: "从模板页生成可计算模型" },
+  { mode: "object", label: "对象编辑", detail: "直接编辑跨段、节点、构件或荷载" },
+  { mode: "text", label: "文本导入", detail: "粘贴文本模型或 ASMS-JSON" },
+];
+
 export function NewAnalysisObjectDialog({ existingCountByType, onCreate, onClose }: NewAnalysisObjectDialogProps) {
   const [selectedType, setSelectedType] = useState<AnalysisObjectType>("beam");
+  const [startMode, setStartMode] = useState<NewAnalysisObjectStartMode>("quick");
   const defaultName = useMemo(() => defaultAnalysisObjectName(selectedType, existingCountByType[selectedType] + 1), [existingCountByType, selectedType]);
   const [name, setName] = useState(defaultName);
 
@@ -28,7 +37,7 @@ export function NewAnalysisObjectDialog({ existingCountByType, onCreate, onClose
   };
 
   const handleCreate = () => {
-    onCreate(selectedType, name.trim() || defaultName);
+    onCreate(selectedType, name.trim() || defaultName, startMode);
   };
 
   return (
@@ -81,6 +90,31 @@ export function NewAnalysisObjectDialog({ existingCountByType, onCreate, onClose
               autoFocus
             />
           </label>
+          <div>
+            <div className="mb-2 text-xs font-bold text-slate-600 dark:text-slate-300">建模路径</div>
+            <div className="grid grid-cols-1 gap-2">
+              {START_MODE_OPTIONS.map((option) => {
+                const active = startMode === option.mode;
+                return (
+                  <button
+                    key={option.mode}
+                    type="button"
+                    onClick={() => setStartMode(option.mode)}
+                    className={`rounded-lg border px-3 py-2.5 text-left transition-colors ${
+                      active
+                        ? "border-sky-500/55 bg-sky-400 text-slate-950"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-sky-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-sky-400/45"
+                    }`}
+                  >
+                    <span className="block text-sm font-black">{option.label}</span>
+                    <span className={`mt-0.5 block text-[11px] font-semibold ${active ? "text-slate-800" : "text-muted-foreground"}`}>
+                      {option.detail}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
         <div className="mt-5 flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={onClose} className="rounded-lg border-white/10 bg-white/[0.03] font-bold">

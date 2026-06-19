@@ -8,6 +8,7 @@ interface TrussFormProps {
   value: TrussWorkspaceState;
   materialLibrary: Material[];
   onChange: (next: TrussWorkspaceState) => void;
+  onRunGeneratedModel?: (next: TrussWorkspaceState) => void;
   activeSectionId?: string;
   selection?: TrussWorkbenchSelection | null;
   onSelectionChange?: (next: TrussWorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
@@ -22,6 +23,7 @@ export function TrussForm({
   value,
   materialLibrary,
   onChange,
+  onRunGeneratedModel,
   activeSectionId,
   selection,
   onSelectionChange,
@@ -30,6 +32,34 @@ export function TrussForm({
   compact = false
 }: TrussFormProps) {
   const visibleSectionId = normalizeModuleSectionId("truss", activeSectionId) ?? DEFAULT_SECTION_ID;
+  const workspaceFromCollections = (next: {
+    nodes: TrussWorkspaceState["customNodes"];
+    members: TrussWorkspaceState["customMembers"];
+    loads: TrussWorkspaceState["customLoads"];
+    loadCases: TrussWorkspaceState["customLoadCases"];
+    loadCombinations: TrussWorkspaceState["customLoadCombinations"];
+  }): TrussWorkspaceState => ({
+    ...value,
+    customNodes: next.nodes,
+    customMembers: next.members,
+    customLoads: next.loads,
+    customLoadCases: next.loadCases,
+    customLoadCombinations: next.loadCombinations,
+  });
+
+  const commitCollections = (next: Parameters<typeof workspaceFromCollections>[0]) => {
+    onChange(workspaceFromCollections(next));
+  };
+
+  const runGeneratedCollections = (next: Parameters<typeof workspaceFromCollections>[0]) => {
+    const nextWorkspace = workspaceFromCollections(next);
+    if (onRunGeneratedModel) {
+      onRunGeneratedModel(nextWorkspace);
+      return;
+    }
+    onChange(nextWorkspace);
+  };
+
   return (
     <TrussCustomModelEditor
       value={{
@@ -42,16 +72,8 @@ export function TrussForm({
       materialId={value.materialId}
       materialLibrary={materialLibrary}
       onMaterialChange={(nextMaterialId) => onChange({ ...value, materialId: nextMaterialId })}
-      onChange={(next) =>
-        onChange({
-          ...value,
-          customNodes: next.nodes,
-          customMembers: next.members,
-          customLoads: next.loads,
-          customLoadCases: next.loadCases,
-          customLoadCombinations: next.loadCombinations,
-        })
-      }
+      onChange={commitCollections}
+      onRunGeneratedModel={runGeneratedCollections}
       selection={selection}
       onSelectionChange={onSelectionChange}
       activeSectionId={visibleSectionId}

@@ -8,6 +8,7 @@ import {
 import { BeamForm } from "./components/BeamForm";
 import { FrameForm } from "./components/FrameForm";
 import { TrussForm } from "./components/TrussForm";
+import type { NewAnalysisObjectStartMode } from "./components/NewAnalysisObjectDialog";
 import { ProjectTreePanel } from "./components/ProjectTreePanel";
 import { SystemSettingsPanel } from "./components/SystemSettingsPanel";
 import { GlobalDialogs } from "./components/GlobalDialogs";
@@ -23,7 +24,7 @@ import { Button } from "./components/ui/button";
 import { useTemplateLibrary } from "./hooks/useTemplateLibrary";
 import { materialLibraryFromCustomMaterials } from "./lib/material-presets";
 import type { ProjectInfo } from "./lib/solver-project";
-import { moduleSectionsForMode, normalizeModuleSectionId, objectNavigatorSectionId } from "./lib/workbench-navigation";
+import { moduleSectionId, moduleSectionsForMode, normalizeModuleSectionId, objectNavigatorSectionId } from "./lib/workbench-navigation";
 import { ARCHSIGHT_SOLVER_PROJECT_ACCEPT } from "./lib/project-file";
 import type { ProjectTemplate } from "./types/beam";
 import type { BeamWorkbenchSelection, FrameWorkbenchSelection, TrussWorkbenchSelection, WorkbenchSelection, WorkbenchSelectionOptions } from "./types/workbench-selection";
@@ -54,6 +55,7 @@ import {
 import { normalizeGridSnapStep } from "./lib/node-coordinate-snap";
 import type { CanvasPoint } from "./lib/model-canvas-projection";
 import type { AnalysisMode } from "./types/structure";
+import type { WorkspaceState } from "./lib/workspace-state";
 import {
   filterSelectionSetForMode,
   primarySelectionForMode,
@@ -144,6 +146,12 @@ function AppContent() {
   const resetWorkbenchContext = useCallback(() => {
     setWorkbenchSelectionState({ primary: null, items: [] });
   }, []);
+  const pendingNewObjectStartModeRef = useRef<NewAnalysisObjectStartMode>("quick");
+  const sectionForStartMode = useCallback((mode: AnalysisMode, startMode: NewAnalysisObjectStartMode) => {
+    if (startMode === "object") return objectNavigatorSectionId(mode);
+    if (startMode === "text") return moduleSectionId(mode, "text");
+    return moduleSectionId(mode, "template");
+  }, []);
   const resetAllPageState = useCallback(() => {
     setWorkbenchSelectionState({ primary: null, items: [] });
     setPageStateByObjectId({});
@@ -159,6 +167,7 @@ function AppContent() {
     handleExport,
     handleRunAndReview,
     handleRunCurrentModule,
+    handleRunWorkspace,
     handleSensitivity,
     isScanning,
     isSolving,
@@ -314,12 +323,25 @@ function AppContent() {
     applyCurrentRuntimeToProject,
     markProjectDirty,
     onCreatedDialogClose: () => setIsNewAnalysisObjectDialogOpen(false),
+    onCreatedAnalysisObject: (object) => {
+      setPageStateByObjectId((current) => ({
+        ...current,
+        [object.id]: {
+          ...current[object.id],
+          moduleSectionId: sectionForStartMode(object.type, pendingNewObjectStartModeRef.current),
+        },
+      }));
+    },
     project,
     resetRuntimeForNewAnalysisObject,
     setFileStatusMessage,
     setProject,
     syncRuntimeFromAnalysisObject,
   });
+  const handleCreateAnalysisObjectWithPath = useCallback((type: AnalysisMode, name: string, startMode: NewAnalysisObjectStartMode) => {
+    pendingNewObjectStartModeRef.current = startMode;
+    handleCreateAnalysisObject(type, name);
+  }, [handleCreateAnalysisObject]);
   const fileDisplayName = projectFileName ?? "未选择文件";
   const fileStateLabel = isProjectDirty ? "未保存" : lastSavedAt ? "已保存" : "新建项目";
   const handleWorkbenchSelectionChange = useCallback((next: WorkbenchSelection, options?: WorkbenchSelectionOptions) => {
@@ -457,6 +479,10 @@ function AppContent() {
       handleWorkbenchSelectionChange(result.selection, { openEditor: false });
     }
   }, [handleWorkbenchSelectionChange, updateWorkspace, workspace]);
+  const handleRunGeneratedWorkspace = useCallback((nextWorkspace: WorkspaceState) => {
+    updateWorkspace(nextWorkspace);
+    void handleRunWorkspace(nextWorkspace);
+  }, [handleRunWorkspace, updateWorkspace]);
   useEffect(() => {
     const isEditableTarget = (target: globalThis.EventTarget | null) => {
       if (!(target instanceof HTMLElement)) return false;
@@ -501,6 +527,7 @@ function AppContent() {
         materialLibrary={projectMaterialLibrary}
         onMaterialLibraryChange={setCustomMaterials}
         onChange={(next) => updateWorkspace((current) => ({ ...current, beam: next }))}
+        onRunGeneratedModel={(next) => handleRunGeneratedWorkspace({ ...workspace, analysisMode: "beam", beam: next })}
         activeSectionId={activeModuleSectionId}
         selection={beamSelection}
         onSelectionChange={handleWorkbenchSelectionChange}
@@ -511,6 +538,7 @@ function AppContent() {
         value={workspace.truss}
         materialLibrary={projectMaterialLibrary}
         onChange={(next) => updateWorkspace((current) => ({ ...current, truss: next }))}
+        onRunGeneratedModel={(next) => handleRunGeneratedWorkspace({ ...workspace, analysisMode: "truss", truss: next })}
         activeSectionId={activeModuleSectionId}
         selection={trussSelection}
         onSelectionChange={handleWorkbenchSelectionChange}
@@ -523,6 +551,7 @@ function AppContent() {
         value={workspace.frame}
         materialLibrary={projectMaterialLibrary}
         onChange={(next) => updateWorkspace((current) => ({ ...current, frame: next }))}
+        onRunGeneratedModel={(next) => handleRunGeneratedWorkspace({ ...workspace, analysisMode: "frame", frame: next })}
         activeSectionId={activeModuleSectionId}
         selection={frameSelection}
         onSelectionChange={handleWorkbenchSelectionChange}
@@ -735,7 +764,7 @@ function AppContent() {
         visitStats={visitStats}
         setModelPreviewStyle={setModelPreviewStyle}
         objectCountByType={objectCountByType}
-        handleCreateAnalysisObject={handleCreateAnalysisObject}
+        handleCreateAnalysisObject={handleCreateAnalysisObjectWithPath}
         setCustomMaterials={setCustomMaterials}
         handleUpdateProjectInfo={handleUpdateProjectInfo}
         handleCreateProjectWithInfo={handleCreateProjectWithInfo}

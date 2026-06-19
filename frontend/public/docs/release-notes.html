@@ -128,18 +128,27 @@
         </div>
           <p class="section-label">重点变化</p>
           <ul>
+            <li>梁系模板页新增连续梁快速生成和“生成并计算”，可按跨数、单跨长度和全跨均布荷载生成跨段、支座和荷载，继续保持“跨段 / 支座 / 荷载”的梁系建模心智。</li>
+            <li>平面框架模板页新增规则框架快速生成和“生成并计算”，可按跨数、层数、跨度、层高、梁面均布荷载和顶层水平荷载生成节点、构件、支座和荷载。</li>
+            <li>平面桁架模板页新增平行弦桁架快速生成和“生成并计算”，可按节间数、节间长度、桁高和上弦节点荷载生成节点、杆件、支座和节点荷载，不引入弯矩主指标。</li>
+            <li>三类快速生成入口增加工程预设和“即将生成”摘要；三类内置模板增加“打开并计算”，从公开验证映射模板直接进入首算结果。</li>
+            <li>新建分析对象增加建模路径选择：快速生成、对象编辑、文本导入分别直接打开模板、对象、文本页，减少创建后再次寻找入口的操作成本。</li>
             <li>梁系补齐荷载工况和荷载组合编辑入口，覆盖均布、集中、线性分布荷载，并在对象导航和表格摘要中形成统一入口。</li>
             <li>平面桁架补齐荷载工况和荷载组合编辑入口；节点、杆件、荷载复制 / 镜像 / 阵列、重命名和删除时同步维护工况内引用与组合系数。</li>
             <li>结果页统一“主结果 / 工况 / 组合”来源切换，不再只支持平面框架；梁系和桁架的受力变形图、数据曲线和摘要会随当前来源切换。</li>
             <li>DOCX / XLSX 导出记录当前结果来源，并在 DOCX 导出图像生成时使用与界面一致的选中结果来源。</li>
             <li>API envelope 前端归一化补齐梁系和桁架的 <code>loadCaseResults</code> / <code>loadCombinationResults</code>，避免后端已返回但前端视图丢失。</li>
             <li>新增 v1.5 发布验收清单和 Playwright 荷载场景验收，覆盖梁系 / 平面桁架工况组合、结果来源切换和 XLSX 导出来源记录。</li>
+            <li>新增快速建模生成器单元测试，锁定连续梁、规则框架和平行弦桁架的生成数量、对象类型和专业指标边界。</li>
             <li>版本号统一提升到 <code>1.5.0</code>，同步 <code>package.json</code>、<code>frontend/package.json</code>、<code>pyproject.toml</code>、<code>uv.lock</code> 和 lockfile 顶部项目版本。</li>
           </ul>
           <p class="section-label">质量门禁</p>
           <ul>
             <li>前端 <code>npm run lint</code> 通过。</li>
-            <li>前端 <code>npm run test:unit</code> 通过：349 passed。</li>
+            <li>前端 <code>npm run test:unit</code> 通过：353 passed。</li>
+            <li>Playwright <code>release-1-5-quick-modeling.spec.ts</code> 覆盖梁系、平面框架、平面桁架“生成并计算”到求解 payload 的首算路径。</li>
+            <li>Playwright <code>release-1-5-quick-modeling.spec.ts</code> 覆盖三类内置模板“打开并计算”到求解 payload 的首算路径。</li>
+            <li>Playwright <code>release-1-5-quick-modeling.spec.ts</code> 覆盖新建分析对象后直接进入指定建模路径。</li>
             <li>Playwright <code>release-1-5-load-scenarios.spec.ts</code> 覆盖梁系和平面桁架工况 / 组合发布验收。</li>
           </ul>
       </article>

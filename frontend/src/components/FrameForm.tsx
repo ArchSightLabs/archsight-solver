@@ -8,6 +8,7 @@ interface FrameFormProps {
   value: FrameWorkspaceState;
   materialLibrary: Material[];
   onChange: (next: FrameWorkspaceState) => void;
+  onRunGeneratedModel?: (next: FrameWorkspaceState) => void;
   activeSectionId?: string;
   selection?: FrameWorkbenchSelection | null;
   onSelectionChange?: (next: FrameWorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
@@ -22,6 +23,7 @@ export function FrameForm({
   value,
   materialLibrary,
   onChange,
+  onRunGeneratedModel,
   activeSectionId,
   selection,
   onSelectionChange,
@@ -47,6 +49,30 @@ export function FrameForm({
       customLoadCombinations: next.loadCombinations,
     });
   };
+  const workspaceFromCollections = (next: {
+    nodes: FrameWorkspaceState["customNodes"];
+    members: FrameWorkspaceState["customMembers"];
+    loads: FrameWorkspaceState["customLoads"];
+    loadCases: FrameWorkspaceState["customLoadCases"];
+    loadCombinations: FrameWorkspaceState["customLoadCombinations"];
+  }): FrameWorkspaceState => ({
+    ...value,
+    frameMode: "custom",
+    customNodes: next.nodes,
+    customMembers: next.members,
+    customLoads: next.loads,
+    customLoadCases: next.loadCases,
+    customLoadCombinations: next.loadCombinations,
+  });
+
+  const runGeneratedCollections = (next: Parameters<typeof commitCollections>[0]) => {
+    const nextWorkspace = workspaceFromCollections(next);
+    if (onRunGeneratedModel) {
+      onRunGeneratedModel(nextWorkspace);
+      return;
+    }
+    onChange(nextWorkspace);
+  };
 
   return (
     <FrameCustomModelEditor
@@ -61,6 +87,7 @@ export function FrameForm({
       materialLibrary={materialLibrary}
       onMaterialChange={(nextMaterialId) => onChange({ ...value, materialId: nextMaterialId })}
       onChange={commitCollections}
+      onRunGeneratedModel={runGeneratedCollections}
       selection={selection}
       onSelectionChange={onSelectionChange}
       activeSectionId={visibleSectionId}

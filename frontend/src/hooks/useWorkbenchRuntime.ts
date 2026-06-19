@@ -62,6 +62,7 @@ export function useWorkbenchRuntime({
     operationNotice,
     setOperationNotice,
     handleRunCurrentModule,
+    handleRunPayload,
     handleSensitivity,
     handleExport,
   } = useWorkbenchActions(
@@ -189,6 +190,21 @@ export function useWorkbenchRuntime({
     handleRunCurrentModule();
   };
 
+  const handleRunWorkspace = useCallback((nextWorkspace: WorkspaceState) => {
+    const nextMode = nextWorkspace.analysisMode;
+    const payload =
+      nextMode === "beam"
+        ? buildBeamPayload(nextWorkspace.beam, projectName)
+        : nextMode === "frame"
+          ? buildFramePayload(nextWorkspace.frame, projectName)
+          : buildTrussPayload(nextWorkspace.truss, projectName);
+    if (!payload) {
+      return Promise.resolve(null);
+    }
+    setWorkbenchView("results");
+    return handleRunPayload(payload, nextWorkspace[nextMode]);
+  }, [handleRunPayload, projectName]);
+
   return {
     analysisData,
     applyCurrentRuntimeToProject,
@@ -200,6 +216,7 @@ export function useWorkbenchRuntime({
     handleExport,
     handleRunAndReview,
     handleRunCurrentModule,
+    handleRunWorkspace,
     handleSensitivity,
     isScanning,
     isSolving,

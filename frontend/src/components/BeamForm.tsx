@@ -26,6 +26,7 @@ import type { BeamLoadCase, BeamLoadCombination, BeamLoadInput, BeamSpanConfig, 
 import type { BeamWorkbenchSelection, WorkbenchSelectionOptions } from "../types/workbench-selection.ts";
 import { createDefaultBeamWorkspaceState, mergeDefaultBeamSupportLayout, renumberDefaultBeamSpanIds } from "../lib/workspace-state.ts";
 import { applyBeamModelTemplate, type BeamModelTemplate } from "../lib/workbench-model-templates.ts";
+import { buildContinuousBeamQuickModel, type BeamQuickModelInput } from "../lib/workbench-quick-models.ts";
 import { useBeamTextModel } from "../hooks/useBeamTextModel.ts";
 import { MAX_BEAM_SPANS } from "../lib/solver-limits.ts";
 
@@ -34,6 +35,7 @@ interface BeamFormProps {
   materialLibrary?: Material[];
   onMaterialLibraryChange?: (nextMaterials: Material[]) => void;
   onChange: (next: BeamWorkspaceState) => void;
+  onRunGeneratedModel?: (next: BeamWorkspaceState) => void;
   activeSectionId?: string;
   selection?: BeamWorkbenchSelection | null;
   onSelectionChange?: (next: BeamWorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
@@ -48,7 +50,7 @@ const FORM_SELECT_MENU_CLASS = "font-sans text-[12px]";
 const FORM_SELECT_OPTION_CLASS = "py-2 text-[12px] font-medium";
 const FIELD_LABEL_CLASS = "text-[10px] font-black tracking-widest text-muted-foreground";
 
-export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMaterialLibraryChange, onChange, activeSectionId, selection, onSelectionChange, compact = false }: BeamFormProps) {
+export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMaterialLibraryChange, onChange, onRunGeneratedModel, activeSectionId, selection, onSelectionChange, compact = false }: BeamFormProps) {
   const [selectedObject, setSelectedObject] = useState<BeamSelectedObject>({ type: "span", id: spanId(0) });
   const materialLibrary = projectMaterialLibrary?.length ? projectMaterialLibrary : value.materials?.length ? value.materials : PREDEFINED_MATERIALS;
   const materialOptions = useMemo(
@@ -214,6 +216,41 @@ export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMat
 
   const applyTypicalCase = (template: BeamModelTemplate) => {
     onChange(applyBeamModelTemplate(value, template));
+    selectObject({ type: "span", id: spanId(0) }, { openEditor: false });
+  };
+
+  const applyTypicalCaseAndRun = (template: BeamModelTemplate) => {
+    const next = applyBeamModelTemplate(value, template);
+    if (onRunGeneratedModel) {
+      onRunGeneratedModel(next);
+    } else {
+      onChange(next);
+    }
+    selectObject({ type: "span", id: spanId(0) }, { openEditor: false });
+  };
+
+  const buildQuickModel = (input: BeamQuickModelInput) => {
+    const material = defaultSpanMaterial;
+    return buildContinuousBeamQuickModel(value, {
+      ...input,
+      materialId: material.id,
+      youngModulusGPa: material.youngModulus,
+      momentOfInertiaCm4: material.momentOfInertiaCm4 ?? DEFAULT_SPAN.I,
+    });
+  };
+
+  const generateQuickModel = (input: BeamQuickModelInput) => {
+    onChange(buildQuickModel(input));
+    selectObject({ type: "span", id: spanId(0) }, { openEditor: false });
+  };
+
+  const generateQuickModelAndRun = (input: BeamQuickModelInput) => {
+    const next = buildQuickModel(input);
+    if (onRunGeneratedModel) {
+      onRunGeneratedModel(next);
+    } else {
+      onChange(next);
+    }
     selectObject({ type: "span", id: spanId(0) }, { openEditor: false });
   };
 
@@ -420,7 +457,14 @@ export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMat
       mode="beam"
       activeSectionId={activeSectionId}
       tabs={{
-        template: <BeamTemplateSection onApplyTemplate={applyTypicalCase} />,
+        template: (
+          <BeamTemplateSection
+            onApplyTemplate={applyTypicalCase}
+            onApplyTemplateAndRun={applyTypicalCaseAndRun}
+            onGenerateQuickModel={generateQuickModel}
+            onGenerateQuickModelAndRun={generateQuickModelAndRun}
+          />
+        ),
         basic: (
           <BeamBasicSection
             materialId={value.materialId}

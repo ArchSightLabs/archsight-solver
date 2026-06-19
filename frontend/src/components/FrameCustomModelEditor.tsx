@@ -35,6 +35,7 @@ import {
   type FrameEditorCollections,
 } from "../lib/frame-model-edits.ts";
 import { FRAME_MODEL_TEMPLATES, cloneFrameModelTemplate } from "../lib/workbench-model-templates.ts";
+import { buildRegularFrameQuickModel, type FrameQuickModelInput } from "../lib/workbench-quick-models.ts";
 import { memberElasticityDistributionLabel, momentOfInertiaForMaterial, sectionAreaForMaterial, youngModulusForMaterial } from "../lib/material-presets.ts";
 import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import { frameSupportStabilityWarning } from "../solver-payload.ts";
@@ -55,6 +56,7 @@ interface FrameCustomModelEditorProps {
   materialId: string;
   materialLibrary: Material[];
   onChange: (next: FrameCollections) => void;
+  onRunGeneratedModel?: (next: FrameCollections) => void;
   onMaterialChange: (nextMaterialId: string) => void;
   activeSectionId?: string;
   selection?: FrameWorkbenchSelection | null;
@@ -69,6 +71,7 @@ export function FrameCustomModelEditor({
   materialId,
   materialLibrary,
   onChange,
+  onRunGeneratedModel,
   onMaterialChange,
   activeSectionId,
   selection,
@@ -200,6 +203,79 @@ export function FrameCustomModelEditor({
     });
     selectObject({ type: "node", id: collections.nodes[0]?.id ?? "" }, { openEditor: false });
     frameTextModel.noteTemplateApplied(template.title);
+  };
+
+  const applyTypicalCaseAndRun = (templateId: string) => {
+    const template = FRAME_MODEL_TEMPLATES.find((item) => item.id === templateId);
+    if (!template) return;
+    const collections = cloneFrameModelTemplate(template);
+    const next = {
+      nodes: collections.nodes,
+      members: collections.members,
+      loads: collections.loads,
+      loadCases: [],
+      loadCombinations: [],
+    };
+    if (onRunGeneratedModel) {
+      onRunGeneratedModel(next);
+    } else {
+      commit(next);
+    }
+    memberConnection.resetToAvailablePair({
+      nodeIds: collections.nodes.map((node) => node.id),
+      duplicateExists: (nextStartId, nextEndId) => frameMemberExists(collections.members, nextStartId, nextEndId),
+    });
+    selectObject({ type: "node", id: collections.nodes[0]?.id ?? "" }, { openEditor: false });
+    frameTextModel.noteTemplateApplied(template.title);
+  };
+
+  const buildQuickModel = (input: FrameQuickModelInput) => buildRegularFrameQuickModel({
+      ...input,
+      materialId,
+      youngModulusGPa: defaultMemberElasticityGPa,
+      columnAreaCm2: defaultMemberSectionAreaCm2,
+      beamAreaCm2: defaultMemberSectionAreaCm2,
+      columnMomentOfInertiaCm4: defaultMemberMomentOfInertiaCm4,
+      beamMomentOfInertiaCm4: defaultMemberMomentOfInertiaCm4,
+      supportType: "fixed",
+    });
+
+  const finishGeneratedModel = (collections: ReturnType<typeof buildRegularFrameQuickModel>) => {
+    memberConnection.resetToAvailablePair({
+      nodeIds: collections.nodes.map((node) => node.id),
+      duplicateExists: (nextStartId, nextEndId) => frameMemberExists(collections.members, nextStartId, nextEndId),
+    });
+    selectObject({ type: "node", id: collections.nodes[0]?.id ?? "" }, { openEditor: false });
+    frameTextModel.noteTemplateApplied("规则框架快速生成");
+  };
+
+  const generateQuickModel = (input: FrameQuickModelInput) => {
+    const collections = buildQuickModel(input);
+    commit({
+      nodes: collections.nodes,
+      members: collections.members,
+      loads: collections.loads,
+      loadCases: [],
+      loadCombinations: [],
+    });
+    finishGeneratedModel(collections);
+  };
+
+  const generateQuickModelAndRun = (input: FrameQuickModelInput) => {
+    const collections = buildQuickModel(input);
+    const next = {
+      nodes: collections.nodes,
+      members: collections.members,
+      loads: collections.loads,
+      loadCases: [],
+      loadCombinations: [],
+    };
+    if (onRunGeneratedModel) {
+      onRunGeneratedModel(next);
+    } else {
+      commit(next);
+    }
+    finishGeneratedModel(collections);
   };
 
   const updateNode = (index: number, patch: Partial<StructureNode>) => {
@@ -417,7 +493,14 @@ export function FrameCustomModelEditor({
       mode="frame"
       activeSectionId={activeSectionId}
       tabs={{
-        template: <FrameTemplateSection onApplyTemplate={applyTypicalCase} />,
+        template: (
+          <FrameTemplateSection
+            onApplyTemplate={applyTypicalCase}
+            onApplyTemplateAndRun={applyTypicalCaseAndRun}
+            onGenerateQuickModel={generateQuickModel}
+            onGenerateQuickModelAndRun={generateQuickModelAndRun}
+          />
+        ),
         basic: (
           <FrameBasicSection compact={compact}
             materialId={materialId}
