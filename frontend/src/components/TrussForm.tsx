@@ -36,6 +36,8 @@ export function TrussForm({
         nodes: value.customNodes,
         members: value.customMembers,
         loads: value.customLoads,
+        loadCases: value.customLoadCases,
+        loadCombinations: value.customLoadCombinations,
       }}
       materialId={value.materialId}
       materialLibrary={materialLibrary}
@@ -46,6 +48,8 @@ export function TrussForm({
           customNodes: next.nodes,
           customMembers: next.members,
           customLoads: next.loads,
+          customLoadCases: next.loadCases,
+          customLoadCombinations: next.loadCombinations,
         })
       }
       selection={selection}

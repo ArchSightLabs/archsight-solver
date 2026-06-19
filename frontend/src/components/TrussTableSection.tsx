@@ -1,18 +1,20 @@
 import { Link2, MapPin, Triangle } from "lucide-react";
-import type { TrussLoad, TrussLoadPatch, TrussMember, TrussNode } from "../types/structure.ts";
+import type { TrussLoad, TrussLoadCase, TrussLoadCombination, TrussLoadPatch, TrussMember, TrussNode } from "../types/structure.ts";
 import { modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
 import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
 import { TrussLoadEditor } from "./TrussLoadEditor";
 import { TrussMemberEditor } from "./TrussMemberEditor";
 import { TrussNodeEditor } from "./TrussNodeEditor";
 
-export type TrussAdvancedSection = "nodes" | "members" | "loads";
+export type TrussAdvancedSection = "nodes" | "members" | "loads" | "loadCases" | "loadCombinations";
 
 interface TrussTableSectionProps {
   nodes: TrussNode[];
   members: TrussMember[];
   materialLibrary?: Material[];
   loads: TrussLoad[];
+  loadCases: TrussLoadCase[];
+  loadCombinations: TrussLoadCombination[];
   nodeOptions: Array<{ value: string; label: string }>;
   memberOptions: Array<{ value: string; label: string }>;
   activeSectionId: TrussAdvancedSection;
@@ -32,6 +34,8 @@ export function TrussTableSection({
   members,
   materialLibrary = PREDEFINED_MATERIALS,
   loads,
+  loadCases,
+  loadCombinations,
   nodeOptions,
   memberOptions,
   activeSectionId,
@@ -51,6 +55,8 @@ export function TrussTableSection({
     { id: "nodes", label: vocabulary.nodeGroupLabel, count: nodes.length },
     { id: "members", label: vocabulary.memberGroupLabel, count: members.length },
     { id: "loads", label: vocabulary.loadGroupLabel, count: loads.length },
+    { id: "loadCases", label: "工况", count: loadCases.length },
+    { id: "loadCombinations", label: "组合", count: loadCombinations.length },
   ];
 
   return (
@@ -161,6 +167,48 @@ export function TrussTableSection({
                 />
               ))}
               {loads.length === 0 && <div className="p-4 text-center text-xs text-muted-foreground">暂无荷载</div>}
+            </div>
+          </section>
+        ) : null}
+
+        {activeSectionId === "loadCases" ? (
+          <section id="truss-custom-load-cases-table" className="space-y-4 rounded-2xl border border-white/8 bg-white/[0.03] p-4 scroll-mt-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="eyebrow flex items-center gap-2">
+                <Link2 className="h-3.5 w-3.5 text-primary" />
+                荷载工况
+              </div>
+            </div>
+            <div className="space-y-2">
+              {loadCases.map((loadCase) => (
+                <div key={loadCase.id} className="grid grid-cols-2 gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 text-xs">
+                  <span className="font-bold">{loadCase.id} ({loadCase.title})</span>
+                  <span className="text-muted-foreground">包含 {loadCase.loads.length} 个荷载</span>
+                </div>
+              ))}
+              {loadCases.length === 0 && <div className="p-4 text-center text-xs text-muted-foreground">暂无工况</div>}
+            </div>
+          </section>
+        ) : null}
+
+        {activeSectionId === "loadCombinations" ? (
+          <section id="truss-custom-load-combinations-table" className="space-y-4 rounded-2xl border border-white/8 bg-white/[0.03] p-4 scroll-mt-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="eyebrow flex items-center gap-2">
+                <Link2 className="h-3.5 w-3.5 text-primary" />
+                荷载组合
+              </div>
+            </div>
+            <div className="space-y-2">
+              {loadCombinations.map((combination) => (
+                <div key={combination.id} className="grid grid-cols-2 gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 text-xs">
+                  <span className="font-bold">{combination.id} ({combination.title})</span>
+                  <span className="text-muted-foreground">
+                    {Object.entries(combination.factors).map(([caseId, factor]) => `${factor}×${caseId}`).join(" + ")}
+                  </span>
+                </div>
+              ))}
+              {loadCombinations.length === 0 && <div className="p-4 text-center text-xs text-muted-foreground">暂无组合</div>}
             </div>
           </section>
         ) : null}

@@ -13,6 +13,7 @@ from backend.exporters.common.evidence import build_evidence_tables
 from backend.exporters.common.filenames import export_filename
 from backend.exporters.common.load_tables import build_load_combination_rows
 from backend.exporters.common.member_materials import member_elasticity_summary
+from backend.exporters.common.result_source import result_source_rows
 from backend.exporters.common.xlsx_utils import HAS_OPENPYXL, apply_standard_worksheet_style, write_sectioned_sheet
 from backend.normalizers.truss.request_normalizer import node_support_dofs
 
@@ -24,6 +25,7 @@ def build_summary_tables(solution: Dict[str, Any], material_name: str):
     df_summary = pd.DataFrame(
         [
             ["项目名称", solution["projectName"]],
+            *result_source_rows(solution),
             ["计算日期", pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")],
             ["结构类型", "二维平面桁架"],
             ["材料名称", material_name],

@@ -36,6 +36,8 @@ def build_report_model(
             solution = build_beam_solution(data, material_name)
     if isinstance(data.get("benchmark"), dict):
         solution = {**solution, "benchmark": data["benchmark"]}
+    if isinstance(data.get("resultSource"), dict):
+        solution = {**solution, "resultSource": data["resultSource"]}
     return ReportModel.from_solution(
         analysis_type=analysis_type,
         material_name=material_name,

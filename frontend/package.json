@@ -1,6 +1,6 @@
 {
   "name": "archsight-solver-frontend",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -14,7 +14,7 @@
     "validate": "npm run lint && npm run validate:version",
     "test:unit": "node scripts/run-unit-tests.mjs",
     "test:visual": "playwright test",
-    "test:visual:export-docx": "playwright test workbench-export-docx.spec.ts --project=chromium --workers=1 && playwright test workbench-export-docx.spec.ts --project=firefox --workers=1 && playwright test workbench-export-docx.spec.ts --project=webkit --workers=1",
+    "test:visual:export-docx": "playwright test workbench-export-docx.spec.ts --project=chromium --project=firefox --project=webkit --workers=1 --reporter=list",
     "test:visual:update": "playwright test --update-snapshots"
   },
   "dependencies": {

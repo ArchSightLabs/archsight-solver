@@ -116,11 +116,32 @@
       </button>
     </div>
     <header>
-      <span class="tag">当前版本 v1.4.0</span>
+      <span class="tag">当前版本 v1.5.0</span>
       <h1>版本发布记录</h1>
     </header>
 
     <section class="release-list" aria-label="版本发布记录">
+      <article class="release">
+        <div class="release-head">
+          <h2>v1.5.0</h2>
+          <span class="date">发布时间：2026-06-19</span>
+        </div>
+          <p class="section-label">重点变化</p>
+          <ul>
+            <li>梁系补齐荷载工况和荷载组合编辑入口，覆盖均布、集中、线性分布荷载，并在对象导航和表格摘要中形成统一入口。</li>
+            <li>平面桁架补齐荷载工况和荷载组合编辑入口；节点、杆件、荷载复制 / 镜像 / 阵列、重命名和删除时同步维护工况内引用与组合系数。</li>
+            <li>结果页统一“主结果 / 工况 / 组合”来源切换，不再只支持平面框架；梁系和桁架的受力变形图、数据曲线和摘要会随当前来源切换。</li>
+            <li>DOCX / XLSX 导出记录当前结果来源，并在 DOCX 导出图像生成时使用与界面一致的选中结果来源。</li>
+            <li>API envelope 前端归一化补齐梁系和桁架的 <code>loadCaseResults</code> / <code>loadCombinationResults</code>，避免后端已返回但前端视图丢失。</li>
+            <li>版本号统一提升到 <code>1.5.0</code>，同步 <code>package.json</code>、<code>frontend/package.json</code>、<code>pyproject.toml</code>、<code>uv.lock</code> 和 lockfile 顶部项目版本。</li>
+          </ul>
+          <p class="section-label">质量门禁</p>
+          <ul>
+            <li>前端 <code>npm run lint</code> 通过。</li>
+            <li>前端 <code>npm run test:unit</code> 通过：349 passed。</li>
+          </ul>
+      </article>
+
       <article class="release">
         <div class="release-head">
           <h2>v1.4.0</h2>

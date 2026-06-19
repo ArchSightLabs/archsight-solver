@@ -6,12 +6,14 @@ import {
 } from "./BeamObjectNavigator";
 import { beamSupportLabel } from "../lib/support-vocabulary.ts";
 import { modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
-import type { BeamSpanConfig, BeamSupportConfig } from "../types/beam.ts";
+import type { BeamLoadCase, BeamLoadCombination, BeamSpanConfig, BeamSupportConfig } from "../types/beam.ts";
 
 interface BeamTableSectionProps {
   spans: BeamSpanConfig[];
   supports: BeamSupportConfig[];
   loadSummary: string;
+  loadCases: BeamLoadCase[];
+  loadCombinations: BeamLoadCombination[];
   fieldLabelClass: string;
   materialLabelForSpan: (span: BeamSpanConfig) => string;
 }
@@ -24,6 +26,8 @@ export function BeamTableSection({
   spans,
   supports,
   loadSummary,
+  loadCases,
+  loadCombinations,
   fieldLabelClass,
   materialLabelForSpan,
 }: BeamTableSectionProps) {
@@ -81,6 +85,32 @@ export function BeamTableSection({
           <div className={fieldLabelClass}>{vocabulary.loadGroupLabel}</div>
           <div className="mt-2 rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 font-semibold">
             {loadSummary}
+          </div>
+        </div>
+        <div className="space-y-2 rounded-lg border border-white/8 bg-slate-950/20 p-3">
+          <div className={fieldLabelClass}>荷载工况</div>
+          <div className="space-y-2">
+            {loadCases.map((loadCase) => (
+              <div key={loadCase.id} className="grid grid-cols-2 gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 text-xs">
+                <span className="font-bold">{loadCase.id} ({loadCase.title})</span>
+                <span className="text-muted-foreground">包含 {loadCase.loads.length} 个荷载</span>
+              </div>
+            ))}
+            {loadCases.length === 0 && <div className="rounded-lg border border-dashed border-white/10 px-3 py-3 text-xs text-muted-foreground">暂无工况</div>}
+          </div>
+        </div>
+        <div className="space-y-2 rounded-lg border border-white/8 bg-slate-950/20 p-3">
+          <div className={fieldLabelClass}>荷载组合</div>
+          <div className="space-y-2">
+            {loadCombinations.map((combination) => (
+              <div key={combination.id} className="grid grid-cols-2 gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2 text-xs">
+                <span className="font-bold">{combination.id} ({combination.title})</span>
+                <span className="text-muted-foreground">
+                  {Object.entries(combination.factors).map(([caseId, factor]) => `${factor}×${caseId}`).join(" + ")}
+                </span>
+              </div>
+            ))}
+            {loadCombinations.length === 0 && <div className="rounded-lg border border-dashed border-white/10 px-3 py-3 text-xs text-muted-foreground">暂无组合</div>}
           </div>
         </div>
       </div>

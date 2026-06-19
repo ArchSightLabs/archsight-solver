@@ -108,6 +108,8 @@ function trussCollections(workspace: WorkspaceState): TrussEditorCollections {
     nodes: workspace.truss.customNodes,
     members: workspace.truss.customMembers,
     loads: workspace.truss.customLoads,
+    loadCases: workspace.truss.customLoadCases,
+    loadCombinations: workspace.truss.customLoadCombinations,
   };
 }
 
@@ -134,6 +136,8 @@ function trussWorkspaceWithCollections(workspace: WorkspaceState, collections: T
       customNodes: collections.nodes,
       customMembers: collections.members,
       customLoads: collections.loads,
+      customLoadCases: collections.loadCases,
+      customLoadCombinations: collections.loadCombinations,
     },
   };
 }

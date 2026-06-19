@@ -1,10 +1,10 @@
 import { LineChart } from "echarts/charts";
-import { GraphicComponent, GridComponent, TooltipComponent } from "echarts/components";
+import { GraphicComponent, GridComponent, LegendComponent, TooltipComponent } from "echarts/components";
 import * as echarts from "echarts/core";
 import type { EChartsCoreOption } from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 
-echarts.use([LineChart, GridComponent, TooltipComponent, GraphicComponent, CanvasRenderer]);
+echarts.use([LineChart, GridComponent, TooltipComponent, GraphicComponent, LegendComponent, CanvasRenderer]);
 
 export const REPORT_BG = "#ffffff";
 export const TEXT = "#334155";

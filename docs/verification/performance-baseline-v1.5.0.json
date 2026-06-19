@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-19T03:57:13Z",
+  "repeat": 1,
+  "cases": [
+    {
+      "name": "beam-100-spans",
+      "repeat": 1,
+      "seconds": {
+        "min": 0.263726,
+        "median": 0.263726,
+        "max": 0.263726
+      },
+      "shape": {
+        "analysisType": "beam",
+        "spanCount": 100,
+        "nodeCount": 101,
+        "memberCount": 100,
+        "sampleCount": 4202
+      },
+      "status": "合格"
+    },
+    {
+      "name": "frame-4x3-grid",
+      "repeat": 1,
+      "seconds": {
+        "min": 0.012162,
+        "median": 0.012162,
+        "max": 0.012162
+      },
+      "shape": {
+        "analysisType": "frame",
+        "spanCount": 0,
+        "nodeCount": 20,
+        "memberCount": 27,
+        "sampleCount": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "truss-public-benchmark",
+      "repeat": 1,
+      "seconds": {
+        "min": 0.00582,
+        "median": 0.00582,
+        "max": 0.00582
+      },
+      "shape": {
+        "analysisType": "truss",
+        "spanCount": 0,
+        "nodeCount": 4,
+        "memberCount": 5,
+        "sampleCount": 0
+      },
+      "status": "PASS"
+    }
+  ]
+}

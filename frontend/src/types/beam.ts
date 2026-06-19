@@ -144,6 +144,8 @@ export interface BeamCalculationResults {
   beam?: BeamPreviewData;
   summary?: BeamSummary;
   payload?: BeamApiPayload;
+  loadCaseResults?: BeamLoadCaseResult[];
+  loadCombinationResults?: Array<BeamLoadCaseResult & { factors: Record<string, number>; tags?: string[] }>;
   error?: string;
   meta?: {
     generatedAt?: string;
@@ -151,6 +153,20 @@ export interface BeamCalculationResults {
     requestHash?: string;
     jobId?: string;
   };
+}
+
+export interface BeamLoadCaseResult {
+  id: string;
+  title: string;
+  summary?: Partial<BeamSummary>;
+  x_data: number[];
+  v_data: number[];
+  element_end_moments?: number[];
+  element_end_shears?: number[];
+  moment_data?: number[];
+  shear_data?: number[];
+  reactions?: unknown[];
+  queryResults?: unknown[];
 }
 
 export interface BeamSupport {

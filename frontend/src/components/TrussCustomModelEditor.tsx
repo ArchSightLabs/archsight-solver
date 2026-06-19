@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { Triangle } from "lucide-react";
 import { WorkbenchTabsLayout } from "./layout/WorkbenchTabsLayout";
+import { LoadCombinationSection } from "./LoadCombinationSection";
 import { TrussLoadEditor } from "./TrussLoadEditor";
+import { TrussLoadCaseSection } from "./TrussLoadCaseSection";
 import { TrussBasicSection } from "./TrussBasicSection";
 import { TrussMemberEditor } from "./TrussMemberEditor";
 import { TrussNodeEditor } from "./TrussNodeEditor";
@@ -12,16 +14,21 @@ import {
   createConnectedTrussMemberByNodeId,
   createTrussMemberLoadDraft,
   createTrussNodalLoadDraft,
+  nextTrussDraftId,
   trussMemberExists,
 } from "../lib/truss-editor-model.ts";
 import { TRUSS_MODEL_TEMPLATES, cloneTrussModelTemplate } from "../lib/workbench-model-templates.ts";
 import { useTrussTextModel } from "../hooks/useTrussTextModel.ts";
 import { useNodePairConnection } from "../hooks/useNodePairConnection.ts";
 import {
+  removeTrussLoadCaseCollections,
   removeTrussLoadCollections,
+  removeTrussLoadCombinationCollections,
   removeTrussMemberCollections,
   removeTrussNodeCollections,
+  updateTrussLoadCaseCollections,
   updateTrussLoadCollections,
+  updateTrussLoadCombinationCollections,
   updateTrussMemberCollections,
   updateTrussNodeCollections,
   type TrussEditorCollections,
@@ -30,7 +37,7 @@ import { memberElasticityDistributionLabel, sectionAreaForMaterial, youngModulus
 import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import { trussSupportStabilityWarning } from "../solver-payload.ts";
 import type { Material } from "../types/material.ts";
-import type { TrussLoad, TrussLoadPatch, TrussMember, TrussNode } from "../types/structure.ts";
+import type { TrussLoad, TrussLoadCase, TrussLoadCombination, TrussLoadPatch, TrussMember, TrussNode } from "../types/structure.ts";
 import type { TrussWorkbenchSelection, WorkbenchSelectionOptions } from "../types/workbench-selection.ts";
 
 type TrussCollections = TrussEditorCollections;
@@ -77,15 +84,24 @@ export function TrussCustomModelEditor({
     duplicateReason: `两节点间已有${memberTerm}`,
   });
 
+  const keep = (patch: Partial<TrussCollections> = {}): TrussCollections => ({
+    nodes: patch.nodes ?? value.nodes,
+    members: patch.members ?? value.members,
+    loads: patch.loads ?? value.loads,
+    loadCases: patch.loadCases ?? value.loadCases,
+    loadCombinations: patch.loadCombinations ?? value.loadCombinations,
+  });
+
   const trussTextModel = useTrussTextModel({
     value,
     onApplyCollections: (next) => {
-      onChange(next);
+      const nextCollections = keep(next);
+      onChange(nextCollections);
       memberConnection.resetToAvailablePair({
-        nodeIds: next.nodes.map((node) => node.id),
-        duplicateExists: (nextStartId, nextEndId) => trussMemberExists(next.members, nextStartId, nextEndId),
+        nodeIds: nextCollections.nodes.map((node) => node.id),
+        duplicateExists: (nextStartId, nextEndId) => trussMemberExists(nextCollections.members, nextStartId, nextEndId),
       });
-      setSelectedObject({ type: "node", id: next.nodes[0]?.id ?? "" });
+      setSelectedObject({ type: "node", id: nextCollections.nodes[0]?.id ?? "" });
     },
   });
   const memberOptions = useMemo(
@@ -101,10 +117,19 @@ export function TrussCustomModelEditor({
   );
 
   const resolvedSelectedObject = useMemo<TrussSelectedObject>(() => {
-    const current = selection && selection.type !== "label" ? { type: selection.type, id: selection.id } : selectedObject;
+    let current: TrussSelectedObject = selectedObject;
+    if (selection && selection.type !== "label") {
+      if (selection.type === "node" || selection.type === "member" || selection.type === "load") {
+        current = { type: selection.type, id: selection.id };
+      } else if (selection.type === "loadCases" || selection.type === "loadCombinations") {
+        current = { type: selection.type, id: "all" };
+      }
+    }
     if (current.type === "node" && value.nodes.some((node) => node.id === current.id)) return current;
     if (current.type === "member" && value.members.some((member) => member.id === current.id)) return current;
     if (current.type === "load" && value.loads[Number(current.id.replace("load-", ""))]) return current;
+    if (current.type === "loadCases") return { type: "loadCases", id: "all" };
+    if (current.type === "loadCombinations") return { type: "loadCombinations", id: "all" };
     if (value.nodes[0]) return { type: "node", id: value.nodes[0].id };
     if (value.members[0]) return { type: "member", id: value.members[0].id };
     return { type: "load", id: "load-0" };
@@ -135,14 +160,20 @@ export function TrussCustomModelEditor({
 
   const selectObject = (next: TrussSelectedObject, options?: WorkbenchSelectionOptions) => {
     setSelectedObject(next);
-    onSelectionChange?.({ mode: "truss", type: next.type, id: next.id }, options);
+    if (next.type === "node" || next.type === "member" || next.type === "load") {
+      onSelectionChange?.({ mode: "truss", type: next.type, id: next.id }, options);
+      return;
+    }
+    if (next.type === "loadCases" || next.type === "loadCombinations") {
+      onSelectionChange?.({ mode: "truss", type: next.type, id: "all" }, options);
+    }
   };
 
   const applyTypicalCase = (templateId: string) => {
     const template = TRUSS_MODEL_TEMPLATES.find((item) => item.id === templateId);
     if (!template) return;
     const collections = cloneTrussModelTemplate(template);
-    commit(collections);
+    commit(keep({ nodes: collections.nodes, members: collections.members, loads: collections.loads, loadCases: [], loadCombinations: [] }));
     memberConnection.resetToAvailablePair({
       nodeIds: collections.nodes.map((node) => node.id),
       duplicateExists: (nextStartId, nextEndId) => trussMemberExists(collections.members, nextStartId, nextEndId),
@@ -179,7 +210,7 @@ export function TrussCustomModelEditor({
       endNodeId: endId,
       duplicateExists: (nextStartId, nextEndId) => trussMemberExists(nextMembers, nextStartId, nextEndId),
     });
-    commit({ nodes: value.nodes, members: nextMembers, loads: value.loads });
+    commit(keep({ members: nextMembers }));
     selectObject({ type: "member", id: nextMember.id }, { openEditor: false });
   };
 
@@ -199,7 +230,7 @@ export function TrussCustomModelEditor({
 
   const addNodalLoad = () => {
     const nextLoads = [...value.loads, createTrussNodalLoadDraft(value.nodes)];
-    commit({ nodes: value.nodes, members: value.members, loads: nextLoads });
+    commit(keep({ loads: nextLoads }));
     selectObject({ type: "load", id: `load-${nextLoads.length - 1}` });
   };
 
@@ -209,7 +240,7 @@ export function TrussCustomModelEditor({
     }
     const preferredMemberId = resolvedSelectedObject.type === "member" ? resolvedSelectedObject.id : undefined;
     const nextLoads = [...value.loads, createTrussMemberLoadDraft(value.members, preferredMemberId)];
-    commit({ nodes: value.nodes, members: value.members, loads: nextLoads });
+    commit(keep({ loads: nextLoads }));
     selectObject({ type: "load", id: `load-${nextLoads.length - 1}` });
   };
 
@@ -222,8 +253,104 @@ export function TrussCustomModelEditor({
     commit(removeTrussLoadCollections(value, index));
   };
 
+  const addLoadCase = () => {
+    const id = nextTrussDraftId("LC", value.loadCases.map((loadCase) => loadCase.id));
+    const defaultLoad = createTrussNodalLoadDraft(value.nodes);
+    commit(keep({ loadCases: [...value.loadCases, { id, title: `工况 ${value.loadCases.length + 1}`, loads: [defaultLoad] }] }));
+    selectObject({ type: "loadCases", id: "all" });
+  };
+
+  const updateLoadCase = (loadCaseIndex: number, patch: Partial<TrussLoadCase>) => {
+    const result = updateTrussLoadCaseCollections(value, loadCaseIndex, patch);
+    if (result) commit(result.next);
+  };
+
+  const removeLoadCase = (loadCaseIndex: number) => {
+    const next = removeTrussLoadCaseCollections(value, loadCaseIndex);
+    if (next) commit(next);
+  };
+
+  const addLoadToCase = (loadCaseIndex: number) => {
+    const loadCase = value.loadCases[loadCaseIndex];
+    if (!loadCase) return;
+    const defaultLoad = createTrussNodalLoadDraft(value.nodes);
+    updateLoadCase(loadCaseIndex, { loads: [...loadCase.loads, defaultLoad] });
+  };
+
+  const updateLoadInCase = (loadCaseIndex: number, loadIndex: number, patch: TrussLoadPatch | TrussLoad) => {
+    const loadCase = value.loadCases[loadCaseIndex];
+    if (!loadCase) return;
+    const next = updateTrussLoadCollections(keep({ loads: loadCase.loads }), loadIndex, patch);
+    if (!next) return;
+    updateLoadCase(loadCaseIndex, { loads: next.loads });
+  };
+
+  const removeLoadFromCase = (loadCaseIndex: number, loadIndex: number) => {
+    const loadCase = value.loadCases[loadCaseIndex];
+    if (!loadCase) return;
+    updateLoadCase(loadCaseIndex, { loads: loadCase.loads.filter((_, index) => index !== loadIndex) });
+  };
+
+  const addLoadCombination = () => {
+    if (value.loadCases.length === 0) return;
+    const id = nextTrussDraftId("COMB", value.loadCombinations.map((combination) => combination.id));
+    commit(
+      keep({
+        loadCombinations: [
+          ...value.loadCombinations,
+          { id, title: `组合 ${value.loadCombinations.length + 1}`, factors: Object.fromEntries(value.loadCases.map((loadCase) => [loadCase.id, 1])) },
+        ],
+      }),
+    );
+    selectObject({ type: "loadCombinations", id: "all" });
+  };
+
+  const updateLoadCombination = (combinationIndex: number, patch: Partial<TrussLoadCombination>) => {
+    const next = updateTrussLoadCombinationCollections(value, combinationIndex, patch);
+    if (next) commit(next);
+  };
+
   const fieldLabelClass = "text-[10px] font-black tracking-widest text-muted-foreground";
   const renderSelectedEditor = () => {
+    if (resolvedSelectedObject.type === "loadCases") {
+      return (
+        <TrussLoadCaseSection
+          loadCases={value.loadCases}
+          nodes={value.nodes}
+          members={value.members}
+          nodeOptions={nodeOptions}
+          memberOptions={memberOptions}
+          fieldLabelClass={fieldLabelClass}
+          onAddLoadCase={addLoadCase}
+          onUpdateLoadCase={updateLoadCase}
+          onRemoveLoadCase={removeLoadCase}
+          onAddLoadToCase={addLoadToCase}
+          onUpdateLoadInCase={updateLoadInCase}
+          onRemoveLoadFromCase={removeLoadFromCase}
+        />
+      );
+    }
+
+    if (resolvedSelectedObject.type === "loadCombinations") {
+      return (
+        <LoadCombinationSection<TrussLoadCombination>
+          id="truss-custom-load-combinations"
+          title="荷载组合"
+          emptyCaseMessage="先定义桁架荷载工况后再编辑组合系数。"
+          emptyCombinationMessage="未设置桁架荷载组合。"
+          loadCases={value.loadCases}
+          loadCombinations={value.loadCombinations}
+          fieldLabelClass={fieldLabelClass}
+          onAddLoadCombination={addLoadCombination}
+          onUpdateLoadCombination={updateLoadCombination}
+          onRemoveLoadCombination={(combinationIndex) => {
+            const next = removeTrussLoadCombinationCollections(value, combinationIndex);
+            if (next) commit(next);
+          }}
+        />
+      );
+    }
+
     if (resolvedSelectedObject.type === "node") {
       const index = value.nodes.findIndex((node) => node.id === resolvedSelectedObject.id);
       const node = value.nodes[index];
@@ -341,6 +468,8 @@ export function TrussCustomModelEditor({
             <TrussObjectNavigator
               nodes={value.nodes}
               members={value.members}
+              loadCases={value.loadCases}
+              loadCombinations={value.loadCombinations}
               materialLibrary={materialLibrary}
               nodeOptions={nodeOptions}
               loadOptions={loadOptions}
@@ -386,6 +515,8 @@ export function TrussCustomModelEditor({
             members={value.members}
             materialLibrary={materialLibrary}
             loads={value.loads}
+            loadCases={value.loadCases}
+            loadCombinations={value.loadCombinations}
             nodeOptions={nodeOptions}
             memberOptions={memberOptions}
             activeSectionId={advancedSectionId}

@@ -11,6 +11,7 @@ from backend.exporters.common.docx_utils import HAS_DOCX, add_df_table, add_head
 from backend.exporters.common.evidence import build_evidence_tables
 from backend.exporters.common.filenames import export_filename
 from backend.exporters.common.load_tables import build_load_combination_rows
+from backend.exporters.common.result_source import result_source_text
 from backend.exporters.common.report_figure_catalog import BEAM_REPORT_OVERLAY_FIGURES, BEAM_REPORT_TRADITIONAL_FIGURES, report_figures_for_scope
 from backend.exporters.common.report_options import include_all_result_figures, include_figures, include_overlay_figures, include_traditional_figures, normalize_report_options
 from backend.exporters.common.report_figures import (
@@ -42,6 +43,7 @@ def export_docx(
 
     add_heading(doc, "1. 项目概况")
     doc.add_paragraph(f"项目名称: {request['project_name']}")
+    doc.add_paragraph(f"结果来源: {result_source_text(solution)}")
     doc.add_paragraph(f"导出日期: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
     doc.add_paragraph(f"梁型: {request['beam_type_label']}")
     doc.add_paragraph(f"荷载类型: {request['load_type_label']}")

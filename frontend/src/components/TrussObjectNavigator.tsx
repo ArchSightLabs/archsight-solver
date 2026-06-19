@@ -8,12 +8,14 @@ import { memberSectionSummary } from "../lib/member-property-vocabulary.ts";
 import { modelObjectLoadLabel, modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
 import { trussSupportLabel, trussSupportSummary } from "../lib/support-vocabulary.ts";
 import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
-import type { TrussMember, TrussNode } from "../types/structure.ts";
+import type { TrussLoadCase, TrussLoadCombination, TrussMember, TrussNode } from "../types/structure.ts";
 
 export type TrussSelectedObject =
   | { type: "node"; id: string }
   | { type: "member"; id: string }
-  | { type: "load"; id: string };
+  | { type: "load"; id: string }
+  | { type: "loadCases"; id: "all" }
+  | { type: "loadCombinations"; id: "all" };
 
 interface TrussObjectNavigatorProps {
   nodes: TrussNode[];
@@ -21,6 +23,8 @@ interface TrussObjectNavigatorProps {
   materialLibrary?: Material[];
   nodeOptions: Array<{ value: string; label: string }>;
   loadOptions: Array<{ value: string; label: string }>;
+  loadCases: TrussLoadCase[];
+  loadCombinations: TrussLoadCombination[];
   selectedObject: TrussSelectedObject;
   supportCount: number;
   fieldLabelClass: string;
@@ -61,6 +65,8 @@ export function TrussObjectNavigator({
   materialLibrary = PREDEFINED_MATERIALS,
   nodeOptions,
   loadOptions,
+  loadCases,
+  loadCombinations,
   selectedObject,
   supportCount,
   fieldLabelClass,
@@ -168,6 +174,25 @@ export function TrussObjectNavigator({
               <Plus className="mr-1 h-3 w-3" />
               新增{memberLoadLabel}
             </Button>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <div className={fieldLabelClass}>荷载工况与组合</div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => onSelectObject({ type: "loadCases", id: "all" })}
+              className={objectChipClass(selectedObject.type === "loadCases")}
+            >
+              荷载工况 · {loadCases.length}
+            </button>
+            <button
+              type="button"
+              onClick={() => onSelectObject({ type: "loadCombinations", id: "all" })}
+              className={objectChipClass(selectedObject.type === "loadCombinations")}
+            >
+              荷载组合 · {loadCombinations.length}
+            </button>
           </div>
         </div>
       </div>

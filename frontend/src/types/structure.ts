@@ -449,6 +449,8 @@ export interface TrussCalculationResults {
   structure: TrussStructure;
   nodeResults: TrussNodeResult[];
   memberResults: TrussMemberResult[];
+  loadCaseResults?: TrussLoadCaseResult[];
+  loadCombinationResults?: Array<TrussLoadCaseResult & { factors: Record<string, number>; tags?: string[] }>;
   nodeIds: string[];
   memberIds: string[];
   ux_data: number[];
@@ -462,4 +464,12 @@ export interface TrussCalculationResults {
     requestHash?: string;
     jobId?: string;
   };
+}
+
+export interface TrussLoadCaseResult {
+  id: string;
+  title: string;
+  summary: Partial<TrussSummary>;
+  nodeResults: TrussNodeResult[];
+  memberResults: TrussMemberResult[];
 }

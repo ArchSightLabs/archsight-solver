@@ -13,7 +13,14 @@ import { WorkbenchOperationNotice } from "./WorkbenchOperationNotice";
 import { WorkbenchResultContent } from "./WorkbenchResultContent";
 import { WorkbenchResultTabSelector } from "./WorkbenchResultTabSelector";
 import { WorkbenchResultToolbar } from "./WorkbenchResultToolbar";
-import { buildDisplayedFrameResults, buildFrameDisplayOptions, resultTabsForMode, type FrameDisplayOption } from "./workbench-result-model";
+import {
+  buildDisplayedBeamResults,
+  buildDisplayedFrameResults,
+  buildDisplayedTrussResults,
+  buildResultDisplayOptions,
+  resultTabsForMode,
+  type ResultDisplayOption,
+} from "./workbench-result-model";
 
 interface WorkbenchResultTabsProps {
   analysisMode: AnalysisMode;
@@ -24,7 +31,7 @@ interface WorkbenchResultTabsProps {
   reportExportOptions: ReportExportOptions;
   compact?: boolean;
   onReportExportOptionsChange: (options: ReportExportOptions) => void;
-  onExport: (format: ExportFormat) => void;
+  onExport: (format: ExportFormat, resultSource?: ResultDisplayOption) => void;
   onRunCalculation: () => void;
   isSolving: boolean;
   runLabel: string;
@@ -58,14 +65,23 @@ export function WorkbenchResultTabs({
 }: WorkbenchResultTabsProps) {
   const tabs = resultTabsForMode(analysisMode);
   const [activeTabState, setActiveTabState] = useState({ mode: analysisMode, tabId: tabs[0].id });
-  const [frameDisplayState, setFrameDisplayState] = useState<FrameDisplayOption>({ source: "primary", id: "__primary__", label: "主结果", description: "基本荷载" });
+  const [displayState, setDisplayState] = useState<{ mode: AnalysisMode; option: ResultDisplayOption }>({
+    mode: analysisMode,
+    option: { source: "primary", id: "__primary__", label: "主结果", description: "基本荷载" },
+  });
   const activeTab = controlledActiveTabId !== undefined ? controlledActiveTabId : (activeTabState.mode === analysisMode ? activeTabState.tabId : tabs[0].id);
   const hasResults = analysisMode === "frame" ? Boolean(frameResults) : analysisMode === "truss" ? Boolean(trussResults) : Boolean(beamResults);
   const activeTabId = tabs.some((tab) => tab.id === activeTab) ? activeTab : tabs[0].id;
   const activeTabMeta = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0];
-  const frameDisplayOptions = useMemo(() => buildFrameDisplayOptions(frameResults), [frameResults]);
-  const activeFrameDisplayOption = frameDisplayOptions.find((option) => option.source === frameDisplayState.source && option.id === frameDisplayState.id) ?? frameDisplayOptions[0];
-  const displayedFrameResults = useMemo(() => buildDisplayedFrameResults(frameResults, activeFrameDisplayOption), [activeFrameDisplayOption, frameResults]);
+  const resultDisplayOptions = useMemo(
+    () => buildResultDisplayOptions(analysisMode === "frame" ? frameResults : analysisMode === "truss" ? trussResults : beamResults),
+    [analysisMode, beamResults, frameResults, trussResults],
+  );
+  const activeDisplayOption =
+    resultDisplayOptions.find((option) => displayState.mode === analysisMode && option.source === displayState.option.source && option.id === displayState.option.id) ?? resultDisplayOptions[0];
+  const displayedBeamResults = useMemo(() => buildDisplayedBeamResults(beamResults, activeDisplayOption), [activeDisplayOption, beamResults]);
+  const displayedFrameResults = useMemo(() => buildDisplayedFrameResults(frameResults, activeDisplayOption), [activeDisplayOption, frameResults]);
+  const displayedTrussResults = useMemo(() => buildDisplayedTrussResults(trussResults, activeDisplayOption), [activeDisplayOption, trussResults]);
   const modelHash = analysisMode === "frame" ? frameResults?.meta?.modelHash : analysisMode === "truss" ? trussResults?.meta?.modelHash : beamResults?.meta?.modelHash;
   const handleSelectTab = (tabId: string) => {
     setActiveTabState({ mode: analysisMode, tabId });
@@ -78,8 +94,8 @@ export function WorkbenchResultTabs({
       activeTabId={activeTabId}
       compact={compact}
       hasResults={hasResults}
-      beamResults={beamResults}
-      trussResults={trussResults}
+      beamResults={displayedBeamResults}
+      trussResults={displayedTrussResults}
       displayedFrameResults={displayedFrameResults}
       workspace={workspace}
       updateWorkspace={updateWorkspace}
@@ -93,9 +109,9 @@ export function WorkbenchResultTabs({
           <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-3">
               <h3 className={`${compact ? "text-lg" : "text-xl"} font-black tracking-tight`}>{activeTabMeta.label}</h3>
-              {analysisMode === "frame" && activeFrameDisplayOption ? (
+              {activeDisplayOption ? (
                 <span className="rounded-full border border-emerald-500/20 bg-emerald-500/[0.08] px-2.5 py-1 text-[10px] font-bold text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-300">
-                  {activeFrameDisplayOption.label}
+                  {activeDisplayOption.label}
                 </span>
               ) : null}
               {hasResults && !isDirty && (
@@ -116,15 +132,15 @@ export function WorkbenchResultTabs({
                 </span>
               )}
             </div>
-            {analysisMode === "frame" && frameDisplayOptions.length > 1 ? (
+            {resultDisplayOptions.length > 1 ? (
               <div className="flex max-w-3xl flex-wrap gap-2 pt-1">
-                {frameDisplayOptions.map((option) => {
-                  const active = option.source === activeFrameDisplayOption?.source && option.id === activeFrameDisplayOption.id;
+                {resultDisplayOptions.map((option) => {
+                  const active = option.source === activeDisplayOption?.source && option.id === activeDisplayOption.id;
                   return (
                     <button
                       key={`${option.source}-${option.id}`}
                       type="button"
-                      onClick={() => setFrameDisplayState(option)}
+                      onClick={() => setDisplayState({ mode: analysisMode, option })}
                       aria-pressed={active}
                       className={`rounded-lg border px-3 py-2 text-left text-[11px] transition-colors ${
                         active
@@ -150,7 +166,7 @@ export function WorkbenchResultTabs({
             exportingFormat={exportingFormat}
             reportExportOptions={reportExportOptions}
             onRunCalculation={onRunCalculation}
-            onExport={onExport}
+            onExport={(format) => onExport(format, activeDisplayOption)}
             onReportExportOptionsChange={onReportExportOptionsChange}
           />
         </div>

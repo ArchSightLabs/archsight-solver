@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Plus, SlidersHorizontal } from "lucide-react";
-import type { BeamSpanConfig, BeamSupportConfig } from "../types/beam.ts";
+import type { BeamLoadCase, BeamLoadCombination, BeamSpanConfig, BeamSupportConfig } from "../types/beam.ts";
 import { Button } from "./ui/button";
 import { ModelObjectGuide } from "./ModelObjectGuide";
 import { modelObjectVocabulary } from "../lib/model-object-vocabulary";
@@ -9,7 +9,9 @@ import { beamSupportLabel } from "../lib/support-vocabulary";
 export type BeamSelectedObject =
   | { type: "span"; id: string }
   | { type: "support"; id: string }
-  | { type: "load"; id: "primary" };
+  | { type: "load"; id: "primary" }
+  | { type: "loadCases"; id: "all" }
+  | { type: "loadCombinations"; id: "all" };
 
 export function spanId(index: number) {
   return `span-${index}`;
@@ -54,6 +56,8 @@ interface BeamObjectNavigatorProps {
   supports: BeamSupportConfig[];
   selectedObject: BeamSelectedObject;
   loadSummary: string;
+  loadCases: BeamLoadCase[];
+  loadCombinations: BeamLoadCombination[];
   maxSpans: number;
   fieldLabelClass: string;
   selectedEditor: ReactNode;
@@ -81,6 +85,8 @@ function formatCompactLength(value: number | undefined) {
 
 function selectedObjectLabel(selectedObject: BeamSelectedObject, spans: BeamSpanConfig[], supports: BeamSupportConfig[], loadSummary: string) {
   if (selectedObject.type === "load") return loadSummary;
+  if (selectedObject.type === "loadCases") return "荷载工况";
+  if (selectedObject.type === "loadCombinations") return "荷载组合";
   if (selectedObject.type === "support") {
     const index = supportIndexFromId(selectedObject.id);
     return beamSupportChipLabel(supports[index] ?? { id: "S?", x: 0, type: "pinned" }, index);
@@ -94,6 +100,8 @@ export function BeamObjectNavigator({
   supports,
   selectedObject,
   loadSummary,
+  loadCases,
+  loadCombinations,
   maxSpans,
   fieldLabelClass,
   selectedEditor,
@@ -154,6 +162,25 @@ export function BeamObjectNavigator({
             >
               {loadSummary}
             </button>
+          </div>
+          <div className="space-y-2">
+            <div className={fieldLabelClass}>荷载工况与组合</div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => onSelectObject({ type: "loadCases", id: "all" })}
+                className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold ${objectButtonClass(selectedObject.type === "loadCases")}`}
+              >
+                荷载工况 · {loadCases.length}
+              </button>
+              <button
+                type="button"
+                onClick={() => onSelectObject({ type: "loadCombinations", id: "all" })}
+                className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold ${objectButtonClass(selectedObject.type === "loadCombinations")}`}
+              >
+                荷载组合 · {loadCombinations.length}
+              </button>
+            </div>
           </div>
         </div>
         <div className="space-y-2.5 rounded-lg border border-white/8 bg-background/20 p-2.5">

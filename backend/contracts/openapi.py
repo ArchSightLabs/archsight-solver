@@ -394,6 +394,17 @@ def _export_payload_schema() -> Dict[str, Any]:
                 "description": "可选计算书图片资源，例如受力变形图、内力图。平面桁架和平面框架 DOCX 仅使用前端同源受力变形图和模型叠加工程图；缺失时跳过对应插图，不插入后端简化兜底图。",
                 "additionalProperties": True,
             },
+            "resultSource": {
+                "type": "object",
+                "description": "可选结果来源记录，用于说明导出内容对应主结果、指定荷载工况或指定荷载组合。",
+                "properties": {
+                    "source": {"type": "string", "enum": ["primary", "case", "combination"]},
+                    "id": {"type": "string"},
+                    "label": {"type": "string"},
+                    "description": {"type": "string"},
+                },
+                "additionalProperties": True,
+            },
             "reportOptions": {
                 "type": "object",
                 "description": "可选计算书模板与数据曲线设置；受力变形图和核心工程图固定导出。",

@@ -42,6 +42,7 @@ def export():
                 'reportImages': data.get('reportImages'),
                 'sensitivityResults': data.get('sensitivityResults'),
                 'benchmark': data.get('benchmark'),
+                'resultSource': data.get('resultSource'),
             })
             data = job_payload
 

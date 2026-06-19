@@ -11,6 +11,12 @@ import { buildReportImages } from "../lib/report-images";
 import { reportExportOptionsForMode, type ReportExportOptions } from "../lib/report-options";
 import type { BenchmarkCaseSource } from "../lib/solver-project";
 import {
+  buildDisplayedBeamResults,
+  buildDisplayedFrameResults,
+  buildDisplayedTrussResults,
+  type ResultDisplayOption,
+} from "../components/workbench-result-model";
+import {
   exportOperationForFormat,
   operationCompletedNotice,
   operationFailedNotice,
@@ -177,7 +183,7 @@ export function useWorkbenchActions(
     }
   };
 
-  const handleExport = async (format: ExportFormat = "docx") => {
+  const handleExport = async (format: ExportFormat = "docx", resultSource?: ResultDisplayOption) => {
     const payload = (analysisRequestFromResult(analysisData) as CalculationPayload | null) ?? latestPayload;
     if (!payload) {
       setOperationNotice(validationNotice("请先完成当前分析对象的结构计算或敏感性分析，再导出计算书。"));
@@ -191,13 +197,14 @@ export function useWorkbenchActions(
       type ResultWithJobId = { jobId?: string; apiEnvelope?: { jobId?: string }; meta?: { jobId?: string } };
       const resultData = analysisData as unknown as ResultWithJobId | null;
       const jobId = resultData?.jobId || resultData?.apiEnvelope?.jobId || resultData?.meta?.jobId;
+      const exportResultSource = resultSource ?? { source: "primary", id: "__primary__", label: "主结果", description: "基本荷载" };
       const exportPayload =
         format === "docx" && sensitivityData
-          ? { ...payload, format, sensitivityResults: sensitivityData, reportOptions: effectiveReportOptions, benchmark: activeBenchmark, jobId }
-          : { ...payload, format, benchmark: activeBenchmark, jobId, ...(format === "docx" ? { reportOptions: effectiveReportOptions } : {}) };
-      const beamResultsForReport = beamResultForView(analysisData);
-      const frameResultsForReport = frameResultForView(analysisData);
-      const trussResultsForReport = trussResultForView(analysisData);
+          ? { ...payload, format, sensitivityResults: sensitivityData, reportOptions: effectiveReportOptions, benchmark: activeBenchmark, jobId, resultSource: exportResultSource }
+          : { ...payload, format, benchmark: activeBenchmark, jobId, resultSource: exportResultSource, ...(format === "docx" ? { reportOptions: effectiveReportOptions } : {}) };
+      const beamResultsForReport = buildDisplayedBeamResults(beamResultForView(analysisData), resultSource);
+      const frameResultsForReport = buildDisplayedFrameResults(frameResultForView(analysisData), resultSource);
+      const trussResultsForReport = buildDisplayedTrussResults(trussResultForView(analysisData), resultSource);
       const payloadWithReportImages =
         format === "docx"
           ? {

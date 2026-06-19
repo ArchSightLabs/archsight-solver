@@ -356,6 +356,30 @@ def test_beam_exports_describe_material_scope_span_stiffness_and_supports(client
     assert "右支座" not in table_text
 
 
+def test_beam_xlsx_export_records_selected_result_source(client):
+    payload = beam_payload()
+    payload["loadCases"] = [
+        {"id": "DL", "title": "恒载", "loads": [{"type": "uniform", "qKnPerM": 8.0}]},
+    ]
+    payload["loadCombinations"] = [{"id": "COMB1", "title": "基本组合", "factors": {"DL": 1.2}, "tags": ["ULS"]}]
+    response = client.post(
+        "/api/export",
+        json={
+            **payload,
+            "format": "xlsx",
+            "resultSource": {"source": "combination", "id": "COMB1", "label": "基本组合", "description": "组合 COMB1"},
+        },
+    )
+
+    assert response.status_code == 200
+    with pd.ExcelFile(io.BytesIO(response.data)) as xls:
+        overview_text = pd.read_excel(xls, sheet_name=0, header=None).to_string()
+
+    assert "结果来源" in overview_text
+    assert "荷载组合" in overview_text
+    assert "COMB1" in overview_text
+
+
 def test_beam_load_cases_combinations_and_envelope(client):
     payload = beam_payload()
     payload["loadCases"] = [

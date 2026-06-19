@@ -2,6 +2,8 @@ export type BeamWorkbenchSelection =
   | { mode: "beam"; type: "span"; id: string }
   | { mode: "beam"; type: "support"; id: string }
   | { mode: "beam"; type: "load"; id: "primary" }
+  | { mode: "beam"; type: "loadCases"; id: "all" }
+  | { mode: "beam"; type: "loadCombinations"; id: "all" }
   | { mode: "beam"; type: "label"; id: string }
   | { mode: "beam"; type: "node"; id: string };
 
@@ -17,6 +19,8 @@ export type TrussWorkbenchSelection =
   | { mode: "truss"; type: "node"; id: string }
   | { mode: "truss"; type: "member"; id: string }
   | { mode: "truss"; type: "load"; id: string }
+  | { mode: "truss"; type: "loadCases"; id: "all" }
+  | { mode: "truss"; type: "loadCombinations"; id: "all" }
   | { mode: "truss"; type: "label"; id: string };
 
 export type WorkbenchSelection = BeamWorkbenchSelection | FrameWorkbenchSelection | TrussWorkbenchSelection;

@@ -31,13 +31,13 @@ docker login --username=<your-account> registry.example.com
 构建并打标签：
 
 ```powershell
-docker build -t archsight-solver:v1.4.0 -t registry.example.com/example-namespace/archsight-solver:v1.4.0 .
+docker build -t archsight-solver:v1.5.0 -t registry.example.com/example-namespace/archsight-solver:v1.5.0 .
 ```
 
 推送：
 
 ```powershell
-docker push registry.example.com/example-namespace/archsight-solver:v1.4.0
+docker push registry.example.com/example-namespace/archsight-solver:v1.5.0
 ```
 
 如果 Docker 环境在拉取基础镜像时不稳定，可临时关闭 BuildKit：

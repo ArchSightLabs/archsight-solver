@@ -26,6 +26,17 @@ const trussCollections = (): TrussEditorCollections => ({
     { type: "distributed", member: "M1", qStartKnPerM: -1, qEndKnPerM: -1 },
     { type: "member", member: "M2", selfWeightKnPerM: 0.2 },
   ],
+  loadCases: [
+    {
+      id: "LC1",
+      title: "主工况",
+      loads: [
+        { type: "nodal", node: "N3", fyKn: -8 },
+        { type: "distributed", member: "M1", qStartKnPerM: -0.5, qEndKnPerM: -0.5 },
+      ],
+    },
+  ],
+  loadCombinations: [{ id: "COMB1", title: "组合 1", factors: { LC1: 1 } }],
 });
 
 test("updateTrussNodeCollections renames node references across rods and nodal loads", () => {
@@ -58,6 +69,18 @@ test("updateTrussMemberCollections renames rod loads", () => {
   const renamedLoad = result.next.loads[2];
   assert.equal(renamedLoad?.type, "member");
   assert.equal(renamedLoad && "member" in renamedLoad ? renamedLoad.member : "", "M20");
+});
+
+test("updateTrussNodeCollections and updateTrussMemberCollections keep load case references in sync", () => {
+  const nodeResult = updateTrussNodeCollections(trussCollections(), 2, { id: "N4" });
+
+  assert.ok(nodeResult);
+  assert.deepEqual(nodeResult.next.loadCases[0]?.loads[0], { type: "nodal", node: "N4", fyKn: -8 });
+
+  const memberResult = updateTrussMemberCollections(nodeResult.next, 0, { id: "M10" });
+
+  assert.ok(memberResult);
+  assert.deepEqual(memberResult.next.loadCases[0]?.loads[1], { type: "distributed", member: "M10", qStartKnPerM: -0.5, qEndKnPerM: -0.5 });
 });
 
 test("copyTrussCollections duplicates selected panel and member loads", () => {

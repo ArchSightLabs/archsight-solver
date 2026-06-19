@@ -1,10 +1,12 @@
-import type { TrussLoad, TrussLoadPatch, TrussMember, TrussMemberLoad, TrussNodalLoad, TrussNode, TrussTemperatureLoad } from "../types/structure.ts";
+import type { TrussLoad, TrussLoadCase, TrussLoadCombination, TrussLoadPatch, TrussMember, TrussMemberLoad, TrussNodalLoad, TrussNode, TrussTemperatureLoad } from "../types/structure.ts";
 import { canonicalEditorId, type RenameEditResult } from "./model-edit-utils.ts";
 
 export interface TrussEditorCollections {
   nodes: TrussNode[];
   members: TrussMember[];
   loads: TrussLoad[];
+  loadCases: TrussLoadCase[];
+  loadCombinations: TrussLoadCombination[];
 }
 
 export interface TrussCopyOptions {
@@ -128,8 +130,7 @@ function copyTrussOnce(collections: TrussEditorCollections, options: TrussCopyOp
       memberIdMap.set(member.id, nextId);
       return { ...member, id: nextId, start: nodeIdMap.get(member.start) ?? member.start, end: nodeIdMap.get(member.end) ?? member.end };
     });
-  const copiedLoads = collections.loads
-    .map((load): TrussLoad | null => {
+  const rewriteLoad = (load: TrussLoad): TrussLoad | null => {
       if (load.type === "nodal") {
         const nextNode = nodeIdMap.get(load.node);
         const transformedLoad = transformTrussLoad(load, options) as Extract<TrussLoad, { type: "nodal" }>;
@@ -137,13 +138,17 @@ function copyTrussOnce(collections: TrussEditorCollections, options: TrussCopyOp
       }
       const nextMember = memberIdMap.get(load.member);
       return nextMember ? { ...transformTrussLoad(load, options), member: nextMember } as TrussLoad : null;
-    })
-    .filter((load): load is TrussLoad => Boolean(load));
+  };
+  const copiedLoads = collections.loads.map(rewriteLoad).filter((load): load is TrussLoad => Boolean(load));
   return {
     ...collections,
     nodes: [...collections.nodes, ...copiedNodes],
     members: [...collections.members, ...copiedMembers],
     loads: [...collections.loads, ...copiedLoads],
+    loadCases: collections.loadCases.map((loadCase) => ({
+      ...loadCase,
+      loads: [...loadCase.loads, ...loadCase.loads.map(rewriteLoad).filter((load): load is TrussLoad => Boolean(load))],
+    })),
   };
 }
 
@@ -195,13 +200,17 @@ export function updateTrussNodeCollections(
     if (renamed && current.id === member.end) return { ...member, end: nextId };
     return member;
   });
-  const nextLoads = collections.loads.map((load) => (renamed && load.type === "nodal" && load.node === current.id ? { ...load, node: nextId } : load));
+  const rewriteLoad = (load: TrussLoad): TrussLoad => (renamed && load.type === "nodal" && load.node === current.id ? { ...load, node: nextId } : load);
   return {
     next: {
       ...collections,
       nodes: nextNodes,
       members: nextMembers,
-      loads: nextLoads,
+      loads: collections.loads.map(rewriteLoad),
+      loadCases: collections.loadCases.map((loadCase) => ({
+        ...loadCase,
+        loads: loadCase.loads.map(rewriteLoad),
+      })),
     },
     previousId: current.id,
     nextId,
@@ -223,6 +232,10 @@ export function removeTrussNodeCollections(collections: TrussEditorCollections, 
     nodes: collections.nodes.filter((_, nodeIndex) => nodeIndex !== index),
     members: collections.members.filter((member) => !removedMemberIds.has(member.id)),
     loads: removeTrussLoadsForTargets(collections.loads, removedNodeIds, removedMemberIds),
+    loadCases: collections.loadCases.map((loadCase) => ({
+      ...loadCase,
+      loads: removeTrussLoadsForTargets(loadCase.loads, removedNodeIds, removedMemberIds),
+    })),
   };
 }
 
@@ -237,17 +250,21 @@ export function updateTrussMemberCollections(
   const nextPatch = patch.id !== undefined ? { ...patch, id: nextId } : patch;
   const renamed = nextId !== current.id;
   const nextMembers = collections.members.map((member, memberIndex) => (memberIndex === index ? { ...member, ...nextPatch } : member));
-  const nextLoads = collections.loads.map((load) => {
+  const rewriteLoad = (load: TrussLoad): TrussLoad => {
     if (renamed && load.type !== "nodal" && load.member === current.id) {
       return { ...load, member: nextId };
     }
     return load;
-  });
+  };
   return {
     next: {
       ...collections,
       members: nextMembers,
-      loads: nextLoads,
+      loads: collections.loads.map(rewriteLoad),
+      loadCases: collections.loadCases.map((loadCase) => ({
+        ...loadCase,
+        loads: loadCase.loads.map(rewriteLoad),
+      })),
     },
     previousId: current.id,
     nextId,
@@ -262,6 +279,10 @@ export function removeTrussMemberCollections(collections: TrussEditorCollections
     ...collections,
     members: collections.members.filter((_, memberIndex) => memberIndex !== index),
     loads: removeTrussLoadsForTargets(collections.loads, new Set(), new Set([removed.id])),
+    loadCases: collections.loadCases.map((loadCase) => ({
+      ...loadCase,
+      loads: removeTrussLoadsForTargets(loadCase.loads, new Set(), new Set([removed.id])),
+    })),
   };
 }
 
@@ -306,5 +327,72 @@ export function removeTrussLoadCollections(collections: TrussEditorCollections, 
   return {
     ...collections,
     loads: collections.loads.filter((_, loadIndex) => loadIndex !== index),
+  };
+}
+
+export function updateTrussLoadCaseCollections(
+  collections: TrussEditorCollections,
+  index: number,
+  patch: Partial<TrussLoadCase>,
+): RenameEditResult<TrussEditorCollections> | null {
+  const current = collections.loadCases[index];
+  if (!current) return null;
+  const nextId = patch.id !== undefined ? canonicalEditorId(patch.id, current.id) : current.id;
+  const nextPatch = patch.id !== undefined ? { ...patch, id: nextId } : patch;
+  const renamed = nextId !== current.id;
+  const nextLoadCases = collections.loadCases.map((loadCase, loadCaseIndex) => (loadCaseIndex === index ? { ...loadCase, ...nextPatch } : loadCase));
+  const nextLoadCombinations = renamed
+    ? collections.loadCombinations.map((combination) => {
+        if (!(current.id in combination.factors)) return combination;
+        const { [current.id]: factor, ...rest } = combination.factors;
+        return { ...combination, factors: { ...rest, [nextId]: factor } };
+      })
+    : collections.loadCombinations;
+  return {
+    next: {
+      ...collections,
+      loadCases: nextLoadCases,
+      loadCombinations: nextLoadCombinations,
+    },
+    previousId: current.id,
+    nextId,
+    renamed,
+  };
+}
+
+export function removeTrussLoadCaseCollections(collections: TrussEditorCollections, index: number): TrussEditorCollections | null {
+  const removed = collections.loadCases[index];
+  if (!removed) return null;
+  return {
+    ...collections,
+    loadCases: collections.loadCases.filter((_, loadCaseIndex) => loadCaseIndex !== index),
+    loadCombinations: collections.loadCombinations
+      .map((combination) => {
+        const factors = { ...combination.factors };
+        delete factors[removed.id];
+        return { ...combination, factors };
+      })
+      .filter((combination) => Object.keys(combination.factors).length > 0),
+  };
+}
+
+export function updateTrussLoadCombinationCollections(
+  collections: TrussEditorCollections,
+  index: number,
+  patch: Partial<TrussLoadCombination>,
+): TrussEditorCollections | null {
+  const combination = collections.loadCombinations[index];
+  if (!combination) return null;
+  const nextPatch = patch.id !== undefined ? { ...patch, id: canonicalEditorId(patch.id, combination.id) } : patch;
+  return {
+    ...collections,
+    loadCombinations: collections.loadCombinations.map((item, itemIndex) => (itemIndex === index ? { ...item, ...nextPatch } : item)),
+  };
+}
+
+export function removeTrussLoadCombinationCollections(collections: TrussEditorCollections, index: number): TrussEditorCollections {
+  return {
+    ...collections,
+    loadCombinations: collections.loadCombinations.filter((_, combinationIndex) => combinationIndex !== index),
   };
 }

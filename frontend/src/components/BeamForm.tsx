@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { WorkbenchTabsLayout } from "./layout/WorkbenchTabsLayout";
 import { BeamBasicSection } from "./BeamBasicSection";
+import { BeamLoadCaseSection, createDefaultBeamCaseLoad } from "./BeamLoadCaseSection";
 import { BeamLoadEditor } from "./BeamLoadEditor";
 import {
   BeamObjectNavigator,
@@ -16,10 +17,12 @@ import { BeamSupportEditor } from "./BeamSupportEditor";
 import { BeamTableSection } from "./BeamTableSection";
 import { BeamTemplateSection } from "./BeamTemplateSection";
 import { BeamTextModelSection } from "./BeamTextModelSection";
+import { LoadCombinationSection } from "./LoadCombinationSection";
 import { formatBeamLoadSummary } from "../lib/beam-loads.ts";
 import { materialDropdownOptions, materialIdentityLabelForId } from "../lib/material-presets.ts";
+import { canonicalEditorId } from "../lib/model-edit-utils.ts";
 import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
-import type { BeamSpanConfig, BeamSupportConfig, BeamWorkspaceState } from "../types/beam.ts";
+import type { BeamLoadCase, BeamLoadCombination, BeamLoadInput, BeamSpanConfig, BeamSupportConfig, BeamWorkspaceState } from "../types/beam.ts";
 import type { BeamWorkbenchSelection, WorkbenchSelectionOptions } from "../types/workbench-selection.ts";
 import { createDefaultBeamWorkspaceState, mergeDefaultBeamSupportLayout, renumberDefaultBeamSpanIds } from "../lib/workspace-state.ts";
 import { applyBeamModelTemplate, type BeamModelTemplate } from "../lib/workbench-model-templates.ts";
@@ -89,7 +92,11 @@ export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMat
         ? { mode: "beam", type: "span", id: next.id }
         : next.type === "support"
           ? { mode: "beam", type: "support", id: next.id }
-          : { mode: "beam", type: "load", id: "primary" },
+          : next.type === "loadCases"
+            ? { mode: "beam", type: "loadCases", id: "all" }
+            : next.type === "loadCombinations"
+              ? { mode: "beam", type: "loadCombinations", id: "all" }
+              : { mode: "beam", type: "load", id: "primary" },
       options
     );
   };
@@ -108,7 +115,11 @@ export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMat
         ? { type: "span" as const, id: selection.id }
         : selection.type === "support"
           ? { type: "support" as const, id: selection.id }
-          : { type: "load" as const, id: "primary" as const }
+          : selection.type === "loadCases"
+            ? { type: "loadCases" as const, id: "all" as const }
+            : selection.type === "loadCombinations"
+              ? { type: "loadCombinations" as const, id: "all" as const }
+              : { type: "load" as const, id: "primary" as const }
       : selectedObject;
     if (current.type === "span" && value.spans.at(spanIndexFromId(current.id))) {
       return current;
@@ -117,6 +128,8 @@ export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMat
       return current;
     }
     if (current.type === "load") return current;
+    if (current.type === "loadCases") return current;
+    if (current.type === "loadCombinations") return current;
     return value.spans[0] ? { type: "span", id: spanId(0) } : value.supports[0] ? { type: "support", id: supportId(0) } : { type: "load", id: "primary" };
   }, [selectedObject, selection, value.spans, value.supports]);
 
@@ -208,10 +221,158 @@ export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMat
   const loadSummary = formatBeamLoadSummary(value);
   const materialIdentityForSpan = (span: BeamSpanConfig) =>
     materialIdentityLabelForId(findMaterial(span.materialId)?.id ?? findMaterialByYoungModulus(span.E)?.id ?? span.materialId, materialLibrary);
+  const nextDraftId = (prefix: string, existingIds: string[]) => {
+    const used = new Set(existingIds);
+    let maxSuffix = 0;
+    for (const id of existingIds) {
+      const match = new RegExp(`^${prefix}(\\d+)$`).exec(id);
+      if (!match) continue;
+      maxSuffix = Math.max(maxSuffix, Number(match[1]) || 0);
+    }
+    let candidate = `${prefix}${maxSuffix + 1}`;
+    while (used.has(candidate)) {
+      maxSuffix += 1;
+      candidate = `${prefix}${maxSuffix + 1}`;
+    }
+    return candidate;
+  };
+
+  const keepLoadCases = (patch: Partial<Pick<BeamWorkspaceState, "customLoadCases" | "customLoadCombinations">>) => {
+    onChange({
+      ...value,
+      customLoadCases: patch.customLoadCases ?? value.customLoadCases,
+      customLoadCombinations: patch.customLoadCombinations ?? value.customLoadCombinations,
+    });
+  };
+
+  const addLoadCase = () => {
+    const id = nextDraftId("LC", value.customLoadCases.map((loadCase) => loadCase.id));
+    keepLoadCases({
+      customLoadCases: [
+        ...value.customLoadCases,
+        { id, title: `工况 ${value.customLoadCases.length + 1}`, loads: [createDefaultBeamCaseLoad(totalLength)] },
+      ],
+    });
+    selectObject({ type: "loadCases", id: "all" });
+  };
+
+  const updateLoadCase = (index: number, patch: Partial<BeamLoadCase>) => {
+    const current = value.customLoadCases[index];
+    if (!current) return;
+    const nextId = patch.id !== undefined ? canonicalEditorId(patch.id, current.id) : current.id;
+    const nextPatch = patch.id !== undefined ? { ...patch, id: nextId } : patch;
+    const renamed = nextId !== current.id;
+    keepLoadCases({
+      customLoadCases: value.customLoadCases.map((loadCase, loadCaseIndex) => (loadCaseIndex === index ? { ...loadCase, ...nextPatch } : loadCase)),
+      customLoadCombinations: renamed
+        ? value.customLoadCombinations.map((combination) => {
+            if (!(current.id in combination.factors)) return combination;
+            const { [current.id]: factor, ...rest } = combination.factors;
+            return { ...combination, factors: { ...rest, [nextId]: factor } };
+          })
+        : value.customLoadCombinations,
+    });
+  };
+
+  const removeLoadCase = (index: number) => {
+    const removed = value.customLoadCases[index];
+    if (!removed) return;
+    keepLoadCases({
+      customLoadCases: value.customLoadCases.filter((_, loadCaseIndex) => loadCaseIndex !== index),
+      customLoadCombinations: value.customLoadCombinations
+        .map((combination) => {
+          const factors = { ...combination.factors };
+          delete factors[removed.id];
+          return { ...combination, factors };
+        })
+        .filter((combination) => Object.keys(combination.factors).length > 0),
+    });
+  };
+
+  const addLoadToCase = (loadCaseIndex: number) => {
+    const loadCase = value.customLoadCases[loadCaseIndex];
+    if (!loadCase) return;
+    updateLoadCase(loadCaseIndex, { loads: [...loadCase.loads, createDefaultBeamCaseLoad(totalLength)] });
+  };
+
+  const updateLoadInCase = (loadCaseIndex: number, loadIndex: number, nextLoad: BeamLoadInput) => {
+    const loadCase = value.customLoadCases[loadCaseIndex];
+    if (!loadCase) return;
+    updateLoadCase(loadCaseIndex, {
+      loads: loadCase.loads.map((load, index) => (index === loadIndex ? nextLoad : load)),
+    });
+  };
+
+  const removeLoadFromCase = (loadCaseIndex: number, loadIndex: number) => {
+    const loadCase = value.customLoadCases[loadCaseIndex];
+    if (!loadCase) return;
+    updateLoadCase(loadCaseIndex, { loads: loadCase.loads.filter((_, index) => index !== loadIndex) });
+  };
+
+  const addLoadCombination = () => {
+    const id = nextDraftId("COMB", value.customLoadCombinations.map((combination) => combination.id));
+    keepLoadCases({
+      customLoadCombinations: [
+        ...value.customLoadCombinations,
+        {
+          id,
+          title: `组合 ${value.customLoadCombinations.length + 1}`,
+          factors: Object.fromEntries(value.customLoadCases.map((loadCase) => [loadCase.id, 1.0])),
+          tags: [],
+        },
+      ],
+    });
+    selectObject({ type: "loadCombinations", id: "all" });
+  };
+
+  const updateLoadCombination = (index: number, patch: Partial<BeamLoadCombination>) => {
+    const current = value.customLoadCombinations[index];
+    if (!current) return;
+    const nextPatch = patch.id !== undefined ? { ...patch, id: canonicalEditorId(patch.id, current.id) } : patch;
+    keepLoadCases({
+      customLoadCombinations: value.customLoadCombinations.map((combination, combinationIndex) => (combinationIndex === index ? { ...combination, ...nextPatch } : combination)),
+    });
+  };
+
+  const removeLoadCombination = (index: number) => {
+    keepLoadCases({
+      customLoadCombinations: value.customLoadCombinations.filter((_, combinationIndex) => combinationIndex !== index),
+    });
+  };
 
   const renderSelectedEditor = () => {
     if (resolvedSelectedObject.type === "load") {
       return <BeamLoadEditor value={value} totalLength={totalLength} fieldLabelClass={FIELD_LABEL_CLASS} onChange={onChange} compact={compact} />;
+    }
+
+    if (resolvedSelectedObject.type === "loadCases") {
+      return (
+        <BeamLoadCaseSection
+          loadCases={value.customLoadCases}
+          totalLength={totalLength}
+          fieldLabelClass={FIELD_LABEL_CLASS}
+          onAddLoadCase={addLoadCase}
+          onUpdateLoadCase={updateLoadCase}
+          onRemoveLoadCase={removeLoadCase}
+          onAddLoadToCase={addLoadToCase}
+          onUpdateLoadInCase={updateLoadInCase}
+          onRemoveLoadFromCase={removeLoadFromCase}
+        />
+      );
+    }
+
+    if (resolvedSelectedObject.type === "loadCombinations") {
+      return (
+        <LoadCombinationSection<BeamLoadCombination>
+          id="beam-custom-load-combinations"
+          loadCases={value.customLoadCases}
+          loadCombinations={value.customLoadCombinations}
+          fieldLabelClass={FIELD_LABEL_CLASS}
+          onAddLoadCombination={addLoadCombination}
+          onUpdateLoadCombination={updateLoadCombination}
+          onRemoveLoadCombination={removeLoadCombination}
+        />
+      );
     }
 
     if (resolvedSelectedObject.type === "support") {
@@ -283,6 +444,8 @@ export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMat
             supports={value.supports}
             selectedObject={resolvedSelectedObject}
             loadSummary={loadSummary}
+            loadCases={value.customLoadCases}
+            loadCombinations={value.customLoadCombinations}
             maxSpans={MAX_BEAM_SPANS}
             fieldLabelClass={FIELD_LABEL_CLASS}
             selectedEditor={renderSelectedEditor()}
@@ -308,6 +471,8 @@ export function BeamForm({ value, materialLibrary: projectMaterialLibrary, onMat
             spans={value.spans}
             supports={value.supports}
             loadSummary={loadSummary}
+            loadCases={value.customLoadCases}
+            loadCombinations={value.customLoadCombinations}
             fieldLabelClass={FIELD_LABEL_CLASS}
             materialLabelForSpan={materialIdentityForSpan}
           />

@@ -15,8 +15,9 @@ const visualRegressionDoc = readFileSync(new URL("../../../docs/verification/vis
 test("计算书图形导出提供三浏览器矩阵入口", () => {
   const exportDocxCommand = packageJson.scripts?.["test:visual:export-docx"] ?? "";
 
-  assert.equal((exportDocxCommand.match(/playwright test workbench-export-docx\.spec\.ts/gu) ?? []).length, 3);
-  assert.equal((exportDocxCommand.match(/--workers=1/gu) ?? []).length, 3);
+  assert.equal((exportDocxCommand.match(/playwright test workbench-export-docx\.spec\.ts/gu) ?? []).length, 1);
+  assert.equal((exportDocxCommand.match(/--workers=1/gu) ?? []).length, 1);
+  assert.match(exportDocxCommand, /--reporter=list\b/u);
   assert.match(playwrightConfig, /process\.env\.NO_PROXY = mergeNoProxyHosts\(process\.env\.NO_PROXY\)/u);
   assert.match(playwrightConfig, /127\.0\.0\.1", "localhost", "::1/u);
 
@@ -27,7 +28,7 @@ test("计算书图形导出提供三浏览器矩阵入口", () => {
 
   assert.match(visualRegressionDoc, /npm --prefix frontend run test:visual:export-docx/u);
   assert.match(visualRegressionDoc, /Chromium \/ Firefox \/ WebKit/u);
-  assert.match(visualRegressionDoc, /三个子命令顺序运行/u);
+  assert.match(visualRegressionDoc, /单次 Playwright 调用/u);
 });
 
 test("计算书图形导出测试锁定共享图形目录和前端同源图片", () => {
