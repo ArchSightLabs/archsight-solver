@@ -133,12 +133,14 @@
             <li>结果页统一“主结果 / 工况 / 组合”来源切换，不再只支持平面框架；梁系和桁架的受力变形图、数据曲线和摘要会随当前来源切换。</li>
             <li>DOCX / XLSX 导出记录当前结果来源，并在 DOCX 导出图像生成时使用与界面一致的选中结果来源。</li>
             <li>API envelope 前端归一化补齐梁系和桁架的 <code>loadCaseResults</code> / <code>loadCombinationResults</code>，避免后端已返回但前端视图丢失。</li>
+            <li>新增 v1.5 发布验收清单和 Playwright 荷载场景验收，覆盖梁系 / 平面桁架工况组合、结果来源切换和 XLSX 导出来源记录。</li>
             <li>版本号统一提升到 <code>1.5.0</code>，同步 <code>package.json</code>、<code>frontend/package.json</code>、<code>pyproject.toml</code>、<code>uv.lock</code> 和 lockfile 顶部项目版本。</li>
           </ul>
           <p class="section-label">质量门禁</p>
           <ul>
             <li>前端 <code>npm run lint</code> 通过。</li>
             <li>前端 <code>npm run test:unit</code> 通过：349 passed。</li>
+            <li>Playwright <code>release-1-5-load-scenarios.spec.ts</code> 覆盖梁系和平面桁架工况 / 组合发布验收。</li>
           </ul>
       </article>
 
