@@ -1,10 +1,31 @@
-# 独立开源声明
+# NOTICE
 
-本项目是独立开发的开源结构力学求解器工作台，目标是提供可验证、可复现、可扩展的工程计算工具。
+Copyright 2026 ArchSightLabs and contributors.
+
+ArchSight Solver 是独立开发的开源结构力学求解器工作台，目标是提供可验证、可复现、可扩展的工程计算工具。
 
 ## 许可证
 
-本仓库采用 Apache-2.0 许可证，具体文本见 [LICENSE](LICENSE)。许可证适用于本仓库公开发布的代码、文档和测试样例。
+本仓库公开发布的代码、文档和测试样例采用 Apache License, Version 2.0。许可证全文见 [LICENSE](LICENSE)。
+
+任何再分发本项目或其派生作品的行为，都应遵守 Apache-2.0 的再分发条件，包括保留许可证、版权声明、NOTICE 归属说明和必要的修改说明。
+
+## 官方项目与归属
+
+- 官方项目名称：ArchSight Solver
+- 官方仓库：`https://github.com/ArchSightLabs/archsight-solver`
+- 官方演示站：`https://solver.archsight.cn/`
+- 维护者联系：`archsight-labs@qq.com`
+
+如果派生版本、商业产品或集成服务使用了本项目代码，应在合理位置保留来源说明，不应让用户误以为派生版本是 ArchSightLabs 官方发布或官方背书。
+
+推荐归属写法：
+
+> This product includes software developed by ArchSightLabs for ArchSight Solver, licensed under the Apache License, Version 2.0.
+
+## 商标与品牌边界
+
+Apache-2.0 许可证不授予 ArchSight、ArchSight Solver、ArchSightLabs、项目 logo、官方域名或其他品牌标识的商标、服务标识或产品名称使用权。商标与官方版本边界见 [TRADEMARKS.md](TRADEMARKS.md)。
 
 ## 第三方关系
 

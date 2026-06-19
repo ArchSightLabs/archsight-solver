@@ -1,6 +1,7 @@
 {
   "name": "archsight-solver-frontend",
   "version": "1.5.0",
+  "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "scripts": {

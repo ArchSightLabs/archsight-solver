@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "archsight-solver"
 version = "1.5.0"
 description = "Open structural mechanics workbench for beams, plane frames, and plane trusses."
+license = { file = "LICENSE" }
 requires-python = ">=3.13"
 dependencies = [
     "flask==3.0.0",

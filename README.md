@@ -16,6 +16,12 @@ ArchSight Solver 当前聚焦三类典型结构分析：
 
 详见 [NOTICE.md](NOTICE.md)。
 
+## 归属、商标与官方版本
+
+本仓库代码、文档和测试样例按 Apache-2.0 许可开放，允许在遵守许可证和 NOTICE 保留要求的前提下使用、修改、分发和商业使用。
+
+Apache-2.0 不授予 ArchSight、ArchSight Solver、ArchSightLabs、项目 logo、官方域名或其他品牌标识的商标使用权。派生版本和商业服务应使用清晰不同的产品名称，并保留原始归属说明，不得暗示 ArchSightLabs 官方发布、认证、合作或背书。详见 [TRADEMARKS.md](TRADEMARKS.md)。
+
 ## 快速开始
 
 ```bash
@@ -125,4 +131,4 @@ python -m backend.benchmarks.catalog_summary --output docs/verification/benchmar
 
 ## 许可证
 
-本仓库采用 **Apache-2.0** 许可证，具体文本见 [LICENSE](LICENSE)。该许可证适用于本仓库公开发布的代码、文档和测试样例。
+本仓库采用 **Apache-2.0** 许可证，具体文本见 [LICENSE](LICENSE)。该许可证适用于本仓库公开发布的代码、文档和测试样例。再分发时请同时保留 [NOTICE.md](NOTICE.md) 和必要的修改说明。
