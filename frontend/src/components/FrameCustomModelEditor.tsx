@@ -18,6 +18,7 @@ import {
   createFrameLoadDraft,
   frameDistributedLoadKindLabel,
   frameMemberExists,
+  inferFrameNodeDraft,
 } from "../lib/frame-editor-model.ts";
 import { useFrameTextModel } from "../hooks/useFrameTextModel.ts";
 import { useNodePairConnection } from "../hooks/useNodePairConnection.ts";
@@ -292,6 +293,20 @@ export function FrameCustomModelEditor({
     if (next) commit(next);
   };
 
+  const addNode = () => {
+    const preferredNeighborId = resolvedSelectedObject.type === "node" ? resolvedSelectedObject.id : undefined;
+    const nextNode = inferFrameNodeDraft(value.nodes, nodeIds, preferredNeighborId);
+    const nextNodes = [...value.nodes, nextNode];
+    commit(keep({ nodes: nextNodes }));
+    memberConnection.selectAvailablePairForNode({
+      nodeIds: nextNodes.map((node) => node.id),
+      nodeId: nextNode.id,
+      preferredNeighborId,
+      duplicateExists: (nextStartId, nextEndId) => frameMemberExists(value.members, nextStartId, nextEndId),
+    });
+    selectObject({ type: "node", id: nextNode.id }, { openEditor: false });
+  };
+
   const addMemberBetweenNodes = (startId: string, endId: string) => {
     const nextMember = createConnectedFrameMemberByNodeId(startId, endId, value.nodes, value.members, defaultMemberElasticityGPa, materialId, {
       sectionAreaCm2: defaultMemberSectionAreaCm2,
@@ -528,6 +543,7 @@ export function FrameCustomModelEditor({
               memberConnectionEndId={memberConnection.endNodeId}
               memberConnectionDisabledReason={memberConnection.disabledReason}
               onSelectObject={(next) => selectObject(next)}
+              onAddNode={addNode}
               onMemberConnectionStartChange={memberConnection.updateStartNodeId}
               onMemberConnectionEndChange={memberConnection.updateEndNodeId}
               onAddMemberConnection={() => addMemberBetweenNodes(memberConnection.startNodeId, memberConnection.endNodeId)}

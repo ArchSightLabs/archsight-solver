@@ -32,6 +32,7 @@ interface FrameObjectNavigatorProps {
   onMemberConnectionStartChange: (nextId: string) => void;
   onMemberConnectionEndChange: (nextId: string) => void;
   onAddMemberConnection: () => void;
+  onAddNode: () => void;
   onAddLoad: () => void;
 }
 
@@ -71,6 +72,7 @@ export function FrameObjectNavigator({
   onMemberConnectionStartChange,
   onMemberConnectionEndChange,
   onAddMemberConnection,
+  onAddNode,
   onAddLoad,
 }: FrameObjectNavigatorProps) {
   const supportNodes = nodes.filter(hasFrameSupportBoundary);
@@ -81,7 +83,13 @@ export function FrameObjectNavigator({
       <ModelObjectGuide mode="frame" />
       <div className="grid grid-cols-1 gap-3">
         <div className="space-y-2">
-          <div className={fieldLabelClass}>{vocabulary.nodeGroupLabel}</div>
+          <div className="flex items-center justify-between gap-2">
+            <div className={fieldLabelClass}>{vocabulary.nodeGroupLabel}</div>
+            <Button variant="outline" size="sm" onClick={onAddNode} className="h-8 rounded-lg px-2 text-[10px]">
+              <Plus className="mr-1 h-3 w-3" />
+              新增节点
+            </Button>
+          </div>
           <div className="flex flex-wrap gap-2">
             {nodes.map((node) => (
               <button

@@ -35,6 +35,7 @@ interface TrussObjectNavigatorProps {
   onMemberConnectionStartChange: (nextId: string) => void;
   onMemberConnectionEndChange: (nextId: string) => void;
   onAddMemberConnection: () => void;
+  onAddNode: () => void;
   onAddNodalLoad: () => void;
   onAddMemberLoad: () => void;
 }
@@ -77,6 +78,7 @@ export function TrussObjectNavigator({
   onMemberConnectionStartChange,
   onMemberConnectionEndChange,
   onAddMemberConnection,
+  onAddNode,
   onAddNodalLoad,
   onAddMemberLoad,
 }: TrussObjectNavigatorProps) {
@@ -90,7 +92,13 @@ export function TrussObjectNavigator({
       <ModelObjectGuide mode="truss" />
       <div className="space-y-3">
         <div className="space-y-2">
-          <div className={fieldLabelClass}>{vocabulary.nodeGroupLabel}</div>
+          <div className="flex items-center justify-between gap-2">
+            <div className={fieldLabelClass}>{vocabulary.nodeGroupLabel}</div>
+            <Button variant="outline" size="sm" onClick={onAddNode} className="h-8 rounded-lg px-2 text-[10px]">
+              <Plus className="mr-1 h-3 w-3" />
+              新增节点
+            </Button>
+          </div>
           <div className="flex flex-wrap gap-2">
             {nodes.map((node) => (
               <button

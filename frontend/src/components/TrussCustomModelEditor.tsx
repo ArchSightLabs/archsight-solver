@@ -13,6 +13,7 @@ import { TrussTemplateSection } from "./TrussTemplateSection";
 import { TrussTextModelSection } from "./TrussTextModelSection";
 import {
   createConnectedTrussMemberByNodeId,
+  createTrussNodeDraft,
   createTrussMemberLoadDraft,
   createTrussNodalLoadDraft,
   nextTrussDraftId,
@@ -250,6 +251,20 @@ export function TrussCustomModelEditor({
   const removeNode = (index: number) => {
     const next = removeTrussNodeCollections(value, index);
     if (next) commit(next);
+  };
+
+  const addNode = () => {
+    const preferredNeighborId = resolvedSelectedObject.type === "node" ? resolvedSelectedObject.id : undefined;
+    const nextNode = createTrussNodeDraft(value.nodes.length, nodeIds);
+    const nextNodes = [...value.nodes, nextNode];
+    commit(keep({ nodes: nextNodes }));
+    memberConnection.selectAvailablePairForNode({
+      nodeIds: nextNodes.map((node) => node.id),
+      nodeId: nextNode.id,
+      preferredNeighborId,
+      duplicateExists: (nextStartId, nextEndId) => trussMemberExists(value.members, nextStartId, nextEndId),
+    });
+    selectObject({ type: "node", id: nextNode.id }, { openEditor: false });
   };
 
   const addMemberBetweenNodes = (startId: string, endId: string) => {
@@ -512,6 +527,7 @@ export function TrussCustomModelEditor({
               memberConnectionEndId={memberConnection.endNodeId}
               memberConnectionDisabledReason={memberConnection.disabledReason}
               onSelectObject={(next) => selectObject(next)}
+              onAddNode={addNode}
               onMemberConnectionStartChange={memberConnection.updateStartNodeId}
               onMemberConnectionEndChange={memberConnection.updateEndNodeId}
               onAddMemberConnection={() => addMemberBetweenNodes(memberConnection.startNodeId, memberConnection.endNodeId)}

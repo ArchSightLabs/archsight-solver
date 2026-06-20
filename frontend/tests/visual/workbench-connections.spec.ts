@@ -151,6 +151,35 @@ test.beforeEach(async ({ page }) => {
   await stabilizeWorkbench(page);
 });
 
+
+test("平面框架对象页可先新增节点再连接构件", async ({ page }) => {
+  await openAnalysisObject(page, /平面框架-1\s+(平面框架|框架)/);
+  await openObjectMemberGroup(page, "连接为构件");
+
+  await page.getByRole("button", { name: "新增节点", exact: true }).click();
+
+  await expect(page.getByLabel("节点编号")).toHaveValue("N5");
+  await expect(page.getByRole("button", { name: /新增构件终点节点，当前值：N5/ })).toBeVisible();
+
+  await page.getByRole("button", { name: "连接为构件" }).click();
+
+  await expect(page.getByRole("button", { name: /^B2$/, exact: true })).toBeVisible();
+});
+
+test("平面桁架对象页可先新增节点再连接杆件", async ({ page }) => {
+  await openAnalysisObject(page, /平面桁架-1\s+(平面桁架|桁架)/);
+  await openObjectMemberGroup(page, "连接为杆件");
+
+  await page.getByRole("button", { name: "新增节点", exact: true }).click();
+
+  await expect(page.getByLabel("节点编号")).toHaveValue("N5");
+  await expect(page.getByRole("button", { name: /新增杆件终点节点，当前值：N5/ })).toBeVisible();
+
+  await page.getByRole("button", { name: "连接为杆件" }).click();
+
+  await expect(page.getByRole("button", { name: /^M6$/, exact: true })).toBeVisible();
+});
+
 test("平面框架对象页按指定起终节点新增构件并提交计算 payload", async ({ page }) => {
   const observedPayload = await expectCalculatePayload(page, "frame", ["N1", "N4"]);
 
