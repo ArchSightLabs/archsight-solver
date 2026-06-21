@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Dict, Literal, Tuple
 
 
-ReportOptionGroup = Literal["templates", "figureModes", "figureScopes"]
+ReportOptionGroup = Literal["templates", "figureModes", "figureScopes", "reviewStatuses"]
 
 _REPORT_OPTIONS_PATH = Path(__file__).resolve().parents[2] / "shared" / "report-options.json"
 

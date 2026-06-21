@@ -57,6 +57,12 @@ MATERIAL_PROPERTY_SCHEMA: Dict[str, Any] = {
     "additionalProperties": True,
 }
 
+ASMS_SCHEMA_VERSION_PROPERTY: Dict[str, Any] = {
+    "type": "string",
+    "const": API_SCHEMA_VERSION,
+    "description": "ASMS-JSON 契约版本；用于项目文件、API、CLI/MCP 与导出链路判断字段语义。",
+}
+
 FRAME_TRANSLATIONAL_SPRING_SCHEMA: Dict[str, Any] = {
     "type": "object",
     "required": ["dof", "stiffnessKnPerM"],
@@ -376,6 +382,7 @@ ASMS_BEAM_MODEL_SCHEMA: Dict[str, Any] = {
     "required": ["beamType", "loadType", "spans"],
     "properties": {
         "analysisType": {"type": "string", "const": "beam"},
+        "schemaVersion": ASMS_SCHEMA_VERSION_PROPERTY,
         "projectName": {"type": "string"},
         "materialId": {"type": "string"},
         "beamType": {"type": "string", "enum": ["continuous", "simply_supported", "cantilever"]},
@@ -419,6 +426,7 @@ ASMS_FRAME_MODEL_SCHEMA: Dict[str, Any] = {
     "required": ["analysisType", "structure"],
     "properties": {
         "analysisType": {"type": "string", "enum": ["frame", "frame2d", "portal_frame"]},
+        "schemaVersion": ASMS_SCHEMA_VERSION_PROPERTY,
         "projectName": {"type": "string"},
         "materialId": {"type": "string"},
         "structure": {
@@ -446,6 +454,7 @@ ASMS_TRUSS_MODEL_SCHEMA: Dict[str, Any] = {
     "required": ["analysisType", "structure"],
     "properties": {
         "analysisType": {"type": "string", "enum": ["truss", "truss2d"]},
+        "schemaVersion": ASMS_SCHEMA_VERSION_PROPERTY,
         "projectName": {"type": "string"},
         "materialId": {"type": "string"},
         "structure": {
@@ -515,6 +524,7 @@ SOLVER_PAYLOAD_SCHEMA: Dict[str, Any] = {
             "enum": ["beam", "frame", "frame2d", "portal_frame", "truss", "truss2d"],
             "default": "beam",
         },
+        "schemaVersion": ASMS_SCHEMA_VERSION_PROPERTY,
         "projectName": {"type": "string"},
         "materialId": {"type": "string"},
         "beamType": {"type": "string"},

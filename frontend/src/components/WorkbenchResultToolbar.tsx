@@ -3,11 +3,13 @@ import { ChevronDown, FileText, Play, RotateCw, Settings2, Table2 } from "lucide
 import { Button } from "./ui/button";
 import type { ExportFormat } from "../hooks/useWorkbenchActions";
 import {
+  REPORT_REVIEW_STATUS_OPTIONS,
   REPORT_TEMPLATE_OPTIONS,
   reportFigureModeOptionsForMode,
   reportFigureModeValueForMode,
   type ReportExportOptions,
   type ReportFigureMode,
+  type ReportReviewStatus,
   type ReportTemplate,
 } from "../lib/report-options";
 import type { AnalysisMode } from "../types/structure";
@@ -185,6 +187,14 @@ export function WorkbenchResultToolbar({
                     value={figureModeValue}
                     options={figureModeOptions}
                     onChange={(value) => updateReportExportOption("figureMode", value as ReportFigureMode)}
+                  />
+                  <ReportOptionSelect
+                    id="report-review-status"
+                    name="reportReviewStatus"
+                    label="审阅状态"
+                    value={reportExportOptions.reviewStatus}
+                    options={REPORT_REVIEW_STATUS_OPTIONS}
+                    onChange={(value) => updateReportExportOption("reviewStatus", value as ReportReviewStatus)}
                   />
                 </div>
               ) : null}

@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION,
   ARCHSIGHT_SOLVER_LEGACY_PROJECT_EXTENSIONS,
   ARCHSIGHT_SOLVER_PROJECT_EXTENSION,
+  ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION,
   ARCHSIGHT_SOLVER_PROJECT_SCHEMA,
   createArchSightSolverProjectFile,
   getArchSightSolverProjectFileName,
@@ -10,6 +12,7 @@ import {
   parseArchSightSolverProjectFile,
   serializeArchSightSolverProjectFile,
 } from "./project-file.ts";
+import { APP_VERSION } from "./app-metadata.ts";
 import { addAnalysisObjectToProject, createDefaultSolverProject } from "./solver-project.ts";
 import type { FrameWorkspaceState } from "../types/structure.ts";
 
@@ -22,7 +25,11 @@ test("创建 ArchSight Solver 项目文件时写入专属 schema 和 .slv 文件
 
   assert.equal(projectFile.schema, ARCHSIGHT_SOLVER_PROJECT_SCHEMA);
   assert.equal(projectFile.product, "archsight-solver");
+  assert.equal(projectFile.appVersion, APP_VERSION);
   assert.equal(projectFile.schemaVersion, "2.0.0");
+  assert.equal(projectFile.contract.asmsJsonSchemaVersion, ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION);
+  assert.equal(projectFile.contract.projectFileSchemaVersion, ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION);
+  assert.equal(projectFile.contract.modelRoundTrip, "normalized");
   assert.equal(projectFile.project.name, "门式刚架: 方案 A");
   assert.equal(projectFile.project.objects.length, 3);
   assert.deepEqual(projectFile.project.objects.map((object) => object.type), ["beam", "truss", "frame"]);
@@ -56,6 +63,7 @@ test("序列化后的项目文件可以恢复为规范化工作台状态", () =>
     template: "complete",
     figureMode: "both",
     figureScope: "all",
+    reviewStatus: "ready_for_review",
   };
 
   const raw = serializeArchSightSolverProjectFile(createArchSightSolverProjectFile(project));
@@ -66,8 +74,26 @@ test("序列化后的项目文件可以恢复为规范化工作台状态", () =>
   assert.equal(parsed.value?.project.settings.projectInfo.address, "上海市浦东新区");
   assert.equal(parsed.value?.project.settings.projectInfo.projectManager, "张工");
   assert.equal(parsed.value?.project.settings.reportExportOptions.figureScope, "all");
+  assert.equal(parsed.value?.project.settings.reportExportOptions.reviewStatus, "ready_for_review");
   assert.equal(parsed.value?.project.objects.length, 4);
   assert.ok(parsed.value?.project.objects.some((object) => object.type === "truss" && object.name === "屋架复核"));
+});
+
+test("解析旧项目文件时保留迁移诊断并写回当前契约版本", () => {
+  const projectFile = createArchSightSolverProjectFile(createDefaultSolverProject());
+  const raw = serializeArchSightSolverProjectFile({
+    ...projectFile,
+    schemaVersion: "1.0.0" as typeof ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION,
+    contract: undefined as never,
+  });
+
+  const parsed = parseArchSightSolverProjectFile(raw);
+
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.value?.schemaVersion, ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION);
+  assert.equal(parsed.value?.contract.asmsJsonSchemaVersion, ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION);
+  assert.equal(parsed.diagnostics.some((item) => item.code === "PROJECT_FILE_SCHEMA_MIGRATED"), true);
+  assert.equal(parsed.diagnostics.some((item) => item.code === "ASMS_SCHEMA_VERSION_RECORDED"), true);
 });
 
 test("项目文件往返保留工程级自定义材料", () => {

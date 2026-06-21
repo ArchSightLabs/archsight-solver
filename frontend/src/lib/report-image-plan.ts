@@ -21,7 +21,7 @@ export interface ReportImagePlanInput {
   frameResults: FrameCalculationResults | null;
   trussResults: TrussCalculationResults | null;
   sensitivityData: SensitivityResults | null;
-  reportOptions?: ReportExportOptions;
+  reportOptions?: Partial<ReportExportOptions>;
   viewSettings?: ResultViewSettings | null;
   modelLabelOffsets?: ModelLabelOffsets | null;
 }

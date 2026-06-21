@@ -203,7 +203,7 @@ export function useWorkbenchActions(
       const exportPayload =
         format === "docx" && sensitivityData
           ? { ...payload, format, sensitivityResults: sensitivityData, reportOptions: effectiveReportOptions, benchmark: activeBenchmark, jobId, resultSource: exportResultSource }
-          : { ...payload, format, benchmark: activeBenchmark, jobId, resultSource: exportResultSource, ...(format === "docx" ? { reportOptions: effectiveReportOptions } : {}) };
+          : { ...payload, format, benchmark: activeBenchmark, jobId, resultSource: exportResultSource, reportOptions: effectiveReportOptions };
       const beamResultsForReport = buildDisplayedBeamResults(beamResultForView(analysisData), resultSource);
       const frameResultsForReport = buildDisplayedFrameResults(frameResultForView(analysisData), resultSource);
       const trussResultsForReport = buildDisplayedTrussResults(trussResultForView(analysisData), resultSource);

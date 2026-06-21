@@ -19,9 +19,13 @@
 - 平面桁架补齐荷载工况和荷载组合编辑入口；节点、杆件、荷载复制 / 镜像 / 阵列、重命名和删除时同步维护工况内引用与组合系数。
 - 结果页统一“主结果 / 工况 / 组合”来源切换，不再只支持平面框架；梁系和桁架的受力变形图、数据曲线和摘要会随当前来源切换。
 - DOCX / XLSX 导出记录当前结果来源，并在 DOCX 导出图像生成时使用与界面一致的选中结果来源。
+- 新增结构模型诊断中心，三类模块求解前统一提示支座约束不足、孤立节点/杆件、荷载工况/组合引用、单位/刚度异常和桁架不适用字段，让用户知道“为什么不能算”或“为什么结果可疑”。
+- 新增计算书审阅模式，导出设置可选择“草稿 / 可审阅”，DOCX / XLSX 同步写入审阅状态、ASMS-JSON 契约版本、模型假定、结果来源、诊断警告和公开 benchmark 参考。
+- ASMS-JSON 契约治理纳入 v1.5.0：三类求解 payload、JSON Schema、OpenAPI、前端类型和公开文档统一声明 `schemaVersion`，项目文件导入旧格式时给出迁移与契约版本校准提示。
 - API envelope 前端归一化补齐梁系和桁架的 `loadCaseResults` / `loadCombinationResults`，避免后端已返回但前端视图丢失。
 - 新增 v1.5 发布验收清单和 Playwright 荷载场景验收，覆盖梁系 / 平面桁架工况组合、结果来源切换和 XLSX 导出来源记录。
 - 新增快速建模生成器单元测试，锁定连续梁、规则框架和平行弦桁架的生成数量、对象类型和专业指标边界。
+- 新增模型诊断、项目文件契约迁移、ASMS-JSON `schemaVersion` 漂移和计算书审阅状态测试，锁定 v1.5.0 的可审阅交付边界。
 - 版本号统一提升到 `1.5.0`，同步 `package.json`、`frontend/package.json`、`pyproject.toml`、`uv.lock` 和 lockfile 顶部项目版本。
 
 质量门禁：
@@ -32,6 +36,8 @@
 - Playwright `release-1-5-quick-modeling.spec.ts` 覆盖三类内置模板“打开并计算”到求解 payload 的首算路径。
 - Playwright `release-1-5-quick-modeling.spec.ts` 覆盖新建分析对象后直接进入指定建模路径。
 - Playwright `release-1-5-load-scenarios.spec.ts` 覆盖梁系和平面桁架工况 / 组合发布验收。
+- 前端单元测试覆盖求解前诊断中心、ASMS-JSON payload `schemaVersion` 和项目文件导入迁移诊断。
+- 后端测试覆盖 JSON Schema / OpenAPI `schemaVersion` 漂移、计算书审阅状态和导出证据表。
 
 ## v1.4.0
 

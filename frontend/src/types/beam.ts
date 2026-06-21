@@ -110,6 +110,7 @@ export interface BeamWorkspaceState {
 }
 
 export interface BeamApiPayload extends BeamForm {
+  schemaVersion?: string;
   loads?: BeamLoadInput[];
   loadCases?: BeamLoadCase[];
   loadCombinations?: BeamLoadCombination[];

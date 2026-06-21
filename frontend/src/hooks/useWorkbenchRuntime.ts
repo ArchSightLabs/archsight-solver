@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import type { SensitivityResults } from "../types/beam";
 import type { WorkspaceState } from "../lib/workspace-state";
+import { buildModelDiagnostics, type ModelDiagnostics } from "../lib/model-diagnostics";
 import {
   updateActiveAnalysisObject,
   type AnalysisObject,
@@ -12,7 +13,7 @@ import { buildBeamPayload, buildFramePayload, buildTrussPayload, validateCustomF
 import { beamResultForView, frameResultForView, trussResultForView } from "../lib/api-envelope";
 import { analysisVocabulary } from "../lib/analysis-vocabulary";
 import { useWorkbenchActions, type AnalysisResults } from "./useWorkbenchActions";
-import { solvingRunLabel } from "../lib/workbench-operation-status";
+import { solvingRunLabel, validationNotice } from "../lib/workbench-operation-status";
 
 const BENCHMARK_SUBMISSION_NEEDS_RESULT_REASON = "请先运行当前分析对象的结构计算，再生成验证投稿包。";
 
@@ -20,6 +21,7 @@ interface UseWorkbenchRuntimeOptions {
   activeAnalysisObject: AnalysisObject;
   clientId: string;
   markProjectDirty: () => void;
+  modelDiagnostics: ModelDiagnostics;
   projectName: string;
   reportExportOptions: ReportExportOptions;
   resetWorkbenchContext: () => void;
@@ -32,6 +34,7 @@ export function useWorkbenchRuntime({
   activeAnalysisObject,
   clientId,
   markProjectDirty,
+  modelDiagnostics,
   projectName,
   reportExportOptions,
   resetWorkbenchContext,
@@ -61,9 +64,9 @@ export function useWorkbenchRuntime({
     exportingFormat,
     operationNotice,
     setOperationNotice,
-    handleRunCurrentModule,
+    handleRunCurrentModule: runCurrentModule,
     handleRunPayload,
-    handleSensitivity,
+    handleSensitivity: runSensitivity,
     handleExport,
   } = useWorkbenchActions(
     workspace,
@@ -185,12 +188,44 @@ export function useWorkbenchRuntime({
   }, [activeAnalysisObject.name, analysisMode, beamResults, frameResults, trussResults, workspace.beam, workspace.frame, workspace.truss]);
   const runLabel = isSolving ? solvingRunLabel(analysisMode) : analysisVocabulary(analysisMode).runLabel;
 
+  const blockedDiagnosticsMessage = useCallback((diagnostics: ModelDiagnostics): string | null => {
+    if (diagnostics.status !== "blocked") return null;
+    const firstBlockingIssue = diagnostics.issues.find((issue) => issue.severity === "error");
+    if (!firstBlockingIssue) return diagnostics.summary;
+    return `${firstBlockingIssue.title}：${firstBlockingIssue.detail}${firstBlockingIssue.suggestion ? ` ${firstBlockingIssue.suggestion}` : ""}`;
+  }, []);
+
+  const blockIfDiagnosticsFailed = useCallback((diagnostics: ModelDiagnostics): boolean => {
+    const message = blockedDiagnosticsMessage(diagnostics);
+    if (!message) return false;
+    setOperationNotice(validationNotice(message));
+    return true;
+  }, [blockedDiagnosticsMessage, setOperationNotice]);
+
+  const handleRunCurrentModule = useCallback(() => {
+    if (blockIfDiagnosticsFailed(modelDiagnostics)) {
+      return Promise.resolve(null);
+    }
+    return runCurrentModule();
+  }, [blockIfDiagnosticsFailed, modelDiagnostics, runCurrentModule]);
+
+  const handleSensitivity = useCallback((config: Parameters<typeof runSensitivity>[0]) => {
+    if (blockIfDiagnosticsFailed(modelDiagnostics)) {
+      return;
+    }
+    return runSensitivity(config);
+  }, [blockIfDiagnosticsFailed, modelDiagnostics, runSensitivity]);
+
   const handleRunAndReview = () => {
     setWorkbenchView("results");
     handleRunCurrentModule();
   };
 
   const handleRunWorkspace = useCallback((nextWorkspace: WorkspaceState) => {
+    const nextDiagnostics = buildModelDiagnostics(nextWorkspace);
+    if (blockIfDiagnosticsFailed(nextDiagnostics)) {
+      return Promise.resolve(null);
+    }
     const nextMode = nextWorkspace.analysisMode;
     const payload =
       nextMode === "beam"
@@ -203,7 +238,7 @@ export function useWorkbenchRuntime({
     }
     setWorkbenchView("results");
     return handleRunPayload(payload, nextWorkspace[nextMode]);
-  }, [handleRunPayload, projectName]);
+  }, [blockIfDiagnosticsFailed, handleRunPayload, projectName]);
 
   return {
     analysisData,

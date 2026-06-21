@@ -1,8 +1,8 @@
-import { DEFAULT_REPORT_EXPORT_OPTIONS, type ReportExportOptions } from "./report-options.ts";
+import { DEFAULT_REPORT_EXPORT_OPTIONS, reportExportOptionsForMode, type ReportExportOptions } from "./report-options.ts";
 import { activeResultMissingLabel, buildReportImagePlan, type ReportImagePlanInput } from "./report-image-plan.ts";
 
 export interface ReportImageRequirementInput extends ReportImagePlanInput {
-  reportOptions?: ReportExportOptions;
+  reportOptions?: Partial<ReportExportOptions>;
 }
 
 export interface ReportImageRequirement {
@@ -15,7 +15,7 @@ export function reportImageRequirements(input: ReportImageRequirementInput): Rep
 }
 
 export function assertReportImagesReady(images: Record<string, string>, input: ReportImageRequirementInput) {
-  const options = input.reportOptions ?? DEFAULT_REPORT_EXPORT_OPTIONS;
+  const options = reportExportOptionsForMode(input.analysisMode, input.reportOptions ?? DEFAULT_REPORT_EXPORT_OPTIONS);
   const missingResult = activeResultMissingLabel(input, options);
   if (missingResult) {
     throw new Error(`无法生成计算书图形：缺少${missingResult}，请先完成当前结构对象计算后再导出 DOCX。`);

@@ -1,8 +1,11 @@
 import { normalizeSolverProject, type SolverProject } from "./solver-project.ts";
+import { APP_VERSION } from "./app-metadata.ts";
 
 export const ARCHSIGHT_SOLVER_PROJECT_SCHEMA = "archsight-solver.project";
 export const ARCHSIGHT_SOLVER_PRODUCT_ID = "archsight-solver";
 export const ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION = "2.0.0";
+export const ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION = "2026-05-30";
+export const ARCHSIGHT_SOLVER_SUPPORTED_PROJECT_FILE_VERSIONS = ["1.0.0", ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION] as const;
 export const ARCHSIGHT_SOLVER_PROJECT_EXTENSION = ".slv";
 export const ARCHSIGHT_SOLVER_LEGACY_PROJECT_EXTENSIONS = [".aslv.json", ".json"] as const;
 export const ARCHSIGHT_SOLVER_PROJECT_ACCEPT = [
@@ -16,6 +19,11 @@ export interface ArchSightSolverProjectFile {
   schemaVersion: typeof ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION;
   product: typeof ARCHSIGHT_SOLVER_PRODUCT_ID;
   appVersion: string;
+  contract: {
+    asmsJsonSchemaVersion: typeof ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION;
+    projectFileSchemaVersion: typeof ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION;
+    modelRoundTrip: "normalized";
+  };
   createdAt: string;
   updatedAt: string;
   project: SolverProject;
@@ -26,12 +34,24 @@ export interface ArchSightSolverProjectFile {
     modulus: "GPa";
     inertia: "cm4";
   };
+  diagnostics?: ProjectFileDiagnostic[];
+}
+
+export type ProjectFileDiagnosticSeverity = "info" | "warning" | "error";
+
+export interface ProjectFileDiagnostic {
+  code: string;
+  severity: ProjectFileDiagnosticSeverity;
+  title: string;
+  detail: string;
+  suggestion: string;
 }
 
 export interface ProjectFileParseResult {
   ok: boolean;
   error?: string;
   value?: ArchSightSolverProjectFile;
+  diagnostics: ProjectFileDiagnostic[];
 }
 
 export interface ProjectFileHandle {
@@ -77,7 +97,6 @@ export interface ProjectSaveResult {
   mode: "native" | "download";
 }
 
-const APP_VERSION = "0.2.0";
 const PROJECT_FILE_INDENT = 2;
 const PROJECT_PICKER_ID = "archsight-solver-project-file";
 const PROJECT_PICKER_TYPES = [
@@ -91,6 +110,24 @@ const PROJECT_PICKER_TYPES = [
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function diagnostic(code: string, severity: ProjectFileDiagnosticSeverity, title: string, detail: string, suggestion: string): ProjectFileDiagnostic {
+  return { code, severity, title, detail, suggestion };
+}
+
+function isSupportedProjectFileVersion(value: unknown): value is typeof ARCHSIGHT_SOLVER_SUPPORTED_PROJECT_FILE_VERSIONS[number] {
+  return ARCHSIGHT_SOLVER_SUPPORTED_PROJECT_FILE_VERSIONS.includes(value as typeof ARCHSIGHT_SOLVER_SUPPORTED_PROJECT_FILE_VERSIONS[number]);
+}
+
+function compareSemver(left: string, right: string): number {
+  const leftParts = left.split(".").map((part) => Number.parseInt(part, 10) || 0);
+  const rightParts = right.split(".").map((part) => Number.parseInt(part, 10) || 0);
+  for (let index = 0; index < Math.max(leftParts.length, rightParts.length); index += 1) {
+    const diff = (leftParts[index] ?? 0) - (rightParts[index] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
 }
 
 function sanitizeFileNameSegment(value: string): string {
@@ -111,6 +148,11 @@ export function createArchSightSolverProjectFile(project: SolverProject, now = n
     schemaVersion: ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION,
     product: ARCHSIGHT_SOLVER_PRODUCT_ID,
     appVersion: APP_VERSION,
+    contract: {
+      asmsJsonSchemaVersion: ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION,
+      projectFileSchemaVersion: ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION,
+      modelRoundTrip: "normalized",
+    },
     createdAt: timestamp,
     updatedAt: timestamp,
     project: normalizedProject,
@@ -153,24 +195,60 @@ export function createArchSightSolverProjectFileBlob(projectFile: ArchSightSolve
 }
 
 export function parseArchSightSolverProjectFile(rawText: string): ProjectFileParseResult {
+  const diagnostics: ProjectFileDiagnostic[] = [];
   let parsed: unknown;
   try {
     parsed = JSON.parse(rawText);
   } catch {
-    return { ok: false, error: "项目文件不是合法的 JSON 文档。" };
+    return { ok: false, error: "项目文件不是合法的 JSON 文档。", diagnostics };
   }
 
   if (!isRecord(parsed)) {
-    return { ok: false, error: "项目文件顶层结构无效。" };
+    return { ok: false, error: "项目文件顶层结构无效。", diagnostics };
   }
   if (parsed.schema !== ARCHSIGHT_SOLVER_PROJECT_SCHEMA) {
-    return { ok: false, error: "文件 schema 不是 archsight-solver.project。" };
+    return { ok: false, error: "文件 schema 不是 archsight-solver.project。", diagnostics };
   }
   if (parsed.product !== ARCHSIGHT_SOLVER_PRODUCT_ID) {
-    return { ok: false, error: "文件 product 不是 archsight-solver。" };
+    return { ok: false, error: "文件 product 不是 archsight-solver。", diagnostics };
   }
-  if (parsed.schemaVersion !== ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION) {
-    return { ok: false, error: `暂不支持 schemaVersion=${String(parsed.schemaVersion)} 的项目文件。` };
+  const schemaVersion = String(parsed.schemaVersion ?? "");
+  if (!isSupportedProjectFileVersion(schemaVersion)) {
+    if (compareSemver(schemaVersion, ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION) > 0) {
+      return { ok: false, error: `项目文件 schemaVersion=${schemaVersion} 高于当前支持版本 ${ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION}。`, diagnostics };
+    }
+    return { ok: false, error: `暂不支持 schemaVersion=${schemaVersion || "未声明"} 的项目文件。`, diagnostics };
+  }
+  if (schemaVersion !== ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION) {
+    diagnostics.push(diagnostic(
+      "PROJECT_FILE_SCHEMA_MIGRATED",
+      "warning",
+      "项目文件已按当前版本迁移",
+      `原始 schemaVersion=${schemaVersion}，已按 ${ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION} 归一化导入。`,
+      "保存项目文件后会写入当前项目文件 schemaVersion。",
+    ));
+  }
+  const contract = isRecord(parsed.contract) ? parsed.contract : {};
+  if (contract.asmsJsonSchemaVersion !== ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION) {
+    diagnostics.push(diagnostic(
+      "ASMS_SCHEMA_VERSION_RECORDED",
+      contract.asmsJsonSchemaVersion ? "warning" : "info",
+      "ASMS-JSON 契约版本已校准",
+      contract.asmsJsonSchemaVersion
+        ? `文件声明的 ASMS-JSON 契约版本为 ${String(contract.asmsJsonSchemaVersion)}，当前版本为 ${ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION}。`
+        : `文件未声明 ASMS-JSON 契约版本，已按 ${ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION} 归一化。`,
+      "导入后保存项目文件即可写入当前 ASMS 契约版本。",
+    ));
+  }
+  const normalizedProject = normalizeSolverProject(parsed.project);
+  if (JSON.stringify(parsed.project ?? null) !== JSON.stringify(normalizedProject)) {
+    diagnostics.push(diagnostic(
+      "PROJECT_MODEL_NORMALIZED",
+      "info",
+      "项目模型已执行归一化",
+      "导入时已补齐缺省设置、材料目录、计算书选项和各分析对象工作台状态。",
+      "建议打开模型诊断并重新保存项目文件，形成可追踪的当前格式快照。",
+    ));
   }
 
   return {
@@ -180,9 +258,14 @@ export function parseArchSightSolverProjectFile(rawText: string): ProjectFilePar
       schemaVersion: ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION,
       product: ARCHSIGHT_SOLVER_PRODUCT_ID,
       appVersion: String(parsed.appVersion ?? ""),
+      contract: {
+        asmsJsonSchemaVersion: ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION,
+        projectFileSchemaVersion: ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION,
+        modelRoundTrip: "normalized",
+      },
       createdAt: String(parsed.createdAt ?? ""),
       updatedAt: String(parsed.updatedAt ?? ""),
-      project: normalizeSolverProject(parsed.project),
+      project: normalizedProject,
       units: {
         length: "m",
         force: "kN",
@@ -190,8 +273,18 @@ export function parseArchSightSolverProjectFile(rawText: string): ProjectFilePar
         modulus: "GPa",
         inertia: "cm4",
       },
+      diagnostics,
     },
+    diagnostics,
   };
+}
+
+export function projectFileDiagnosticsMessage(diagnostics: readonly ProjectFileDiagnostic[]): string {
+  if (!diagnostics.length) return "";
+  const warningCount = diagnostics.filter((item) => item.severity === "warning").length;
+  const infoCount = diagnostics.filter((item) => item.severity === "info").length;
+  if (warningCount) return `已导入并完成契约迁移诊断：${warningCount} 项需复核，${infoCount} 项提示。`;
+  return `已导入并完成契约迁移诊断：${infoCount} 项提示。`;
 }
 
 export function supportsNativeProjectFiles(): boolean {

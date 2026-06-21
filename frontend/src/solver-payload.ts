@@ -1,4 +1,5 @@
 import { createPortalFrameModelFromState } from "./lib/workspace-state.ts";
+import { ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION } from "./lib/project-file.ts";
 import { MAX_FRAME_MEMBERS, MAX_FRAME_NODES, MAX_TRUSS_MEMBERS, MAX_TRUSS_NODES } from "./lib/solver-limits.ts";
 import { materialIdForYoungModulus } from "./lib/material-presets.ts";
 import { modelObjectCountPhrase, modelObjectMemberTerm } from "./lib/model-object-vocabulary.ts";
@@ -189,6 +190,7 @@ export function buildBeamPayload(value: BeamWorkspaceState, projectName = value.
     : {};
   return {
     analysisType: "beam",
+    schemaVersion: ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION,
     spans: value.spans.map((span) => span.length),
     projectName,
     materialId: value.materialId,
@@ -233,6 +235,7 @@ export function createPortalFramePayload(value: FrameWorkspaceState, projectName
 
   return {
     analysisType: "frame",
+    schemaVersion: ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION,
     projectName,
     materialId: value.materialId,
     structure: {
@@ -662,6 +665,7 @@ export function buildFramePayload(value: FrameWorkspaceState, projectName = valu
     : {};
   return {
     analysisType: "frame",
+    schemaVersion: ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION,
     projectName,
     materialId: value.materialId,
     structure: {
@@ -762,6 +766,7 @@ export function buildTrussPayload(value: TrussWorkspaceState, projectName = valu
     : {};
   return {
     analysisType: "truss",
+    schemaVersion: ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION,
     projectName,
     materialId: value.materialId,
     structure: {

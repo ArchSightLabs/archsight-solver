@@ -8,22 +8,25 @@ def test_report_options_catalog_defines_modern_and_legacy_defaults():
         "template": "standard",
         "figureMode": "overlay",
         "figureScope": "all",
+        "reviewStatus": "draft",
     }
     assert legacy_report_options() == {
         "template": "complete",
         "figureMode": "both",
         "figureScope": "all",
+        "reviewStatus": "draft",
     }
 
 
 def test_report_options_normalization_uses_modern_default_for_missing_payload():
     assert normalize_report_options(None) == default_report_options()
     assert normalize_report_options({}) == default_report_options()
-    assert normalize_report_options({"template": "bad", "figureMode": "bad", "figureScope": "bad"}) == default_report_options()
-    assert normalize_report_options({"template": "complete", "figureMode": "traditional", "figureScope": "none"}) == {
+    assert normalize_report_options({"template": "bad", "figureMode": "bad", "figureScope": "bad", "reviewStatus": "bad"}) == default_report_options()
+    assert normalize_report_options({"template": "complete", "figureMode": "traditional", "figureScope": "none", "reviewStatus": "ready_for_review"}) == {
         "template": "complete",
         "figureMode": "overlay",
         "figureScope": "all",
+        "reviewStatus": "ready_for_review",
     }
 
 
@@ -35,3 +38,5 @@ def test_openapi_report_options_schema_uses_shared_catalog():
     assert schema["figureMode"]["default"] == default_report_options()["figureMode"]
     assert schema["figureScope"]["enum"] == list(report_option_values("figureScopes"))
     assert schema["figureScope"]["default"] == default_report_options()["figureScope"]
+    assert schema["reviewStatus"]["enum"] == list(report_option_values("reviewStatuses"))
+    assert schema["reviewStatus"]["default"] == default_report_options()["reviewStatus"]

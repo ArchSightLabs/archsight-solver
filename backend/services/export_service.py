@@ -51,17 +51,17 @@ def build_report_model(
 def export_report(report: ReportModel, format_type: str) -> ExportArtifact:
     if report.analysis_type == "frame":
         if format_type == "xlsx":
-            return export_frame_xlsx(report, report.material_name)
+            return export_frame_xlsx(report, report.material_name, report.report_options)
         if format_type == "docx":
             return export_frame_docx(report, report.material_name, report.sensitivity_results, report.report_images, report.report_options)
     elif report.analysis_type == "truss":
         if format_type == "xlsx":
-            return export_truss_xlsx(report, report.material_name)
+            return export_truss_xlsx(report, report.material_name, report.report_options)
         if format_type == "docx":
             return export_truss_docx(report, report.material_name, report.sensitivity_results, report.report_images, report.report_options)
     else:
         if format_type == "xlsx":
-            return export_beam_xlsx(report, report.material_name)
+            return export_beam_xlsx(report, report.material_name, report.report_options)
         if format_type == "docx":
             return export_beam_docx(report, report.material_name, report.sensitivity_results, report.report_images, report.report_options)
     raise ValueError("不支持的导出格式")

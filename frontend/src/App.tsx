@@ -14,6 +14,7 @@ import { SystemSettingsPanel } from "./components/SystemSettingsPanel";
 import { GlobalDialogs } from "./components/GlobalDialogs";
 import { DialogProvider, useDialogs } from "./contexts/DialogContext";
 import { AppHeader } from "./components/AppHeader";
+import { ModelDiagnosticsPanel } from "./components/ModelDiagnosticsPanel";
 import { WorkbenchInspectorPanel } from "./components/WorkbenchInspectorPanel";
 import { WorkbenchModelCanvas } from "./components/WorkbenchModelCanvas";
 import { WorkbenchResultTabs } from "./components/WorkbenchResultTabs";
@@ -63,6 +64,7 @@ import {
   toggleWorkbenchSelection,
   uniqueWorkbenchSelections,
 } from "./lib/workbench-selection-utils";
+import { buildModelDiagnostics } from "./lib/model-diagnostics";
 
 type AnalysisObjectPageState = {
   moduleSectionId?: string;
@@ -143,6 +145,8 @@ function AppContent() {
     showInspectorCollapsed,
     workbenchGridStyle,
   } = useResizableWorkbenchLayout(isSystemSettingsDocked);
+  const analysisMode = workspace.analysisMode;
+  const modelDiagnostics = useMemo(() => buildModelDiagnostics(workspace), [workspace]);
   const resetWorkbenchContext = useCallback(() => {
     setWorkbenchSelectionState({ primary: null, items: [] });
   }, []);
@@ -185,6 +189,7 @@ function AppContent() {
     activeAnalysisObject,
     clientId,
     markProjectDirty,
+    modelDiagnostics,
     projectName: project.settings.projectInfo.name,
     reportExportOptions,
     resetWorkbenchContext,
@@ -260,7 +265,6 @@ function AppContent() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [redoWorkspaceChange, undoWorkspaceChange]);
 
-  const analysisMode = workspace.analysisMode;
   const activeObjectPageState = pageStateByObjectId[activeAnalysisObject.id] ?? {};
   const moduleSections = moduleSectionsForMode(analysisMode);
   const normalizedActiveModuleSection = normalizeModuleSectionId(analysisMode, activeObjectPageState.moduleSectionId ?? project.settings.activeModuleSection);
@@ -729,6 +733,7 @@ function AppContent() {
             onResizeStart={handleInspectorResizeStart}
             onSelectSection={setActiveModuleSection}
           >
+            <ModelDiagnosticsPanel diagnostics={modelDiagnostics} compact={isCompactWorkbench} />
             {formContent}
           </WorkbenchInspectorPanel>
           {isSystemSettingsDocked ? (

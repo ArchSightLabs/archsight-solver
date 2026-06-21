@@ -8,7 +8,7 @@ import pandas as pd
 from backend.common.result_metric_catalog import result_metric_label
 from backend.exporters.common.artifact import ExportArtifact
 from backend.exporters.common.docx_utils import HAS_DOCX, add_df_table, add_heading, add_png_figure, add_report_note, add_report_title, create_document, png_from_report_images
-from backend.exporters.common.evidence import build_evidence_tables
+from backend.exporters.common.evidence import build_evidence_tables, build_report_review_table
 from backend.exporters.common.filenames import export_filename
 from backend.exporters.common.load_tables import build_load_combination_rows
 from backend.exporters.common.report_figure_catalog import TRUSS_REPORT_OVERLAY_FIGURES, report_figures_for_scope
@@ -44,6 +44,8 @@ def export_docx(
 
     add_heading(doc, "1. 项目概况")
     add_df_table(doc, df_summary)
+    add_heading(doc, "1.1 审阅状态与签发边界")
+    add_df_table(doc, build_report_review_table(solution, "truss", options))
     add_heading(doc, "2. 输入参数")
     add_df_table(doc, df_params)
     if include_figures(options):

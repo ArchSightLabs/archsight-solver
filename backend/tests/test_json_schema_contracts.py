@@ -10,7 +10,7 @@ sys.path.insert(0, ROOT_DIR)
 from app import app
 from backend.common.support_catalog import support_specs
 from backend.contracts.openapi import build_openapi_document
-from backend.contracts.json_schemas import SCHEMA_ID_BASE_URI, schema_by_id, schema_registry
+from backend.contracts.json_schemas import API_SCHEMA_VERSION, SCHEMA_ID_BASE_URI, schema_by_id, schema_registry
 
 
 @pytest.fixture
@@ -67,6 +67,8 @@ def test_schema_registry_contains_api_and_tool_contracts():
     assert "benchmark-case-run-input" in registry
     assert "benchmark-submission-input" in registry
     assert "benchmark-submission-response" in registry
+    for schema_id in ("asms-beam-model", "asms-frame-model", "asms-truss-model"):
+        assert registry[schema_id]["properties"]["schemaVersion"]["const"] == API_SCHEMA_VERSION
     assert registry["asms-frame-model"]["properties"]["structure"]["required"] == ["nodes", "members"]
     assert "滚动支座法向角" in registry["asms-frame-model"]["properties"]["structure"]["properties"]["nodes"]["items"]["properties"]["supportAngleDeg"]["description"]
     truss_load_schema = registry["asms-truss-model"]["properties"]["structure"]["properties"]["loads"]["items"]
@@ -129,6 +131,17 @@ def test_shared_contract_field_matrix_covers_cross_stack_fields():
     matrix = _contract_field_matrix()
     registry = schema_registry()
     openapi = build_openapi_document()
+
+    common_contract = matrix["common"]
+    for schema_id in ("asms-beam-model", "asms-frame-model", "asms-truss-model"):
+        for schema in (registry[schema_id], openapi["components"]["schemas"][schema_id]):
+            assert set(common_contract["modelFields"]).issubset(schema["properties"])
+            assert schema["properties"]["schemaVersion"]["const"] == API_SCHEMA_VERSION
+    for type_path in common_contract["frontendTypePaths"]:
+        _assert_source_contains(type_path, common_contract["frontendTypeTokens"])
+    _assert_source_contains(common_contract["payloadPath"], common_contract["payloadTokens"])
+    for doc_path in ("docs/api-reference.md", "docs/asms-json-schema.md"):
+        _assert_source_contains(doc_path, common_contract["docTokens"])
 
     beam_fields = set(matrix["beam"]["spanProperties"]["fields"])
     for schema in (registry["asms-beam-model"], openapi["components"]["schemas"]["asms-beam-model"]):

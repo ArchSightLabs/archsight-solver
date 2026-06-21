@@ -23,6 +23,8 @@ ASMS-JSON 是 ArchSight Solver 的结构力学数据入口标准，用同一份 
 - **算例投稿必须带标准值**：`POST /api/benchmark-submissions` 接收完整模型、标准值、容许误差和验证来源，并在入库前执行自动校验。
 - **REST / CLI / MCP 是同源执行面**：REST 直接提交 ASMS-JSON；CLI 与 MCP 使用 `{ "payload": <ASMS-JSON> }` 包装，计算链路仍与 `/api/calculate` 同源。
 
+ASMS-JSON 模型可声明 `schemaVersion: "2026-05-30"`。这是 ASMS-JSON 契约版本，用于 API、CLI/MCP、项目文件导入迁移和计算书导出判断字段语义；缺省时按当前兼容版本归一化处理。项目文件另有项目文件 `schemaVersion`，两者不可混用。
+
 协议字段说明见 `docs/asms-json-schema.md`，Agent 从自然语言到 ASMS-JSON 的调用闭环见 `docs/agent-engineering-workflow.md`，可测试样例库见 `data/agent_workflows/asms_few_shots.json`。
 
 ## 响应信封
@@ -101,6 +103,7 @@ Content-Type: application/json
 ```json
 {
   "analysisType": "beam",
+  "schemaVersion": "2026-05-30",
   "projectName": "简支梁均布荷载验证",
   "beamType": "simply_supported",
   "loadType": "uniform",
@@ -126,6 +129,7 @@ Content-Type: application/json
 ```json
 {
   "analysisType": "truss",
+  "schemaVersion": "2026-05-30",
   "projectName": "三杆静定桁架",
   "materialId": "steel-verify",
   "structure": {
@@ -166,6 +170,7 @@ Content-Type: application/json
 ```json
 {
   "analysisType": "frame",
+  "schemaVersion": "2026-05-30",
   "projectName": "门式刚架标准算例",
   "materialId": "q345",
   "structure": {
@@ -257,7 +262,11 @@ Content-Type: application/json
   "format": "docx",
   "sensitivityResults": {},
   "reportImages": {},
-  "reportOptions": {},
+  "reportOptions": {
+    "template": "standard",
+    "figureMode": "overlay",
+    "reviewStatus": "ready_for_review"
+  },
   "benchmark": {
     "caseId": "beam-simply-supported-uniform",
     "sourceLabel": "教材解析解",
@@ -272,7 +281,7 @@ Content-Type: application/json
 - `format`：`docx` 或 `xlsx`，默认 `xlsx`。
 - `sensitivityResults`：可选敏感性分析结果，仅作为计算书附录资料写入。
 - `reportImages`：可选受力变形图、内力图等图片资源。平面桁架和平面框架 DOCX 仅使用前端同源受力变形图和模型叠加工程图，必需 key 由 `shared/report-figures.json` 约束；缺失时跳过对应插图，不插入后端简化兜底图。
-- `reportOptions`：可选计算书模板与数据曲线配置；受力变形图和核心工程图固定导出，旧版 `figureScope` 字段仅作兼容。
+- `reportOptions`：可选计算书模板、数据曲线配置和审阅状态；`reviewStatus` 使用 `draft` 或 `ready_for_review`，DOCX / XLSX 会写入“草稿 / 可审阅”、ASMS-JSON 契约版本、结果来源、公开 benchmark 参考和诊断警告。受力变形图和核心工程图固定导出，旧版 `figureScope` 字段仅作兼容。
 - `benchmark`：可选验证来源元数据；公开案例导出的计算书会写入 `caseId`、标准值和容许误差。
 
 导出结果是二进制文件；导出计算书展示求解证据、平衡校核、验证集覆盖说明和适用边界，不构成工程签审结论。

@@ -427,6 +427,12 @@ def _export_payload_schema() -> Dict[str, Any]:
                         "default": default_report_options()["figureScope"],
                         "description": "兼容字段；当前固定为受力变形图和全部核心工程图。",
                     },
+                    "reviewStatus": {
+                        "type": "string",
+                        "enum": list(report_option_values("reviewStatuses")),
+                        "default": default_report_options()["reviewStatus"],
+                        "description": "计算书审阅状态；draft 表示草稿，ready_for_review 表示已准备进入工程复核。",
+                    },
                 },
                 "additionalProperties": True,
             },

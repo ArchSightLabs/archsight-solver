@@ -2,12 +2,14 @@
   "default": {
     "template": "standard",
     "figureMode": "overlay",
-    "figureScope": "all"
+    "figureScope": "all",
+    "reviewStatus": "draft"
   },
   "legacyDefault": {
     "template": "complete",
     "figureMode": "both",
-    "figureScope": "all"
+    "figureScope": "all",
+    "reviewStatus": "draft"
   },
   "templates": [
     {
@@ -33,6 +35,16 @@
     {
       "value": "all",
       "label": "受力变形图与核心工程图"
+    }
+  ],
+  "reviewStatuses": [
+    {
+      "value": "draft",
+      "label": "草稿"
+    },
+    {
+      "value": "ready_for_review",
+      "label": "可审阅"
     }
   ]
 }

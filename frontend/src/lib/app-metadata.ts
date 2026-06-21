@@ -1,9 +1,21 @@
-export const APP_VERSION = import.meta.env.VITE_APP_VERSION || "0.0.0";
+import frontendPackage from "../../package.json" with { type: "json" };
+
+type ViteRuntimeEnv = {
+  readonly VITE_APP_VERSION?: string;
+  readonly VITE_GITHUB_REPOSITORY_URL?: string;
+  readonly VITE_BENCHMARK_SUBMISSION_EMAIL?: string;
+  readonly VITE_ENABLE_BUSUANZI?: string;
+};
+
+const frontendPackageVersion = (frontendPackage as { version?: string }).version ?? "0.0.0";
+const viteEnv = (import.meta as ImportMeta & { env?: ViteRuntimeEnv }).env ?? {};
+
+export const APP_VERSION = viteEnv.VITE_APP_VERSION || frontendPackageVersion;
 export const GITHUB_REPOSITORY_URL =
-  import.meta.env.VITE_GITHUB_REPOSITORY_URL || "https://github.com/ArchSightLabs/archsight-solver";
+  viteEnv.VITE_GITHUB_REPOSITORY_URL || "https://github.com/ArchSightLabs/archsight-solver";
 export const BENCHMARK_SUBMISSION_EMAIL =
-  import.meta.env.VITE_BENCHMARK_SUBMISSION_EMAIL || "archsight-labs@qq.com";
-export const BUSUANZI_VISIT_STATS_ENABLED = import.meta.env.VITE_ENABLE_BUSUANZI === "true";
+  viteEnv.VITE_BENCHMARK_SUBMISSION_EMAIL || "archsight-labs@qq.com";
+export const BUSUANZI_VISIT_STATS_ENABLED = viteEnv.VITE_ENABLE_BUSUANZI === "true";
 export const BUSUANZI_SCRIPT_SRC = "https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js";
 
 export function loadBusuanziVisitStats() {

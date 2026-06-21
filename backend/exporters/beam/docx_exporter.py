@@ -8,7 +8,7 @@ import pandas as pd
 from backend.common.material_catalog import material_report_rows
 from backend.exporters.common.artifact import ExportArtifact
 from backend.exporters.common.docx_utils import HAS_DOCX, add_df_table, add_heading, add_png_figure, add_report_title, create_document, png_from_report_images, style_table_header_row
-from backend.exporters.common.evidence import build_evidence_tables
+from backend.exporters.common.evidence import build_evidence_tables, build_report_review_table
 from backend.exporters.common.filenames import export_filename
 from backend.exporters.common.load_tables import build_load_combination_rows
 from backend.exporters.common.result_source import result_source_text
@@ -48,6 +48,8 @@ def export_docx(
     doc.add_paragraph(f"梁型: {request['beam_type_label']}")
     doc.add_paragraph(f"荷载类型: {request['load_type_label']}")
     doc.add_paragraph(f"总长度: {round(request['total_length'], 3)} m")
+    add_heading(doc, "1.1 审阅状态与签发边界")
+    add_df_table(doc, build_report_review_table(solution, "beam", options))
 
     add_heading(doc, "2. 输入参数")
     table = doc.add_table(rows=1, cols=2)

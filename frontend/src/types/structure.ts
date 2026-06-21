@@ -131,6 +131,7 @@ export interface FrameStructure {
 
 export interface FrameFormPayload {
   analysisType: "frame";
+  schemaVersion?: string;
   projectName: string;
   materialId: string;
   structure: FrameStructure;
@@ -360,6 +361,7 @@ export interface TrussStructure {
 
 export interface TrussFormPayload {
   analysisType: "truss";
+  schemaVersion?: string;
   projectName: string;
   materialId: string;
   structure: TrussStructure;

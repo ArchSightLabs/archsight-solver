@@ -8,7 +8,14 @@ import pandas as pd
 from backend.benchmarks.catalog import load_benchmark_catalog
 from backend.exporters.common.analysis_assumptions import analysis_assumption_table_rows
 from backend.common.support_catalog import support_constraint_dofs, support_label, support_released_dofs, support_system_note
+from backend.contracts.json_schemas import API_SCHEMA_VERSION
 from backend.exporters.common.member_materials import member_elasticity_summary
+from backend.exporters.common.result_source import result_source_text
+
+REVIEW_STATUS_LABELS = {
+    "draft": "草稿",
+    "ready_for_review": "可审阅",
+}
 
 DOF_LABELS = {
     "ux": "ux 水平位移",
@@ -24,6 +31,44 @@ def build_evidence_tables(solution: Mapping[str, Any], analysis_type: str, mater
     if analysis_type == "truss":
         return _truss_evidence(solution, material_name)
     return _beam_evidence(solution, material_name)
+
+
+def build_report_review_table(solution: Mapping[str, Any], analysis_type: str, report_options: Mapping[str, Any] | None = None) -> pd.DataFrame:
+    options = report_options or {}
+    review_status = str(options.get("reviewStatus") or "draft")
+    benchmark = solution.get("benchmark") if isinstance(solution.get("benchmark"), Mapping) else {}
+    diagnostics = solution.get("diagnostics") if isinstance(solution.get("diagnostics"), Mapping) else {}
+    issue_text = _diagnostic_issue_text(diagnostics)
+    benchmark_text = "未绑定当前算例 benchmark"
+    if isinstance(benchmark, Mapping) and benchmark.get("caseId"):
+        benchmark_text = f"{benchmark.get('caseId')} / {benchmark.get('verificationLevelLabel') or benchmark.get('sourceLabel') or '验证来源'}"
+    return pd.DataFrame(
+        [
+            ["审阅状态", REVIEW_STATUS_LABELS.get(review_status, "草稿"), "草稿表示尚未进入工程复核；可审阅表示模型、结果来源和导出证据已准备提交复核。"],
+            ["ASMS-JSON 契约版本", API_SCHEMA_VERSION, "字段语义以 JSON Schema Registry、OpenAPI 和 ASMS-JSON 文档为准。"],
+            ["分析对象", {"beam": "梁系", "frame": "二维平面框架", "truss": "二维平面桁架"}.get(analysis_type, analysis_type), "不代表规范设计、承载力验算或工程签审。"],
+            ["结果来源", result_source_text(solution), "主结果、指定荷载工况或指定荷载组合必须与图表和数据一致。"],
+            ["公开验证参考", benchmark_text, "benchmark 仅证明其覆盖边界内的回归一致性。"],
+            ["诊断警告", issue_text, "导出计算书保留诊断摘要；最终结论仍需具备资质的专业人员复核。"],
+        ],
+        columns=["项目", "状态/证据", "说明"],
+    )
+
+
+def _diagnostic_issue_text(diagnostics: Mapping[str, Any]) -> str:
+    issues = diagnostics.get("issues")
+    if isinstance(issues, list) and issues:
+        titles = [str(item.get("title") or item.get("code") or "诊断项") for item in issues if isinstance(item, Mapping)]
+        return "；".join(titles[:6]) + (f"；另 {len(titles) - 6} 项" if len(titles) > 6 else "")
+    warnings = diagnostics.get("warnings")
+    if isinstance(warnings, list) and warnings:
+        return "；".join(str(item) for item in warnings[:6])
+    equilibrium = diagnostics.get("equilibrium")
+    if isinstance(equilibrium, Mapping):
+        rms = equilibrium.get("rmsRelativeError")
+        residual = equilibrium.get("maxResidualN")
+        return f"平衡残差 RMS={rms}；最大残差={residual} N"
+    return "未收到阻断诊断；仍需按模型假定和适用边界复核。"
 
 
 def _beam_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str, pd.DataFrame]:
@@ -242,7 +287,7 @@ def _beam_boundary_table(support_specs: List[Mapping[str, Any]], support_positio
     for index, position in enumerate(support_positions):
         support = support_specs[index] if index < len(support_specs) else {}
         support_type = str(support.get("type", "pinned"))
-        constraints = support.get("constraints") or support_constraint_dofs("beam", support_type)
+        constraints = support.get("constraints") if "constraints" in support and support.get("constraints") is not None else support_constraint_dofs("beam", support_type)
         springs = support.get("springs") or []
         rows.append(
             {

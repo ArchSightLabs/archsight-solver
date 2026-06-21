@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildBeamPayload, buildFramePayload, buildTrussPayload, validateCustomFrameWorkspace, validateCustomTrussWorkspace } from "../solver-payload.ts";
+import { ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION } from "./project-file.ts";
 import { MAX_FRAME_MEMBERS, MAX_FRAME_NODES, MAX_TRUSS_MEMBERS, MAX_TRUSS_NODES } from "./solver-limits.ts";
 import {
   cloneBeamWorkspaceState,
@@ -34,6 +35,7 @@ test("buildBeamPayload serializes configurable load inputs", () => {
   const payload = buildBeamPayload(workspace);
 
   assert.equal(payload.analysisType, "beam");
+  assert.equal(payload.schemaVersion, ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION);
   assert.equal(payload.loadType, "linear");
   assert.deepEqual(payload.loads, [{ type: "linear", qStartKnPerM: 8, qEndKnPerM: 15, start: 0.8, end: 3.6 }]);
   assert.equal(payload.distributedLoadStart, 8);
@@ -133,6 +135,7 @@ test("buildTrussPayload serializes the default truss workspace", () => {
   const payload = buildTrussPayload(createDefaultTrussWorkspaceState());
   assert.ok(payload);
   assert.equal(payload?.analysisType, "truss");
+  assert.equal(payload?.schemaVersion, ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION);
   assert.equal(payload?.structure.nodes.length, 4);
   assert.equal(payload?.structure.members.length, 5);
   assert.equal(payload?.structure.loads.length, 2);
@@ -191,6 +194,7 @@ test("buildFramePayload preserves advanced frame modeling fields", () => {
   const payload = buildFramePayload(workspace);
 
   assert.ok(payload);
+  assert.equal(payload.schemaVersion, ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION);
   assert.equal(payload.structure.nodes[1]?.supportAngleDeg, 45);
   assert.equal(payload.structure.members[1]?.elementType, "frame");
   assert.deepEqual(payload.structure.nodes[1]?.springs, [{ dof: "uy", stiffnessKnPerM: 12000 }]);

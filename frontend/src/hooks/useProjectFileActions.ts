@@ -4,6 +4,7 @@ import {
   getArchSightSolverProjectFileName,
   isFilePickerAbort,
   openArchSightSolverProjectFileWithPicker,
+  projectFileDiagnosticsMessage,
   readArchSightSolverProjectFile,
   saveArchSightSolverProjectFile,
   supportsNativeProjectFiles,
@@ -97,7 +98,8 @@ export function useProjectFileActions({
     void (async () => {
       try {
         const { projectFile, handle, fileName } = await openArchSightSolverProjectFileWithPicker();
-        loadProject(projectFile.project, fileName, handle, projectFile.updatedAt, `已打开：${fileName}`);
+        const diagnosticsMessage = projectFileDiagnosticsMessage(projectFile.diagnostics ?? []);
+        loadProject(projectFile.project, fileName, handle, projectFile.updatedAt, diagnosticsMessage ? `已打开：${fileName}；${diagnosticsMessage}` : `已打开：${fileName}`);
       } catch (error) {
         if (isFilePickerAbort(error)) return;
         alert(`项目文件读取失败：${error instanceof Error ? error.message : "未知错误"}`);
@@ -122,7 +124,8 @@ export function useProjectFileActions({
     try {
       const projectFile = await readArchSightSolverProjectFile(file);
       const fileName = file.name || getArchSightSolverProjectFileName(projectFile.project);
-      loadProject(projectFile.project, fileName, null, projectFile.updatedAt, `已打开：${fileName}`);
+      const diagnosticsMessage = projectFileDiagnosticsMessage(projectFile.diagnostics ?? []);
+      loadProject(projectFile.project, fileName, null, projectFile.updatedAt, diagnosticsMessage ? `已打开：${fileName}；${diagnosticsMessage}` : `已打开：${fileName}`);
     } catch (error) {
       alert(`项目文件读取失败：${error instanceof Error ? error.message : "未知错误"}`);
     }

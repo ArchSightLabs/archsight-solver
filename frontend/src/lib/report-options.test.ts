@@ -6,6 +6,7 @@ import {
   DEFAULT_REPORT_EXPORT_OPTIONS,
   REPORT_FIGURE_MODE_OPTIONS,
   REPORT_FIGURE_SCOPE_OPTIONS,
+  REPORT_REVIEW_STATUS_OPTIONS,
   REPORT_TEMPLATE_OPTIONS,
   normalizeReportExportOptions,
   reportExportOptionsForMode,
@@ -18,6 +19,7 @@ test("计算书导出选项读取 shared 契约默认值", () => {
   assert.deepEqual(REPORT_TEMPLATE_OPTIONS, sharedReportOptions.templates);
   assert.deepEqual(REPORT_FIGURE_MODE_OPTIONS, sharedReportOptions.figureModes);
   assert.deepEqual(REPORT_FIGURE_SCOPE_OPTIONS, sharedReportOptions.figureScopes);
+  assert.deepEqual(REPORT_REVIEW_STATUS_OPTIONS, sharedReportOptions.reviewStatuses);
 });
 
 test("计算书导出选项归一化使用现代默认值回退", () => {
@@ -28,12 +30,13 @@ test("计算书导出选项归一化使用现代默认值回退", () => {
       template: "bad" as never,
       figureMode: "bad" as never,
       figureScope: "bad" as never,
+      reviewStatus: "bad" as never,
     }),
     sharedReportOptions.default,
   );
   assert.deepEqual(
-    normalizeReportExportOptions({ template: "complete", figureMode: "traditional", figureScope: "none" }),
-    { template: "complete", figureMode: "overlay", figureScope: "all" },
+    normalizeReportExportOptions({ template: "complete", figureMode: "traditional", figureScope: "none", reviewStatus: "ready_for_review" }),
+    { template: "complete", figureMode: "overlay", figureScope: "all", reviewStatus: "ready_for_review" },
   );
 });
 
@@ -46,19 +49,22 @@ test("计算书图形模式文案允许各结构体系显式包含数据曲线",
   assert.equal(reportFigureModeValueForMode("frame", "traditional"), "overlay");
   assert.equal(reportFigureModeValueForMode("frame", "both"), "both");
   assert.equal(reportFigureModeValueForMode("truss", "both"), "both");
-  assert.deepEqual(reportExportOptionsForMode("frame", { template: "complete", figureMode: "traditional", figureScope: "all" }), {
+  assert.deepEqual(reportExportOptionsForMode("frame", { template: "complete", figureMode: "traditional", figureScope: "all", reviewStatus: "ready_for_review" }), {
     template: "complete",
     figureMode: "overlay",
     figureScope: "all",
+    reviewStatus: "ready_for_review",
   });
   assert.deepEqual(reportExportOptionsForMode("truss", { template: "brief", figureMode: "both", figureScope: "control" }), {
     template: "standard",
     figureMode: "both",
     figureScope: "all",
+    reviewStatus: "draft",
   });
   assert.deepEqual(reportExportOptionsForMode("beam", { template: "complete", figureMode: "both", figureScope: "all" }), {
     template: "complete",
     figureMode: "both",
     figureScope: "all",
+    reviewStatus: "draft",
   });
 });

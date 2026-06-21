@@ -9,7 +9,7 @@ from backend.common.material_catalog import material_report_rows
 from backend.common.result_metric_catalog import result_metric_label
 from backend.common.support_catalog import support_label
 from backend.exporters.common.artifact import ExportArtifact
-from backend.exporters.common.evidence import build_evidence_tables
+from backend.exporters.common.evidence import build_evidence_tables, build_report_review_table
 from backend.exporters.common.filenames import export_filename
 from backend.exporters.common.load_tables import build_load_combination_rows
 from backend.exporters.common.member_materials import member_elasticity_summary
@@ -148,7 +148,7 @@ def _frame_support_summary(nodes: list[Dict[str, Any]]) -> str:
     return "；".join(rows) if rows else "无支座节点"
 
 
-def export_xlsx(solution: Dict[str, Any], material_name: str):
+def export_xlsx(solution: Dict[str, Any], material_name: str, report_options: Dict[str, Any] | None = None):
     if not HAS_OPENPYXL:
         raise RuntimeError("服务器缺少 openpyxl 库，请联系系统管理员")
 
@@ -196,6 +196,7 @@ def export_xlsx(solution: Dict[str, Any], material_name: str):
             "01_复核总览",
             [
                 ("项目结论", df_summary),
+                ("审阅状态与签发边界", build_report_review_table(solution, "frame", report_options)),
                 ("关键控制项", evidence_tables["关键控制项"]),
                 ("稳定初筛", df_stability),
             ],

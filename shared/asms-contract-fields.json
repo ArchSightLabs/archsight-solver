@@ -1,5 +1,13 @@
 {
-  "version": "2026-05-31",
+  "version": "2026-06-21",
+  "common": {
+    "modelFields": ["schemaVersion"],
+    "frontendTypePaths": ["frontend/src/types/beam.ts", "frontend/src/types/structure.ts"],
+    "frontendTypeTokens": ["schemaVersion?: string"],
+    "payloadPath": "frontend/src/solver-payload.ts",
+    "payloadTokens": ["ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION", "schemaVersion:"],
+    "docTokens": ["schemaVersion", "ASMS-JSON 契约版本"]
+  },
   "beam": {
     "spanProperties": {
       "fields": ["id", "memberId", "materialId", "E", "I"],
