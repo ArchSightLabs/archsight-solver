@@ -124,7 +124,7 @@
       <article class="release">
         <div class="release-head">
           <h2>v1.5.0</h2>
-          <span class="date">发布时间：2026-06-19</span>
+          <span class="date">发布时间：2026-06-22</span>
         </div>
           <p class="section-label">重点变化</p>
           <ul>
@@ -148,8 +148,11 @@
           </ul>
           <p class="section-label">质量门禁</p>
           <ul>
-            <li>前端 <code>npm run lint</code> 通过。</li>
-            <li>前端 <code>npm run test:unit</code> 通过：353 passed。</li>
+            <li>前端 <code>npm --prefix frontend run lint</code> 通过。</li>
+            <li>前端 <code>npm --prefix frontend run test:unit</code> 通过：360 passed。</li>
+            <li>前端 <code>npm --prefix frontend run build</code> 通过；Vite 仍提示部分 chunk 超过 500 kB，这是既有包体提示，不影响构建产物生成。</li>
+            <li>后端 <code>python -m pytest backend/tests -q</code> 通过：479 passed，2 skipped。</li>
+            <li>版本一致性检查 <code>python scripts/check_versions.py</code> 通过：根包、前端包、<code>pyproject.toml</code>、<code>uv.lock</code> 和 <code>CHANGELOG.md</code> 均为 <code>1.5.0</code>。</li>
             <li>Playwright <code>release-1-5-quick-modeling.spec.ts</code> 覆盖梁系、平面框架、平面桁架“生成并计算”到求解 payload 的首算路径。</li>
             <li>Playwright <code>release-1-5-quick-modeling.spec.ts</code> 覆盖三类内置模板“打开并计算”到求解 payload 的首算路径。</li>
             <li>Playwright <code>release-1-5-quick-modeling.spec.ts</code> 覆盖新建分析对象后直接进入指定建模路径。</li>

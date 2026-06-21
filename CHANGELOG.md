@@ -4,7 +4,7 @@
 
 ## v1.5.0
 
-发布时间：2026-06-19
+发布时间：2026-06-22
 
 本版跳过 v1.4.1，但不作为小修补发布。v1.5.0 的发布定位调整为“高可用建模工作台大版本”：在不新增第四类分析对象、不放松数值可信边界的前提下，围绕操作习惯、功能补充和建模简化，缩短从建模到首算的路径。v1.4.0 后的 esbuild 二进制完整性告警修复一并作为 v1.5.0 发布基线。
 
@@ -30,8 +30,11 @@
 
 质量门禁：
 
-- 前端 `npm run lint` 通过。
-- 前端 `npm run test:unit` 通过：353 passed。
+- 前端 `npm --prefix frontend run lint` 通过。
+- 前端 `npm --prefix frontend run test:unit` 通过：360 passed。
+- 前端 `npm --prefix frontend run build` 通过；Vite 仍提示部分 chunk 超过 500 kB，这是既有包体提示，不影响构建产物生成。
+- 后端 `python -m pytest backend/tests -q` 通过：479 passed，2 skipped。
+- 版本一致性检查 `python scripts/check_versions.py` 通过：根包、前端包、`pyproject.toml`、`uv.lock` 和 `CHANGELOG.md` 均为 `1.5.0`。
 - Playwright `release-1-5-quick-modeling.spec.ts` 覆盖梁系、平面框架、平面桁架“生成并计算”到求解 payload 的首算路径。
 - Playwright `release-1-5-quick-modeling.spec.ts` 覆盖三类内置模板“打开并计算”到求解 payload 的首算路径。
 - Playwright `release-1-5-quick-modeling.spec.ts` 覆盖新建分析对象后直接进入指定建模路径。
