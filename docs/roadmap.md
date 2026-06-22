@@ -155,6 +155,27 @@ v1.5.0 跳过 v1.4.1，但不再按“荷载场景收口版”发布。本版必
 - 新增公开 benchmark 必须同时提供模型输入、标准值、容许误差和验证来源。
 - `release-1-5-load-scenarios.spec.ts` 覆盖梁系和平面桁架工况 / 组合来源切换；DOCX 图形导出仍以三浏览器矩阵为准。
 
+### v1.6.0：平台与第三方集成就绪版
+
+v1.6.0 不把公开求解器改造成云协作平台，也不引入账号、租户、学校、课程、订阅或权限系统。本版应把 v1.5.0 已形成的项目文件、ASMS-JSON、API、CLI/MCP、导出和工作台能力整理成可被外部平台稳定托管的中性集成面。
+
+本版主线：
+
+- 项目文档契约：将 `archsight-solver.project` 项目文件的创建、解析、归一化、迁移诊断和序列化能力从浏览器本地文件 I/O 中分离，形成可复用的纯契约模块。
+- 项目文件 schema：为 `.slv` 项目文件提供稳定 JSON Schema 或契约导出入口，明确 `schemaVersion`、ASMS-JSON 契约版本、单位、项目对象和迁移诊断格式。
+- 宿主集成接口：工作台支持外部宿主注入初始项目文档，并以中性事件表达项目变更、dirty 状态、保存请求、保存结果和当前 project document 快照。
+- 嵌入与 launch：支持 iframe 或宿主窗口打开指定项目文档、只读/可编辑模式和默认分析对象；商业 token、学校平台凭据和权限判断不进入公开求解器。
+- 项目校验入口：API、CLI 或 MCP 提供 project document validate / normalize / migrate 能力，返回归一化项目、迁移诊断和模型诊断，方便第三方平台保存前复核。
+- 导出编排：从 project document、当前分析对象和结果来源生成 DOCX/XLSX，并返回文件名、导出类型、schemaVersion、ASMS-JSON 版本、结果来源、诊断摘要和审阅状态等 artifact metadata。
+
+验收口径：
+
+- `.slv` 本地文件、API/CLI/MCP 校验入口和嵌入式宿主保存事件使用同一份 canonical project document。
+- 旧项目文件导入后能稳定给出迁移诊断，保存后写入当前 `projectFileSchemaVersion` 和 ASMS-JSON 契约版本。
+- 外部宿主可以不接触求解器内部 React state，仅通过公开项目文档和宿主事件完成加载、编辑、保存和再次打开。
+- 本地单机模式继续保留下载 `.slv`、浏览器文件系统保存和 localStorage 草稿恢复，不因宿主集成退化。
+- 平台化能力保持中性：公开仓库不新增云数据库、组织权限、订阅授权、课程/班级、学校 SSO 或客户部署配置。
+
 ## 模块重点
 
 | 模块 | 当前重点 | 不应偏离的边界 |
