@@ -8,6 +8,7 @@ from backend.api.sensitivity import build_sensitivity_response
 from backend.api.utils import build_calculation_response
 from backend.benchmarks.catalog import iter_benchmark_cases
 from backend.benchmarks.runner import BenchmarkCaseError, evaluate_benchmark_case_by_id
+from backend.project_documents import validate_project_document
 from backend.services.beam_workbench import build_solution as build_beam_solution
 from backend.services.frame_workbench import build_solution as build_frame_solution
 from backend.services.truss_workbench import build_solution as build_truss_solution
@@ -307,6 +308,29 @@ def run_benchmark_case(arguments: Mapping[str, Any]) -> Dict[str, Any]:
         return _error_result(capability_id, f"基准算例执行失败: {exc}")
 
 
+
+def validate_solver_project_document(arguments: Mapping[str, Any]) -> Dict[str, Any]:
+    capability_id = "solver.project_document_validate"
+    if "projectDocument" in arguments:
+        raw_document = arguments["projectDocument"]
+    elif "projectDocumentText" in arguments:
+        raw_document = str(arguments["projectDocumentText"])
+    else:
+        raw_document = arguments
+    result = validate_project_document(raw_document)
+    if not result.get("ok"):
+        return _invalid_result(capability_id, str(result.get("error") or "项目文档无效"))
+    return {
+        "capabilityId": capability_id,
+        "capabilityVersion": CAPABILITY_VERSION,
+        "status": "pass",
+        "inputValidated": True,
+        "summary": result["summary"],
+        "diagnostics": result["diagnostics"],
+        "projectDocument": result["projectDocument"],
+        "warnings": [item["detail"] for item in result["diagnostics"] if item.get("severity") == "warning"],
+    }
+
 ToolHandler = Callable[[Mapping[str, Any]], Dict[str, Any]]
 
 TOOL_HANDLERS: Dict[str, ToolHandler] = {
@@ -318,6 +342,7 @@ TOOL_HANDLERS: Dict[str, ToolHandler] = {
     "sensitivity_analysis": solve_sensitivity_analysis,
     "benchmark_case_list": list_benchmark_cases,
     "benchmark_case_run": run_benchmark_case,
+    "project_document_validate": validate_solver_project_document,
 }
 
 

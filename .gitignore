@@ -105,3 +105,4 @@ specs/
 external/
 frontend/unit_tests_output.txt
 frontend/find_failed_tests.js
+pytest-cache-files-*/
