@@ -9,6 +9,13 @@ from backend.api.utils import build_calculation_response
 from backend.benchmarks.catalog import iter_benchmark_cases
 from backend.benchmarks.runner import BenchmarkCaseError, evaluate_benchmark_case_by_id
 from backend.project_documents import validate_project_document
+from backend.project_workflow import (
+    apply_host_project_change,
+    build_export_artifact_metadata,
+    create_host_save_request,
+    load_host_project,
+    solve_project_document,
+)
 from backend.services.beam_workbench import build_solution as build_beam_solution
 from backend.services.frame_workbench import build_solution as build_frame_solution
 from backend.services.truss_workbench import build_solution as build_truss_solution
@@ -308,7 +315,6 @@ def run_benchmark_case(arguments: Mapping[str, Any]) -> Dict[str, Any]:
         return _error_result(capability_id, f"基准算例执行失败: {exc}")
 
 
-
 def validate_solver_project_document(arguments: Mapping[str, Any]) -> Dict[str, Any]:
     capability_id = "solver.project_document_validate"
     if "projectDocument" in arguments:
@@ -331,6 +337,67 @@ def validate_solver_project_document(arguments: Mapping[str, Any]) -> Dict[str, 
         "warnings": [item["detail"] for item in result["diagnostics"] if item.get("severity") == "warning"],
     }
 
+
+def load_solver_host_project(arguments: Mapping[str, Any]) -> Dict[str, Any]:
+    capability_id = "solver.project_host_load"
+    try:
+        raw_document = arguments.get("projectDocument", arguments)
+        result = load_host_project(raw_document, session_id=str(arguments.get("sessionId") or "") or None)
+        return {"capabilityId": capability_id, "capabilityVersion": CAPABILITY_VERSION, "status": "pass", "inputValidated": True, **result}
+    except Exception as exc:
+        return _invalid_result(capability_id, str(exc))
+
+
+def apply_solver_host_project_change(arguments: Mapping[str, Any]) -> Dict[str, Any]:
+    capability_id = "solver.project_host_apply_change"
+    try:
+        raw_document = arguments.get("projectDocument", arguments)
+        change = arguments.get("change")
+        if not isinstance(change, Mapping):
+            raise ToolInputError("change 必须是 host 项目变更对象")
+        result = apply_host_project_change(raw_document, change)
+        return {"capabilityId": capability_id, "capabilityVersion": CAPABILITY_VERSION, "status": "pass", "inputValidated": True, **result}
+    except Exception as exc:
+        return _invalid_result(capability_id, str(exc))
+
+
+def create_solver_host_save_request(arguments: Mapping[str, Any]) -> Dict[str, Any]:
+    capability_id = "solver.project_host_save_request"
+    try:
+        raw_document = arguments.get("projectDocument", arguments)
+        result = create_host_save_request(raw_document)
+        return {"capabilityId": capability_id, "capabilityVersion": CAPABILITY_VERSION, "status": "pass", "inputValidated": True, **result}
+    except Exception as exc:
+        return _invalid_result(capability_id, str(exc))
+
+
+def solve_solver_project_document(arguments: Mapping[str, Any]) -> Dict[str, Any]:
+    capability_id = "solver.project_document_solve"
+    try:
+        raw_document = arguments.get("projectDocument", arguments)
+        result = solve_project_document(raw_document)
+        return {"capabilityId": capability_id, "capabilityVersion": CAPABILITY_VERSION, "status": result["status"], "inputValidated": True, **result}
+    except Exception as exc:
+        return _invalid_result(capability_id, str(exc))
+
+
+def build_solver_export_metadata(arguments: Mapping[str, Any]) -> Dict[str, Any]:
+    capability_id = "solver.project_export_metadata"
+    try:
+        raw_document = arguments.get("projectDocument", arguments)
+        result_summary = arguments.get("resultSummary") if isinstance(arguments.get("resultSummary"), Mapping) else None
+        metadata = build_export_artifact_metadata(raw_document, str(arguments.get("format") or "docx"), result_summary)
+        return {
+            "capabilityId": capability_id,
+            "capabilityVersion": CAPABILITY_VERSION,
+            "status": "pass",
+            "inputValidated": True,
+            "artifactMetadata": metadata,
+            "warnings": [],
+        }
+    except Exception as exc:
+        return _invalid_result(capability_id, str(exc))
+
 ToolHandler = Callable[[Mapping[str, Any]], Dict[str, Any]]
 
 TOOL_HANDLERS: Dict[str, ToolHandler] = {
@@ -343,6 +410,11 @@ TOOL_HANDLERS: Dict[str, ToolHandler] = {
     "benchmark_case_list": list_benchmark_cases,
     "benchmark_case_run": run_benchmark_case,
     "project_document_validate": validate_solver_project_document,
+    "project_host_load": load_solver_host_project,
+    "project_host_apply_change": apply_solver_host_project_change,
+    "project_host_save_request": create_solver_host_save_request,
+    "project_document_solve": solve_solver_project_document,
+    "project_export_metadata": build_solver_export_metadata,
 }
 
 
