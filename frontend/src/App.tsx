@@ -67,6 +67,8 @@ import {
 } from "./lib/workbench-selection-utils";
 import { buildModelDiagnostics } from "./lib/model-diagnostics";
 
+const SOLVER_HOST_ALLOWED_ORIGINS = import.meta.env.VITE_SOLVER_HOST_ALLOWED_ORIGINS ?? "";
+
 type AnalysisObjectPageState = {
   moduleSectionId?: string;
   resultTabId?: string;
@@ -326,6 +328,7 @@ function AppContent() {
     emitProjectChanged,
     requestHostSave,
   } = useSolverHostBridge({
+    allowedOrigins: SOLVER_HOST_ALLOWED_ORIGINS,
     applyCurrentRuntimeToProject,
     project,
     replaceProject,
