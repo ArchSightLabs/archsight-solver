@@ -15,7 +15,7 @@ from backend.integration_errors import (
     SOLVE_FAILED,
     error_code_from_exception,
 )
-from backend.project_documents import validate_project_document
+from backend.project_documents import build_project_health_report, validate_project_document
 from backend.project_workflow import (
     apply_host_project_change,
     build_export_artifact,
@@ -351,6 +351,27 @@ def validate_solver_project_document(arguments: Mapping[str, Any]) -> Dict[str, 
     }
 
 
+def inspect_solver_project_document_health(arguments: Mapping[str, Any]) -> Dict[str, Any]:
+    capability_id = "solver.project_document_health"
+    if "projectDocument" in arguments:
+        raw_document = arguments["projectDocument"]
+    elif "projectDocumentText" in arguments:
+        raw_document = str(arguments["projectDocumentText"])
+    else:
+        raw_document = arguments
+    result = build_project_health_report(raw_document)
+    if not result.get("ok"):
+        return _invalid_result(capability_id, str(result.get("error") or "项目文档无效"), INVALID_PROJECT_DOCUMENT)
+    return {
+        "capabilityId": capability_id,
+        "capabilityVersion": CAPABILITY_VERSION,
+        "status": "fail" if result["healthStatus"] == "blocked" else "pass",
+        "inputValidated": True,
+        **result,
+        "warnings": [item["detail"] for item in result["diagnostics"] if item.get("severity") == "warning"],
+    }
+
+
 def load_solver_host_project(arguments: Mapping[str, Any]) -> Dict[str, Any]:
     capability_id = "solver.project_host_load"
     try:
@@ -478,6 +499,7 @@ TOOL_HANDLERS: Dict[str, ToolHandler] = {
     "benchmark_case_list": list_benchmark_cases,
     "benchmark_case_run": run_benchmark_case,
     "project_document_validate": validate_solver_project_document,
+    "project_document_health": inspect_solver_project_document_health,
     "project_host_launch_contract": build_solver_host_launch_contract,
     "project_host_load": load_solver_host_project,
     "project_host_apply_change": apply_solver_host_project_change,

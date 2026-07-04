@@ -3,6 +3,7 @@ from backend.project_documents import (
     ASMS_JSON_SCHEMA_VERSION,
     PROJECT_FILE_SCHEMA,
     PROJECT_FILE_SCHEMA_VERSION,
+    build_project_health_report,
     create_default_project_document,
     validate_project_document,
 )
@@ -60,3 +61,40 @@ def test_project_document_validate_tool_returns_normalized_document():
     assert result["summary"]["projectName"] == "外部托管项目"
     assert result["projectDocument"]["product"] == "archsight-solver"
     assert result["projectDocument"]["manifest"]["projectFileKind"] == "single-json"
+
+
+def test_project_health_report_summarizes_contract_manifest_and_objects():
+    document = create_default_project_document("项目健康检查")
+    document["project"]["objects"] = [
+        {"id": "beam-1", "name": "连续梁", "type": "beam", "updatedAt": "2026-07-04T00:00:00Z"},
+        {"id": "truss-1", "name": "桁架", "type": "truss"},
+    ]
+    document["project"]["activeObjectId"] = "beam-1"
+
+    report = build_project_health_report(document)
+
+    assert report["ok"] is True
+    assert report["healthStatus"] == "ready"
+    assert report["contract"]["projectFileSchemaVersion"] == PROJECT_FILE_SCHEMA_VERSION
+    assert report["manifest"]["projectFileKind"] == "single-json"
+    assert report["project"]["objectCount"] == 2
+    assert report["project"]["objectTypeCounts"] == {"beam": 1, "truss": 1}
+    assert report["project"]["activeObject"]["name"] == "连续梁"
+    assert report["hostReadiness"]["canHostPersist"] is True
+    assert report["hostReadiness"]["canUseSingleJson"] is True
+    assert report["hostReadiness"]["requiresMigration"] is False
+
+
+def test_project_document_health_tool_flags_migration_review_status():
+    document = create_default_project_document("旧项目健康检查")
+    document["schemaVersion"] = "1.0.0"
+    document.pop("contract")
+
+    result = TOOL_HANDLERS["project_document_health"]({"projectDocument": document})
+
+    assert result["capabilityId"] == "solver.project_document_health"
+    assert result["status"] == "pass"
+    assert result["inputValidated"] is True
+    assert result["healthStatus"] == "review"
+    assert result["diagnosticSeverityCounts"]["warning"] >= 1
+    assert result["hostReadiness"]["requiresMigration"] is True

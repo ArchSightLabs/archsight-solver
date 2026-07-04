@@ -15,6 +15,7 @@ from backend.contracts.json_schemas import (
     CALCULATE_TOOL_INPUT_SCHEMA,
     CAPABILITY_RESULT_SCHEMA,
     FRAME_TOOL_INPUT_SCHEMA,
+    PROJECT_DOCUMENT_TOOL_INPUT_SCHEMA,
     SENSITIVITY_TOOL_INPUT_SCHEMA,
     TRUSS_TOOL_INPUT_SCHEMA,
     schema_registry,
@@ -109,6 +110,14 @@ TOOL_DEFINITIONS = [
         "inputSchema": BENCHMARK_CASE_RUN_INPUT_SCHEMA,
         "outputSchema": CAPABILITY_RESULT_SCHEMA,
         "annotations": {**READ_ONLY_ANNOTATIONS, "title": "执行基准算例"},
+    },
+    {
+        "name": "project_document_health",
+        "title": "项目文档健康检查",
+        "description": "检查 archsight-solver.project 文档的契约版本、manifest、对象分布和迁移诊断，不执行求解。",
+        "inputSchema": PROJECT_DOCUMENT_TOOL_INPUT_SCHEMA,
+        "outputSchema": CAPABILITY_RESULT_SCHEMA,
+        "annotations": {**READ_ONLY_ANNOTATIONS, "title": "项目文档健康检查"},
     },
 ]
 

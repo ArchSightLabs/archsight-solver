@@ -290,3 +290,83 @@ def summarize_project_document(project_document: Mapping[str, Any], diagnostics:
         "diagnosticCount": len(diagnostics),
         "warningCount": sum(1 for item in diagnostics if item.get("severity") == "warning"),
     }
+
+
+def build_project_health_report(raw_document: str | Mapping[str, Any]) -> dict[str, Any]:
+    result = validate_project_document(raw_document)
+    if not result.get("ok"):
+        return {
+            "ok": False,
+            "healthStatus": "invalid",
+            "error": str(result.get("error") or "项目文档无效"),
+            "diagnostics": result.get("diagnostics", []),
+        }
+
+    project_document = result["projectDocument"]
+    diagnostics = list(result["diagnostics"])
+    project = _as_record(project_document.get("project")) or {}
+    manifest = _as_record(project_document.get("manifest")) or {}
+    contract = _as_record(project_document.get("contract")) or {}
+    objects = project.get("objects") if isinstance(project.get("objects"), list) else []
+    object_type_counts: dict[str, int] = {}
+    active_object_id = str(project.get("activeObjectId") or "")
+    active_object: dict[str, Any] | None = None
+
+    for item in objects:
+        if not isinstance(item, Mapping):
+            continue
+        object_type = str(item.get("type") or "unknown")
+        object_type_counts[object_type] = object_type_counts.get(object_type, 0) + 1
+        if str(item.get("id") or "") == active_object_id:
+            active_object = {
+                "id": str(item.get("id") or ""),
+                "name": str(item.get("name") or ""),
+                "type": object_type,
+                "updatedAt": str(item.get("updatedAt") or ""),
+            }
+
+    severity_counts: dict[str, int] = {}
+    for diagnostic in diagnostics:
+        severity = str(diagnostic.get("severity") or "info")
+        severity_counts[severity] = severity_counts.get(severity, 0) + 1
+
+    if any(item.get("severity") == "error" for item in diagnostics):
+        health_status = "blocked"
+    elif any(item.get("severity") == "warning" for item in diagnostics):
+        health_status = "review"
+    else:
+        health_status = "ready"
+
+    return {
+        "ok": True,
+        "healthStatus": health_status,
+        "summary": result["summary"],
+        "contract": {
+            "projectFileSchemaVersion": str(contract.get("projectFileSchemaVersion") or ""),
+            "asmsJsonSchemaVersion": str(contract.get("asmsJsonSchemaVersion") or ""),
+            "modelRoundTrip": str(contract.get("modelRoundTrip") or ""),
+        },
+        "manifest": {
+            "manifestVersion": str(manifest.get("manifestVersion") or ""),
+            "projectFileKind": str(manifest.get("projectFileKind") or ""),
+            "containerVersion": str(manifest.get("containerVersion") or ""),
+            "containerCapabilities": _as_record(manifest.get("containerCapabilities")) or {},
+        },
+        "project": {
+            "id": str(project.get("id") or ""),
+            "name": str(project.get("name") or ""),
+            "activeObjectId": active_object_id,
+            "activeObject": active_object,
+            "objectCount": len(objects),
+            "objectTypeCounts": object_type_counts,
+            "createdAt": str(project.get("createdAt") or project_document.get("createdAt") or ""),
+            "updatedAt": str(project.get("updatedAt") or project_document.get("updatedAt") or ""),
+        },
+        "diagnostics": diagnostics,
+        "diagnosticSeverityCounts": severity_counts,
+        "hostReadiness": {
+            "canHostPersist": project_document.get("schema") == PROJECT_FILE_SCHEMA,
+            "canUseSingleJson": bool((_as_record(manifest.get("containerCapabilities")) or {}).get("single-json")),
+            "requiresMigration": bool(diagnostics),
+        },
+    }

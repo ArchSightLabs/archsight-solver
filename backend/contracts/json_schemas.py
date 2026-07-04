@@ -632,6 +632,19 @@ SENSITIVITY_TOOL_INPUT_SCHEMA: Dict[str, Any] = {
     "additionalProperties": False,
 }
 
+PROJECT_DOCUMENT_TOOL_INPUT_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("project-document-tool-input"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "项目文档工具输入",
+    "type": "object",
+    "anyOf": [{"required": ["projectDocument"]}, {"required": ["projectDocumentText"]}],
+    "properties": {
+        "projectDocument": {"type": "object", "description": "archsight-solver.project 项目文档 JSON object。"},
+        "projectDocumentText": {"type": "string", "description": "archsight-solver.project 项目文档 JSON 字符串。"},
+    },
+    "additionalProperties": True,
+}
+
 BENCHMARK_CASE_LIST_INPUT_SCHEMA: Dict[str, Any] = {
     "$id": _schema_id("benchmark-case-list-input"),
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -948,6 +961,7 @@ SCHEMA_REGISTRY: Dict[str, Dict[str, Any]] = {
     "truss-tool-input": TRUSS_TOOL_INPUT_SCHEMA,
     "calculate-tool-input": CALCULATE_TOOL_INPUT_SCHEMA,
     "sensitivity-tool-input": SENSITIVITY_TOOL_INPUT_SCHEMA,
+    "project-document-tool-input": PROJECT_DOCUMENT_TOOL_INPUT_SCHEMA,
     "benchmark-case-list-input": BENCHMARK_CASE_LIST_INPUT_SCHEMA,
     "benchmark-case-run-input": BENCHMARK_CASE_RUN_INPUT_SCHEMA,
     "benchmark-submission-input": BENCHMARK_SUBMISSION_INPUT_SCHEMA,
