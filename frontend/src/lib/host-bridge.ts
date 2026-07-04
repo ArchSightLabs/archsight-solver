@@ -34,6 +34,20 @@ export interface HostLaunchResult {
   fileName: string | null;
 }
 
+export function normalizeHostOriginList(value: string | readonly string[] | null | undefined): string[] {
+  const items = Array.isArray(value) ? value : String(value ?? "").split(",");
+  return items
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+export function isHostOriginAllowed(origin: string, allowedOrigins: readonly string[]): boolean {
+  if (allowedOrigins.length === 0) {
+    return true;
+  }
+  return allowedOrigins.includes(origin);
+}
+
 export function isSolverHostMessage(value: unknown): value is SolverHostMessage {
   return Boolean(value) && typeof value === "object" && typeof (value as SolverHostMessage).type === "string";
 }

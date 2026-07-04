@@ -6,6 +6,8 @@ import {
   SOLVER_READY_MESSAGE,
   buildProjectChangedMessage,
   buildSolverReadyMessage,
+  isHostOriginAllowed,
+  normalizeHostOriginList,
   parseHostLaunchMessage,
 } from "./host-bridge.ts";
 import { createArchSightSolverProjectFile } from "./project-file.ts";
@@ -42,4 +44,13 @@ test("host bridge emits ready and changed messages without platform concepts", (
   assert.equal((changed.payload as { projectDocument: { schema: string } }).projectDocument.schema, "archsight-solver.project");
   assert.equal(JSON.stringify(changed).includes("tenant"), false);
   assert.equal(JSON.stringify(changed).includes("license"), false);
+});
+
+test("host origin helpers support allowlist checks without platform concepts", () => {
+  const origins = normalizeHostOriginList("https://lms.example.edu, https://portal.example.edu");
+
+  assert.deepEqual(origins, ["https://lms.example.edu", "https://portal.example.edu"]);
+  assert.equal(isHostOriginAllowed("https://lms.example.edu", origins), true);
+  assert.equal(isHostOriginAllowed("https://evil.example.edu", origins), false);
+  assert.equal(isHostOriginAllowed("https://any.example.edu", []), true);
 });

@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   buildProjectChangedMessage,
   buildSaveRequestMessage,
   buildSolverErrorMessage,
   buildSolverReadyMessage,
   HOST_SAVE_RESULT_MESSAGE,
+  isHostOriginAllowed,
+  normalizeHostOriginList,
   parseHostLaunchMessage,
   type SolverHostMessage,
 } from "../lib/host-bridge.ts";
@@ -23,13 +25,14 @@ interface UseSolverHostBridgeOptions {
   ) => void;
   setFileStatusMessage: (message: string) => void;
   syncRuntimeFromProject: (project: SolverProject) => void;
+  allowedOrigins?: string | readonly string[] | null;
 }
 
-function postToHost(message: SolverHostMessage) {
+function postToHost(message: SolverHostMessage, targetOrigin: string) {
   if (typeof window === "undefined" || window.parent === window) {
     return;
   }
-  window.parent.postMessage(message, "*");
+  window.parent.postMessage(message, targetOrigin);
 }
 
 export function useSolverHostBridge({
@@ -38,27 +41,34 @@ export function useSolverHostBridge({
   replaceProject,
   setFileStatusMessage,
   syncRuntimeFromProject,
+  allowedOrigins,
 }: UseSolverHostBridgeOptions) {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [mode, setMode] = useState<"editable" | "readonly">("editable");
+  const [hostOrigin, setHostOrigin] = useState<string | null>(null);
   const projectRef = useRef(project);
+  const allowedOriginList = useMemo(() => normalizeHostOriginList(allowedOrigins), [allowedOrigins]);
 
   useEffect(() => {
     projectRef.current = project;
   }, [project]);
 
   useEffect(() => {
-    postToHost(buildSolverReadyMessage(sessionId));
-  }, [sessionId]);
+    postToHost(buildSolverReadyMessage(sessionId), hostOrigin ?? "*");
+  }, [hostOrigin, sessionId]);
 
   useEffect(() => {
     const handleMessage = (event: globalThis.MessageEvent) => {
       const message = event.data;
       try {
+        if (!isHostOriginAllowed(event.origin, allowedOriginList)) {
+          return;
+        }
         const launch = parseHostLaunchMessage(message);
         if (launch) {
           setSessionId(launch.sessionId);
           setMode(launch.mode);
+          setHostOrigin(event.origin);
           replaceProject(
             launch.projectFile.project,
             launch.fileName,
@@ -69,36 +79,37 @@ export function useSolverHostBridge({
           syncRuntimeFromProject(launch.projectFile.project);
           return;
         }
-        if (message?.type === HOST_SAVE_RESULT_MESSAGE && message?.sessionId === sessionId) {
+        if (message?.type === HOST_SAVE_RESULT_MESSAGE && message?.sessionId === sessionId && event.origin === hostOrigin) {
           const status = String(message.payload?.status ?? "saved");
           setFileStatusMessage(status === "saved" ? "外部宿主已保存工程。" : `外部宿主保存结果：${status}`);
         }
       } catch (error) {
-        postToHost(buildSolverErrorMessage(sessionId, error instanceof Error ? error.message : "host bridge 处理失败。"));
+        postToHost(buildSolverErrorMessage(sessionId, error instanceof Error ? error.message : "host bridge 处理失败。"), hostOrigin ?? event.origin);
       }
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [replaceProject, sessionId, setFileStatusMessage, syncRuntimeFromProject]);
+  }, [allowedOriginList, hostOrigin, replaceProject, sessionId, setFileStatusMessage, syncRuntimeFromProject]);
 
   const emitProjectChanged = useCallback(() => {
-    if (!sessionId || mode === "readonly") {
+    if (!sessionId || !hostOrigin || mode === "readonly") {
       return;
     }
-    postToHost(buildProjectChangedMessage(sessionId, applyCurrentRuntimeToProject(projectRef.current)));
-  }, [applyCurrentRuntimeToProject, mode, sessionId]);
+    postToHost(buildProjectChangedMessage(sessionId, applyCurrentRuntimeToProject(projectRef.current)), hostOrigin);
+  }, [applyCurrentRuntimeToProject, hostOrigin, mode, sessionId]);
 
   const requestHostSave = useCallback(() => {
-    if (!sessionId || mode === "readonly") {
+    if (!sessionId || !hostOrigin || mode === "readonly") {
       return false;
     }
-    postToHost(buildSaveRequestMessage(sessionId, applyCurrentRuntimeToProject(projectRef.current)));
+    postToHost(buildSaveRequestMessage(sessionId, applyCurrentRuntimeToProject(projectRef.current)), hostOrigin);
     return true;
-  }, [applyCurrentRuntimeToProject, mode, sessionId]);
+  }, [applyCurrentRuntimeToProject, hostOrigin, mode, sessionId]);
 
   return {
     hostSessionId: sessionId,
     hostMode: mode,
+    hostOrigin,
     emitProjectChanged,
     requestHostSave,
   };
