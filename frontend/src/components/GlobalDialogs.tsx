@@ -7,6 +7,7 @@ import { PublicExamplesDialog } from "./PublicExamplesDialog";
 import { BenchmarkSubmissionDialog } from "./BenchmarkSubmissionDialog";
 import { TemplateLibraryPanel } from "./TemplateLibraryPanel";
 import { analysisVocabulary } from "../lib/analysis-vocabulary";
+import { buildProjectContractSummary } from "../lib/project-health";
 import { createWorkspaceSnapshot } from "../lib/template-library";
 import { useDialogs } from "../contexts/DialogContext";
 import type { SolverProject, ProjectInfo, AnalysisObjectType } from "../lib/solver-project";
@@ -104,6 +105,7 @@ export function GlobalDialogs({
           title={projectInfoDialogMode === "edit" ? "工程设置" : "新建结构分析项目"}
           confirmLabel={projectInfoDialogMode === "edit" ? "保存工程设置" : "创建项目"}
           customMaterials={projectInfoDialogMode === "edit" ? project.settings.customMaterials : undefined}
+          projectContractSummary={projectInfoDialogMode === "edit" ? buildProjectContractSummary(project) : undefined}
           onSubmit={projectInfoDialogMode === "edit" ? handleUpdateProjectInfo : handleCreateProjectWithInfo}
           onCustomMaterialsChange={projectInfoDialogMode === "edit" ? setCustomMaterials : undefined}
           onClose={() => setProjectInfoDialogMode(null)}

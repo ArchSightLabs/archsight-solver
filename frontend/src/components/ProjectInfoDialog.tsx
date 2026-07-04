@@ -1,13 +1,15 @@
 import { useRef, useState } from "react";
-import { Building2, Library, X } from "lucide-react";
+import { Building2, FileJson, Library, X } from "lucide-react";
 import type { ProjectInfo } from "../lib/solver-project";
+import type { ProjectContractSummary } from "../lib/project-health";
 import { normalizeProjectInfo } from "../lib/solver-project";
 import type { Material } from "../types/material";
+import { ProjectContractPanel } from "./ProjectContractPanel";
 import { ProjectInfoPanel } from "./ProjectInfoPanel";
 import { ProjectMaterialPanel, type ProjectMaterialPanelHandle } from "./ProjectMaterialPanel";
 import { Button } from "./ui/button";
 
-type ProjectSettingsTab = "info" | "materials";
+type ProjectSettingsTab = "info" | "materials" | "contract";
 
 interface ProjectInfoDialogProps {
   initialValue?: Partial<ProjectInfo> | null;
@@ -15,6 +17,7 @@ interface ProjectInfoDialogProps {
   title: string;
   confirmLabel: string;
   customMaterials?: Material[];
+  projectContractSummary?: ProjectContractSummary;
   onSubmit: (next: ProjectInfo) => void;
   onCustomMaterialsChange?: (materials: Material[]) => void;
   onClose: () => void;
@@ -23,6 +26,7 @@ interface ProjectInfoDialogProps {
 const PROJECT_SETTINGS_TABS: Array<{ id: ProjectSettingsTab; label: string; icon: typeof Building2 }> = [
   { id: "info", label: "工程信息", icon: Building2 },
   { id: "materials", label: "工程材料", icon: Library },
+  { id: "contract", label: "项目契约", icon: FileJson },
 ];
 
 export function ProjectInfoDialog({
@@ -31,13 +35,19 @@ export function ProjectInfoDialog({
   title,
   confirmLabel,
   customMaterials,
+  projectContractSummary,
   onSubmit,
   onCustomMaterialsChange,
   onClose,
 }: ProjectInfoDialogProps) {
   const showMaterialTab = Boolean(customMaterials && onCustomMaterialsChange);
+  const showContractTab = Boolean(projectContractSummary);
   const [projectInfo, setProjectInfo] = useState<ProjectInfo>(() => normalizeProjectInfo(initialValue));
-  const [activeTab, setActiveTab] = useState<ProjectSettingsTab>(() => showMaterialTab && initialTab === "materials" ? "materials" : "info");
+  const [activeTab, setActiveTab] = useState<ProjectSettingsTab>(() => {
+    if (showMaterialTab && initialTab === "materials") return "materials";
+    if (showContractTab && initialTab === "contract") return "contract";
+    return "info";
+  });
   const materialPanelRef = useRef<ProjectMaterialPanelHandle | null>(null);
 
   const handleSubmit = () => {
@@ -48,7 +58,7 @@ export function ProjectInfoDialog({
     onSubmit(normalizeProjectInfo(projectInfo));
   };
 
-  const visibleTabs = showMaterialTab ? PROJECT_SETTINGS_TABS : PROJECT_SETTINGS_TABS.slice(0, 1);
+  const visibleTabs = PROJECT_SETTINGS_TABS.filter((tab) => tab.id === "info" || (tab.id === "materials" && showMaterialTab) || (tab.id === "contract" && showContractTab));
 
   return (
     <div
@@ -75,9 +85,9 @@ export function ProjectInfoDialog({
             <X className="h-4 w-4" />
           </button>
         </div>
-        {showMaterialTab ? (
+        {visibleTabs.length > 1 ? (
           <div className="border-b border-slate-200 px-4 py-3 dark:border-white/10 sm:px-5">
-            <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-2" role="tablist" aria-label="工程设置分组">
+            <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-3" role="tablist" aria-label="工程设置分组">
               {visibleTabs.map((tab) => {
                 const Icon = tab.icon;
                 const active = activeTab === tab.id;
@@ -103,13 +113,18 @@ export function ProjectInfoDialog({
           </div>
         ) : null}
         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar sm:p-5">
-          {showMaterialTab && customMaterials && onCustomMaterialsChange ? (
+          {visibleTabs.length > 1 ? (
             <>
               <div className={activeTab === "info" ? "" : "hidden"} aria-hidden={activeTab !== "info"}>
                 <ProjectInfoPanel value={projectInfo} onChange={setProjectInfo} />
               </div>
               <div className={activeTab === "materials" ? "" : "hidden"} aria-hidden={activeTab !== "materials"}>
+                {customMaterials && onCustomMaterialsChange ? (
                 <ProjectMaterialPanel ref={materialPanelRef} customMaterials={customMaterials} onCustomMaterialsChange={onCustomMaterialsChange} />
+                ) : null}
+              </div>
+              <div className={activeTab === "contract" ? "" : "hidden"} aria-hidden={activeTab !== "contract"}>
+                {projectContractSummary ? <ProjectContractPanel value={projectContractSummary} /> : null}
               </div>
             </>
           ) : (
