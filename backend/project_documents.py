@@ -4,6 +4,8 @@ import json
 from datetime import datetime, timezone
 from typing import Any, Mapping
 
+from backend.project_file_manifest import build_project_file_manifest, normalize_project_file_manifest
+
 
 PROJECT_FILE_SCHEMA = "archsight-solver.project"
 PRODUCT_ID = "archsight-solver"
@@ -131,6 +133,10 @@ def create_default_project_document(name: str = "新建结构分析项目", now:
             "projectFileSchemaVersion": PROJECT_FILE_SCHEMA_VERSION,
             "modelRoundTrip": "normalized",
         },
+        "manifest": build_project_file_manifest(
+            project_file_schema_version=PROJECT_FILE_SCHEMA_VERSION,
+            asms_json_schema_version=ASMS_JSON_SCHEMA_VERSION,
+        ),
         "createdAt": timestamp,
         "updatedAt": timestamp,
         "project": project,
@@ -243,6 +249,11 @@ def validate_project_document(raw_document: str | Mapping[str, Any], now: str | 
             "projectFileSchemaVersion": PROJECT_FILE_SCHEMA_VERSION,
             "modelRoundTrip": "normalized",
         },
+        "manifest": normalize_project_file_manifest(
+            raw.get("manifest"),
+            project_file_schema_version=PROJECT_FILE_SCHEMA_VERSION,
+            asms_json_schema_version=ASMS_JSON_SCHEMA_VERSION,
+        ),
         "createdAt": str(raw.get("createdAt") or timestamp),
         "updatedAt": str(raw.get("updatedAt") or timestamp),
         "project": project,

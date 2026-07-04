@@ -67,8 +67,16 @@ def test_schema_registry_contains_api_and_tool_contracts():
     assert "benchmark-case-run-input" in registry
     assert "benchmark-submission-input" in registry
     assert "benchmark-submission-response" in registry
+    assert "project-file-manifest" in registry
+    assert "solver-host-message" in registry
+    assert "solver-artifact-manifest" in registry
+    assert "solver-template-registry" in registry
     for schema_id in ("asms-beam-model", "asms-frame-model", "asms-truss-model"):
         assert registry[schema_id]["properties"]["schemaVersion"]["const"] == API_SCHEMA_VERSION
+    assert registry["project-file-manifest"]["properties"]["projectFileKind"]["enum"] == ["single-json", "zip-container", "project-folder"]
+    assert registry["solver-host-message"]["properties"]["protocolVersion"]["const"] == "1.0.0"
+    assert registry["solver-artifact-manifest"]["properties"]["artifactType"]["const"] == "solver.export"
+    assert registry["solver-template-registry"]["properties"]["templates"]["items"]["properties"]["source"]["const"] == "builtin"
     assert registry["asms-frame-model"]["properties"]["structure"]["required"] == ["nodes", "members"]
     assert "滚动支座法向角" in registry["asms-frame-model"]["properties"]["structure"]["properties"]["nodes"]["items"]["properties"]["supportAngleDeg"]["description"]
     truss_load_schema = registry["asms-truss-model"]["properties"]["structure"]["properties"]["loads"]["items"]

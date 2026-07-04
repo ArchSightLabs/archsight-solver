@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from backend.capabilities.solver_tools import TOOL_HANDLERS
+from backend.integration_errors import UNKNOWN_INTEGRATION_TOOL
 from backend.project_documents import (
     ASMS_JSON_SCHEMA_VERSION,
     PROJECT_FILE_SCHEMA_VERSION,
@@ -32,8 +33,9 @@ def run_integration_tool(name: str, arguments: Mapping[str, Any]) -> dict[str, A
         return {
             "capabilityId": f"solver.{name}",
             "capabilityVersion": INTEGRATION_API_VERSION,
-            "status": "invalid_input",
+            "status": "invalid_tool",
             "inputValidated": False,
+            "errorCode": UNKNOWN_INTEGRATION_TOOL,
             "warnings": [f"未知集成工具: {name}"],
         }
     return handler(arguments)

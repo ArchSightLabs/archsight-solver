@@ -815,6 +815,125 @@ BENCHMARK_SUBMISSION_PACKAGE_RESPONSE_SCHEMA: Dict[str, Any] = {
     "additionalProperties": True,
 }
 
+PROJECT_FILE_MANIFEST_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("project-file-manifest"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "ArchSight Solver 本地项目文件 Manifest",
+    "type": "object",
+    "required": ["manifestVersion", "projectFileKind", "containerVersion", "entries", "contract", "containerCapabilities"],
+    "properties": {
+        "manifestVersion": {"type": "string", "const": "1.0.0"},
+        "projectFileKind": {"type": "string", "enum": ["single-json", "zip-container", "project-folder"]},
+        "containerVersion": {"type": "string"},
+        "entries": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["path", "role", "mediaType", "required"],
+                "properties": {
+                    "path": {"type": "string"},
+                    "role": {"type": "string"},
+                    "mediaType": {"type": "string"},
+                    "required": {"type": "boolean"},
+                },
+                "additionalProperties": True,
+            },
+        },
+        "contract": {
+            "type": "object",
+            "required": ["projectFileSchemaVersion", "asmsJsonSchemaVersion"],
+            "properties": {
+                "projectFileSchemaVersion": {"type": "string"},
+                "asmsJsonSchemaVersion": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+        "containerCapabilities": {"type": "object", "additionalProperties": {"type": "boolean"}},
+    },
+    "additionalProperties": True,
+}
+
+HOST_MESSAGE_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("solver-host-message"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "ArchSight Solver 外部宿主消息",
+    "type": "object",
+    "required": ["type"],
+    "properties": {
+        "type": {
+            "type": "string",
+            "enum": [
+                "archsight.solver.host.launch",
+                "archsight.solver.host.saveResult",
+                "archsight.solver.ready",
+                "archsight.solver.project.changed",
+                "archsight.solver.project.saveRequest",
+                "archsight.solver.error",
+            ],
+        },
+        "protocolVersion": {"type": "string", "const": "1.0.0"},
+        "sessionId": {"type": "string"},
+        "nonce": {"type": "string"},
+        "payload": {"type": "object", "additionalProperties": True},
+    },
+    "additionalProperties": True,
+}
+
+ARTIFACT_MANIFEST_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("solver-artifact-manifest"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "ArchSight Solver 导出物 Manifest",
+    "type": "object",
+    "required": ["artifactId", "manifestVersion", "artifactType", "format", "fileName", "mimeType", "createdAt"],
+    "properties": {
+        "artifactId": {"type": "string"},
+        "manifestVersion": {"type": "string", "const": "1.0.0"},
+        "artifactType": {"type": "string", "const": "solver.export"},
+        "format": {"type": "string", "enum": ["docx", "xlsx"]},
+        "fileName": {"type": "string"},
+        "mimeType": {"type": "string"},
+        "byteSize": {"type": "integer", "minimum": 0},
+        "createdAt": {"type": "string"},
+        "projectFileSchemaVersion": {"type": "string"},
+        "asmsJsonSchemaVersion": {"type": "string"},
+        "contract": {"type": "object", "additionalProperties": True},
+        "projectManifest": PROJECT_FILE_MANIFEST_SCHEMA,
+        "resultSource": {"type": "object", "additionalProperties": True},
+        "diagnosticsSummary": {"type": "object", "additionalProperties": True},
+        "snapshot": {"type": "object", "additionalProperties": True},
+    },
+    "additionalProperties": True,
+}
+
+TEMPLATE_REGISTRY_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("solver-template-registry"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "ArchSight Solver 内置模板 Registry",
+    "type": "object",
+    "required": ["registryVersion", "templateCount", "templates"],
+    "properties": {
+        "registryVersion": {"type": "string", "const": "1.0.0"},
+        "templateCount": {"type": "integer", "minimum": 0},
+        "templates": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["templateId", "structureType", "title", "supportedActions", "benchmarkMapping", "source"],
+                "properties": {
+                    "templateId": {"type": "string"},
+                    "structureType": {"type": "string", "enum": ["beam", "frame", "truss"]},
+                    "title": {"type": "string"},
+                    "supportedActions": {"type": "array", "items": {"type": "string"}},
+                    "benchmarkMapping": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+                    "source": {"type": "string", "const": "builtin"},
+                },
+                "additionalProperties": True,
+            },
+        },
+    },
+    "additionalProperties": True,
+}
+
 SCHEMA_REGISTRY: Dict[str, Dict[str, Any]] = {
     "asms-model": ASMS_MODEL_SCHEMA,
     "asms-beam-model": ASMS_BEAM_MODEL_SCHEMA,
@@ -835,6 +954,10 @@ SCHEMA_REGISTRY: Dict[str, Dict[str, Any]] = {
     "benchmark-submission-response": BENCHMARK_SUBMISSION_RESPONSE_SCHEMA,
     "benchmark-submission-package": BENCHMARK_SUBMISSION_PACKAGE_SCHEMA,
     "benchmark-submission-package-response": BENCHMARK_SUBMISSION_PACKAGE_RESPONSE_SCHEMA,
+    "project-file-manifest": PROJECT_FILE_MANIFEST_SCHEMA,
+    "solver-host-message": HOST_MESSAGE_SCHEMA,
+    "solver-artifact-manifest": ARTIFACT_MANIFEST_SCHEMA,
+    "solver-template-registry": TEMPLATE_REGISTRY_SCHEMA,
 }
 
 

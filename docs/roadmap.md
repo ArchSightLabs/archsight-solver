@@ -155,6 +155,30 @@ v1.5.0 跳过 v1.4.1，但不再按“荷载场景收口版”发布。本版必
 - 新增公开 benchmark 必须同时提供模型输入、标准值、容许误差和验证来源。
 - `release-1-5-load-scenarios.spec.ts` 覆盖梁系和平面桁架工况 / 组合来源切换；DOCX 图形导出仍以三浏览器矩阵为准。
 
+### v1.6.0：外部宿主集成与本地项目契约增强
+
+v1.6.0 的主线不是把 Solver 做成平台，而是在保持免费个人工具边界不变的前提下，让外部系统可以更顺滑地嵌入、调用和保存项目文档。身份体系、远程持久化、组织协作和后台管理能力不进入本仓库。
+
+本版优先任务：
+
+- Host iframe 协议稳定化：定义 launch、ready、project.changed、saveRequest、saveResult 和 error 消息，使用 `sessionId` 与 `nonce` 绑定一次嵌入会话。
+- Host origin 边界：前端支持宿主 origin allowlist，默认个人工具模式不受影响。
+- 本地项目文件 manifest：`.slv` 当前继续作为单 JSON 项目文件写入，同时声明 `single-json`、`zip-container` 和 `project-folder` 的契约边界，为未来容器格式预留空间。
+- Artifact manifest：DOCX / XLSX 导出 metadata 写入 manifest 版本、artifact 类型、项目 manifest、结果来源、诊断摘要和 host 协议版本。
+- Integration API 错误码：项目文档无效、不支持的导出格式、不支持的 host 变更、host 保存结果无效、求解失败、导出失败和未知工具都有稳定 `errorCode`。
+- 中性模板 registry：公开内置模板、结构类型、可执行动作和 benchmark 映射，不包含身份、组织或远程持久化字段。
+- Host iframe demo：提供本地 HTML 示例，演示外部宿主如何加载 Solver、发送项目文档、接收保存请求和回传保存结果。
+- JSON Schema registry：公开项目文件 manifest、host message、artifact manifest 和 template registry schema，便于外部系统做契约校验。
+
+验收口径：
+
+- 不登录、不连接远程存储、不引入数据库时，Solver 仍可作为个人本地工具完整使用。
+- 外部宿主能通过 demo 完成 launch、项目变更、保存请求和保存结果闭环。
+- CLI / integration API 能在无内部 import 的前提下运行项目文档校验、host launch、项目变更、求解、导出 metadata、导出 artifact 和模板 registry。
+- 错误分支返回稳定 `errorCode`，外部系统不需要解析中文 warning。
+- 项目文件 manifest、host message、artifact manifest 和模板 registry 均有 JSON Schema 和自动化测试覆盖。
+- 公开文档只描述中性对接能力，不写入身份、组织、授权或商业化策略。
+
 ## 模块重点
 
 | 模块 | 当前重点 | 不应偏离的边界 |

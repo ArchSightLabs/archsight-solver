@@ -20,6 +20,7 @@ interface AppHeaderProps {
   fileMenuRef: RefObject<HTMLDivElement | null>;
   fileStateLabel: string;
   fileStatusMessage: string | null;
+  hostStatusLabel: string | null;
   isCompactWorkbench: boolean;
   isDark: boolean;
   isFileMenuOpen: boolean;
@@ -38,6 +39,7 @@ export function AppHeader({
   fileMenuRef,
   fileStateLabel,
   fileStatusMessage,
+  hostStatusLabel,
   isCompactWorkbench,
   isDark,
   isFileMenuOpen,
@@ -80,6 +82,11 @@ export function AppHeader({
               <span className={`rounded-lg border px-2.5 py-1 ${isProjectDirty ? "border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-300" : "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"}`}>
                 {fileStateLabel}
               </span>
+              {hostStatusLabel ? (
+                <span className="rounded-lg border border-violet-500/25 bg-violet-500/10 px-2.5 py-1 text-violet-700 dark:text-violet-200">
+                  {hostStatusLabel}
+                </span>
+              ) : null}
               {fileStatusMessage ? <span className="truncate opacity-75">{fileStatusMessage}</span> : null}
             </div>
           </div>

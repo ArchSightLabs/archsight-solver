@@ -29,14 +29,16 @@ def test_host_load_returns_neutral_project_loaded_event():
 def test_host_launch_contract_declares_neutral_embed_capabilities():
     document = create_default_project_document("外部宿主试跑")
 
-    result = build_host_launch_contract(document, {"sessionId": "session-1", "mode": "readonly"})
+    result = build_host_launch_contract(document, {"sessionId": "session-1", "mode": "readonly", "nonce": "nonce-1"})
 
     assert result["ok"] is True
     assert result["sessionId"] == "session-1"
+    assert result["nonce"] == "nonce-1"
     assert result["mode"] == "readonly"
     assert result["capabilities"]["loadProjectDocument"] is True
     assert result["capabilities"]["emitSaveRequest"] is False
     assert result["events"][0]["type"] == "solver.host_launch_created"
+    assert result["events"][0]["payload"]["nonce"] == "nonce-1"
 
 
 def test_apply_builtin_template_returns_saveable_project_document():
@@ -96,9 +98,13 @@ def test_build_export_artifact_metadata_records_contract_and_result_source():
     metadata = build_export_artifact_metadata(changed["projectDocument"], "docx", solved["summary"])
 
     assert metadata["format"] == "docx"
+    assert metadata["manifestVersion"] == "1.0.0"
+    assert metadata["artifactType"] == "solver.export"
     assert metadata["fileName"].endswith(".docx")
     assert metadata["projectFileSchemaVersion"] == "2.0.0"
     assert metadata["asmsJsonSchemaVersion"] == "2026-05-30"
+    assert metadata["contract"]["hostProtocolVersion"] == "1.0.0"
+    assert metadata["projectManifest"]["projectFileKind"] == "single-json"
     assert metadata["resultSource"]["activeObjectId"] == changed["snapshot"]["activeObjectId"]
 
 
@@ -132,7 +138,39 @@ def test_export_artifact_rejects_unknown_format_instead_of_falling_back_to_docx(
     })
 
     assert result["status"] == "invalid_input"
+    assert result["errorCode"] == "unsupported_export_format"
     assert "不支持的导出格式" in result["warnings"][0]
+
+
+def test_host_change_errors_use_stable_error_codes():
+    document = create_default_project_document("外部宿主试跑")
+
+    change_result = TOOL_HANDLERS["project_host_apply_change"]({
+        "projectDocument": document,
+        "change": {"type": "replace_external_project"},
+    })
+    save_result = TOOL_HANDLERS["project_host_save_result"]({
+        "projectDocument": document,
+        "result": {"status": "unknown"},
+    })
+
+    assert change_result["status"] == "invalid_input"
+    assert change_result["errorCode"] == "unsupported_host_change"
+    assert save_result["status"] == "invalid_input"
+    assert save_result["errorCode"] == "invalid_host_save_result"
+
+
+def test_builtin_template_registry_is_neutral_and_traceable():
+    result = TOOL_HANDLERS["project_template_registry"]({})
+    raw = str(result)
+
+    assert result["status"] == "pass"
+    assert result["registryVersion"] == "1.0.0"
+    assert result["templateCount"] >= 1
+    assert {"load", "solve", "export"}.issubset(set(result["templates"][0]["supportedActions"]))
+    assert "tenant" not in raw
+    assert "license" not in raw
+    assert "cloud" not in raw
 
 
 def test_project_workflow_tools_are_available_via_cli_handlers():
@@ -183,3 +221,10 @@ def test_public_integration_api_runs_workflow_tool_without_internal_imports():
     assert "project_host_launch_contract" in available_integration_tools()
     assert result["status"] == "pass"
     assert result["sessionId"] == "session-1"
+
+
+def test_public_integration_api_returns_stable_error_for_unknown_tool():
+    result = run_integration_tool("missing_tool", {})
+
+    assert result["status"] == "invalid_tool"
+    assert result["errorCode"] == "unknown_integration_tool"

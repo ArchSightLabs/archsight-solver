@@ -8,6 +8,14 @@ from typing import Any, Mapping
 
 from backend.api.calculation_response import build_calculation_response
 from backend.api.analysis_types import get_material_name
+from backend.integration_errors import (
+    EXPORT_FAILED,
+    INVALID_HOST_SAVE_RESULT,
+    SOLVE_FAILED,
+    UNSUPPORTED_EXPORT_FORMAT,
+    UNSUPPORTED_HOST_CHANGE,
+    IntegrationContractError,
+)
 from backend.project_documents import validate_project_document
 from backend.services.export_service import build_report_model, export_report
 
@@ -56,7 +64,7 @@ def _utc_now() -> str:
 def _normalize_export_format(format_type: str) -> str:
     normalized = str(format_type or "docx").strip().lower()
     if normalized not in SUPPORTED_EXPORT_FORMATS:
-        raise ValueError(f"不支持的导出格式: {format_type}")
+        raise IntegrationContractError(UNSUPPORTED_EXPORT_FORMAT, f"不支持的导出格式: {format_type}")
     return normalized
 
 
@@ -120,6 +128,10 @@ def _host_mode(value: Any) -> str:
     return mode if mode in {"editable", "readonly"} else "editable"
 
 
+def _host_nonce(value: Any) -> str:
+    return str(value or "").strip()
+
+
 def build_host_launch_contract(
     raw_document: str | Mapping[str, Any],
     launch: Mapping[str, Any] | None = None,
@@ -130,6 +142,7 @@ def build_host_launch_contract(
     launch_options = _as_record(launch)
     mode = _host_mode(launch_options.get("mode"))
     session_id = str(launch_options.get("sessionId") or "") or f"host-session-{uuid.uuid4()}"
+    nonce = _host_nonce(launch_options.get("nonce")) or f"nonce-{uuid.uuid4()}"
     capabilities = {
         "loadProjectDocument": True,
         "emitProjectChanged": mode == "editable",
@@ -142,12 +155,13 @@ def build_host_launch_contract(
         "protocolVersion": PROJECT_HOST_PROTOCOL_VERSION,
         "launchId": f"launch-{uuid.uuid4()}",
         "sessionId": session_id,
+        "nonce": nonce,
         "mode": mode,
         "createdAt": timestamp,
         "projectDocument": project_document,
         "snapshot": _snapshot(project_document),
         "capabilities": capabilities,
-        "events": [_event("solver.host_launch_created", project_document, timestamp, {"mode": mode})],
+        "events": [_event("solver.host_launch_created", project_document, timestamp, {"mode": mode, "nonce": nonce})],
     }
 
 
@@ -167,7 +181,7 @@ def load_host_project(raw_document: str | Mapping[str, Any], session_id: str | N
 
 def _apply_builtin_template(project_document: Mapping[str, Any], template_id: str, now: str) -> dict[str, Any]:
     if template_id != "beam.simple_span_uniform":
-        raise ValueError(f"不支持的内置模板: {template_id}")
+        raise IntegrationContractError(UNSUPPORTED_HOST_CHANGE, f"不支持的内置模板: {template_id}")
     next_document = copy.deepcopy(dict(project_document))
     project = _project_from_document(next_document)
     objects = [dict(item) for item in project.get("objects", []) if isinstance(item, Mapping)]
@@ -224,7 +238,7 @@ def apply_host_project_change(raw_document: str | Mapping[str, Any], change: Map
     if change_type == "apply_builtin_template":
         next_document = _apply_builtin_template(project_document, str(change.get("templateId") or ""), timestamp)
     else:
-        raise ValueError(f"不支持的 host 项目变更类型: {change_type or '未声明'}")
+        raise IntegrationContractError(UNSUPPORTED_HOST_CHANGE, f"不支持的 host 项目变更类型: {change_type or '未声明'}")
     return {
         "ok": True,
         "projectDocument": next_document,
@@ -253,7 +267,7 @@ def build_host_save_result_event(
     project_document = _validated_project_document(raw_document)
     status = str(result.get("status") or "saved")
     if status not in {"saved", "failed", "conflict"}:
-        raise ValueError(f"不支持的 host 保存结果状态: {status}")
+        raise IntegrationContractError(INVALID_HOST_SAVE_RESULT, f"不支持的 host 保存结果状态: {status}")
     payload = {
         "status": status,
         "revision": str(result.get("revision") or ""),
@@ -329,7 +343,10 @@ def solve_project_document(raw_document: str | Mapping[str, Any], now: str | Non
     timestamp = now or _utc_now()
     project_document = _validated_project_document(raw_document)
     payload = active_project_payload(project_document)
-    result = build_calculation_response(payload, operation="project_document_solve")
+    try:
+        result = build_calculation_response(payload, operation="project_document_solve")
+    except Exception as exc:
+        raise IntegrationContractError(SOLVE_FAILED, f"项目文档求解失败: {exc}") from exc
     summary = _as_record(result.get("summary"))
     status_code = str(summary.get("statusCode") or "PASS")
     active = _active_object(project_document)
@@ -358,12 +375,20 @@ def build_export_artifact_metadata(
     normalized_format = _normalize_export_format(format_type)
     return {
         "artifactId": f"artifact-{uuid.uuid4()}",
+        "manifestVersion": "1.0.0",
+        "artifactType": "solver.export",
         "createdAt": timestamp,
         "format": normalized_format,
         "fileName": f"{snapshot['projectName'] or '结构分析项目'}-计算书.{normalized_format}",
         "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" if normalized_format == "xlsx" else "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "projectFileSchemaVersion": str(project_document.get("schemaVersion") or ""),
         "asmsJsonSchemaVersion": str(_as_record(project_document.get("contract")).get("asmsJsonSchemaVersion") or ""),
+        "contract": {
+            "projectFileSchemaVersion": str(project_document.get("schemaVersion") or ""),
+            "asmsJsonSchemaVersion": str(_as_record(project_document.get("contract")).get("asmsJsonSchemaVersion") or ""),
+            "hostProtocolVersion": PROJECT_HOST_PROTOCOL_VERSION,
+        },
+        "projectManifest": _as_record(project_document.get("manifest")),
         "resultSource": {**DEFAULT_RESULT_SOURCE, "activeObjectId": snapshot["activeObjectId"]},
         "diagnosticsSummary": {
             "warningCount": int(_as_record(result_summary).get("warningCount") or 0),
@@ -391,7 +416,10 @@ def build_export_artifact(
         report_images=None,
         report_options=None,
     )
-    artifact = export_report(report, normalized_format)
+    try:
+        artifact = export_report(report, normalized_format)
+    except Exception as exc:
+        raise IntegrationContractError(EXPORT_FAILED, f"导出 artifact 生成失败: {exc}") from exc
     artifact.buffer.seek(0)
     content = artifact.buffer.read()
     metadata = build_export_artifact_metadata(project_document, normalized_format, result_summary, now)

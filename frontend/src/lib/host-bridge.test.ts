@@ -20,6 +20,7 @@ test("parseHostLaunchMessage accepts a neutral host project document", () => {
   const launch = parseHostLaunchMessage({
     type: HOST_LAUNCH_MESSAGE,
     sessionId: "session-1",
+    nonce: "nonce-1",
     payload: {
       mode: "readonly",
       fileName: "demo.slv",
@@ -28,6 +29,7 @@ test("parseHostLaunchMessage accepts a neutral host project document", () => {
   });
 
   assert.equal(launch?.sessionId, "session-1");
+  assert.equal(launch?.nonce, "nonce-1");
   assert.equal(launch?.mode, "readonly");
   assert.equal(launch?.fileName, "demo.slv");
   assert.equal(launch?.projectFile.project.name, project.name);
@@ -35,13 +37,16 @@ test("parseHostLaunchMessage accepts a neutral host project document", () => {
 
 test("host bridge emits ready and changed messages without platform concepts", () => {
   const project = createDefaultSolverProject(new Date("2026-07-04T00:00:00.000Z"));
-  const ready = buildSolverReadyMessage("session-1");
-  const changed = buildProjectChangedMessage("session-1", project);
+  const ready = buildSolverReadyMessage("session-1", "nonce-1");
+  const changed = buildProjectChangedMessage("session-1", project, "nonce-1");
 
   assert.equal(ready.type, SOLVER_READY_MESSAGE);
+  assert.equal(ready.nonce, "nonce-1");
   assert.equal(changed.type, SOLVER_PROJECT_CHANGED_MESSAGE);
   assert.equal(changed.sessionId, "session-1");
-  assert.equal((changed.payload as { projectDocument: { schema: string } }).projectDocument.schema, "archsight-solver.project");
+  assert.equal(changed.nonce, "nonce-1");
+  assert.equal((changed.payload as { projectDocument: { schema: string; manifest: { projectFileKind: string } } }).projectDocument.schema, "archsight-solver.project");
+  assert.equal((changed.payload as { projectDocument: { manifest: { projectFileKind: string } } }).projectDocument.manifest.projectFileKind, "single-json");
   assert.equal(JSON.stringify(changed).includes("tenant"), false);
   assert.equal(JSON.stringify(changed).includes("license"), false);
 });

@@ -18,6 +18,7 @@ export interface SolverHostMessage<TPayload = unknown> {
   type: string;
   protocolVersion?: string;
   sessionId?: string;
+  nonce?: string;
   payload?: TPayload;
 }
 
@@ -25,10 +26,12 @@ export interface HostLaunchPayload {
   projectDocument?: ArchSightSolverProjectFile | string;
   mode?: "editable" | "readonly";
   fileName?: string;
+  nonce?: string;
 }
 
 export interface HostLaunchResult {
   sessionId: string;
+  nonce: string | null;
   mode: "editable" | "readonly";
   projectFile: ArchSightSolverProjectFile;
   fileName: string | null;
@@ -69,17 +72,19 @@ export function parseHostLaunchMessage(value: unknown): HostLaunchResult | null 
   }
   return {
     sessionId: value.sessionId || `host-session-${Date.now()}`,
+    nonce: value.nonce || payload.nonce || null,
     mode: payload.mode === "readonly" ? "readonly" : "editable",
     projectFile: parsed.value,
     fileName: payload.fileName || null,
   };
 }
 
-export function buildSolverReadyMessage(sessionId: string | null): SolverHostMessage {
+export function buildSolverReadyMessage(sessionId: string | null, nonce: string | null = null): SolverHostMessage {
   return {
     type: SOLVER_READY_MESSAGE,
     protocolVersion: SOLVER_HOST_PROTOCOL_VERSION,
     sessionId: sessionId ?? undefined,
+    nonce: nonce ?? undefined,
     payload: {
       capabilities: {
         loadProjectDocument: true,
@@ -91,22 +96,24 @@ export function buildSolverReadyMessage(sessionId: string | null): SolverHostMes
   };
 }
 
-export function buildProjectChangedMessage(sessionId: string, project: SolverProject): SolverHostMessage {
+export function buildProjectChangedMessage(sessionId: string, project: SolverProject, nonce: string | null = null): SolverHostMessage {
   return {
     type: SOLVER_PROJECT_CHANGED_MESSAGE,
     protocolVersion: SOLVER_HOST_PROTOCOL_VERSION,
     sessionId,
+    nonce: nonce ?? undefined,
     payload: {
       projectDocument: createArchSightSolverProjectFile(project),
     },
   };
 }
 
-export function buildSaveRequestMessage(sessionId: string, project: SolverProject): SolverHostMessage {
+export function buildSaveRequestMessage(sessionId: string, project: SolverProject, nonce: string | null = null): SolverHostMessage {
   return {
     type: SOLVER_SAVE_REQUEST_MESSAGE,
     protocolVersion: SOLVER_HOST_PROTOCOL_VERSION,
     sessionId,
+    nonce: nonce ?? undefined,
     payload: {
       projectDocument: createArchSightSolverProjectFile(project),
       reason: "host-managed-persistence",
@@ -114,11 +121,12 @@ export function buildSaveRequestMessage(sessionId: string, project: SolverProjec
   };
 }
 
-export function buildSolverErrorMessage(sessionId: string | null, message: string): SolverHostMessage {
+export function buildSolverErrorMessage(sessionId: string | null, message: string, nonce: string | null = null): SolverHostMessage {
   return {
     type: SOLVER_ERROR_MESSAGE,
     protocolVersion: SOLVER_HOST_PROTOCOL_VERSION,
     sessionId: sessionId ?? undefined,
+    nonce: nonce ?? undefined,
     payload: { message },
   };
 }

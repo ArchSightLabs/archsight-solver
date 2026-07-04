@@ -44,6 +44,7 @@ export function useSolverHostBridge({
   allowedOrigins,
 }: UseSolverHostBridgeOptions) {
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [nonce, setNonce] = useState<string | null>(null);
   const [mode, setMode] = useState<"editable" | "readonly">("editable");
   const [hostOrigin, setHostOrigin] = useState<string | null>(null);
   const projectRef = useRef(project);
@@ -54,8 +55,8 @@ export function useSolverHostBridge({
   }, [project]);
 
   useEffect(() => {
-    postToHost(buildSolverReadyMessage(sessionId), hostOrigin ?? "*");
-  }, [hostOrigin, sessionId]);
+    postToHost(buildSolverReadyMessage(sessionId, nonce), hostOrigin ?? "*");
+  }, [hostOrigin, nonce, sessionId]);
 
   useEffect(() => {
     const handleMessage = (event: globalThis.MessageEvent) => {
@@ -67,6 +68,7 @@ export function useSolverHostBridge({
         const launch = parseHostLaunchMessage(message);
         if (launch) {
           setSessionId(launch.sessionId);
+          setNonce(launch.nonce);
           setMode(launch.mode);
           setHostOrigin(event.origin);
           replaceProject(
@@ -79,37 +81,38 @@ export function useSolverHostBridge({
           syncRuntimeFromProject(launch.projectFile.project);
           return;
         }
-        if (message?.type === HOST_SAVE_RESULT_MESSAGE && message?.sessionId === sessionId && event.origin === hostOrigin) {
+        if (message?.type === HOST_SAVE_RESULT_MESSAGE && message?.sessionId === sessionId && event.origin === hostOrigin && (!nonce || message?.nonce === nonce)) {
           const status = String(message.payload?.status ?? "saved");
           setFileStatusMessage(status === "saved" ? "外部宿主已保存工程。" : `外部宿主保存结果：${status}`);
         }
       } catch (error) {
-        postToHost(buildSolverErrorMessage(sessionId, error instanceof Error ? error.message : "host bridge 处理失败。"), hostOrigin ?? event.origin);
+        postToHost(buildSolverErrorMessage(sessionId, error instanceof Error ? error.message : "host bridge 处理失败。", nonce), hostOrigin ?? event.origin);
       }
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [allowedOriginList, hostOrigin, replaceProject, sessionId, setFileStatusMessage, syncRuntimeFromProject]);
+  }, [allowedOriginList, hostOrigin, nonce, replaceProject, sessionId, setFileStatusMessage, syncRuntimeFromProject]);
 
   const emitProjectChanged = useCallback(() => {
     if (!sessionId || !hostOrigin || mode === "readonly") {
       return;
     }
-    postToHost(buildProjectChangedMessage(sessionId, applyCurrentRuntimeToProject(projectRef.current)), hostOrigin);
-  }, [applyCurrentRuntimeToProject, hostOrigin, mode, sessionId]);
+    postToHost(buildProjectChangedMessage(sessionId, applyCurrentRuntimeToProject(projectRef.current), nonce), hostOrigin);
+  }, [applyCurrentRuntimeToProject, hostOrigin, mode, nonce, sessionId]);
 
   const requestHostSave = useCallback(() => {
     if (!sessionId || !hostOrigin || mode === "readonly") {
       return false;
     }
-    postToHost(buildSaveRequestMessage(sessionId, applyCurrentRuntimeToProject(projectRef.current)), hostOrigin);
+    postToHost(buildSaveRequestMessage(sessionId, applyCurrentRuntimeToProject(projectRef.current), nonce), hostOrigin);
     return true;
-  }, [applyCurrentRuntimeToProject, hostOrigin, mode, sessionId]);
+  }, [applyCurrentRuntimeToProject, hostOrigin, mode, nonce, sessionId]);
 
   return {
     hostSessionId: sessionId,
     hostMode: mode,
     hostOrigin,
+    hostNonce: nonce,
     emitProjectChanged,
     requestHostSave,
   };

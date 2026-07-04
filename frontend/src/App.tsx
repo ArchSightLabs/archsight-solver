@@ -326,6 +326,9 @@ function AppContent() {
   }, [syncRuntimeFromAnalysisObject]);
   const {
     emitProjectChanged,
+    hostMode,
+    hostOrigin,
+    hostSessionId,
     requestHostSave,
   } = useSolverHostBridge({
     allowedOrigins: SOLVER_HOST_ALLOWED_ORIGINS,
@@ -377,6 +380,9 @@ function AppContent() {
   }, [handleCreateAnalysisObject]);
   const fileDisplayName = projectFileName ?? "未选择文件";
   const fileStateLabel = isProjectDirty ? "未保存" : lastSavedAt ? "已保存" : "新建项目";
+  const hostStatusLabel = hostSessionId
+    ? `外部宿主：${hostMode === "readonly" ? "只读" : "可编辑"}${hostOrigin ? ` · ${hostOrigin}` : ""}`
+    : null;
   const handleWorkbenchSelectionChange = useCallback((next: WorkbenchSelection, options?: WorkbenchSelectionOptions) => {
     setWorkbenchSelectionState((current) => {
       const scoped = filterSelectionSetForMode(current.items, next.mode);
@@ -613,6 +619,7 @@ function AppContent() {
         fileMenuRef={fileMenuRef}
         fileStateLabel={fileStateLabel}
         fileStatusMessage={fileStatusMessage}
+        hostStatusLabel={hostStatusLabel}
         isCompactWorkbench={isCompactWorkbench}
         isDark={isDark}
         isFileMenuOpen={isFileMenuOpen}

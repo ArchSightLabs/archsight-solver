@@ -17,6 +17,9 @@ def test_create_default_project_document_can_be_validated():
     assert result["projectDocument"]["schema"] == PROJECT_FILE_SCHEMA
     assert result["projectDocument"]["schemaVersion"] == PROJECT_FILE_SCHEMA_VERSION
     assert result["projectDocument"]["contract"]["asmsJsonSchemaVersion"] == ASMS_JSON_SCHEMA_VERSION
+    assert result["projectDocument"]["manifest"]["manifestVersion"] == "1.0.0"
+    assert result["projectDocument"]["manifest"]["projectFileKind"] == "single-json"
+    assert result["projectDocument"]["manifest"]["containerCapabilities"]["single-json"] is True
     assert result["summary"]["projectName"] == "结构复核"
 
 
@@ -29,6 +32,7 @@ def test_validate_project_document_migrates_legacy_contract():
 
     assert result["ok"] is True
     assert result["projectDocument"]["schemaVersion"] == PROJECT_FILE_SCHEMA_VERSION
+    assert result["projectDocument"]["manifest"]["contract"]["projectFileSchemaVersion"] == PROJECT_FILE_SCHEMA_VERSION
     assert "diagnostics" not in result["projectDocument"]
     assert {item["code"] for item in result["diagnostics"]} >= {
         "PROJECT_FILE_SCHEMA_MIGRATED",
@@ -55,3 +59,4 @@ def test_project_document_validate_tool_returns_normalized_document():
     assert result["inputValidated"] is True
     assert result["summary"]["projectName"] == "外部托管项目"
     assert result["projectDocument"]["product"] == "archsight-solver"
+    assert result["projectDocument"]["manifest"]["projectFileKind"] == "single-json"
