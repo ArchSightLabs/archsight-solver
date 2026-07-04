@@ -78,6 +78,8 @@ def test_schema_registry_contains_api_and_tool_contracts():
     assert registry["solver-host-message"]["properties"]["protocolVersion"]["const"] == "1.0.0"
     assert registry["solver-artifact-manifest"]["properties"]["artifactType"]["const"] == "solver.export"
     assert registry["solver-template-registry"]["properties"]["templates"]["items"]["properties"]["source"]["const"] == "builtin"
+    assert "primaryResultMetrics" in registry["solver-template-registry"]["properties"]["templates"]["items"]["required"]
+    assert "entryPoints" in registry["solver-template-registry"]["properties"]["templates"]["items"]["properties"]
     assert registry["project-document-tool-input"]["anyOf"] == [{"required": ["projectDocument"]}, {"required": ["projectDocumentText"]}]
     assert registry["asms-frame-model"]["properties"]["structure"]["required"] == ["nodes", "members"]
     assert "滚动支座法向角" in registry["asms-frame-model"]["properties"]["structure"]["properties"]["nodes"]["items"]["properties"]["supportAngleDeg"]["description"]

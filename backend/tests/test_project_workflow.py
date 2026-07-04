@@ -167,7 +167,12 @@ def test_builtin_template_registry_is_neutral_and_traceable():
     assert result["status"] == "pass"
     assert result["registryVersion"] == "1.0.0"
     assert result["templateCount"] >= 1
-    assert {"load", "solve", "export"}.issubset(set(result["templates"][0]["supportedActions"]))
+    assert {"load", "solve", "export", "host-launch"}.issubset(set(result["templates"][0]["supportedActions"]))
+    assert {"workbench", "agent", "external-host"}.issubset(set(result["templates"][0]["entryPoints"]))
+    assert result["templates"][0]["structureLabel"] in {"梁系", "二维平面框架", "二维平面桁架"}
+    assert result["templates"][0]["primaryResultMetrics"]
+    assert result["templates"][0]["benchmarkRefCount"] == len(result["templates"][0]["benchmarkMapping"])
+    assert result["templates"][0]["hasDirectBenchmark"] is True
     assert "tenant" not in raw
     assert "license" not in raw
     assert "cloud" not in raw
