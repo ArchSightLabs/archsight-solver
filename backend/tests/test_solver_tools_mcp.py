@@ -127,11 +127,13 @@ def test_mcp_server_lists_and_calls_tools_over_stdio():
         "benchmark_case_list",
         "benchmark_case_run",
         "project_document_health",
+        "project_template_registry",
     } <= tool_names
     tool_defs = {tool["name"]: tool for tool in responses[1]["result"]["tools"]}
     assert tool_defs["calculate"]["annotations"]["readOnlyHint"] is True
     assert tool_defs["benchmark_case_run"]["outputSchema"]["title"] == "确定性求解能力输出"
     assert tool_defs["project_document_health"]["inputSchema"]["title"] == "项目文档工具输入"
+    assert tool_defs["project_template_registry"]["inputSchema"]["title"] == "空工具输入"
     call_result = responses[2]["result"]
     assert call_result["isError"] is False
     assert call_result["structuredContent"]["capabilityId"] == "solver.beam_deflection_serviceability_check"
@@ -165,6 +167,33 @@ def test_mcp_server_calls_project_document_health_tool():
     assert call_result["structuredContent"]["status"] == "pass"
     assert call_result["structuredContent"]["healthStatus"] == "ready"
     assert call_result["structuredContent"]["project"]["name"] == "MCP 项目健康检查"
+
+
+def test_mcp_server_calls_project_template_registry_tool():
+    message = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/call",
+        "params": {"name": "project_template_registry", "arguments": {}},
+    }
+    completed = subprocess.run(
+        [sys.executable, "-m", "backend.capabilities.mcp_server"],
+        input=json.dumps(message, ensure_ascii=False) + "\n",
+        text=True,
+        encoding="utf-8",
+        capture_output=True,
+        check=True,
+    )
+
+    response = json.loads(completed.stdout)
+    call_result = response["result"]
+
+    assert call_result["isError"] is False
+    assert call_result["structuredContent"]["capabilityId"] == "solver.project_template_registry"
+    assert call_result["structuredContent"]["status"] == "pass"
+    assert call_result["structuredContent"]["templateCount"] >= 1
+    assert call_result["structuredContent"]["templates"][0]["primaryResultMetrics"]
+    assert call_result["structuredContent"]["templates"][0]["entryPoints"]
 
 
 def test_mcp_server_rejects_arguments_before_tool_call_when_schema_fails():

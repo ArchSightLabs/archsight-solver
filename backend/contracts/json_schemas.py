@@ -632,6 +632,15 @@ SENSITIVITY_TOOL_INPUT_SCHEMA: Dict[str, Any] = {
     "additionalProperties": False,
 }
 
+EMPTY_TOOL_INPUT_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("empty-tool-input"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "空工具输入",
+    "type": "object",
+    "properties": {},
+    "additionalProperties": False,
+}
+
 PROJECT_DOCUMENT_TOOL_INPUT_SCHEMA: Dict[str, Any] = {
     "$id": _schema_id("project-document-tool-input"),
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -966,6 +975,7 @@ SCHEMA_REGISTRY: Dict[str, Dict[str, Any]] = {
     "truss-tool-input": TRUSS_TOOL_INPUT_SCHEMA,
     "calculate-tool-input": CALCULATE_TOOL_INPUT_SCHEMA,
     "sensitivity-tool-input": SENSITIVITY_TOOL_INPUT_SCHEMA,
+    "empty-tool-input": EMPTY_TOOL_INPUT_SCHEMA,
     "project-document-tool-input": PROJECT_DOCUMENT_TOOL_INPUT_SCHEMA,
     "benchmark-case-list-input": BENCHMARK_CASE_LIST_INPUT_SCHEMA,
     "benchmark-case-run-input": BENCHMARK_CASE_RUN_INPUT_SCHEMA,

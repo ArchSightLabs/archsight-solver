@@ -2,6 +2,25 @@
 
 <!-- 本文件是仓库级发布记录事实源；前端 /docs/release-notes.html 由 npm --prefix frontend run sync:release-notes 从本文件生成。 -->
 
+## v1.6.0（开发中）
+
+发布时间：未发布
+
+本阶段定位为“中性宿主接入 + 本地项目契约增强”。Solver 继续保持开源核心和个人工具边界，不引入账号、组织、远程存储、授权或商业平台逻辑。
+
+已完成阶段性变化：
+
+- 新增 `project_document_health` 能力，CLI / MCP 可检查项目文件版本、ASMS-JSON 契约版本、manifest、对象分布、活动对象、迁移诊断和 host readiness。
+- 工作台项目信息弹窗新增“项目契约”页签，展示项目文档 kind、schema、manifest、活动对象、导出 manifest、host 会话和证据链状态。
+- 内置模板 registry 增强结构体系标签、主要结果指标、入口位置、支持动作、benchmark 引用数量和直接 benchmark 标记。
+- `project_template_registry` 通过 CLI / MCP 暴露，外部宿主和 Agent 可在不读取前端内部实现的前提下发现模板能力。
+- README、快速开始、API 参考、Agent 集成指南和 host iframe demo 同步补充项目健康检查与模板 registry 调用方式。
+
+阶段性验证：
+
+- 后端项目健康、schema、MCP、模板 registry 和 CLI 回归测试通过。
+- 前端项目契约面板、密度断言和单元测试通过。
+
 ## v1.5.0
 
 发布时间：2026-06-22

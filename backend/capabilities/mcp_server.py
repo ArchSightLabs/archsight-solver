@@ -14,6 +14,7 @@ from backend.contracts.json_schemas import (
     BENCHMARK_CASE_RUN_INPUT_SCHEMA,
     CALCULATE_TOOL_INPUT_SCHEMA,
     CAPABILITY_RESULT_SCHEMA,
+    EMPTY_TOOL_INPUT_SCHEMA,
     FRAME_TOOL_INPUT_SCHEMA,
     PROJECT_DOCUMENT_TOOL_INPUT_SCHEMA,
     SENSITIVITY_TOOL_INPUT_SCHEMA,
@@ -118,6 +119,14 @@ TOOL_DEFINITIONS = [
         "inputSchema": PROJECT_DOCUMENT_TOOL_INPUT_SCHEMA,
         "outputSchema": CAPABILITY_RESULT_SCHEMA,
         "annotations": {**READ_ONLY_ANNOTATIONS, "title": "项目文档健康检查"},
+    },
+    {
+        "name": "project_template_registry",
+        "title": "内置模板 Registry",
+        "description": "读取公开内置模板、结构体系、主要结果指标、支持入口和 benchmark 映射，不执行求解。",
+        "inputSchema": EMPTY_TOOL_INPUT_SCHEMA,
+        "outputSchema": CAPABILITY_RESULT_SCHEMA,
+        "annotations": {**READ_ONLY_ANNOTATIONS, "title": "内置模板 Registry"},
     },
 ]
 

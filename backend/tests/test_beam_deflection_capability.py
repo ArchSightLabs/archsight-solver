@@ -8,6 +8,7 @@ import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from backend.capabilities.beam_deflection import solve_beam_deflection_capability
+from backend.project_documents import create_default_project_document
 
 
 def _payload():
@@ -89,3 +90,44 @@ def test_general_solver_cli_runs_benchmark_tool():
 
     assert result["status"] == "pass"
     assert result["caseId"] == "BM-001"
+
+
+def test_general_solver_cli_inspects_project_document_health(tmp_path):
+    project_path = tmp_path / "project.slv"
+    project_path.write_text(
+        json.dumps(create_default_project_document("CLI 项目健康检查"), ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    completed = subprocess.run(
+        [sys.executable, "-m", "backend.capabilities.solver_cli", "project_document_health", "--input", str(project_path)],
+        text=True,
+        encoding="utf-8",
+        capture_output=True,
+        check=True,
+    )
+
+    result = json.loads(completed.stdout)
+
+    assert result["capabilityId"] == "solver.project_document_health"
+    assert result["status"] == "pass"
+    assert result["healthStatus"] == "ready"
+    assert result["project"]["name"] == "CLI 项目健康检查"
+
+
+def test_general_solver_cli_reads_template_registry():
+    completed = subprocess.run(
+        [sys.executable, "-m", "backend.capabilities.solver_cli", "project_template_registry"],
+        input="{}",
+        text=True,
+        encoding="utf-8",
+        capture_output=True,
+        check=True,
+    )
+
+    result = json.loads(completed.stdout)
+
+    assert result["capabilityId"] == "solver.project_template_registry"
+    assert result["status"] == "pass"
+    assert result["templateCount"] >= 1
+    assert result["templates"][0]["primaryResultMetrics"]

@@ -510,6 +510,7 @@ Tools：
 - `benchmark_case_list`
 - `benchmark_case_run`
 - `project_document_health`
+- `project_template_registry`
 
 Resources：
 

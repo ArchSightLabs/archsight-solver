@@ -64,6 +64,7 @@ def test_schema_registry_contains_api_and_tool_contracts():
     assert "asms-truss-model" in registry
     assert "job-request" in registry
     assert "calculate-tool-input" in registry
+    assert "empty-tool-input" in registry
     assert "benchmark-case-run-input" in registry
     assert "benchmark-submission-input" in registry
     assert "benchmark-submission-response" in registry
@@ -80,6 +81,7 @@ def test_schema_registry_contains_api_and_tool_contracts():
     assert registry["solver-template-registry"]["properties"]["templates"]["items"]["properties"]["source"]["const"] == "builtin"
     assert "primaryResultMetrics" in registry["solver-template-registry"]["properties"]["templates"]["items"]["required"]
     assert "entryPoints" in registry["solver-template-registry"]["properties"]["templates"]["items"]["properties"]
+    assert registry["empty-tool-input"]["additionalProperties"] is False
     assert registry["project-document-tool-input"]["anyOf"] == [{"required": ["projectDocument"]}, {"required": ["projectDocumentText"]}]
     assert registry["asms-frame-model"]["properties"]["structure"]["required"] == ["nodes", "members"]
     assert "滚动支座法向角" in registry["asms-frame-model"]["properties"]["structure"]["properties"]["nodes"]["items"]["properties"]["supportAngleDeg"]["description"]
