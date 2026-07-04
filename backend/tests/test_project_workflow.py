@@ -3,6 +3,7 @@ from backend.integration_api import available_integration_tools, run_integration
 from backend.project_documents import create_default_project_document
 from backend.project_workflow import (
     apply_host_project_change,
+    build_export_artifact,
     build_export_artifact_metadata,
     build_host_launch_contract,
     build_host_save_result_event,
@@ -99,6 +100,22 @@ def test_build_export_artifact_metadata_records_contract_and_result_source():
     assert metadata["resultSource"]["activeObjectId"] == changed["snapshot"]["activeObjectId"]
 
 
+def test_build_export_artifact_returns_docx_and_xlsx_content():
+    document = create_default_project_document("外部宿主试跑")
+    changed = apply_host_project_change(document, {"type": "apply_builtin_template", "templateId": "beam.simple_span_uniform"})
+    solved = solve_project_document(changed["projectDocument"])
+
+    docx = build_export_artifact(changed["projectDocument"], "docx", solved["summary"])
+    xlsx = build_export_artifact(changed["projectDocument"], "xlsx", solved["summary"])
+
+    assert docx["artifactMetadata"]["format"] == "docx"
+    assert xlsx["artifactMetadata"]["format"] == "xlsx"
+    assert docx["artifactMetadata"]["byteSize"] > 1000
+    assert xlsx["artifactMetadata"]["byteSize"] > 1000
+    assert docx["contentBase64"]
+    assert xlsx["contentBase64"]
+
+
 def test_project_workflow_tools_are_available_via_cli_handlers():
     document = create_default_project_document("外部宿主试跑")
     launch = TOOL_HANDLERS["project_host_launch_contract"]({
@@ -120,6 +137,11 @@ def test_project_workflow_tools_are_available_via_cli_handlers():
         "format": "xlsx",
         "resultSummary": solved["summary"],
     })
+    artifact = TOOL_HANDLERS["project_export_artifact"]({
+        "projectDocument": changed["projectDocument"],
+        "format": "docx",
+        "resultSummary": solved["summary"],
+    })
 
     assert launch["status"] == "pass"
     assert loaded["status"] == "pass"
@@ -127,6 +149,8 @@ def test_project_workflow_tools_are_available_via_cli_handlers():
     assert saved["status"] == "saved"
     assert solved["inputValidated"] is True
     assert exported["artifactMetadata"]["format"] == "xlsx"
+    assert artifact["artifactMetadata"]["format"] == "docx"
+    assert artifact["contentBase64"]
 
 
 def test_public_integration_api_runs_workflow_tool_without_internal_imports():

@@ -11,6 +11,7 @@ from backend.benchmarks.runner import BenchmarkCaseError, evaluate_benchmark_cas
 from backend.project_documents import validate_project_document
 from backend.project_workflow import (
     apply_host_project_change,
+    build_export_artifact,
     build_export_artifact_metadata,
     build_host_launch_contract,
     build_host_save_result_event,
@@ -424,6 +425,24 @@ def build_solver_export_metadata(arguments: Mapping[str, Any]) -> Dict[str, Any]
     except Exception as exc:
         return _invalid_result(capability_id, str(exc))
 
+
+def build_solver_export_artifact(arguments: Mapping[str, Any]) -> Dict[str, Any]:
+    capability_id = "solver.project_export_artifact"
+    try:
+        raw_document = arguments.get("projectDocument", arguments)
+        result_summary = arguments.get("resultSummary") if isinstance(arguments.get("resultSummary"), Mapping) else None
+        artifact = build_export_artifact(raw_document, str(arguments.get("format") or "docx"), result_summary)
+        return {
+            "capabilityId": capability_id,
+            "capabilityVersion": CAPABILITY_VERSION,
+            "status": "pass",
+            "inputValidated": True,
+            **artifact,
+            "warnings": [],
+        }
+    except Exception as exc:
+        return _invalid_result(capability_id, str(exc))
+
 ToolHandler = Callable[[Mapping[str, Any]], Dict[str, Any]]
 
 TOOL_HANDLERS: Dict[str, ToolHandler] = {
@@ -443,6 +462,7 @@ TOOL_HANDLERS: Dict[str, ToolHandler] = {
     "project_host_save_result": build_solver_host_save_result_event,
     "project_document_solve": solve_solver_project_document,
     "project_export_metadata": build_solver_export_metadata,
+    "project_export_artifact": build_solver_export_artifact,
 }
 
 

@@ -24,7 +24,7 @@ import { GlassCard } from "./components/ui/GlassCard";
 import { Button } from "./components/ui/button";
 import { useTemplateLibrary } from "./hooks/useTemplateLibrary";
 import { materialLibraryFromCustomMaterials } from "./lib/material-presets";
-import type { ProjectInfo } from "./lib/solver-project";
+import { getActiveAnalysisObject, type ProjectInfo } from "./lib/solver-project";
 import { moduleSectionId, moduleSectionsForMode, normalizeModuleSectionId, objectNavigatorSectionId } from "./lib/workbench-navigation";
 import { ARCHSIGHT_SOLVER_PROJECT_ACCEPT } from "./lib/project-file";
 import type { ProjectTemplate } from "./types/beam";
@@ -34,6 +34,7 @@ import { useWorkbenchSession } from "./hooks/useWorkbenchSession";
 import { useAnalysisObjectManager } from "./hooks/useAnalysisObjectManager";
 import { useProjectFileActions } from "./hooks/useProjectFileActions";
 import { useResizableWorkbenchLayout } from "./hooks/useResizableWorkbenchLayout";
+import { useSolverHostBridge } from "./hooks/useSolverHostBridge";
 import { createInitialSolverProject, useSolverProjectDocument } from "./hooks/useSolverProjectDocument";
 import { useVisitStats } from "./hooks/useVisitStats";
 import { useWorkbenchRuntime } from "./hooks/useWorkbenchRuntime";
@@ -318,6 +319,31 @@ function AppContent() {
     replaceProject,
     syncRuntimeFromAnalysisObject,
   });
+  const syncRuntimeFromProject = useCallback((nextProject: typeof project) => {
+    syncRuntimeFromAnalysisObject(getActiveAnalysisObject(nextProject));
+  }, [syncRuntimeFromAnalysisObject]);
+  const {
+    emitProjectChanged,
+    requestHostSave,
+  } = useSolverHostBridge({
+    applyCurrentRuntimeToProject,
+    project,
+    replaceProject,
+    setFileStatusMessage,
+    syncRuntimeFromProject,
+  });
+  const handleSaveProject = useCallback((forceSaveAs = false) => {
+    if (!forceSaveAs && requestHostSave()) {
+      setFileStatusMessage("已向外部宿主请求保存工程。");
+      return;
+    }
+    void handleSaveProjectFile(forceSaveAs);
+  }, [handleSaveProjectFile, requestHostSave, setFileStatusMessage]);
+  useEffect(() => {
+    if (isProjectDirty) {
+      emitProjectChanged();
+    }
+  }, [emitProjectChanged, isProjectDirty, project.updatedAt]);
   const {
     handleCreateAnalysisObject,
     handleRemoveAnalysisObject,
@@ -495,7 +521,7 @@ function AppContent() {
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && (event.key === 's' || event.key === 'S')) {
         event.preventDefault();
-        void handleSaveProjectFile(event.shiftKey);
+        handleSaveProject(event.shiftKey);
         return;
       }
       if (isEditableTarget(event.target) || workbenchView !== "model" || (event.key !== "Delete" && event.key !== "Backspace")) {
@@ -509,7 +535,7 @@ function AppContent() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeGeometrySelectionSet, handleDeleteWorkbenchSelection, handleSaveProjectFile, workbenchView, workspace]);
+  }, [activeGeometrySelectionSet, handleDeleteWorkbenchSelection, handleSaveProject, workbenchView, workspace]);
   const handleCreateProjectWithInfo = (next: ProjectInfo) => {
     replaceProject(createInitialSolverProject(next), null, null, null, "新建项目");
     resetAllPageState();
@@ -591,7 +617,7 @@ function AppContent() {
         releaseNotesHref={RELEASE_NOTES_HREF}
         onNewProjectFile={handleNewProjectFile}
         onOpenProjectFile={handleOpenProjectFile}
-        onSaveProjectFile={(forceSaveAs) => void handleSaveProjectFile(forceSaveAs)}
+        onSaveProjectFile={handleSaveProject}
         setIsDark={setIsDark}
         setIsFileMenuOpen={setIsFileMenuOpen}
       />

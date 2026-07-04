@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import copy
+import base64
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Mapping
 
 from backend.api.calculation_response import build_calculation_response
+from backend.api.analysis_types import get_material_name
 from backend.project_documents import validate_project_document
+from backend.services.export_service import build_report_model, export_report
 
 
 PROJECT_HOST_PROTOCOL_VERSION = "1.0.0"
@@ -359,4 +362,39 @@ def build_export_artifact_metadata(
             "diagnosticCount": int(_as_record(result_summary).get("diagnosticCount") or 0),
         },
         "snapshot": snapshot,
+    }
+
+
+def build_export_artifact(
+    raw_document: str | Mapping[str, Any],
+    format_type: str = "docx",
+    result_summary: Mapping[str, Any] | None = None,
+    now: str | None = None,
+) -> dict[str, Any]:
+    project_document = _validated_project_document(raw_document)
+    normalized_format = "xlsx" if format_type == "xlsx" else "docx"
+    payload = active_project_payload(project_document)
+    analysis_type = str(payload.get("analysisType") or "beam")
+    report = build_report_model(
+        payload,
+        analysis_type=analysis_type,
+        material_name=get_material_name(payload.get("materialId")),
+        sensitivity_results=None,
+        report_images=None,
+        report_options=None,
+    )
+    artifact = export_report(report, normalized_format)
+    artifact.buffer.seek(0)
+    content = artifact.buffer.read()
+    metadata = build_export_artifact_metadata(project_document, normalized_format, result_summary, now)
+    metadata = {
+        **metadata,
+        "fileName": artifact.filename,
+        "mimeType": artifact.mimetype,
+        "byteSize": len(content),
+    }
+    return {
+        "ok": True,
+        "artifactMetadata": metadata,
+        "contentBase64": base64.b64encode(content).decode("ascii"),
     }
