@@ -13,6 +13,7 @@ from backend.services.export_service import build_report_model, export_report
 
 
 PROJECT_HOST_PROTOCOL_VERSION = "1.0.0"
+SUPPORTED_EXPORT_FORMATS = {"docx", "xlsx"}
 DEFAULT_RESULT_SOURCE = {
     "source": "primary",
     "id": "__primary__",
@@ -50,6 +51,13 @@ SIMPLE_SPAN_UNIFORM_BEAM_STATE: dict[str, Any] = {
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _normalize_export_format(format_type: str) -> str:
+    normalized = str(format_type or "docx").strip().lower()
+    if normalized not in SUPPORTED_EXPORT_FORMATS:
+        raise ValueError(f"不支持的导出格式: {format_type}")
+    return normalized
 
 
 def _as_record(value: Any) -> dict[str, Any]:
@@ -347,7 +355,7 @@ def build_export_artifact_metadata(
     timestamp = now or _utc_now()
     project_document = _validated_project_document(raw_document)
     snapshot = _snapshot(project_document)
-    normalized_format = "xlsx" if format_type == "xlsx" else "docx"
+    normalized_format = _normalize_export_format(format_type)
     return {
         "artifactId": f"artifact-{uuid.uuid4()}",
         "createdAt": timestamp,
@@ -372,7 +380,7 @@ def build_export_artifact(
     now: str | None = None,
 ) -> dict[str, Any]:
     project_document = _validated_project_document(raw_document)
-    normalized_format = "xlsx" if format_type == "xlsx" else "docx"
+    normalized_format = _normalize_export_format(format_type)
     payload = active_project_payload(project_document)
     analysis_type = str(payload.get("analysisType") or "beam")
     report = build_report_model(

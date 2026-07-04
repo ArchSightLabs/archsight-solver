@@ -1,3 +1,5 @@
+import pytest
+
 from backend.capabilities.solver_tools import TOOL_HANDLERS
 from backend.integration_api import available_integration_tools, run_integration_tool
 from backend.project_documents import create_default_project_document
@@ -114,6 +116,23 @@ def test_build_export_artifact_returns_docx_and_xlsx_content():
     assert xlsx["artifactMetadata"]["byteSize"] > 1000
     assert docx["contentBase64"]
     assert xlsx["contentBase64"]
+
+
+def test_export_artifact_rejects_unknown_format_instead_of_falling_back_to_docx():
+    document = create_default_project_document("外部宿主试跑")
+    changed = apply_host_project_change(document, {"type": "apply_builtin_template", "templateId": "beam.simple_span_uniform"})
+
+    with pytest.raises(ValueError, match="不支持的导出格式"):
+        build_export_artifact_metadata(changed["projectDocument"], "pdf", {})
+
+    result = TOOL_HANDLERS["project_export_artifact"]({
+        "projectDocument": changed["projectDocument"],
+        "format": "pdf",
+        "resultSummary": {},
+    })
+
+    assert result["status"] == "invalid_input"
+    assert "不支持的导出格式" in result["warnings"][0]
 
 
 def test_project_workflow_tools_are_available_via_cli_handlers():
