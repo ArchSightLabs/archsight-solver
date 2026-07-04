@@ -12,6 +12,8 @@ from backend.project_documents import validate_project_document
 from backend.project_workflow import (
     apply_host_project_change,
     build_export_artifact_metadata,
+    build_host_launch_contract,
+    build_host_save_result_event,
     create_host_save_request,
     load_host_project,
     solve_project_document,
@@ -348,6 +350,17 @@ def load_solver_host_project(arguments: Mapping[str, Any]) -> Dict[str, Any]:
         return _invalid_result(capability_id, str(exc))
 
 
+def build_solver_host_launch_contract(arguments: Mapping[str, Any]) -> Dict[str, Any]:
+    capability_id = "solver.project_host_launch_contract"
+    try:
+        raw_document = arguments.get("projectDocument", arguments)
+        launch = arguments.get("launch") if isinstance(arguments.get("launch"), Mapping) else {}
+        result = build_host_launch_contract(raw_document, launch)
+        return {"capabilityId": capability_id, "capabilityVersion": CAPABILITY_VERSION, "status": "pass", "inputValidated": True, **result}
+    except Exception as exc:
+        return _invalid_result(capability_id, str(exc))
+
+
 def apply_solver_host_project_change(arguments: Mapping[str, Any]) -> Dict[str, Any]:
     capability_id = "solver.project_host_apply_change"
     try:
@@ -367,6 +380,19 @@ def create_solver_host_save_request(arguments: Mapping[str, Any]) -> Dict[str, A
         raw_document = arguments.get("projectDocument", arguments)
         result = create_host_save_request(raw_document)
         return {"capabilityId": capability_id, "capabilityVersion": CAPABILITY_VERSION, "status": "pass", "inputValidated": True, **result}
+    except Exception as exc:
+        return _invalid_result(capability_id, str(exc))
+
+
+def build_solver_host_save_result_event(arguments: Mapping[str, Any]) -> Dict[str, Any]:
+    capability_id = "solver.project_host_save_result"
+    try:
+        raw_document = arguments.get("projectDocument", arguments)
+        result = arguments.get("result")
+        if not isinstance(result, Mapping):
+            raise ToolInputError("result 必须是 host 保存结果对象")
+        event_result = build_host_save_result_event(raw_document, result)
+        return {"capabilityId": capability_id, "capabilityVersion": CAPABILITY_VERSION, "status": event_result["status"], "inputValidated": True, **event_result}
     except Exception as exc:
         return _invalid_result(capability_id, str(exc))
 
@@ -410,9 +436,11 @@ TOOL_HANDLERS: Dict[str, ToolHandler] = {
     "benchmark_case_list": list_benchmark_cases,
     "benchmark_case_run": run_benchmark_case,
     "project_document_validate": validate_solver_project_document,
+    "project_host_launch_contract": build_solver_host_launch_contract,
     "project_host_load": load_solver_host_project,
     "project_host_apply_change": apply_solver_host_project_change,
     "project_host_save_request": create_solver_host_save_request,
+    "project_host_save_result": build_solver_host_save_result_event,
     "project_document_solve": solve_solver_project_document,
     "project_export_metadata": build_solver_export_metadata,
 }

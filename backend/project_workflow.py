@@ -104,6 +104,42 @@ def _event(event_type: str, project_document: Mapping[str, Any], now: str, paylo
     }
 
 
+def _host_mode(value: Any) -> str:
+    mode = str(value or "editable")
+    return mode if mode in {"editable", "readonly"} else "editable"
+
+
+def build_host_launch_contract(
+    raw_document: str | Mapping[str, Any],
+    launch: Mapping[str, Any] | None = None,
+    now: str | None = None,
+) -> dict[str, Any]:
+    timestamp = now or _utc_now()
+    project_document = _validated_project_document(raw_document)
+    launch_options = _as_record(launch)
+    mode = _host_mode(launch_options.get("mode"))
+    session_id = str(launch_options.get("sessionId") or "") or f"host-session-{uuid.uuid4()}"
+    capabilities = {
+        "loadProjectDocument": True,
+        "emitProjectChanged": mode == "editable",
+        "emitSaveRequest": mode == "editable",
+        "acceptSaveResult": True,
+        "localFileFallback": bool(launch_options.get("localFileFallback", True)),
+    }
+    return {
+        "ok": True,
+        "protocolVersion": PROJECT_HOST_PROTOCOL_VERSION,
+        "launchId": f"launch-{uuid.uuid4()}",
+        "sessionId": session_id,
+        "mode": mode,
+        "createdAt": timestamp,
+        "projectDocument": project_document,
+        "snapshot": _snapshot(project_document),
+        "capabilities": capabilities,
+        "events": [_event("solver.host_launch_created", project_document, timestamp, {"mode": mode})],
+    }
+
+
 def load_host_project(raw_document: str | Mapping[str, Any], session_id: str | None = None, now: str | None = None) -> dict[str, Any]:
     timestamp = now or _utc_now()
     project_document = _validated_project_document(raw_document)
@@ -194,6 +230,30 @@ def create_host_save_request(raw_document: str | Mapping[str, Any], now: str | N
         "projectDocument": project_document,
         "snapshot": _snapshot(project_document),
         "events": [_event("solver.project_save_requested", project_document, timestamp, {"reason": "host-managed-persistence"})],
+    }
+
+
+def build_host_save_result_event(
+    raw_document: str | Mapping[str, Any],
+    result: Mapping[str, Any],
+    now: str | None = None,
+) -> dict[str, Any]:
+    timestamp = now or _utc_now()
+    project_document = _validated_project_document(raw_document)
+    status = str(result.get("status") or "saved")
+    if status not in {"saved", "failed", "conflict"}:
+        raise ValueError(f"不支持的 host 保存结果状态: {status}")
+    payload = {
+        "status": status,
+        "revision": str(result.get("revision") or ""),
+        "message": str(result.get("message") or ""),
+    }
+    return {
+        "ok": status == "saved",
+        "status": status,
+        "projectDocument": project_document,
+        "snapshot": _snapshot(project_document),
+        "events": [_event("solver.project_save_result", project_document, timestamp, payload)],
     }
 
 
