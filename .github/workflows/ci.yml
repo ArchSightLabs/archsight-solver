@@ -5,6 +5,9 @@ on:
   push:
     branches: ["main", "master"]
 
+permissions:
+  contents: read
+
 jobs:
   backend:
     name: Backend Tests
@@ -29,6 +32,11 @@ jobs:
           uv export --frozen --no-dev --no-emit-project --format requirements-txt --no-header --output-file /tmp/requirements.txt
           tail -n +3 requirements.txt > /tmp/requirements.current.txt
           diff -u /tmp/requirements.current.txt /tmp/requirements.txt
+
+      - name: Verify release metadata
+        run: |
+          python scripts/check_versions.py
+          python scripts/check_release_gate.py
 
       - name: Run backend tests
         run: uv run python -m pytest backend/tests -q
@@ -62,5 +70,52 @@ jobs:
       - name: Unit tests
         run: npm run test:unit
 
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=moderate
+
       - name: Build
         run: npm run build
+
+      - name: Verify generated release notes are current
+        run: git diff --exit-code -- public/docs/release-notes.md public/docs/release-notes.html
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run release workbench smoke
+        run: |
+          npm run test:visual -- release-1-6-host-integration.spec.ts --project=chromium --workers=1
+          npm run test:visual -- release-1-5-quick-modeling.spec.ts --project=chromium --workers=1
+          npm run test:visual -- release-1-5-load-scenarios.spec.ts --project=chromium --workers=1
+
+  docker:
+    name: Docker Release Gate
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Build release image
+        run: docker build --tag archsight-solver:release-gate .
+
+      - name: Run container health smoke
+        run: |
+          docker run --detach --name solver-release-gate --publish 127.0.0.1:6280:6240 archsight-solver:release-gate
+          for attempt in $(seq 1 20); do
+            status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}' solver-release-gate)"
+            if [ "$status" = "healthy" ]; then
+              exit 0
+            fi
+            if [ "$status" = "unhealthy" ]; then
+              docker logs solver-release-gate
+              exit 1
+            fi
+            sleep 3
+          done
+          docker logs solver-release-gate
+          exit 1
+
+      - name: Remove smoke container
+        if: always()
+        run: docker rm --force solver-release-gate || true

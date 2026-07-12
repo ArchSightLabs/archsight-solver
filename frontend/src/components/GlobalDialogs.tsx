@@ -20,6 +20,7 @@ import type { TemplateActionResult } from "../lib/template-library";
 
 interface GlobalDialogsProps {
   isCompactWorkbench: boolean;
+  isProjectReadOnly: boolean;
   project: SolverProject;
   visitStats: { pageViews: string; uniqueVisitors: string };
   setModelPreviewStyle: (style: ModelPreviewStyle) => void;
@@ -59,7 +60,7 @@ interface GlobalDialogsProps {
 }
 
 export function GlobalDialogs({
-  isCompactWorkbench, project, visitStats, setModelPreviewStyle,
+  isCompactWorkbench, isProjectReadOnly, project, visitStats, setModelPreviewStyle,
   objectCountByType, handleCreateAnalysisObject,
   setCustomMaterials, handleUpdateProjectInfo, handleCreateProjectWithInfo,
   handleOpenPublicExampleProject,
@@ -91,7 +92,7 @@ export function GlobalDialogs({
         />
       )}
 
-      {isNewAnalysisObjectDialogOpen && (
+      {isNewAnalysisObjectDialogOpen && !isProjectReadOnly && (
         <NewAnalysisObjectDialog
           existingCountByType={objectCountByType}
           onCreate={handleCreateAnalysisObject}
@@ -99,7 +100,7 @@ export function GlobalDialogs({
         />
       )}
 
-      {projectInfoDialogMode && (
+      {projectInfoDialogMode && !isProjectReadOnly && (
         <ProjectInfoDialog
           initialValue={projectInfoDialogMode === "edit" ? project.settings.projectInfo : null}
           title={projectInfoDialogMode === "edit" ? "工程设置" : "新建结构分析项目"}
@@ -112,7 +113,7 @@ export function GlobalDialogs({
         />
       )}
 
-      {isPublicExamplesOpen && (
+      {isPublicExamplesOpen && !isProjectReadOnly && (
         <PublicExamplesDialog
           onClose={() => setIsPublicExamplesOpen(false)}
           onOpenProject={handleOpenPublicExampleProject}

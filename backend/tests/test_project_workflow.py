@@ -7,12 +7,14 @@ from backend.project_workflow import (
     apply_host_project_change,
     build_export_artifact,
     build_export_artifact_metadata,
+    build_host_message,
     build_host_launch_contract,
     build_host_save_result_event,
     create_host_save_request,
     load_host_project,
     solve_project_document,
 )
+from backend.template_registry import resolve_builtin_template
 
 
 def test_host_load_returns_neutral_project_loaded_event():
@@ -39,6 +41,19 @@ def test_host_launch_contract_declares_neutral_embed_capabilities():
     assert result["capabilities"]["emitSaveRequest"] is False
     assert result["events"][0]["type"] == "solver.host_launch_created"
     assert result["events"][0]["payload"]["nonce"] == "nonce-1"
+
+
+@pytest.mark.parametrize(
+    ("message_type", "session_id", "nonce"),
+    [
+        ("archsight.solver.unknown", "session-1", "nonce-1"),
+        ("archsight.solver.host.launch", "", "nonce-1"),
+        ("archsight.solver.host.launch", "session-1", ""),
+    ],
+)
+def test_host_message_builder_rejects_unknown_type_or_unbound_session(message_type, session_id, nonce):
+    with pytest.raises(ValueError):
+        build_host_message(message_type, session_id, nonce, {})
 
 
 def test_apply_builtin_template_returns_saveable_project_document():
@@ -176,6 +191,52 @@ def test_builtin_template_registry_is_neutral_and_traceable():
     assert "tenant" not in raw
     assert "license" not in raw
     assert "cloud" not in raw
+
+
+def test_registry_host_actions_only_reference_executable_public_template_ids():
+    registry = TOOL_HANDLERS["project_template_registry"]({})
+
+    for template in registry["templates"]:
+        if "host-launch" in template["supportedActions"]:
+            resolved = resolve_builtin_template(template["templateId"])
+            changed = apply_host_project_change(
+                create_default_project_document(template["title"]),
+                {"type": "apply_builtin_template", "templateId": template["templateId"]},
+            )
+            assert resolved is not None
+            assert resolved["templateId"] == template["templateId"]
+            assert changed["snapshot"]["activeObjectType"] == template["structureType"]
+
+
+@pytest.mark.parametrize(
+    ("structure_type", "template_id"),
+    [
+        ("beam", "simple-span-uniform"),
+        ("frame", "portal-single-bay"),
+        ("truss", "simple-roof-truss"),
+    ],
+)
+def test_registry_template_runs_host_load_solve_and_export_contract(structure_type, template_id):
+    registry = TOOL_HANDLERS["project_template_registry"]({})
+    public_template = next(item for item in registry["templates"] if item["templateId"] == template_id)
+    document = create_default_project_document(f"{public_template['title']} host 契约")
+
+    launch = build_host_launch_contract(document, {"sessionId": "session-1", "nonce": "nonce-1"})
+    loaded = load_host_project(launch["projectDocument"], session_id=launch["sessionId"])
+    changed = apply_host_project_change(
+        loaded["projectDocument"],
+        {"type": "apply_builtin_template", "templateId": public_template["templateId"]},
+    )
+    solved = solve_project_document(changed["projectDocument"])
+    exported = build_export_artifact(changed["projectDocument"], "xlsx", solved["summary"])
+
+    assert {"load", "solve", "export", "host-launch"}.issubset(public_template["supportedActions"])
+    assert changed["snapshot"]["activeObjectType"] == structure_type
+    assert solved["status"] in {"pass", "review"}
+    assert solved["analysisType"] == structure_type
+    assert exported["artifactMetadata"]["format"] == "xlsx"
+    assert exported["artifactMetadata"]["byteSize"] > 1000
+    assert exported["contentBase64"]
 
 
 def test_project_workflow_tools_are_available_via_cli_handlers():

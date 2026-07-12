@@ -25,6 +25,7 @@ interface UseSolverHostBridgeOptions {
   ) => void;
   setFileStatusMessage: (message: string) => void;
   syncRuntimeFromProject: (project: SolverProject) => void;
+  onHostModeChange?: (mode: "editable" | "readonly") => void;
   allowedOrigins?: string | readonly string[] | null;
 }
 
@@ -41,6 +42,7 @@ export function useSolverHostBridge({
   replaceProject,
   setFileStatusMessage,
   syncRuntimeFromProject,
+  onHostModeChange,
   allowedOrigins,
 }: UseSolverHostBridgeOptions) {
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -62,6 +64,9 @@ export function useSolverHostBridge({
     const handleMessage = (event: globalThis.MessageEvent) => {
       const message = event.data;
       try {
+        if (event.source !== window.parent) {
+          return;
+        }
         if (!isHostOriginAllowed(event.origin, allowedOriginList)) {
           return;
         }
@@ -70,6 +75,7 @@ export function useSolverHostBridge({
           setSessionId(launch.sessionId);
           setNonce(launch.nonce);
           setMode(launch.mode);
+          onHostModeChange?.(launch.mode);
           setHostOrigin(event.origin);
           replaceProject(
             launch.projectFile.project,
@@ -81,7 +87,13 @@ export function useSolverHostBridge({
           syncRuntimeFromProject(launch.projectFile.project);
           return;
         }
-        if (message?.type === HOST_SAVE_RESULT_MESSAGE && message?.sessionId === sessionId && event.origin === hostOrigin && (!nonce || message?.nonce === nonce)) {
+        if (
+          message?.type === HOST_SAVE_RESULT_MESSAGE
+          && message?.protocolVersion === "1.0.0"
+          && message?.sessionId === sessionId
+          && message?.nonce === nonce
+          && event.origin === hostOrigin
+        ) {
           const status = String(message.payload?.status ?? "saved");
           setFileStatusMessage(status === "saved" ? "外部宿主已保存工程。" : `外部宿主保存结果：${status}`);
         }
@@ -91,7 +103,7 @@ export function useSolverHostBridge({
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [allowedOriginList, hostOrigin, nonce, replaceProject, sessionId, setFileStatusMessage, syncRuntimeFromProject]);
+  }, [allowedOriginList, hostOrigin, nonce, onHostModeChange, replaceProject, sessionId, setFileStatusMessage, syncRuntimeFromProject]);
 
   const emitProjectChanged = useCallback(() => {
     if (!sessionId || !hostOrigin || mode === "readonly") {

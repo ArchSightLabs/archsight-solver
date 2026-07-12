@@ -31,13 +31,13 @@ docker login --username=<your-account> registry.example.com
 构建并打标签：
 
 ```powershell
-docker build -t archsight-solver:v1.5.0 -t registry.example.com/example-namespace/archsight-solver:v1.5.0 .
+docker build -t archsight-solver:v1.6.0 -t registry.example.com/example-namespace/archsight-solver:v1.6.0 .
 ```
 
 推送：
 
 ```powershell
-docker push registry.example.com/example-namespace/archsight-solver:v1.5.0
+docker push registry.example.com/example-namespace/archsight-solver:v1.6.0
 ```
 
 如果 Docker 环境在拉取基础镜像时不稳定，可临时关闭 BuildKit：
@@ -55,3 +55,25 @@ docker compose up -d --build
 Compose 默认将容器内 `6240` 端口绑定到宿主机本地端口。如需调整宿主机端口，可设置 `APP_HOST_PORT`。
 
 公网部署时建议只通过外层 Nginx、Caddy 或同类网关暴露 `80/443`，并由网关负责 TLS、访问控制、请求体限制和审计策略。
+
+## 正式发布制品
+
+推送 `v1.6.0` 形式的 Git tag 后，GitHub Actions 发布工作流会复跑版本、后端、前端、Playwright 和 Docker 门禁，并生成以下可追踪制品：
+
+- `ghcr.io/<owner>/archsight-solver:v1.6.0` 不可变版本镜像。
+- Docker 镜像归档 `archsight-solver-v1.6.0.tar.gz`。
+- SPDX JSON SBOM、Trivy 高危/严重漏洞扫描报告和 `SHA256SUMS`。
+- 从 `CHANGELOG.md` 当前版本段提取的 GitHub Release 说明。
+
+发布工作流不会推送 `latest`，避免部署配置在未审阅时静默漂移。部署前应核对 tag、镜像摘要和 `SHA256SUMS`。
+
+## 回滚
+
+升级前记录当前容器镜像标签与健康状态。新版本上线后等待 Docker `HEALTHCHECK` 变为 `healthy`，并复核首页、典型求解和导出入口。若失败，重新以先前不可变标签执行部署：
+
+```bash
+./deploy/deploy.sh v1.5.0
+docker inspect --format '{{.Config.Image}} {{if .State.Health}}{{.State.Health.Status}}{{end}}' archsight-solver-app
+```
+
+当前镜像不包含数据库迁移；未来若加入持久化结构变化，必须在发布清单中单独声明备份、兼容和数据恢复步骤。

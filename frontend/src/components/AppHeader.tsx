@@ -25,6 +25,7 @@ interface AppHeaderProps {
   isDark: boolean;
   isFileMenuOpen: boolean;
   isProjectDirty: boolean;
+  isProjectReadOnly: boolean;
   releaseNotesHref: string;
   onNewProjectFile: () => void;
   onOpenProjectFile: () => void;
@@ -44,6 +45,7 @@ export function AppHeader({
   isDark,
   isFileMenuOpen,
   isProjectDirty,
+  isProjectReadOnly,
   releaseNotesHref,
   onNewProjectFile,
   onOpenProjectFile,
@@ -113,11 +115,12 @@ export function AppHeader({
                     <button
                       type="button"
                       role="menuitem"
+                      disabled={isProjectReadOnly}
                       onClick={() => {
                         setIsFileMenuOpen(false);
                         onNewProjectFile();
                       }}
-                      className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 dark:hover:bg-slate-900"
+                      className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-900"
                     >
                       <FilePlus className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" />
                       <span className="block text-sm font-black">新建</span>
@@ -125,11 +128,12 @@ export function AppHeader({
                     <button
                       type="button"
                       role="menuitem"
+                      disabled={isProjectReadOnly}
                       onClick={() => {
                         setIsFileMenuOpen(false);
                         onOpenProjectFile();
                       }}
-                      className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 dark:hover:bg-slate-900"
+                      className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-900"
                     >
                       <FileUp className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" />
                       <span className="block text-sm font-black">打开</span>
@@ -138,11 +142,12 @@ export function AppHeader({
                     <button
                       type="button"
                       role="menuitem"
+                      disabled={isProjectReadOnly}
                       onClick={() => {
                         setIsFileMenuOpen(false);
                         onSaveProjectFile(false);
                       }}
-                      className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 dark:hover:bg-slate-900"
+                      className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-900"
                     >
                       <Save className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" />
                       <span className="block text-sm font-black flex-1">保存</span>
@@ -151,11 +156,12 @@ export function AppHeader({
                     <button
                       type="button"
                       role="menuitem"
+                      disabled={isProjectReadOnly}
                       onClick={() => {
                         setIsFileMenuOpen(false);
                         onSaveProjectFile(true);
                       }}
-                      className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 dark:hover:bg-slate-900"
+                      className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-900"
                     >
                       <FileDown className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-300" />
                       <span className="min-w-0">
@@ -169,6 +175,7 @@ export function AppHeader({
               <div className="mx-0.5 h-5 w-px bg-black/10 dark:bg-white/10" />
               <Button
                 variant="ghost"
+                disabled={isProjectReadOnly}
                 title="保存项目 (Ctrl+S)"
                 onClick={() => onSaveProjectFile(false)}
                 className={`rounded-lg font-bold text-foreground hover:bg-primary/10 ${isCompactWorkbench ? "h-9 px-3 text-xs" : "h-10 px-3.5"}`}
@@ -178,6 +185,7 @@ export function AppHeader({
               </Button>
               <Button
                 variant="ghost"
+                disabled={isProjectReadOnly}
                 onClick={() => setIsPublicExamplesOpen(true)}
                 className={`rounded-lg font-bold text-foreground hover:bg-primary/10 ${isCompactWorkbench ? "h-9 px-3 text-xs" : "h-10 px-3.5"}`}
               >

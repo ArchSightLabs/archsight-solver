@@ -18,9 +18,19 @@ from backend.integration_errors import (
 )
 from backend.project_documents import validate_project_document
 from backend.services.export_service import build_report_model, export_report
+from backend.template_registry import resolve_builtin_template
 
 
 PROJECT_HOST_PROTOCOL_VERSION = "1.0.0"
+HOST_LAUNCH_MESSAGE = "archsight.solver.host.launch"
+HOST_MESSAGE_TYPES = {
+    HOST_LAUNCH_MESSAGE,
+    "archsight.solver.host.saveResult",
+    "archsight.solver.ready",
+    "archsight.solver.project.changed",
+    "archsight.solver.project.saveRequest",
+    "archsight.solver.error",
+}
 SUPPORTED_EXPORT_FORMATS = {"docx", "xlsx"}
 DEFAULT_RESULT_SOURCE = {
     "source": "primary",
@@ -28,34 +38,6 @@ DEFAULT_RESULT_SOURCE = {
     "label": "主结果",
     "description": "基本荷载",
 }
-
-SIMPLE_SPAN_UNIFORM_BEAM_STATE: dict[str, Any] = {
-    "projectName": "简支梁均布荷载",
-    "materialId": "q345",
-    "beamType": "simply_supported",
-    "loadType": "uniform",
-    "uniformLoadEnabled": True,
-    "linearLoadEnabled": False,
-    "linearLoads": [],
-    "pointLoads": [],
-    "q": 12,
-    "uniformLoadStartRatio": 0,
-    "uniformLoadEndRatio": 1,
-    "pointLoad": 40,
-    "pointLoadPositionRatio": 0.5,
-    "distributedLoadStart": 8,
-    "distributedLoadEnd": 14,
-    "distributedLoadStartRatio": 0,
-    "distributedLoadEndRatio": 1,
-    "freq": 1.2,
-    "duration": 5,
-    "spans": [{"id": "(1)", "length": 6, "E": 210, "I": 8000}],
-    "supports": [
-        {"id": "S1", "x": 0, "type": "pinned"},
-        {"id": "S2", "x": 6, "type": "roller"},
-    ],
-}
-
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -132,6 +114,25 @@ def _host_nonce(value: Any) -> str:
     return str(value or "").strip()
 
 
+def build_host_message(message_type: str, session_id: str, nonce: str, payload: Mapping[str, Any]) -> dict[str, Any]:
+    normalized_message_type = str(message_type or "").strip()
+    normalized_session_id = str(session_id or "").strip()
+    normalized_nonce = _host_nonce(nonce)
+    if normalized_message_type not in HOST_MESSAGE_TYPES:
+        raise ValueError(f"不支持的 host message type: {normalized_message_type or '未声明'}。")
+    if not normalized_session_id:
+        raise ValueError("host message 缺少 sessionId。")
+    if not normalized_nonce:
+        raise ValueError("host message 缺少 nonce。")
+    return {
+        "type": normalized_message_type,
+        "protocolVersion": PROJECT_HOST_PROTOCOL_VERSION,
+        "sessionId": normalized_session_id,
+        "nonce": normalized_nonce,
+        "payload": dict(payload),
+    }
+
+
 def build_host_launch_contract(
     raw_document: str | Mapping[str, Any],
     launch: Mapping[str, Any] | None = None,
@@ -150,7 +151,7 @@ def build_host_launch_contract(
         "acceptSaveResult": True,
         "localFileFallback": bool(launch_options.get("localFileFallback", True)),
     }
-    return {
+    contract = {
         "ok": True,
         "protocolVersion": PROJECT_HOST_PROTOCOL_VERSION,
         "launchId": f"launch-{uuid.uuid4()}",
@@ -163,6 +164,16 @@ def build_host_launch_contract(
         "capabilities": capabilities,
         "events": [_event("solver.host_launch_created", project_document, timestamp, {"mode": mode, "nonce": nonce})],
     }
+    contract["hostMessage"] = build_host_message(
+        HOST_LAUNCH_MESSAGE,
+        session_id,
+        nonce,
+        {
+            "projectDocument": project_document,
+            "mode": mode,
+        },
+    )
+    return contract
 
 
 def load_host_project(raw_document: str | Mapping[str, Any], session_id: str | None = None, now: str | None = None) -> dict[str, Any]:
@@ -180,16 +191,20 @@ def load_host_project(raw_document: str | Mapping[str, Any], session_id: str | N
 
 
 def _apply_builtin_template(project_document: Mapping[str, Any], template_id: str, now: str) -> dict[str, Any]:
-    if template_id != "beam.simple_span_uniform":
+    template = resolve_builtin_template(template_id)
+    if template is None:
         raise IntegrationContractError(UNSUPPORTED_HOST_CHANGE, f"不支持的内置模板: {template_id}")
+    analysis_type = str(template["structureType"])
+    template_title = str(template["title"])
+    template_state = {"solverPayload": copy.deepcopy(template["solverPayload"])}
     next_document = copy.deepcopy(dict(project_document))
     project = _project_from_document(next_document)
     objects = [dict(item) for item in project.get("objects", []) if isinstance(item, Mapping)]
     if not objects:
         objects = [{
-            "id": f"beam-{uuid.uuid4()}",
-            "name": "简支梁均布荷载",
-            "type": "beam",
+            "id": f"{analysis_type}-{uuid.uuid4()}",
+            "name": template_title,
+            "type": analysis_type,
             "state": {},
             "results": None,
             "sensitivityResults": None,
@@ -206,9 +221,9 @@ def _apply_builtin_template(project_document: Mapping[str, Any], template_id: st
         if str(item.get("id") or "") == active_id:
             updated = {
                 **item,
-                "name": "简支梁均布荷载",
-                "type": "beam",
-                "state": copy.deepcopy(SIMPLE_SPAN_UNIFORM_BEAM_STATE),
+                "name": template_title,
+                "type": analysis_type,
+                "state": template_state,
                 "results": None,
                 "sensitivityResults": None,
                 "workbenchView": "model",

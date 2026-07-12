@@ -19,6 +19,7 @@ test("parseHostLaunchMessage accepts a neutral host project document", () => {
 
   const launch = parseHostLaunchMessage({
     type: HOST_LAUNCH_MESSAGE,
+    protocolVersion: "1.0.0",
     sessionId: "session-1",
     nonce: "nonce-1",
     payload: {
@@ -57,5 +58,24 @@ test("host origin helpers support allowlist checks without platform concepts", (
   assert.deepEqual(origins, ["https://lms.example.edu", "https://portal.example.edu"]);
   assert.equal(isHostOriginAllowed("https://lms.example.edu", origins), true);
   assert.equal(isHostOriginAllowed("https://evil.example.edu", origins), false);
-  assert.equal(isHostOriginAllowed("https://any.example.edu", []), true);
+  assert.equal(isHostOriginAllowed("https://any.example.edu", []), false);
+});
+
+test("host launch rejects missing session binding and protocol drift", () => {
+  const project = createDefaultSolverProject(new Date("2026-07-04T00:00:00.000Z"));
+  const projectDocument = createArchSightSolverProjectFile(project, new Date("2026-07-04T00:01:00.000Z"));
+
+  assert.throws(() => parseHostLaunchMessage({
+    type: HOST_LAUNCH_MESSAGE,
+    protocolVersion: "1.0.0",
+    payload: { projectDocument },
+  }), /sessionId.*nonce/u);
+
+  assert.throws(() => parseHostLaunchMessage({
+    type: HOST_LAUNCH_MESSAGE,
+    protocolVersion: "2.0.0",
+    sessionId: "session-1",
+    nonce: "nonce-1",
+    payload: { projectDocument },
+  }), /协议版本不匹配/u);
 });

@@ -1,0 +1,159 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Validate and publish
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ github.ref_name }}
+      LOCAL_IMAGE: archsight-solver:release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Setup Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.13"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@e58605a9b6da7c637471fab8847a5e5a6b8df081
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Validate tag and release metadata
+        shell: bash
+        run: |
+          python scripts/check_versions.py --expected-version "${VERSION#v}"
+          python scripts/check_release_gate.py
+
+      - name: Install dependencies
+        run: |
+          uv sync --frozen
+          npm --prefix frontend ci
+
+      - name: Run release tests
+        run: |
+          uv run python -m pytest backend/tests -q
+          npm --prefix frontend run lint
+          npm --prefix frontend run test:unit
+          npm --prefix frontend audit --omit=dev --audit-level=moderate
+          npm --prefix frontend run build
+          git diff --exit-code -- frontend/public/docs/release-notes.md frontend/public/docs/release-notes.html
+
+      - name: Run Playwright release smoke
+        run: |
+          npm --prefix frontend exec playwright install --with-deps chromium
+          npm --prefix frontend run test:visual -- release-1-6-host-integration.spec.ts --project=chromium --workers=1
+          npm --prefix frontend run test:visual -- release-1-5-quick-modeling.spec.ts --project=chromium --workers=1
+          npm --prefix frontend run test:visual -- release-1-5-load-scenarios.spec.ts --project=chromium --workers=1
+
+      - name: Build release image
+        run: |
+          mkdir -p dist
+          docker build --tag "$LOCAL_IMAGE" .
+
+      - name: Run release container health smoke
+        shell: bash
+        run: |
+          docker run --detach --name solver-release --publish 127.0.0.1:6280:6240 "$LOCAL_IMAGE"
+          for attempt in $(seq 1 20); do
+            status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}' solver-release)"
+            if [ "$status" = "healthy" ]; then
+              exit 0
+            fi
+            if [ "$status" = "unhealthy" ]; then
+              docker logs solver-release
+              exit 1
+            fi
+            sleep 3
+          done
+          docker logs solver-release
+          exit 1
+
+      - name: Remove release smoke container
+        if: always()
+        run: docker rm --force solver-release || true
+
+      - name: Scan release image
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8
+        with:
+          image-ref: archsight-solver:release
+          format: json
+          output: dist/trivy-report.json
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Generate SPDX SBOM
+        uses: anchore/sbom-action@8e94d75ddd33f69f691467e42275782e4bfefe84
+        with:
+          image: archsight-solver:release
+          format: spdx-json
+          output-file: dist/archsight-solver-${{ github.ref_name }}.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Package image and release notes
+        shell: bash
+        run: |
+          mkdir -p dist
+          docker save "$LOCAL_IMAGE" | gzip -9 > "dist/archsight-solver-${VERSION}.tar.gz"
+          python - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          version = os.environ["VERSION"]
+          changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
+          match = re.search(rf"^## {re.escape(version)}\s*$\n(.*?)(?=^## |\Z)", changelog, re.MULTILINE | re.DOTALL)
+          if not match:
+              raise SystemExit(f"CHANGELOG.md 中未找到 {version} 发布说明")
+          Path("dist/release-notes.md").write_text(match.group(1).strip() + "\n", encoding="utf-8")
+          PY
+          sha256sum dist/*.tar.gz dist/*.spdx.json dist/trivy-report.json > dist/SHA256SUMS
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push immutable image tag
+        shell: bash
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          image="ghcr.io/${owner}/archsight-solver:${VERSION}"
+          docker tag "$LOCAL_IMAGE" "$image"
+          docker push "$image"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$VERSION" \
+            dist/archsight-solver-*.tar.gz \
+            dist/archsight-solver-*.spdx.json \
+            dist/trivy-report.json \
+            dist/SHA256SUMS \
+            --verify-tag \
+            --title "$VERSION" \
+            --notes-file dist/release-notes.md

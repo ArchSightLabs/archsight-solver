@@ -880,7 +880,7 @@ HOST_MESSAGE_SCHEMA: Dict[str, Any] = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "ArchSight Solver 外部宿主消息",
     "type": "object",
-    "required": ["type"],
+    "required": ["type", "protocolVersion", "sessionId", "nonce", "payload"],
     "properties": {
         "type": {
             "type": "string",
@@ -894,11 +894,54 @@ HOST_MESSAGE_SCHEMA: Dict[str, Any] = {
             ],
         },
         "protocolVersion": {"type": "string", "const": "1.0.0"},
-        "sessionId": {"type": "string"},
-        "nonce": {"type": "string"},
+        "sessionId": {"type": "string", "minLength": 1},
+        "nonce": {"type": "string", "minLength": 1},
         "payload": {"type": "object", "additionalProperties": True},
     },
-    "additionalProperties": True,
+    "allOf": [
+        {
+            "if": {"properties": {"type": {"const": "archsight.solver.host.launch"}}},
+            "then": {
+                "properties": {
+                    "payload": {
+                        "type": "object",
+                        "required": ["projectDocument", "mode"],
+                        "properties": {
+                            "projectDocument": {"type": ["object", "string"]},
+                            "mode": {"type": "string", "enum": ["editable", "readonly"]},
+                        },
+                        "additionalProperties": True,
+                    },
+                },
+            },
+        },
+        {
+            "if": {"properties": {"type": {"const": "archsight.solver.host.saveResult"}}},
+            "then": {
+                "properties": {
+                    "payload": {
+                        "type": "object",
+                        "required": ["status"],
+                        "properties": {"status": {"type": "string", "enum": ["saved", "failed", "conflict"]}},
+                        "additionalProperties": True,
+                    },
+                },
+            },
+        },
+        {
+            "if": {"properties": {"type": {"enum": ["archsight.solver.project.changed", "archsight.solver.project.saveRequest"]}}},
+            "then": {"properties": {"payload": {"type": "object", "required": ["projectDocument"]}}},
+        },
+        {
+            "if": {"properties": {"type": {"const": "archsight.solver.ready"}}},
+            "then": {"properties": {"payload": {"type": "object", "required": ["capabilities"]}}},
+        },
+        {
+            "if": {"properties": {"type": {"const": "archsight.solver.error"}}},
+            "then": {"properties": {"payload": {"type": "object", "required": ["message"]}}},
+        },
+    ],
+    "additionalProperties": False,
 }
 
 ARTIFACT_MANIFEST_SCHEMA: Dict[str, Any] = {

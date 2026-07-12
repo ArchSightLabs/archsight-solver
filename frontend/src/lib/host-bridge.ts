@@ -46,7 +46,7 @@ export function normalizeHostOriginList(value: string | readonly string[] | null
 
 export function isHostOriginAllowed(origin: string, allowedOrigins: readonly string[]): boolean {
   if (allowedOrigins.length === 0) {
-    return true;
+    return typeof window !== "undefined" && origin === window.location.origin;
   }
   return allowedOrigins.includes(origin);
 }
@@ -58,6 +58,14 @@ export function isSolverHostMessage(value: unknown): value is SolverHostMessage 
 export function parseHostLaunchMessage(value: unknown): HostLaunchResult | null {
   if (!isSolverHostMessage(value) || value.type !== HOST_LAUNCH_MESSAGE) {
     return null;
+  }
+  if (value.protocolVersion !== SOLVER_HOST_PROTOCOL_VERSION) {
+    throw new Error(`host 协议版本不匹配，期望 ${SOLVER_HOST_PROTOCOL_VERSION}。`);
+  }
+  const sessionId = String(value.sessionId ?? "").trim();
+  const nonce = String(value.nonce ?? "").trim();
+  if (!sessionId || !nonce) {
+    throw new Error("host launch 必须提供非空 sessionId 与 nonce。");
   }
   const payload = value.payload && typeof value.payload === "object" ? value.payload as HostLaunchPayload : {};
   const rawDocument = payload.projectDocument;
@@ -71,8 +79,8 @@ export function parseHostLaunchMessage(value: unknown): HostLaunchResult | null 
     throw new Error(parsed.error ?? "host launch 项目文件无效。");
   }
   return {
-    sessionId: value.sessionId || `host-session-${Date.now()}`,
-    nonce: value.nonce || payload.nonce || null,
+    sessionId,
+    nonce,
     mode: payload.mode === "readonly" ? "readonly" : "editable",
     projectFile: parsed.value,
     fileName: payload.fileName || null,
