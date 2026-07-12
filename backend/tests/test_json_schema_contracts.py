@@ -67,6 +67,16 @@ class _FallbackContractValidator:
         if isinstance(value, list) and isinstance(schema.get("items"), dict):
             for index, item in enumerate(value):
                 self._validate(item, schema["items"], f"{path}[{index}]")
+        conditional = schema.get("if")
+        if isinstance(conditional, dict):
+            try:
+                self._validate(value, conditional, path)
+            except _FallbackValidationError:
+                selected_branch = schema.get("else")
+            else:
+                selected_branch = schema.get("then")
+            if isinstance(selected_branch, dict):
+                self._validate(value, selected_branch, path)
         for keyword in ("allOf", "anyOf", "oneOf"):
             branches = schema.get(keyword)
             if not branches:
