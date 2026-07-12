@@ -632,6 +632,28 @@ SENSITIVITY_TOOL_INPUT_SCHEMA: Dict[str, Any] = {
     "additionalProperties": False,
 }
 
+EMPTY_TOOL_INPUT_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("empty-tool-input"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "空工具输入",
+    "type": "object",
+    "properties": {},
+    "additionalProperties": False,
+}
+
+PROJECT_DOCUMENT_TOOL_INPUT_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("project-document-tool-input"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "项目文档工具输入",
+    "type": "object",
+    "anyOf": [{"required": ["projectDocument"]}, {"required": ["projectDocumentText"]}],
+    "properties": {
+        "projectDocument": {"type": "object", "description": "archsight-solver.project 项目文档 JSON object。"},
+        "projectDocumentText": {"type": "string", "description": "archsight-solver.project 项目文档 JSON 字符串。"},
+    },
+    "additionalProperties": True,
+}
+
 BENCHMARK_CASE_LIST_INPUT_SCHEMA: Dict[str, Any] = {
     "$id": _schema_id("benchmark-case-list-input"),
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -815,6 +837,173 @@ BENCHMARK_SUBMISSION_PACKAGE_RESPONSE_SCHEMA: Dict[str, Any] = {
     "additionalProperties": True,
 }
 
+PROJECT_FILE_MANIFEST_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("project-file-manifest"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "ArchSight Solver 本地项目文件 Manifest",
+    "type": "object",
+    "required": ["manifestVersion", "projectFileKind", "containerVersion", "entries", "contract", "containerCapabilities"],
+    "properties": {
+        "manifestVersion": {"type": "string", "const": "1.0.0"},
+        "projectFileKind": {"type": "string", "enum": ["single-json", "zip-container", "project-folder"]},
+        "containerVersion": {"type": "string"},
+        "entries": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["path", "role", "mediaType", "required"],
+                "properties": {
+                    "path": {"type": "string"},
+                    "role": {"type": "string"},
+                    "mediaType": {"type": "string"},
+                    "required": {"type": "boolean"},
+                },
+                "additionalProperties": True,
+            },
+        },
+        "contract": {
+            "type": "object",
+            "required": ["projectFileSchemaVersion", "asmsJsonSchemaVersion"],
+            "properties": {
+                "projectFileSchemaVersion": {"type": "string"},
+                "asmsJsonSchemaVersion": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+        "containerCapabilities": {"type": "object", "additionalProperties": {"type": "boolean"}},
+    },
+    "additionalProperties": True,
+}
+
+HOST_MESSAGE_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("solver-host-message"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "ArchSight Solver 外部宿主消息",
+    "type": "object",
+    "required": ["type", "protocolVersion", "sessionId", "nonce", "payload"],
+    "properties": {
+        "type": {
+            "type": "string",
+            "enum": [
+                "archsight.solver.host.launch",
+                "archsight.solver.host.saveResult",
+                "archsight.solver.ready",
+                "archsight.solver.project.changed",
+                "archsight.solver.project.saveRequest",
+                "archsight.solver.error",
+            ],
+        },
+        "protocolVersion": {"type": "string", "const": "1.0.0"},
+        "sessionId": {"type": "string", "minLength": 1},
+        "nonce": {"type": "string", "minLength": 1},
+        "payload": {"type": "object", "additionalProperties": True},
+    },
+    "allOf": [
+        {
+            "if": {"properties": {"type": {"const": "archsight.solver.host.launch"}}},
+            "then": {
+                "properties": {
+                    "payload": {
+                        "type": "object",
+                        "required": ["projectDocument", "mode"],
+                        "properties": {
+                            "projectDocument": {"type": ["object", "string"]},
+                            "mode": {"type": "string", "enum": ["editable", "readonly"]},
+                        },
+                        "additionalProperties": True,
+                    },
+                },
+            },
+        },
+        {
+            "if": {"properties": {"type": {"const": "archsight.solver.host.saveResult"}}},
+            "then": {
+                "properties": {
+                    "payload": {
+                        "type": "object",
+                        "required": ["status"],
+                        "properties": {"status": {"type": "string", "enum": ["saved", "failed", "conflict"]}},
+                        "additionalProperties": True,
+                    },
+                },
+            },
+        },
+        {
+            "if": {"properties": {"type": {"enum": ["archsight.solver.project.changed", "archsight.solver.project.saveRequest"]}}},
+            "then": {"properties": {"payload": {"type": "object", "required": ["projectDocument"]}}},
+        },
+        {
+            "if": {"properties": {"type": {"const": "archsight.solver.ready"}}},
+            "then": {"properties": {"payload": {"type": "object", "required": ["capabilities"]}}},
+        },
+        {
+            "if": {"properties": {"type": {"const": "archsight.solver.error"}}},
+            "then": {"properties": {"payload": {"type": "object", "required": ["message"]}}},
+        },
+    ],
+    "additionalProperties": False,
+}
+
+ARTIFACT_MANIFEST_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("solver-artifact-manifest"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "ArchSight Solver 导出物 Manifest",
+    "type": "object",
+    "required": ["artifactId", "manifestVersion", "artifactType", "format", "fileName", "mimeType", "createdAt"],
+    "properties": {
+        "artifactId": {"type": "string"},
+        "manifestVersion": {"type": "string", "const": "1.0.0"},
+        "artifactType": {"type": "string", "const": "solver.export"},
+        "format": {"type": "string", "enum": ["docx", "xlsx"]},
+        "fileName": {"type": "string"},
+        "mimeType": {"type": "string"},
+        "byteSize": {"type": "integer", "minimum": 0},
+        "createdAt": {"type": "string"},
+        "projectFileSchemaVersion": {"type": "string"},
+        "asmsJsonSchemaVersion": {"type": "string"},
+        "contract": {"type": "object", "additionalProperties": True},
+        "projectManifest": PROJECT_FILE_MANIFEST_SCHEMA,
+        "resultSource": {"type": "object", "additionalProperties": True},
+        "diagnosticsSummary": {"type": "object", "additionalProperties": True},
+        "snapshot": {"type": "object", "additionalProperties": True},
+    },
+    "additionalProperties": True,
+}
+
+TEMPLATE_REGISTRY_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("solver-template-registry"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "ArchSight Solver 内置模板 Registry",
+    "type": "object",
+    "required": ["registryVersion", "templateCount", "templates"],
+    "properties": {
+        "registryVersion": {"type": "string", "const": "1.0.0"},
+        "templateCount": {"type": "integer", "minimum": 0},
+        "templates": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["templateId", "structureType", "structureLabel", "title", "entryPoints", "supportedActions", "primaryResultMetrics", "benchmarkMapping", "benchmarkRefCount", "hasDirectBenchmark", "source"],
+                "properties": {
+                    "templateId": {"type": "string"},
+                    "structureType": {"type": "string", "enum": ["beam", "frame", "truss"]},
+                    "structureLabel": {"type": "string"},
+                    "title": {"type": "string"},
+                    "entryPoints": {"type": "array", "items": {"type": "string"}},
+                    "supportedActions": {"type": "array", "items": {"type": "string"}},
+                    "primaryResultMetrics": {"type": "array", "items": {"type": "string"}},
+                    "benchmarkMapping": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+                    "benchmarkRefCount": {"type": "integer", "minimum": 0},
+                    "hasDirectBenchmark": {"type": "boolean"},
+                    "source": {"type": "string", "const": "builtin"},
+                },
+                "additionalProperties": True,
+            },
+        },
+    },
+    "additionalProperties": True,
+}
+
 SCHEMA_REGISTRY: Dict[str, Dict[str, Any]] = {
     "asms-model": ASMS_MODEL_SCHEMA,
     "asms-beam-model": ASMS_BEAM_MODEL_SCHEMA,
@@ -829,12 +1018,18 @@ SCHEMA_REGISTRY: Dict[str, Dict[str, Any]] = {
     "truss-tool-input": TRUSS_TOOL_INPUT_SCHEMA,
     "calculate-tool-input": CALCULATE_TOOL_INPUT_SCHEMA,
     "sensitivity-tool-input": SENSITIVITY_TOOL_INPUT_SCHEMA,
+    "empty-tool-input": EMPTY_TOOL_INPUT_SCHEMA,
+    "project-document-tool-input": PROJECT_DOCUMENT_TOOL_INPUT_SCHEMA,
     "benchmark-case-list-input": BENCHMARK_CASE_LIST_INPUT_SCHEMA,
     "benchmark-case-run-input": BENCHMARK_CASE_RUN_INPUT_SCHEMA,
     "benchmark-submission-input": BENCHMARK_SUBMISSION_INPUT_SCHEMA,
     "benchmark-submission-response": BENCHMARK_SUBMISSION_RESPONSE_SCHEMA,
     "benchmark-submission-package": BENCHMARK_SUBMISSION_PACKAGE_SCHEMA,
     "benchmark-submission-package-response": BENCHMARK_SUBMISSION_PACKAGE_RESPONSE_SCHEMA,
+    "project-file-manifest": PROJECT_FILE_MANIFEST_SCHEMA,
+    "solver-host-message": HOST_MESSAGE_SCHEMA,
+    "solver-artifact-manifest": ARTIFACT_MANIFEST_SCHEMA,
+    "solver-template-registry": TEMPLATE_REGISTRY_SCHEMA,
 }
 
 

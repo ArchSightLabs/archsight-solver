@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ArchSight Solver Host iframe Demo</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f8fafc;
+        color: #0f172a;
+      }
+      main {
+        display: grid;
+        grid-template-columns: 360px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+      aside {
+        border-right: 1px solid #cbd5e1;
+        background: #ffffff;
+        padding: 16px;
+      }
+      iframe {
+        width: 100%;
+        height: 100vh;
+        border: 0;
+        background: #ffffff;
+      }
+      label,
+      button,
+      input {
+        font: inherit;
+      }
+      input {
+        box-sizing: border-box;
+        width: 100%;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        padding: 8px 10px;
+      }
+      button {
+        border: 1px solid #0f766e;
+        border-radius: 6px;
+        background: #0f766e;
+        color: #ffffff;
+        cursor: pointer;
+        font-weight: 700;
+        padding: 8px 10px;
+      }
+      .toolbar {
+        display: grid;
+        gap: 10px;
+      }
+      pre {
+        max-height: 58vh;
+        overflow: auto;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        background: #0f172a;
+        color: #e2e8f0;
+        padding: 10px;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <aside>
+        <h1>Host iframe demo</h1>
+        <p>中性宿主示例：launch、changed、saveRequest、saveResult。</p>
+        <div class="toolbar">
+          <label>
+            Solver URL
+            <input id="solverUrl" value="http://127.0.0.1:6241" />
+          </label>
+          <button id="reload">加载 iframe</button>
+          <button id="launch">发送 launch</button>
+          <button id="saveResult">发送保存成功</button>
+        </div>
+        <h2>消息日志</h2>
+        <pre id="log"></pre>
+      </aside>
+      <iframe id="solverFrame" title="ArchSight Solver"></iframe>
+    </main>
+    <script>
+      const PROTOCOL_VERSION = "1.0.0";
+      const sessionId = `host-session-${crypto.randomUUID()}`;
+      const nonce = `nonce-${crypto.randomUUID()}`;
+      const frame = document.querySelector("#solverFrame");
+      const solverUrl = document.querySelector("#solverUrl");
+      const log = document.querySelector("#log");
+      let latestProjectDocument = null;
+
+      function appendLog(label, payload) {
+        const line = `[${new Date().toISOString()}] ${label}\n${JSON.stringify(payload, null, 2)}\n\n`;
+        log.textContent = `${line}${log.textContent}`;
+      }
+
+      function solverOrigin() {
+        return new URL(solverUrl.value).origin;
+      }
+
+      function loadFrame() {
+        frame.src = solverUrl.value;
+        appendLog("iframe.load", { url: solverUrl.value });
+      }
+
+      function projectDocument() {
+        const now = new Date().toISOString();
+        return {
+          schema: "archsight-solver.project",
+          schemaVersion: "2.0.0",
+          product: "archsight-solver",
+          appVersion: "",
+          contract: {
+            asmsJsonSchemaVersion: "2026-05-30",
+            projectFileSchemaVersion: "2.0.0",
+            modelRoundTrip: "normalized",
+          },
+          manifest: {
+            manifestVersion: "1.0.0",
+            projectFileKind: "single-json",
+            containerVersion: "1.0.0",
+            entries: [
+              { path: "project.json", role: "projectDocument", mediaType: "application/json", required: true },
+              { path: "manifest.json", role: "projectManifest", mediaType: "application/json", required: false },
+            ],
+            contract: {
+              asmsJsonSchemaVersion: "2026-05-30",
+              projectFileSchemaVersion: "2.0.0",
+            },
+            containerCapabilities: {
+              "single-json": true,
+              "zip-container": false,
+              "project-folder": false,
+            },
+          },
+          createdAt: now,
+          updatedAt: now,
+          units: { length: "m", force: "kN", stress: "MPa", modulus: "GPa", inertia: "cm4" },
+          project: {
+            id: "project-host-demo",
+            name: "Host iframe demo",
+            activeObjectId: "",
+            objects: [],
+            settings: { projectInfo: { name: "Host iframe demo" } },
+            createdAt: now,
+            updatedAt: now,
+          },
+        };
+      }
+
+      function postToSolver(message) {
+        frame.contentWindow?.postMessage(message, solverOrigin());
+        appendLog("host.out", message);
+      }
+
+      document.querySelector("#reload").addEventListener("click", loadFrame);
+      document.querySelector("#launch").addEventListener("click", () => {
+        latestProjectDocument = projectDocument();
+        postToSolver({
+          type: "archsight.solver.host.launch",
+          protocolVersion: PROTOCOL_VERSION,
+          sessionId,
+          nonce,
+          payload: {
+            mode: "editable",
+            fileName: "host-demo.slv",
+            projectDocument: latestProjectDocument,
+          },
+        });
+      });
+      document.querySelector("#saveResult").addEventListener("click", () => {
+        postToSolver({
+          type: "archsight.solver.host.saveResult",
+          protocolVersion: PROTOCOL_VERSION,
+          sessionId,
+          nonce,
+          payload: { status: "saved", revision: `rev-${Date.now()}` },
+        });
+      });
+
+      window.addEventListener("message", (event) => {
+        if (event.origin !== solverOrigin()) return;
+        appendLog("solver.in", event.data);
+        if (event.data?.payload?.projectDocument) {
+          latestProjectDocument = event.data.payload.projectDocument;
+        }
+        if (event.data?.type === "archsight.solver.project.saveRequest") {
+          postToSolver({
+            type: "archsight.solver.host.saveResult",
+            protocolVersion: PROTOCOL_VERSION,
+            sessionId,
+            nonce,
+            payload: { status: "saved", revision: `rev-${Date.now()}` },
+          });
+        }
+      });
+
+      loadFrame();
+    </script>
+  </body>
+</html>

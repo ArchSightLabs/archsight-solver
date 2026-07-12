@@ -94,6 +94,8 @@ deploy/.env
 deploy/docker-compose.yml
 scripts/*
 !scripts/build-image.ps1
+!scripts/check_release_gate.py
+!scripts/check_versions.py
 !scripts/generate_benchmark_report.py
 !scripts/kill-ports.ps1
 !scripts/remote-deploy.ps1
@@ -105,3 +107,4 @@ specs/
 external/
 frontend/unit_tests_output.txt
 frontend/find_failed_tests.js
+pytest-cache-files-*/

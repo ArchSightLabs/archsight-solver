@@ -351,6 +351,7 @@ Content-Type: application/json
 - `capability-result`
 - `calculate-tool-input`
 - `sensitivity-tool-input`
+- `project-document-tool-input`
 - `benchmark-case-run-input`
 - `benchmark-submission-input`
 - `benchmark-submission-response`
@@ -478,6 +479,18 @@ python -m backend.benchmarks.review_submission path/to/benchmark-submission.json
 '{"caseId":"BM-001"}' | python -m backend.capabilities.solver_cli benchmark_case_run --pretty
 ```
 
+检查项目文件契约与托管状态：
+
+```powershell
+python -m backend.capabilities.solver_cli project_document_health --input project.slv --pretty
+```
+
+读取内置模板 registry：
+
+```powershell
+'{}' | python -m backend.capabilities.solver_cli project_template_registry --pretty
+```
+
 ## MCP Server
 
 启动：
@@ -496,6 +509,8 @@ Tools：
 - `sensitivity_analysis`
 - `benchmark_case_list`
 - `benchmark_case_run`
+- `project_document_health`
+- `project_template_registry`
 
 Resources：
 

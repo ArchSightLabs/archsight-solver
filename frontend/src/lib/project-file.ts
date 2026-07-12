@@ -5,6 +5,8 @@ export const ARCHSIGHT_SOLVER_PROJECT_SCHEMA = "archsight-solver.project";
 export const ARCHSIGHT_SOLVER_PRODUCT_ID = "archsight-solver";
 export const ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION = "2.0.0";
 export const ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION = "2026-05-30";
+export const ARCHSIGHT_SOLVER_PROJECT_MANIFEST_VERSION = "1.0.0";
+export const ARCHSIGHT_SOLVER_PROJECT_CONTAINER_VERSION = "1.0.0";
 export const ARCHSIGHT_SOLVER_SUPPORTED_PROJECT_FILE_VERSIONS = ["1.0.0", ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION] as const;
 export const ARCHSIGHT_SOLVER_PROJECT_EXTENSION = ".slv";
 export const ARCHSIGHT_SOLVER_LEGACY_PROJECT_EXTENSIONS = [".aslv.json", ".json"] as const;
@@ -23,6 +25,22 @@ export interface ArchSightSolverProjectFile {
     asmsJsonSchemaVersion: typeof ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION;
     projectFileSchemaVersion: typeof ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION;
     modelRoundTrip: "normalized";
+  };
+  manifest: {
+    manifestVersion: typeof ARCHSIGHT_SOLVER_PROJECT_MANIFEST_VERSION;
+    projectFileKind: "single-json" | "zip-container" | "project-folder";
+    containerVersion: typeof ARCHSIGHT_SOLVER_PROJECT_CONTAINER_VERSION;
+    entries: Array<{
+      path: string;
+      role: "projectDocument" | "projectManifest" | string;
+      mediaType: string;
+      required: boolean;
+    }>;
+    contract: {
+      asmsJsonSchemaVersion: typeof ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION;
+      projectFileSchemaVersion: typeof ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION;
+    };
+    containerCapabilities: Record<string, boolean>;
   };
   createdAt: string;
   updatedAt: string;
@@ -139,6 +157,54 @@ function sanitizeFileNameSegment(value: string): string {
     .trim();
 }
 
+function createProjectFileManifest(): ArchSightSolverProjectFile["manifest"] {
+  return {
+    manifestVersion: ARCHSIGHT_SOLVER_PROJECT_MANIFEST_VERSION,
+    projectFileKind: "single-json",
+    containerVersion: ARCHSIGHT_SOLVER_PROJECT_CONTAINER_VERSION,
+    entries: [
+      {
+        path: "project.json",
+        role: "projectDocument",
+        mediaType: "application/json",
+        required: true,
+      },
+      {
+        path: "manifest.json",
+        role: "projectManifest",
+        mediaType: "application/json",
+        required: false,
+      },
+    ],
+    contract: {
+      asmsJsonSchemaVersion: ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION,
+      projectFileSchemaVersion: ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION,
+    },
+    containerCapabilities: {
+      "single-json": true,
+      "zip-container": false,
+      "project-folder": false,
+    },
+  };
+}
+
+function normalizeProjectFileManifest(value: unknown): ArchSightSolverProjectFile["manifest"] {
+  const manifest = createProjectFileManifest();
+  if (!isRecord(value)) {
+    return manifest;
+  }
+  const rawKind = String(value.projectFileKind ?? "single-json");
+  const projectFileKind = rawKind === "zip-container" || rawKind === "project-folder" ? rawKind : "single-json";
+  return {
+    ...manifest,
+    projectFileKind,
+    containerCapabilities: {
+      ...manifest.containerCapabilities,
+      [projectFileKind]: projectFileKind === "single-json",
+    },
+  };
+}
+
 export function createArchSightSolverProjectFile(project: SolverProject, now = new Date()): ArchSightSolverProjectFile {
   const normalizedProject = normalizeSolverProject(project);
   const timestamp = now.toISOString();
@@ -153,6 +219,7 @@ export function createArchSightSolverProjectFile(project: SolverProject, now = n
       projectFileSchemaVersion: ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION,
       modelRoundTrip: "normalized",
     },
+    manifest: createProjectFileManifest(),
     createdAt: timestamp,
     updatedAt: timestamp,
     project: normalizedProject,
@@ -263,6 +330,7 @@ export function parseArchSightSolverProjectFile(rawText: string): ProjectFilePar
         projectFileSchemaVersion: ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION,
         modelRoundTrip: "normalized",
       },
+      manifest: normalizeProjectFileManifest(parsed.manifest),
       createdAt: String(parsed.createdAt ?? ""),
       updatedAt: String(parsed.updatedAt ?? ""),
       project: normalizedProject,

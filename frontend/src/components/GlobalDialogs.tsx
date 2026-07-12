@@ -7,6 +7,7 @@ import { PublicExamplesDialog } from "./PublicExamplesDialog";
 import { BenchmarkSubmissionDialog } from "./BenchmarkSubmissionDialog";
 import { TemplateLibraryPanel } from "./TemplateLibraryPanel";
 import { analysisVocabulary } from "../lib/analysis-vocabulary";
+import { buildProjectContractSummary } from "../lib/project-health";
 import { createWorkspaceSnapshot } from "../lib/template-library";
 import { useDialogs } from "../contexts/DialogContext";
 import type { SolverProject, ProjectInfo, AnalysisObjectType } from "../lib/solver-project";
@@ -19,6 +20,7 @@ import type { TemplateActionResult } from "../lib/template-library";
 
 interface GlobalDialogsProps {
   isCompactWorkbench: boolean;
+  isProjectReadOnly: boolean;
   project: SolverProject;
   visitStats: { pageViews: string; uniqueVisitors: string };
   setModelPreviewStyle: (style: ModelPreviewStyle) => void;
@@ -58,7 +60,7 @@ interface GlobalDialogsProps {
 }
 
 export function GlobalDialogs({
-  isCompactWorkbench, project, visitStats, setModelPreviewStyle,
+  isCompactWorkbench, isProjectReadOnly, project, visitStats, setModelPreviewStyle,
   objectCountByType, handleCreateAnalysisObject,
   setCustomMaterials, handleUpdateProjectInfo, handleCreateProjectWithInfo,
   handleOpenPublicExampleProject,
@@ -90,7 +92,7 @@ export function GlobalDialogs({
         />
       )}
 
-      {isNewAnalysisObjectDialogOpen && (
+      {isNewAnalysisObjectDialogOpen && !isProjectReadOnly && (
         <NewAnalysisObjectDialog
           existingCountByType={objectCountByType}
           onCreate={handleCreateAnalysisObject}
@@ -98,19 +100,20 @@ export function GlobalDialogs({
         />
       )}
 
-      {projectInfoDialogMode && (
+      {projectInfoDialogMode && !isProjectReadOnly && (
         <ProjectInfoDialog
           initialValue={projectInfoDialogMode === "edit" ? project.settings.projectInfo : null}
           title={projectInfoDialogMode === "edit" ? "工程设置" : "新建结构分析项目"}
           confirmLabel={projectInfoDialogMode === "edit" ? "保存工程设置" : "创建项目"}
           customMaterials={projectInfoDialogMode === "edit" ? project.settings.customMaterials : undefined}
+          projectContractSummary={projectInfoDialogMode === "edit" ? buildProjectContractSummary(project) : undefined}
           onSubmit={projectInfoDialogMode === "edit" ? handleUpdateProjectInfo : handleCreateProjectWithInfo}
           onCustomMaterialsChange={projectInfoDialogMode === "edit" ? setCustomMaterials : undefined}
           onClose={() => setProjectInfoDialogMode(null)}
         />
       )}
 
-      {isPublicExamplesOpen && (
+      {isPublicExamplesOpen && !isProjectReadOnly && (
         <PublicExamplesDialog
           onClose={() => setIsPublicExamplesOpen(false)}
           onOpenProject={handleOpenPublicExampleProject}

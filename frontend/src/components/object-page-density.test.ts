@@ -33,8 +33,10 @@ test("工程设置入口归属工程树，工程材料并入同一设置弹窗",
   assert.match(projectTree, /工程设置/u);
   assert.doesNotMatch(projectTree, /ProjectMaterialManager|工程材料库/u);
   assert.match(projectInfoDialog, /ProjectMaterialPanel/u);
+  assert.match(projectInfoDialog, /ProjectContractPanel/u);
   assert.match(projectInfoDialog, /工程信息/u);
   assert.match(projectInfoDialog, /工程材料/u);
+  assert.match(projectInfoDialog, /项目契约/u);
   assert.match(projectInfoDialog, /role="tablist"/u);
   assert.doesNotMatch(systemSettings, /工程自定义材料|新增或更新材料|onCustomMaterialsChange/u);
 });

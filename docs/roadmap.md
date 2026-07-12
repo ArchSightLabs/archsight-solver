@@ -155,28 +155,38 @@ v1.5.0 跳过 v1.4.1，但不再按“荷载场景收口版”发布。本版必
 - 新增公开 benchmark 必须同时提供模型输入、标准值、容许误差和验证来源。
 - `release-1-5-load-scenarios.spec.ts` 覆盖梁系和平面桁架工况 / 组合来源切换；DOCX 图形导出仍以三浏览器矩阵为准。
 
-### v1.6.0：二次开发与外部对接优化版
+### v1.6.0：二次开发与外部宿主集成优化版
 
-v1.6.0 不继续单纯堆求解对象，也不把公开求解器改造成教学平台、云协作平台或商业 SaaS。`archsight-solver` 仍是个人可用、可二次开发、可对接的开源结构力学工具。本版重点是把 v1.5.0 已形成的项目文件、ASMS-JSON、API、CLI/MCP、导出和工作台能力整理成更稳定的二次开发与外部对接基础。
+v1.6.0 不继续单纯堆求解对象，也不把公开求解器改造成教学平台、云协作平台或商业 SaaS。`archsight-solver` 仍是个人可用、可二次开发、可对接的开源结构力学工具。本版重点是把 v1.5.0 已形成的项目文件、ASMS-JSON、API、CLI/MCP、导出和工作台能力整理成稳定的二次开发与外部宿主集成基础。
 
-账号、租户、学校、课程、班级、学生信息、订阅、授权、云端项目存储、教师审阅台和使用统计应由私有 `archsight-solver-platform` v1.0.0 承担。本版不引入这些概念，只提供可被外部系统复用的中性工程能力。
+账号、租户、学校、课程、班级、学生信息、订阅、授权、云端项目存储、教师审阅台和使用统计应由私有 `archsight-solver-platform` 承担。本版不引入这些概念，只提供可被外部系统复用的中性工程能力。
 
-本版主线：
+本版优先任务：
 
+- Host iframe 协议稳定化：定义 launch、ready、project.changed、saveRequest、saveResult 和 error 消息，使用 `sessionId` 与 `nonce` 绑定一次嵌入会话。
+- Host origin 边界：前端支持宿主 origin allowlist，默认个人工具模式不受影响。
 - 项目文档契约：将 `archsight-solver.project` 项目文件的创建、解析、归一化、迁移诊断和序列化能力从浏览器本地文件 I/O 中分离，形成可复用的纯契约模块。
-- 项目文件 schema：为 `.slv` 项目文件提供稳定 JSON Schema 或契约导出入口，明确 `schemaVersion`、ASMS-JSON 契约版本、单位、项目对象和迁移诊断格式。
-- 宿主集成接口：工作台支持外部宿主注入初始项目文档，并以中性事件表达项目变更、dirty 状态、保存请求、保存结果和当前 project document 快照。
-- 嵌入与 launch：支持 iframe 或宿主窗口打开指定项目文档、只读/可编辑模式和默认分析对象；商业 token、学校平台凭据和权限判断不进入公开求解器。
-- 项目校验入口：API、CLI 或 MCP 提供 project document validate / normalize / migrate 能力，返回归一化项目、迁移诊断和模型诊断，方便第三方平台保存前复核。
-- 导出编排：从 project document、当前分析对象和结果来源生成 DOCX/XLSX，并返回文件名、导出类型、schemaVersion、ASMS-JSON 版本、结果来源、诊断摘要和审阅状态等 artifact metadata。
+- 本地项目文件 manifest：`.slv` 当前继续作为单 JSON 项目文件写入，同时声明 `single-json`、`zip-container` 和 `project-folder` 的契约边界，为未来容器格式预留空间。
+- Artifact manifest：DOCX / XLSX 导出 metadata 写入 manifest 版本、artifact 类型、项目 manifest、结果来源、诊断摘要和 host 协议版本。
+- Integration API 错误码：项目文档无效、不支持的导出格式、不支持的 host 变更、host 保存结果无效、求解失败、导出失败和未知工具都有稳定 `errorCode`。
+- 项目文档健康检查：CLI / MCP / integration API 可返回项目文件版本、ASMS-JSON 契约版本、manifest、对象分布、活动对象、迁移诊断和 host readiness。
+- 工作台项目契约面板：在项目信息入口展示文档 kind、schema、manifest、活动对象、导出 manifest、host 会话和证据链状态，便于用户和外部宿主确认当前项目是否可托管、可保存、可审阅。
+- 中性模板 registry：公开内置模板、结构体系标签、主要结果指标、支持入口、可执行动作、benchmark 引用数量和直接 benchmark 标记，不包含身份、组织或远程持久化字段。
+- Host iframe demo：提供本地 HTML 示例，演示外部宿主如何加载 Solver、发送项目文档、接收保存请求和回传保存结果。
+- JSON Schema registry：公开项目文件 manifest、host message、artifact manifest 和 template registry schema，便于外部系统做契约校验。
 
 验收口径：
 
-- `.slv` 本地文件、API/CLI/MCP 校验入口和嵌入式宿主保存事件使用同一份 canonical project document。
-- 旧项目文件导入后能稳定给出迁移诊断，保存后写入当前 `projectFileSchemaVersion` 和 ASMS-JSON 契约版本。
-- 外部宿主可以不接触求解器内部 React state，仅通过公开项目文档和宿主事件完成加载、编辑、保存和再次打开。
+- 不登录、不连接远程存储、不引入数据库时，Solver 仍可作为个人本地工具完整使用。
+- `.slv` 本地文件、API/CLI/MCP 校验入口和嵌入式宿主保存事件使用同一份 canonical project document；旧项目导入后给出迁移诊断，保存后写入当前项目文件和 ASMS-JSON 契约版本。
+- 外部宿主能通过 demo 完成 launch、项目变更、保存请求和保存结果闭环。
+- 外部宿主不接触求解器内部 React state，仅通过公开项目文档和宿主事件完成加载、编辑、保存和再次打开。
+- CLI / MCP / integration API 能在无内部 import 的前提下运行项目文档健康检查、host launch、项目变更、求解、导出 metadata、导出 artifact 和模板 registry。
+- 工作台能直接展示项目契约和证据链摘要，用户不需要打开 JSON 文件才能判断当前项目是否具备 manifest、活动对象、导出证据和 host 会话上下文。
+- 错误分支返回稳定 `errorCode`，外部系统不需要解析中文 warning。
+- 项目文件 manifest、host message、artifact manifest 和模板 registry 均有 JSON Schema 和自动化测试覆盖。
 - 本地单机模式继续保留下载 `.slv`、浏览器文件系统保存和 localStorage 草稿恢复，不因宿主集成退化。
-- 平台化能力保持中性：公开仓库不新增云数据库、组织权限、订阅授权、课程/班级、学校 SSO 或客户部署配置。
+- 公开文档只描述中性对接能力；公开仓库不新增云数据库、组织权限、订阅授权、课程/班级、学校 SSO、客户部署配置或其他商业化策略。
 
 ## 模块重点
 

@@ -2,6 +2,31 @@
 
 <!-- 本文件是仓库级发布记录事实源；前端 /docs/release-notes.html 由 npm --prefix frontend run sync:release-notes 从本文件生成。 -->
 
+## v1.6.0
+
+发布时间：2026-07-12
+
+本版定位为“中性宿主接入 + 本地项目契约增强”。Solver 继续保持开源核心和个人工具边界，不引入账号、组织、远程存储、授权或商业平台逻辑。
+
+重点变化：
+
+- 新增中性 Host iframe 协议，贯通 launch、project changed、save request、save result 和 error 消息；跨域宿主必须进入 origin allowlist，会话使用协议版本、`sessionId`、`nonce` 和父窗口来源共同约束。
+- Host `readonly` 由状态标签升级为真实只读边界，统一锁定建模 mutation、工程新建/导入/保存、分析对象增删和项目设置，同时保留分析对象浏览与结果审阅。
+- 新增 `.slv` 项目文件 manifest、artifact manifest、稳定 integration errorCode 和四类 JSON Schema registry，明确 single-json 当前能力与未来容器格式边界。
+- 新增 `project_document_health` 能力，CLI / MCP 可检查项目文件版本、ASMS-JSON 契约版本、manifest、对象分布、活动对象、迁移诊断和 host readiness。
+- 工作台项目信息弹窗新增“项目契约”页签，展示项目文档 kind、schema、manifest、活动对象、导出 manifest、host 会话和证据链状态。
+- `project_template_registry` 通过 CLI / MCP 暴露 24 个内置模板的结构体系、主要结果指标、入口、支持动作和 benchmark 证据；公开 templateId 可直接进入 Host load / solve / export，不再存在发现契约与执行契约断链。
+- README、快速开始、API 参考、Agent 集成指南和 host iframe demo 同步补充项目健康检查与模板 registry 调用方式。
+- ECharts 升级到 6.1.0，关闭旧版公开 XSS 风险；CI 和 tag 发布对 production npm dependency 的 moderate 及以上漏洞执行硬门禁。
+
+质量门禁：
+
+- 后端全量测试通过：517 passed，2 skipped；benchmark、项目健康、运行时 schema、MCP、模板 registry、CLI 和三类结构 Host-to-export 回归均通过。
+- 前端 lint、TypeScript、366 项单元测试和生产构建通过；Chromium 发布主链路 10 项通过，Chromium / Firefox / WebKit DOCX 同源工程图矩阵 12 项通过。
+- v1.6 Host iframe 验收覆盖 editable、真实 readonly、save handshake 和非父窗口消息拒绝；v1.5 首算与工况组合验收继续作为跨版本回归保留。
+- 版本一致性门禁覆盖 `pyproject.toml`、`uv.lock`、前端 package/lockfile、CHANGELOG 和公开 release notes。
+- Docker 发布门禁覆盖非 root 运行、容器健康检查、镜像漏洞扫描、SPDX SBOM、制品 SHA-256 哈希和 tag 驱动的 GitHub Release。
+
 ## v1.5.0
 
 发布时间：2026-06-22

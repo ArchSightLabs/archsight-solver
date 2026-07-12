@@ -30,6 +30,10 @@ test("创建 ArchSight Solver 项目文件时写入专属 schema 和 .slv 文件
   assert.equal(projectFile.contract.asmsJsonSchemaVersion, ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION);
   assert.equal(projectFile.contract.projectFileSchemaVersion, ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION);
   assert.equal(projectFile.contract.modelRoundTrip, "normalized");
+  assert.equal(projectFile.manifest.manifestVersion, "1.0.0");
+  assert.equal(projectFile.manifest.projectFileKind, "single-json");
+  assert.equal(projectFile.manifest.contract.asmsJsonSchemaVersion, ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION);
+  assert.equal(projectFile.manifest.containerCapabilities["single-json"], true);
   assert.equal(projectFile.project.name, "门式刚架: 方案 A");
   assert.equal(projectFile.project.objects.length, 3);
   assert.deepEqual(projectFile.project.objects.map((object) => object.type), ["beam", "truss", "frame"]);
@@ -92,8 +96,31 @@ test("解析旧项目文件时保留迁移诊断并写回当前契约版本", ()
   assert.equal(parsed.ok, true);
   assert.equal(parsed.value?.schemaVersion, ARCHSIGHT_SOLVER_PROJECT_FILE_VERSION);
   assert.equal(parsed.value?.contract.asmsJsonSchemaVersion, ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION);
+  assert.equal(parsed.value?.manifest.projectFileKind, "single-json");
   assert.equal(parsed.diagnostics.some((item) => item.code === "PROJECT_FILE_SCHEMA_MIGRATED"), true);
   assert.equal(parsed.diagnostics.some((item) => item.code === "ASMS_SCHEMA_VERSION_RECORDED"), true);
+});
+
+test("解析预留容器 manifest 时只识别契约不承诺写入容器", () => {
+  const projectFile = createArchSightSolverProjectFile(createDefaultSolverProject());
+  const raw = serializeArchSightSolverProjectFile({
+    ...projectFile,
+    manifest: {
+      ...projectFile.manifest,
+      projectFileKind: "zip-container",
+      containerCapabilities: {
+        "single-json": true,
+        "zip-container": true,
+      },
+    },
+  });
+
+  const parsed = parseArchSightSolverProjectFile(raw);
+
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.value?.manifest.projectFileKind, "zip-container");
+  assert.equal(parsed.value?.manifest.containerCapabilities["single-json"], true);
+  assert.equal(parsed.value?.manifest.containerCapabilities["zip-container"], false);
 });
 
 test("项目文件往返保留工程级自定义材料", () => {

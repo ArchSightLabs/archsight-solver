@@ -11,6 +11,84 @@ from app import app
 from backend.common.support_catalog import support_specs
 from backend.contracts.openapi import build_openapi_document
 from backend.contracts.json_schemas import API_SCHEMA_VERSION, SCHEMA_ID_BASE_URI, schema_by_id, schema_registry
+from backend.project_documents import create_default_project_document
+from backend.project_workflow import build_export_artifact_metadata, build_host_launch_contract
+from backend.template_registry import list_builtin_template_registry
+
+
+class _FallbackValidationError(AssertionError):
+    pass
+
+
+class _FallbackContractValidator:
+    """覆盖 v1.6 发布契约使用的 JSON Schema 关键字，避免测试依赖可选第三方包。"""
+
+    def __init__(self, schema):
+        self.schema = schema
+
+    @staticmethod
+    def check_schema(schema):
+        assert schema.get("$schema") == "https://json-schema.org/draft/2020-12/schema"
+
+    def validate(self, instance):
+        self._validate(instance, self.schema, "$")
+
+    def _validate(self, value, schema, path):
+        if "const" in schema and value != schema["const"]:
+            raise _FallbackValidationError(f"{path} must equal {schema['const']!r}")
+        if "enum" in schema and value not in schema["enum"]:
+            raise _FallbackValidationError(f"{path} is outside enum")
+        expected_type = schema.get("type")
+        type_matches = {
+            "object": isinstance(value, dict),
+            "array": isinstance(value, list),
+            "string": isinstance(value, str),
+            "integer": isinstance(value, int) and not isinstance(value, bool),
+            "number": isinstance(value, (int, float)) and not isinstance(value, bool),
+            "boolean": isinstance(value, bool),
+            "null": value is None,
+        }
+        if isinstance(expected_type, str) and not type_matches.get(expected_type, True):
+            raise _FallbackValidationError(f"{path} must be {expected_type}")
+        if isinstance(value, str) and "minLength" in schema and len(value) < schema["minLength"]:
+            raise _FallbackValidationError(f"{path} is shorter than minLength")
+        if isinstance(value, (int, float)) and "minimum" in schema and value < schema["minimum"]:
+            raise _FallbackValidationError(f"{path} is lower than minimum")
+        if isinstance(value, dict):
+            for key in schema.get("required", []):
+                if key not in value:
+                    raise _FallbackValidationError(f"{path}.{key} is required")
+            properties = schema.get("properties", {})
+            for key, child in value.items():
+                if key in properties:
+                    self._validate(child, properties[key], f"{path}.{key}")
+                elif schema.get("additionalProperties") is False:
+                    raise _FallbackValidationError(f"{path}.{key} is not allowed")
+        if isinstance(value, list) and isinstance(schema.get("items"), dict):
+            for index, item in enumerate(value):
+                self._validate(item, schema["items"], f"{path}[{index}]")
+        for keyword in ("allOf", "anyOf", "oneOf"):
+            branches = schema.get(keyword)
+            if not branches:
+                continue
+            successes = 0
+            for branch in branches:
+                try:
+                    self._validate(value, branch, path)
+                    successes += 1
+                except _FallbackValidationError:
+                    pass
+            required_successes = 1 if keyword in {"anyOf", "oneOf"} else len(branches)
+            if successes < required_successes or (keyword == "oneOf" and successes != 1):
+                raise _FallbackValidationError(f"{path} does not satisfy {keyword}")
+
+
+def _runtime_contract_validator(schema):
+    try:
+        import jsonschema
+    except ImportError:
+        return _FallbackContractValidator(schema), _FallbackValidationError
+    return jsonschema.Draft202012Validator(schema), jsonschema.ValidationError
 
 
 @pytest.fixture
@@ -64,11 +142,25 @@ def test_schema_registry_contains_api_and_tool_contracts():
     assert "asms-truss-model" in registry
     assert "job-request" in registry
     assert "calculate-tool-input" in registry
+    assert "empty-tool-input" in registry
     assert "benchmark-case-run-input" in registry
     assert "benchmark-submission-input" in registry
     assert "benchmark-submission-response" in registry
+    assert "project-document-tool-input" in registry
+    assert "project-file-manifest" in registry
+    assert "solver-host-message" in registry
+    assert "solver-artifact-manifest" in registry
+    assert "solver-template-registry" in registry
     for schema_id in ("asms-beam-model", "asms-frame-model", "asms-truss-model"):
         assert registry[schema_id]["properties"]["schemaVersion"]["const"] == API_SCHEMA_VERSION
+    assert registry["project-file-manifest"]["properties"]["projectFileKind"]["enum"] == ["single-json", "zip-container", "project-folder"]
+    assert registry["solver-host-message"]["properties"]["protocolVersion"]["const"] == "1.0.0"
+    assert registry["solver-artifact-manifest"]["properties"]["artifactType"]["const"] == "solver.export"
+    assert registry["solver-template-registry"]["properties"]["templates"]["items"]["properties"]["source"]["const"] == "builtin"
+    assert "primaryResultMetrics" in registry["solver-template-registry"]["properties"]["templates"]["items"]["required"]
+    assert "entryPoints" in registry["solver-template-registry"]["properties"]["templates"]["items"]["properties"]
+    assert registry["empty-tool-input"]["additionalProperties"] is False
+    assert registry["project-document-tool-input"]["anyOf"] == [{"required": ["projectDocument"]}, {"required": ["projectDocumentText"]}]
     assert registry["asms-frame-model"]["properties"]["structure"]["required"] == ["nodes", "members"]
     assert "滚动支座法向角" in registry["asms-frame-model"]["properties"]["structure"]["properties"]["nodes"]["items"]["properties"]["supportAngleDeg"]["description"]
     truss_load_schema = registry["asms-truss-model"]["properties"]["structure"]["properties"]["loads"]["items"]
@@ -85,6 +177,81 @@ def test_schema_registry_contains_api_and_tool_contracts():
     ]
     assert registry["job-request"]["required"] == ["payload"]
     assert registry["beam-deflection-input"]["properties"]["span"]["required"] == ["value", "unit"]
+
+
+def test_v1_6_runtime_contract_objects_validate_against_declared_schemas():
+    registry = schema_registry()
+    project_document = create_default_project_document("v1.6 schema runtime")
+    launch = build_host_launch_contract(
+        project_document,
+        {"sessionId": "session-1", "nonce": "nonce-1", "mode": "readonly"},
+    )
+    runtime_objects = {
+        "project-file-manifest": project_document["manifest"],
+        "solver-host-message": launch["hostMessage"],
+        "solver-artifact-manifest": build_export_artifact_metadata(project_document, "docx", {}),
+        "solver-template-registry": list_builtin_template_registry(),
+    }
+
+    for schema_id, instance in runtime_objects.items():
+        validator, _ = _runtime_contract_validator(registry[schema_id])
+        validator.check_schema(registry[schema_id])
+        validator.validate(instance)
+
+
+@pytest.mark.parametrize(
+    "invalid_message",
+    [
+        {
+            "type": "archsight.solver.host.launch",
+            "protocolVersion": "1.0.0",
+            "sessionId": "session-1",
+            "payload": {"projectDocument": {}, "mode": "editable"},
+        },
+        {
+            "type": "archsight.solver.host.launch",
+            "protocolVersion": "0.9.0",
+            "sessionId": "session-1",
+            "nonce": "nonce-1",
+            "payload": {"projectDocument": {}, "mode": "editable"},
+        },
+        {
+            "type": "archsight.solver.host.launch",
+            "protocolVersion": "1.0.0",
+            "sessionId": "session-1",
+            "nonce": "nonce-1",
+            "payload": {"projectDocument": {}},
+        },
+    ],
+)
+def test_host_message_schema_rejects_missing_or_mismatched_session_contract(invalid_message):
+    validator, validation_error = _runtime_contract_validator(schema_registry()["solver-host-message"])
+
+    with pytest.raises(validation_error):
+        validator.validate(invalid_message)
+
+
+@pytest.mark.parametrize(
+    ("schema_id", "mutate"),
+    [
+        ("project-file-manifest", lambda value: value.pop("manifestVersion")),
+        ("solver-artifact-manifest", lambda value: value.update({"format": "pdf"})),
+        ("solver-template-registry", lambda value: value.update({"templateCount": -1})),
+    ],
+)
+def test_v1_6_runtime_schemas_reject_invalid_contract_objects(schema_id, mutate):
+    project_document = create_default_project_document("v1.6 invalid schema runtime")
+    runtime_objects = {
+        "project-file-manifest": dict(project_document["manifest"]),
+        "solver-artifact-manifest": build_export_artifact_metadata(project_document, "docx", {}),
+        "solver-template-registry": list_builtin_template_registry(),
+    }
+    instance = runtime_objects[schema_id]
+    mutate(instance)
+
+    validator, validation_error = _runtime_contract_validator(schema_registry()[schema_id])
+    with pytest.raises(validation_error):
+        validator.validate(instance)
 
 
 def test_frame_and_truss_member_schemas_expose_material_id():

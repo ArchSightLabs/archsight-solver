@@ -24,7 +24,7 @@ import { GlassCard } from "./components/ui/GlassCard";
 import { Button } from "./components/ui/button";
 import { useTemplateLibrary } from "./hooks/useTemplateLibrary";
 import { materialLibraryFromCustomMaterials } from "./lib/material-presets";
-import type { ProjectInfo } from "./lib/solver-project";
+import { getActiveAnalysisObject, type ProjectInfo } from "./lib/solver-project";
 import { moduleSectionId, moduleSectionsForMode, normalizeModuleSectionId, objectNavigatorSectionId } from "./lib/workbench-navigation";
 import { ARCHSIGHT_SOLVER_PROJECT_ACCEPT } from "./lib/project-file";
 import type { ProjectTemplate } from "./types/beam";
@@ -34,6 +34,7 @@ import { useWorkbenchSession } from "./hooks/useWorkbenchSession";
 import { useAnalysisObjectManager } from "./hooks/useAnalysisObjectManager";
 import { useProjectFileActions } from "./hooks/useProjectFileActions";
 import { useResizableWorkbenchLayout } from "./hooks/useResizableWorkbenchLayout";
+import { useSolverHostBridge } from "./hooks/useSolverHostBridge";
 import { createInitialSolverProject, useSolverProjectDocument } from "./hooks/useSolverProjectDocument";
 import { useVisitStats } from "./hooks/useVisitStats";
 import { useWorkbenchRuntime } from "./hooks/useWorkbenchRuntime";
@@ -65,6 +66,8 @@ import {
   uniqueWorkbenchSelections,
 } from "./lib/workbench-selection-utils";
 import { buildModelDiagnostics } from "./lib/model-diagnostics";
+
+const SOLVER_HOST_ALLOWED_ORIGINS = import.meta.env.VITE_SOLVER_HOST_ALLOWED_ORIGINS ?? "";
 
 type AnalysisObjectPageState = {
   moduleSectionId?: string;
@@ -111,6 +114,7 @@ function AppContent() {
     clearProjectFileLink,
     fileStatusMessage,
     isProjectDirty,
+    isProjectReadOnly,
     lastSavedAt,
     markProjectDirty,
     project,
@@ -121,6 +125,8 @@ function AppContent() {
     setCustomMaterials,
     setModelPreviewStyle,
     setProject,
+    setProjectForNavigation,
+    setProjectReadOnly,
     setReportExportOptions,
     undoWorkspaceChange,
     updateProjectInfo,
@@ -292,6 +298,10 @@ function AppContent() {
   }, [activeAnalysisObject.id]);
 
   const handleRestoreTemplate = (template: ProjectTemplate): TemplateActionResult<void> => {
+    if (isProjectReadOnly) {
+      setFileStatusMessage("外部宿主只读模式下不能恢复模板。");
+      return { ok: false, error: "readonly" };
+    }
     const restoredWorkspace = restoreWorkspaceSnapshot(template.snapshot);
     updateWorkspace(restoredWorkspace);
     clearProjectFileLink(`已恢复模板：${template.name}`);
@@ -309,6 +319,7 @@ function AppContent() {
   } = useProjectFileActions({
     applyCurrentRuntimeToProject,
     isProjectDirty,
+    isProjectReadOnly,
     markRuntimePersisted,
     onNewProjectRequested: () => setProjectInfoDialogMode("create"),
     onProjectOpened: resetAllPageState,
@@ -318,6 +329,40 @@ function AppContent() {
     replaceProject,
     syncRuntimeFromAnalysisObject,
   });
+  const syncRuntimeFromProject = useCallback((nextProject: typeof project) => {
+    syncRuntimeFromAnalysisObject(getActiveAnalysisObject(nextProject));
+  }, [syncRuntimeFromAnalysisObject]);
+  const {
+    emitProjectChanged,
+    hostMode,
+    hostOrigin,
+    hostSessionId,
+    requestHostSave,
+  } = useSolverHostBridge({
+    allowedOrigins: SOLVER_HOST_ALLOWED_ORIGINS,
+    applyCurrentRuntimeToProject,
+    project,
+    onHostModeChange: (mode) => setProjectReadOnly(mode === "readonly"),
+    replaceProject,
+    setFileStatusMessage,
+    syncRuntimeFromProject,
+  });
+  const handleSaveProject = useCallback((forceSaveAs = false) => {
+    if (isProjectReadOnly) {
+      setFileStatusMessage("外部宿主只读模式下不能保存工程。");
+      return;
+    }
+    if (!forceSaveAs && requestHostSave()) {
+      setFileStatusMessage("已向外部宿主请求保存工程。");
+      return;
+    }
+    void handleSaveProjectFile(forceSaveAs);
+  }, [handleSaveProjectFile, isProjectReadOnly, requestHostSave, setFileStatusMessage]);
+  useEffect(() => {
+    if (isProjectDirty) {
+      emitProjectChanged();
+    }
+  }, [emitProjectChanged, isProjectDirty, project.updatedAt]);
   const {
     handleCreateAnalysisObject,
     handleRemoveAnalysisObject,
@@ -337,9 +382,11 @@ function AppContent() {
       }));
     },
     project,
+    isProjectReadOnly,
     resetRuntimeForNewAnalysisObject,
     setFileStatusMessage,
     setProject,
+    setProjectForNavigation,
     syncRuntimeFromAnalysisObject,
   });
   const handleCreateAnalysisObjectWithPath = useCallback((type: AnalysisMode, name: string, startMode: NewAnalysisObjectStartMode) => {
@@ -348,6 +395,9 @@ function AppContent() {
   }, [handleCreateAnalysisObject]);
   const fileDisplayName = projectFileName ?? "未选择文件";
   const fileStateLabel = isProjectDirty ? "未保存" : lastSavedAt ? "已保存" : "新建项目";
+  const hostStatusLabel = hostSessionId
+    ? `外部宿主：${hostMode === "readonly" ? "只读" : "可编辑"}${hostOrigin ? ` · ${hostOrigin}` : ""}`
+    : null;
   const handleWorkbenchSelectionChange = useCallback((next: WorkbenchSelection, options?: WorkbenchSelectionOptions) => {
     setWorkbenchSelectionState((current) => {
       const scoped = filterSelectionSetForMode(current.items, next.mode);
@@ -484,9 +534,13 @@ function AppContent() {
     }
   }, [handleWorkbenchSelectionChange, updateWorkspace, workspace]);
   const handleRunGeneratedWorkspace = useCallback((nextWorkspace: WorkspaceState) => {
+    if (isProjectReadOnly) {
+      setFileStatusMessage("外部宿主只读模式下不能生成或替换模型。");
+      return;
+    }
     updateWorkspace(nextWorkspace);
     void handleRunWorkspace(nextWorkspace);
-  }, [handleRunWorkspace, updateWorkspace]);
+  }, [handleRunWorkspace, isProjectReadOnly, setFileStatusMessage, updateWorkspace]);
   useEffect(() => {
     const isEditableTarget = (target: globalThis.EventTarget | null) => {
       if (!(target instanceof HTMLElement)) return false;
@@ -495,7 +549,7 @@ function AppContent() {
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && (event.key === 's' || event.key === 'S')) {
         event.preventDefault();
-        void handleSaveProjectFile(event.shiftKey);
+        handleSaveProject(event.shiftKey);
         return;
       }
       if (isEditableTarget(event.target) || workbenchView !== "model" || (event.key !== "Delete" && event.key !== "Backspace")) {
@@ -509,7 +563,7 @@ function AppContent() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeGeometrySelectionSet, handleDeleteWorkbenchSelection, handleSaveProjectFile, workbenchView, workspace]);
+  }, [activeGeometrySelectionSet, handleDeleteWorkbenchSelection, handleSaveProject, workbenchView, workspace]);
   const handleCreateProjectWithInfo = (next: ProjectInfo) => {
     replaceProject(createInitialSolverProject(next), null, null, null, "新建项目");
     resetAllPageState();
@@ -584,14 +638,16 @@ function AppContent() {
         fileMenuRef={fileMenuRef}
         fileStateLabel={fileStateLabel}
         fileStatusMessage={fileStatusMessage}
+        hostStatusLabel={hostStatusLabel}
         isCompactWorkbench={isCompactWorkbench}
         isDark={isDark}
         isFileMenuOpen={isFileMenuOpen}
         isProjectDirty={isProjectDirty}
+        isProjectReadOnly={isProjectReadOnly}
         releaseNotesHref={RELEASE_NOTES_HREF}
         onNewProjectFile={handleNewProjectFile}
         onOpenProjectFile={handleOpenProjectFile}
-        onSaveProjectFile={(forceSaveAs) => void handleSaveProjectFile(forceSaveAs)}
+        onSaveProjectFile={handleSaveProject}
         setIsDark={setIsDark}
         setIsFileMenuOpen={setIsFileMenuOpen}
       />
@@ -625,6 +681,7 @@ function AppContent() {
                 project={project}
                 collapsed={isModuleNavCollapsed}
                 compact={isCompactWorkbench}
+                readOnly={isProjectReadOnly}
                 onSelectObject={handleSelectAnalysisObject}
                 onRemoveObject={handleRemoveAnalysisObject}
               />
@@ -650,6 +707,7 @@ function AppContent() {
                 <ProjectTreePanel
                   project={project}
                   compact={isCompactWorkbench}
+                  readOnly={isProjectReadOnly}
                   onSelectObject={handleSelectAnalysisObject}
                   onRemoveObject={handleRemoveAnalysisObject}
                 />
@@ -734,7 +792,9 @@ function AppContent() {
             onSelectSection={setActiveModuleSection}
           >
             <ModelDiagnosticsPanel diagnostics={modelDiagnostics} compact={isCompactWorkbench} />
-            {formContent}
+            <fieldset disabled={isProjectReadOnly} aria-label={isProjectReadOnly ? "只读建模区域" : "建模区域"} className="min-w-0 border-0 p-0 disabled:opacity-70">
+              {formContent}
+            </fieldset>
           </WorkbenchInspectorPanel>
           {isSystemSettingsDocked ? (
             <SystemSettingsPanel
@@ -765,6 +825,7 @@ function AppContent() {
 
       <GlobalDialogs
         isCompactWorkbench={isCompactWorkbench}
+        isProjectReadOnly={isProjectReadOnly}
         project={project}
         visitStats={visitStats}
         setModelPreviewStyle={setModelPreviewStyle}

@@ -101,6 +101,8 @@ export function useSolverProjectDocument() {
   const [isProjectDirty, setIsProjectDirty] = useState(initialDocumentState.isProjectDirty);
   const [fileStatusMessage, setFileStatusMessage] = useState<string | null>(initialDocumentState.fileStatusMessage);
   const [workspaceHistory, setWorkspaceHistoryState] = useState<WorkspaceHistoryState>(createEmptyWorkspaceHistory);
+  const [isProjectReadOnly, setIsProjectReadOnlyState] = useState(false);
+  const projectReadOnlyRef = useRef(false);
   const projectRef = useRef(project);
   const activeObjectIdRef = useRef(project.activeObjectId);
   const workspaceHistoryRef = useRef(workspaceHistory);
@@ -116,13 +118,33 @@ export function useSolverProjectDocument() {
     setWorkspaceHistory(createEmptyWorkspaceHistory());
   }, [setWorkspaceHistory]);
 
-  const setProject: Dispatch<SetStateAction<SolverProject>> = useCallback((next) => {
+  const setProjectReadOnly = useCallback((readOnly: boolean) => {
+    projectReadOnlyRef.current = readOnly;
+    setIsProjectReadOnlyState(readOnly);
+    if (readOnly) {
+      setFileStatusMessage("外部宿主只读模式：建模、导入和保存操作已锁定。");
+    }
+  }, []);
+
+  const notifyReadOnlyMutation = useCallback(() => {
+    setFileStatusMessage("当前工程由外部宿主以只读模式打开，不能修改或保存。");
+  }, []);
+
+  const setProjectForNavigation: Dispatch<SetStateAction<SolverProject>> = useCallback((next) => {
     setProjectState((current) => {
       const nextProject = typeof next === "function" ? next(current) : next;
       projectRef.current = nextProject;
       return nextProject;
     });
   }, []);
+
+  const setProject: Dispatch<SetStateAction<SolverProject>> = useCallback((next) => {
+    if (projectReadOnlyRef.current) {
+      notifyReadOnlyMutation();
+      return;
+    }
+    setProjectForNavigation(next);
+  }, [notifyReadOnlyMutation, setProjectForNavigation]);
 
   useEffect(() => {
     projectRef.current = project;
@@ -155,11 +177,19 @@ export function useSolverProjectDocument() {
   }, [isProjectDirty, lastSavedAt, project, projectFileName]);
 
   const markProjectDirty = useCallback(() => {
+    if (projectReadOnlyRef.current) {
+      notifyReadOnlyMutation();
+      return;
+    }
     setLastSavedAt(null);
     setIsProjectDirty(true);
-  }, []);
+  }, [notifyReadOnlyMutation]);
 
   const updateWorkspace: Dispatch<SetStateAction<WorkspaceState>> = useCallback((next) => {
+    if (projectReadOnlyRef.current) {
+      notifyReadOnlyMutation();
+      return;
+    }
     const currentProject = projectRef.current;
     const currentWorkspace = createWorkspaceFromProject(currentProject);
     const nextWorkspace = typeof next === "function" ? next(currentWorkspace) : next;
@@ -171,9 +201,13 @@ export function useSolverProjectDocument() {
     const nextProject = updateActiveAnalysisObjectWorkspace(currentProject, nextWorkspace);
     projectRef.current = nextProject;
     setProjectState(nextProject);
-  }, [markProjectDirty, setWorkspaceHistory]);
+  }, [markProjectDirty, notifyReadOnlyMutation, setWorkspaceHistory]);
 
   const undoWorkspaceChange = useCallback(() => {
+    if (projectReadOnlyRef.current) {
+      notifyReadOnlyMutation();
+      return;
+    }
     const currentProject = projectRef.current;
     const currentWorkspace = createWorkspaceFromProject(currentProject);
     const result = undoWorkspaceHistory(workspaceHistoryRef.current, currentWorkspace);
@@ -186,9 +220,13 @@ export function useSolverProjectDocument() {
     const nextProject = updateActiveAnalysisObjectWorkspace(currentProject, result.workspace);
     projectRef.current = nextProject;
     setProjectState(nextProject);
-  }, [markProjectDirty, setWorkspaceHistory]);
+  }, [markProjectDirty, notifyReadOnlyMutation, setWorkspaceHistory]);
 
   const redoWorkspaceChange = useCallback(() => {
+    if (projectReadOnlyRef.current) {
+      notifyReadOnlyMutation();
+      return;
+    }
     const currentProject = projectRef.current;
     const currentWorkspace = createWorkspaceFromProject(currentProject);
     const result = redoWorkspaceHistory(workspaceHistoryRef.current, currentWorkspace);
@@ -201,7 +239,7 @@ export function useSolverProjectDocument() {
     const nextProject = updateActiveAnalysisObjectWorkspace(currentProject, result.workspace);
     projectRef.current = nextProject;
     setProjectState(nextProject);
-  }, [markProjectDirty, setWorkspaceHistory]);
+  }, [markProjectDirty, notifyReadOnlyMutation, setWorkspaceHistory]);
 
   const setReportExportOptions = useCallback((options: ReportExportOptions) => {
     markProjectDirty();
@@ -260,7 +298,7 @@ export function useSolverProjectDocument() {
     savedAt: string | null,
     message: string,
   ) => {
-    setProject(nextProject);
+    setProjectForNavigation(nextProject);
     setProjectFileHandle(handle);
     setProjectFileName(fileName);
     setLastSavedAt(savedAt);
@@ -268,7 +306,7 @@ export function useSolverProjectDocument() {
     setFileStatusMessage(message);
     activeObjectIdRef.current = nextProject.activeObjectId;
     resetWorkspaceHistory();
-  }, [resetWorkspaceHistory, setProject]);
+  }, [resetWorkspaceHistory, setProjectForNavigation]);
 
   const clearProjectFileLink = useCallback((message: string) => {
     setProjectFileHandle(null);
@@ -281,6 +319,7 @@ export function useSolverProjectDocument() {
     clearProjectFileLink,
     fileStatusMessage,
     isProjectDirty,
+    isProjectReadOnly,
     lastSavedAt,
     markProjectDirty,
     project,
@@ -291,6 +330,8 @@ export function useSolverProjectDocument() {
     setCustomMaterials,
     setModelPreviewStyle,
     setProject,
+    setProjectForNavigation,
+    setProjectReadOnly,
     setProjectFileHandle,
     setProjectFileName,
     setReportExportOptions,

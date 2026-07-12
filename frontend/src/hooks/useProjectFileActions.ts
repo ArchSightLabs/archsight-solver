@@ -19,6 +19,7 @@ import {
 interface UseProjectFileActionsOptions {
   applyCurrentRuntimeToProject: (sourceProject: SolverProject) => SolverProject;
   isProjectDirty: boolean;
+  isProjectReadOnly: boolean;
   markRuntimePersisted: () => void;
   onNewProjectRequested: () => void;
   onProjectOpened: () => void;
@@ -38,6 +39,7 @@ interface UseProjectFileActionsOptions {
 export function useProjectFileActions({
   applyCurrentRuntimeToProject,
   isProjectDirty,
+  isProjectReadOnly,
   markRuntimePersisted,
   onNewProjectRequested,
   onProjectOpened,
@@ -65,11 +67,13 @@ export function useProjectFileActions({
   }, [onProjectOpened, replaceProject, syncRuntimeFromAnalysisObject]);
 
   const handleNewProjectFile = useCallback(() => {
+    if (isProjectReadOnly) return;
     if (!confirmDiscardUnsavedChanges()) return;
     onNewProjectRequested();
-  }, [confirmDiscardUnsavedChanges, onNewProjectRequested]);
+  }, [confirmDiscardUnsavedChanges, isProjectReadOnly, onNewProjectRequested]);
 
   const handleSaveProjectFile = useCallback(async (forceSaveAs = false) => {
+    if (isProjectReadOnly) return;
     try {
       const savedProject = applyCurrentRuntimeToProject(project);
       const projectFile = createArchSightSolverProjectFile(savedProject);
@@ -86,9 +90,10 @@ export function useProjectFileActions({
       if (isFilePickerAbort(error)) return;
       alert(`项目文件保存失败：${error instanceof Error ? error.message : "未知错误"}`);
     }
-  }, [applyCurrentRuntimeToProject, markRuntimePersisted, project, projectFileHandle, replaceProject]);
+  }, [applyCurrentRuntimeToProject, isProjectReadOnly, markRuntimePersisted, project, projectFileHandle, replaceProject]);
 
   const handleOpenProjectFile = useCallback(() => {
+    if (isProjectReadOnly) return;
     if (!confirmDiscardUnsavedChanges()) return;
     if (!supportsNativeProjectFiles()) {
       projectFileInputRef.current?.click();
@@ -105,16 +110,21 @@ export function useProjectFileActions({
         alert(`项目文件读取失败：${error instanceof Error ? error.message : "未知错误"}`);
       }
     })();
-  }, [confirmDiscardUnsavedChanges, loadProject]);
+  }, [confirmDiscardUnsavedChanges, isProjectReadOnly, loadProject]);
 
   const handleOpenPublicExampleProject = useCallback((nextProject: SolverProject, title: string) => {
+    if (isProjectReadOnly) return;
     if (!confirmDiscardUnsavedChanges()) return;
     const normalizedProject = normalizeSolverProject(nextProject);
     loadProject(normalizedProject, null, null, normalizedProject.updatedAt, `已打开公开验证工程：${title}`);
     onPublicExampleClosed();
-  }, [confirmDiscardUnsavedChanges, loadProject, onPublicExampleClosed]);
+  }, [confirmDiscardUnsavedChanges, isProjectReadOnly, loadProject, onPublicExampleClosed]);
 
   const handleProjectFileChange = useCallback(async (event: ReactChangeEvent<HTMLInputElement>) => {
+    if (isProjectReadOnly) {
+      event.target.value = "";
+      return;
+    }
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) {
@@ -129,7 +139,7 @@ export function useProjectFileActions({
     } catch (error) {
       alert(`项目文件读取失败：${error instanceof Error ? error.message : "未知错误"}`);
     }
-  }, [loadProject]);
+  }, [isProjectReadOnly, loadProject]);
 
   return {
     handleNewProjectFile,

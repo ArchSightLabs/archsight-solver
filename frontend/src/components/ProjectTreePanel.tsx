@@ -9,6 +9,7 @@ interface ProjectTreePanelProps {
   project: SolverProject;
   collapsed?: boolean;
   compact?: boolean;
+  readOnly?: boolean;
   onSelectObject: (objectId: string) => void;
   onRemoveObject: (objectId: string) => void;
 }
@@ -27,6 +28,7 @@ export function ProjectTreePanel({
   project,
   collapsed = false,
   compact = false,
+  readOnly = false,
   onSelectObject,
   onRemoveObject,
 }: ProjectTreePanelProps) {
@@ -68,6 +70,7 @@ export function ProjectTreePanel({
         })}
         <button
           type="button"
+          disabled={readOnly}
           onClick={() => setIsNewAnalysisObjectDialogOpen(true)}
           aria-label="新建分析对象"
           title="新建分析对象"
@@ -91,6 +94,7 @@ export function ProjectTreePanel({
             type="button"
             variant="outline"
             size="icon"
+            disabled={readOnly}
             onClick={() => setProjectInfoDialogMode("edit")}
             aria-label="工程设置"
             title="工程设置"
@@ -137,7 +141,7 @@ export function ProjectTreePanel({
           <div className="min-w-0">
             <div className="text-xs font-black text-foreground">分析对象</div>
           </div>
-          <Button type="button" variant="outline" size="icon" onClick={() => setIsNewAnalysisObjectDialogOpen(true)} aria-label="新建分析对象" title="新建分析对象" className="h-8 w-8 rounded-lg border-white/10 bg-white/[0.03]">
+          <Button type="button" variant="outline" size="icon" disabled={readOnly} onClick={() => setIsNewAnalysisObjectDialogOpen(true)} aria-label="新建分析对象" title={readOnly ? "外部宿主只读模式" : "新建分析对象"} className="h-8 w-8 rounded-lg border-white/10 bg-white/[0.03]">
             <Plus className="h-4 w-4" />
           </Button>
         </div>
@@ -183,9 +187,9 @@ export function ProjectTreePanel({
                   <button
                     type="button"
                     onClick={() => onRemoveObject(object.id)}
-                    disabled={project.objects.length <= 1}
+                    disabled={readOnly || project.objects.length <= 1}
                     aria-label={`删除${displayName}`}
-                    title={project.objects.length <= 1 ? "至少保留一个分析对象" : "删除分析对象"}
+                    title={readOnly ? "外部宿主只读模式" : project.objects.length <= 1 ? "至少保留一个分析对象" : "删除分析对象"}
                     className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors ${
                       active
                         ? "border-sky-400/20 bg-sky-400/5 text-sky-700 hover:bg-red-500 hover:text-white dark:text-sky-200"

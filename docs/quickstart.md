@@ -87,6 +87,18 @@ Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:6240/api/jobs" -ContentTyp
 '{"caseId":"BM-001"}' | python -m backend.capabilities.solver_cli benchmark_case_run --pretty
 ```
 
+检查项目文件契约与托管状态：
+
+```powershell
+python -m backend.capabilities.solver_cli project_document_health --input project.slv --pretty
+```
+
+读取内置模板 registry：
+
+```powershell
+'{}' | python -m backend.capabilities.solver_cli project_template_registry --pretty
+```
+
 ## MCP Server
 
 ```powershell
@@ -103,6 +115,8 @@ python -m backend.capabilities.mcp_server
 - `sensitivity_analysis`
 - `benchmark_case_list`
 - `benchmark_case_run`
+- `project_document_health`
+- `project_template_registry`
 
 当前 MCP resources：
 

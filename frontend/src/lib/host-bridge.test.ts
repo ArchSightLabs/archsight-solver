@@ -1,0 +1,81 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {
+  HOST_LAUNCH_MESSAGE,
+  SOLVER_PROJECT_CHANGED_MESSAGE,
+  SOLVER_READY_MESSAGE,
+  buildProjectChangedMessage,
+  buildSolverReadyMessage,
+  isHostOriginAllowed,
+  normalizeHostOriginList,
+  parseHostLaunchMessage,
+} from "./host-bridge.ts";
+import { createArchSightSolverProjectFile } from "./project-file.ts";
+import { createDefaultSolverProject } from "./solver-project.ts";
+
+test("parseHostLaunchMessage accepts a neutral host project document", () => {
+  const project = createDefaultSolverProject(new Date("2026-07-04T00:00:00.000Z"));
+  const projectFile = createArchSightSolverProjectFile(project, new Date("2026-07-04T00:01:00.000Z"));
+
+  const launch = parseHostLaunchMessage({
+    type: HOST_LAUNCH_MESSAGE,
+    protocolVersion: "1.0.0",
+    sessionId: "session-1",
+    nonce: "nonce-1",
+    payload: {
+      mode: "readonly",
+      fileName: "demo.slv",
+      projectDocument: projectFile,
+    },
+  });
+
+  assert.equal(launch?.sessionId, "session-1");
+  assert.equal(launch?.nonce, "nonce-1");
+  assert.equal(launch?.mode, "readonly");
+  assert.equal(launch?.fileName, "demo.slv");
+  assert.equal(launch?.projectFile.project.name, project.name);
+});
+
+test("host bridge emits ready and changed messages without platform concepts", () => {
+  const project = createDefaultSolverProject(new Date("2026-07-04T00:00:00.000Z"));
+  const ready = buildSolverReadyMessage("session-1", "nonce-1");
+  const changed = buildProjectChangedMessage("session-1", project, "nonce-1");
+
+  assert.equal(ready.type, SOLVER_READY_MESSAGE);
+  assert.equal(ready.nonce, "nonce-1");
+  assert.equal(changed.type, SOLVER_PROJECT_CHANGED_MESSAGE);
+  assert.equal(changed.sessionId, "session-1");
+  assert.equal(changed.nonce, "nonce-1");
+  assert.equal((changed.payload as { projectDocument: { schema: string; manifest: { projectFileKind: string } } }).projectDocument.schema, "archsight-solver.project");
+  assert.equal((changed.payload as { projectDocument: { manifest: { projectFileKind: string } } }).projectDocument.manifest.projectFileKind, "single-json");
+  assert.equal(JSON.stringify(changed).includes("tenant"), false);
+  assert.equal(JSON.stringify(changed).includes("license"), false);
+});
+
+test("host origin helpers support allowlist checks without platform concepts", () => {
+  const origins = normalizeHostOriginList("https://lms.example.edu, https://portal.example.edu");
+
+  assert.deepEqual(origins, ["https://lms.example.edu", "https://portal.example.edu"]);
+  assert.equal(isHostOriginAllowed("https://lms.example.edu", origins), true);
+  assert.equal(isHostOriginAllowed("https://evil.example.edu", origins), false);
+  assert.equal(isHostOriginAllowed("https://any.example.edu", []), false);
+});
+
+test("host launch rejects missing session binding and protocol drift", () => {
+  const project = createDefaultSolverProject(new Date("2026-07-04T00:00:00.000Z"));
+  const projectDocument = createArchSightSolverProjectFile(project, new Date("2026-07-04T00:01:00.000Z"));
+
+  assert.throws(() => parseHostLaunchMessage({
+    type: HOST_LAUNCH_MESSAGE,
+    protocolVersion: "1.0.0",
+    payload: { projectDocument },
+  }), /sessionId.*nonce/u);
+
+  assert.throws(() => parseHostLaunchMessage({
+    type: HOST_LAUNCH_MESSAGE,
+    protocolVersion: "2.0.0",
+    sessionId: "session-1",
+    nonce: "nonce-1",
+    payload: { projectDocument },
+  }), /协议版本不匹配/u);
+});
