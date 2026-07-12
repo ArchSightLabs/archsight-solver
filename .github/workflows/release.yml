@@ -100,7 +100,40 @@ jobs:
           output: dist/trivy-report.json
           severity: HIGH,CRITICAL
           ignore-unfixed: true
-          exit-code: "1"
+          exit-code: "0"
+
+      - name: Enforce release image vulnerability gate
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = json.loads(Path("dist/trivy-report.json").read_text(encoding="utf-8"))
+          findings = []
+          for result in report.get("Results", []):
+              target = result.get("Target", "unknown")
+              for vulnerability in result.get("Vulnerabilities") or []:
+                  findings.append(
+                      {
+                          "target": target,
+                          "severity": vulnerability.get("Severity", "UNKNOWN"),
+                          "id": vulnerability.get("VulnerabilityID", "unknown"),
+                          "package": vulnerability.get("PkgName", "unknown"),
+                          "installed": vulnerability.get("InstalledVersion", "unknown"),
+                          "fixed": vulnerability.get("FixedVersion", "unknown"),
+                      }
+                  )
+          for finding in findings:
+              print(
+                  "{severity} {id} target={target} package={package} installed={installed} fixed={fixed}".format(
+                      **finding
+                  )
+              )
+          if findings:
+              raise SystemExit(f"Trivy release gate failed with {len(findings)} fixed HIGH/CRITICAL vulnerabilities")
+          print("Trivy release gate passed: no fixed HIGH/CRITICAL vulnerabilities")
+          PY
 
       - name: Generate SPDX SBOM
         uses: anchore/sbom-action@8e94d75ddd33f69f691467e42275782e4bfefe84
