@@ -36,7 +36,7 @@ git diff --check
 
 ## 本地候选验证记录（2026-07-12）
 
-- 后端：517 passed，2 skipped。
+- 后端：518 passed，1 skipped。
 - 前端：lint / TypeScript 通过，366 passed，生产构建通过。
 - 发布主链路：Chromium 10 passed。
 - DOCX 同源工程图：Chromium / Firefox / WebKit 12 passed。

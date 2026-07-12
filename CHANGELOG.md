@@ -21,7 +21,7 @@
 
 质量门禁：
 
-- 后端全量测试通过：517 passed，2 skipped；benchmark、项目健康、运行时 schema、MCP、模板 registry、CLI 和三类结构 Host-to-export 回归均通过。
+- 后端全量测试通过：518 passed，1 skipped；benchmark、项目健康、运行时 schema、MCP、模板 registry、CLI 和三类结构 Host-to-export 回归均通过。
 - 前端 lint、TypeScript、366 项单元测试和生产构建通过；Chromium 发布主链路 10 项通过，Chromium / Firefox / WebKit DOCX 同源工程图矩阵 12 项通过。
 - v1.6 Host iframe 验收覆盖 editable、真实 readonly、save handshake 和非父窗口消息拒绝；v1.5 首算与工况组合验收继续作为跨版本回归保留。
 - 版本一致性门禁覆盖 `pyproject.toml`、`uv.lock`、前端 package/lockfile、CHANGELOG 和公开 release notes。
