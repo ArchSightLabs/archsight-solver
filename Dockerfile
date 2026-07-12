@@ -10,7 +10,10 @@ WORKDIR /app/frontend
 
 # 先安装前端依赖，再复制源码，便于利用分层缓存。
 COPY frontend/package*.json ./
-RUN npm ci
+RUN npm ci --include=optional \
+    --fetch-retries=5 \
+    --fetch-retry-mintimeout=10000 \
+    --fetch-retry-maxtimeout=120000
 
 COPY frontend/ ./
 COPY CHANGELOG.md /app/CHANGELOG.md

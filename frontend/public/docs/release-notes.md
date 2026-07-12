@@ -18,6 +18,7 @@
 - `project_template_registry` 通过 CLI / MCP 暴露 24 个内置模板的结构体系、主要结果指标、入口、支持动作和 benchmark 证据；公开 templateId 可直接进入 Host load / solve / export，不再存在发现契约与执行契约断链。
 - README、快速开始、API 参考、Agent 集成指南和 host iframe demo 同步补充项目健康检查与模板 registry 调用方式。
 - ECharts 升级到 6.1.0，关闭旧版公开 XSS 风险；CI 和 tag 发布对 production npm dependency 的 moderate 及以上漏洞执行硬门禁。
+- `lxml` 升级到 6.1.1，修复镜像扫描检出的高危漏洞 CVE-2026-41066；tag 发布对镜像中已有修复版本的 HIGH / CRITICAL 漏洞保持零容忍。
 
 质量门禁：
 
