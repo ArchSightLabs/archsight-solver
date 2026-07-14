@@ -46,6 +46,29 @@
             }
         },
         {
+            "label": "清理 Host demo 端口",
+            "type": "process",
+            "command": "powershell.exe",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}/scripts/kill-ports.ps1",
+                "-Ports",
+                "6241",
+                "6250"
+            ],
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "silent",
+                "panel": "dedicated",
+                "clear": true,
+                "close": true,
+                "showReuseMessage": false
+            }
+        },
+        {
             "label": "清理调试端口",
             "dependsOn": [
                 "清理后端端口",

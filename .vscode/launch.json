@@ -57,6 +57,23 @@
             "sourceMapPathOverrides": {
                 "webpack:///./src/*": "${webRoot}/*"
             }
+        },
+        {
+            "name": "Host iframe demo",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/run_host_iframe_demo.py",
+            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "清理 Host demo 端口",
+            "postDebugTask": "清理 Host demo 端口",
+            "serverReadyAction": {
+                "pattern": "Reference Host: (http://\\S+)",
+                "uriFormat": "%s",
+                "action": "openExternally"
+            }
         }
     ],
     "compounds": [

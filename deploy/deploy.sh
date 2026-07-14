@@ -46,7 +46,7 @@ if [ -n "${TAG}" ]; then
 fi
 
 IMAGE_REPOSITORY="${IMAGE_REPOSITORY:-registry.cn-hangzhou.aliyuncs.com/your-namespace/archsight-solver}"
-IMAGE_TAG="${IMAGE_TAG:-v1.6.0}"
+IMAGE_TAG="${IMAGE_TAG:-v1.6.1}"
 IMAGE="${IMAGE_REPOSITORY}:${IMAGE_TAG}"
 
 if docker compose version >/dev/null 2>&1; then

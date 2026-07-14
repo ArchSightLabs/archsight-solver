@@ -61,6 +61,7 @@ jobs:
       - name: Run Playwright release smoke
         run: |
           npm --prefix frontend exec playwright install --with-deps chromium
+          npm --prefix frontend run test:visual -- release-1-6-1-host-reference.spec.ts --project=chromium --workers=1
           npm --prefix frontend run test:visual -- release-1-6-host-integration.spec.ts --project=chromium --workers=1
           npm --prefix frontend run test:visual -- release-1-5-quick-modeling.spec.ts --project=chromium --workers=1
           npm --prefix frontend run test:visual -- release-1-5-load-scenarios.spec.ts --project=chromium --workers=1

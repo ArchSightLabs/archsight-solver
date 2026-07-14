@@ -1,0 +1,62 @@
+{
+  "schema": "archsight-solver.project",
+  "schemaVersion": "2.0.0",
+  "product": "archsight-solver",
+  "appVersion": "1.6.1",
+  "contract": {
+    "asmsJsonSchemaVersion": "2026-05-30",
+    "projectFileSchemaVersion": "2.0.0",
+    "modelRoundTrip": "normalized"
+  },
+  "manifest": {
+    "manifestVersion": "1.0.0",
+    "projectFileKind": "single-json",
+    "containerVersion": "1.0.0",
+    "entries": [
+      { "path": "project.json", "role": "projectDocument", "mediaType": "application/json", "required": true },
+      { "path": "manifest.json", "role": "projectManifest", "mediaType": "application/json", "required": false }
+    ],
+    "contract": {
+      "projectFileSchemaVersion": "2.0.0",
+      "asmsJsonSchemaVersion": "2026-05-30"
+    },
+    "containerCapabilities": {
+      "single-json": true,
+      "zip-container": false,
+      "project-folder": false
+    }
+  },
+  "createdAt": "2026-07-14T00:00:00.000Z",
+  "updatedAt": "2026-07-14T00:00:00.000Z",
+  "project": {
+    "id": "host-reference-project",
+    "name": "Host Reference 梁系项目",
+    "activeObjectId": "",
+    "objects": [],
+    "settings": {
+      "projectInfo": {
+        "name": "Host Reference 梁系项目",
+        "address": "",
+        "projectType": "",
+        "scale": "",
+        "projectManager": "",
+        "constructionUnit": "",
+        "developerUnit": "",
+        "supervisionUnit": ""
+      },
+      "activeModuleSection": "",
+      "modelPreviewStyle": "color",
+      "customMaterials": [],
+      "reportExportOptions": {}
+    },
+    "createdAt": "2026-07-14T00:00:00.000Z",
+    "updatedAt": "2026-07-14T00:00:00.000Z"
+  },
+  "units": {
+    "length": "m",
+    "force": "kN",
+    "stress": "MPa",
+    "modulus": "GPa",
+    "inertia": "cm4"
+  }
+}

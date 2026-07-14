@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import re
 import sys
 from pathlib import Path
 
@@ -7,7 +9,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_PATHS = (
     ".github/workflows/release.yml",
+    "docs/verification/release-1-6-1-acceptance.md",
     "docs/verification/release-1-6-acceptance.md",
+    "examples/host-iframe-demo/host.js",
+    "examples/host-iframe-demo/sample-project.slv",
+    "frontend/tests/visual/release-1-6-1-host-reference.spec.ts",
+    "scripts/run_host_iframe_demo.py",
     "scripts/check_versions.py",
     "Dockerfile",
     "deploy/.env.example",
@@ -20,6 +27,7 @@ REQUIRED_MARKERS = {
         "python scripts/check_release_gate.py",
         "docker build",
         "release-1-6-host-integration.spec.ts",
+        "release-1-6-1-host-reference.spec.ts",
         "npm audit --omit=dev --audit-level=moderate",
     ),
     ".github/workflows/release.yml": (
@@ -49,15 +57,38 @@ def main() -> int:
                 failures.append(f"{relative_path} 缺少门禁标记: {marker}")
 
     deploy_expectations = {
-        "deploy/.env.example": "IMAGE_TAG=v1.6.0",
-        "deploy/docker-compose.yml.example": "${IMAGE_TAG:-v1.6.0}",
-        "deploy/deploy.sh": '${IMAGE_TAG:-v1.6.0}',
-        "docs/deployment.md": "archsight-solver:v1.6.0",
+        "deploy/.env.example": "IMAGE_TAG=v1.6.1",
+        "deploy/docker-compose.yml.example": "${IMAGE_TAG:-v1.6.1}",
+        "deploy/deploy.sh": '${IMAGE_TAG:-v1.6.1}',
+        "docs/deployment.md": "archsight-solver:v1.6.1",
     }
     for relative_path, expected_marker in deploy_expectations.items():
         text = (ROOT / relative_path).read_text(encoding="utf-8")
         if expected_marker not in text:
             failures.append(f"{relative_path} 未对齐当前发布版本: {expected_marker}")
+
+    wildcard_post_message = re.compile(
+        r"postMessage\s*\((?:(?!\)\s*;).){0,2000}?,\s*['\"]\*['\"]\s*\)",
+        flags=re.DOTALL,
+    )
+    for directory in (ROOT / "frontend", ROOT / "examples"):
+        for path in directory.rglob("*"):
+            if {"node_modules", "dist", "test-results", "playwright-report"}.intersection(path.parts):
+                continue
+            if path.suffix not in {".ts", ".tsx", ".js", ".html"} or not path.is_file():
+                continue
+            if wildcard_post_message.search(path.read_text(encoding="utf-8")):
+                failures.append(f"发现不安全的 postMessage 通配 targetOrigin: {path.relative_to(ROOT)}")
+
+    sample_path = ROOT / "examples/host-iframe-demo/sample-project.slv"
+    if sample_path.is_file():
+        sample = json.loads(sample_path.read_text(encoding="utf-8"))
+        if sample.get("schemaVersion") != "2.0.0":
+            failures.append("Host Reference 示例项目 schemaVersion 未对齐 2.0.0")
+        if sample.get("contract", {}).get("asmsJsonSchemaVersion") != "2026-05-30":
+            failures.append("Host Reference 示例项目 ASMS-JSON 契约版本漂移")
+        if sample.get("manifest", {}).get("projectFileKind") != "single-json":
+            failures.append("Host Reference 示例项目 manifest 不是 single-json")
 
     if failures:
         print("发布工程门禁失败:")

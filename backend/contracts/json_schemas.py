@@ -880,7 +880,7 @@ HOST_MESSAGE_SCHEMA: Dict[str, Any] = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "ArchSight Solver 外部宿主消息",
     "type": "object",
-    "required": ["type", "protocolVersion", "sessionId", "nonce", "payload"],
+    "required": ["type", "protocolVersion", "payload"],
     "properties": {
         "type": {
             "type": "string",
@@ -900,7 +900,19 @@ HOST_MESSAGE_SCHEMA: Dict[str, Any] = {
     },
     "allOf": [
         {
-            "if": {"properties": {"type": {"const": "archsight.solver.host.launch"}}},
+            "if": {"properties": {"type": {"const": "archsight.solver.ready"}}, "required": ["type"]},
+            "then": {
+                "oneOf": [
+                    {
+                        "not": {"anyOf": [{"required": ["sessionId"]}, {"required": ["nonce"]}]},
+                    },
+                    {"required": ["sessionId", "nonce"]},
+                ],
+            },
+            "else": {"required": ["sessionId", "nonce"]},
+        },
+        {
+            "if": {"properties": {"type": {"const": "archsight.solver.host.launch"}}, "required": ["type"]},
             "then": {
                 "properties": {
                     "payload": {
@@ -916,7 +928,7 @@ HOST_MESSAGE_SCHEMA: Dict[str, Any] = {
             },
         },
         {
-            "if": {"properties": {"type": {"const": "archsight.solver.host.saveResult"}}},
+            "if": {"properties": {"type": {"const": "archsight.solver.host.saveResult"}}, "required": ["type"]},
             "then": {
                 "properties": {
                     "payload": {
@@ -929,15 +941,15 @@ HOST_MESSAGE_SCHEMA: Dict[str, Any] = {
             },
         },
         {
-            "if": {"properties": {"type": {"enum": ["archsight.solver.project.changed", "archsight.solver.project.saveRequest"]}}},
+            "if": {"properties": {"type": {"enum": ["archsight.solver.project.changed", "archsight.solver.project.saveRequest"]}}, "required": ["type"]},
             "then": {"properties": {"payload": {"type": "object", "required": ["projectDocument"]}}},
         },
         {
-            "if": {"properties": {"type": {"const": "archsight.solver.ready"}}},
+            "if": {"properties": {"type": {"const": "archsight.solver.ready"}}, "required": ["type"]},
             "then": {"properties": {"payload": {"type": "object", "required": ["capabilities"]}}},
         },
         {
-            "if": {"properties": {"type": {"const": "archsight.solver.error"}}},
+            "if": {"properties": {"type": {"const": "archsight.solver.error"}}, "required": ["type"]},
             "then": {"properties": {"payload": {"type": "object", "required": ["message"]}}},
         },
     ],

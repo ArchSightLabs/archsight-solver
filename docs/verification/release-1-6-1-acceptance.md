@@ -1,0 +1,33 @@
+# v1.6.1 发布验收清单
+
+v1.6.1 验证 v1.6 Host Protocol 1.0 能被独立第三方宿主真实接入。本版不新增求解对象，不包含学校、课程、学生、账号、云存储或私有 Platform 1.0。
+
+## 自动化门禁
+
+```bash
+python scripts/check_versions.py --expected-version 1.6.1
+python scripts/check_release_gate.py
+python -m pytest backend/tests -q
+npm --prefix frontend run lint
+npm --prefix frontend run test:unit
+npm --prefix frontend run build
+npm --prefix frontend run test:visual -- release-1-6-1-host-reference.spec.ts --project=chromium --workers=1
+npm --prefix frontend run test:visual -- release-1-6-host-integration.spec.ts --project=chromium --workers=1
+```
+
+## Reference Host 验收
+
+- [x] `python scripts/run_host_iframe_demo.py` 启动 `127.0.0.1:6241` Solver 与 `127.0.0.1:6250` Host。
+- [x] Reference Host 直接读取 canonical `sample-project.slv`，不在 HTML 中手写项目契约。
+- [x] editable 模式收到项目变更和保存请求，localStorage 写入 revision，并回传 saveResult。
+- [x] 刷新宿主页后重新 launch，项目名称、活动对象和修改后的均布荷载保持一致。
+- [x] readonly 模式锁定建模和保存入口。
+- [x] allowlist 外 origin、非父窗口来源、错误 session/nonce 和协议漂移被拒绝。
+- [x] bootstrap ready 与 session ready 均通过公开 JSON Schema。
+- [x] `frontend/` 与 `examples/` 不存在向 `*` 发送 `postMessage` 的调用。
+
+## 发布边界
+
+- 版本号、CHANGELOG、release notes、部署示例与容器标签必须一致为 `1.6.1`。
+- CI 和 tag release 必须运行真实双 origin Reference Host spec，并保留 v1.6/v1.5 回归。
+- 发布说明只能声称“独立参考宿主已验证”，不得声称学校平台、私有 Platform 或第三方生产部署已经发布。

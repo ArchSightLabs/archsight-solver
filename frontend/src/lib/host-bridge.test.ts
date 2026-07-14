@@ -9,6 +9,7 @@ import {
   isHostOriginAllowed,
   normalizeHostOriginList,
   parseHostLaunchMessage,
+  resolveBootstrapHostOrigin,
 } from "./host-bridge.ts";
 import { createArchSightSolverProjectFile } from "./project-file.ts";
 import { createDefaultSolverProject } from "./solver-project.ts";
@@ -53,12 +54,26 @@ test("host bridge emits ready and changed messages without platform concepts", (
 });
 
 test("host origin helpers support allowlist checks without platform concepts", () => {
-  const origins = normalizeHostOriginList("https://lms.example.edu, https://portal.example.edu");
+  const origins = normalizeHostOriginList("https://lms.example.edu, https://portal.example.edu/, *, *.example.edu, https://portal.example.edu/path, null");
 
   assert.deepEqual(origins, ["https://lms.example.edu", "https://portal.example.edu"]);
-  assert.equal(isHostOriginAllowed("https://lms.example.edu", origins), true);
-  assert.equal(isHostOriginAllowed("https://evil.example.edu", origins), false);
-  assert.equal(isHostOriginAllowed("https://any.example.edu", []), false);
+  assert.equal(isHostOriginAllowed("https://lms.example.edu", origins, "https://solver.example.cn"), true);
+  assert.equal(isHostOriginAllowed("https://evil.example.edu", origins, "https://solver.example.cn"), false);
+  assert.equal(isHostOriginAllowed("null", origins, "https://solver.example.cn"), false);
+  assert.equal(isHostOriginAllowed("https://solver.example.cn", [], "https://solver.example.cn"), true);
+  assert.equal(resolveBootstrapHostOrigin("https://lms.example.edu/course/1", origins, "https://solver.example.cn"), "https://lms.example.edu");
+  assert.equal(resolveBootstrapHostOrigin("https://evil.example.edu/course/1", origins, "https://solver.example.cn"), null);
+  assert.equal(resolveBootstrapHostOrigin("", origins, "https://solver.example.cn"), null);
+});
+
+test("bootstrap ready omits session binding while session ready includes it", () => {
+  const bootstrapReady = buildSolverReadyMessage(null);
+  const sessionReady = buildSolverReadyMessage("session-1", "nonce-1");
+
+  assert.equal("sessionId" in bootstrapReady, false);
+  assert.equal("nonce" in bootstrapReady, false);
+  assert.equal(sessionReady.sessionId, "session-1");
+  assert.equal(sessionReady.nonce, "nonce-1");
 });
 
 test("host launch rejects missing session binding and protocol drift", () => {

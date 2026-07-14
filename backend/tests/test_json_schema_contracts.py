@@ -241,6 +241,86 @@ def test_host_message_schema_rejects_missing_or_mismatched_session_contract(inva
         validator.validate(invalid_message)
 
 
+def test_host_message_schema_accepts_bootstrap_and_session_ready_messages():
+    validator, _ = _runtime_contract_validator(schema_registry()["solver-host-message"])
+
+    validator.validate({
+        "type": "archsight.solver.ready",
+        "protocolVersion": "1.0.0",
+        "payload": {"capabilities": {"loadProjectDocument": True}},
+    })
+    validator.validate({
+        "type": "archsight.solver.ready",
+        "protocolVersion": "1.0.0",
+        "sessionId": "session-1",
+        "nonce": "nonce-1",
+        "payload": {"capabilities": {"loadProjectDocument": True}},
+    })
+
+
+@pytest.mark.parametrize(
+    "invalid_ready",
+    [
+        {
+            "type": "archsight.solver.ready",
+            "protocolVersion": "1.0.0",
+            "sessionId": "session-1",
+            "payload": {"capabilities": {}},
+        },
+        {
+            "type": "archsight.solver.ready",
+            "protocolVersion": "1.0.0",
+            "nonce": "nonce-1",
+            "payload": {"capabilities": {}},
+        },
+    ],
+)
+def test_host_message_schema_rejects_partial_ready_session_binding(invalid_ready):
+    validator, validation_error = _runtime_contract_validator(schema_registry()["solver-host-message"])
+
+    with pytest.raises(validation_error):
+        validator.validate(invalid_ready)
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        {
+            "type": "archsight.solver.project.changed",
+            "protocolVersion": "1.0.0",
+            "sessionId": "session-1",
+            "nonce": "nonce-1",
+            "payload": {"projectDocument": {}},
+        },
+        {
+            "type": "archsight.solver.project.saveRequest",
+            "protocolVersion": "1.0.0",
+            "sessionId": "session-1",
+            "nonce": "nonce-1",
+            "payload": {"projectDocument": {}, "reason": "host-managed-persistence"},
+        },
+        {
+            "type": "archsight.solver.host.saveResult",
+            "protocolVersion": "1.0.0",
+            "sessionId": "session-1",
+            "nonce": "nonce-1",
+            "payload": {"status": "saved", "revision": "local-1"},
+        },
+        {
+            "type": "archsight.solver.error",
+            "protocolVersion": "1.0.0",
+            "sessionId": "session-1",
+            "nonce": "nonce-1",
+            "payload": {"message": "host bridge 处理失败。"},
+        },
+    ],
+)
+def test_host_session_message_variants_validate_against_public_schema(message):
+    validator, _ = _runtime_contract_validator(schema_registry()["solver-host-message"])
+
+    validator.validate(message)
+
+
 @pytest.mark.parametrize(
     ("schema_id", "mutate"),
     [

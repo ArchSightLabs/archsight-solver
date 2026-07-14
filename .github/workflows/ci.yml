@@ -84,6 +84,7 @@ jobs:
 
       - name: Run release workbench smoke
         run: |
+          npm run test:visual -- release-1-6-1-host-reference.spec.ts --project=chromium --workers=1
           npm run test:visual -- release-1-6-host-integration.spec.ts --project=chromium --workers=1
           npm run test:visual -- release-1-5-quick-modeling.spec.ts --project=chromium --workers=1
           npm run test:visual -- release-1-5-load-scenarios.spec.ts --project=chromium --workers=1

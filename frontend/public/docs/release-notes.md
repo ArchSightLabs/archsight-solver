@@ -2,6 +2,28 @@
 
 <!-- 本文件由根目录 CHANGELOG.md 生成，请勿直接编辑；运行 npm --prefix frontend run sync:release-notes 更新。 -->
 
+## v1.6.1
+
+发布时间：2026-07-14
+
+本版是 v1.6 Host Protocol 1.0 的首次独立宿主接入验证与项目契约可靠性更新，不新增结构分析域，也不代表私有 `archsight-solver-platform` 已发布。
+
+重点变化：
+
+- 将 `examples/host-iframe-demo` 升级为零框架 Reference Host，使用真实双 origin、精确 `targetOrigin`、session/nonce 会话绑定和浏览器 localStorage 托管保存。
+- 新增 `python scripts/run_host_iframe_demo.py` 一条命令启动 Solver 与 Reference Host；支持连接已有 Solver 的 `--host-only` 模式，并补充 VS Code `Host iframe demo` 启动入口。
+- 修正 bootstrap ready 与公开 `solver-host-message` JSON Schema 的差异：bootstrap ready 可省略会话字段，launch 后的 session ready 必须回显 `sessionId` 与 `nonce`。
+- 从 `document.referrer` 只解析 allowlist 内的精确 http/https origin，不再使用 `postMessage(..., "*")`；无 referrer 时由宿主在 iframe load 后主动 launch。
+- origin 配置会忽略 `*`、子域通配、opaque origin、带路径/query/hash 或认证信息的无效值，继续保持精确白名单边界。
+- 新增 canonical `sample-project.slv`，由前端 parser、后端项目健康检查和发布门禁共同验证，避免示例项目契约漂移。
+
+质量门禁：
+
+- Chromium 直接运行公开 Reference Host，覆盖跨 origin 可编辑接入、项目变更、保存、刷新重开、只读和非法 origin 拒绝。
+- 原 v1.6 同源 Host 回归继续覆盖 launch/change/save/result、只读锁定和非父窗口拒绝。
+- Host Bridge 单元测试和后端 JSON Schema 测试覆盖 bootstrap/session ready、严格 origin 归一化和 canonical 示例文件。
+- CI 与 tag release 同时运行 v1.6.1 Reference Host 和既有 v1.6/v1.5 发布回归。
+
 ## v1.6.0
 
 发布时间：2026-07-12

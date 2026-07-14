@@ -36,12 +36,24 @@ export default defineConfig({
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
-  webServer: {
-    command: "npm run dev -- --host 127.0.0.1 --port 6241",
-    url: "http://127.0.0.1:6241",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: "npm run dev -- --host 127.0.0.1 --port 6241",
+      url: "http://127.0.0.1:6241",
+      env: {
+        ...process.env,
+        VITE_SOLVER_HOST_ALLOWED_ORIGINS: "http://127.0.0.1:6241,http://127.0.0.1:6250",
+      },
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      command: "python ../scripts/run_host_iframe_demo.py --host-only --solver-url http://127.0.0.1:6241",
+      url: "http://127.0.0.1:6250",
+      reuseExistingServer: !process.env.CI,
+      timeout: 30_000,
+    },
+  ],
   projects: [
     {
       name: "chromium",

@@ -8,6 +8,7 @@ import {
   isHostOriginAllowed,
   normalizeHostOriginList,
   parseHostLaunchMessage,
+  resolveBootstrapHostOrigin,
   type SolverHostMessage,
 } from "../lib/host-bridge.ts";
 import type { ProjectFileHandle } from "../lib/project-file.ts";
@@ -51,14 +52,26 @@ export function useSolverHostBridge({
   const [hostOrigin, setHostOrigin] = useState<string | null>(null);
   const projectRef = useRef(project);
   const allowedOriginList = useMemo(() => normalizeHostOriginList(allowedOrigins), [allowedOrigins]);
+  const bootstrapHostOrigin = useMemo(() => {
+    if (typeof window === "undefined") {
+      return null;
+    }
+    return resolveBootstrapHostOrigin(document.referrer, allowedOriginList, window.location.origin);
+  }, [allowedOriginList]);
 
   useEffect(() => {
     projectRef.current = project;
   }, [project]);
 
   useEffect(() => {
-    postToHost(buildSolverReadyMessage(sessionId, nonce), hostOrigin ?? "*");
-  }, [hostOrigin, nonce, sessionId]);
+    if (sessionId && nonce && hostOrigin) {
+      postToHost(buildSolverReadyMessage(sessionId, nonce), hostOrigin);
+      return;
+    }
+    if (bootstrapHostOrigin) {
+      postToHost(buildSolverReadyMessage(null), bootstrapHostOrigin);
+    }
+  }, [bootstrapHostOrigin, hostOrigin, nonce, sessionId]);
 
   useEffect(() => {
     const handleMessage = (event: globalThis.MessageEvent) => {
@@ -98,7 +111,14 @@ export function useSolverHostBridge({
           setFileStatusMessage(status === "saved" ? "外部宿主已保存工程。" : `外部宿主保存结果：${status}`);
         }
       } catch (error) {
-        postToHost(buildSolverErrorMessage(sessionId, error instanceof Error ? error.message : "host bridge 处理失败。", nonce), hostOrigin ?? event.origin);
+        const errorSessionId = sessionId ?? (typeof message?.sessionId === "string" ? message.sessionId.trim() : "");
+        const errorNonce = nonce ?? (typeof message?.nonce === "string" ? message.nonce.trim() : "");
+        if (errorSessionId && errorNonce) {
+          postToHost(
+            buildSolverErrorMessage(errorSessionId, error instanceof Error ? error.message : "host bridge 处理失败。", errorNonce),
+            hostOrigin ?? event.origin,
+          );
+        }
       }
     };
     window.addEventListener("message", handleMessage);

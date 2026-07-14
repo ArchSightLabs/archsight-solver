@@ -39,16 +39,64 @@ export interface HostLaunchResult {
 
 export function normalizeHostOriginList(value: string | readonly string[] | null | undefined): string[] {
   const items = Array.isArray(value) ? value : String(value ?? "").split(",");
-  return items
-    .map((item) => item.trim())
-    .filter(Boolean);
+  return Array.from(new Set(items
+    .map((item) => normalizeHttpOrigin(item))
+    .filter((item): item is string => Boolean(item))));
 }
 
-export function isHostOriginAllowed(origin: string, allowedOrigins: readonly string[]): boolean {
-  if (allowedOrigins.length === 0) {
-    return typeof window !== "undefined" && origin === window.location.origin;
+function normalizeHttpOrigin(value: string): string | null {
+  const candidate = value.trim();
+  if (!candidate) {
+    return null;
   }
-  return allowedOrigins.includes(origin);
+  try {
+    const parsed = new URL(candidate);
+    if (
+      (parsed.protocol !== "http:" && parsed.protocol !== "https:")
+      || parsed.origin === "null"
+      || parsed.username
+      || parsed.password
+      || (parsed.pathname !== "/" && parsed.pathname !== "")
+      || parsed.search
+      || parsed.hash
+    ) {
+      return null;
+    }
+    return parsed.origin;
+  } catch {
+    return null;
+  }
+}
+
+export function isHostOriginAllowed(
+  origin: string,
+  allowedOrigins: readonly string[],
+  solverOrigin = typeof window !== "undefined" ? window.location.origin : "",
+): boolean {
+  const normalizedOrigin = normalizeHttpOrigin(origin);
+  if (!normalizedOrigin || normalizedOrigin !== origin) {
+    return false;
+  }
+  if (allowedOrigins.length === 0) {
+    return Boolean(solverOrigin) && normalizedOrigin === solverOrigin;
+  }
+  return allowedOrigins.includes(normalizedOrigin);
+}
+
+export function resolveBootstrapHostOrigin(
+  referrer: string,
+  allowedOrigins: readonly string[],
+  solverOrigin: string,
+): string | null {
+  if (!referrer) {
+    return null;
+  }
+  try {
+    const origin = new URL(referrer).origin;
+    return isHostOriginAllowed(origin, allowedOrigins, solverOrigin) ? origin : null;
+  } catch {
+    return null;
+  }
 }
 
 export function isSolverHostMessage(value: unknown): value is SolverHostMessage {
@@ -88,11 +136,13 @@ export function parseHostLaunchMessage(value: unknown): HostLaunchResult | null 
 }
 
 export function buildSolverReadyMessage(sessionId: string | null, nonce: string | null = null): SolverHostMessage {
+  const sessionBinding = sessionId?.trim() && nonce?.trim()
+    ? { sessionId: sessionId.trim(), nonce: nonce.trim() }
+    : {};
   return {
     type: SOLVER_READY_MESSAGE,
     protocolVersion: SOLVER_HOST_PROTOCOL_VERSION,
-    sessionId: sessionId ?? undefined,
-    nonce: nonce ?? undefined,
+    ...sessionBinding,
     payload: {
       capabilities: {
         loadProjectDocument: true,

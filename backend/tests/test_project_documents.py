@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 from backend.capabilities.solver_tools import TOOL_HANDLERS
 from backend.project_documents import (
     ASMS_JSON_SCHEMA_VERSION,
@@ -98,3 +101,15 @@ def test_project_document_health_tool_flags_migration_review_status():
     assert result["healthStatus"] == "review"
     assert result["diagnosticSeverityCounts"]["warning"] >= 1
     assert result["hostReadiness"]["requiresMigration"] is True
+
+
+def test_host_reference_sample_project_is_healthy():
+    sample_path = Path(__file__).resolve().parents[2] / "examples" / "host-iframe-demo" / "sample-project.slv"
+    document = json.loads(sample_path.read_text(encoding="utf-8"))
+
+    report = build_project_health_report(document)
+
+    assert report["ok"] is True
+    assert report["healthStatus"] == "ready"
+    assert report["project"]["name"] == "Host Reference 梁系项目"
+    assert report["manifest"]["projectFileKind"] == "single-json"

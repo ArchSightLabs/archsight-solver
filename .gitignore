@@ -99,6 +99,7 @@ scripts/*
 !scripts/generate_benchmark_report.py
 !scripts/kill-ports.ps1
 !scripts/remote-deploy.ps1
+!scripts/run_host_iframe_demo.py
 !frontend/scripts/
 !frontend/scripts/**
 specs/

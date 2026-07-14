@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION,
@@ -168,4 +169,14 @@ test("解析项目文件时拒绝非 ArchSight Solver schema", () => {
 
   assert.equal(parsed.ok, false);
   assert.equal(parsed.error, "文件 schema 不是 archsight-solver.project。");
+});
+
+test("公开 Host Reference 示例可被前端按当前项目契约解析", () => {
+  const raw = readFileSync(new URL("../../../examples/host-iframe-demo/sample-project.slv", import.meta.url), "utf8");
+  const parsed = parseArchSightSolverProjectFile(raw);
+
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.value?.project.name, "Host Reference 梁系项目");
+  assert.equal(parsed.value?.manifest.projectFileKind, "single-json");
+  assert.equal(parsed.value?.project.objects.length, 3);
 });
