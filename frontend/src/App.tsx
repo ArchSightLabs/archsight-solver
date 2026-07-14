@@ -66,8 +66,12 @@ import {
   uniqueWorkbenchSelections,
 } from "./lib/workbench-selection-utils";
 import { buildModelDiagnostics } from "./lib/model-diagnostics";
+import { resolveHostAllowedOrigins, resolveWorkbenchPresentation } from "./lib/workbench-presentation";
 
-const SOLVER_HOST_ALLOWED_ORIGINS = import.meta.env.VITE_SOLVER_HOST_ALLOWED_ORIGINS ?? "";
+const SOLVER_HOST_ALLOWED_ORIGINS = resolveHostAllowedOrigins(
+  typeof window !== "undefined" ? window.__ARCHSIGHT_SOLVER_RUNTIME_CONFIG__?.hostAllowedOrigins : "",
+  import.meta.env.VITE_SOLVER_HOST_ALLOWED_ORIGINS,
+);
 
 type AnalysisObjectPageState = {
   moduleSectionId?: string;
@@ -91,7 +95,11 @@ const RELEASE_NOTES_HREF = "/docs/release-notes.html";
 const USER_MANUAL_HREF = "/docs/user-manual.html";
 
 function AppContent() {
-  const { isDark, setIsDark, clientId } = useWorkbenchSession();
+  const [presentation] = useState(() => resolveWorkbenchPresentation(
+    typeof window === "undefined" ? "" : window.location.search,
+  ));
+  const isEmbeddedWorkbench = presentation.embedded;
+  const { isDark, setIsDark, clientId } = useWorkbenchSession(presentation.theme);
   const [pageStateByObjectId, setPageStateByObjectId] = useState<Record<string, AnalysisObjectPageState>>({});
   const [workbenchSelectionState, setWorkbenchSelectionState] = useState<WorkbenchSelectionState>({ primary: null, items: [] });
   const [gridSnapEnabled, setGridSnapEnabled] = useState(false);
@@ -116,7 +124,9 @@ function AppContent() {
     isProjectDirty,
     isProjectReadOnly,
     lastSavedAt,
+    getProjectRevision,
     markProjectDirty,
+    markProjectSaved,
     project,
     projectFileHandle,
     projectFileName,
@@ -135,7 +145,7 @@ function AppContent() {
     canUndoWorkspace,
     canRedoWorkspace,
     workspace,
-  } = useSolverProjectDocument();
+  } = useSolverProjectDocument({ localAutosaveEnabled: !isEmbeddedWorkbench });
   const reportExportOptions = project.settings.reportExportOptions;
   const projectMaterialLibrary = useMemo(
     () => materialLibraryFromCustomMaterials(project.settings.customMaterials),
@@ -150,7 +160,7 @@ function AppContent() {
     setIsModuleNavCollapsed,
     showInspectorCollapsed,
     workbenchGridStyle,
-  } = useResizableWorkbenchLayout(isSystemSettingsDocked);
+  } = useResizableWorkbenchLayout(isSystemSettingsDocked && !isEmbeddedWorkbench);
   const analysisMode = workspace.analysisMode;
   const modelDiagnostics = useMemo(() => buildModelDiagnostics(workspace), [workspace]);
   const resetWorkbenchContext = useCallback(() => {
@@ -332,6 +342,11 @@ function AppContent() {
   const syncRuntimeFromProject = useCallback((nextProject: typeof project) => {
     syncRuntimeFromAnalysisObject(getActiveAnalysisObject(nextProject));
   }, [syncRuntimeFromAnalysisObject]);
+  const handleHostSaveResult = useCallback((status: string, projectRevision: number | null) => {
+    if (status === "saved" && projectRevision !== null) {
+      markProjectSaved(projectRevision, "外部宿主已保存工程。");
+    }
+  }, [markProjectSaved]);
   const {
     emitProjectChanged,
     hostMode,
@@ -341,8 +356,10 @@ function AppContent() {
   } = useSolverHostBridge({
     allowedOrigins: SOLVER_HOST_ALLOWED_ORIGINS,
     applyCurrentRuntimeToProject,
+    getProjectRevision,
     project,
     onHostModeChange: (mode) => setProjectReadOnly(mode === "readonly"),
+    onHostSaveResult: handleHostSaveResult,
     replaceProject,
     setFileStatusMessage,
     syncRuntimeFromProject,
@@ -632,32 +649,34 @@ function AppContent() {
       <div className="fixed inset-0 pointer-events-none opacity-[0.02] dark:opacity-[0.08] [background-image:linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] [background-size:32px_32px]" />
       <div className="fixed top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
 
-      <AppHeader
-        appVersion={APP_VERSION}
-        fileDisplayName={fileDisplayName}
-        fileMenuRef={fileMenuRef}
-        fileStateLabel={fileStateLabel}
-        fileStatusMessage={fileStatusMessage}
-        hostStatusLabel={hostStatusLabel}
-        isCompactWorkbench={isCompactWorkbench}
-        isDark={isDark}
-        isFileMenuOpen={isFileMenuOpen}
-        isProjectDirty={isProjectDirty}
-        isProjectReadOnly={isProjectReadOnly}
-        releaseNotesHref={RELEASE_NOTES_HREF}
-        onNewProjectFile={handleNewProjectFile}
-        onOpenProjectFile={handleOpenProjectFile}
-        onSaveProjectFile={handleSaveProject}
-        setIsDark={setIsDark}
-        setIsFileMenuOpen={setIsFileMenuOpen}
-      />
+      {!isEmbeddedWorkbench ? (
+        <AppHeader
+          appVersion={APP_VERSION}
+          fileDisplayName={fileDisplayName}
+          fileMenuRef={fileMenuRef}
+          fileStateLabel={fileStateLabel}
+          fileStatusMessage={fileStatusMessage}
+          hostStatusLabel={hostStatusLabel}
+          isCompactWorkbench={isCompactWorkbench}
+          isDark={isDark}
+          isFileMenuOpen={isFileMenuOpen}
+          isProjectDirty={isProjectDirty}
+          isProjectReadOnly={isProjectReadOnly}
+          releaseNotesHref={RELEASE_NOTES_HREF}
+          onNewProjectFile={handleNewProjectFile}
+          onOpenProjectFile={handleOpenProjectFile}
+          onSaveProjectFile={handleSaveProject}
+          setIsDark={setIsDark}
+          setIsFileMenuOpen={setIsFileMenuOpen}
+        />
+      ) : null}
 
-      <main className="relative z-10 mx-auto max-w-[118rem] px-4 pb-12 pt-4 sm:px-6 sm:pb-16 sm:pt-6 xl:pb-0">
+      <main className={`relative z-10 mx-auto max-w-[118rem] px-4 pt-4 ${isEmbeddedWorkbench ? "pb-4 sm:px-4 sm:pb-4 sm:pt-4" : "pb-12 sm:px-6 sm:pb-16 sm:pt-6 xl:pb-0"}`}>
         <div
-          className="grid grid-cols-1 gap-5 xl:items-stretch transition-all duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] min-h-[calc(100vh-10rem)]"
+          className={`grid grid-cols-1 gap-5 xl:items-stretch transition-all duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] ${isEmbeddedWorkbench ? "min-h-[calc(100vh-2rem)]" : "min-h-[calc(100vh-10rem)]"}`}
           style={workbenchGridStyle}
         >
-          <aside className="relative hidden xl:block xl:sticky xl:top-24">
+          <aside className={`relative hidden xl:block xl:sticky ${isEmbeddedWorkbench ? "xl:top-4" : "xl:top-24"}`}>
             <GlassCard className={`transition-all ${isModuleNavCollapsed ? "p-2" : "p-3"}`}>
               <div className={`mb-3 flex items-center ${isModuleNavCollapsed ? "justify-center" : "justify-between gap-2 border-b border-white/10 pb-2"}`}>
                 {!isModuleNavCollapsed && (
@@ -682,6 +701,7 @@ function AppContent() {
                 collapsed={isModuleNavCollapsed}
                 compact={isCompactWorkbench}
                 readOnly={isProjectReadOnly}
+                hostManagedProject={isEmbeddedWorkbench}
                 onSelectObject={handleSelectAnalysisObject}
                 onRemoveObject={handleRemoveAnalysisObject}
               />
@@ -692,7 +712,7 @@ function AppContent() {
                 aria-label="拖动调整工程树宽度"
                 title="拖动调整工程树宽度"
                 onPointerDown={handleModuleNavResizeStart}
-                className="group absolute -right-4 top-0 hidden h-[calc(100vh-7rem)] w-3 cursor-col-resize items-center justify-center xl:flex"
+                className={`group absolute -right-4 top-0 hidden w-3 cursor-col-resize items-center justify-center xl:flex ${isEmbeddedWorkbench ? "h-[calc(100vh-2rem)]" : "h-[calc(100vh-7rem)]"}`}
               >
                 <span className="flex h-16 w-1 items-center justify-center rounded-full bg-slate-300/50 transition-colors group-hover:bg-primary/70 dark:bg-slate-700 dark:group-hover:bg-sky-400">
                   <GripVertical className="h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100" />
@@ -708,6 +728,7 @@ function AppContent() {
                   project={project}
                   compact={isCompactWorkbench}
                   readOnly={isProjectReadOnly}
+                  hostManagedProject={isEmbeddedWorkbench}
                   onSelectObject={handleSelectAnalysisObject}
                   onRemoveObject={handleRemoveAnalysisObject}
                 />
@@ -796,7 +817,7 @@ function AppContent() {
               {formContent}
             </fieldset>
           </WorkbenchInspectorPanel>
-          {isSystemSettingsDocked ? (
+          {isSystemSettingsDocked && !isEmbeddedWorkbench ? (
             <SystemSettingsPanel
               compact={false}
               docked
@@ -824,6 +845,7 @@ function AppContent() {
       ) : null}
 
       <GlobalDialogs
+        hostManagedProject={isEmbeddedWorkbench}
         isCompactWorkbench={isCompactWorkbench}
         isProjectReadOnly={isProjectReadOnly}
         project={project}

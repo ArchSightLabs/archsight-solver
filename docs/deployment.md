@@ -20,6 +20,16 @@ docker run --rm -p 127.0.0.1:6280:6240 archsight-solver:latest
 
 容器启动后，前端和后端会一起运行在 `http://127.0.0.1:6280`。
 
+若 Solver 需要被其他 origin 的平台 iframe 嵌入，应在容器运行时配置精确宿主白名单，无需为每个宿主重新构建前端镜像：
+
+```powershell
+docker run --rm -p 127.0.0.1:6280:6240 `
+  -e ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS=https://classroom.example.edu,https://review.example.edu `
+  archsight-solver:latest
+```
+
+该配置只接受完整的 `http/https origin`，不接受 `*`、子域通配、路径或 query。未配置时只允许同 origin 宿主。
+
 ## 远程镜像标签
 
 如需推送远程镜像，先登录镜像仓库：
@@ -52,7 +62,7 @@ $env:DOCKER_BUILDKIT="0"; docker build -t archsight-solver:latest .
 docker compose up -d --build
 ```
 
-Compose 默认将容器内 `6240` 端口绑定到宿主机本地端口。如需调整宿主机端口，可设置 `APP_HOST_PORT`。
+Compose 默认将容器内 `6240` 端口绑定到宿主机本地端口。如需调整宿主机端口，可设置 `APP_HOST_PORT`；外部宿主接入使用 `ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS` 配置运行时白名单。
 
 公网部署时建议只通过外层 Nginx、Caddy 或同类网关暴露 `80/443`，并由网关负责 TLS、访问控制、请求体限制和审计策略。
 

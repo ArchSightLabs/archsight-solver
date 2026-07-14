@@ -11,7 +11,11 @@
 重点变化：
 
 - 将 `examples/host-iframe-demo` 升级为零框架 Reference Host，使用真实双 origin、精确 `targetOrigin`、session/nonce 会话绑定和浏览器 localStorage 托管保存。
+- 重构 Reference Host 的产品边界：宿主顶栏负责工程新建、打开、保存和只读审阅，Solver 通过 `embed=1` 只展示工程树、参数建模、结构计算、敏感性分析和结果工作台，协议诊断默认收起。
+- 为 Host 保存链路增加 `requestId` 确定快照握手与本地修订校验，避免陈旧回执清除后续编辑；无效工程打开会回滚并恢复既有会话。
+- 嵌入模式停止读写 Solver 本地项目草稿，避免外部宿主工程与独立工具或其他宿主会话发生浏览器存储串扰。
 - 新增 `python scripts/run_host_iframe_demo.py` 一条命令启动 Solver 与 Reference Host；支持连接已有 Solver 的 `--host-only` 模式，并补充 VS Code `Host iframe demo` 启动入口。
+- 新增容器运行时 `ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS` 配置，已发布镜像可按部署环境设置精确宿主白名单，不需要重新构建前端。
 - 修正 bootstrap ready 与公开 `solver-host-message` JSON Schema 的差异：bootstrap ready 可省略会话字段，launch 后的 session ready 必须回显 `sessionId` 与 `nonce`。
 - 从 `document.referrer` 只解析 allowlist 内的精确 http/https origin，不再使用 `postMessage(..., "*")`；无 referrer 时由宿主在 iframe load 后主动 launch。
 - origin 配置会忽略 `*`、子域通配、opaque origin、带路径/query/hash 或认证信息的无效值，继续保持精确白名单边界。
@@ -20,6 +24,7 @@
 质量门禁：
 
 - Chromium 直接运行公开 Reference Host，覆盖跨 origin 可编辑接入、项目变更、保存、刷新重开、只读和非法 origin 拒绝。
+- Reference Host 浏览器验收额外锁定嵌入模式不渲染独立应用 Header，并覆盖宿主新建、打开、保存工程生命周期。
 - 原 v1.6 同源 Host 回归继续覆盖 launch/change/save/result、只读锁定和非父窗口拒绝。
 - Host Bridge 单元测试和后端 JSON Schema 测试覆盖 bootstrap/session ready、严格 origin 归一化和 canonical 示例文件。
 - CI 与 tag release 同时运行 v1.6.1 Reference Host 和既有 v1.6/v1.5 发布回归。

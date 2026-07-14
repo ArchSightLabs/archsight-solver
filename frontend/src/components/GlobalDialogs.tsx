@@ -19,6 +19,7 @@ import type { AnalysisMode } from "../types/structure";
 import type { TemplateActionResult } from "../lib/template-library";
 
 interface GlobalDialogsProps {
+  hostManagedProject?: boolean;
   isCompactWorkbench: boolean;
   isProjectReadOnly: boolean;
   project: SolverProject;
@@ -60,7 +61,7 @@ interface GlobalDialogsProps {
 }
 
 export function GlobalDialogs({
-  isCompactWorkbench, isProjectReadOnly, project, visitStats, setModelPreviewStyle,
+  hostManagedProject = false, isCompactWorkbench, isProjectReadOnly, project, visitStats, setModelPreviewStyle,
   objectCountByType, handleCreateAnalysisObject,
   setCustomMaterials, handleUpdateProjectInfo, handleCreateProjectWithInfo,
   handleOpenPublicExampleProject,
@@ -79,7 +80,7 @@ export function GlobalDialogs({
 
   return (
     <>
-      {isSystemSettingsOpen && !isSystemSettingsDocked && (
+      {!hostManagedProject && isSystemSettingsOpen && !isSystemSettingsDocked && (
         <SystemSettingsPanel
           compact={isCompactWorkbench}
           releaseNotesHref={RELEASE_NOTES_HREF}
@@ -100,7 +101,7 @@ export function GlobalDialogs({
         />
       )}
 
-      {projectInfoDialogMode && !isProjectReadOnly && (
+      {!hostManagedProject && projectInfoDialogMode && !isProjectReadOnly && (
         <ProjectInfoDialog
           initialValue={projectInfoDialogMode === "edit" ? project.settings.projectInfo : null}
           title={projectInfoDialogMode === "edit" ? "工程设置" : "新建结构分析项目"}
@@ -113,14 +114,14 @@ export function GlobalDialogs({
         />
       )}
 
-      {isPublicExamplesOpen && !isProjectReadOnly && (
+      {!hostManagedProject && isPublicExamplesOpen && !isProjectReadOnly && (
         <PublicExamplesDialog
           onClose={() => setIsPublicExamplesOpen(false)}
           onOpenProject={handleOpenPublicExampleProject}
         />
       )}
 
-      {isBenchmarkSubmissionOpen && (
+      {!hostManagedProject && isBenchmarkSubmissionOpen && (
         <BenchmarkSubmissionDialog
           category={benchmarkSubmissionContext.category}
           payload={benchmarkSubmissionContext.payload}

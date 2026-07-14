@@ -13,6 +13,8 @@ REQUIRED_PATHS = (
     "docs/verification/release-1-6-acceptance.md",
     "examples/host-iframe-demo/host.js",
     "examples/host-iframe-demo/sample-project.slv",
+    "frontend/public/runtime-config.js",
+    "frontend/src/lib/workbench-presentation.ts",
     "frontend/tests/visual/release-1-6-1-host-reference.spec.ts",
     "scripts/run_host_iframe_demo.py",
     "scripts/check_versions.py",
@@ -21,7 +23,10 @@ REQUIRED_PATHS = (
     "deploy/docker-compose.yml.example",
 )
 REQUIRED_MARKERS = {
+    "app.py": ("ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS", 'Cache-Control'),
     "Dockerfile": ("USER app", "HEALTHCHECK"),
+    "frontend/index.html": ('src="/runtime-config.js"',),
+    "examples/host-iframe-demo/host.js": ('searchParams.set("embed", "1")', "hostSave"),
     ".github/workflows/ci.yml": (
         "python scripts/check_versions.py",
         "python scripts/check_release_gate.py",
@@ -57,15 +62,19 @@ def main() -> int:
                 failures.append(f"{relative_path} 缺少门禁标记: {marker}")
 
     deploy_expectations = {
-        "deploy/.env.example": "IMAGE_TAG=v1.6.1",
-        "deploy/docker-compose.yml.example": "${IMAGE_TAG:-v1.6.1}",
-        "deploy/deploy.sh": '${IMAGE_TAG:-v1.6.1}',
-        "docs/deployment.md": "archsight-solver:v1.6.1",
+        "deploy/.env.example": ("IMAGE_TAG=v1.6.1", "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS="),
+        "deploy/docker-compose.yml.example": (
+            "${IMAGE_TAG:-v1.6.1}",
+            "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS: ${ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS:-}",
+        ),
+        "deploy/deploy.sh": ('${IMAGE_TAG:-v1.6.1}',),
+        "docs/deployment.md": ("archsight-solver:v1.6.1", "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS"),
     }
-    for relative_path, expected_marker in deploy_expectations.items():
+    for relative_path, expected_markers in deploy_expectations.items():
         text = (ROOT / relative_path).read_text(encoding="utf-8")
-        if expected_marker not in text:
-            failures.append(f"{relative_path} 未对齐当前发布版本: {expected_marker}")
+        for expected_marker in expected_markers:
+            if expected_marker not in text:
+                failures.append(f"{relative_path} 未对齐发布配置: {expected_marker}")
 
     wildcard_post_message = re.compile(
         r"postMessage\s*\((?:(?!\)\s*;).){0,2000}?,\s*['\"]\*['\"]\s*\)",

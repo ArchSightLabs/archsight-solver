@@ -4,7 +4,9 @@ import {
   HOST_LAUNCH_MESSAGE,
   SOLVER_PROJECT_CHANGED_MESSAGE,
   SOLVER_READY_MESSAGE,
+  SOLVER_SAVE_REQUEST_MESSAGE,
   buildProjectChangedMessage,
+  buildSaveRequestMessage,
   buildSolverReadyMessage,
   isHostOriginAllowed,
   normalizeHostOriginList,
@@ -53,6 +55,14 @@ test("host bridge emits ready and changed messages without platform concepts", (
   assert.equal(JSON.stringify(changed).includes("license"), false);
 });
 
+test("host save request carries a correlation id for stale acknowledgement protection", () => {
+  const project = createDefaultSolverProject(new Date("2026-07-04T00:00:00.000Z"));
+  const message = buildSaveRequestMessage("session-1", project, "nonce-1", "request-1");
+
+  assert.equal(message.type, SOLVER_SAVE_REQUEST_MESSAGE);
+  assert.equal((message.payload as { requestId: string }).requestId, "request-1");
+});
+
 test("host origin helpers support allowlist checks without platform concepts", () => {
   const origins = normalizeHostOriginList("https://lms.example.edu, https://portal.example.edu/, *, *.example.edu, https://portal.example.edu/path, null");
 
@@ -60,6 +70,7 @@ test("host origin helpers support allowlist checks without platform concepts", (
   assert.equal(isHostOriginAllowed("https://lms.example.edu", origins, "https://solver.example.cn"), true);
   assert.equal(isHostOriginAllowed("https://evil.example.edu", origins, "https://solver.example.cn"), false);
   assert.equal(isHostOriginAllowed("null", origins, "https://solver.example.cn"), false);
+  assert.equal(isHostOriginAllowed("https://solver.example.cn", origins, "https://solver.example.cn"), true);
   assert.equal(isHostOriginAllowed("https://solver.example.cn", [], "https://solver.example.cn"), true);
   assert.equal(resolveBootstrapHostOrigin("https://lms.example.edu/course/1", origins, "https://solver.example.cn"), "https://lms.example.edu");
   assert.equal(resolveBootstrapHostOrigin("https://evil.example.edu/course/1", origins, "https://solver.example.cn"), null);

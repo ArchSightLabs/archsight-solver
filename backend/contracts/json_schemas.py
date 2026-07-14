@@ -886,6 +886,7 @@ HOST_MESSAGE_SCHEMA: Dict[str, Any] = {
             "type": "string",
             "enum": [
                 "archsight.solver.host.launch",
+                "archsight.solver.host.requestSave",
                 "archsight.solver.host.saveResult",
                 "archsight.solver.ready",
                 "archsight.solver.project.changed",
@@ -922,6 +923,19 @@ HOST_MESSAGE_SCHEMA: Dict[str, Any] = {
                             "projectDocument": {"type": ["object", "string"]},
                             "mode": {"type": "string", "enum": ["editable", "readonly"]},
                         },
+                        "additionalProperties": True,
+                    },
+                },
+            },
+        },
+        {
+            "if": {"properties": {"type": {"const": "archsight.solver.host.requestSave"}}, "required": ["type"]},
+            "then": {
+                "properties": {
+                    "payload": {
+                        "type": "object",
+                        "required": ["requestId"],
+                        "properties": {"requestId": {"type": "string", "minLength": 1}},
                         "additionalProperties": True,
                     },
                 },

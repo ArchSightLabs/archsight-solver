@@ -9,6 +9,7 @@ interface ProjectTreePanelProps {
   project: SolverProject;
   collapsed?: boolean;
   compact?: boolean;
+  hostManagedProject?: boolean;
   readOnly?: boolean;
   onSelectObject: (objectId: string) => void;
   onRemoveObject: (objectId: string) => void;
@@ -28,6 +29,7 @@ export function ProjectTreePanel({
   project,
   collapsed = false,
   compact = false,
+  hostManagedProject = false,
   readOnly = false,
   onSelectObject,
   onRemoveObject,
@@ -90,18 +92,20 @@ export function ProjectTreePanel({
             <div className="truncate text-sm font-black leading-5" title={project.name}>{project.name}</div>
             <div className="mt-1 text-[10px] font-bold text-muted-foreground">{project.objects.length} 个对象</div>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            disabled={readOnly}
-            onClick={() => setProjectInfoDialogMode("edit")}
-            aria-label="工程设置"
-            title="工程设置"
-            className="h-8 w-8 shrink-0 rounded-lg border-white/10 bg-transparent"
-          >
-            <PencilLine className="h-4 w-4" />
-          </Button>
+          {!hostManagedProject ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              disabled={readOnly}
+              onClick={() => setProjectInfoDialogMode("edit")}
+              aria-label="工程设置"
+              title="工程设置"
+              className="h-8 w-8 shrink-0 rounded-lg border-white/10 bg-transparent"
+            >
+              <PencilLine className="h-4 w-4" />
+            </Button>
+          ) : null}
         </div>
       </div>
       {activeObject?.benchmark ? (

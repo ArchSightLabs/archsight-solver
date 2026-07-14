@@ -7,3 +7,9 @@ interface ImportMetaEnv {
   readonly VITE_ENABLE_BUSUANZI?: string;
   readonly VITE_SOLVER_HOST_ALLOWED_ORIGINS?: string;
 }
+
+interface Window {
+  __ARCHSIGHT_SOLVER_RUNTIME_CONFIG__?: {
+    hostAllowedOrigins?: string;
+  };
+}

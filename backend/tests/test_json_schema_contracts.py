@@ -293,18 +293,25 @@ def test_host_message_schema_rejects_partial_ready_session_binding(invalid_ready
             "payload": {"projectDocument": {}},
         },
         {
+            "type": "archsight.solver.host.requestSave",
+            "protocolVersion": "1.0.0",
+            "sessionId": "session-1",
+            "nonce": "nonce-1",
+            "payload": {"requestId": "request-1"},
+        },
+        {
             "type": "archsight.solver.project.saveRequest",
             "protocolVersion": "1.0.0",
             "sessionId": "session-1",
             "nonce": "nonce-1",
-            "payload": {"projectDocument": {}, "reason": "host-managed-persistence"},
+            "payload": {"projectDocument": {}, "reason": "host-managed-persistence", "requestId": "request-1"},
         },
         {
             "type": "archsight.solver.host.saveResult",
             "protocolVersion": "1.0.0",
             "sessionId": "session-1",
             "nonce": "nonce-1",
-            "payload": {"status": "saved", "revision": "local-1"},
+            "payload": {"status": "saved", "revision": "local-1", "requestId": "request-1"},
         },
         {
             "type": "archsight.solver.error",
@@ -319,6 +326,21 @@ def test_host_session_message_variants_validate_against_public_schema(message):
     validator, _ = _runtime_contract_validator(schema_registry()["solver-host-message"])
 
     validator.validate(message)
+
+
+def test_host_request_save_requires_request_id():
+    validator, validation_error = _runtime_contract_validator(schema_registry()["solver-host-message"])
+
+    with pytest.raises(validation_error):
+        validator.validate(
+            {
+                "type": "archsight.solver.host.requestSave",
+                "protocolVersion": "1.0.0",
+                "sessionId": "session-1",
+                "nonce": "nonce-1",
+                "payload": {},
+            }
+        )
 
 
 @pytest.mark.parametrize(

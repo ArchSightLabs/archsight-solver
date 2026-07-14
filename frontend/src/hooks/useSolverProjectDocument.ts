@@ -69,9 +69,9 @@ export function createInitialSolverProject(projectInfo?: Partial<ProjectInfo> | 
   });
 }
 
-function createInitialProjectDocumentState(): InitialProjectDocumentState {
+function createInitialProjectDocumentState(localAutosaveEnabled: boolean): InitialProjectDocumentState {
   const storage = browserLocalStorage();
-  if (storage) {
+  if (localAutosaveEnabled && storage) {
     const autosave = readProjectAutosaveDraft(storage);
     if (autosave.ok && autosave.draft) {
       return {
@@ -92,8 +92,8 @@ function createInitialProjectDocumentState(): InitialProjectDocumentState {
   };
 }
 
-export function useSolverProjectDocument() {
-  const [initialDocumentState] = useState(createInitialProjectDocumentState);
+export function useSolverProjectDocument({ localAutosaveEnabled = true }: { localAutosaveEnabled?: boolean } = {}) {
+  const [initialDocumentState] = useState(() => createInitialProjectDocumentState(localAutosaveEnabled));
   const [project, setProjectState] = useState<SolverProject>(initialDocumentState.project);
   const [projectFileHandle, setProjectFileHandle] = useState<ProjectFileHandle | null>(null);
   const [projectFileName, setProjectFileName] = useState<string | null>(initialDocumentState.projectFileName);
@@ -103,6 +103,7 @@ export function useSolverProjectDocument() {
   const [workspaceHistory, setWorkspaceHistoryState] = useState<WorkspaceHistoryState>(createEmptyWorkspaceHistory);
   const [isProjectReadOnly, setIsProjectReadOnlyState] = useState(false);
   const projectReadOnlyRef = useRef(false);
+  const projectRevisionRef = useRef(0);
   const projectRef = useRef(project);
   const activeObjectIdRef = useRef(project.activeObjectId);
   const workspaceHistoryRef = useRef(workspaceHistory);
@@ -163,6 +164,7 @@ export function useSolverProjectDocument() {
   }, [project.activeObjectId, resetWorkspaceHistory]);
 
   useEffect(() => {
+    if (!localAutosaveEnabled) return;
     const storage = browserLocalStorage();
     if (!storage) return;
     try {
@@ -174,16 +176,30 @@ export function useSolverProjectDocument() {
     } catch {
       // localStorage 可能因隐私模式、配额或浏览器策略不可写；正式工程文件保存仍由用户显式触发。
     }
-  }, [isProjectDirty, lastSavedAt, project, projectFileName]);
+  }, [isProjectDirty, lastSavedAt, localAutosaveEnabled, project, projectFileName]);
 
   const markProjectDirty = useCallback(() => {
     if (projectReadOnlyRef.current) {
       notifyReadOnlyMutation();
       return;
     }
+    projectRevisionRef.current += 1;
     setLastSavedAt(null);
     setIsProjectDirty(true);
   }, [notifyReadOnlyMutation]);
+
+  const getProjectRevision = useCallback(() => projectRevisionRef.current, []);
+
+  const markProjectSaved = useCallback((expectedRevision: number, message = "工程已保存。") => {
+    if (expectedRevision !== projectRevisionRef.current) {
+      setFileStatusMessage("外部宿主已保存较早版本，当前修改仍未保存。");
+      return false;
+    }
+    setLastSavedAt(new Date().toISOString());
+    setIsProjectDirty(false);
+    setFileStatusMessage(message);
+    return true;
+  }, []);
 
   const updateWorkspace: Dispatch<SetStateAction<WorkspaceState>> = useCallback((next) => {
     if (projectReadOnlyRef.current) {
@@ -298,6 +314,7 @@ export function useSolverProjectDocument() {
     savedAt: string | null,
     message: string,
   ) => {
+    projectRevisionRef.current += 1;
     setProjectForNavigation(nextProject);
     setProjectFileHandle(handle);
     setProjectFileName(fileName);
@@ -321,7 +338,9 @@ export function useSolverProjectDocument() {
     isProjectDirty,
     isProjectReadOnly,
     lastSavedAt,
+    getProjectRevision,
     markProjectDirty,
+    markProjectSaved,
     project,
     projectFileHandle,
     projectFileName,

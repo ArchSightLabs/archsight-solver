@@ -34,6 +34,7 @@ cp docker-compose.yml.example docker-compose.yml
 - `APP_HOST_BIND`：宿主机监听地址，默认 `127.0.0.1`，避免直接暴露容器端口。
 - `APP_HOST_PORT`：宿主机本地监听端口，默认 `6280`，仅绑定 `127.0.0.1`，供公共 Nginx 反向代理。
 - `ARCHSIGHT_GUNICORN_WORKERS`：Gunicorn worker 数量，默认 `4`。
+- `ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS`：运行时允许嵌入 Solver 的宿主 origin，多个值使用逗号分隔；必须填写完整 `http/https origin`，不接受 `*` 或子域通配。
 
 ## 启动与更新
 

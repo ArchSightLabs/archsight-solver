@@ -8,6 +8,7 @@ import type { SolverProject } from "./solver-project.ts";
 
 export const SOLVER_HOST_PROTOCOL_VERSION = "1.0.0";
 export const HOST_LAUNCH_MESSAGE = "archsight.solver.host.launch";
+export const HOST_REQUEST_SAVE_MESSAGE = "archsight.solver.host.requestSave";
 export const HOST_SAVE_RESULT_MESSAGE = "archsight.solver.host.saveResult";
 export const SOLVER_READY_MESSAGE = "archsight.solver.ready";
 export const SOLVER_PROJECT_CHANGED_MESSAGE = "archsight.solver.project.changed";
@@ -77,8 +78,9 @@ export function isHostOriginAllowed(
   if (!normalizedOrigin || normalizedOrigin !== origin) {
     return false;
   }
-  if (allowedOrigins.length === 0) {
-    return Boolean(solverOrigin) && normalizedOrigin === solverOrigin;
+  const normalizedSolverOrigin = normalizeHttpOrigin(solverOrigin);
+  if (normalizedSolverOrigin && normalizedOrigin === normalizedSolverOrigin) {
+    return true;
   }
   return allowedOrigins.includes(normalizedOrigin);
 }
@@ -147,6 +149,7 @@ export function buildSolverReadyMessage(sessionId: string | null, nonce: string 
       capabilities: {
         loadProjectDocument: true,
         emitProjectChanged: true,
+        acceptHostSaveRequest: true,
         emitSaveRequest: true,
         acceptSaveResult: true,
       },
@@ -166,7 +169,12 @@ export function buildProjectChangedMessage(sessionId: string, project: SolverPro
   };
 }
 
-export function buildSaveRequestMessage(sessionId: string, project: SolverProject, nonce: string | null = null): SolverHostMessage {
+export function buildSaveRequestMessage(
+  sessionId: string,
+  project: SolverProject,
+  nonce: string | null = null,
+  requestId: string | null = null,
+): SolverHostMessage {
   return {
     type: SOLVER_SAVE_REQUEST_MESSAGE,
     protocolVersion: SOLVER_HOST_PROTOCOL_VERSION,
@@ -175,6 +183,7 @@ export function buildSaveRequestMessage(sessionId: string, project: SolverProjec
     payload: {
       projectDocument: createArchSightSolverProjectFile(project),
       reason: "host-managed-persistence",
+      ...(requestId ? { requestId } : {}),
     },
   };
 }

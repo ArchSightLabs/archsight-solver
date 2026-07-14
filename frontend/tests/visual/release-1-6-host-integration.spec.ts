@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createArchSightSolverProjectFile } from "../../src/lib/project-file";
 import { createDefaultSolverProject } from "../../src/lib/solver-project";
-import { HOST_SAVE_RESULT_MESSAGE, SOLVER_PROJECT_CHANGED_MESSAGE, SOLVER_SAVE_REQUEST_MESSAGE } from "../../src/lib/host-bridge";
+import { HOST_SAVE_RESULT_MESSAGE, SOLVER_PROJECT_CHANGED_MESSAGE, SOLVER_READY_MESSAGE, SOLVER_SAVE_REQUEST_MESSAGE } from "../../src/lib/host-bridge";
 
 const protocolVersion = "1.0.0";
 const sessionId = "release-1-6-session";
@@ -34,20 +34,32 @@ async function mountSameOriginHost(page: Page) {
 async function postLaunch(page: Page, mode: "editable" | "readonly") {
   const project = createDefaultSolverProject(new Date("2026-07-12T00:00:00.000Z"));
   const projectDocument = createArchSightSolverProjectFile(project, new Date("2026-07-12T00:01:00.000Z"));
-  await page.evaluate(({ projectDocument, mode, protocolVersion, sessionId, nonce }) => {
-    const target = document.querySelector<HTMLIFrameElement>("#solver-frame")?.contentWindow;
-    target?.postMessage({
-      type: "archsight.solver.host.launch",
-      protocolVersion,
-      sessionId,
-      nonce,
-      payload: { mode, fileName: "host-project.slv", projectDocument },
-    }, window.location.origin);
-  }, { projectDocument, mode, protocolVersion, sessionId, nonce });
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    await page.evaluate(({ projectDocument, mode, protocolVersion, sessionId, nonce }) => {
+      const target = document.querySelector<HTMLIFrameElement>("#solver-frame")?.contentWindow;
+      target?.postMessage({
+        type: "archsight.solver.host.launch",
+        protocolVersion,
+        sessionId,
+        nonce,
+        payload: { mode, fileName: "host-project.slv", projectDocument },
+      }, window.location.origin);
+    }, { projectDocument, mode, protocolVersion, sessionId, nonce });
+    await page.waitForTimeout(150);
+    const ready = (await hostMessages(page)).some((message) => (
+      message.type === SOLVER_READY_MESSAGE
+      && "sessionId" in message
+      && message.sessionId === sessionId
+    ));
+    if (ready) return;
+  }
+  throw new Error(`Solver 未在重试窗口内确认 Host launch：${JSON.stringify(await hostMessages(page))}`);
 }
 
 async function hostMessages(page: Page) {
-  return page.evaluate(() => (window as typeof window & { __solverHostMessages: Array<{ type?: string }> }).__solverHostMessages);
+  return page.evaluate(() => (window as typeof window & {
+    __solverHostMessages: Array<{ type?: string; sessionId?: string; payload?: { requestId?: string } }>;
+  }).__solverHostMessages);
 }
 
 test("v1.6 editable host completes launch, change, save request and save result", async ({ page }) => {
@@ -63,17 +75,42 @@ test("v1.6 editable host completes launch, change, save request and save result"
 
   await solver.getByRole("button", { name: "保存", exact: true }).click();
   await expect.poll(async () => (await hostMessages(page)).some((message) => message.type === SOLVER_SAVE_REQUEST_MESSAGE)).toBe(true);
+  const firstRequestId = (await hostMessages(page))
+    .findLast((message) => message.type === SOLVER_SAVE_REQUEST_MESSAGE)?.payload?.requestId;
+  expect(firstRequestId).toBeTruthy();
 
-  await page.evaluate(({ protocolVersion, sessionId, nonce, saveResultMessage }) => {
+  await loadInput.fill("19");
+  await solver.getByRole("button", { name: "生成连续梁" }).click();
+
+  await page.evaluate(({ protocolVersion, sessionId, nonce, saveResultMessage, requestId }) => {
     document.querySelector<HTMLIFrameElement>("#solver-frame")?.contentWindow?.postMessage({
       type: saveResultMessage,
       protocolVersion,
       sessionId,
       nonce,
-      payload: { status: "saved", revision: "r1" },
+      payload: { status: "saved", revision: "r1", requestId },
     }, window.location.origin);
-  }, { protocolVersion, sessionId, nonce, saveResultMessage: HOST_SAVE_RESULT_MESSAGE });
+  }, { protocolVersion, sessionId, nonce, saveResultMessage: HOST_SAVE_RESULT_MESSAGE, requestId: firstRequestId });
+  await expect(solver.getByText("外部宿主已保存较早版本，当前修改仍未保存。")).toBeVisible();
+  await expect(solver.getByText("未保存", { exact: true })).toBeVisible();
+
+  await solver.getByRole("button", { name: "保存", exact: true }).click();
+  await expect.poll(async () => (
+    await hostMessages(page)
+  ).filter((message) => message.type === SOLVER_SAVE_REQUEST_MESSAGE).length).toBe(2);
+  const latestRequestId = (await hostMessages(page))
+    .findLast((message) => message.type === SOLVER_SAVE_REQUEST_MESSAGE)?.payload?.requestId;
+  await page.evaluate(({ protocolVersion, sessionId, nonce, saveResultMessage, requestId }) => {
+    document.querySelector<HTMLIFrameElement>("#solver-frame")?.contentWindow?.postMessage({
+      type: saveResultMessage,
+      protocolVersion,
+      sessionId,
+      nonce,
+      payload: { status: "saved", revision: "r2", requestId },
+    }, window.location.origin);
+  }, { protocolVersion, sessionId, nonce, saveResultMessage: HOST_SAVE_RESULT_MESSAGE, requestId: latestRequestId });
   await expect(solver.getByText("外部宿主已保存工程。")).toBeVisible();
+  await expect(solver.getByText("已保存", { exact: true })).toBeVisible();
 });
 
 test("v1.6 readonly host locks model, project replacement and save operations", async ({ page }) => {

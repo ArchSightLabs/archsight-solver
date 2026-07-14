@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
 import sys
@@ -114,6 +115,18 @@ def register_request_hooks(flask_app: Flask) -> None:
 
 
 def register_static_routes(flask_app: Flask) -> None:
+    @flask_app.get("/runtime-config.js")
+    def runtime_config():
+        config = {
+            "hostAllowedOrigins": os.environ.get("ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS", ""),
+        }
+        response = flask_app.response_class(
+            f"window.__ARCHSIGHT_SOLVER_RUNTIME_CONFIG__ = {json.dumps(config, ensure_ascii=False)};\n",
+            mimetype="application/javascript",
+        )
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
     @flask_app.route("/", defaults={"path": ""})
     @flask_app.route("/<path:path>")
     def serve(path: str):
