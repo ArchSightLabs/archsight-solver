@@ -30,6 +30,10 @@ npm --prefix frontend run test:visual -- release-1-6-host-integration.spec.ts --
 - [x] bootstrap ready 与 session ready 均通过公开 JSON Schema。
 - [x] `frontend/` 与 `examples/` 不存在向 `*` 发送 `postMessage` 的调用。
 - [x] 正式镜像通过 `ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS` 在运行时读取精确宿主白名单，不要求为接入方重新构建前端。
+- [x] Reference Host 在 launch 前校验五项必要 capability；缺少 `acceptHostSaveRequest` 的旧 Solver 显示不兼容并禁用保存。
+- [x] Host 发起保存后若 Solver 8 秒内未返回确定快照，会显示超时且不写入宿主存储。
+- [x] 正式 HTML 响应的 CSP `frame-ancestors` 与运行时 allowlist 使用同一份归一化 origin 列表。
+- [x] CI 与 tag release 对构建后的 Docker 镜像运行独立 Host 浏览器测试，覆盖握手、保存和刷新重开。
 
 ## 发布边界
 
@@ -37,3 +41,4 @@ npm --prefix frontend run test:visual -- release-1-6-host-integration.spec.ts --
 - CI 和 tag release 必须运行真实双 origin Reference Host spec，并保留 v1.6/v1.5 回归。
 - 嵌入展示模式与权限模式必须分离；`embed=1` 不能替代 launch 的 `editable/readonly` 权限约束。
 - 发布说明只能声称“独立参考宿主已验证”，不得声称学校平台、私有 Platform 或第三方生产部署已经发布。
+- 私有 `archsight-solver-platform` 的现有 0.1.0 技术试点只用于第二消费者回归；v1.6.1 发布前不得提前声称其已升级或对外发布。

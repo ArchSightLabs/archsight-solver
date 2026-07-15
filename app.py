@@ -7,6 +7,7 @@ import sys
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 from typing import Iterable
+from urllib.parse import urlsplit
 
 ROOT_DIR = Path(__file__).resolve().parent
 # 确保 Gunicorn / python app.py 都能从仓库根目录解析 backend 模块。
@@ -36,6 +37,44 @@ API_BLUEPRINTS = (
     sensitivity_bp,
     export_bp,
 )
+
+
+def normalize_host_allowed_origins(value: str | None) -> list[str]:
+    origins: list[str] = []
+    for raw_origin in (value or "").split(","):
+        candidate = raw_origin.strip()
+        if not candidate:
+            continue
+        try:
+            parsed = urlsplit(candidate)
+            port = parsed.port
+        except ValueError:
+            continue
+        if (
+            parsed.scheme not in {"http", "https"}
+            or not parsed.hostname
+            or parsed.username
+            or parsed.password
+            or parsed.path not in {"", "/"}
+            or parsed.query
+            or parsed.fragment
+        ):
+            continue
+        try:
+            hostname = parsed.hostname.encode("ascii").decode("ascii").lower()
+        except UnicodeEncodeError:
+            continue
+        if ":" in hostname:
+            hostname = f"[{hostname}]"
+        default_port = 80 if parsed.scheme == "http" else 443
+        normalized = f"{parsed.scheme}://{hostname}{f':{port}' if port and port != default_port else ''}"
+        if normalized not in origins:
+            origins.append(normalized)
+    return origins
+
+
+def get_host_allowed_origins() -> list[str]:
+    return normalize_host_allowed_origins(os.environ.get("ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS"))
 
 
 def is_debug_enabled() -> bool:
@@ -111,6 +150,9 @@ def register_request_hooks(flask_app: Flask) -> None:
         response.headers.add("Access-Control-Allow-Origin", "*")
         response.headers.add("Access-Control-Allow-Headers", "Content-Type,X-Client-ID")
         response.headers.add("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS")
+        if response.mimetype == "text/html":
+            frame_ancestors = " ".join(["'self'", *get_host_allowed_origins()])
+            response.headers["Content-Security-Policy"] = f"frame-ancestors {frame_ancestors}"
         return response
 
 
@@ -118,7 +160,7 @@ def register_static_routes(flask_app: Flask) -> None:
     @flask_app.get("/runtime-config.js")
     def runtime_config():
         config = {
-            "hostAllowedOrigins": os.environ.get("ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS", ""),
+            "hostAllowedOrigins": ",".join(get_host_allowed_origins()),
         }
         response = flask_app.response_class(
             f"window.__ARCHSIGHT_SOLVER_RUNTIME_CONFIG__ = {json.dumps(config, ensure_ascii=False)};\n",

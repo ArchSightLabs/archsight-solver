@@ -23,10 +23,14 @@ REQUIRED_PATHS = (
     "deploy/docker-compose.yml.example",
 )
 REQUIRED_MARKERS = {
-    "app.py": ("ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS", 'Cache-Control'),
+    "app.py": ("ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS", 'Cache-Control', "frame-ancestors"),
     "Dockerfile": ("USER app", "HEALTHCHECK"),
     "frontend/index.html": ('src="/runtime-config.js"',),
-    "examples/host-iframe-demo/host.js": ('searchParams.set("embed", "1")', "hostSave"),
+    "examples/host-iframe-demo/host.js": (
+        'searchParams.set("embed", "1")',
+        "acceptHostSaveRequest",
+        "SAVE_REQUEST_TIMEOUT_MS",
+    ),
     ".github/workflows/ci.yml": (
         "python scripts/check_versions.py",
         "python scripts/check_release_gate.py",
@@ -34,6 +38,8 @@ REQUIRED_MARKERS = {
         "release-1-6-host-integration.spec.ts",
         "release-1-6-1-host-reference.spec.ts",
         "npm audit --omit=dev --audit-level=moderate",
+        "ARCHSIGHT_SOLVER_E2E_URL",
+        "Run built image Host integration",
     ),
     ".github/workflows/release.yml": (
         'tags: ["v*"]',
@@ -41,6 +47,8 @@ REQUIRED_MARKERS = {
         "sbom-action",
         "sha256sum",
         "gh release create",
+        "ARCHSIGHT_SOLVER_E2E_URL",
+        "Run built image Host integration",
     ),
 }
 

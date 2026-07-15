@@ -12,6 +12,9 @@
       button:hover { border-color: #0f766e; color: #0f766e; }
       button.primary { border-color: #0f766e; background: #0f766e; color: #fff; }
       button.primary:hover { background: #115e59; color: #fff; }
+      button:disabled { cursor: not-allowed; opacity: .5; }
+      button:disabled:hover { border-color: #cbd5e1; color: #334155; }
+      button.primary:disabled:hover { border-color: #0f766e; background: #0f766e; color: #fff; }
       .shell { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 100vh; }
       .hostbar { position: relative; z-index: 3; display: flex; min-height: 68px; align-items: center; gap: 18px; border-bottom: 1px solid #cbd5e1; padding: 10px 16px; background: rgba(255,255,255,.96); box-shadow: 0 4px 18px rgba(15,23,42,.06); }
       .brand { min-width: 190px; }
@@ -63,12 +66,12 @@
           </div>
         </div>
         <div class="actions">
-          <button id="newProject">新建工程</button>
-          <button id="openProject">打开工程</button>
+          <button id="newProject" disabled>新建工程</button>
+          <button id="openProject" disabled>打开工程</button>
           <input id="projectFileInput" type="file" accept=".slv,.json,application/json" hidden />
-          <button id="hostSave" class="primary">保存工程</button>
-          <button id="launchReadonly">只读审阅</button>
-          <button id="launchEditable">继续编辑</button>
+          <button id="hostSave" class="primary" disabled>保存工程</button>
+          <button id="launchReadonly" disabled>只读审阅</button>
+          <button id="launchEditable" disabled>继续编辑</button>
           <button id="toggleDiagnostics" aria-expanded="false">接入诊断</button>
         </div>
       </header>

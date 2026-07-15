@@ -97,12 +97,32 @@ jobs:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
+      - name: Setup Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.13"
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install container Host E2E dependencies
+        run: |
+          npm --prefix frontend ci
+          npm --prefix frontend exec playwright install --with-deps chromium
+
       - name: Build release image
         run: docker build --tag archsight-solver:release-gate .
 
       - name: Run container health smoke
         run: |
-          docker run --detach --name solver-release-gate --publish 127.0.0.1:6280:6240 archsight-solver:release-gate
+          docker run --detach --name solver-release-gate \
+            --publish 127.0.0.1:6280:6240 \
+            --env ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS=http://127.0.0.1:6250 \
+            archsight-solver:release-gate
           for attempt in $(seq 1 20); do
             status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}' solver-release-gate)"
             if [ "$status" = "healthy" ]; then
@@ -116,6 +136,16 @@ jobs:
           done
           docker logs solver-release-gate
           exit 1
+
+      - name: Run built image Host integration
+        env:
+          ARCHSIGHT_SOLVER_E2E_URL: http://127.0.0.1:6280
+        run: >-
+          npm --prefix frontend run test:visual --
+          release-1-6-1-host-reference.spec.ts
+          --project=chromium
+          --workers=1
+          --grep "completes cross-origin save and reopen"
 
       - name: Remove smoke container
         if: always()
