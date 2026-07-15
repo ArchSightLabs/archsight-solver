@@ -137,6 +137,9 @@
             <li>修正 bootstrap ready 与公开 <code>solver-host-message</code> JSON Schema 的差异：bootstrap ready 可省略会话字段，launch 后的 session ready 必须回显 <code>sessionId</code> 与 <code>nonce</code>。</li>
             <li>从 <code>document.referrer</code> 只解析 allowlist 内的精确 http/https origin，不再使用 <code>postMessage(..., &quot;*&quot;)</code>；无 referrer 时由宿主在 iframe load 后主动 launch。</li>
             <li>origin 配置会忽略 <code>*</code>、子域通配、opaque origin、带路径/query/hash 或认证信息的无效值，继续保持精确白名单边界。</li>
+            <li>Reference Host 会在 launch 前协商五项必要 capability；缺少 <code>acceptHostSaveRequest</code> 等能力的旧 Solver 会显示不兼容并禁用工程操作，不再出现“已连接但无法保存”的假成功。</li>
+            <li>宿主发起保存后增加 8 秒响应超时与重复请求门禁；Solver 未返回确定快照时保持现有保存状态并给出可见失败信息。</li>
+            <li>正式 HTML 响应新增与运行时 allowlist 同源的 CSP <code>frame-ancestors</code>，在浏览器渲染层阻止未授权站点嵌入。</li>
             <li>新增 canonical <code>sample-project.slv</code>，由前端 parser、后端项目健康检查和发布门禁共同验证，避免示例项目契约漂移。</li>
           </ul>
           <p class="section-label">质量门禁</p>
@@ -146,6 +149,7 @@
             <li>原 v1.6 同源 Host 回归继续覆盖 launch/change/save/result、只读锁定和非父窗口拒绝。</li>
             <li>Host Bridge 单元测试和后端 JSON Schema 测试覆盖 bootstrap/session ready、严格 origin 归一化和 canonical 示例文件。</li>
             <li>CI 与 tag release 同时运行 v1.6.1 Reference Host 和既有 v1.6/v1.5 发布回归。</li>
+            <li>Docker 发布门禁在构建后注入运行时 allowlist，并复用同一 Playwright 用例验证独立 Host 的握手、保存与刷新重开，不再只检查容器 health。</li>
           </ul>
       </article>
 

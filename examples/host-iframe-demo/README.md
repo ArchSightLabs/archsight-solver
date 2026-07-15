@@ -37,10 +37,14 @@ python scripts/run_host_iframe_demo.py --host-only --solver-url http://127.0.0.1
 ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS=https://classroom.example.edu,https://review.example.edu
 ```
 
+该白名单同时驱动 Host Protocol 来源校验和 HTML 响应的 CSP `frame-ancestors`。未配置时正式镜像只允许同 origin 嵌入；`*`、子域通配、Unicode hostname 和带路径的 URL 会被忽略。国际化域名应填写浏览器解析后的 ASCII punycode。
+
 ## 最小接入顺序
 
 ```text
 Host iframe load
+  <- Solver: archsight.solver.ready (bootstrap capabilities)
+  -> Host: 校验五项必要 capability
   -> Host: archsight.solver.host.launch (sessionId + nonce + projectDocument)
   <- Solver: archsight.solver.ready (同一 sessionId + nonce)
   <- Solver: archsight.solver.project.changed
@@ -49,7 +53,11 @@ Host iframe load
   -> Host: archsight.solver.host.saveResult (同一 sessionId + nonce + requestId + revision)
 ```
 
+当前 Reference Host 要求 `loadProjectDocument`、`emitProjectChanged`、`acceptHostSaveRequest`、`emitSaveRequest`、`acceptSaveResult` 均为 `true`。缺少任一能力时不得继续 launch；协议版本相同不代表保存工作流一定兼容。
+
 宿主工具栏的保存动作不能直接持久化最后一次 `project.changed` 缓存；它必须先发送 `host.requestSave`，并保存 Solver 返回的确定快照。Solver 只会用匹配的 `requestId` 处理保存回执，且当回执对应的本地修订仍是当前修订时才清除“未保存”，从而避免延迟回执覆盖后续编辑。
+
+Reference Host 对宿主发起的保存请求设置 8 秒超时。超时或返回缺少 `requestId` 时不会写入宿主存储，并保留原有 dirty / saved 状态；生产宿主应将超时、存储冲突和写入失败映射为自己的可恢复错误界面。
 
 宿主必须同时检查 `event.source === iframe.contentWindow` 和 `event.origin === solverOrigin`，发送消息时必须使用精确 `targetOrigin`：
 

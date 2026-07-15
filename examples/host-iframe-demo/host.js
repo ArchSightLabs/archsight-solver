@@ -1,6 +1,14 @@
 const PROTOCOL_VERSION = "1.0.0";
 const HOST_REQUEST_SAVE_MESSAGE = "archsight.solver.host.requestSave";
 const STORAGE_KEY = "archsight-solver.reference-host.project.v1";
+const SAVE_REQUEST_TIMEOUT_MS = 8_000;
+const REQUIRED_CAPABILITIES = [
+  "loadProjectDocument",
+  "emitProjectChanged",
+  "acceptHostSaveRequest",
+  "emitSaveRequest",
+  "acceptSaveResult",
+];
 const params = new URLSearchParams(window.location.search);
 const solverUrl = new URL(params.get("solverUrl") || "http://127.0.0.1:6241");
 
@@ -30,6 +38,9 @@ let launchPending = false;
 let sessionBound = false;
 let launchRetryTimer = null;
 let pendingLaunchRollback = null;
+let solverCompatible = null;
+let pendingSaveRequest = null;
+const expiredSaveRequestIds = new Set();
 
 document.querySelector("#hostOrigin").textContent = window.location.origin;
 document.querySelector("#solverOrigin").textContent = solverOrigin;
@@ -58,6 +69,38 @@ function setHostError(message) {
 function setOperationNotice(message = "") {
   operationNotice.textContent = message;
   operationNotice.hidden = !message;
+}
+
+function updateActionAvailability() {
+  const sessionActions = ["newProject", "openProject", "launchReadonly", "launchEditable"];
+  for (const id of sessionActions) {
+    document.querySelector(`#${id}`).disabled = !sessionBound;
+  }
+  document.querySelector("#hostSave").disabled = !sessionBound || mode === "readonly" || Boolean(pendingSaveRequest);
+}
+
+function clearPendingSaveRequest(requestId = null) {
+  if (!pendingSaveRequest || (requestId && pendingSaveRequest.requestId !== requestId)) return false;
+  window.clearTimeout(pendingSaveRequest.timer);
+  pendingSaveRequest = null;
+  updateActionAvailability();
+  return true;
+}
+
+function getMissingCapabilities(message) {
+  const capabilities = message?.payload?.capabilities;
+  return REQUIRED_CAPABILITIES.filter((capability) => capabilities?.[capability] !== true);
+}
+
+function rejectIncompatibleSolver(missingCapabilities) {
+  solverCompatible = false;
+  launchPending = false;
+  sessionBound = false;
+  if (launchRetryTimer) window.clearTimeout(launchRetryTimer);
+  clearPendingSaveRequest();
+  setHostError("Solver 版本不兼容");
+  setOperationNotice(`缺少必要接入能力：${missingCapabilities.join(", ")}`);
+  updateActionAvailability();
 }
 
 function updateProjectSummary() {
@@ -104,7 +147,7 @@ function postToSolver(message) {
 function scheduleLaunchRetry() {
   if (launchRetryTimer) window.clearTimeout(launchRetryTimer);
   launchRetryTimer = window.setTimeout(() => {
-    if (!sessionBound) {
+    if (solverCompatible && !sessionBound) {
       launchPending = false;
       sendLaunch();
     }
@@ -112,7 +155,7 @@ function scheduleLaunchRetry() {
 }
 
 function sendLaunch() {
-  if (!latestProjectDocument) return;
+  if (!latestProjectDocument || solverCompatible !== true) return;
   launchPending = true;
   updateProjectSummary();
   postToSolver({
@@ -137,10 +180,13 @@ function beginLaunch(nextMode = mode, rollback = null) {
   launchPending = false;
   status.textContent = "等待 Solver";
   status.dataset.connected = "false";
+  updateActionAvailability();
   sendLaunch();
 }
 
 function persistProject(projectDocument, requestId) {
+  clearPendingSaveRequest(requestId);
+  setOperationNotice();
   latestProjectDocument = projectDocument;
   revision += 1;
   dirty = false;
@@ -164,6 +210,15 @@ function requestProjectSave() {
     setOperationNotice("Solver 会话尚未建立，暂不能保存工程。");
     return;
   }
+  if (mode === "readonly") {
+    setOperationNotice("当前为只读审阅会话，不能保存工程。");
+    return;
+  }
+  if (pendingSaveRequest) {
+    setOperationNotice("已有保存请求正在等待 Solver 返回工程。");
+    return;
+  }
+  setOperationNotice();
   const requestId = `host-save-${crypto.randomUUID()}`;
   postToSolver({
     type: HOST_REQUEST_SAVE_MESSAGE,
@@ -172,9 +227,23 @@ function requestProjectSave() {
     nonce,
     payload: { requestId, reason: "host-toolbar" },
   });
+  pendingSaveRequest = {
+    requestId,
+    timer: window.setTimeout(() => {
+      if (!clearPendingSaveRequest(requestId)) return;
+      expiredSaveRequestIds.add(requestId);
+      if (expiredSaveRequestIds.size > 20) {
+        expiredSaveRequestIds.delete(expiredSaveRequestIds.values().next().value);
+      }
+      setOperationNotice("保存请求超时，Solver 未返回工程；本次未写入宿主存储。");
+    }, SAVE_REQUEST_TIMEOUT_MS),
+  };
+  updateActionAvailability();
 }
 
 function renewSession() {
+  clearPendingSaveRequest();
+  expiredSaveRequestIds.clear();
   sessionId = `host-session-${crypto.randomUUID()}`;
   nonce = `host-nonce-${crypto.randomUUID()}`;
   document.querySelector("#sessionId").textContent = sessionId;
@@ -184,9 +253,11 @@ function loadFrame() {
   renewSession();
   sessionBound = false;
   launchPending = false;
+  solverCompatible = null;
   if (launchRetryTimer) window.clearTimeout(launchRetryTimer);
   status.textContent = "等待 Solver";
   status.dataset.connected = "false";
+  updateActionAvailability();
   frame.src = solverUrl.href;
 }
 
@@ -234,7 +305,7 @@ function setDiagnosticsOpen(open) {
 
 frame.addEventListener("load", () => {
   window.setTimeout(() => {
-    if (!sessionBound && !launchPending) sendLaunch();
+    if (solverCompatible && !sessionBound && !launchPending) sendLaunch();
   }, 250);
 });
 document.querySelector("#newProject").addEventListener("click", createNewProject);
@@ -272,6 +343,12 @@ window.addEventListener("message", (event) => {
   appendLog("solver.in", message);
 
   if (message.type === "archsight.solver.ready") {
+    const missingCapabilities = getMissingCapabilities(message);
+    if (missingCapabilities.length > 0) {
+      rejectIncompatibleSolver(missingCapabilities);
+      return;
+    }
+    solverCompatible = true;
     if (!message.sessionId) {
       setConnected("Solver 已就绪");
       if (!launchPending) sendLaunch();
@@ -281,6 +358,7 @@ window.addEventListener("message", (event) => {
       pendingLaunchRollback = null;
       if (launchRetryTimer) window.clearTimeout(launchRetryTimer);
       setConnected("已建立会话");
+      updateActionAvailability();
     }
     return;
   }
@@ -296,6 +374,10 @@ window.addEventListener("message", (event) => {
       setOperationNotice("Solver 保存请求缺少 requestId，宿主未写入工程。");
       return;
     }
+    if (expiredSaveRequestIds.delete(requestId)) {
+      setOperationNotice("已忽略超时后返回的保存快照；工程仍保持未保存状态。");
+      return;
+    }
     persistProject(message.payload.projectDocument, requestId);
     return;
   }
@@ -304,6 +386,7 @@ window.addEventListener("message", (event) => {
     if (launchRetryTimer) window.clearTimeout(launchRetryTimer);
     launchPending = false;
     sessionBound = false;
+    clearPendingSaveRequest();
     if (pendingLaunchRollback) {
       const rollback = pendingLaunchRollback;
       pendingLaunchRollback = null;
@@ -322,4 +405,5 @@ window.addEventListener("message", (event) => {
 });
 
 await loadInitialProject();
+updateActionAvailability();
 loadFrame();
