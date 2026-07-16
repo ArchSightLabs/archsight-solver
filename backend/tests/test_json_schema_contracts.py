@@ -67,6 +67,14 @@ class _FallbackContractValidator:
         if isinstance(value, list) and isinstance(schema.get("items"), dict):
             for index, item in enumerate(value):
                 self._validate(item, schema["items"], f"{path}[{index}]")
+        negated = schema.get("not")
+        if isinstance(negated, dict):
+            try:
+                self._validate(value, negated, path)
+            except _FallbackValidationError:
+                pass
+            else:
+                raise _FallbackValidationError(f"{path} satisfies a forbidden schema")
         conditional = schema.get("if")
         if isinstance(conditional, dict):
             try:
@@ -256,6 +264,31 @@ def test_host_message_schema_accepts_bootstrap_and_session_ready_messages():
         "nonce": "nonce-1",
         "payload": {"capabilities": {"loadProjectDocument": True}},
     })
+
+
+def test_fallback_host_message_validator_matches_ready_session_binding_contract():
+    validator = _FallbackContractValidator(schema_registry()["solver-host-message"])
+
+    validator.validate({
+        "type": "archsight.solver.ready",
+        "protocolVersion": "1.0.0",
+        "payload": {"capabilities": {}},
+    })
+    validator.validate({
+        "type": "archsight.solver.ready",
+        "protocolVersion": "1.0.0",
+        "sessionId": "session-1",
+        "nonce": "nonce-1",
+        "payload": {"capabilities": {}},
+    })
+    for partial_binding in ({"sessionId": "session-1"}, {"nonce": "nonce-1"}):
+        with pytest.raises(_FallbackValidationError):
+            validator.validate({
+                "type": "archsight.solver.ready",
+                "protocolVersion": "1.0.0",
+                **partial_binding,
+                "payload": {"capabilities": {}},
+            })
 
 
 @pytest.mark.parametrize(
