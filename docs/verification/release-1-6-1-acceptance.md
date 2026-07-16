@@ -1,11 +1,23 @@
 # v1.6.1 发布验收清单
 
-v1.6.1 验证 v1.6 Host Protocol 1.0 能被独立第三方宿主真实接入。本版不新增求解对象，不包含学校、课程、学生、账号、云存储或私有 Platform 1.0。
+v1.6.1 面向需要把 Solver 嵌入现有业务页面的前端接入开发者，通过本仓库内置 Reference Host DEMO 验证 v1.6 Host Protocol 1.0 的基础接入闭环。本版验收不依赖 `archsight-solver-platform` 或其他外部项目，不新增求解对象，也不包含学校、课程、学生、账号或云存储。
+
+## 产品验收口径
+
+本版不以第三方团队数量、陌生工程师接入耗时或商业试点作为发布门槛。配套 Reference Host DEMO 能稳定完成以下基础流程，即达到产品层面的最小接入目标：
+
+1. 一条命令启动两个真实 origin，并建立 Host Protocol 会话。
+2. 宿主加载 canonical `.slv` 工程，Solver 进入可编辑工作台。
+3. Solver 修改模型后，宿主收到项目变更并显示未保存状态。
+4. 宿主发起保存，持久化确定快照；刷新宿主页后能重新打开相同工程。
+5. 宿主以 readonly 模式重新打开工程，Solver 锁定建模与保存入口。
+
+安全拒绝、错误恢复、超时和协议漂移继续由自动化测试覆盖，但不扩大 DEMO 的基础产品范围。
 
 ## 自动化门禁
 
 ```bash
-python scripts/check_versions.py --expected-version 1.6.1
+python scripts/check_versions.py
 python scripts/check_release_gate.py
 python -m pytest backend/tests -q
 npm --prefix frontend run lint
@@ -38,7 +50,8 @@ npm --prefix frontend run test:visual -- release-1-6-host-integration.spec.ts --
 ## 发布边界
 
 - 版本号、CHANGELOG、release notes、部署示例与容器标签必须一致为 `1.6.1`。
+- 正式发布提交形成前，CHANGELOG 与 README 保持“发布候选”；创建 `v1.6.1` tag 前必须改成实际发布日期、同步 release notes，并通过正式版本门禁。
+- tag 发布工作流使用 `python scripts/check_versions.py --expected-version 1.6.1`；候选状态必须被拒绝，只有正式发布日期状态可以进入制品生成与 GitHub Release。
 - CI 和 tag release 必须运行真实双 origin Reference Host spec，并保留 v1.6/v1.5 回归。
 - 嵌入展示模式与权限模式必须分离；`embed=1` 不能替代 launch 的 `editable/readonly` 权限约束。
-- 发布说明只能声称“独立参考宿主已验证”，不得声称学校平台、私有 Platform 或第三方生产部署已经发布。
-- 私有 `archsight-solver-platform` 的现有 0.1.0 技术试点只用于第二消费者回归；v1.6.1 发布前不得提前声称其已升级或对外发布。
+- 发布说明只能声称“仓库内置 Reference Host 基础闭环已验证”，不得声称任何外部宿主、学校平台或第三方生产部署已经完成接入。

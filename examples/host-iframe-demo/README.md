@@ -2,6 +2,8 @@
 
 这是 ArchSight Solver 的中性宿主参考实现。它使用两个真实 origin 演示 `launch -> ready -> project.changed -> host.requestSave -> project.saveRequest -> host.saveResult`，并用浏览器 `localStorage` 托管项目保存与刷新重开。宿主顶栏负责工程新建、打开、保存与只读审阅；iframe 通过 `embed=1` 只展示结构分析工作台。接入诊断面板默认收起，不代表最终产品界面。示例不包含学校、课程、账号、远程存储或商业平台概念。
 
+本示例主要面向需要把 Solver 嵌入现有业务页面的前端接入开发者。它是本仓库自身的配套验收 DEMO，目标是证明基础接入链路可运行，不依赖 `archsight-solver-platform` 或其他外部项目，也不要求接入方复刻 Reference Host 的界面、localStorage 存储方式或诊断面板。
+
 ## 一条命令启动
 
 完成仓库依赖安装后，在仓库根目录运行：
@@ -22,6 +24,8 @@ python scripts/run_host_iframe_demo.py --host-only --solver-url http://127.0.0.1
 ```
 
 不要直接以 `file://` 打开 `index.html`；文件 URL 的 origin 是 opaque `null`，会被 Solver 的精确 origin 白名单拒绝。
+
+基础 DEMO 只需验证：加载示例工程、修改模型、宿主保存、刷新重开和只读审阅。保存超时、无效工程回滚、非法 origin 与协议漂移拒绝由自动化测试继续覆盖，不要求把这些诊断流程做成平台产品界面。
 
 ## 宿主与 Solver 的职责边界
 
@@ -54,6 +58,8 @@ Host iframe load
 ```
 
 当前 Reference Host 要求 `loadProjectDocument`、`emitProjectChanged`、`acceptHostSaveRequest`、`emitSaveRequest`、`acceptSaveResult` 均为 `true`。缺少任一能力时不得继续 launch；协议版本相同不代表保存工作流一定兼容。
+
+Host Protocol 当前使用精确版本 `1.0.0`，Solver 产品版本升级不会自动改变协议版本。兼容增强只能增加可选字段或通过 capabilities 协商的新能力；改变既有必选字段、消息类型、安全约束或保存语义属于破坏性变更，必须升级协议主版本并提供迁移说明。完整规则见 [Agent 集成指南](../../docs/agent-integration.md#host-protocol-生命周期)。
 
 宿主工具栏的保存动作不能直接持久化最后一次 `project.changed` 缓存；它必须先发送 `host.requestSave`，并保存 Solver 返回的确定快照。Solver 只会用匹配的 `requestId` 处理保存回执，且当回执对应的本地修订仍是当前修订时才清除“未保存”，从而避免延迟回执覆盖后续编辑。
 

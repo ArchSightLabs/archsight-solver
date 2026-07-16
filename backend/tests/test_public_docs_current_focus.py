@@ -44,3 +44,23 @@ def test_v130_release_notes_are_current_and_synced():
     assert "发布时间：2026-06-02" in release_html
     assert "BM-006" in changelog
     assert "BM-006" in release_markdown
+
+
+def test_v161_host_reference_has_bounded_product_acceptance_and_protocol_lifecycle():
+    readme = _read_doc("README.md")
+    roadmap = _read_doc("docs/roadmap.md")
+    acceptance = _read_doc("docs/verification/release-1-6-1-acceptance.md")
+    host_reference = _read_doc("examples/host-iframe-demo/README.md")
+    agent_integration = _read_doc("docs/agent-integration.md")
+    changelog = _read_doc("CHANGELOG.md")
+
+    assert "前端接入开发者" in readme
+    assert "不依赖 `archsight-solver-platform` 或其他外部项目完成验收" in readme
+    assert "加载、修改、保存、刷新重开和只读审阅" in roadmap
+    assert "本仓库内置的 Reference Host" in roadmap
+    assert "不以第三方团队数量、陌生工程师接入耗时或商业试点作为发布门槛" in acceptance
+    assert "验收不依赖 `archsight-solver-platform` 或其他外部项目" in acceptance
+    assert "基础 DEMO 只需验证" in host_reference
+    assert "### Host Protocol 生命周期" in agent_integration
+    assert "当前实现只接受精确的 `1.0.0`" in agent_integration
+    assert "发布时间：2026-07-16" in changelog

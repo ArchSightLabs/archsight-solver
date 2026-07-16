@@ -25,14 +25,17 @@ def _uv_project_version() -> str | None:
     return match.group(1) if match else None
 
 
-def _first_release(path: str) -> tuple[str | None, str | None]:
-    text = (ROOT / path).read_text(encoding="utf-8")
+def _first_release_from_text(text: str) -> tuple[str | None, str | None, str | None]:
     match = re.search(
-        r"^## v([^\s（]+)(?:（[^）]+）)?\s*$\s*^发布时间：([^\s]+)\s*$",
+        r"^## v([^\s（]+)(?:（[^）]+）)?\s*$\s*^(发布时间|状态)：([^\r\n]+)\s*$",
         text,
         flags=re.MULTILINE,
     )
-    return match.groups() if match else (None, None)
+    return match.groups() if match else (None, None, None)
+
+
+def _first_release(path: str) -> tuple[str | None, str | None, str | None]:
+    return _first_release_from_text((ROOT / path).read_text(encoding="utf-8"))
 
 
 def main() -> int:
@@ -49,8 +52,8 @@ def main() -> int:
     frontend_package = _read_json("frontend/package.json")
     frontend_lock = _read_json("frontend/package-lock.json")
     lock_root = frontend_lock.get("packages", {}).get("", {})  # type: ignore[union-attr]
-    changelog_version, changelog_date = _first_release("CHANGELOG.md")
-    notes_version, notes_date = _first_release("frontend/public/docs/release-notes.md")
+    changelog_version, changelog_state, changelog_state_value = _first_release("CHANGELOG.md")
+    notes_version, notes_state, notes_state_value = _first_release("frontend/public/docs/release-notes.md")
 
     observed = {
         "frontend/package.json": frontend_package.get("version"),
@@ -63,11 +66,20 @@ def main() -> int:
     mismatches = [f"{path}: {value!r}" for path, value in observed.items() if value != expected]
     if args.expected_version and args.expected_version != expected:
         mismatches.append(f"发布 tag: {args.expected_version!r}")
-    if changelog_date in {None, "未发布"}:
-        mismatches.append(f"CHANGELOG.md 发布时间: {changelog_date!r}")
-    if notes_date != changelog_date:
+    if changelog_state == "发布时间":
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", changelog_state_value or ""):
+            mismatches.append(f"CHANGELOG.md 发布时间: {changelog_state_value!r}")
+    elif changelog_state == "状态" and (changelog_state_value or "").startswith("发布候选"):
+        if args.expected_version:
+            mismatches.append("发布 tag 不允许使用发布候选状态，必须先写入正式发布日期")
+    else:
         mismatches.append(
-            f"frontend/public/docs/release-notes.md 发布时间: {notes_date!r}，应为 {changelog_date!r}"
+            f"CHANGELOG.md 发布状态: {changelog_state!r} / {changelog_state_value!r}"
+        )
+    if (notes_state, notes_state_value) != (changelog_state, changelog_state_value):
+        mismatches.append(
+            "frontend/public/docs/release-notes.md 发布状态与 CHANGELOG.md 不一致: "
+            f"{notes_state!r} / {notes_state_value!r}"
         )
 
     if mismatches:
