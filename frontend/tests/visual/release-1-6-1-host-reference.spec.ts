@@ -95,16 +95,16 @@ test("v1.6.1 reference host completes cross-origin save and reopen", async ({ pa
 });
 
 
-test("v1.6.1 bootstrap ready can launch before the iframe fallback timer", async ({ page }) => {
+test("v1.6.2 Host Client launches on capability ready before its retry timer", async ({ page }) => {
   const pageErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
-  await page.route("**/host.js", async (route) => {
+  await page.route("**/solver-host-client.js", async (route) => {
     const response = await route.fetch();
     const source = await response.text();
-    expect(source).toContain("}, 250);");
+    expect(source).toContain("const DEFAULT_LAUNCH_RETRY_MS = 1500;");
     await route.fulfill({
       response,
-      body: source.replace("}, 250);", "}, 5000);"),
+      body: source.replace("const DEFAULT_LAUNCH_RETRY_MS = 1500;", "const DEFAULT_LAUNCH_RETRY_MS = 5000;"),
     });
   });
 
@@ -202,13 +202,13 @@ test("v1.6.1 reference host rejects a solver without the required save capabilit
 
 
 test("v1.6.1 reference host ignores a save snapshot that arrives after timeout", async ({ page }) => {
-  await page.route("**/host.js", async (route) => {
+  await page.route("**/solver-host-client.js", async (route) => {
     const response = await route.fetch();
     const source = await response.text();
-    expect(source).toContain("const SAVE_REQUEST_TIMEOUT_MS = 8_000;");
+    expect(source).toContain("const DEFAULT_SAVE_TIMEOUT_MS = 8000;");
     await route.fulfill({
       response,
-      body: source.replace("const SAVE_REQUEST_TIMEOUT_MS = 8_000;", "const SAVE_REQUEST_TIMEOUT_MS = 50;"),
+      body: source.replace("const DEFAULT_SAVE_TIMEOUT_MS = 8000;", "const DEFAULT_SAVE_TIMEOUT_MS = 50;"),
     });
   });
   await page.route(`${solverOrigin}/**`, async (route) => {

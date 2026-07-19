@@ -12,6 +12,7 @@ REQUIRED_PATHS = (
     "docs/verification/release-1-6-1-acceptance.md",
     "docs/verification/release-1-6-acceptance.md",
     "examples/host-iframe-demo/host.js",
+    "examples/host-iframe-demo/solver-host-client.js",
     "examples/host-iframe-demo/sample-project.slv",
     "frontend/public/runtime-config.js",
     "frontend/src/lib/workbench-presentation.ts",
@@ -28,8 +29,18 @@ REQUIRED_MARKERS = {
     "frontend/index.html": ('src="/runtime-config.js"',),
     "examples/host-iframe-demo/host.js": (
         'searchParams.set("embed", "1")',
+        "SolverHostClient",
+        "client.requestSave",
+    ),
+    "examples/host-iframe-demo/solver-host-client.js": (
         "acceptHostSaveRequest",
-        "SAVE_REQUEST_TIMEOUT_MS",
+        "DEFAULT_SAVE_TIMEOUT_MS",
+        "solverWindow.postMessage(message, this.solverOrigin)",
+    ),
+    "frontend/src/lib/solver-host-client.ts": (
+        "SOLVER_HOST_CLIENT_REQUIRED_CAPABILITIES",
+        "save-timeout",
+        "late-save-snapshot",
     ),
     ".github/workflows/ci.yml": (
         "python scripts/check_versions.py",

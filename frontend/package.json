@@ -5,8 +5,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "sync:host-client": "tsc src/lib/solver-host-client.ts --target ES2020 --module ES2020 --moduleResolution Bundler --lib ES2020,DOM --strict --skipLibCheck --outDir ../examples/host-iframe-demo",
     "sync:release-notes": "node scripts/sync-release-notes.mjs",
-    "prebuild": "npm run sync:release-notes",
+    "prebuild": "npm run sync:host-client && npm run sync:release-notes",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",

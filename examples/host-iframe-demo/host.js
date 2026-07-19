@@ -1,14 +1,6 @@
-const PROTOCOL_VERSION = "1.0.0";
-const HOST_REQUEST_SAVE_MESSAGE = "archsight.solver.host.requestSave";
+import { SolverHostClient, SolverHostClientError } from "./solver-host-client.js";
+
 const STORAGE_KEY = "archsight-solver.reference-host.project.v1";
-const SAVE_REQUEST_TIMEOUT_MS = 8_000;
-const REQUIRED_CAPABILITIES = [
-  "loadProjectDocument",
-  "emitProjectChanged",
-  "acceptHostSaveRequest",
-  "emitSaveRequest",
-  "acceptSaveResult",
-];
 const params = new URLSearchParams(window.location.search);
 const solverUrl = new URL(params.get("solverUrl") || "http://127.0.0.1:6241");
 
@@ -16,9 +8,7 @@ if (!/^https?:$/.test(solverUrl.protocol)) {
   throw new Error("Solver URL 必须使用 http 或 https 协议。");
 }
 solverUrl.searchParams.set("embed", "1");
-if (!solverUrl.searchParams.has("theme")) {
-  solverUrl.searchParams.set("theme", "light");
-}
+if (!solverUrl.searchParams.has("theme")) solverUrl.searchParams.set("theme", "light");
 
 const solverOrigin = solverUrl.origin;
 const frame = document.querySelector("#solverFrame");
@@ -27,28 +17,20 @@ const status = document.querySelector("#connectionStatus");
 const fileInput = document.querySelector("#projectFileInput");
 const diagnostics = document.querySelector("#diagnostics");
 const operationNotice = document.querySelector("#operationNotice");
-let sessionId = "";
-let nonce = "";
 let canonicalProjectDocument = null;
 let latestProjectDocument = null;
 let revision = 0;
 let mode = "editable";
 let dirty = false;
-let launchPending = false;
 let sessionBound = false;
-let launchRetryTimer = null;
 let pendingLaunchRollback = null;
-let solverCompatible = null;
-let pendingSaveRequest = null;
-const expiredSaveRequestIds = new Set();
+let client = null;
 
 document.querySelector("#hostOrigin").textContent = window.location.origin;
 document.querySelector("#solverOrigin").textContent = solverOrigin;
 
 function cloneDocument(value) {
-  return typeof structuredClone === "function"
-    ? structuredClone(value)
-    : JSON.parse(JSON.stringify(value));
+  return typeof structuredClone === "function" ? structuredClone(value) : JSON.parse(JSON.stringify(value));
 }
 
 function appendLog(direction, message) {
@@ -72,35 +54,11 @@ function setOperationNotice(message = "") {
 }
 
 function updateActionAvailability() {
-  const sessionActions = ["newProject", "openProject", "launchReadonly", "launchEditable"];
-  for (const id of sessionActions) {
-    document.querySelector(`#${id}`).disabled = !sessionBound;
+  const active = sessionBound && client && ["active-editable", "active-readonly", "saving"].includes(client.snapshot.phase);
+  for (const id of ["newProject", "openProject", "launchReadonly", "launchEditable"]) {
+    document.querySelector(`#${id}`).disabled = !active;
   }
-  document.querySelector("#hostSave").disabled = !sessionBound || mode === "readonly" || Boolean(pendingSaveRequest);
-}
-
-function clearPendingSaveRequest(requestId = null) {
-  if (!pendingSaveRequest || (requestId && pendingSaveRequest.requestId !== requestId)) return false;
-  window.clearTimeout(pendingSaveRequest.timer);
-  pendingSaveRequest = null;
-  updateActionAvailability();
-  return true;
-}
-
-function getMissingCapabilities(message) {
-  const capabilities = message?.payload?.capabilities;
-  return REQUIRED_CAPABILITIES.filter((capability) => capabilities?.[capability] !== true);
-}
-
-function rejectIncompatibleSolver(missingCapabilities) {
-  solverCompatible = false;
-  launchPending = false;
-  sessionBound = false;
-  if (launchRetryTimer) window.clearTimeout(launchRetryTimer);
-  clearPendingSaveRequest();
-  setHostError("Solver 版本不兼容");
-  setOperationNotice(`缺少必要接入能力：${missingCapabilities.join(", ")}`);
-  updateActionAvailability();
+  document.querySelector("#hostSave").disabled = !active || mode === "readonly" || client?.snapshot.phase === "saving";
 }
 
 function updateProjectSummary() {
@@ -138,75 +96,105 @@ async function loadInitialProject() {
   updateProjectSummary();
 }
 
-function postToSolver(message) {
-  if (!frame.contentWindow) return;
-  frame.contentWindow.postMessage(message, solverOrigin);
-  appendLog("host.out", message);
+function createClient() {
+  client?.dispose();
+  const nextClient = new SolverHostClient({
+    getSolverWindow: () => frame.contentWindow,
+    solverOrigin,
+    onMessage: appendLog,
+    onProjectChanged(projectDocument) {
+      if (client !== nextClient) return;
+      latestProjectDocument = projectDocument;
+      dirty = true;
+      updateProjectSummary();
+    },
+    onStateChange(snapshot) {
+      if (client !== nextClient && client !== null) return;
+      if (snapshot.sessionId) document.querySelector("#sessionId").textContent = snapshot.sessionId;
+      if (snapshot.mode) mode = snapshot.mode;
+      updateProjectSummary();
+      updateActionAvailability();
+    },
+    onError(error) {
+      if (client !== nextClient) return;
+      if (error.code === "late-save-snapshot") {
+        setOperationNotice("已忽略超时后返回的保存快照；工程仍保持未保存状态。");
+      }
+    },
+  });
+  client = nextClient;
 }
 
-function scheduleLaunchRetry() {
-  if (launchRetryTimer) window.clearTimeout(launchRetryTimer);
-  launchRetryTimer = window.setTimeout(() => {
-    if (solverCompatible && !sessionBound) {
-      launchPending = false;
-      sendLaunch();
-    }
-  }, 1500);
-}
-
-function sendLaunch() {
-  if (!latestProjectDocument || solverCompatible !== true) return;
-  launchPending = true;
+async function beginLaunch(nextMode = mode, rollback = null) {
+  if (!client || !latestProjectDocument) return;
+  const launchClient = client;
+  mode = nextMode;
+  pendingLaunchRollback = rollback;
+  sessionBound = false;
+  setHostError("等待 Solver");
   updateProjectSummary();
-  postToSolver({
-    type: "archsight.solver.host.launch",
-    protocolVersion: PROTOCOL_VERSION,
-    sessionId,
-    nonce,
-    payload: {
+  updateActionAvailability();
+  try {
+    await launchClient.launch({
       mode,
       fileName: "host-reference-project.slv",
       projectDocument: latestProjectDocument,
-    },
-  });
-  scheduleLaunchRetry();
-}
-
-function beginLaunch(nextMode = mode, rollback = null) {
-  mode = nextMode;
-  pendingLaunchRollback = rollback;
-  renewSession();
-  sessionBound = false;
-  launchPending = false;
-  status.textContent = "等待 Solver";
-  status.dataset.connected = "false";
-  updateActionAvailability();
-  sendLaunch();
+    });
+    if (client !== launchClient) return;
+    sessionBound = true;
+    pendingLaunchRollback = null;
+    setConnected();
+    updateActionAvailability();
+  } catch (error) {
+    if (client !== launchClient || (error instanceof SolverHostClientError && error.code === "launch-replaced")) return;
+    sessionBound = false;
+    const errorMessage = error instanceof Error ? error.message : "Solver 拒绝了宿主操作。";
+    if (error instanceof SolverHostClientError && error.code === "incompatible-capabilities") {
+      setHostError("Solver 版本不兼容");
+      setOperationNotice(errorMessage);
+      updateActionAvailability();
+      return;
+    }
+    if (pendingLaunchRollback) {
+      const previous = pendingLaunchRollback;
+      pendingLaunchRollback = null;
+      latestProjectDocument = previous.projectDocument;
+      revision = previous.revision;
+      dirty = previous.dirty;
+      mode = previous.mode;
+      updateProjectSummary();
+      setOperationNotice(`打开工程失败：${errorMessage}`);
+      window.setTimeout(() => void beginLaunch(mode), 0);
+      return;
+    }
+    setOperationNotice(errorMessage);
+    setHostError("宿主操作失败");
+    updateActionAvailability();
+  }
 }
 
 function persistProject(projectDocument, requestId) {
-  clearPendingSaveRequest(requestId);
-  setOperationNotice();
-  latestProjectDocument = projectDocument;
-  revision += 1;
-  dirty = false;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    revision,
-    savedAt: new Date().toISOString(),
-    projectDocument,
-  }));
-  updateProjectSummary();
-  postToSolver({
-    type: "archsight.solver.host.saveResult",
-    protocolVersion: PROTOCOL_VERSION,
-    sessionId,
-    nonce,
-    payload: { status: "saved", revision: `local-${revision}`, requestId },
-  });
+  const nextRevision = revision + 1;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      revision: nextRevision,
+      savedAt: new Date().toISOString(),
+      projectDocument,
+    }));
+    latestProjectDocument = projectDocument;
+    revision = nextRevision;
+    client.sendSaveResult({ requestId, status: "saved", revision: `local-${revision}` });
+    dirty = false;
+    setOperationNotice();
+    updateProjectSummary();
+  } catch (error) {
+    client.sendSaveResult({ requestId, status: "failed" });
+    throw error;
+  }
 }
 
-function requestProjectSave() {
-  if (!sessionBound) {
+async function requestProjectSave() {
+  if (!client || !sessionBound) {
     setOperationNotice("Solver 会话尚未建立，暂不能保存工程。");
     return;
   }
@@ -214,51 +202,29 @@ function requestProjectSave() {
     setOperationNotice("当前为只读审阅会话，不能保存工程。");
     return;
   }
-  if (pendingSaveRequest) {
-    setOperationNotice("已有保存请求正在等待 Solver 返回工程。");
-    return;
-  }
   setOperationNotice();
-  const requestId = `host-save-${crypto.randomUUID()}`;
-  postToSolver({
-    type: HOST_REQUEST_SAVE_MESSAGE,
-    protocolVersion: PROTOCOL_VERSION,
-    sessionId,
-    nonce,
-    payload: { requestId, reason: "host-toolbar" },
-  });
-  pendingSaveRequest = {
-    requestId,
-    timer: window.setTimeout(() => {
-      if (!clearPendingSaveRequest(requestId)) return;
-      expiredSaveRequestIds.add(requestId);
-      if (expiredSaveRequestIds.size > 20) {
-        expiredSaveRequestIds.delete(expiredSaveRequestIds.values().next().value);
-      }
-      setOperationNotice("保存请求超时，Solver 未返回工程；本次未写入宿主存储。");
-    }, SAVE_REQUEST_TIMEOUT_MS),
-  };
   updateActionAvailability();
-}
-
-function renewSession() {
-  clearPendingSaveRequest();
-  expiredSaveRequestIds.clear();
-  sessionId = `host-session-${crypto.randomUUID()}`;
-  nonce = `host-nonce-${crypto.randomUUID()}`;
-  document.querySelector("#sessionId").textContent = sessionId;
+  try {
+    const snapshot = await client.requestSave("host-toolbar");
+    persistProject(snapshot.projectDocument, snapshot.requestId);
+  } catch (error) {
+    if (error instanceof SolverHostClientError && error.code === "save-timeout") {
+      setOperationNotice("保存请求超时，Solver 未返回工程；本次未写入宿主存储。");
+    } else {
+      setOperationNotice(error instanceof Error ? error.message : "宿主保存失败。");
+    }
+  } finally {
+    updateActionAvailability();
+  }
 }
 
 function loadFrame() {
-  renewSession();
   sessionBound = false;
-  launchPending = false;
-  solverCompatible = null;
-  if (launchRetryTimer) window.clearTimeout(launchRetryTimer);
-  status.textContent = "等待 Solver";
-  status.dataset.connected = "false";
-  updateActionAvailability();
+  setHostError("等待 Solver");
+  createClient();
   frame.src = solverUrl.href;
+  updateActionAvailability();
+  void beginLaunch(mode);
 }
 
 function createNewProject() {
@@ -276,7 +242,7 @@ function createNewProject() {
   dirty = true;
   localStorage.removeItem(STORAGE_KEY);
   setOperationNotice();
-  beginLaunch("editable");
+  void beginLaunch("editable");
 }
 
 async function openProjectFile(file) {
@@ -295,7 +261,7 @@ async function openProjectFile(file) {
   dirty = true;
   localStorage.removeItem(STORAGE_KEY);
   setOperationNotice();
-  beginLaunch("editable", rollback);
+  void beginLaunch("editable", rollback);
 }
 
 function setDiagnosticsOpen(open) {
@@ -303,24 +269,19 @@ function setDiagnosticsOpen(open) {
   document.querySelector("#toggleDiagnostics").setAttribute("aria-expanded", String(open));
 }
 
-frame.addEventListener("load", () => {
-  window.setTimeout(() => {
-    if (solverCompatible && !sessionBound && !launchPending) sendLaunch();
-  }, 250);
-});
 document.querySelector("#newProject").addEventListener("click", createNewProject);
 document.querySelector("#openProject").addEventListener("click", () => fileInput.click());
-document.querySelector("#hostSave").addEventListener("click", requestProjectSave);
-document.querySelector("#launchEditable").addEventListener("click", () => beginLaunch("editable"));
-document.querySelector("#launchReadonly").addEventListener("click", () => beginLaunch("readonly"));
+document.querySelector("#hostSave").addEventListener("click", () => void requestProjectSave());
+document.querySelector("#launchEditable").addEventListener("click", () => void beginLaunch("editable"));
+document.querySelector("#launchReadonly").addEventListener("click", () => void beginLaunch("readonly"));
 document.querySelector("#reloadFrame").addEventListener("click", loadFrame);
-document.querySelector("#clearSaved").addEventListener("click", async () => {
+document.querySelector("#clearSaved").addEventListener("click", () => {
   localStorage.removeItem(STORAGE_KEY);
   latestProjectDocument = cloneDocument(canonicalProjectDocument);
   revision = 0;
   dirty = false;
   setOperationNotice();
-  beginLaunch(mode);
+  void beginLaunch(mode);
 });
 document.querySelector("#toggleDiagnostics").addEventListener("click", () => setDiagnosticsOpen(diagnostics.hidden));
 document.querySelector("#closeDiagnostics").addEventListener("click", () => setDiagnosticsOpen(false));
@@ -333,74 +294,6 @@ fileInput.addEventListener("change", async () => {
     setHostError(error instanceof Error ? error.message : "工程文件打开失败");
   } finally {
     fileInput.value = "";
-  }
-});
-
-window.addEventListener("message", (event) => {
-  if (event.source !== frame.contentWindow || event.origin !== solverOrigin) return;
-  const message = event.data;
-  if (!message || message.protocolVersion !== PROTOCOL_VERSION) return;
-  appendLog("solver.in", message);
-
-  if (message.type === "archsight.solver.ready") {
-    const missingCapabilities = getMissingCapabilities(message);
-    if (missingCapabilities.length > 0) {
-      rejectIncompatibleSolver(missingCapabilities);
-      return;
-    }
-    solverCompatible = true;
-    if (!message.sessionId) {
-      setConnected("Solver 已就绪");
-      if (!launchPending) sendLaunch();
-    } else if (message.sessionId === sessionId && message.nonce === nonce) {
-      launchPending = false;
-      sessionBound = true;
-      pendingLaunchRollback = null;
-      if (launchRetryTimer) window.clearTimeout(launchRetryTimer);
-      setConnected("已建立会话");
-      updateActionAvailability();
-    }
-    return;
-  }
-  if (message.sessionId !== sessionId || message.nonce !== nonce) return;
-  if (message.type === "archsight.solver.project.changed" && message.payload?.projectDocument) {
-    latestProjectDocument = message.payload.projectDocument;
-    dirty = true;
-    updateProjectSummary();
-  }
-  if (message.type === "archsight.solver.project.saveRequest" && message.payload?.projectDocument) {
-    const requestId = String(message.payload.requestId || "").trim();
-    if (!requestId) {
-      setOperationNotice("Solver 保存请求缺少 requestId，宿主未写入工程。");
-      return;
-    }
-    if (expiredSaveRequestIds.delete(requestId)) {
-      setOperationNotice("已忽略超时后返回的保存快照；工程仍保持未保存状态。");
-      return;
-    }
-    persistProject(message.payload.projectDocument, requestId);
-    return;
-  }
-  if (message.type === "archsight.solver.error") {
-    const errorMessage = String(message.payload?.message || "Solver 拒绝了宿主操作。");
-    if (launchRetryTimer) window.clearTimeout(launchRetryTimer);
-    launchPending = false;
-    sessionBound = false;
-    clearPendingSaveRequest();
-    if (pendingLaunchRollback) {
-      const rollback = pendingLaunchRollback;
-      pendingLaunchRollback = null;
-      latestProjectDocument = rollback.projectDocument;
-      revision = rollback.revision;
-      dirty = rollback.dirty;
-      mode = rollback.mode;
-      updateProjectSummary();
-      setOperationNotice(`打开工程失败：${errorMessage}`);
-      window.setTimeout(() => beginLaunch(mode), 0);
-    } else {
-      setOperationNotice(errorMessage);
-      setHostError("宿主操作失败");
-    }
   }
 });
 

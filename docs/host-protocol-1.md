@@ -56,3 +56,5 @@ Protocol 1.0 的 `solver.ready` 必须声明以下五项能力均为 `true`：
 - 当前运行时严格匹配 `1.0.0`。未来版本协商必须显式实现，接入方不应自行把其他 `1.x` 字符串当作兼容。
 
 JSON Schema 的事实源为 `solver-host-message`，TypeScript 运行时事实源为 `frontend/src/lib/host-bridge.ts` 与 `frontend/src/lib/host-protocol-machine.ts`。可运行示例见 `examples/host-iframe-demo/`。
+
+宿主接入应优先使用 [`host-client.md`](host-client.md) 中的 `SolverHostClient`，避免在业务页面重复实现消息关联、超时和能力协商。

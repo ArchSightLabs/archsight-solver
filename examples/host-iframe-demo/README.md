@@ -4,6 +4,8 @@
 
 Host Protocol 1.0 的完整状态、拒绝规则和兼容承诺见 [`../../docs/host-protocol-1.md`](../../docs/host-protocol-1.md)。
 
+本示例已使用仓库内置 [`SolverHostClient`](../../docs/host-client.md) 管理 `postMessage`、会话绑定、capability、保存关联和超时；`host.js` 只保留 DEMO 的界面与 `localStorage` 工程持久化逻辑。
+
 本示例主要面向需要把 Solver 嵌入现有业务页面的前端接入开发者。它是本仓库自身的配套验收 DEMO，目标是证明基础接入链路可运行，不依赖 `archsight-solver-platform` 或其他外部项目，也不要求接入方复刻 Reference Host 的界面、localStorage 存储方式或诊断面板。
 
 ## 一条命令启动
