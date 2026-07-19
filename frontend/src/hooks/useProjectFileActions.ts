@@ -15,11 +15,21 @@ import {
   normalizeSolverProject,
   type SolverProject,
 } from "../lib/solver-project";
+import type { ProjectDocumentSnapshot } from "../lib/project-document-lifecycle";
 
 interface UseProjectFileActionsOptions {
   applyCurrentRuntimeToProject: (sourceProject: SolverProject) => SolverProject;
   isProjectDirty: boolean;
   isProjectReadOnly: boolean;
+  completeProjectFileSave: (
+    savedProject: SolverProject,
+    expectedSnapshot: ProjectDocumentSnapshot,
+    fileName: string,
+    handle: ProjectFileHandle | null,
+    savedAt: string,
+    message: string,
+  ) => boolean;
+  getProjectDocumentSnapshot: () => ProjectDocumentSnapshot;
   markRuntimePersisted: () => void;
   onNewProjectRequested: () => void;
   onProjectOpened: () => void;
@@ -38,6 +48,8 @@ interface UseProjectFileActionsOptions {
 
 export function useProjectFileActions({
   applyCurrentRuntimeToProject,
+  completeProjectFileSave,
+  getProjectDocumentSnapshot,
   isProjectDirty,
   isProjectReadOnly,
   markRuntimePersisted,
@@ -75,22 +87,26 @@ export function useProjectFileActions({
   const handleSaveProjectFile = useCallback(async (forceSaveAs = false) => {
     if (isProjectReadOnly) return;
     try {
+      const projectSnapshot = getProjectDocumentSnapshot();
       const savedProject = applyCurrentRuntimeToProject(project);
       const projectFile = createArchSightSolverProjectFile(savedProject);
       const result = await saveArchSightSolverProjectFile(projectFile, projectFileHandle, forceSaveAs);
-      markRuntimePersisted();
-      replaceProject(
+      const accepted = completeProjectFileSave(
         savedProject,
+        projectSnapshot,
         result.fileName,
         result.handle,
         result.savedAt,
         result.mode === "download" ? `已下载导出：${result.fileName}` : `${forceSaveAs ? "另存为" : "保存"}成功：${result.fileName}`
       );
+      if (accepted) {
+        markRuntimePersisted();
+      }
     } catch (error) {
       if (isFilePickerAbort(error)) return;
       alert(`项目文件保存失败：${error instanceof Error ? error.message : "未知错误"}`);
     }
-  }, [applyCurrentRuntimeToProject, isProjectReadOnly, markRuntimePersisted, project, projectFileHandle, replaceProject]);
+  }, [applyCurrentRuntimeToProject, completeProjectFileSave, getProjectDocumentSnapshot, isProjectReadOnly, markRuntimePersisted, project, projectFileHandle]);
 
   const handleOpenProjectFile = useCallback(() => {
     if (isProjectReadOnly) return;

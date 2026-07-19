@@ -23,6 +23,17 @@ import {
 } from "../lib/solver-project";
 import type { ProjectFileHandle } from "../lib/project-file";
 import {
+  advanceProjectDocumentRevision,
+  captureProjectDocumentSnapshot,
+  completeProjectDocumentSave,
+  createProjectDocumentLifecycle,
+  isProjectDocumentDirty,
+  isSameProjectDocument,
+  replaceProjectDocumentRevision,
+  type ProjectDocumentLifecycle,
+  type ProjectDocumentSnapshot,
+} from "../lib/project-document-lifecycle";
+import {
   createEmptyWorkspaceHistory,
   pushWorkspaceHistory,
   redoWorkspaceHistory,
@@ -97,18 +108,27 @@ export function useSolverProjectDocument({ localAutosaveEnabled = true }: { loca
   const [project, setProjectState] = useState<SolverProject>(initialDocumentState.project);
   const [projectFileHandle, setProjectFileHandle] = useState<ProjectFileHandle | null>(null);
   const [projectFileName, setProjectFileName] = useState<string | null>(initialDocumentState.projectFileName);
-  const [lastSavedAt, setLastSavedAt] = useState<string | null>(initialDocumentState.lastSavedAt);
-  const [isProjectDirty, setIsProjectDirty] = useState(initialDocumentState.isProjectDirty);
+  const [documentLifecycle, setDocumentLifecycleState] = useState(() => createProjectDocumentLifecycle({
+    dirty: initialDocumentState.isProjectDirty,
+    lastSavedAt: initialDocumentState.lastSavedAt,
+  }));
   const [fileStatusMessage, setFileStatusMessage] = useState<string | null>(initialDocumentState.fileStatusMessage);
   const [workspaceHistory, setWorkspaceHistoryState] = useState<WorkspaceHistoryState>(createEmptyWorkspaceHistory);
   const [isProjectReadOnly, setIsProjectReadOnlyState] = useState(false);
   const projectReadOnlyRef = useRef(false);
-  const projectRevisionRef = useRef(0);
+  const documentLifecycleRef = useRef(documentLifecycle);
   const projectRef = useRef(project);
   const activeObjectIdRef = useRef(project.activeObjectId);
   const workspaceHistoryRef = useRef(workspaceHistory);
   const workspace = useMemo(() => createWorkspaceFromProject(project), [project]);
   const activeAnalysisObject = useMemo(() => getActiveAnalysisObject(project), [project]);
+  const isProjectDirty = isProjectDocumentDirty(documentLifecycle);
+  const lastSavedAt = documentLifecycle.lastSavedAt;
+
+  const setDocumentLifecycle = useCallback((nextLifecycle: ProjectDocumentLifecycle) => {
+    documentLifecycleRef.current = nextLifecycle;
+    setDocumentLifecycleState(nextLifecycle);
+  }, []);
 
   const setWorkspaceHistory = useCallback((nextHistory: WorkspaceHistoryState) => {
     workspaceHistoryRef.current = nextHistory;
@@ -183,23 +203,58 @@ export function useSolverProjectDocument({ localAutosaveEnabled = true }: { loca
       notifyReadOnlyMutation();
       return;
     }
-    projectRevisionRef.current += 1;
-    setLastSavedAt(null);
-    setIsProjectDirty(true);
-  }, [notifyReadOnlyMutation]);
+    setDocumentLifecycle(advanceProjectDocumentRevision(documentLifecycleRef.current));
+  }, [notifyReadOnlyMutation, setDocumentLifecycle]);
 
-  const getProjectRevision = useCallback(() => projectRevisionRef.current, []);
+  const getProjectRevision = useCallback(() => documentLifecycleRef.current.revision, []);
+  const getProjectDocumentSnapshot = useCallback(
+    () => captureProjectDocumentSnapshot(documentLifecycleRef.current),
+    [],
+  );
 
   const markProjectSaved = useCallback((expectedRevision: number, message = "工程已保存。") => {
-    if (expectedRevision !== projectRevisionRef.current) {
+    const completion = completeProjectDocumentSave(
+      documentLifecycleRef.current,
+      expectedRevision,
+      new Date().toISOString(),
+    );
+    if (!completion.accepted) {
       setFileStatusMessage("外部宿主已保存较早版本，当前修改仍未保存。");
       return false;
     }
-    setLastSavedAt(new Date().toISOString());
-    setIsProjectDirty(false);
+    setDocumentLifecycle(completion.lifecycle);
     setFileStatusMessage(message);
     return true;
-  }, []);
+  }, [setDocumentLifecycle]);
+
+  const completeProjectFileSave = useCallback((
+    savedProject: SolverProject,
+    expectedSnapshot: ProjectDocumentSnapshot,
+    fileName: string,
+    handle: ProjectFileHandle | null,
+    savedAt: string,
+    message: string,
+  ) => {
+    if (!isSameProjectDocument(documentLifecycleRef.current, expectedSnapshot)) {
+      setFileStatusMessage("此前工程的本地保存已完成，当前工程未受影响。");
+      return false;
+    }
+    setProjectFileHandle(handle);
+    setProjectFileName(fileName);
+    const completion = completeProjectDocumentSave(
+      documentLifecycleRef.current,
+      expectedSnapshot.revision,
+      savedAt,
+    );
+    if (!completion.accepted) {
+      setFileStatusMessage("本地文件已保存较早版本，当前修改仍未保存。");
+      return false;
+    }
+    setProjectForNavigation(savedProject);
+    setDocumentLifecycle(completion.lifecycle);
+    setFileStatusMessage(message);
+    return true;
+  }, [setDocumentLifecycle, setProjectForNavigation]);
 
   const updateWorkspace: Dispatch<SetStateAction<WorkspaceState>> = useCallback((next) => {
     if (projectReadOnlyRef.current) {
@@ -314,31 +369,35 @@ export function useSolverProjectDocument({ localAutosaveEnabled = true }: { loca
     savedAt: string | null,
     message: string,
   ) => {
-    projectRevisionRef.current += 1;
     setProjectForNavigation(nextProject);
     setProjectFileHandle(handle);
     setProjectFileName(fileName);
-    setLastSavedAt(savedAt);
-    setIsProjectDirty(false);
+    setDocumentLifecycle(replaceProjectDocumentRevision(documentLifecycleRef.current, savedAt));
     setFileStatusMessage(message);
     activeObjectIdRef.current = nextProject.activeObjectId;
     resetWorkspaceHistory();
-  }, [resetWorkspaceHistory, setProjectForNavigation]);
+  }, [resetWorkspaceHistory, setDocumentLifecycle, setProjectForNavigation]);
 
   const clearProjectFileLink = useCallback((message: string) => {
+    if (projectReadOnlyRef.current) {
+      notifyReadOnlyMutation();
+      return;
+    }
     setProjectFileHandle(null);
     setProjectFileName(null);
     setFileStatusMessage(message);
-  }, []);
+  }, [notifyReadOnlyMutation]);
 
   return {
     activeAnalysisObject,
     clearProjectFileLink,
+    completeProjectFileSave,
     fileStatusMessage,
     isProjectDirty,
     isProjectReadOnly,
     lastSavedAt,
     getProjectRevision,
+    getProjectDocumentSnapshot,
     markProjectDirty,
     markProjectSaved,
     project,
@@ -351,8 +410,6 @@ export function useSolverProjectDocument({ localAutosaveEnabled = true }: { loca
     setProject,
     setProjectForNavigation,
     setProjectReadOnly,
-    setProjectFileHandle,
-    setProjectFileName,
     setReportExportOptions,
     updateProjectInfo,
     updateWorkspace,

@@ -120,10 +120,12 @@ function AppContent() {
   const {
     activeAnalysisObject,
     clearProjectFileLink,
+    completeProjectFileSave,
     fileStatusMessage,
     isProjectDirty,
     isProjectReadOnly,
     lastSavedAt,
+    getProjectDocumentSnapshot,
     getProjectRevision,
     markProjectDirty,
     markProjectSaved,
@@ -222,7 +224,7 @@ function AppContent() {
     duplicateTemplate,
     deleteTemplate,
     setBaselineTemplate,
-  } = useTemplateLibrary();
+  } = useTemplateLibrary({ localPersistenceEnabled: !isEmbeddedWorkbench });
 
 
 
@@ -328,6 +330,8 @@ function AppContent() {
     projectFileInputRef,
   } = useProjectFileActions({
     applyCurrentRuntimeToProject,
+    completeProjectFileSave,
+    getProjectDocumentSnapshot,
     isProjectDirty,
     isProjectReadOnly,
     markRuntimePersisted,

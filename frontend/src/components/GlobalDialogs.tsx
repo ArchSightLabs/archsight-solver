@@ -134,7 +134,7 @@ export function GlobalDialogs({
         />
       )}
 
-      {isTemplateLibraryOpen && typeof document !== "undefined" ? createPortal(
+      {!hostManagedProject && !isProjectReadOnly && isTemplateLibraryOpen && typeof document !== "undefined" ? createPortal(
         <div
           className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-sm"
           role="dialog"

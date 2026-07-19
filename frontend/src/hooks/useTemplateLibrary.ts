@@ -40,11 +40,13 @@ function readTemplateState(): TemplateLibraryState {
   }
 }
 
-export function useTemplateLibrary(): UseTemplateLibraryReturn {
-  const [state, setState] = useState<TemplateLibraryState>(() => readTemplateState());
+export function useTemplateLibrary({ localPersistenceEnabled = true }: { localPersistenceEnabled?: boolean } = {}): UseTemplateLibraryReturn {
+  const [state, setState] = useState<TemplateLibraryState>(() => (
+    localPersistenceEnabled ? readTemplateState() : createEmptyTemplateLibraryState()
+  ));
 
   useEffect(() => {
-    if (typeof window === "undefined") {
+    if (!localPersistenceEnabled || typeof window === "undefined") {
       return;
     }
 
@@ -53,7 +55,7 @@ export function useTemplateLibrary(): UseTemplateLibraryReturn {
     } catch {
       // 本地存储不可用时保留内存态，避免影响主工作区。
     }
-  }, [state]);
+  }, [localPersistenceEnabled, state]);
 
   const saveTemplate = (name: string, snapshot: TemplateSnapshot): TemplateActionResult<ProjectTemplate> => {
     const result = saveTemplateFromWorkspace(state, name, snapshot);
