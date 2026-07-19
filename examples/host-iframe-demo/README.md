@@ -2,6 +2,8 @@
 
 这是 ArchSight Solver 的中性宿主参考实现。它使用两个真实 origin 演示 `launch -> ready -> project.changed -> host.requestSave -> project.saveRequest -> host.saveResult`，并用浏览器 `localStorage` 托管项目保存与刷新重开。宿主顶栏负责工程新建、打开、保存与只读审阅；iframe 通过 `embed=1` 只展示结构分析工作台。接入诊断面板默认收起，不代表最终产品界面。示例不包含学校、课程、账号、远程存储或商业平台概念。
 
+Host Protocol 1.0 的完整状态、拒绝规则和兼容承诺见 [`../../docs/host-protocol-1.md`](../../docs/host-protocol-1.md)。
+
 本示例主要面向需要把 Solver 嵌入现有业务页面的前端接入开发者。它是本仓库自身的配套验收 DEMO，目标是证明基础接入链路可运行，不依赖 `archsight-solver-platform` 或其他外部项目，也不要求接入方复刻 Reference Host 的界面、localStorage 存储方式或诊断面板。
 
 ## 一条命令启动

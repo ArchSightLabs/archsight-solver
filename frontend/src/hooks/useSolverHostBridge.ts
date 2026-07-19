@@ -5,14 +5,19 @@ import {
   buildSolverErrorMessage,
   buildSolverReadyMessage,
   HOST_LAUNCH_MESSAGE,
-  HOST_REQUEST_SAVE_MESSAGE,
-  HOST_SAVE_RESULT_MESSAGE,
   isHostOriginAllowed,
   normalizeHostOriginList,
   parseHostLaunchMessage,
+  parseHostRequestSaveMessage,
+  parseHostSaveResultMessage,
   resolveBootstrapHostOrigin,
   type SolverHostMessage,
 } from "../lib/host-bridge.ts";
+import {
+  createHostProtocolState,
+  hostProtocolIssueMessage,
+  transitionHostProtocol,
+} from "../lib/host-protocol-machine.ts";
 import type { ProjectFileHandle } from "../lib/project-file.ts";
 import type { SolverProject } from "../lib/solver-project.ts";
 
@@ -57,6 +62,7 @@ export function useSolverHostBridge({
   const [mode, setMode] = useState<"editable" | "readonly">("editable");
   const [hostOrigin, setHostOrigin] = useState<string | null>(null);
   const projectRef = useRef(project);
+  const protocolStateRef = useRef(createHostProtocolState());
   const pendingSaveRequestsRef = useRef(new Map<string, number>());
   const allowedOriginList = useMemo(() => normalizeHostOriginList(allowedOrigins), [allowedOrigins]);
   const bootstrapHostOrigin = useMemo(() => {
@@ -71,27 +77,48 @@ export function useSolverHostBridge({
   }, [project]);
 
   useEffect(() => {
+    protocolStateRef.current = createHostProtocolState();
+    return () => {
+      protocolStateRef.current = transitionHostProtocol(protocolStateRef.current, { type: "close" }).state;
+    };
+  }, []);
+
+  useEffect(() => {
     if (sessionId && nonce && hostOrigin) {
+      protocolStateRef.current = transitionHostProtocol(protocolStateRef.current, { type: "announce-ready" }).state;
       postToHost(buildSolverReadyMessage(sessionId, nonce), hostOrigin);
       return;
     }
     if (bootstrapHostOrigin) {
+      protocolStateRef.current = transitionHostProtocol(protocolStateRef.current, { type: "announce-ready" }).state;
       postToHost(buildSolverReadyMessage(null), bootstrapHostOrigin);
     }
   }, [bootstrapHostOrigin, hostOrigin, nonce, sessionId]);
 
-  const requestHostSave = useCallback((requestedId?: string) => {
-    if (!sessionId || !hostOrigin || mode === "readonly") {
+  const requestHostSave = useCallback((requestedId?: string, commandBinding?: { sessionId: string; nonce: string }) => {
+    const protocolState = protocolStateRef.current;
+    if (!protocolState.sessionId || !protocolState.nonce || !hostOrigin) {
       return false;
     }
     const requestId = requestedId?.trim() || globalThis.crypto.randomUUID();
+    const transition = transitionHostProtocol(protocolState, {
+      type: "request-save",
+      sessionId: commandBinding?.sessionId ?? protocolState.sessionId,
+      nonce: commandBinding?.nonce ?? protocolState.nonce,
+      requestId,
+    });
+    protocolStateRef.current = transition.state;
+    if (!transition.accepted) {
+      if (transition.code) setFileStatusMessage(hostProtocolIssueMessage(transition.code));
+      return false;
+    }
     pendingSaveRequestsRef.current.set(requestId, getProjectRevision());
     postToHost(
-      buildSaveRequestMessage(sessionId, applyCurrentRuntimeToProject(projectRef.current), nonce, requestId),
+      buildSaveRequestMessage(protocolState.sessionId, applyCurrentRuntimeToProject(projectRef.current), protocolState.nonce, requestId),
       hostOrigin,
     );
     return true;
-  }, [applyCurrentRuntimeToProject, getProjectRevision, hostOrigin, mode, nonce, sessionId]);
+  }, [applyCurrentRuntimeToProject, getProjectRevision, hostOrigin, setFileStatusMessage]);
 
   useEffect(() => {
     const handleMessage = (event: globalThis.MessageEvent) => {
@@ -105,6 +132,20 @@ export function useSolverHostBridge({
         }
         const launch = parseHostLaunchMessage(message);
         if (launch) {
+          const transition = transitionHostProtocol(protocolStateRef.current, {
+            type: "launch",
+            sessionId: launch.sessionId,
+            nonce: launch.nonce,
+            mode: launch.mode,
+          });
+          protocolStateRef.current = transition.state;
+          if (!transition.accepted) {
+            throw new Error(transition.code ? hostProtocolIssueMessage(transition.code) : "Host Protocol launch 被拒绝。");
+          }
+          if (transition.idempotent) {
+            postToHost(buildSolverReadyMessage(launch.sessionId, launch.nonce), event.origin);
+            return;
+          }
           pendingSaveRequestsRef.current.clear();
           setSessionId(launch.sessionId);
           setNonce(launch.nonce);
@@ -121,37 +162,32 @@ export function useSolverHostBridge({
           syncRuntimeFromProject(launch.projectFile.project);
           return;
         }
-        if (
-          message?.type === HOST_REQUEST_SAVE_MESSAGE
-          && message?.protocolVersion === "1.0.0"
-          && message?.sessionId === sessionId
-          && message?.nonce === nonce
-          && event.origin === hostOrigin
-        ) {
-          const requestId = String(message.payload?.requestId ?? "").trim();
-          if (!requestId) {
-            throw new Error("host requestSave 必须提供非空 requestId。");
+        const requestSave = parseHostRequestSaveMessage(message);
+        if (requestSave) {
+          if (event.origin !== hostOrigin) return;
+          if (!requestHostSave(requestSave.requestId, requestSave)) {
+            const issue = protocolStateRef.current.lastIssue;
+            throw new Error(issue ? hostProtocolIssueMessage(issue) : "Host Protocol 保存请求被拒绝。");
           }
-          requestHostSave(requestId);
           return;
         }
-        if (
-          message?.type === HOST_SAVE_RESULT_MESSAGE
-          && message?.protocolVersion === "1.0.0"
-          && message?.sessionId === sessionId
-          && message?.nonce === nonce
-          && event.origin === hostOrigin
-        ) {
-          const status = String(message.payload?.status ?? "saved");
-          const requestId = String(message.payload?.requestId ?? "").trim();
-          const projectRevision = requestId
-            ? pendingSaveRequestsRef.current.get(requestId) ?? null
-            : null;
-          if (requestId) {
-            pendingSaveRequestsRef.current.delete(requestId);
+        const saveResult = parseHostSaveResultMessage(message);
+        if (saveResult) {
+          if (event.origin !== hostOrigin) return;
+          const transition = transitionHostProtocol(protocolStateRef.current, {
+            type: "save-result",
+            sessionId: saveResult.sessionId,
+            nonce: saveResult.nonce,
+            requestId: saveResult.requestId,
+          });
+          protocolStateRef.current = transition.state;
+          if (!transition.accepted) {
+            throw new Error(transition.code ? hostProtocolIssueMessage(transition.code) : "Host Protocol 保存回执被拒绝。");
           }
-          setFileStatusMessage(status === "saved" ? "外部宿主已保存工程。" : `外部宿主保存结果：${status}`);
-          onHostSaveResult?.(status, projectRevision);
+          const projectRevision = pendingSaveRequestsRef.current.get(saveResult.requestId) ?? null;
+          pendingSaveRequestsRef.current.delete(saveResult.requestId);
+          setFileStatusMessage(saveResult.status === "saved" ? "外部宿主已保存工程。" : `外部宿主保存结果：${saveResult.status}`);
+          onHostSaveResult?.(saveResult.status, projectRevision);
         }
       } catch (error) {
         const messageSessionId = typeof message?.sessionId === "string" ? message.sessionId.trim() : "";
@@ -172,11 +208,20 @@ export function useSolverHostBridge({
   }, [allowedOriginList, hostOrigin, nonce, onHostModeChange, onHostSaveResult, replaceProject, requestHostSave, sessionId, setFileStatusMessage, syncRuntimeFromProject]);
 
   const emitProjectChanged = useCallback(() => {
-    if (!sessionId || !hostOrigin || mode === "readonly") {
-      return;
-    }
-    postToHost(buildProjectChangedMessage(sessionId, applyCurrentRuntimeToProject(projectRef.current), nonce), hostOrigin);
-  }, [applyCurrentRuntimeToProject, hostOrigin, mode, nonce, sessionId]);
+    const protocolState = protocolStateRef.current;
+    if (!protocolState.sessionId || !protocolState.nonce || !hostOrigin) return;
+    const transition = transitionHostProtocol(protocolState, {
+      type: "project-changed",
+      sessionId: protocolState.sessionId,
+      nonce: protocolState.nonce,
+    });
+    protocolStateRef.current = transition.state;
+    if (!transition.accepted) return;
+    postToHost(
+      buildProjectChangedMessage(protocolState.sessionId, applyCurrentRuntimeToProject(projectRef.current), protocolState.nonce),
+      hostOrigin,
+    );
+  }, [applyCurrentRuntimeToProject, hostOrigin]);
 
   return {
     hostSessionId: sessionId,

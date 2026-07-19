@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createArchSightSolverProjectFile } from "../../src/lib/project-file";
 import { createDefaultSolverProject } from "../../src/lib/solver-project";
-import { HOST_SAVE_RESULT_MESSAGE, SOLVER_PROJECT_CHANGED_MESSAGE, SOLVER_READY_MESSAGE, SOLVER_SAVE_REQUEST_MESSAGE } from "../../src/lib/host-bridge";
+import { HOST_SAVE_RESULT_MESSAGE, SOLVER_ERROR_MESSAGE, SOLVER_PROJECT_CHANGED_MESSAGE, SOLVER_READY_MESSAGE, SOLVER_SAVE_REQUEST_MESSAGE } from "../../src/lib/host-bridge";
 
 const protocolVersion = "1.0.0";
 const sessionId = "release-1-6-session";
@@ -58,7 +58,7 @@ async function postLaunch(page: Page, mode: "editable" | "readonly") {
 
 async function hostMessages(page: Page) {
   return page.evaluate(() => (window as typeof window & {
-    __solverHostMessages: Array<{ type?: string; sessionId?: string; payload?: { requestId?: string } }>;
+    __solverHostMessages: Array<{ type?: string; sessionId?: string; payload?: { requestId?: string; message?: string } }>;
   }).__solverHostMessages);
 }
 
@@ -123,6 +123,33 @@ test("v1.6 readonly host locks model, project replacement and save operations", 
   await expect(solver.getByRole("button", { name: "新建分析对象" }).first()).toBeDisabled();
   await page.waitForTimeout(300);
   expect((await hostMessages(page)).some((message) => message.type === SOLVER_PROJECT_CHANGED_MESSAGE)).toBe(false);
+});
+
+test("v1.6.2 host protocol rejects a stale save result without consuming the active request", async ({ page }) => {
+  const solver = await mountSameOriginHost(page);
+  await postLaunch(page, "editable");
+  await solver.getByRole("button", { name: "保存", exact: true }).click();
+  await expect.poll(async () => (await hostMessages(page)).some((message) => message.type === SOLVER_SAVE_REQUEST_MESSAGE)).toBe(true);
+  const requestId = (await hostMessages(page)).findLast((message) => message.type === SOLVER_SAVE_REQUEST_MESSAGE)?.payload?.requestId;
+  expect(requestId).toBeTruthy();
+
+  const postSaveResult = (nextRequestId: string) => page.evaluate(({ protocolVersion, sessionId, nonce, requestId }) => {
+    document.querySelector<HTMLIFrameElement>("#solver-frame")?.contentWindow?.postMessage({
+      type: "archsight.solver.host.saveResult",
+      protocolVersion,
+      sessionId,
+      nonce,
+      payload: { status: "saved", requestId },
+    }, window.location.origin);
+  }, { protocolVersion, sessionId, nonce, requestId: nextRequestId });
+
+  await postSaveResult("stale-request");
+  await expect.poll(async () => (await hostMessages(page)).some((message) => (
+    message.type === SOLVER_ERROR_MESSAGE && message.payload?.message?.includes("陈旧回执")
+  ))).toBe(true);
+
+  await postSaveResult(requestId!);
+  await expect(solver.getByText("外部宿主已保存工程。")).toBeVisible();
 });
 
 test("v1.6 host launch is rejected when the message source is not the parent", async ({ page }) => {

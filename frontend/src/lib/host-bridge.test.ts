@@ -2,6 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   HOST_LAUNCH_MESSAGE,
+  HOST_REQUEST_SAVE_MESSAGE,
+  HOST_SAVE_RESULT_MESSAGE,
+  SOLVER_HOST_CAPABILITIES,
   SOLVER_PROJECT_CHANGED_MESSAGE,
   SOLVER_READY_MESSAGE,
   SOLVER_SAVE_REQUEST_MESSAGE,
@@ -11,6 +14,8 @@ import {
   isHostOriginAllowed,
   normalizeHostOriginList,
   parseHostLaunchMessage,
+  parseHostRequestSaveMessage,
+  parseHostSaveResultMessage,
   resolveBootstrapHostOrigin,
 } from "./host-bridge.ts";
 import { createArchSightSolverProjectFile } from "./project-file.ts";
@@ -53,6 +58,47 @@ test("host bridge emits ready and changed messages without platform concepts", (
   assert.equal((changed.payload as { projectDocument: { manifest: { projectFileKind: string } } }).projectDocument.manifest.projectFileKind, "single-json");
   assert.equal(JSON.stringify(changed).includes("tenant"), false);
   assert.equal(JSON.stringify(changed).includes("license"), false);
+  assert.deepEqual((ready.payload as { capabilities: unknown }).capabilities, SOLVER_HOST_CAPABILITIES);
+});
+
+test("bound host save commands require exact protocol correlation fields", () => {
+  assert.deepEqual(parseHostRequestSaveMessage({
+    type: HOST_REQUEST_SAVE_MESSAGE,
+    protocolVersion: "1.0.0",
+    sessionId: "session-1",
+    nonce: "nonce-1",
+    payload: { requestId: "request-1" },
+  }), { sessionId: "session-1", nonce: "nonce-1", requestId: "request-1" });
+
+  assert.deepEqual(parseHostSaveResultMessage({
+    type: HOST_SAVE_RESULT_MESSAGE,
+    protocolVersion: "1.0.0",
+    sessionId: "session-1",
+    nonce: "nonce-1",
+    payload: { requestId: "request-1", status: "conflict" },
+  }), { sessionId: "session-1", nonce: "nonce-1", requestId: "request-1", status: "conflict" });
+
+  assert.throws(() => parseHostRequestSaveMessage({
+    type: HOST_REQUEST_SAVE_MESSAGE,
+    protocolVersion: "0.9.0",
+    sessionId: "session-1",
+    nonce: "nonce-1",
+    payload: { requestId: "request-1" },
+  }), /协议版本不匹配/u);
+  assert.throws(() => parseHostSaveResultMessage({
+    type: HOST_SAVE_RESULT_MESSAGE,
+    protocolVersion: "1.0.0",
+    sessionId: "session-1",
+    nonce: "nonce-1",
+    payload: { status: "saved" },
+  }), /requestId/u);
+  assert.throws(() => parseHostSaveResultMessage({
+    type: HOST_SAVE_RESULT_MESSAGE,
+    protocolVersion: "1.0.0",
+    sessionId: "session-1",
+    nonce: "nonce-1",
+    payload: { requestId: "request-1", status: "unknown" },
+  }), /status/u);
 });
 
 test("host save request carries a correlation id for stale acknowledgement protection", () => {

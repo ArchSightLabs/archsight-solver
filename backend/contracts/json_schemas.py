@@ -987,8 +987,11 @@ HOST_MESSAGE_SCHEMA: Dict[str, Any] = {
                 "properties": {
                     "payload": {
                         "type": "object",
-                        "required": ["status"],
-                        "properties": {"status": {"type": "string", "enum": ["saved", "failed", "conflict"]}},
+                        "required": ["status", "requestId"],
+                        "properties": {
+                            "status": {"type": "string", "enum": ["saved", "failed", "conflict"]},
+                            "requestId": {"type": "string", "minLength": 1},
+                        },
                         "additionalProperties": True,
                     },
                 },
@@ -999,8 +1002,47 @@ HOST_MESSAGE_SCHEMA: Dict[str, Any] = {
             "then": {"properties": {"payload": {"type": "object", "required": ["projectDocument"]}}},
         },
         {
+            "if": {"properties": {"type": {"const": "archsight.solver.project.saveRequest"}}, "required": ["type"]},
+            "then": {
+                "properties": {
+                    "payload": {
+                        "type": "object",
+                        "required": ["projectDocument", "requestId"],
+                        "properties": {"requestId": {"type": "string", "minLength": 1}},
+                    }
+                }
+            },
+        },
+        {
             "if": {"properties": {"type": {"const": "archsight.solver.ready"}}, "required": ["type"]},
-            "then": {"properties": {"payload": {"type": "object", "required": ["capabilities"]}}},
+            "then": {
+                "properties": {
+                    "payload": {
+                        "type": "object",
+                        "required": ["capabilities"],
+                        "properties": {
+                            "capabilities": {
+                                "type": "object",
+                                "required": [
+                                    "loadProjectDocument",
+                                    "emitProjectChanged",
+                                    "acceptHostSaveRequest",
+                                    "emitSaveRequest",
+                                    "acceptSaveResult",
+                                ],
+                                "properties": {
+                                    "loadProjectDocument": {"const": True},
+                                    "emitProjectChanged": {"const": True},
+                                    "acceptHostSaveRequest": {"const": True},
+                                    "emitSaveRequest": {"const": True},
+                                    "acceptSaveResult": {"const": True},
+                                },
+                                "additionalProperties": {"type": "boolean"},
+                            }
+                        },
+                    }
+                }
+            },
         },
         {
             "if": {"properties": {"type": {"const": "archsight.solver.error"}}, "required": ["type"]},

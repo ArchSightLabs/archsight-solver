@@ -14,6 +14,13 @@ export const SOLVER_READY_MESSAGE = "archsight.solver.ready";
 export const SOLVER_PROJECT_CHANGED_MESSAGE = "archsight.solver.project.changed";
 export const SOLVER_SAVE_REQUEST_MESSAGE = "archsight.solver.project.saveRequest";
 export const SOLVER_ERROR_MESSAGE = "archsight.solver.error";
+export const SOLVER_HOST_CAPABILITIES = Object.freeze({
+  loadProjectDocument: true,
+  emitProjectChanged: true,
+  acceptHostSaveRequest: true,
+  emitSaveRequest: true,
+  acceptSaveResult: true,
+});
 
 export interface SolverHostMessage<TPayload = unknown> {
   type: string;
@@ -32,10 +39,20 @@ export interface HostLaunchPayload {
 
 export interface HostLaunchResult {
   sessionId: string;
-  nonce: string | null;
+  nonce: string;
   mode: "editable" | "readonly";
   projectFile: ArchSightSolverProjectFile;
   fileName: string | null;
+}
+
+export interface HostRequestSaveCommand {
+  sessionId: string;
+  nonce: string;
+  requestId: string;
+}
+
+export interface HostSaveResultCommand extends HostRequestSaveCommand {
+  status: "saved" | "failed" | "conflict";
 }
 
 export function normalizeHostOriginList(value: string | readonly string[] | null | undefined): string[] {
@@ -137,6 +154,43 @@ export function parseHostLaunchMessage(value: unknown): HostLaunchResult | null 
   };
 }
 
+function parseBoundHostCommand(value: unknown, expectedType: string): {
+  message: SolverHostMessage<Record<string, unknown>>;
+  sessionId: string;
+  nonce: string;
+  requestId: string;
+} | null {
+  if (!isSolverHostMessage(value) || value.type !== expectedType) return null;
+  if (value.protocolVersion !== SOLVER_HOST_PROTOCOL_VERSION) {
+    throw new Error(`host 协议版本不匹配，期望 ${SOLVER_HOST_PROTOCOL_VERSION}。`);
+  }
+  const sessionId = String(value.sessionId ?? "").trim();
+  const nonce = String(value.nonce ?? "").trim();
+  if (!sessionId || !nonce) throw new Error("host 消息必须提供非空 sessionId 与 nonce。");
+  const payload = value.payload && typeof value.payload === "object"
+    ? value.payload as Record<string, unknown>
+    : {};
+  const requestId = String(payload.requestId ?? "").trim();
+  if (!requestId) throw new Error(`${expectedType} 必须提供非空 requestId。`);
+  return { message: { ...value, payload }, sessionId, nonce, requestId };
+}
+
+export function parseHostRequestSaveMessage(value: unknown): HostRequestSaveCommand | null {
+  const command = parseBoundHostCommand(value, HOST_REQUEST_SAVE_MESSAGE);
+  if (!command) return null;
+  return { sessionId: command.sessionId, nonce: command.nonce, requestId: command.requestId };
+}
+
+export function parseHostSaveResultMessage(value: unknown): HostSaveResultCommand | null {
+  const command = parseBoundHostCommand(value, HOST_SAVE_RESULT_MESSAGE);
+  if (!command) return null;
+  const rawStatus = String(command.message.payload?.status ?? "").trim();
+  if (rawStatus !== "saved" && rawStatus !== "failed" && rawStatus !== "conflict") {
+    throw new Error(`${HOST_SAVE_RESULT_MESSAGE} status 必须是 saved、failed 或 conflict。`);
+  }
+  return { sessionId: command.sessionId, nonce: command.nonce, requestId: command.requestId, status: rawStatus };
+}
+
 export function buildSolverReadyMessage(sessionId: string | null, nonce: string | null = null): SolverHostMessage {
   const sessionBinding = sessionId?.trim() && nonce?.trim()
     ? { sessionId: sessionId.trim(), nonce: nonce.trim() }
@@ -146,13 +200,7 @@ export function buildSolverReadyMessage(sessionId: string | null, nonce: string 
     protocolVersion: SOLVER_HOST_PROTOCOL_VERSION,
     ...sessionBinding,
     payload: {
-      capabilities: {
-        loadProjectDocument: true,
-        emitProjectChanged: true,
-        acceptHostSaveRequest: true,
-        emitSaveRequest: true,
-        acceptSaveResult: true,
-      },
+      capabilities: SOLVER_HOST_CAPABILITIES,
     },
   };
 }

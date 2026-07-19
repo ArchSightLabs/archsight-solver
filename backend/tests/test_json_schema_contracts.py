@@ -16,6 +16,15 @@ from backend.project_workflow import build_export_artifact_metadata, build_host_
 from backend.template_registry import list_builtin_template_registry
 
 
+HOST_PROTOCOL_1_CAPABILITIES = {
+    "loadProjectDocument": True,
+    "emitProjectChanged": True,
+    "acceptHostSaveRequest": True,
+    "emitSaveRequest": True,
+    "acceptSaveResult": True,
+}
+
+
 class _FallbackValidationError(AssertionError):
     pass
 
@@ -255,14 +264,14 @@ def test_host_message_schema_accepts_bootstrap_and_session_ready_messages():
     validator.validate({
         "type": "archsight.solver.ready",
         "protocolVersion": "1.0.0",
-        "payload": {"capabilities": {"loadProjectDocument": True}},
+        "payload": {"capabilities": HOST_PROTOCOL_1_CAPABILITIES},
     })
     validator.validate({
         "type": "archsight.solver.ready",
         "protocolVersion": "1.0.0",
         "sessionId": "session-1",
         "nonce": "nonce-1",
-        "payload": {"capabilities": {"loadProjectDocument": True}},
+        "payload": {"capabilities": HOST_PROTOCOL_1_CAPABILITIES},
     })
 
 
@@ -272,14 +281,14 @@ def test_fallback_host_message_validator_matches_ready_session_binding_contract(
     validator.validate({
         "type": "archsight.solver.ready",
         "protocolVersion": "1.0.0",
-        "payload": {"capabilities": {}},
+        "payload": {"capabilities": HOST_PROTOCOL_1_CAPABILITIES},
     })
     validator.validate({
         "type": "archsight.solver.ready",
         "protocolVersion": "1.0.0",
         "sessionId": "session-1",
         "nonce": "nonce-1",
-        "payload": {"capabilities": {}},
+        "payload": {"capabilities": HOST_PROTOCOL_1_CAPABILITIES},
     })
     for partial_binding in ({"sessionId": "session-1"}, {"nonce": "nonce-1"}):
         with pytest.raises(_FallbackValidationError):
@@ -287,7 +296,7 @@ def test_fallback_host_message_validator_matches_ready_session_binding_contract(
                 "type": "archsight.solver.ready",
                 "protocolVersion": "1.0.0",
                 **partial_binding,
-                "payload": {"capabilities": {}},
+                "payload": {"capabilities": HOST_PROTOCOL_1_CAPABILITIES},
             })
 
 
@@ -298,13 +307,13 @@ def test_fallback_host_message_validator_matches_ready_session_binding_contract(
             "type": "archsight.solver.ready",
             "protocolVersion": "1.0.0",
             "sessionId": "session-1",
-            "payload": {"capabilities": {}},
+            "payload": {"capabilities": HOST_PROTOCOL_1_CAPABILITIES},
         },
         {
             "type": "archsight.solver.ready",
             "protocolVersion": "1.0.0",
             "nonce": "nonce-1",
-            "payload": {"capabilities": {}},
+            "payload": {"capabilities": HOST_PROTOCOL_1_CAPABILITIES},
         },
     ],
 )
@@ -372,6 +381,39 @@ def test_host_request_save_requires_request_id():
                 "sessionId": "session-1",
                 "nonce": "nonce-1",
                 "payload": {},
+            }
+        )
+
+
+@pytest.mark.parametrize(
+    "message_type",
+    ["archsight.solver.host.saveResult", "archsight.solver.project.saveRequest"],
+)
+def test_host_save_roundtrip_requires_request_id(message_type):
+    validator, validation_error = _runtime_contract_validator(schema_registry()["solver-host-message"])
+    payload = {"status": "saved"} if message_type.endswith("saveResult") else {"projectDocument": {}}
+
+    with pytest.raises(validation_error):
+        validator.validate(
+            {
+                "type": message_type,
+                "protocolVersion": "1.0.0",
+                "sessionId": "session-1",
+                "nonce": "nonce-1",
+                "payload": payload,
+            }
+        )
+
+
+def test_host_ready_requires_the_complete_protocol_1_capability_set():
+    validator, validation_error = _runtime_contract_validator(schema_registry()["solver-host-message"])
+
+    with pytest.raises(validation_error):
+        validator.validate(
+            {
+                "type": "archsight.solver.ready",
+                "protocolVersion": "1.0.0",
+                "payload": {"capabilities": {"loadProjectDocument": True}},
             }
         )
 
