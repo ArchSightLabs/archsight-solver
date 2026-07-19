@@ -13,10 +13,22 @@ import type {
   TrussWorkspaceState,
 } from "../types/structure.ts";
 import { beamSupportConstraints } from "./support-vocabulary.ts";
+import type { ModuleSectionKey } from "./workbench-navigation.ts";
 import { createPortalFrameModelFromState, type WorkspaceState } from "./workspace-state.ts";
 
 export type ModelDiagnosticSeverity = "error" | "warning" | "info";
 export type ModelDiagnosticStatus = "blocked" | "review" | "ready";
+export type ModelDiagnosticObjectKind = "node" | "member" | "span" | "support" | "loadCase" | "loadCombination";
+
+export interface ModelDiagnosticObjectRef {
+  kind: ModelDiagnosticObjectKind;
+  id: string;
+}
+
+export interface ModelDiagnosticAction {
+  label: string;
+  targetSection: ModuleSectionKey;
+}
 
 export interface ModelDiagnosticIssue {
   code: string;
@@ -24,6 +36,8 @@ export interface ModelDiagnosticIssue {
   title: string;
   detail: string;
   suggestion: string;
+  objectRefs?: ModelDiagnosticObjectRef[];
+  action?: ModelDiagnosticAction;
 }
 
 export interface ModelDiagnostics {
@@ -32,8 +46,23 @@ export interface ModelDiagnostics {
   issues: ModelDiagnosticIssue[];
 }
 
-function issue(code: string, severity: ModelDiagnosticSeverity, title: string, detail: string, suggestion: string): ModelDiagnosticIssue {
-  return { code, severity, title, detail, suggestion };
+function issue(
+  code: string,
+  severity: ModelDiagnosticSeverity,
+  title: string,
+  detail: string,
+  suggestion: string,
+  metadata: Pick<ModelDiagnosticIssue, "objectRefs" | "action"> = {},
+): ModelDiagnosticIssue {
+  return { code, severity, title, detail, suggestion, ...metadata };
+}
+
+function refs(kind: ModelDiagnosticObjectKind, ids: readonly string[]): ModelDiagnosticObjectRef[] {
+  return ids.map((id) => ({ kind, id }));
+}
+
+function navigate(label: string, targetSection: ModuleSectionKey): ModelDiagnosticAction {
+  return { label, targetSection };
 }
 
 function statusForIssues(issues: ModelDiagnosticIssue[]): ModelDiagnosticStatus {
@@ -84,16 +113,20 @@ function loadCombinationIssues(
     const id = String(combination.id ?? "").trim() || "未命名组合";
     const factors = combination.factors ?? {};
     const factorEntries = Object.entries(factors);
+    const metadata = {
+      objectRefs: refs("loadCombination", [id]),
+      action: navigate("检查荷载组合", "table"),
+    };
     if (!factorEntries.length) {
-      issues.push(issue("LOAD_COMBINATION_EMPTY_FACTORS", "error", "荷载组合 factors 为空", `${objectLabel} ${id} 没有定义任何工况系数。`, "至少为一个已存在荷载工况设置非零组合系数。"));
+      issues.push(issue("LOAD_COMBINATION_EMPTY_FACTORS", "error", "荷载组合 factors 为空", `${objectLabel} ${id} 没有定义任何工况系数。`, "至少为一个已存在荷载工况设置非零组合系数。", metadata));
       continue;
     }
     const unknown = factorEntries.map(([caseId]) => caseId.trim()).filter((caseId) => !loadCaseIds.has(caseId));
     if (unknown.length) {
-      issues.push(issue("LOAD_COMBINATION_UNKNOWN_CASE", "error", "荷载组合引用不存在工况", `${objectLabel} ${id} 引用了不存在的荷载工况：${unknown.join("、")}。`, "检查组合系数中的工况 ID，或先在荷载工况表中补齐对应工况。"));
+      issues.push(issue("LOAD_COMBINATION_UNKNOWN_CASE", "error", "荷载组合引用不存在工况", `${objectLabel} ${id} 引用了不存在的荷载工况：${unknown.join("、")}。`, "检查组合系数中的工况 ID，或先在荷载工况表中补齐对应工况。", metadata));
     }
     if (factorEntries.every(([, factor]) => Math.abs(Number(factor) || 0) < 1e-12)) {
-      issues.push(issue("LOAD_COMBINATION_ZERO_FACTORS", "error", "荷载组合系数全为 0", `${objectLabel} ${id} 的工况系数全部为 0。`, "至少保留一个非零组合系数，否则组合结果没有工程意义。"));
+      issues.push(issue("LOAD_COMBINATION_ZERO_FACTORS", "error", "荷载组合系数全为 0", `${objectLabel} ${id} 的工况系数全部为 0。`, "至少保留一个非零组合系数，否则组合结果没有工程意义。", metadata));
     }
   }
   return issues;
@@ -102,20 +135,22 @@ function loadCombinationIssues(
 export function buildBeamModelDiagnostics(value: BeamWorkspaceState): ModelDiagnostics {
   const issues: ModelDiagnosticIssue[] = [];
   if (!value.spans.length) {
-    issues.push(issue("BEAM_NO_SPANS", "error", "梁系缺少跨段", "当前梁系没有可求解跨段。", "在对象页增加至少一个跨段，或从模板页生成连续梁模型。"));
+    issues.push(issue("BEAM_NO_SPANS", "error", "梁系缺少跨段", "当前梁系没有可求解跨段。", "在对象页增加至少一个跨段，或从模板页生成连续梁模型。", { action: navigate("增加跨段", "object") }));
   }
-  if (value.spans.some((span) => !finitePositive(span.length))) {
-    issues.push(issue("BEAM_INVALID_SPAN_LENGTH", "error", "跨段长度异常", "存在长度小于或等于 0 的跨段。", "检查跨段长度，单位为 m。"));
+  const invalidLengthSpanIds = value.spans.filter((span) => !finitePositive(span.length)).map((span) => String(span.id ?? "未命名跨段"));
+  if (invalidLengthSpanIds.length) {
+    issues.push(issue("BEAM_INVALID_SPAN_LENGTH", "error", "跨段长度异常", "存在长度小于或等于 0 的跨段。", "检查跨段长度，单位为 m。", { objectRefs: refs("span", invalidLengthSpanIds), action: navigate("定位跨段", "object") }));
   }
-  if (duplicateIds(value.spans).length) {
-    issues.push(issue("BEAM_DUPLICATE_SPAN_ID", "warning", "跨段编号重复", `重复跨段编号：${duplicateIds(value.spans).join("、")}。`, "为每个跨段使用唯一编号，便于导出计算书和后续复核。"));
+  const duplicateSpanIds = duplicateIds(value.spans);
+  if (duplicateSpanIds.length) {
+    issues.push(issue("BEAM_DUPLICATE_SPAN_ID", "warning", "跨段编号重复", `重复跨段编号：${duplicateSpanIds.join("、")}。`, "为每个跨段使用唯一编号，便于导出计算书和后续复核。", { objectRefs: refs("span", duplicateSpanIds), action: navigate("定位跨段", "object") }));
   }
   if (value.spans.some((span) => !finitePositive(span.E) || !finitePositive(span.I))) {
     issues.push(issue("BEAM_INVALID_STIFFNESS", "error", "跨段刚度输入异常", "存在弹性模量 E 或截面惯性矩 I 小于等于 0 的跨段。", "确认 E 使用 GPa、I 使用 cm4，且均为正值。"));
   }
   const hasVerticalSupport = value.supports.some(beamSupportHasVerticalRestraint);
   if (!hasVerticalSupport) {
-    issues.push(issue("BEAM_NO_VERTICAL_RESTRAINT", "error", "梁系缺少竖向约束", "当前支座体系不能约束整体竖向刚体位移。", "至少设置一个铰支座、滚动支座、固结支座或竖向弹性约束。"));
+    issues.push(issue("BEAM_NO_VERTICAL_RESTRAINT", "error", "梁系缺少竖向约束", "当前支座体系不能约束整体竖向刚体位移。", "至少设置一个铰支座、滚动支座、固结支座或竖向弹性约束。", { objectRefs: refs("support", value.supports.map((support) => support.id)), action: navigate("检查支座", "object") }));
   }
   if (value.customLoadCases.length && (value.uniformLoadEnabled || value.linearLoadEnabled || value.pointLoads.length)) {
     issues.push(issue("LOAD_CASE_PRIMARY_LOADS_PRESENT", "info", "主荷载与荷载工况并存", "当前模型同时存在主结果荷载与荷载工况。", "导出前确认结果来源选择为主结果、指定工况或指定组合，避免混用。"));
@@ -171,23 +206,23 @@ function baseFrameTrussIssues(
   const duplicateNodeIds = duplicateIds(nodes);
   const duplicateMemberIds = duplicateIds(members);
   if (duplicateNodeIds.length) {
-    issues.push(issue("STRUCTURE_DUPLICATE_NODE_ID", "error", `${label.node}编号重复`, `重复${label.node}编号：${duplicateNodeIds.join("、")}。`, `为每个${label.node}使用唯一编号。`));
+    issues.push(issue("STRUCTURE_DUPLICATE_NODE_ID", "error", `${label.node}编号重复`, `重复${label.node}编号：${duplicateNodeIds.join("、")}。`, `为每个${label.node}使用唯一编号。`, { objectRefs: refs("node", duplicateNodeIds), action: navigate(`定位${label.node}`, "object") }));
   }
   if (duplicateMemberIds.length) {
-    issues.push(issue("STRUCTURE_DUPLICATE_MEMBER_ID", "error", `${label.member}编号重复`, `重复${label.member}编号：${duplicateMemberIds.join("、")}。`, `为每个${label.member}使用唯一编号。`));
+    issues.push(issue("STRUCTURE_DUPLICATE_MEMBER_ID", "error", `${label.member}编号重复`, `重复${label.member}编号：${duplicateMemberIds.join("、")}。`, `为每个${label.member}使用唯一编号。`, { objectRefs: refs("member", duplicateMemberIds), action: navigate(`定位${label.member}`, "object") }));
   }
   const invalidMemberRefs = members.filter((member) => !nIds.has(member.start) || !nIds.has(member.end)).map((member) => member.id);
   if (invalidMemberRefs.length) {
-    issues.push(issue("STRUCTURE_INVALID_MEMBER_REFERENCE", "error", `${label.member}起止节点无效`, `以下${label.member}引用了不存在的${label.node}：${invalidMemberRefs.join("、")}。`, `检查${label.member} start/end 字段是否对应现有${label.node}。`));
+    issues.push(issue("STRUCTURE_INVALID_MEMBER_REFERENCE", "error", `${label.member}起止节点无效`, `以下${label.member}引用了不存在的${label.node}：${invalidMemberRefs.join("、")}。`, `检查${label.member} start/end 字段是否对应现有${label.node}。`, { objectRefs: refs("member", invalidMemberRefs), action: navigate(`定位${label.member}`, "object") }));
   }
   const zeroLength = members.filter((member) => zeroLengthMember(member, nodesById)).map((member) => member.id);
   if (zeroLength.length) {
-    issues.push(issue("STRUCTURE_ZERO_LENGTH_MEMBER", "error", `${label.member}长度为 0`, `以下${label.member}起止坐标重合：${zeroLength.join("、")}。`, `调整${label.node}坐标或删除零长度${label.member}。`));
+    issues.push(issue("STRUCTURE_ZERO_LENGTH_MEMBER", "error", `${label.member}长度为 0`, `以下${label.member}起止坐标重合：${zeroLength.join("、")}。`, `调整${label.node}坐标或删除零长度${label.member}。`, { objectRefs: refs("member", zeroLength), action: navigate(`定位${label.member}`, "object") }));
   }
   const connected = connectedNodeIds(members);
   const isolated = nodes.filter((node) => !connected.has(String(node.id).trim()) && node.supportType === "free").map((node) => node.id);
   if (isolated.length) {
-    issues.push(issue("STRUCTURE_ISOLATED_FREE_NODE", "warning", "存在自由孤立节点", `以下${label.node}未连接任何${label.member}且为自由节点：${isolated.join("、")}。`, `删除孤立${label.node}，或补齐与主体结构的${label.member}连接。`));
+    issues.push(issue("STRUCTURE_ISOLATED_FREE_NODE", "warning", "存在自由孤立节点", `以下${label.node}未连接任何${label.member}且为自由节点：${isolated.join("、")}。`, `删除孤立${label.node}，或补齐与主体结构的${label.member}连接。`, { objectRefs: refs("node", isolated), action: navigate(`定位${label.node}`, "object") }));
   }
   const invalidLoads = loads.filter((load) => loadReferenceMissing(load, nIds, mIds));
   if (invalidLoads.length) {

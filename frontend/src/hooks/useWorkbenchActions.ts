@@ -6,7 +6,8 @@ import type { FrameCalculationResults, TrussCalculationResults } from "../types/
 import { buildBeamPayload, buildFramePayload, buildTrussPayload, validateCustomFrameWorkspace, validateCustomTrussWorkspace } from "../solver-payload";
 import type { WorkspaceState } from "../lib/workspace-state";
 import { analysisVocabulary } from "../lib/analysis-vocabulary";
-import { analysisRequestFromResult, apiErrorMessage, beamResultForView, frameResultForView, normalizeAnalysisResponse, trussResultForView } from "../lib/api-envelope";
+import { analysisRequestFromResult, apiErrorDetails, beamResultForView, frameResultForView, normalizeAnalysisResponse, trussResultForView, type ApiErrorDetails } from "../lib/api-envelope";
+import type { SolverDiagnosticIssue } from "../lib/diagnostic-contract";
 import { buildReportImages } from "../lib/report-images";
 import { reportExportOptionsForMode, type ReportExportOptions } from "../lib/report-options";
 import type { BenchmarkCaseSource } from "../lib/solver-project";
@@ -39,12 +40,22 @@ type ApiErrorResponse = {
   text(): Promise<string>;
 };
 
-async function readApiError(response: ApiErrorResponse, fallback: string): Promise<string> {
+class WorkbenchApiError extends Error {
+  readonly diagnostics: SolverDiagnosticIssue[];
+
+  constructor(details: ApiErrorDetails) {
+    super(details.message);
+    this.name = "WorkbenchApiError";
+    this.diagnostics = details.diagnostics;
+  }
+}
+
+async function readApiError(response: ApiErrorResponse, fallback: string): Promise<ApiErrorDetails> {
   const contentType = response.headers.get("content-type") ?? "";
   if (contentType.includes("application/json")) {
-    return apiErrorMessage(await response.json(), fallback);
+    return apiErrorDetails(await response.json(), fallback);
   }
-  return (await response.text()) || fallback;
+  return { message: (await response.text()) || fallback, diagnostics: [] };
 }
 
 export function useWorkbenchActions(
@@ -111,7 +122,7 @@ export function useWorkbenchActions(
         body: JSON.stringify({ ...data, analysisType }),
       });
       if (!response.ok) {
-        throw new Error(await readApiError(response, "后端连接失败"));
+        throw new WorkbenchApiError(await readApiError(response, "后端连接失败"));
       }
       const result = normalizeAnalysisResponse(await response.json());
       setAnalysisData(result);
@@ -123,7 +134,11 @@ export function useWorkbenchActions(
       return result;
     } catch (error) {
       console.error("求解失败：", error);
-      setOperationNotice(operationFailedNotice("solve", error instanceof Error ? error.message : "未知错误"));
+      setOperationNotice(operationFailedNotice(
+        "solve",
+        error instanceof Error ? error.message : "未知错误",
+        error instanceof WorkbenchApiError ? error.diagnostics : [],
+      ));
       return null;
     } finally {
       setIsSolving(false);
@@ -172,14 +187,18 @@ export function useWorkbenchActions(
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(apiErrorMessage(data, "敏感性分析失败"));
+        throw new WorkbenchApiError(apiErrorDetails(data, "敏感性分析失败"));
       }
       setSensitivityData(data);
       setLatestPayload(currentPayload);
       setLatestSubmittedState(workspace[workspace.analysisMode]);
       setOperationNotice(operationCompletedNotice("sensitivity", workspace.analysisMode));
     } catch (error) {
-      setOperationNotice(operationFailedNotice("sensitivity", error instanceof Error ? error.message : String(error)));
+      setOperationNotice(operationFailedNotice(
+        "sensitivity",
+        error instanceof Error ? error.message : String(error),
+        error instanceof WorkbenchApiError ? error.diagnostics : [],
+      ));
     } finally {
       setIsScanning(false);
     }
@@ -233,7 +252,7 @@ export function useWorkbenchActions(
         body: JSON.stringify(payloadWithReportImages),
       });
       if (!response.ok) {
-        throw new Error(await readApiError(response, "导出失败"));
+        throw new WorkbenchApiError(await readApiError(response, "导出失败"));
       }
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -247,7 +266,11 @@ export function useWorkbenchActions(
       window.URL.revokeObjectURL(url);
       setOperationNotice(operationCompletedNotice(exportOperation, workspace.analysisMode));
     } catch (error) {
-      setOperationNotice(operationFailedNotice(exportOperation, error instanceof Error ? error.message : "未知错误"));
+      setOperationNotice(operationFailedNotice(
+        exportOperation,
+        error instanceof Error ? error.message : "未知错误",
+        error instanceof WorkbenchApiError ? error.diagnostics : [],
+      ));
     } finally {
       setExportingFormat(null);
     }

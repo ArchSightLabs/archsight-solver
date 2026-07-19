@@ -277,6 +277,8 @@ def _validate_schema(value: Any, schema: Mapping[str, Any], path: str = "argumen
 
 
 def _invalid_tool_call(name: str, message: str) -> Dict[str, Any]:
+    from backend.api.errors import diagnostic_issues_for_message
+
     return {
         "content": [{"type": "text", "text": message}],
         "structuredContent": {
@@ -284,6 +286,11 @@ def _invalid_tool_call(name: str, message: str) -> Dict[str, Any]:
             "capabilityVersion": SERVER_VERSION,
             "status": "invalid_input",
             "inputValidated": False,
+            "diagnostics": {
+                "warnings": [],
+                "infos": [],
+                "issues": diagnostic_issues_for_message(message, None),
+            },
             "warnings": [message],
         },
         "isError": True,

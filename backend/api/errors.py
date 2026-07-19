@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import re
 from typing import Any, Dict, List, Mapping, Optional
 
 
@@ -51,6 +52,68 @@ def _issue(
         "title": title,
         "detail": detail,
         "suggestions": suggestions,
+    }
+
+
+_CATEGORY_BY_CODE = {
+    "STRUCTURE_UNSTABLE_CONSTRAINTS": "constraint",
+    "STRUCTURE_OVERCONSTRAINED": "constraint",
+    "STRUCTURE_SINGULAR_STIFFNESS": "solver",
+    "STRUCTURE_DUPLICATE_ID": "reference",
+    "STRUCTURE_INVALID_REFERENCE": "reference",
+    "STRUCTURE_INVALID_STIFFNESS_INPUT": "input",
+    "BEAM_INVALID_SPAN_LAYOUT": "input",
+    "LOAD_OUT_OF_MODEL_RANGE": "input",
+    "LOAD_UNSUPPORTED_TYPE": "input",
+    "STRUCTURE_INPUT_REVIEW_REQUIRED": "input",
+}
+
+_ACTION_BY_CODE = {
+    "STRUCTURE_UNSTABLE_CONSTRAINTS": ("review_supports", "检查支座与约束"),
+    "STRUCTURE_OVERCONSTRAINED": ("review_supports", "检查支座与约束"),
+    "STRUCTURE_SINGULAR_STIFFNESS": ("review_connectivity", "检查连接、刚度与约束"),
+    "STRUCTURE_DUPLICATE_ID": ("review_structure_ids", "检查结构对象编号"),
+    "STRUCTURE_INVALID_REFERENCE": ("review_references", "检查对象引用"),
+    "STRUCTURE_INVALID_STIFFNESS_INPUT": ("review_stiffness_units", "检查刚度与单位"),
+    "BEAM_INVALID_SPAN_LAYOUT": ("review_geometry", "检查跨段布置"),
+    "LOAD_OUT_OF_MODEL_RANGE": ("review_loads", "检查荷载位置"),
+    "LOAD_UNSUPPORTED_TYPE": ("review_loads", "检查荷载类型"),
+    "STRUCTURE_INPUT_REVIEW_REQUIRED": ("review_input", "复核结构输入"),
+}
+
+_OBJECT_REF_PATTERNS = (
+    ("node", re.compile(r"节点\s+ID\s+重复[:：]\s*([^\s,，。]+)")),
+    ("member", re.compile(r"(?:构件|杆件)\s+ID\s+重复[:：]\s*([^\s,，。]+)")),
+    ("member", re.compile(r"(?:构件|杆件)\s+([^\s,，。]+)\s+的")),
+    ("member", re.compile(r"(?:构件|杆件)\s+([^\s,，。]+)\s+长度")),
+    ("loadCase", re.compile(r"荷载工况\s+ID\s+重复[:：]\s*([^\s,，。]+)")),
+    ("loadCombination", re.compile(r"荷载组合\s+ID\s+重复[:：]\s*([^\s,，。]+)")),
+    ("loadCase", re.compile(r"荷载组合引用了不存在的工况[:：]\s*([^\s,，。]+)")),
+)
+
+
+def _object_refs_for_message(message: str) -> List[Dict[str, str]]:
+    refs: List[Dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for kind, pattern in _OBJECT_REF_PATTERNS:
+        for match in pattern.finditer(message):
+            value = match.group(1).strip()
+            key = (kind, value)
+            if value and key not in seen:
+                seen.add(key)
+                refs.append({"kind": kind, "id": value})
+    return refs
+
+
+def _enrich_issue(issue: Dict[str, Any], message: str, analysis_type: Optional[str]) -> Dict[str, Any]:
+    code = str(issue.get("code") or "STRUCTURE_INPUT_REVIEW_REQUIRED")
+    action_id, action_label = _ACTION_BY_CODE.get(code, ("review_input", "复核结构输入"))
+    return {
+        **issue,
+        "category": _CATEGORY_BY_CODE.get(code, "input"),
+        "analysisType": analysis_type,
+        "objectRefs": _object_refs_for_message(message),
+        "actions": [{"id": action_id, "label": action_label}],
     }
 
 
@@ -164,7 +227,7 @@ def diagnostic_issues_for_message(message: str, analysis_type: Optional[str]) ->
             severity="warning",
         ))
 
-    return issues
+    return [_enrich_issue(item, normalized, analysis_type) for item in issues]
 
 
 def error_payload(

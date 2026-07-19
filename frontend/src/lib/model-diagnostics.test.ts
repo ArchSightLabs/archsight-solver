@@ -68,6 +68,9 @@ test("平面框架诊断阻断支座约束不足并提示自由孤立节点", ()
   assert.equal(diagnostics.status, "blocked");
   assert.ok(issueCodes(diagnostics).includes("FRAME_UNSTABLE_SUPPORTS"));
   assert.ok(issueCodes(diagnostics).includes("STRUCTURE_ISOLATED_FREE_NODE"));
+  const isolated = diagnostics.issues.find((item) => item.code === "STRUCTURE_ISOLATED_FREE_NODE");
+  assert.deepEqual(isolated?.objectRefs, [{ kind: "node", id: "N3" }]);
+  assert.equal(isolated?.action?.targetSection, "object");
 });
 
 test("规则框架诊断覆盖模板支座和刚度异常", () => {

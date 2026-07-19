@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict, Mapping
 
 from backend.capabilities.beam_deflection import _build_solver_payload, _formula_ref, solve_beam_deflection_capability
 from backend.api.sensitivity import build_sensitivity_response
+from backend.api.errors import analysis_type_for_error, diagnostic_issues_for_message
 from backend.api.utils import build_calculation_response
 from backend.benchmarks.catalog import iter_benchmark_cases
 from backend.benchmarks.runner import BenchmarkCaseError, evaluate_benchmark_case_by_id
@@ -38,24 +39,46 @@ class ToolInputError(ValueError):
     """输入 JSON 可解析，但不满足工具契约。"""
 
 
-def _invalid_result(capability_id: str, message: str, error_code: str = INVALID_INPUT) -> Dict[str, Any]:
+def _failure_diagnostics(message: str, analysis_type: str | None = None) -> Dict[str, Any]:
+    return {
+        "warnings": [],
+        "infos": [],
+        "issues": diagnostic_issues_for_message(message, analysis_type),
+    }
+
+
+def _invalid_result(
+    capability_id: str,
+    message: str,
+    error_code: str = INVALID_INPUT,
+    *,
+    analysis_type: str | None = None,
+) -> Dict[str, Any]:
     return {
         "capabilityId": capability_id,
         "capabilityVersion": CAPABILITY_VERSION,
         "status": "invalid_input",
         "inputValidated": False,
         "errorCode": error_code,
+        "diagnostics": _failure_diagnostics(message, analysis_type),
         "warnings": [message],
     }
 
 
-def _error_result(capability_id: str, message: str, error_code: str = SOLVE_FAILED) -> Dict[str, Any]:
+def _error_result(
+    capability_id: str,
+    message: str,
+    error_code: str = SOLVE_FAILED,
+    *,
+    analysis_type: str | None = None,
+) -> Dict[str, Any]:
     return {
         "capabilityId": capability_id,
         "capabilityVersion": CAPABILITY_VERSION,
         "status": "error",
         "inputValidated": False,
         "errorCode": error_code,
+        "diagnostics": _failure_diagnostics(message, analysis_type),
         "warnings": [message],
     }
 
@@ -125,11 +148,11 @@ def _solve_beam_deflection_serviceability_check(arguments: Mapping[str, Any], ca
             ],
         }
     except ToolInputError as exc:
-        return _invalid_result(capability_id, str(exc), error_code_from_exception(exc, EXPORT_FAILED))
+        return _invalid_result(capability_id, str(exc), error_code_from_exception(exc, EXPORT_FAILED), analysis_type="beam")
     except Exception as exc:
         if exc.__class__.__name__ == "CapabilityInputError":
-            return _invalid_result(capability_id, str(exc))
-        return _error_result(capability_id, f"梁校核调用失败: {exc}")
+            return _invalid_result(capability_id, str(exc), analysis_type="beam")
+        return _error_result(capability_id, f"梁校核调用失败: {exc}", analysis_type="beam")
 
 
 def solve_beam_deflection_serviceability_check(arguments: Mapping[str, Any]) -> Dict[str, Any]:
@@ -175,9 +198,9 @@ def solve_frame_displacement(arguments: Mapping[str, Any]) -> Dict[str, Any]:
             ],
         }
     except ToolInputError as exc:
-        return _invalid_result(capability_id, str(exc), error_code_from_exception(exc, EXPORT_FAILED))
+        return _invalid_result(capability_id, str(exc), error_code_from_exception(exc, EXPORT_FAILED), analysis_type="frame")
     except Exception as exc:
-        return _error_result(capability_id, f"框架位移求解失败: {exc}")
+        return _error_result(capability_id, f"框架位移求解失败: {exc}", analysis_type="frame")
 
 
 def solve_truss_member_force(arguments: Mapping[str, Any]) -> Dict[str, Any]:
@@ -217,15 +240,17 @@ def solve_truss_member_force(arguments: Mapping[str, Any]) -> Dict[str, Any]:
             ],
         }
     except ToolInputError as exc:
-        return _invalid_result(capability_id, str(exc))
+        return _invalid_result(capability_id, str(exc), analysis_type="truss")
     except Exception as exc:
-        return _error_result(capability_id, f"桁架杆力求解失败: {exc}")
+        return _error_result(capability_id, f"桁架杆力求解失败: {exc}", analysis_type="truss")
 
 
 def solve_calculate(arguments: Mapping[str, Any]) -> Dict[str, Any]:
     capability_id = "solver.calculate"
+    raw_payload = arguments.get("payload")
+    analysis_type = analysis_type_for_error(raw_payload if isinstance(raw_payload, Mapping) else None)
     try:
-        payload = arguments.get("payload")
+        payload = raw_payload
         if not isinstance(payload, Mapping):
             raise ToolInputError("payload 必须是结构求解输入对象")
         result = build_calculation_response(dict(payload), operation="calculate")
@@ -244,15 +269,17 @@ def solve_calculate(arguments: Mapping[str, Any]) -> Dict[str, Any]:
             ],
         }
     except ToolInputError as exc:
-        return _invalid_result(capability_id, str(exc))
+        return _invalid_result(capability_id, str(exc), analysis_type=analysis_type)
     except Exception as exc:
-        return _error_result(capability_id, f"通用求解失败: {exc}")
+        return _error_result(capability_id, f"通用求解失败: {exc}", analysis_type=analysis_type)
 
 
 def solve_sensitivity_analysis(arguments: Mapping[str, Any]) -> Dict[str, Any]:
     capability_id = "solver.sensitivity_analysis"
+    raw_payload = arguments.get("payload")
+    analysis_type = analysis_type_for_error(raw_payload if isinstance(raw_payload, Mapping) else None)
     try:
-        payload = arguments.get("payload")
+        payload = raw_payload
         if not isinstance(payload, Mapping):
             raise ToolInputError("payload 必须是结构求解输入对象")
         result = build_sensitivity_response(dict(payload))
@@ -271,9 +298,9 @@ def solve_sensitivity_analysis(arguments: Mapping[str, Any]) -> Dict[str, Any]:
             ],
         }
     except ToolInputError as exc:
-        return _invalid_result(capability_id, str(exc))
+        return _invalid_result(capability_id, str(exc), analysis_type=analysis_type)
     except Exception as exc:
-        return _error_result(capability_id, f"敏感性分析失败: {exc}")
+        return _error_result(capability_id, f"敏感性分析失败: {exc}", analysis_type=analysis_type)
 
 
 def list_benchmark_cases(arguments: Mapping[str, Any]) -> Dict[str, Any]:

@@ -1,5 +1,6 @@
 import type { AnalysisMode } from "../types/structure.ts";
 import { analysisVocabulary } from "./analysis-vocabulary.ts";
+import type { SolverDiagnosticIssue } from "./diagnostic-contract.ts";
 
 export type WorkbenchOperation = "solve" | "sensitivity" | "exportDocx" | "exportXlsx" | "validation";
 export type WorkbenchOperationTone = "info" | "success" | "error";
@@ -10,6 +11,7 @@ export interface WorkbenchOperationNotice {
   tone: WorkbenchOperationTone;
   title: string;
   message: string;
+  diagnostics?: SolverDiagnosticIssue[];
 }
 
 const OPERATION_LABELS: Record<WorkbenchOperation, string> = {
@@ -108,12 +110,17 @@ export function operationCompletedNotice(operation: WorkbenchOperation, mode: An
   return validationNotice("模型输入校核完成。");
 }
 
-export function operationFailedNotice(operation: WorkbenchOperation, message: string): WorkbenchOperationNotice {
+export function operationFailedNotice(
+  operation: WorkbenchOperation,
+  message: string,
+  diagnostics: SolverDiagnosticIssue[] = [],
+): WorkbenchOperationNotice {
   return {
     phase: "error",
     tone: "error",
     title: `${OPERATION_LABELS[operation]}失败`,
     message,
+    ...(diagnostics.length ? { diagnostics } : {}),
   };
 }
 

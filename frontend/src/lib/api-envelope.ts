@@ -1,5 +1,10 @@
 import type { BeamCalculationResults } from "../types/beam";
 import type { FrameCalculationResults, TrussCalculationResults } from "../types/structure";
+import {
+  normalizeSolverDiagnosticIssues,
+  solverDiagnosticIssueMessage,
+  type SolverDiagnosticIssue,
+} from "./diagnostic-contract.ts";
 
 export type LegacyAnalysisResults = BeamCalculationResults | FrameCalculationResults | TrussCalculationResults;
 
@@ -252,30 +257,37 @@ export function trussResultForView(result: LegacyAnalysisResults | null): TrussC
   };
 }
 
-export function apiErrorMessage(raw: unknown, fallback: string): string {
-  if (!raw || typeof raw !== "object") {
-    return fallback;
-  }
-  const body = raw as ErrorEnvelope & { diagnostics?: { issues?: { message?: string }[] } };
+export interface ApiErrorDetails {
+  message: string;
+  diagnostics: SolverDiagnosticIssue[];
+}
 
-  if (Array.isArray(body.diagnostics?.issues) && body.diagnostics.issues.length > 0) {
-    const messages = body.diagnostics.issues.map((i) => i?.message).filter(Boolean);
-    if (messages.length > 0) {
-      return messages.join("; ");
-    }
+export function apiErrorDetails(raw: unknown, fallback: string): ApiErrorDetails {
+  if (!raw || typeof raw !== "object") {
+    return { message: fallback, diagnostics: [] };
+  }
+  const body = raw as ErrorEnvelope & { diagnostics?: { issues?: unknown[] } };
+  const diagnostics = normalizeSolverDiagnosticIssues(body.diagnostics?.issues);
+
+  if (diagnostics.length > 0) {
+    return { message: diagnostics.map(solverDiagnosticIssueMessage).join("；"), diagnostics };
   }
 
   if (typeof body.error === "string") {
-    return body.error;
+    return { message: body.error, diagnostics };
   }
   if (body.error && typeof body.error === "object" && typeof body.error.message === "string") {
-    return body.error.message;
+    return { message: body.error.message, diagnostics };
   }
   if (typeof body.legacyError === "string") {
-    return body.legacyError;
+    return { message: body.legacyError, diagnostics };
   }
   if (typeof body.message === "string") {
-    return body.message;
+    return { message: body.message, diagnostics };
   }
-  return fallback;
+  return { message: fallback, diagnostics };
+}
+
+export function apiErrorMessage(raw: unknown, fallback: string): string {
+  return apiErrorDetails(raw, fallback).message;
 }

@@ -558,6 +558,39 @@ SOLVER_JOB_REQUEST_SCHEMA: Dict[str, Any] = {
     "additionalProperties": False,
 }
 
+DIAGNOSTIC_ISSUE_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "required": ["code", "category", "severity", "title", "detail", "suggestions", "objectRefs", "actions"],
+    "properties": {
+        "code": {"type": "string"},
+        "category": {"type": "string"},
+        "severity": {"type": "string", "enum": ["error", "warning", "info"]},
+        "analysisType": {"type": ["string", "null"]},
+        "title": {"type": "string"},
+        "detail": {"type": "string"},
+        "suggestions": {"type": "array", "items": {"type": "string"}},
+        "objectRefs": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["kind", "id"],
+                "properties": {"kind": {"type": "string"}, "id": {"type": "string"}},
+                "additionalProperties": False,
+            },
+        },
+        "actions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["id", "label"],
+                "properties": {"id": {"type": "string"}, "label": {"type": "string"}},
+                "additionalProperties": False,
+            },
+        },
+    },
+    "additionalProperties": True,
+}
+
 CAPABILITY_RESULT_SCHEMA: Dict[str, Any] = {
     "$id": _schema_id("capability-result"),
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -570,6 +603,13 @@ CAPABILITY_RESULT_SCHEMA: Dict[str, Any] = {
         "status": {"type": "string", "enum": ["pass", "fail", "invalid_input", "error"]},
         "inputValidated": {"type": "boolean"},
         "warnings": {"type": "array", "items": {"type": "string"}},
+        "diagnostics": {
+            "type": "object",
+            "properties": {
+                "issues": {"type": "array", "items": DIAGNOSTIC_ISSUE_SCHEMA},
+            },
+            "additionalProperties": True,
+        },
     },
     "additionalProperties": True,
 }

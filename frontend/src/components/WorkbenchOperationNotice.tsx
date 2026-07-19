@@ -24,6 +24,21 @@ export function WorkbenchOperationNotice({ notice, compact = false }: WorkbenchO
     >
       <div className="font-black">{notice.title}</div>
       <div className="mt-0.5 font-medium opacity-80">{notice.message}</div>
+      {notice.diagnostics?.length ? (
+        <div className="mt-2 grid gap-1.5" aria-label="结构化诊断">
+          {notice.diagnostics.slice(0, 3).map((issue) => (
+            <div key={`${issue.code}-${issue.title}`} className="rounded-md border border-current/15 bg-white/20 px-2 py-1.5 dark:bg-black/10">
+              <div className="flex flex-wrap items-center gap-1.5 font-black">
+                <span>{issue.title}</span>
+                <code className="rounded bg-black/5 px-1 py-0.5 text-[9px] font-bold dark:bg-white/10">{issue.code}</code>
+              </div>
+              <div className="mt-0.5 opacity-85">{issue.detail}</div>
+              {issue.objectRefs.length ? <div className="mt-0.5 opacity-75">定位：{issue.objectRefs.map((ref) => `${ref.kind} ${ref.id}`).join("、")}</div> : null}
+              {issue.suggestions[0] ? <div className="mt-0.5 opacity-75">建议：{issue.suggestions[0]}</div> : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

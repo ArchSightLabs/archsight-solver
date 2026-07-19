@@ -4,6 +4,7 @@ import type { ModelDiagnosticIssue, ModelDiagnostics } from "../lib/model-diagno
 interface ModelDiagnosticsPanelProps {
   diagnostics: ModelDiagnostics;
   compact?: boolean;
+  onNavigate?: (issue: ModelDiagnosticIssue) => void;
 }
 
 const statusStyles = {
@@ -30,7 +31,7 @@ function IssueIcon({ severity }: { severity: ModelDiagnosticIssue["severity"] })
   return <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />;
 }
 
-export function ModelDiagnosticsPanel({ diagnostics, compact = false }: ModelDiagnosticsPanelProps) {
+export function ModelDiagnosticsPanel({ diagnostics, compact = false, onNavigate }: ModelDiagnosticsPanelProps) {
   const visibleIssues = diagnostics.issues.slice(0, compact ? 3 : 5);
   return (
     <section className={`rounded-lg border p-3 ${statusStyles[diagnostics.status]}`}>
@@ -48,9 +49,26 @@ export function ModelDiagnosticsPanel({ diagnostics, compact = false }: ModelDia
               <div className="flex items-start gap-2">
                 <IssueIcon severity={item.severity} />
                 <div className="min-w-0">
-                  <div className="text-[11px] font-black">{item.title}</div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <div className="text-[11px] font-black">{item.title}</div>
+                    <code className="rounded bg-black/5 px-1 py-0.5 text-[9px] font-bold dark:bg-white/10">{item.code}</code>
+                  </div>
                   <div className="mt-0.5 text-[10px] leading-4 opacity-90">{item.detail}</div>
+                  {item.objectRefs?.length ? (
+                    <div className="mt-1 text-[10px] font-bold leading-4 opacity-80">
+                      对象：{item.objectRefs.map((ref) => ref.id).join("、")}
+                    </div>
+                  ) : null}
                   <div className="mt-1 text-[10px] leading-4 opacity-75">{item.suggestion}</div>
+                  {item.action && onNavigate ? (
+                    <button
+                      type="button"
+                      className="mt-2 rounded border border-current/20 px-2 py-1 text-[10px] font-black transition hover:bg-black/5 dark:hover:bg-white/10"
+                      onClick={() => onNavigate(item)}
+                    >
+                      {item.action.label}
+                    </button>
+                  ) : null}
                 </div>
               </div>
             </div>

@@ -35,4 +35,16 @@ test("工作台错误提示使用统一的内联校核语义", () => {
     message: "构件 M1 引用了不存在的节点。",
   });
   assert.equal(operationFailedNotice("sensitivity", "后端连接失败").title, "参数敏感性分析失败");
+  const diagnostics = [{
+    code: "STRUCTURE_UNSTABLE_CONSTRAINTS",
+    severity: "error" as const,
+    category: "constraint" as const,
+    title: "结构约束不足",
+    detail: "支座约束不足。",
+    suggestions: ["检查支座。"],
+    analysisType: "frame" as const,
+    objectRefs: [],
+    actions: [{ id: "review_supports", label: "检查支座与约束" }],
+  }];
+  assert.deepEqual(operationFailedNotice("solve", "结构求解失败", diagnostics).diagnostics, diagnostics);
 });

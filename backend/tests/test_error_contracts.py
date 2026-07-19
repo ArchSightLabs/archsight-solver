@@ -27,14 +27,23 @@ def assert_error_response(response, expected_error, expected_code=None):
     assert data["diagnostics"]["issues"]
     for issue in data["diagnostics"]["issues"]:
         assert issue["code"].strip()
+        assert issue["severity"] in {"error", "warning", "info"}
+        assert issue["category"] in {"input", "reference", "constraint", "solver", "result", "system"}
         assert issue["title"].strip()
         assert issue["detail"].strip()
         assert isinstance(issue["suggestions"], list)
         assert issue["suggestions"]
+        assert isinstance(issue["objectRefs"], list)
+        assert isinstance(issue["actions"], list)
+        assert issue["actions"]
 
 
 def issue_codes(response):
     return {issue["code"] for issue in response.get_json()["diagnostics"]["issues"]}
+
+
+def issue_for_code(response, code):
+    return next(issue for issue in response.get_json()["diagnostics"]["issues"] if issue["code"] == code)
 
 
 def _beam_base_payload():
@@ -296,6 +305,31 @@ def test_frame_invalid_reference_error_returns_engineering_diagnostic(client):
 
     assert response.status_code == 400
     assert "STRUCTURE_INVALID_REFERENCE" in issue_codes(response)
+
+
+def test_frame_duplicate_node_diagnostic_locates_the_object_and_action(client):
+    payload = {
+        **_frame_base_payload(),
+        "structure": {
+            **_frame_base_payload()["structure"],
+            "nodes": [
+                {"id": "N1", "x": 0.0, "y": 0.0, "supportType": "fixed"},
+                {"id": "N1", "x": 4.0, "y": 0.0, "supportType": "fixed"},
+            ],
+            "members": [
+                {"id": "B1", "start": "N1", "end": "N1", "E_GPa": 210, "A_cm2": 220, "I_cm4": 15000, "kind": "beam"},
+            ],
+            "loads": [],
+        },
+    }
+
+    response = client.post("/api/calculate", json=payload)
+
+    issue = issue_for_code(response, "STRUCTURE_DUPLICATE_ID")
+    assert issue["analysisType"] == "frame"
+    assert issue["category"] == "reference"
+    assert {"kind": "node", "id": "N1"} in issue["objectRefs"]
+    assert issue["actions"][0]["id"] == "review_structure_ids"
 
 
 def test_frame_unstable_error_returns_constraint_diagnostic(client):

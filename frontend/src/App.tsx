@@ -65,7 +65,7 @@ import {
   toggleWorkbenchSelection,
   uniqueWorkbenchSelections,
 } from "./lib/workbench-selection-utils";
-import { buildModelDiagnostics } from "./lib/model-diagnostics";
+import { buildModelDiagnostics, type ModelDiagnosticIssue } from "./lib/model-diagnostics";
 import { resolveHostAllowedOrigins, resolveWorkbenchPresentation } from "./lib/workbench-presentation";
 
 const SOLVER_HOST_ALLOWED_ORIGINS = resolveHostAllowedOrigins(
@@ -308,6 +308,21 @@ function AppContent() {
       },
     }));
   }, [activeAnalysisObject.id]);
+  const handleModelDiagnosticNavigate = useCallback((diagnostic: ModelDiagnosticIssue) => {
+    if (!diagnostic.action) return;
+    setWorkbenchView("model");
+    setActiveModuleSection(moduleSectionId(analysisMode, diagnostic.action.targetSection));
+
+    const target = diagnostic.objectRefs?.[0];
+    if (!target) return;
+    const isBeamTarget = analysisMode === "beam" && (target.kind === "span" || target.kind === "support" || target.kind === "node");
+    const isStructureTarget = analysisMode !== "beam" && (target.kind === "node" || target.kind === "member");
+    if (!isBeamTarget && !isStructureTarget) return;
+    setWorkbenchSelectionState({
+      primary: { mode: analysisMode, type: target.kind, id: target.id } as WorkbenchSelection,
+      items: [{ mode: analysisMode, type: target.kind, id: target.id } as WorkbenchSelection],
+    });
+  }, [analysisMode, setActiveModuleSection, setWorkbenchView]);
 
   const handleRestoreTemplate = (template: ProjectTemplate): TemplateActionResult<void> => {
     if (isProjectReadOnly) {
@@ -816,7 +831,7 @@ function AppContent() {
             onResizeStart={handleInspectorResizeStart}
             onSelectSection={setActiveModuleSection}
           >
-            <ModelDiagnosticsPanel diagnostics={modelDiagnostics} compact={isCompactWorkbench} />
+            <ModelDiagnosticsPanel diagnostics={modelDiagnostics} compact={isCompactWorkbench} onNavigate={handleModelDiagnosticNavigate} />
             <fieldset disabled={isProjectReadOnly} aria-label={isProjectReadOnly ? "只读建模区域" : "建模区域"} className="min-w-0 border-0 p-0 disabled:opacity-70">
               {formContent}
             </fieldset>

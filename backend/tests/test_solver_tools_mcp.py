@@ -70,6 +70,27 @@ def test_calculate_tool_returns_unified_summary():
     assert result["summary"]["statusCode"] == "PASS"
 
 
+def test_cli_and_mcp_tool_failures_share_structured_diagnostics():
+    invalid_tool_result = solve_frame_displacement({})
+
+    assert invalid_tool_result["status"] == "invalid_input"
+    assert invalid_tool_result["diagnostics"]["issues"][0]["category"] == "input"
+    assert invalid_tool_result["diagnostics"]["issues"][0]["analysisType"] == "frame"
+    assert invalid_tool_result["diagnostics"]["issues"][0]["actions"]
+
+    completed = subprocess.run(
+        [sys.executable, "-m", "backend.capabilities.solver_cli", "calculate"],
+        input="not-json",
+        text=True,
+        encoding="utf-8",
+        capture_output=True,
+        check=True,
+    )
+    cli_result = json.loads(completed.stdout)
+    assert cli_result["status"] == "invalid_input"
+    assert cli_result["diagnostics"]["issues"][0]["category"] == "input"
+
+
 def test_sensitivity_tool_returns_response_metric():
     payload = {"beamType": "simply_supported", "loadType": "uniform", "q": 12, "E": 206, "I": 85000, "spans": [6], "config": {"steps": 2}}
     result = solve_sensitivity_analysis({"payload": payload})
@@ -132,6 +153,11 @@ def test_mcp_server_lists_and_calls_tools_over_stdio():
     tool_defs = {tool["name"]: tool for tool in responses[1]["result"]["tools"]}
     assert tool_defs["calculate"]["annotations"]["readOnlyHint"] is True
     assert tool_defs["benchmark_case_run"]["outputSchema"]["title"] == "确定性求解能力输出"
+    diagnostic_schema = tool_defs["calculate"]["outputSchema"]["properties"]["diagnostics"]
+    assert "issues" in diagnostic_schema["properties"]
+    assert {"code", "category", "severity", "title", "detail", "suggestions", "objectRefs", "actions"} <= set(
+        diagnostic_schema["properties"]["issues"]["items"]["properties"]
+    )
     assert tool_defs["project_document_health"]["inputSchema"]["title"] == "项目文档工具输入"
     assert tool_defs["project_template_registry"]["inputSchema"]["title"] == "空工具输入"
     call_result = responses[2]["result"]

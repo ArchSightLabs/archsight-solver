@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 from backend.capabilities.solver_tools import TOOL_HANDLERS
+from backend.api.errors import diagnostic_issues_for_message
 
 
 def _read_payload(input_path: str | None) -> Dict[str, Any]:
@@ -35,12 +36,18 @@ def main(argv: list[str] | None = None) -> int:
     try:
         result = TOOL_HANDLERS[args.tool](_read_payload(args.input))
     except Exception as exc:  # pragma: no cover - process boundary safety
+        message = str(exc)
         result = {
             "capabilityId": f"solver.{args.tool}",
             "capabilityVersion": "cli",
             "status": "invalid_input",
             "inputValidated": False,
-            "warnings": [str(exc)],
+            "diagnostics": {
+                "warnings": [],
+                "infos": [],
+                "issues": diagnostic_issues_for_message(message, None),
+            },
+            "warnings": [message],
         }
 
     indent = 2 if args.pretty else None

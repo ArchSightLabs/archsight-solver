@@ -258,13 +258,22 @@ test("apiErrorMessage prefers diagnostics issue messages", () => {
     apiErrorMessage({
       diagnostics: {
         issues: [
-          { message: "节点约束不足" },
-          { message: "荷载组合引用了不存在的工况" },
+          {
+            code: "STRUCTURE_UNSTABLE_CONSTRAINTS",
+            severity: "error",
+            category: "constraint",
+            title: "结构约束不足",
+            detail: "当前支座不足以消除刚体位移。",
+            suggestions: ["检查支座约束。"],
+            analysisType: "frame",
+            objectRefs: [{ kind: "node", id: "N1" }],
+            actions: [{ id: "review_supports", label: "检查支座与约束" }],
+          },
         ],
       },
       error: "后端通用错误",
     }, "求解失败"),
-    "节点约束不足; 荷载组合引用了不存在的工况",
+    "结构约束不足：当前支座不足以消除刚体位移。 建议：检查支座约束。",
   );
 
   assert.equal(apiErrorMessage({ error: { message: "结构错误" } }, "求解失败"), "结构错误");
