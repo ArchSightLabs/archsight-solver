@@ -116,11 +116,34 @@
       </button>
     </div>
     <header>
-      <span class="tag">当前版本 v1.6.1</span>
+      <span class="tag">当前版本 v1.6.2</span>
       <h1>版本发布记录</h1>
     </header>
 
     <section class="release-list" aria-label="版本发布记录">
+      <article class="release">
+        <div class="release-head">
+          <h2>v1.6.2</h2>
+          <span class="date"></span>
+        </div>
+          <p class="section-label">重点变化</p>
+          <ul>
+            <li>统一独立与嵌入模式的工程生命周期，避免异步保存、打开失败、恢复和只读切换破坏当前工程或错误清除未保存状态。</li>
+            <li>将建模问题和求解失败收敛为带对象定位、原因与处理建议的结构化诊断，用户可以从问题直接回到对应建模入口。</li>
+            <li>为结果增加对象、模型签名、工程修订、后端模型哈希和请求哈希来源；模型变化后立即标记结果失效并禁止导出，迟到响应不能覆盖新模型。</li>
+            <li>固化 Host Protocol 1.0 状态机、请求关联、超时、迟到消息和错误语义，并明确 1.x 兼容、弃用与升级规则。</li>
+            <li>新增无框架 TypeScript <code>SolverHostClient</code>，统一精确 origin、会话校验、保存握手与超时处理；仓库内 Reference Host 已迁移使用该 Client，不再直接编写 <code>postMessage</code>。</li>
+            <li>新增 v1.6.2 canonical 工程统一验收，同一份 <code>.slv</code> 在独立模式和真实双 origin 嵌入模式完成计算、修改失效、重算、导出、保存、刷新重开和只读审阅。</li>
+          </ul>
+          <p class="section-label">质量门禁</p>
+          <ul>
+            <li>保留 v1.6.1 Reference Host、v1.6 Host 和 v1.5 工作台跨版本回归，并将 v1.6.2 统一验收接入 CI 与 tag release。</li>
+            <li>Docker 门禁对构建后的镜像运行健康检查和 v1.6.2 canonical Host 接入，不以本地开发服务器结果替代镜像验收。</li>
+            <li>Docker 依赖安装在瞬态网络中断后保留 pip 缓存并有界重试，候选镜像仍以构建后验收和漏洞扫描结果为准。</li>
+            <li>tag release 继续执行生产依赖审计、Trivy 已修复 HIGH / CRITICAL 漏洞零容忍、SPDX SBOM、制品哈希和 GitHub Release 门禁。</li>
+          </ul>
+      </article>
+
       <article class="release">
         <div class="release-head">
           <h2>v1.6.1</h2>

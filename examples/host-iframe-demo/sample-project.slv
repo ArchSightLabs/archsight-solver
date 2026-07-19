@@ -2,7 +2,7 @@
   "schema": "archsight-solver.project",
   "schemaVersion": "2.0.0",
   "product": "archsight-solver",
-  "appVersion": "1.6.1",
+  "appVersion": "1.6.2",
   "contract": {
     "asmsJsonSchemaVersion": "2026-05-30",
     "projectFileSchemaVersion": "2.0.0",

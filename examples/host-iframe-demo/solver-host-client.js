@@ -14,7 +14,7 @@ export class SolverHostClientError extends Error {
         this.code = code;
     }
 }
-const DEFAULT_LAUNCH_TIMEOUT_MS = 10000;
+const DEFAULT_LAUNCH_TIMEOUT_MS = 30000;
 const DEFAULT_LAUNCH_RETRY_MS = 1500;
 const DEFAULT_SAVE_TIMEOUT_MS = 8000;
 function asRecord(value) {

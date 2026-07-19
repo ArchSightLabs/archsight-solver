@@ -83,18 +83,6 @@ export function useSolverHostBridge({
     };
   }, []);
 
-  useEffect(() => {
-    if (sessionId && nonce && hostOrigin) {
-      protocolStateRef.current = transitionHostProtocol(protocolStateRef.current, { type: "announce-ready" }).state;
-      postToHost(buildSolverReadyMessage(sessionId, nonce), hostOrigin);
-      return;
-    }
-    if (bootstrapHostOrigin) {
-      protocolStateRef.current = transitionHostProtocol(protocolStateRef.current, { type: "announce-ready" }).state;
-      postToHost(buildSolverReadyMessage(null), bootstrapHostOrigin);
-    }
-  }, [bootstrapHostOrigin, hostOrigin, nonce, sessionId]);
-
   const requestHostSave = useCallback((requestedId?: string, commandBinding?: { sessionId: string; nonce: string }) => {
     const protocolState = protocolStateRef.current;
     if (!protocolState.sessionId || !protocolState.nonce || !hostOrigin) {
@@ -206,6 +194,20 @@ export function useSolverHostBridge({
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
   }, [allowedOriginList, hostOrigin, nonce, onHostModeChange, onHostSaveResult, replaceProject, requestHostSave, sessionId, setFileStatusMessage, syncRuntimeFromProject]);
+
+  useEffect(() => {
+    // React 按声明顺序执行 effect。必须先注册上方的 message listener，再向宿主宣布 ready；
+    // 否则宿主同步回发 launch 时，WebKit 可能在监听器安装前丢失该消息。
+    if (sessionId && nonce && hostOrigin) {
+      protocolStateRef.current = transitionHostProtocol(protocolStateRef.current, { type: "announce-ready" }).state;
+      postToHost(buildSolverReadyMessage(sessionId, nonce), hostOrigin);
+      return;
+    }
+    if (bootstrapHostOrigin) {
+      protocolStateRef.current = transitionHostProtocol(protocolStateRef.current, { type: "announce-ready" }).state;
+      postToHost(buildSolverReadyMessage(null), bootstrapHostOrigin);
+    }
+  }, [bootstrapHostOrigin, hostOrigin, nonce, sessionId]);
 
   const emitProjectChanged = useCallback(() => {
     const protocolState = protocolStateRef.current;

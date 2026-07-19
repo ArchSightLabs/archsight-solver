@@ -84,6 +84,7 @@ jobs:
 
       - name: Run release workbench smoke
         run: |
+          npm run test:visual -- release-1-6-2-acceptance.spec.ts --project=chromium --workers=1
           npm run test:visual -- release-1-6-1-host-reference.spec.ts --project=chromium --workers=1
           npm run test:visual -- release-1-6-host-integration.spec.ts --project=chromium --workers=1
           npm run test:visual -- release-1-5-quick-modeling.spec.ts --project=chromium --workers=1
@@ -142,10 +143,10 @@ jobs:
           ARCHSIGHT_SOLVER_E2E_URL: http://127.0.0.1:6280
         run: >-
           npm --prefix frontend run test:visual --
-          release-1-6-1-host-reference.spec.ts
+          release-1-6-2-acceptance.spec.ts
           --project=chromium
           --workers=1
-          --grep "completes cross-origin save and reopen"
+          --grep "同一 canonical 工程在嵌入工作台"
 
       - name: Remove smoke container
         if: always()

@@ -35,8 +35,14 @@ RUN groupadd --system app \
     && useradd --system --gid app --create-home --home-dir /home/app app
 
 COPY requirements.txt ./
-RUN pip install --no-cache-dir --retries 5 --timeout 120 --upgrade pip \
-    && pip install --no-cache-dir --retries 5 --timeout 120 -r requirements.txt
+RUN pip install --retries 5 --timeout 120 --upgrade pip \
+    && attempt=1 \
+    && until pip install --retries 5 --timeout 120 -r requirements.txt; do \
+        if [ "$attempt" -ge 3 ]; then exit 1; fi; \
+        attempt=$((attempt + 1)); \
+        echo "Python 依赖下载中断，复用 pip 缓存执行第 ${attempt} 次安装。" >&2; \
+      done \
+    && rm -rf /root/.cache/pip
 
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 COPY app.py ./app.py

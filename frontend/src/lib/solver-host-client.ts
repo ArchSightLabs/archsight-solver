@@ -108,7 +108,7 @@ type PendingSave = {
   snapshotReceived: boolean;
 };
 
-const DEFAULT_LAUNCH_TIMEOUT_MS = 10_000;
+const DEFAULT_LAUNCH_TIMEOUT_MS = 30_000;
 const DEFAULT_LAUNCH_RETRY_MS = 1_500;
 const DEFAULT_SAVE_TIMEOUT_MS = 8_000;
 

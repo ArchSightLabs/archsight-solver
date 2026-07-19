@@ -2,6 +2,8 @@
 
 本目录用于服务器生产部署，部署方式为：拉取已构建好的应用镜像，将应用容器绑定到宿主机本地端口，再由公共 Nginx 反向代理。
 
+当前 v1.6.2 仍是发布候选。仓库示例已预置目标版本号，但只有在不可变镜像实际推送后才能执行线上更新。
+
 ## 目录结构
 
 ```text
@@ -30,7 +32,7 @@ cp docker-compose.yml.example docker-compose.yml
 主要变量：
 
 - `IMAGE_REPOSITORY`：应用镜像仓库地址，不包含 TAG。
-- `IMAGE_TAG`：应用镜像 TAG，默认 `v1.6.1`；正式环境应使用不可变版本标签，不使用 `latest`。
+- `IMAGE_TAG`：应用镜像 TAG，默认 `v1.6.2`；正式环境应使用不可变版本标签，不使用 `latest`。
 - `APP_HOST_BIND`：宿主机监听地址，默认 `127.0.0.1`，避免直接暴露容器端口。
 - `APP_HOST_PORT`：宿主机本地监听端口，默认 `6280`，仅绑定 `127.0.0.1`，供公共 Nginx 反向代理。
 - `ARCHSIGHT_GUNICORN_WORKERS`：Gunicorn worker 数量，默认 `4`。
@@ -47,19 +49,19 @@ cp docker-compose.yml.example docker-compose.yml
 如需部署指定镜像 TAG，可修改 `.env`：
 
 ```env
-IMAGE_TAG=v1.6.1
+IMAGE_TAG=v1.6.2
 ```
 
 也可以用部署脚本临时覆盖，不会改写 `.env`：
 
 ```bash
-./deploy.sh v1.6.1
+./deploy.sh v1.6.2
 ```
 
 构建镜像时同样使用该 TAG：
 
 ```powershell
-..\scripts\build-image.ps1 -Tag v1.6.1 -Push
+..\scripts\build-image.ps1 -Tag v1.6.2 -Push
 ```
 
 若不传 `-Tag`，构建脚本会读取 `deploy/.env` 中的 `IMAGE_TAG`。
@@ -67,13 +69,13 @@ IMAGE_TAG=v1.6.1
 在 Windows 本地可以通过 SSH 远程触发服务器部署：
 
 ```powershell
-.\scripts\remote-deploy.ps1 -Server your-server -User root -DeployPath /opt/archsight-solver/deploy -Tag v1.6.1
+.\scripts\remote-deploy.ps1 -Server your-server -User root -DeployPath /opt/archsight-solver/deploy -Tag v1.6.2
 ```
 
 如果需要本地先构建并推送镜像，再远程更新服务器：
 
 ```powershell
-.\scripts\remote-deploy.ps1 -Server your-server -User root -DeployPath /opt/archsight-solver/deploy -Tag v1.6.1 -BuildAndPush
+.\scripts\remote-deploy.ps1 -Server your-server -User root -DeployPath /opt/archsight-solver/deploy -Tag v1.6.2 -BuildAndPush
 ```
 
 部署脚本会自动兼容新版 Compose 与旧版 Compose：
@@ -97,7 +99,7 @@ docker compose down
 
 ## 发布后检查与回滚
 
-正式更新前记录当前镜像标签，并确保该标签仍可从镜像仓库拉取。执行 `./deploy.sh v1.6.1` 后，应等待容器健康检查变为 `healthy`，再检查首页、三类分析对象的典型求解以及 DOCX / XLSX 导出入口。
+正式更新前记录当前镜像标签，并确保该标签仍可从镜像仓库拉取。执行 `./deploy.sh v1.6.2` 后，应等待容器健康检查变为 `healthy`，再检查首页、三类分析对象的典型求解以及 DOCX / XLSX 导出入口。
 
 ```bash
 docker inspect --format '{{.Config.Image}} {{if .State.Health}}{{.State.Health.Status}}{{end}}' archsight-solver-app

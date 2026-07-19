@@ -9,6 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_PATHS = (
     ".github/workflows/release.yml",
+    "docs/verification/release-1-6-2-acceptance.md",
     "docs/verification/release-1-6-1-acceptance.md",
     "docs/verification/release-1-6-acceptance.md",
     "examples/host-iframe-demo/host.js",
@@ -17,6 +18,7 @@ REQUIRED_PATHS = (
     "frontend/public/runtime-config.js",
     "frontend/src/lib/workbench-presentation.ts",
     "frontend/tests/visual/release-1-6-1-host-reference.spec.ts",
+    "frontend/tests/visual/release-1-6-2-acceptance.spec.ts",
     "scripts/run_host_iframe_demo.py",
     "scripts/check_versions.py",
     "Dockerfile",
@@ -48,6 +50,7 @@ REQUIRED_MARKERS = {
         "docker build",
         "release-1-6-host-integration.spec.ts",
         "release-1-6-1-host-reference.spec.ts",
+        "release-1-6-2-acceptance.spec.ts",
         "npm audit --omit=dev --audit-level=moderate",
         "ARCHSIGHT_SOLVER_E2E_URL",
         "Run built image Host integration",
@@ -60,6 +63,7 @@ REQUIRED_MARKERS = {
         "gh release create",
         "ARCHSIGHT_SOLVER_E2E_URL",
         "Run built image Host integration",
+        "release-1-6-2-acceptance.spec.ts",
     ),
 }
 
@@ -81,13 +85,13 @@ def main() -> int:
                 failures.append(f"{relative_path} 缺少门禁标记: {marker}")
 
     deploy_expectations = {
-        "deploy/.env.example": ("IMAGE_TAG=v1.6.1", "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS="),
+        "deploy/.env.example": ("IMAGE_TAG=v1.6.2", "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS="),
         "deploy/docker-compose.yml.example": (
-            "${IMAGE_TAG:-v1.6.1}",
+            "${IMAGE_TAG:-v1.6.2}",
             "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS: ${ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS:-}",
         ),
-        "deploy/deploy.sh": ('${IMAGE_TAG:-v1.6.1}',),
-        "docs/deployment.md": ("archsight-solver:v1.6.1", "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS"),
+        "deploy/deploy.sh": ('${IMAGE_TAG:-v1.6.2}',),
+        "docs/deployment.md": ("archsight-solver:v1.6.2", "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS"),
     }
     for relative_path, expected_markers in deploy_expectations.items():
         text = (ROOT / relative_path).read_text(encoding="utf-8")
