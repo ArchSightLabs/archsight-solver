@@ -13,6 +13,7 @@ from backend.exporters.truss.xlsx_exporter import export_xlsx as export_truss_xl
 from backend.services.beam_workbench import build_solution as build_beam_solution
 from backend.services.frame_workbench import build_solution as build_frame_solution
 from backend.services.truss_workbench import build_solution as build_truss_solution
+from backend.exporters.common.result_source import validate_result_source
 
 
 def build_report_model(
@@ -38,6 +39,9 @@ def build_report_model(
         solution = {**solution, "benchmark": data["benchmark"]}
     if isinstance(data.get("resultSource"), dict):
         solution = {**solution, "resultSource": data["resultSource"]}
+    if isinstance(data.get("resultProvenance"), dict):
+        solution = {**solution, "resultProvenance": data["resultProvenance"]}
+    validate_result_source(solution)
     return ReportModel.from_solution(
         analysis_type=analysis_type,
         material_name=material_name,

@@ -9,6 +9,7 @@ import type {
 import type { ExportFormat } from "../hooks/useWorkbenchActions";
 import type { ReportExportOptions } from "../lib/report-options";
 import type { WorkbenchOperationNotice as WorkbenchOperationNoticeModel } from "../lib/workbench-operation-status";
+import type { ResultValidity } from "../lib/result-provenance";
 import { WorkbenchOperationNotice } from "./WorkbenchOperationNotice";
 import { WorkbenchResultContent } from "./WorkbenchResultContent";
 import { WorkbenchResultTabSelector } from "./WorkbenchResultTabSelector";
@@ -40,7 +41,7 @@ interface WorkbenchResultTabsProps {
   onActiveTabChange?: (tabId: string) => void;
   workspace: import("../lib/workspace-state").WorkspaceState;
   updateWorkspace: import("react").Dispatch<import("react").SetStateAction<import("../lib/workspace-state").WorkspaceState>>;
-  isDirty?: boolean;
+  resultValidity: ResultValidity;
 }
 
 export function WorkbenchResultTabs({
@@ -61,7 +62,7 @@ export function WorkbenchResultTabs({
   onActiveTabChange,
   workspace,
   updateWorkspace,
-  isDirty,
+  resultValidity,
 }: WorkbenchResultTabsProps) {
   const tabs = resultTabsForMode(analysisMode);
   const [activeTabState, setActiveTabState] = useState({ mode: analysisMode, tabId: tabs[0].id });
@@ -114,16 +115,16 @@ export function WorkbenchResultTabs({
                   {activeDisplayOption.label}
                 </span>
               ) : null}
-              {hasResults && !isDirty && (
+              {hasResults && resultValidity.status === "current" && (
                 <span className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-medium text-slate-500 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-400">
                   <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                   已同步
                 </span>
               )}
-              {hasResults && isDirty && (
+              {hasResults && (resultValidity.status === "stale" || resultValidity.status === "unverifiable") && (
                 <span className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-medium text-amber-600 dark:border-amber-900/30 dark:bg-amber-900/20 dark:text-amber-400">
                   <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
-                  参数已修改 (需重新计算)
+                  {resultValidity.status === "unverifiable" ? "结果来源待验证" : "结果已失效 (需重新计算)"}
                 </span>
               )}
               {modelHash && (
@@ -160,7 +161,8 @@ export function WorkbenchResultTabs({
           <WorkbenchResultToolbar
             analysisMode={analysisMode}
             compact={compact}
-            hasResults={hasResults}
+            canExport={hasResults && resultValidity.status === "current"}
+            exportDisabledReason={hasResults && resultValidity.status !== "current" ? resultValidity.message : undefined}
             isSolving={isSolving}
             runLabel={runLabel}
             exportingFormat={exportingFormat}

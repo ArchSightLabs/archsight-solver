@@ -139,3 +139,27 @@ def test_report_review_table_records_review_status_contract_source_and_diagnosti
     assert any(row[0] == "结果来源" and "荷载组合: 基本组合 [ULS1]" in row[1] for row in rows)
     assert any(row[0] == "公开验证参考" and "BM-001 / A 级验证" in row[1] for row in rows)
     assert any(row[0] == "诊断警告" and "支座约束不足" in row[1] and "LOAD_CASE_MISSING" in row[1] for row in rows)
+
+
+def test_report_review_table_records_result_object_revision_and_model_signatures():
+    table = build_report_review_table(
+        {
+            "resultSource": {"source": "case", "id": "LC1", "label": "恒载", "description": "恒载工况"},
+            "resultProvenance": {
+                "analysisObjectId": "frame-object-1",
+                "projectRevision": 12,
+                "currentProjectRevision": 14,
+                "modelSignature": "fnv1a64:1234567890abcdef",
+                "modelHash": "backend-model-hash",
+                "requestHash": "backend-request-hash",
+                "solvedAt": "2026-07-19T12:00:00.000Z",
+            },
+        },
+        "frame",
+    )
+    rows = table.astype(str).values.tolist()
+
+    assert any(row[0] == "分析对象 ID" and row[1] == "frame-object-1" for row in rows)
+    assert any(row[0] == "工程修订" and "计算时 12" in row[1] and "导出时 14" in row[1] for row in rows)
+    assert any(row[0] == "模型签名" and "fnv1a64:1234567890abcdef" in row[1] and "backend-model-hash" in row[1] for row in rows)
+    assert any(row[0] == "请求签名" and "backend-request-hash" in row[1] for row in rows)

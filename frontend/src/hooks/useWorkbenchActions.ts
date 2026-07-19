@@ -1,5 +1,5 @@
 import type React from "react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { AnalysisMode, FrameFormPayload, TrussFormPayload } from "../types/structure";
 import type { BeamApiPayload, BeamCalculationResults, SensitivityResults } from "../types/beam";
 import type { FrameCalculationResults, TrussCalculationResults } from "../types/structure";
@@ -15,8 +15,14 @@ import {
   buildDisplayedBeamResults,
   buildDisplayedFrameResults,
   buildDisplayedTrussResults,
+  buildResultDisplayOptions,
   type ResultDisplayOption,
 } from "../components/workbench-result-model";
+import {
+  createResultProvenance,
+  evaluateResultValidity,
+  type ResultProvenance,
+} from "../lib/result-provenance";
 import {
   exportOperationForFormat,
   operationCompletedNotice,
@@ -65,6 +71,8 @@ export function useWorkbenchActions(
   clientId: string,
   reportExportOptions: ReportExportOptions,
   projectName: string,
+  activeAnalysisObjectId: string,
+  getProjectRevision: () => number,
   activeBenchmark?: BenchmarkCaseSource
 ) {
   const [analysisData, setAnalysisData] = useState<AnalysisResults>(null);
@@ -73,9 +81,15 @@ export function useWorkbenchActions(
   const [isScanning, setIsScanning] = useState(false);
   const [exportingFormat, setExportingFormat] = useState<ExportFormat | null>(null);
   const [operationNotice, setOperationNotice] = useState<WorkbenchOperationNotice | null>(null);
-  const [latestPayload, setLatestPayload] = useState<CalculationPayload | null>(null);
-  const [latestSubmittedState, setLatestSubmittedState] = useState<unknown | null>(null);
+  const [resultProvenance, setResultProvenance] = useState<ResultProvenance | null>(null);
+  const activeAnalysisObjectIdRef = useRef(activeAnalysisObjectId);
+  const solveRequestSequenceRef = useRef(0);
+  const sensitivityRequestSequenceRef = useRef(0);
   const { analysisMode, beam, frame, truss } = workspace;
+
+  useEffect(() => {
+    activeAnalysisObjectIdRef.current = activeAnalysisObjectId;
+  }, [activeAnalysisObjectId]);
 
   const buildCurrentPayload = useCallback((options: { notifyOnValidationError?: boolean } = {}): CalculationPayload | null => {
     if (analysisMode === "truss") {
@@ -103,11 +117,22 @@ export function useWorkbenchActions(
     return buildBeamPayload(beam, projectName);
   }, [analysisMode, beam, frame, projectName, truss]);
 
-  const activeState = workspace[analysisMode];
-  const isDirty = latestSubmittedState !== null && latestSubmittedState !== activeState;
+  const currentPayload = buildCurrentPayload();
+  const hasResultData = analysisData !== null || sensitivityData !== null;
+  const resultValidity = evaluateResultValidity({
+    hasResults: hasResultData,
+    analysisObjectId: activeAnalysisObjectId,
+    analysisType: analysisMode,
+    currentPayload: currentPayload as Record<string, unknown> | null,
+    provenance: resultProvenance,
+  });
 
-  const handleSolve = async (data: CalculationPayload, submittedState?: unknown): Promise<AnalysisResults> => {
+  const handleSolve = async (data: CalculationPayload): Promise<AnalysisResults> => {
     const analysisType: AnalysisMode = data.analysisType === "frame" ? "frame" : data.analysisType === "truss" ? "truss" : "beam";
+    const requestObjectId = activeAnalysisObjectId;
+    const requestProjectRevision = getProjectRevision();
+    const requestSequence = solveRequestSequenceRef.current + 1;
+    solveRequestSequenceRef.current = requestSequence;
     setWorkspace((current) => ({ ...current, analysisMode: analysisType }));
     setIsSolving(true);
     setOperationNotice(operationRunningNotice("solve", analysisType));
@@ -125,15 +150,26 @@ export function useWorkbenchActions(
         throw new WorkbenchApiError(await readApiError(response, "后端连接失败"));
       }
       const result = normalizeAnalysisResponse(await response.json());
+      if (activeAnalysisObjectIdRef.current !== requestObjectId || solveRequestSequenceRef.current !== requestSequence) {
+        return null;
+      }
       setAnalysisData(result);
-      setLatestPayload(data);
-      setLatestSubmittedState(submittedState ?? workspace[analysisType]);
+      setResultProvenance(createResultProvenance({
+        analysisObjectId: requestObjectId,
+        analysisType,
+        payload: data as unknown as Record<string, unknown>,
+        projectRevision: requestProjectRevision,
+        result,
+      }));
       setSensitivityData(null); // Reset sensitivity on new solve
       setCompactWorkbenchView("results");
       setOperationNotice(operationCompletedNotice("solve", analysisType));
       return result;
     } catch (error) {
       console.error("求解失败：", error);
+      if (activeAnalysisObjectIdRef.current !== requestObjectId || solveRequestSequenceRef.current !== requestSequence) {
+        return null;
+      }
       setOperationNotice(operationFailedNotice(
         "solve",
         error instanceof Error ? error.message : "未知错误",
@@ -141,7 +177,7 @@ export function useWorkbenchActions(
       ));
       return null;
     } finally {
-      setIsSolving(false);
+      if (solveRequestSequenceRef.current === requestSequence) setIsSolving(false);
     }
   };
 
@@ -153,7 +189,7 @@ export function useWorkbenchActions(
     return Promise.resolve(null);
   };
 
-  const handleRunPayload = (payload: CalculationPayload, submittedState?: unknown) => handleSolve(payload, submittedState);
+  const handleRunPayload = (payload: CalculationPayload) => handleSolve(payload);
 
   const handleSensitivity = async (config: { range: number; steps: number; targetSpanIndex: number; responseMetric: string }) => {
     const currentPayload = buildCurrentPayload({ notifyOnValidationError: true });
@@ -161,6 +197,10 @@ export function useWorkbenchActions(
       return;
     }
     
+    const requestObjectId = activeAnalysisObjectId;
+    const requestProjectRevision = getProjectRevision();
+    const requestSequence = sensitivityRequestSequenceRef.current + 1;
+    sensitivityRequestSequenceRef.current = requestSequence;
     setIsScanning(true);
     setOperationNotice(operationRunningNotice("sensitivity", workspace.analysisMode));
     try {
@@ -189,28 +229,44 @@ export function useWorkbenchActions(
       if (!res.ok) {
         throw new WorkbenchApiError(apiErrorDetails(data, "敏感性分析失败"));
       }
+      if (activeAnalysisObjectIdRef.current !== requestObjectId || sensitivityRequestSequenceRef.current !== requestSequence) {
+        return;
+      }
       setSensitivityData(data);
-      setLatestPayload(currentPayload);
-      setLatestSubmittedState(workspace[workspace.analysisMode]);
+      setResultProvenance(createResultProvenance({
+        analysisObjectId: requestObjectId,
+        analysisType: workspace.analysisMode,
+        payload: currentPayload as unknown as Record<string, unknown>,
+        projectRevision: requestProjectRevision,
+        result: data,
+      }));
       setOperationNotice(operationCompletedNotice("sensitivity", workspace.analysisMode));
     } catch (error) {
+      if (activeAnalysisObjectIdRef.current !== requestObjectId || sensitivityRequestSequenceRef.current !== requestSequence) {
+        return;
+      }
       setOperationNotice(operationFailedNotice(
         "sensitivity",
         error instanceof Error ? error.message : String(error),
         error instanceof WorkbenchApiError ? error.diagnostics : [],
       ));
     } finally {
-      setIsScanning(false);
+      if (sensitivityRequestSequenceRef.current === requestSequence) setIsScanning(false);
     }
   };
 
   const handleExport = async (format: ExportFormat = "docx", resultSource?: ResultDisplayOption) => {
-    const payload = (analysisRequestFromResult(analysisData) as CalculationPayload | null) ?? latestPayload;
-    if (!payload) {
+    if (resultValidity.status !== "current" || !resultProvenance) {
+      setOperationNotice(validationNotice(resultValidity.message));
+      return;
+    }
+    const payload = { ...resultProvenance.payload, projectName } as unknown as CalculationPayload;
+    if (!analysisRequestFromResult(analysisData) && !sensitivityData) {
       setOperationNotice(validationNotice("请先完成当前分析对象的结构计算或敏感性分析，再导出计算书。"));
       return;
     }
     const exportOperation = exportOperationForFormat(format);
+    const exportStartRevision = getProjectRevision();
     setExportingFormat(format);
     setOperationNotice(operationRunningNotice(exportOperation, workspace.analysisMode));
     try {
@@ -219,10 +275,25 @@ export function useWorkbenchActions(
       const resultData = analysisData as unknown as ResultWithJobId | null;
       const jobId = resultData?.jobId || resultData?.apiEnvelope?.jobId || resultData?.meta?.jobId;
       const exportResultSource = resultSource ?? { source: "primary", id: "__primary__", label: "主结果", description: "基本荷载" };
+      const availableResultSources = buildResultDisplayOptions(
+        workspace.analysisMode === "beam" ? beamResultForView(analysisData) : workspace.analysisMode === "frame" ? frameResultForView(analysisData) : trussResultForView(analysisData),
+      );
+      if (!availableResultSources.length && sensitivityData) {
+        availableResultSources.push({ source: "primary", id: "__primary__", label: "主结果", description: "敏感性分析基准模型" });
+      }
+      if (!availableResultSources.some((source) => source.source === exportResultSource.source && source.id === exportResultSource.id)) {
+        setOperationNotice(validationNotice("所选工况或组合不属于当前计算结果，请重新选择结果来源。"));
+        return;
+      }
+      const exportedProvenance = {
+        ...resultProvenance,
+        currentProjectRevision: getProjectRevision(),
+        resultSource: exportResultSource,
+      };
       const exportPayload =
         format === "docx" && sensitivityData
-          ? { ...payload, format, sensitivityResults: sensitivityData, reportOptions: effectiveReportOptions, benchmark: activeBenchmark, jobId, resultSource: exportResultSource }
-          : { ...payload, format, benchmark: activeBenchmark, jobId, resultSource: exportResultSource, reportOptions: effectiveReportOptions };
+          ? { ...payload, format, sensitivityResults: sensitivityData, reportOptions: effectiveReportOptions, benchmark: activeBenchmark, jobId, resultSource: exportResultSource, resultProvenance: exportedProvenance }
+          : { ...payload, format, benchmark: activeBenchmark, jobId, resultSource: exportResultSource, reportOptions: effectiveReportOptions, resultProvenance: exportedProvenance };
       const beamResultsForReport = buildDisplayedBeamResults(beamResultForView(analysisData), resultSource);
       const frameResultsForReport = buildDisplayedFrameResults(frameResultForView(analysisData), resultSource);
       const trussResultsForReport = buildDisplayedTrussResults(trussResultForView(analysisData), resultSource);
@@ -242,6 +313,10 @@ export function useWorkbenchActions(
               }),
             }
           : exportPayload;
+      if (getProjectRevision() !== exportStartRevision || activeAnalysisObjectIdRef.current !== resultProvenance.analysisObjectId) {
+        setOperationNotice(validationNotice("导出准备期间工程或分析对象已变化，本次导出已取消，请确认当前结果后重试。"));
+        return;
+      }
       const response = await fetch(apiUrl("/api/export"), {
         method: "POST",
         headers: { 
@@ -279,11 +354,13 @@ export function useWorkbenchActions(
   return {
     analysisData,
     setAnalysisData,
+    resultProvenance,
+    setResultProvenance,
+    resultValidity,
     sensitivityData,
     setSensitivityData,
     isSolving,
     isScanning,
-    isDirty,
     exportingFormat,
     operationNotice,
     setOperationNotice,

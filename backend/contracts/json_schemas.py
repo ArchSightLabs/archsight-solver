@@ -1030,6 +1030,7 @@ ARTIFACT_MANIFEST_SCHEMA: Dict[str, Any] = {
         "contract": {"type": "object", "additionalProperties": True},
         "projectManifest": PROJECT_FILE_MANIFEST_SCHEMA,
         "resultSource": {"type": "object", "additionalProperties": True},
+        "resultProvenance": {"type": "object", "additionalProperties": True},
         "diagnosticsSummary": {"type": "object", "additionalProperties": True},
         "snapshot": {"type": "object", "additionalProperties": True},
     },

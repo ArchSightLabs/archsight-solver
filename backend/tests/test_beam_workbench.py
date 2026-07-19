@@ -368,6 +368,15 @@ def test_beam_xlsx_export_records_selected_result_source(client):
             **payload,
             "format": "xlsx",
             "resultSource": {"source": "combination", "id": "COMB1", "label": "基本组合", "description": "组合 COMB1"},
+            "resultProvenance": {
+                "analysisObjectId": "beam-object-1",
+                "projectRevision": 6,
+                "currentProjectRevision": 7,
+                "modelSignature": "fnv1a64:beam-signature",
+                "modelHash": "beam-model-hash",
+                "requestHash": "beam-request-hash",
+                "solvedAt": "2026-07-19T12:00:00.000Z",
+            },
         },
     )
 
@@ -378,6 +387,23 @@ def test_beam_xlsx_export_records_selected_result_source(client):
     assert "结果来源" in overview_text
     assert "荷载组合" in overview_text
     assert "COMB1" in overview_text
+    assert "beam-object-1" in overview_text
+    assert "fnv1a64:beam-signature" in overview_text
+    assert "beam-request-hash" in overview_text
+
+
+def test_beam_export_rejects_result_source_missing_from_current_solution(client):
+    response = client.post(
+        "/api/export",
+        json={
+            **beam_payload(),
+            "format": "xlsx",
+            "resultSource": {"source": "combination", "id": "MISSING", "label": "错误组合"},
+        },
+    )
+
+    assert response.status_code == 400
+    assert "所选结果来源不存在于当前计算结果" in response.get_json()["error"]["message"]
 
 
 def test_beam_load_cases_combinations_and_envelope(client):

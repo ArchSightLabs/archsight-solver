@@ -29,3 +29,27 @@ def result_source_text(solution: Mapping[str, Any]) -> str:
 
 def result_source_rows(solution: Mapping[str, Any]) -> List[List[str]]:
     return [["结果来源", result_source_text(solution)]]
+
+
+def validate_result_source(solution: Mapping[str, Any]) -> None:
+    source = solution.get("resultSource")
+    if source is None:
+        return
+    if not isinstance(source, Mapping):
+        raise ValueError("结果来源必须是结构化对象")
+    source_type = str(source.get("source") or "primary")
+    source_id = str(source.get("id") or "__primary__")
+    if source_type == "primary":
+        if source_id != "__primary__":
+            raise ValueError(f"主结果来源 ID 无效: {source_id}")
+        return
+    result_key = "loadCaseResults" if source_type == "case" else "loadCombinationResults" if source_type == "combination" else None
+    if result_key is None:
+        raise ValueError(f"不支持的结果来源类型: {source_type}")
+    available_ids = {
+        str(item.get("id") or "")
+        for item in solution.get(result_key, [])
+        if isinstance(item, Mapping)
+    }
+    if source_id not in available_ids:
+        raise ValueError(f"所选结果来源不存在于当前计算结果: {source_type} {source_id}")

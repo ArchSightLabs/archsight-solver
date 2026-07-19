@@ -16,6 +16,7 @@ import {
 import { APP_VERSION } from "./app-metadata.ts";
 import { addAnalysisObjectToProject, createDefaultSolverProject } from "./solver-project.ts";
 import type { FrameWorkspaceState } from "../types/structure.ts";
+import { createResultProvenance } from "./result-provenance.ts";
 
 test("创建 ArchSight Solver 项目文件时写入专属 schema 和 .slv 文件名", () => {
   const project = createDefaultSolverProject(new Date("2026-05-21T12:00:00.000Z"));
@@ -82,6 +83,25 @@ test("序列化后的项目文件可以恢复为规范化工作台状态", () =>
   assert.equal(parsed.value?.project.settings.reportExportOptions.reviewStatus, "ready_for_review");
   assert.equal(parsed.value?.project.objects.length, 4);
   assert.ok(parsed.value?.project.objects.some((object) => object.type === "truss" && object.name === "屋架复核"));
+});
+
+test("项目文件往返保留计算结果的分析对象、模型签名和工程修订", () => {
+  const project = createDefaultSolverProject();
+  const object = project.objects[0];
+  object.resultProvenance = createResultProvenance({
+    analysisObjectId: object.id,
+    analysisType: "beam",
+    payload: { analysisType: "beam", spans: [4, 4], q: 10 },
+    projectRevision: 9,
+    solvedAt: "2026-07-19T12:00:00.000Z",
+  });
+
+  const parsed = parseArchSightSolverProjectFile(serializeArchSightSolverProjectFile(createArchSightSolverProjectFile(project)));
+
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.value?.project.objects[0].resultProvenance?.analysisObjectId, object.id);
+  assert.equal(parsed.value?.project.objects[0].resultProvenance?.projectRevision, 9);
+  assert.match(parsed.value?.project.objects[0].resultProvenance?.modelSignature ?? "", /^fnv1a64:/);
 });
 
 test("解析旧项目文件时保留迁移诊断并写回当前契约版本", () => {

@@ -14,6 +14,7 @@ import {
 import { MAX_BEAM_SPANS, MAX_FRAME_MEMBERS, MAX_FRAME_NODES, MAX_TRUSS_MEMBERS, MAX_TRUSS_NODES } from "./solver-limits.ts";
 import { normalizeBeamWorkspaceState, normalizeFrameWorkspaceState, normalizeTrussWorkspaceState } from "./workspace-state.ts";
 import type { TrussWorkspaceState } from "../types/structure.ts";
+import { createResultProvenance } from "./result-provenance.ts";
 
 test("默认求解器项目包含三类分析对象并激活梁系", () => {
   const project = createDefaultSolverProject(new Date("2026-05-21T12:00:00.000Z"));
@@ -25,6 +26,30 @@ test("默认求解器项目包含三类分析对象并激活梁系", () => {
   assert.equal(project.settings.projectInfo.name, "新建结构分析项目");
   assert.equal(project.settings.modelPreviewStyle, "color");
   assert.equal(project.settings.reportExportOptions.template, "standard");
+});
+
+test("项目归一化保留有效结果来源并清除对象不匹配的来源", () => {
+  const project = createDefaultSolverProject(new Date("2026-05-21T12:00:00.000Z"));
+  const object = project.objects[0];
+  const payload = { analysisType: "beam" as const, spans: [4, 4], q: 10 };
+  const resultProvenance = createResultProvenance({
+    analysisObjectId: object.id,
+    analysisType: "beam",
+    payload,
+    projectRevision: 8,
+  });
+
+  const normalized = normalizeSolverProject({
+    ...project,
+    objects: [{ ...object, resultProvenance }],
+  });
+  assert.deepEqual(normalized.objects[0].resultProvenance, resultProvenance);
+
+  const mismatched = normalizeSolverProject({
+    ...project,
+    objects: [{ ...object, resultProvenance: { ...resultProvenance, analysisObjectId: "other-object" } }],
+  });
+  assert.equal(mismatched.objects[0].resultProvenance, null);
 });
 
 test("项目级建模图显示样式兼容旧梁系设置字段", () => {

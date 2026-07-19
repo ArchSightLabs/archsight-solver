@@ -405,6 +405,21 @@ def _export_payload_schema() -> Dict[str, Any]:
                 },
                 "additionalProperties": True,
             },
+            "resultProvenance": {
+                "type": "object",
+                "description": "结果追溯证据，记录分析对象、计算时/导出时工程修订、模型签名和后端请求签名。",
+                "properties": {
+                    "analysisObjectId": {"type": "string"},
+                    "analysisType": {"type": "string", "enum": ["beam", "frame", "truss"]},
+                    "projectRevision": {"type": "integer", "minimum": 0},
+                    "currentProjectRevision": {"type": "integer", "minimum": 0},
+                    "modelSignature": {"type": "string"},
+                    "modelHash": {"type": ["string", "null"]},
+                    "requestHash": {"type": ["string", "null"]},
+                    "solvedAt": {"type": "string"},
+                },
+                "additionalProperties": True,
+            },
             "reportOptions": {
                 "type": "object",
                 "description": "可选计算书模板与数据曲线设置；受力变形图和核心工程图固定导出。",

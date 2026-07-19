@@ -47,12 +47,30 @@ def build_report_review_table(solution: Mapping[str, Any], analysis_type: str, r
             ["审阅状态", REVIEW_STATUS_LABELS.get(review_status, "草稿"), "草稿表示尚未进入工程复核；可审阅表示模型、结果来源和导出证据已准备提交复核。"],
             ["ASMS-JSON 契约版本", API_SCHEMA_VERSION, "字段语义以 JSON Schema Registry、OpenAPI 和 ASMS-JSON 文档为准。"],
             ["分析对象", {"beam": "梁系", "frame": "二维平面框架", "truss": "二维平面桁架"}.get(analysis_type, analysis_type), "不代表规范设计、承载力验算或工程签审。"],
+            *_result_provenance_rows(solution),
             ["结果来源", result_source_text(solution), "主结果、指定荷载工况或指定荷载组合必须与图表和数据一致。"],
             ["公开验证参考", benchmark_text, "benchmark 仅证明其覆盖边界内的回归一致性。"],
             ["诊断警告", issue_text, "导出计算书保留诊断摘要；最终结论仍需具备资质的专业人员复核。"],
         ],
         columns=["项目", "状态/证据", "说明"],
     )
+
+
+def _result_provenance_rows(solution: Mapping[str, Any]) -> List[List[str]]:
+    provenance = solution.get("resultProvenance")
+    if not isinstance(provenance, Mapping):
+        return [["结果追溯", "未记录", "旧结果缺少对象、工程修订和模型签名，重新计算后方可形成完整追溯证据。"]]
+    project_revision = provenance.get("projectRevision", "—")
+    current_revision = provenance.get("currentProjectRevision", "—")
+    model_signature = str(provenance.get("modelSignature") or "—")
+    model_hash = str(provenance.get("modelHash") or "—")
+    request_hash = str(provenance.get("requestHash") or "—")
+    return [
+        ["分析对象 ID", str(provenance.get("analysisObjectId") or "—"), "计算结果必须归属于当前分析对象。"],
+        ["工程修订", f"计算时 {project_revision}；导出时 {current_revision}", f"计算时间 {provenance.get('solvedAt') or '—'}；模型签名一致时允许非计算性工程修订后导出。"],
+        ["模型签名", f"前端 {model_signature}；后端 {model_hash}", "前端签名用于判断当前工作台模型是否仍与计算输入一致。"],
+        ["请求签名", request_hash, "后端 requestHash 用于关联求解请求与结果包络。"],
+    ]
 
 
 def _diagnostic_issue_text(diagnostics: Mapping[str, Any]) -> str:

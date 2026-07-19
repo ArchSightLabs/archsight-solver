@@ -193,9 +193,9 @@ function AppContent() {
     handleSensitivity,
     isScanning,
     isSolving,
-    isDirty,
     markRuntimePersisted,
     operationNotice,
+    resultValidity,
     resetRuntimeForNewAnalysisObject,
     runLabel,
     sensitivityData,
@@ -206,6 +206,7 @@ function AppContent() {
   } = useWorkbenchRuntime({
     activeAnalysisObject,
     clientId,
+    getProjectRevision,
     markProjectDirty,
     modelDiagnostics,
     projectName: project.settings.projectInfo.name,
@@ -816,7 +817,7 @@ function AppContent() {
                   onActiveTabChange={setActiveResultTab}
                   workspace={workspace}
                   updateWorkspace={updateWorkspace}
-                  isDirty={isDirty}
+                  resultValidity={resultValidity}
                 />
               </section>
             )}

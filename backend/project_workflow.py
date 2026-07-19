@@ -387,6 +387,8 @@ def build_export_artifact_metadata(
     timestamp = now or _utc_now()
     project_document = _validated_project_document(raw_document)
     snapshot = _snapshot(project_document)
+    active_object = _active_object(project_document)
+    stored_provenance = _as_record(active_object.get("resultProvenance"))
     normalized_format = _normalize_export_format(format_type)
     return {
         "artifactId": f"artifact-{uuid.uuid4()}",
@@ -405,6 +407,16 @@ def build_export_artifact_metadata(
         },
         "projectManifest": _as_record(project_document.get("manifest")),
         "resultSource": {**DEFAULT_RESULT_SOURCE, "activeObjectId": snapshot["activeObjectId"]},
+        "resultProvenance": {
+            "analysisObjectId": str(stored_provenance.get("analysisObjectId") or snapshot["activeObjectId"]),
+            "analysisType": str(stored_provenance.get("analysisType") or snapshot["activeObjectType"]),
+            "projectRevision": stored_provenance.get("projectRevision"),
+            "modelSignature": str(stored_provenance.get("modelSignature") or ""),
+            "modelHash": str(stored_provenance.get("modelHash") or ""),
+            "requestHash": str(stored_provenance.get("requestHash") or ""),
+            "solvedAt": str(stored_provenance.get("solvedAt") or ""),
+            "projectUpdatedAt": snapshot["updatedAt"],
+        },
         "diagnosticsSummary": {
             "warningCount": int(_as_record(result_summary).get("warningCount") or 0),
             "diagnosticCount": int(_as_record(result_summary).get("diagnosticCount") or 0),

@@ -19,7 +19,8 @@ import { ReportOptionSelect } from "./workbench-result-panels";
 interface WorkbenchResultToolbarProps {
   analysisMode: AnalysisMode;
   compact: boolean;
-  hasResults: boolean;
+  canExport: boolean;
+  exportDisabledReason?: string;
   isSolving: boolean;
   runLabel: string;
   exportingFormat: ExportFormat | null;
@@ -32,7 +33,8 @@ interface WorkbenchResultToolbarProps {
 export function WorkbenchResultToolbar({
   analysisMode,
   compact,
-  hasResults,
+  canExport,
+  exportDisabledReason,
   isSolving,
   runLabel,
   exportingFormat,
@@ -116,7 +118,8 @@ export function WorkbenchResultToolbar({
           type="button"
           variant="outline"
           onClick={toggleExportMenu}
-          disabled={!hasResults || isExportingAny}
+          disabled={!canExport || isExportingAny}
+          title={exportDisabledReason}
           aria-haspopup="menu"
           aria-expanded={isExportMenuOpen}
           className={`rounded-lg border-white/10 bg-white/[0.03] font-bold text-foreground hover:bg-primary/5 disabled:opacity-50 ${compact ? "h-10 px-3 text-xs" : "h-11 px-4"}`}
@@ -125,7 +128,7 @@ export function WorkbenchResultToolbar({
           {exportLabel}
           <ChevronDown className={`ml-2 transition-transform ${isExportMenuOpen ? "rotate-180" : ""} ${compact ? "h-3.5 w-3.5" : "h-4 w-4"}`} />
         </Button>
-        {isExportMenuOpen && hasResults && !isExportingAny ? (
+        {isExportMenuOpen && canExport && !isExportingAny ? (
           <div
             role="menu"
             className={`absolute right-0 top-full z-50 mt-2 w-[20rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-950/10 dark:border-slate-700 dark:bg-slate-950 dark:shadow-black/30 ${compact ? "text-xs" : "text-sm"}`}

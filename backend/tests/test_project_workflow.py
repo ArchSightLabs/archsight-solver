@@ -121,6 +121,8 @@ def test_build_export_artifact_metadata_records_contract_and_result_source():
     assert metadata["contract"]["hostProtocolVersion"] == "1.0.0"
     assert metadata["projectManifest"]["projectFileKind"] == "single-json"
     assert metadata["resultSource"]["activeObjectId"] == changed["snapshot"]["activeObjectId"]
+    assert metadata["resultProvenance"]["analysisObjectId"] == changed["snapshot"]["activeObjectId"]
+    assert metadata["resultProvenance"]["projectUpdatedAt"] == changed["snapshot"]["updatedAt"]
 
 
 def test_build_export_artifact_returns_docx_and_xlsx_content():

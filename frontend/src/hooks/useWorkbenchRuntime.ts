@@ -14,12 +14,14 @@ import { beamResultForView, frameResultForView, trussResultForView } from "../li
 import { analysisVocabulary } from "../lib/analysis-vocabulary";
 import { useWorkbenchActions, type AnalysisResults } from "./useWorkbenchActions";
 import { solvingRunLabel, validationNotice } from "../lib/workbench-operation-status";
+import type { ResultProvenance } from "../lib/result-provenance";
 
 const BENCHMARK_SUBMISSION_NEEDS_RESULT_REASON = "请先运行当前分析对象的结构计算，再生成验证投稿包。";
 
 interface UseWorkbenchRuntimeOptions {
   activeAnalysisObject: AnalysisObject;
   clientId: string;
+  getProjectRevision: () => number;
   markProjectDirty: () => void;
   modelDiagnostics: ModelDiagnostics;
   projectName: string;
@@ -33,6 +35,7 @@ interface UseWorkbenchRuntimeOptions {
 export function useWorkbenchRuntime({
   activeAnalysisObject,
   clientId,
+  getProjectRevision,
   markProjectDirty,
   modelDiagnostics,
   projectName,
@@ -47,8 +50,9 @@ export function useWorkbenchRuntime({
   const lastRuntimePersistRef = useRef<{
     analysisData: AnalysisResults;
     sensitivityData: SensitivityResults | null;
+    resultProvenance: ResultProvenance | null;
     workbenchView: WorkbenchView;
-  }>({ analysisData: null, sensitivityData: null, workbenchView: "model" });
+  }>({ analysisData: null, sensitivityData: null, resultProvenance: null, workbenchView: "model" });
   const setCompactWorkbenchView = useCallback((view: "parameters" | "results") => {
     setWorkbenchView(view === "results" ? "results" : "model");
   }, []);
@@ -56,11 +60,13 @@ export function useWorkbenchRuntime({
   const {
     analysisData,
     setAnalysisData,
+    resultProvenance,
+    setResultProvenance,
+    resultValidity,
     sensitivityData,
     setSensitivityData,
     isSolving,
     isScanning,
-    isDirty,
     exportingFormat,
     operationNotice,
     setOperationNotice,
@@ -75,6 +81,8 @@ export function useWorkbenchRuntime({
     clientId,
     reportExportOptions,
     projectName,
+    activeAnalysisObject.id,
+    getProjectRevision,
     activeAnalysisObject.benchmark
   );
 
@@ -83,72 +91,79 @@ export function useWorkbenchRuntime({
     const isSameRuntime =
       previousRuntime.analysisData === analysisData &&
       previousRuntime.sensitivityData === sensitivityData &&
+      previousRuntime.resultProvenance === resultProvenance &&
       previousRuntime.workbenchView === workbenchView;
 
     if (skipNextRuntimePersistRef.current) {
       skipNextRuntimePersistRef.current = false;
-      lastRuntimePersistRef.current = { analysisData, sensitivityData, workbenchView };
+      lastRuntimePersistRef.current = { analysisData, sensitivityData, resultProvenance, workbenchView };
       return;
     }
     if (isSameRuntime) {
       return;
     }
-    lastRuntimePersistRef.current = { analysisData, sensitivityData, workbenchView };
+    lastRuntimePersistRef.current = { analysisData, sensitivityData, resultProvenance, workbenchView };
     setProject((current) => updateActiveAnalysisObject(current, (object) => ({
       ...object,
       results: analysisData,
       sensitivityResults: sensitivityData,
+      resultProvenance,
       workbenchView,
     })));
     markProjectDirty();
-  }, [analysisData, markProjectDirty, sensitivityData, setProject, workbenchView]);
+  }, [analysisData, markProjectDirty, resultProvenance, sensitivityData, setProject, workbenchView]);
 
   const syncRuntimeFromAnalysisObject = useCallback((object: AnalysisObject) => {
     skipNextRuntimePersistRef.current = true;
     setAnalysisData(object.results);
     setSensitivityData(object.sensitivityResults);
+    setResultProvenance(object.resultProvenance);
     setOperationNotice(null);
     setWorkbenchView(object.workbenchView);
     resetWorkbenchContext();
-  }, [resetWorkbenchContext, setAnalysisData, setOperationNotice, setSensitivityData]);
+  }, [resetWorkbenchContext, setAnalysisData, setOperationNotice, setResultProvenance, setSensitivityData]);
 
   const resetRuntimeForNewAnalysisObject = useCallback(() => {
     skipNextRuntimePersistRef.current = true;
     setAnalysisData(null);
     setSensitivityData(null);
+    setResultProvenance(null);
     setOperationNotice(null);
     setWorkbenchView("model");
     resetWorkbenchContext();
-  }, [resetWorkbenchContext, setAnalysisData, setOperationNotice, setSensitivityData]);
+  }, [resetWorkbenchContext, setAnalysisData, setOperationNotice, setResultProvenance, setSensitivityData]);
 
   const clearCurrentAnalysisRuntime = useCallback(() => {
     skipNextRuntimePersistRef.current = true;
-    lastRuntimePersistRef.current = { analysisData: null, sensitivityData: null, workbenchView: "model" };
+    lastRuntimePersistRef.current = { analysisData: null, sensitivityData: null, resultProvenance: null, workbenchView: "model" };
     setAnalysisData(null);
     setSensitivityData(null);
+    setResultProvenance(null);
     setOperationNotice(null);
     setWorkbenchView("model");
     setProject((current) => updateActiveAnalysisObject(current, (object) => ({
       ...object,
       results: null,
       sensitivityResults: null,
+      resultProvenance: null,
       workbenchView: "model",
     })));
     markProjectDirty();
     resetWorkbenchContext();
-  }, [markProjectDirty, resetWorkbenchContext, setAnalysisData, setOperationNotice, setProject, setSensitivityData]);
+  }, [markProjectDirty, resetWorkbenchContext, setAnalysisData, setOperationNotice, setProject, setResultProvenance, setSensitivityData]);
 
   const markRuntimePersisted = useCallback(() => {
     skipNextRuntimePersistRef.current = true;
-    lastRuntimePersistRef.current = { analysisData, sensitivityData, workbenchView };
-  }, [analysisData, sensitivityData, workbenchView]);
+    lastRuntimePersistRef.current = { analysisData, sensitivityData, resultProvenance, workbenchView };
+  }, [analysisData, resultProvenance, sensitivityData, workbenchView]);
 
   const applyCurrentRuntimeToProject = useCallback((sourceProject: SolverProject) => updateActiveAnalysisObject(sourceProject, (object) => ({
     ...object,
     results: analysisData,
     sensitivityResults: sensitivityData,
+    resultProvenance,
     workbenchView,
-  })), [analysisData, sensitivityData, workbenchView]);
+  })), [analysisData, resultProvenance, sensitivityData, workbenchView]);
 
   const analysisMode = workspace.analysisMode;
   const frameResults = useMemo(() => frameResultForView(analysisData), [analysisData]);
@@ -162,7 +177,7 @@ export function useWorkbenchRuntime({
         category: "frame" as const,
         payload,
         calculationResult: frameResults,
-        disabledReason: disabledReason ?? (frameResults ? null : BENCHMARK_SUBMISSION_NEEDS_RESULT_REASON),
+        disabledReason: disabledReason ?? (frameResults && resultValidity.status === "current" ? null : resultValidity.status === "missing" ? BENCHMARK_SUBMISSION_NEEDS_RESULT_REASON : resultValidity.message),
         objectName: activeAnalysisObject.name,
       };
     }
@@ -173,7 +188,7 @@ export function useWorkbenchRuntime({
         category: "truss" as const,
         payload,
         calculationResult: trussResults,
-        disabledReason: disabledReason ?? (trussResults ? null : BENCHMARK_SUBMISSION_NEEDS_RESULT_REASON),
+        disabledReason: disabledReason ?? (trussResults && resultValidity.status === "current" ? null : resultValidity.status === "missing" ? BENCHMARK_SUBMISSION_NEEDS_RESULT_REASON : resultValidity.message),
         objectName: activeAnalysisObject.name,
       };
     }
@@ -182,10 +197,10 @@ export function useWorkbenchRuntime({
       category: "beam" as const,
       payload,
       calculationResult: beamResults,
-      disabledReason: beamResults ? null : BENCHMARK_SUBMISSION_NEEDS_RESULT_REASON,
+      disabledReason: beamResults && resultValidity.status === "current" ? null : resultValidity.status === "missing" ? BENCHMARK_SUBMISSION_NEEDS_RESULT_REASON : resultValidity.message,
       objectName: activeAnalysisObject.name,
     };
-  }, [activeAnalysisObject.name, analysisMode, beamResults, frameResults, trussResults, workspace.beam, workspace.frame, workspace.truss]);
+  }, [activeAnalysisObject.name, analysisMode, beamResults, frameResults, resultValidity, trussResults, workspace.beam, workspace.frame, workspace.truss]);
   const runLabel = isSolving ? solvingRunLabel(analysisMode) : analysisVocabulary(analysisMode).runLabel;
 
   const blockedDiagnosticsMessage = useCallback((diagnostics: ModelDiagnostics): string | null => {
@@ -237,7 +252,7 @@ export function useWorkbenchRuntime({
       return Promise.resolve(null);
     }
     setWorkbenchView("results");
-    return handleRunPayload(payload, nextWorkspace[nextMode]);
+    return handleRunPayload(payload);
   }, [blockIfDiagnosticsFailed, handleRunPayload, projectName]);
 
   return {
@@ -255,9 +270,10 @@ export function useWorkbenchRuntime({
     handleSensitivity,
     isScanning,
     isSolving,
-    isDirty,
     markRuntimePersisted,
     operationNotice,
+    resultProvenance,
+    resultValidity,
     resetRuntimeForNewAnalysisObject,
     runLabel,
     sensitivityData,

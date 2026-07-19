@@ -5,6 +5,7 @@ import type { AnalysisMode, FrameWorkspaceState, TrussWorkspaceState } from "../
 import { defaultAnalysisObjectNameForMode } from "./analysis-vocabulary.ts";
 import { materialLibraryFromCustomMaterials, normalizeProjectCustomMaterials } from "./material-presets.ts";
 import { normalizeReportExportOptions, type ReportExportOptions } from "./report-options.ts";
+import { normalizeResultProvenance, type ResultProvenance } from "./result-provenance.ts";
 import {
   createDefaultBeamWorkspaceState,
   createDefaultFrameWorkspaceState,
@@ -59,6 +60,7 @@ export interface AnalysisObject {
   state: AnalysisObjectState;
   results: AnalysisResults;
   sensitivityResults: SensitivityResults | null;
+  resultProvenance: ResultProvenance | null;
   workbenchView: WorkbenchView;
   benchmark?: BenchmarkCaseSource;
   createdAt: string;
@@ -149,6 +151,7 @@ export function createAnalysisObject(type: AnalysisObjectType, name?: string, no
     state: defaultStateForType(type),
     results: null,
     sensitivityResults: null,
+    resultProvenance: null,
     workbenchView: "model",
     createdAt: timestamp,
     updatedAt: timestamp,
@@ -197,13 +200,16 @@ function normalizeAnalysisObject(rawObject: unknown, index: number): AnalysisObj
   const raw = rawObject && typeof rawObject === "object" ? (rawObject as Partial<AnalysisObject>) : {};
   const type = normalizeObjectType(raw.type);
   const now = new Date().toISOString();
+  const id = String(raw.id ?? createId(type));
+  const resultProvenance = normalizeResultProvenance(raw.resultProvenance);
   return {
-    id: String(raw.id ?? createId(type)),
+    id,
     name: String(raw.name ?? defaultAnalysisObjectName(type, index + 1)).trim() || defaultAnalysisObjectName(type, index + 1),
     type,
     state: normalizeStateForType(type, raw.state),
     results: raw.results ?? null,
     sensitivityResults: raw.sensitivityResults ?? null,
+    resultProvenance: resultProvenance?.analysisObjectId === id && resultProvenance.analysisType === type ? resultProvenance : null,
     workbenchView: raw.workbenchView === "results" || raw.workbenchView === "sensitivity" || raw.workbenchView === "model" ? raw.workbenchView : "model",
     benchmark: normalizeBenchmarkCaseSource(raw.benchmark),
     createdAt: String(raw.createdAt ?? now),
