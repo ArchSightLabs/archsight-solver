@@ -1,1 +1,25 @@
+# Keep source, configuration, and documentation stable across platforms.
 * text=auto eol=lf
+
+# Native Windows command scripts retain CRLF compatibility.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary and archive formats must never receive line-ending conversion.
+*.7z binary
+*.doc binary
+*.docx binary
+*.gif binary
+*.ico binary
+*.jpeg binary
+*.jpg binary
+*.pdf binary
+*.png binary
+*.ppt binary
+*.pptx binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.xls binary
+*.xlsx binary
+*.zip binary
