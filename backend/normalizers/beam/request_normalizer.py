@@ -4,11 +4,11 @@ import itertools
 from typing import Any, Dict, List, Mapping, Sequence, Tuple
 
 from backend.common.numbers import clamp_ratio, sanitize_label, to_float
+from backend.common.solver_backend import normalize_solver_backend
 from backend.common.support_catalog import support_constraint_dofs, support_labels
 from backend.common.units import to_si
 from backend.config import get_max_beam_spans, resolve_output_precision
 from backend.normalizers.structural_model import parse_combination_tags
-from backend.solver.linear_system import normalize_solver_backend
 
 
 BEAM_TYPE_LABELS = {
@@ -34,7 +34,6 @@ BEAM_SUPPORT_LABELS = {**support_labels("beam"), "hinged": "铰支座"}
 
 DEFAULT_PROJECT_NAME = "默认结构工程项目"
 DEFAULT_MATERIAL_NAME = "自定义材料"
-DEFLECTION_LIMIT_RATIO = 250.0
 DEFAULT_BEAM_MAX_SPANS = 300
 DEFAULT_BEAM_SPAN_LIMIT_MESSAGE = "跨度数量超出系统限制 (最大 300 跨)"
 

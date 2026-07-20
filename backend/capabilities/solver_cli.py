@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 from backend.capabilities.solver_tools import TOOL_HANDLERS
-from backend.api.errors import diagnostic_issues_for_message
+from backend.contracts.diagnostics import diagnostic_issues_for_message
 
 
 def _read_payload(input_path: str | None) -> Dict[str, Any]:

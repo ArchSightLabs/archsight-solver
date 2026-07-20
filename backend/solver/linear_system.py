@@ -7,16 +7,11 @@ import numpy as np
 from scipy.sparse import issparse, lil_matrix
 from scipy.sparse.linalg import MatrixRankWarning, spsolve
 
-from backend.config import get_solver_backend, get_sparse_dof_threshold
+from backend.common.solver_backend import normalize_solver_backend
+from backend.config import get_sparse_dof_threshold
 
 
 SPARSE_BACKENDS = {"sparse"}
-SUPPORTED_BACKENDS = {"auto", "dense", "sparse"}
-
-
-def normalize_solver_backend(value: Any) -> str:
-    requested = str(value or get_solver_backend()).strip().lower()
-    return requested if requested in SUPPORTED_BACKENDS else get_solver_backend()
 
 
 def select_solver_backend(requested: str | None, ndof: int) -> str:

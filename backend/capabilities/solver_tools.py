@@ -4,9 +4,9 @@ import json
 from typing import Any, Callable, Dict, Mapping
 
 from backend.capabilities.beam_deflection import _build_solver_payload, _formula_ref, solve_beam_deflection_capability
-from backend.api.sensitivity import build_sensitivity_response
-from backend.api.errors import analysis_type_for_error, diagnostic_issues_for_message
-from backend.api.utils import build_calculation_response
+from backend.application.calculation import build_calculation_response
+from backend.application.sensitivity import build_sensitivity_response
+from backend.contracts.diagnostics import analysis_type_for_error, diagnostic_issues_for_message
 from backend.benchmarks.catalog import iter_benchmark_cases
 from backend.benchmarks.runner import BenchmarkCaseError, evaluate_benchmark_case_by_id
 from backend.integration_errors import (

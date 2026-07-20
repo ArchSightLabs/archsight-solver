@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 
 import numpy as np
 
-from backend.normalizers.truss.request_normalizer import ALLOWABLE_RATIO
+from backend.common.analysis_assumptions import DEFAULT_DEFLECTION_LIMIT_RATIO
 
 
 def build_truss_solution_response(
@@ -21,7 +21,7 @@ def build_truss_solution_response(
     loads = request["structure"]["loads"]
 
     x_values = [float(node["x"]) for node in nodes]
-    allowable_mm = max((max(x_values) - min(x_values)) * 1000.0 / ALLOWABLE_RATIO, 1.0)
+    allowable_mm = max((max(x_values) - min(x_values)) * 1000.0 / DEFAULT_DEFLECTION_LIMIT_RATIO, 1.0)
     max_disp_index = int(np.argmax(displacement_magnitudes)) if displacement_magnitudes else 0
     max_force_index = int(np.argmax(axial_forces)) if axial_forces else 0
     max_disp_mm = float(displacement_magnitudes[max_disp_index]) if displacement_magnitudes else 0.0
@@ -44,7 +44,7 @@ def build_truss_solution_response(
         "statusCode": "PASS" if max_disp_mm <= allowable_mm else "REVIEW",
         "method": "二维平面桁架杆单元法",
         "allowableMm": float(allowable_mm),
-        "allowableRatio": ALLOWABLE_RATIO,
+        "allowableRatio": DEFAULT_DEFLECTION_LIMIT_RATIO,
         "maxDisplacementMm": max_disp_mm,
         "maxDisplacementNodeId": node_results[max_disp_index]["nodeId"] if node_results else "",
         "maxAxialForceKn": max_force_kn,
@@ -96,7 +96,7 @@ def build_truss_solution_response(
         "controlNodeId": summary["maxDisplacementNodeId"],
         "summary": {
             "allowableMm": float(allowable_mm),
-            "allowableRatio": ALLOWABLE_RATIO,
+            "allowableRatio": DEFAULT_DEFLECTION_LIMIT_RATIO,
             "maxDisplacementMm": max_disp_mm,
             "maxAxialForceKn": max_force_kn,
             "peakInternalForces": peak_internal_forces,

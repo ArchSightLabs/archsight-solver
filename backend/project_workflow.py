@@ -6,8 +6,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Mapping
 
-from backend.api.calculation_response import build_calculation_response
-from backend.api.analysis_types import get_material_name
+from backend.application.calculation import build_calculation_response
+from backend.common.material_catalog import get_material_name
 from backend.integration_errors import (
     EXPORT_FAILED,
     INVALID_HOST_SAVE_RESULT,

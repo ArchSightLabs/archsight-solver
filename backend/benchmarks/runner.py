@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Mapping
 
-from backend.api.utils import build_calculation_response
+from backend.application.calculation import build_calculation_response
 from backend.benchmarks.catalog import find_benchmark_case, iter_benchmark_cases
 
 

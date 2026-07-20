@@ -7,7 +7,7 @@ import pandas as pd
 
 from backend.common.material_catalog import material_report_rows
 from backend.common.result_metric_catalog import result_metric_label
-from backend.common.support_catalog import support_constraint_dofs, support_label, support_system_note
+from backend.common.support_catalog import support_constraint_dofs, support_dof_indexes, support_label, support_system_note
 from backend.exporters.common.artifact import ExportArtifact
 from backend.exporters.common.evidence import build_evidence_tables, build_report_review_table
 from backend.exporters.common.filenames import export_filename
@@ -15,7 +15,6 @@ from backend.exporters.common.load_tables import build_load_combination_rows
 from backend.exporters.common.member_materials import member_elasticity_summary
 from backend.exporters.common.result_source import result_source_rows
 from backend.exporters.common.xlsx_utils import HAS_OPENPYXL, apply_standard_worksheet_style, write_sectioned_sheet
-from backend.normalizers.truss.request_normalizer import node_support_dofs
 
 
 def build_summary_tables(solution: Dict[str, Any], material_name: str):
@@ -51,7 +50,7 @@ def build_summary_tables(solution: Dict[str, Any], material_name: str):
             ["杆件数量", len(structure.get("members", []))],
             ["支座节点", _truss_support_summary(structure.get("nodes", []))],
             ["支座说明", support_system_note("truss")],
-            ["约束自由度", sum(len(node_support_dofs(node["supportType"])) for node in structure.get("nodes", []))],
+            ["约束自由度", sum(len(support_dof_indexes("truss", node["supportType"])) for node in structure.get("nodes", []))],
             ["允许位移 (mm)", round(solution["summary"]["allowableMm"], 3)],
         ],
         columns=["参数", "值"],

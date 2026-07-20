@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 import numpy as np
 from scipy.sparse import issparse
 
-from backend.normalizers.frame.request_normalizer import parse_node_support_dofs
+from backend.common.support_catalog import support_dof_indexes
 from backend.solver.linear_system import solve_free_dofs
 
 
@@ -33,7 +33,7 @@ def solve_frame_system(structure: Dict[str, Any], assembly: Dict[str, Any]) -> D
             constraint_values.append(prescribed_values.get("n", 0.0))
             support_dofs = []
         else:
-            support_dofs = parse_node_support_dofs(support_type)
+            support_dofs = support_dof_indexes("frame", support_type)
         for local_dof in support_dofs:
             _add_direct_constraint(
                 idx,

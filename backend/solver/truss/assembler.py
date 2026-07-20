@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 import numpy as np
 
 from backend.common.numbers import to_float
-from backend.normalizers.truss.request_normalizer import node_dofs, node_support_dofs
+from backend.solver.truss.dofs import node_dofs, node_support_dofs
 from backend.solver.truss.elements import member_geometry, truss_member_stiffness
 from backend.solver.linear_system import add_local_stiffness, create_stiffness_matrix, select_solver_backend
 
