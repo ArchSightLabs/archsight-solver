@@ -41,10 +41,10 @@ test("workspace history is exposed by the project document hook", () => {
 
 test("workspace undo and redo buttons plus keyboard shortcuts are connected in App", () => {
   const app = source("../App.tsx");
-  assert.match(app, /onUndoWorkspace=\{undoWorkspaceChange\}/u);
-  assert.match(app, /onRedoWorkspace=\{redoWorkspaceChange\}/u);
-  assert.match(app, /canUndoWorkspace=\{canUndoWorkspace\}/u);
-  assert.match(app, /canRedoWorkspace=\{canRedoWorkspace\}/u);
+  assert.match(app, /onUndoWorkspace: undoWorkspaceChange/u);
+  assert.match(app, /onRedoWorkspace: redoWorkspaceChange/u);
+  assert.match(app, /canUndoWorkspace,/u);
+  assert.match(app, /canRedoWorkspace,/u);
   assert.match(app, /event\.ctrlKey \|\| event\.metaKey/u);
   assert.match(app, /key === "z" && event\.shiftKey/u);
   assert.match(app, /key === "y"/u);

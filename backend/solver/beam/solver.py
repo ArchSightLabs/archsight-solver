@@ -5,9 +5,10 @@ from typing import Any, Dict, List, Sequence, Tuple
 
 import numpy as np
 
+from backend.common.domain_errors import StructureStabilityError
 from backend.common.numbers import cumulative, round_list, to_float
+from backend.common.analysis_assumptions import DEFAULT_DEFLECTION_LIMIT_RATIO
 from backend.common.units import from_si, to_si
-from backend.normalizers.beam.request_normalizer import DEFLECTION_LIMIT_RATIO
 from backend.solver.beam.elements import (
     beam_element_equivalent_load,
     beam_element_stiffness,
@@ -330,7 +331,7 @@ def finite_element_solution(
 
     free_dofs = [i for i in range(ndof) if i not in constrained_dofs]
     if not free_dofs:
-        raise ValueError("约束条件过多，系统无自由度可求解")
+        raise StructureStabilityError("约束条件过多，系统无自由度可求解", kind="overconstrained")
 
     displacement = np.zeros(ndof, dtype=float)
     solved = solve_free_dofs(
@@ -435,7 +436,7 @@ def finite_element_solution(
     max_index = int(np.argmax(deflections_mm)) if deflections_mm else 0
     max_deflection_mm = float(deflections_mm[max_index]) if deflections_mm else 0.0
     max_deflection_position_m = float(x_values[max_index]) if x_values else 0.0
-    allowable_mm = total_length * 1000.0 / DEFLECTION_LIMIT_RATIO
+    allowable_mm = total_length * 1000.0 / DEFAULT_DEFLECTION_LIMIT_RATIO
     status = "合格" if max_deflection_mm <= allowable_mm else "需校核"
 
     load_items: List[Dict[str, Any]] = []

@@ -3,12 +3,13 @@ from __future__ import annotations
 import itertools
 from typing import Any, Dict, List, Mapping, Sequence, Tuple
 
+from backend.common.domain_errors import DuplicateStructureIdError, InvalidStiffnessInputError, InvalidStructureReferenceError
 from backend.common.numbers import clamp_ratio, sanitize_label, to_float
+from backend.common.solver_backend import normalize_solver_backend
 from backend.common.support_catalog import support_constraint_dofs, support_labels
 from backend.common.units import to_si
 from backend.config import get_max_beam_spans, resolve_output_precision
 from backend.normalizers.structural_model import parse_combination_tags
-from backend.solver.linear_system import normalize_solver_backend
 
 
 BEAM_TYPE_LABELS = {
@@ -34,7 +35,6 @@ BEAM_SUPPORT_LABELS = {**support_labels("beam"), "hinged": "铰支座"}
 
 DEFAULT_PROJECT_NAME = "默认结构工程项目"
 DEFAULT_MATERIAL_NAME = "自定义材料"
-DEFLECTION_LIMIT_RATIO = 250.0
 DEFAULT_BEAM_MAX_SPANS = 300
 DEFAULT_BEAM_SPAN_LIMIT_MESSAGE = "跨度数量超出系统限制 (最大 300 跨)"
 
@@ -132,7 +132,7 @@ def _parse_beam_support_constraints(raw_constraints: Any, support_type: str) -> 
     return constraints
 
 
-def _parse_beam_support_springs(raw_springs: Any) -> List[Dict[str, Any]]:
+def _parse_beam_support_springs(raw_springs: Any, *, support_id: str = "unknown") -> List[Dict[str, Any]]:
     if raw_springs in (None, ""):
         return []
     if not isinstance(raw_springs, Sequence) or isinstance(raw_springs, (str, bytes)):
@@ -155,7 +155,7 @@ def _parse_beam_support_springs(raw_springs: Any) -> List[Dict[str, Any]]:
             stiffness = to_float(spring.get("stiffnessKnPerM", spring.get("stiffness", spring.get("k"))), 0.0)
             key = "stiffnessKnPerM"
         if stiffness <= 0:
-            raise ValueError("梁系支座弹性约束刚度必须大于 0")
+            raise InvalidStiffnessInputError("support", support_id, "梁系支座弹性约束刚度必须大于 0")
         springs.append({"dof": dof, key: stiffness})
     return springs
 
@@ -173,10 +173,11 @@ def normalize_beam_supports(raw_supports: Any, *, beam_type: str, span_boundarie
                 raise ValueError("梁支座位置必须位于梁长范围内")
             support_type = _support_type(support.get("type", support.get("supportType")), "pinned")
             constraints = _parse_beam_support_constraints(support.get("constraints"), support_type)
-            springs = _parse_beam_support_springs(support.get("springs", []))
+            support_id = str(support.get("id") or f"S{index + 1}")
+            springs = _parse_beam_support_springs(support.get("springs", []), support_id=support_id)
             supports.append(
                 {
-                    "id": str(support.get("id") or f"S{index + 1}"),
+                    "id": support_id,
                     "x": round(min(max(x, 0.0), total_length), 9),
                     "type": support_type,
                     "constraints": constraints,
@@ -441,7 +442,7 @@ def normalize_beam_load_cases(raw_cases: Any, raw_combinations: Any, base: Dict[
             raise ValueError("梁荷载工况必须使用对象定义")
         case_id = str(raw_case.get("id") or f"LC{index + 1}").strip() or f"LC{index + 1}"
         if case_id in seen_ids:
-            raise ValueError(f"梁荷载工况 ID 重复: {case_id}")
+            raise DuplicateStructureIdError("loadCase", case_id, f"梁荷载工况 ID 重复: {case_id}")
         seen_ids.add(case_id)
         loads = raw_case.get("loads", [])
         if not isinstance(loads, Sequence) or isinstance(loads, (str, bytes)) or not loads:
@@ -465,7 +466,7 @@ def normalize_beam_load_cases(raw_cases: Any, raw_combinations: Any, base: Dict[
             raise ValueError("梁荷载组合必须使用对象定义")
         combination_id = str(raw_combination.get("id") or f"COMB{index + 1}").strip() or f"COMB{index + 1}"
         if combination_id in seen_combinations:
-            raise ValueError(f"梁荷载组合 ID 重复: {combination_id}")
+            raise DuplicateStructureIdError("loadCombination", combination_id, f"梁荷载组合 ID 重复: {combination_id}")
         seen_combinations.add(combination_id)
         raw_factors = raw_combination.get("factors", {})
         if not isinstance(raw_factors, Mapping) or not raw_factors:
@@ -473,7 +474,13 @@ def normalize_beam_load_cases(raw_cases: Any, raw_combinations: Any, base: Dict[
         factors = {str(case_id).strip(): to_float(factor, 0.0) for case_id, factor in raw_factors.items()}
         unknown = sorted(set(factors) - case_ids)
         if unknown:
-            raise ValueError(f"梁荷载组合引用了不存在的工况: {unknown[0]}")
+            raise InvalidStructureReferenceError(
+                "loadCombination",
+                combination_id,
+                f"梁荷载组合引用了不存在的工况: {unknown[0]}",
+                referenced_kind="loadCase",
+                referenced_id=unknown[0],
+            )
         if all(abs(value) < 1e-12 for value in factors.values()):
             raise ValueError("梁荷载组合 factors 不能全部为 0")
         combination = {"id": combination_id, "title": str(raw_combination.get("title") or combination_id), "factors": factors}

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Mapping
 
-from backend.api.utils import build_calculation_response
+from backend.application.calculation import build_calculation_result
 from backend.benchmarks.catalog import find_benchmark_case, iter_benchmark_cases
 
 
@@ -195,7 +195,7 @@ def _evaluate_response(case: Mapping[str, Any], data: Mapping[str, Any]) -> list
 
 
 def evaluate_benchmark_case(case: Mapping[str, Any]) -> Dict[str, Any]:
-    data = build_calculation_response(dict(case["payload"]), operation="benchmark")
+    data = build_calculation_result(dict(case["payload"]), operation="benchmark")["solution"]
     checks = _evaluate_response(case, data)
     passed = all(check["passed"] for check in checks)
     return {

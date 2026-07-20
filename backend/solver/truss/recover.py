@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from typing import Any, Dict, List
 
-from backend.normalizers.truss.request_normalizer import node_dofs
+from backend.solver.truss.dofs import node_dofs
 
 
 def recover_node_results(nodes: List[Dict[str, Any]], displacements, reactions) -> Dict[str, Any]:

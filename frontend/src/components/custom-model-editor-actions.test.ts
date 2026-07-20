@@ -107,7 +107,7 @@ test("框架和桁架坐标编辑共享主控画布网格吸附工具", () => {
   const trussNodeEditor = componentSource("TrussNodeEditor.tsx");
 
   assert.match(app, /const \[gridSnapEnabled, setGridSnapEnabled\] = useState\(false\)/u);
-  assert.match(app, /onGridSnapEnabledChange=\{setGridSnapEnabled\}/u);
+  assert.match(app, /onGridSnapEnabledChange: setGridSnapEnabled/u);
   assert.match(toolbar, /<GridSnapControls/u);
   assert.match(toolbar, /variant="statusbar"/u);
   assert.match(toolbar, /snapCoordinateToGrid/u);

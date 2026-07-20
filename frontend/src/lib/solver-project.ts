@@ -1,8 +1,8 @@
-import type { AnalysisResults } from "../hooks/useWorkbenchActions.ts";
 import type { BeamWorkspaceState, ModelPreviewStyle, SensitivityResults } from "../types/beam.ts";
 import type { Material } from "../types/material.ts";
 import type { AnalysisMode, FrameWorkspaceState, TrussWorkspaceState } from "../types/structure.ts";
 import { defaultAnalysisObjectNameForMode } from "./analysis-vocabulary.ts";
+import type { LegacyAnalysisResults } from "./api-envelope.ts";
 import { materialLibraryFromCustomMaterials, normalizeProjectCustomMaterials } from "./material-presets.ts";
 import { normalizeReportExportOptions, type ReportExportOptions } from "./report-options.ts";
 import { normalizeResultProvenance, type ResultProvenance } from "./result-provenance.ts";
@@ -58,7 +58,7 @@ export interface AnalysisObject {
   name: string;
   type: AnalysisObjectType;
   state: AnalysisObjectState;
-  results: AnalysisResults;
+  results: LegacyAnalysisResults | null;
   sensitivityResults: SensitivityResults | null;
   resultProvenance: ResultProvenance | null;
   workbenchView: WorkbenchView;
@@ -325,6 +325,61 @@ export function updateActiveAnalysisObject(
     updatedAt: timestamp,
     objects: project.objects.map((object) => object.id === project.activeObjectId ? updater(object) : object),
   });
+}
+
+export function updateAnalysisObjectById(
+  project: SolverProject,
+  objectId: string,
+  updater: (object: AnalysisObject) => AnalysisObject,
+  now = new Date(),
+): SolverProject {
+  if (!project.objects.some((object) => object.id === objectId)) return project;
+  const timestamp = now.toISOString();
+  return normalizeSolverProject({
+    ...project,
+    updatedAt: timestamp,
+    objects: project.objects.map((object) => object.id === objectId
+      ? { ...updater(object), updatedAt: timestamp }
+      : object),
+  });
+}
+
+export function commitAnalysisObjectResult(
+  project: SolverProject,
+  objectId: string,
+  results: LegacyAnalysisResults,
+  resultProvenance: ResultProvenance,
+): SolverProject {
+  return updateAnalysisObjectById(project, objectId, (object) => ({
+    ...object,
+    results,
+    sensitivityResults: null,
+    resultProvenance,
+  }));
+}
+
+export function commitAnalysisObjectSensitivity(
+  project: SolverProject,
+  objectId: string,
+  sensitivityResults: SensitivityResults,
+  resultProvenance: ResultProvenance,
+): SolverProject {
+  return updateAnalysisObjectById(project, objectId, (object) => ({
+    ...object,
+    sensitivityResults,
+    resultProvenance,
+  }));
+}
+
+export function clearAnalysisObjectResults(project: SolverProject, objectId: string): SolverProject {
+  const object = project.objects.find((candidate) => candidate.id === objectId);
+  if (!object || (!object.results && !object.sensitivityResults && !object.resultProvenance)) return project;
+  return updateAnalysisObjectById(project, objectId, (object) => ({
+    ...object,
+    results: null,
+    sensitivityResults: null,
+    resultProvenance: null,
+  }));
 }
 
 export function updateActiveAnalysisObjectWorkspace(project: SolverProject, workspace: WorkspaceState): SolverProject {

@@ -294,7 +294,20 @@ def test_truss_calculate_returns_stable_validation_errors(client, mutate_payload
     data = response.get_json()
     assert data["success"] is False
     assert data["error"]["message"] == expected_error
-    assert data["error"]["code"] == "TRUSS_INVALID_REQUEST"
+    expected_code = "TRUSS_INVALID_REQUEST"
+    if "ID 重复" in expected_error:
+        expected_code = "STRUCTURE_DUPLICATE_ID"
+    elif "引用了不存在" in expected_error or "起止节点无效" in expected_error:
+        expected_code = "STRUCTURE_INVALID_REFERENCE"
+    elif "截面面积必须大于 0" in expected_error:
+        expected_code = "STRUCTURE_INVALID_STIFFNESS_INPUT"
+    elif "刚度矩阵奇异" in expected_error:
+        expected_code = "STRUCTURE_SINGULAR_STIFFNESS"
+    elif "约束条件不足" in expected_error:
+        expected_code = "STRUCTURE_UNSTABLE_CONSTRAINTS"
+    elif "约束条件过多" in expected_error:
+        expected_code = "STRUCTURE_OVERCONSTRAINED"
+    assert data["error"]["code"] == expected_code
 
 
 def test_truss_member_self_weight_load_is_equivalent_nodal_load(client):

@@ -4,13 +4,12 @@ from typing import Any, Dict, List
 
 from backend.config import get_max_frame_members, get_max_frame_nodes
 from backend.common.numbers import to_float
+from backend.common.solver_backend import normalize_solver_backend
 from backend.normalizers.structural_model import (
     FRAME_SUPPORT_LABELS,
     build_structural_model,
     parse_support_type as parse_structural_support_type,
-    support_dof_indexes,
 )
-from backend.solver.linear_system import normalize_solver_backend
 
 
 DEFAULT_PROJECT_NAME = "默认平面框架项目"
@@ -28,10 +27,6 @@ def _first_value(*values: Any) -> Any:
 
 def parse_support_type(value: Any, default: str = "free") -> str:
     return parse_structural_support_type(value, SUPPORT_LABELS, default)
-
-
-def parse_node_support_dofs(support_type: str) -> List[int]:
-    return support_dof_indexes("frame", support_type)
 
 
 def normalize_frame_request(data: Dict[str, Any]) -> Dict[str, Any]:

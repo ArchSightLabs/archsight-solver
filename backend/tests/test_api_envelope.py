@@ -6,6 +6,7 @@ import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from app import app
+from backend.services.job_store import load_job
 
 
 def _beam_payload():
@@ -136,3 +137,25 @@ def test_api_responses_include_unified_envelope(client, endpoint, payload, analy
         assert data["results"]["series"]["ux_data"] == data["ux_data"]
         assert data["results"]["series"]["uy_data"] == data["uy_data"]
         assert data["results"]["series"]["member_axial_data"] == data["member_axial_data"]
+
+
+def test_sync_calculations_do_not_treat_browser_client_id_as_idempotency_key(monkeypatch, tmp_path):
+    monkeypatch.setenv("ARCHSIGHT_SOLVER_JOB_DB_PATH", str(tmp_path / "solver-jobs.sqlite3"))
+    app.config["TESTING"] = True
+    isolated_client = app.test_client()
+    headers = {"X-Client-ID": "stable-browser-client"}
+
+    first = isolated_client.post("/api/calculate", json=_beam_payload(), headers=headers)
+    second = isolated_client.post("/api/calculate", json=_beam_payload(), headers=headers)
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    first_data = first.get_json()
+    second_data = second.get_json()
+    assert first_data["meta"]["jobCacheStatus"] == "succeeded"
+    assert second_data["meta"]["jobCacheStatus"] == "succeeded"
+    assert first_data["jobId"] != second_data["jobId"]
+    first_stored_result = load_job(first_data["jobId"])["result"]
+    assert first_stored_result["storageSchema"] == "solver-calculation-result@1"
+    assert "success" not in first_stored_result
+    assert "results" not in first_stored_result

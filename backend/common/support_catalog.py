@@ -66,6 +66,11 @@ def support_constraint_dofs(analysis_type: AnalysisType, support_type: str) -> l
     return list(support_constraint_dof_map()[analysis_type].get(normalized, []))
 
 
+def support_dof_indexes(analysis_type: AnalysisType, support_type: str) -> list[int]:
+    index_map = {"ux": 0, "uy": 1, "rz": 2}
+    return [index_map[item] for item in support_constraint_dofs(analysis_type, support_type)]
+
+
 def support_released_dofs(analysis_type: AnalysisType, support_type: str) -> list[str]:
     normalized = str(support_type or "free").strip().lower()
     return list(support_released_dof_map()[analysis_type].get(normalized, []))

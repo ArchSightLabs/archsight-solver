@@ -4,6 +4,7 @@ from typing import Any, Dict
 
 import numpy as np
 
+from backend.common.domain_errors import StructureStabilityError
 from backend.solver.linear_system import solve_free_dofs
 
 
@@ -15,9 +16,9 @@ def solve_truss_system(assembly: Dict[str, Any]) -> Dict[str, Any]:
     ndof = assembly["ndof"]
 
     if len(fixed_dofs) < 3:
-        raise ValueError("桁架约束条件不足，系统无稳定自由度可求解")
+        raise StructureStabilityError("桁架约束条件不足，系统无稳定自由度可求解")
     if not free_dofs:
-        raise ValueError("桁架约束条件过多，系统无自由度可求解")
+        raise StructureStabilityError("桁架约束条件过多，系统无自由度可求解", kind="overconstrained")
 
     reduced_forces = forces[free_dofs]
 
@@ -31,8 +32,10 @@ def solve_truss_system(assembly: Dict[str, Any]) -> Dict[str, Any]:
         )
         displacements = solved["displacements"]
         reactions = solved["reactions"]
+    except StructureStabilityError:
+        raise
     except (np.linalg.LinAlgError, ValueError) as exc:
-        raise ValueError("桁架刚度矩阵奇异，请检查支座与杆件连接") from exc
+        raise StructureStabilityError("桁架刚度矩阵奇异，请检查支座与杆件连接", kind="singular") from exc
 
     residual = (stiffness @ displacements - forces)[free_dofs]
     load_norm = max(float(np.linalg.norm(reduced_forces)), 1.0)

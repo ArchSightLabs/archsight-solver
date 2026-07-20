@@ -3,6 +3,7 @@ import traceback
 from backend.api.errors import ApiError, error_payload
 from backend.exporters.common.artifact import ExportArtifact
 from backend.api.analysis_types import get_analysis_type, get_material_name
+from backend.contracts.calculation_response import solution_from_stored_result
 from backend.services.export_service import build_report_model, export_report
 
 export_bp = Blueprint('export', __name__)
@@ -32,9 +33,7 @@ def export():
                 raise ApiError(f"指定作业未成功完成，无法导出，状态：{job.get('status')}", code='COMMON_JOB_NOT_READY', status_code=400)
             if job.get('operation') != 'calculate':
                 raise ApiError(f"只支持计算类型的作业导出，当前为：{job.get('operation')}", code='COMMON_INVALID_JOB_OPERATION', status_code=400)
-            precomputed_solution = job.get('result')
-            if precomputed_solution and 'solution' in precomputed_solution:
-                precomputed_solution = precomputed_solution['solution']
+            precomputed_solution = solution_from_stored_result(job.get('result'))
             job_payload = dict(job.get('payload', {}))
             job_payload.update({
                 'format': data.get('format', 'xlsx'),

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import type { ModelPreviewStyle } from "../types/beam";
+import type { ModelPreviewStyle, SensitivityResults } from "../types/beam";
 import type { Material } from "../types/material";
 import type { ReportExportOptions } from "../lib/report-options";
 import { normalizeReportExportOptions } from "../lib/report-options";
@@ -11,7 +11,12 @@ import {
   writeProjectAutosaveDraft,
 } from "../lib/project-autosave";
 import type { WorkspaceState } from "../lib/workspace-state";
+import type { LegacyAnalysisResults } from "../lib/api-envelope";
+import type { ResultProvenance } from "../lib/result-provenance";
 import {
+  clearAnalysisObjectResults,
+  commitAnalysisObjectResult,
+  commitAnalysisObjectSensitivity,
   createWorkspaceFromProject,
   createDefaultSolverProject,
   getActiveAnalysisObject,
@@ -206,6 +211,35 @@ export function useSolverProjectDocument({ localAutosaveEnabled = true }: { loca
     setDocumentLifecycle(advanceProjectDocumentRevision(documentLifecycleRef.current));
   }, [notifyReadOnlyMutation, setDocumentLifecycle]);
 
+  const commitProjectMutation = useCallback((mutate: (current: SolverProject) => SolverProject) => {
+    if (projectReadOnlyRef.current) {
+      notifyReadOnlyMutation();
+      return false;
+    }
+    const currentProject = projectRef.current;
+    const nextProject = mutate(currentProject);
+    if (nextProject === currentProject) return false;
+    projectRef.current = nextProject;
+    setProjectState(nextProject);
+    markProjectDirty();
+    return true;
+  }, [markProjectDirty, notifyReadOnlyMutation]);
+
+  const commitAnalysisResult = useCallback((
+    objectId: string,
+    result: Exclude<LegacyAnalysisResults, null>,
+    provenance: ResultProvenance,
+  ) => commitProjectMutation((current) => commitAnalysisObjectResult(current, objectId, result, provenance)), [commitProjectMutation]);
+
+  const commitSensitivityResult = useCallback((
+    objectId: string,
+    result: SensitivityResults,
+    provenance: ResultProvenance,
+  ) => commitProjectMutation((current) => commitAnalysisObjectSensitivity(current, objectId, result, provenance)), [commitProjectMutation]);
+
+  const clearAnalysisResults = useCallback((objectId: string) =>
+    commitProjectMutation((current) => clearAnalysisObjectResults(current, objectId)), [commitProjectMutation]);
+
   const getProjectRevision = useCallback(() => documentLifecycleRef.current.revision, []);
   const getProjectDocumentSnapshot = useCallback(
     () => captureProjectDocumentSnapshot(documentLifecycleRef.current),
@@ -390,8 +424,11 @@ export function useSolverProjectDocument({ localAutosaveEnabled = true }: { loca
 
   return {
     activeAnalysisObject,
+    clearAnalysisResults,
     clearProjectFileLink,
     completeProjectFileSave,
+    commitAnalysisResult,
+    commitSensitivityResult,
     fileStatusMessage,
     isProjectDirty,
     isProjectReadOnly,

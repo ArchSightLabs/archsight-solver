@@ -5,8 +5,12 @@ import {
   type ArchSightSolverProjectFile,
 } from "./project-file.ts";
 import type { SolverProject } from "./solver-project.ts";
+import {
+  SOLVER_HOST_CAPABILITIES,
+  SOLVER_HOST_PROTOCOL_VERSION,
+} from "./generated/solver-contract.ts";
 
-export const SOLVER_HOST_PROTOCOL_VERSION = "1.0.0";
+export { SOLVER_HOST_CAPABILITIES, SOLVER_HOST_PROTOCOL_VERSION };
 export const HOST_LAUNCH_MESSAGE = "archsight.solver.host.launch";
 export const HOST_REQUEST_SAVE_MESSAGE = "archsight.solver.host.requestSave";
 export const HOST_SAVE_RESULT_MESSAGE = "archsight.solver.host.saveResult";
@@ -14,14 +18,6 @@ export const SOLVER_READY_MESSAGE = "archsight.solver.ready";
 export const SOLVER_PROJECT_CHANGED_MESSAGE = "archsight.solver.project.changed";
 export const SOLVER_SAVE_REQUEST_MESSAGE = "archsight.solver.project.saveRequest";
 export const SOLVER_ERROR_MESSAGE = "archsight.solver.error";
-export const SOLVER_HOST_CAPABILITIES = Object.freeze({
-  loadProjectDocument: true,
-  emitProjectChanged: true,
-  acceptHostSaveRequest: true,
-  emitSaveRequest: true,
-  acceptSaveResult: true,
-});
-
 export interface SolverHostMessage<TPayload = unknown> {
   type: string;
   protocolVersion?: string;

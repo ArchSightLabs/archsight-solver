@@ -74,3 +74,25 @@ def test_export_skips_calculation_when_valid_job_id_provided(client, monkeypatch
     assert received_report is not None
     assert received_report.fields == mock_solution
     assert received_report.analysis_type == "beam"
+
+
+def test_export_reads_canonical_result_from_sync_calculation_cache(client):
+    payload = {
+        "analysisType": "beam",
+        "beamType": "simply_supported",
+        "loadType": "uniform",
+        "q": 12,
+        "E": 206,
+        "I": 85000,
+        "spans": [6],
+        "projectName": "Canonical Cached Export",
+    }
+    calculation = client.post("/api/calculate", json=payload)
+
+    assert calculation.status_code == 200
+    job_id = calculation.get_json()["jobId"]
+    exported = client.post("/api/export", json={**payload, "jobId": job_id, "format": "xlsx"})
+
+    assert exported.status_code == 200
+    assert exported.mimetype == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    assert len(exported.data) > 0

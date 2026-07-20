@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, SetStateAction } from "react";
 import {
   GripVertical,
   PanelLeftClose,
@@ -16,7 +16,7 @@ import { DialogProvider, useDialogs } from "./contexts/DialogContext";
 import { AppHeader } from "./components/AppHeader";
 import { ModelDiagnosticsPanel } from "./components/ModelDiagnosticsPanel";
 import { WorkbenchInspectorPanel } from "./components/WorkbenchInspectorPanel";
-import { WorkbenchModelCanvas } from "./components/WorkbenchModelCanvas";
+import { WorkbenchModelCanvas, type WorkbenchModelCanvasController } from "./components/WorkbenchModelCanvas";
 import { WorkbenchResultTabs } from "./components/WorkbenchResultTabs";
 import { WorkbenchSensitivityPanel } from "./components/WorkbenchSensitivityPanel";
 import { WorkbenchViewTabs } from "./components/WorkbenchViewTabs";
@@ -24,7 +24,7 @@ import { GlassCard } from "./components/ui/GlassCard";
 import { Button } from "./components/ui/button";
 import { useTemplateLibrary } from "./hooks/useTemplateLibrary";
 import { materialLibraryFromCustomMaterials } from "./lib/material-presets";
-import { getActiveAnalysisObject, type ProjectInfo } from "./lib/solver-project";
+import type { ProjectInfo, WorkbenchView } from "./lib/solver-project";
 import { moduleSectionId, moduleSectionsForMode, normalizeModuleSectionId, objectNavigatorSectionId } from "./lib/workbench-navigation";
 import { ARCHSIGHT_SOLVER_PROJECT_ACCEPT } from "./lib/project-file";
 import type { ProjectTemplate } from "./types/beam";
@@ -76,6 +76,7 @@ const SOLVER_HOST_ALLOWED_ORIGINS = resolveHostAllowedOrigins(
 type AnalysisObjectPageState = {
   moduleSectionId?: string;
   resultTabId?: string;
+  workbenchView?: WorkbenchView;
 };
 
 interface WorkbenchSelectionState {
@@ -119,8 +120,11 @@ function AppContent() {
 
   const {
     activeAnalysisObject,
+    clearAnalysisResults,
     clearProjectFileLink,
     completeProjectFileSave,
+    commitAnalysisResult,
+    commitSensitivityResult,
     fileStatusMessage,
     isProjectDirty,
     isProjectReadOnly,
@@ -178,42 +182,56 @@ function AppContent() {
     setWorkbenchSelectionState({ primary: null, items: [] });
     setPageStateByObjectId({});
   }, []);
+  const activeObjectPageState = pageStateByObjectId[activeAnalysisObject.id] ?? {};
+  const workbenchView = activeObjectPageState.workbenchView ?? activeAnalysisObject.workbenchView ?? "model";
+  const setWorkbenchView = useCallback((nextView: SetStateAction<WorkbenchView>) => {
+    setPageStateByObjectId((current) => {
+      const currentView = current[activeAnalysisObject.id]?.workbenchView ?? activeAnalysisObject.workbenchView ?? "model";
+      const resolvedView = typeof nextView === "function" ? nextView(currentView) : nextView;
+      return {
+        ...current,
+        [activeAnalysisObject.id]: {
+          ...current[activeAnalysisObject.id],
+          workbenchView: resolvedView,
+        },
+      };
+    });
+  }, [activeAnalysisObject.id, activeAnalysisObject.workbenchView]);
   const visitStats = useVisitStats();
   const {
-    applyCurrentRuntimeToProject,
     beamResults,
     benchmarkSubmissionContext,
     clearCurrentAnalysisRuntime,
     exportingFormat,
     frameResults,
     handleExport,
+    handleAnalysisObjectChanged,
     handleRunAndReview,
     handleRunCurrentModule,
     handleRunWorkspace,
     handleSensitivity,
     isScanning,
     isSolving,
-    markRuntimePersisted,
     operationNotice,
     resultValidity,
     resetRuntimeForNewAnalysisObject,
     runLabel,
     sensitivityData,
-    syncRuntimeFromAnalysisObject,
     trussResults,
-    workbenchView,
-    setWorkbenchView,
   } = useWorkbenchRuntime({
     activeAnalysisObject,
     clientId,
+    clearAnalysisResults,
+    commitAnalysisResult,
+    commitSensitivityResult,
     getProjectRevision,
-    markProjectDirty,
     modelDiagnostics,
     projectName: project.settings.projectInfo.name,
     reportExportOptions,
     resetWorkbenchContext,
-    setProject,
+    setWorkbenchView,
     updateWorkspace,
+    workbenchView,
     workspace,
   });
 
@@ -284,7 +302,6 @@ function AppContent() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [redoWorkspaceChange, undoWorkspaceChange]);
 
-  const activeObjectPageState = pageStateByObjectId[activeAnalysisObject.id] ?? {};
   const moduleSections = moduleSectionsForMode(analysisMode);
   const normalizedActiveModuleSection = normalizeModuleSectionId(analysisMode, activeObjectPageState.moduleSectionId ?? project.settings.activeModuleSection);
 
@@ -345,23 +362,17 @@ function AppContent() {
     handleSaveProjectFile,
     projectFileInputRef,
   } = useProjectFileActions({
-    applyCurrentRuntimeToProject,
     completeProjectFileSave,
     getProjectDocumentSnapshot,
     isProjectDirty,
     isProjectReadOnly,
-    markRuntimePersisted,
     onNewProjectRequested: () => setProjectInfoDialogMode("create"),
     onProjectOpened: resetAllPageState,
     onPublicExampleClosed: () => setIsPublicExamplesOpen(false),
     project,
     projectFileHandle,
     replaceProject,
-    syncRuntimeFromAnalysisObject,
   });
-  const syncRuntimeFromProject = useCallback((nextProject: typeof project) => {
-    syncRuntimeFromAnalysisObject(getActiveAnalysisObject(nextProject));
-  }, [syncRuntimeFromAnalysisObject]);
   const handleHostSaveResult = useCallback((status: string, projectRevision: number | null) => {
     if (status === "saved" && projectRevision !== null) {
       markProjectSaved(projectRevision, "外部宿主已保存工程。");
@@ -375,14 +386,12 @@ function AppContent() {
     requestHostSave,
   } = useSolverHostBridge({
     allowedOrigins: SOLVER_HOST_ALLOWED_ORIGINS,
-    applyCurrentRuntimeToProject,
     getProjectRevision,
     project,
     onHostModeChange: (mode) => setProjectReadOnly(mode === "readonly"),
     onHostSaveResult: handleHostSaveResult,
     replaceProject,
     setFileStatusMessage,
-    syncRuntimeFromProject,
   });
   const handleSaveProject = useCallback((forceSaveAs = false) => {
     if (isProjectReadOnly) {
@@ -406,8 +415,8 @@ function AppContent() {
     handleSelectAnalysisObject,
     objectCountByType,
   } = useAnalysisObjectManager({
-    applyCurrentRuntimeToProject,
     markProjectDirty,
+    onAnalysisObjectChanged: handleAnalysisObjectChanged,
     onCreatedDialogClose: () => setIsNewAnalysisObjectDialogOpen(false),
     onCreatedAnalysisObject: (object) => {
       setPageStateByObjectId((current) => ({
@@ -420,11 +429,9 @@ function AppContent() {
     },
     project,
     isProjectReadOnly,
-    resetRuntimeForNewAnalysisObject,
     setFileStatusMessage,
     setProject,
     setProjectForNavigation,
-    syncRuntimeFromAnalysisObject,
   });
   const handleCreateAnalysisObjectWithPath = useCallback((type: AnalysisMode, name: string, startMode: NewAnalysisObjectStartMode) => {
     pendingNewObjectStartModeRef.current = startMode;
@@ -570,6 +577,30 @@ function AppContent() {
       handleWorkbenchSelectionChange(result.selection, { openEditor: false });
     }
   }, [handleWorkbenchSelectionChange, updateWorkspace, workspace]);
+  const modelCanvasController: WorkbenchModelCanvasController = {
+    selection: activeWorkbenchSelection,
+    selectionSet: activeWorkbenchSelectionSet,
+    canDeleteSelection: canDeleteWorkbenchSelection,
+    canRedoWorkspace,
+    canUndoWorkspace,
+    geometryToolbar: modelGeometryToolbar,
+    gridSnapEnabled,
+    gridSnapStepM,
+    labelOffsetCount: activeModelLabelOffsetCount,
+    canResetSelectedLabel: canResetSelectedModelLabel,
+    onDeleteSelection: handleDeleteWorkbenchSelection,
+    onGeometryAction: handleModelGeometryAction,
+    onGridSnapEnabledChange: setGridSnapEnabled,
+    onGridSnapStepChange: handleGridSnapStepChange,
+    onMoveLabel: handleMoveWorkbenchLabel,
+    onMoveNode: handleMoveWorkbenchNode,
+    onRedoWorkspace: redoWorkspaceChange,
+    onResetAllLabels: handleResetAllModelLabels,
+    onResetSelectedLabel: handleResetSelectedModelLabel,
+    onSelect: handleWorkbenchSelectionChange,
+    onSelectionSetChange: handleWorkbenchSelectionSetChange,
+    onUndoWorkspace: undoWorkspaceChange,
+  };
   const handleRunGeneratedWorkspace = useCallback((nextWorkspace: WorkspaceState) => {
     if (isProjectReadOnly) {
       setFileStatusMessage("外部宿主只读模式下不能生成或替换模型。");
@@ -761,30 +792,9 @@ function AppContent() {
                 <WorkbenchModelCanvas
                   workspace={workspace}
                   mode={analysisMode}
-                compact={isCompactWorkbench}
-                modelPreviewStyle={project.settings.modelPreviewStyle}
-                selection={activeWorkbenchSelection}
-                selectionSet={activeWorkbenchSelectionSet}
-                canDeleteSelection={canDeleteWorkbenchSelection}
-                canRedoWorkspace={canRedoWorkspace}
-                canUndoWorkspace={canUndoWorkspace}
-                geometryToolbar={modelGeometryToolbar}
-                gridSnapEnabled={gridSnapEnabled}
-                gridSnapStepM={gridSnapStepM}
-                labelOffsetCount={activeModelLabelOffsetCount}
-                canResetSelectedLabel={canResetSelectedModelLabel}
-                onDeleteSelection={handleDeleteWorkbenchSelection}
-                onGeometryAction={handleModelGeometryAction}
-                onGridSnapEnabledChange={setGridSnapEnabled}
-                onGridSnapStepChange={handleGridSnapStepChange}
-                onMoveLabel={handleMoveWorkbenchLabel}
-                onMoveNode={handleMoveWorkbenchNode}
-                onRedoWorkspace={redoWorkspaceChange}
-                onResetAllLabels={handleResetAllModelLabels}
-                onResetSelectedLabel={handleResetSelectedModelLabel}
-                onSelect={handleWorkbenchSelectionChange}
-                onSelectionSetChange={handleWorkbenchSelectionSetChange}
-                onUndoWorkspace={undoWorkspaceChange}
+                  compact={isCompactWorkbench}
+                  modelPreviewStyle={project.settings.modelPreviewStyle}
+                  controller={modelCanvasController}
                 />
               </div>
             ) : workbenchView === "sensitivity" ? (

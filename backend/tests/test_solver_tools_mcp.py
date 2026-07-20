@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 import os
 import subprocess
 import sys
@@ -89,6 +90,35 @@ def test_cli_and_mcp_tool_failures_share_structured_diagnostics():
     cli_result = json.loads(completed.stdout)
     assert cli_result["status"] == "invalid_input"
     assert cli_result["diagnostics"]["issues"][0]["category"] == "input"
+
+
+def test_domain_error_code_and_object_refs_match_across_tool_cli_and_mcp():
+    payload = deepcopy(frame_payload())
+    payload["structure"]["nodes"].append(dict(payload["structure"]["nodes"][0]))
+    arguments = {"payload": payload}
+
+    direct_result = solve_calculate(arguments)
+    direct_issue = direct_result["diagnostics"]["issues"][0]
+    assert direct_result["errorCode"] == "STRUCTURE_DUPLICATE_ID"
+    assert direct_issue["code"] == "STRUCTURE_DUPLICATE_ID"
+    assert {"kind": "node", "id": payload["structure"]["nodes"][0]["id"]} in direct_issue["objectRefs"]
+
+    cli = subprocess.run(
+        [sys.executable, "-m", "backend.capabilities.solver_cli", "calculate"],
+        input=json.dumps(arguments, ensure_ascii=False),
+        text=True,
+        encoding="utf-8",
+        capture_output=True,
+        check=True,
+    )
+    cli_result = json.loads(cli.stdout)
+    assert cli_result["errorCode"] == direct_result["errorCode"]
+    assert cli_result["diagnostics"]["issues"] == direct_result["diagnostics"]["issues"]
+
+    mcp_result = mcp_server._call_tool({"name": "calculate", "arguments": arguments})
+    assert mcp_result["isError"] is True
+    assert mcp_result["structuredContent"]["errorCode"] == direct_result["errorCode"]
+    assert mcp_result["structuredContent"]["diagnostics"]["issues"] == direct_result["diagnostics"]["issues"]
 
 
 def test_sensitivity_tool_returns_response_metric():

@@ -96,6 +96,7 @@ scripts/*
 !scripts/build-image.ps1
 !scripts/check_release_gate.py
 !scripts/check_versions.py
+!scripts/generate_contract_types.py
 !scripts/generate_benchmark_report.py
 !scripts/kill-ports.ps1
 !scripts/remote-deploy.ps1

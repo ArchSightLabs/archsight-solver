@@ -1,34 +1,24 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 from backend.config import get_max_truss_members, get_max_truss_nodes
+from backend.common.solver_backend import normalize_solver_backend
 from backend.normalizers.structural_model import (
     TRUSS_SUPPORT_LABELS,
     build_structural_model,
     parse_support_type as parse_structural_support_type,
-    support_dof_indexes,
 )
-from backend.solver.linear_system import normalize_solver_backend
 
 
 DEFAULT_PROJECT_NAME = "默认二维桁架项目"
 DEFAULT_MATERIAL_NAME = "自定义材料"
-ALLOWABLE_RATIO = 250.0
 
 SUPPORT_LABELS = TRUSS_SUPPORT_LABELS
 
 
 def parse_support_type(value: Any, default: str = "free") -> str:
     return parse_structural_support_type(value, SUPPORT_LABELS, default)
-
-
-def node_dofs(node_index: int) -> Tuple[int, int]:
-    return node_index * 2, node_index * 2 + 1
-
-
-def node_support_dofs(support_type: str) -> List[int]:
-    return support_dof_indexes("truss", support_type)
 
 
 def normalize_truss_request(data: Dict[str, Any]) -> Dict[str, Any]:

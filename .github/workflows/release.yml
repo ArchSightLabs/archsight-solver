@@ -43,6 +43,7 @@ jobs:
         run: |
           python scripts/check_versions.py --expected-version "${VERSION#v}"
           python scripts/check_release_gate.py
+          python scripts/generate_contract_types.py --check
 
       - name: Install dependencies
         run: |

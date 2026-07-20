@@ -4,9 +4,11 @@ import json
 from typing import Any, Callable, Dict, Mapping
 
 from backend.capabilities.beam_deflection import _build_solver_payload, _formula_ref, solve_beam_deflection_capability
-from backend.api.sensitivity import build_sensitivity_response
-from backend.api.errors import analysis_type_for_error, diagnostic_issues_for_message
-from backend.api.utils import build_calculation_response
+from backend.application.calculation import build_calculation_result
+from backend.application.sensitivity import build_sensitivity_response
+from backend.common.domain_errors import SolverDomainError
+from backend.contracts.diagnostics import analysis_type_for_error, diagnostic_issues_for_exception, diagnostic_issues_for_message
+from backend.contracts.calculation_response import build_api_v1_response
 from backend.benchmarks.catalog import iter_benchmark_cases
 from backend.benchmarks.runner import BenchmarkCaseError, evaluate_benchmark_case_by_id
 from backend.integration_errors import (
@@ -39,46 +41,67 @@ class ToolInputError(ValueError):
     """输入 JSON 可解析，但不满足工具契约。"""
 
 
-def _failure_diagnostics(message: str, analysis_type: str | None = None) -> Dict[str, Any]:
+def _contextual_tool_error(exc: Exception, prefix: str) -> Exception | str:
+    return exc if isinstance(exc, SolverDomainError) else f"{prefix}: {exc}"
+
+
+def _failure_diagnostics(error: Exception | str, analysis_type: str | None = None) -> Dict[str, Any]:
+    issues = (
+        diagnostic_issues_for_exception(error, analysis_type)
+        if isinstance(error, Exception)
+        else diagnostic_issues_for_message(error, analysis_type)
+    )
     return {
         "warnings": [],
         "infos": [],
-        "issues": diagnostic_issues_for_message(message, analysis_type),
+        "issues": issues,
     }
 
 
 def _invalid_result(
     capability_id: str,
-    message: str,
-    error_code: str = INVALID_INPUT,
+    error: Exception | str,
+    error_code: str | None = None,
     *,
     analysis_type: str | None = None,
 ) -> Dict[str, Any]:
+    message = str(error)
+    resolved_code = error_code or (
+        error_code_from_exception(error, INVALID_INPUT)
+        if isinstance(error, Exception)
+        else INVALID_INPUT
+    )
     return {
         "capabilityId": capability_id,
         "capabilityVersion": CAPABILITY_VERSION,
         "status": "invalid_input",
         "inputValidated": False,
-        "errorCode": error_code,
-        "diagnostics": _failure_diagnostics(message, analysis_type),
+        "errorCode": resolved_code,
+        "diagnostics": _failure_diagnostics(error, analysis_type),
         "warnings": [message],
     }
 
 
 def _error_result(
     capability_id: str,
-    message: str,
-    error_code: str = SOLVE_FAILED,
+    error: Exception | str,
+    error_code: str | None = None,
     *,
     analysis_type: str | None = None,
 ) -> Dict[str, Any]:
+    message = str(error)
+    resolved_code = error_code or (
+        error_code_from_exception(error, SOLVE_FAILED)
+        if isinstance(error, Exception)
+        else SOLVE_FAILED
+    )
     return {
         "capabilityId": capability_id,
         "capabilityVersion": CAPABILITY_VERSION,
         "status": "error",
         "inputValidated": False,
-        "errorCode": error_code,
-        "diagnostics": _failure_diagnostics(message, analysis_type),
+        "errorCode": resolved_code,
+        "diagnostics": _failure_diagnostics(error, analysis_type),
         "warnings": [message],
     }
 
@@ -148,11 +171,11 @@ def _solve_beam_deflection_serviceability_check(arguments: Mapping[str, Any], ca
             ],
         }
     except ToolInputError as exc:
-        return _invalid_result(capability_id, str(exc), error_code_from_exception(exc, EXPORT_FAILED), analysis_type="beam")
+        return _invalid_result(capability_id, exc, error_code_from_exception(exc, EXPORT_FAILED), analysis_type="beam")
     except Exception as exc:
         if exc.__class__.__name__ == "CapabilityInputError":
             return _invalid_result(capability_id, str(exc), analysis_type="beam")
-        return _error_result(capability_id, f"梁校核调用失败: {exc}", analysis_type="beam")
+        return _error_result(capability_id, _contextual_tool_error(exc, "梁校核调用失败"), analysis_type="beam")
 
 
 def solve_beam_deflection_serviceability_check(arguments: Mapping[str, Any]) -> Dict[str, Any]:
@@ -198,9 +221,9 @@ def solve_frame_displacement(arguments: Mapping[str, Any]) -> Dict[str, Any]:
             ],
         }
     except ToolInputError as exc:
-        return _invalid_result(capability_id, str(exc), error_code_from_exception(exc, EXPORT_FAILED), analysis_type="frame")
+        return _invalid_result(capability_id, exc, error_code_from_exception(exc, EXPORT_FAILED), analysis_type="frame")
     except Exception as exc:
-        return _error_result(capability_id, f"框架位移求解失败: {exc}", analysis_type="frame")
+        return _error_result(capability_id, _contextual_tool_error(exc, "框架位移求解失败"), analysis_type="frame")
 
 
 def solve_truss_member_force(arguments: Mapping[str, Any]) -> Dict[str, Any]:
@@ -240,9 +263,9 @@ def solve_truss_member_force(arguments: Mapping[str, Any]) -> Dict[str, Any]:
             ],
         }
     except ToolInputError as exc:
-        return _invalid_result(capability_id, str(exc), analysis_type="truss")
+        return _invalid_result(capability_id, exc, analysis_type="truss")
     except Exception as exc:
-        return _error_result(capability_id, f"桁架杆力求解失败: {exc}", analysis_type="truss")
+        return _error_result(capability_id, _contextual_tool_error(exc, "桁架杆力求解失败"), analysis_type="truss")
 
 
 def solve_calculate(arguments: Mapping[str, Any]) -> Dict[str, Any]:
@@ -253,7 +276,8 @@ def solve_calculate(arguments: Mapping[str, Any]) -> Dict[str, Any]:
         payload = raw_payload
         if not isinstance(payload, Mapping):
             raise ToolInputError("payload 必须是结构求解输入对象")
-        result = build_calculation_response(dict(payload), operation="calculate")
+        result = build_calculation_result(dict(payload), operation="calculate")
+        public_result = build_api_v1_response(result)
         summary = result.get("summary", {})
         return {
             "capabilityId": capability_id,
@@ -263,15 +287,15 @@ def solve_calculate(arguments: Mapping[str, Any]) -> Dict[str, Any]:
             "analysisType": result.get("analysisType"),
             "summary": summary,
             "diagnostics": result.get("diagnostics", {}),
-            "results": result.get("results", {}),
+            "results": public_result.get("results", {}),
             "warnings": [
                 "通用求解工具返回完整结构分析结果摘要；工程签审仍需人工复核。"
             ],
         }
     except ToolInputError as exc:
-        return _invalid_result(capability_id, str(exc), analysis_type=analysis_type)
+        return _invalid_result(capability_id, exc, analysis_type=analysis_type)
     except Exception as exc:
-        return _error_result(capability_id, f"通用求解失败: {exc}", analysis_type=analysis_type)
+        return _error_result(capability_id, _contextual_tool_error(exc, "通用求解失败"), analysis_type=analysis_type)
 
 
 def solve_sensitivity_analysis(arguments: Mapping[str, Any]) -> Dict[str, Any]:
@@ -298,9 +322,9 @@ def solve_sensitivity_analysis(arguments: Mapping[str, Any]) -> Dict[str, Any]:
             ],
         }
     except ToolInputError as exc:
-        return _invalid_result(capability_id, str(exc), analysis_type=analysis_type)
+        return _invalid_result(capability_id, exc, analysis_type=analysis_type)
     except Exception as exc:
-        return _error_result(capability_id, f"敏感性分析失败: {exc}", analysis_type=analysis_type)
+        return _error_result(capability_id, _contextual_tool_error(exc, "敏感性分析失败"), analysis_type=analysis_type)
 
 
 def list_benchmark_cases(arguments: Mapping[str, Any]) -> Dict[str, Any]:
@@ -350,7 +374,7 @@ def run_benchmark_case(arguments: Mapping[str, Any]) -> Dict[str, Any]:
             "warnings": [],
         }
     except BenchmarkCaseError as exc:
-        return _invalid_result(capability_id, str(exc))
+        return _invalid_result(capability_id, exc)
     except Exception as exc:
         return _error_result(capability_id, f"基准算例执行失败: {exc}")
 
@@ -406,7 +430,7 @@ def load_solver_host_project(arguments: Mapping[str, Any]) -> Dict[str, Any]:
         result = load_host_project(raw_document, session_id=str(arguments.get("sessionId") or "") or None)
         return {"capabilityId": capability_id, "capabilityVersion": CAPABILITY_VERSION, "status": "pass", "inputValidated": True, **result}
     except Exception as exc:
-        return _invalid_result(capability_id, str(exc), error_code_from_exception(exc, INVALID_PROJECT_DOCUMENT))
+        return _invalid_result(capability_id, exc, error_code_from_exception(exc, INVALID_PROJECT_DOCUMENT))
 
 
 def build_solver_host_launch_contract(arguments: Mapping[str, Any]) -> Dict[str, Any]:
@@ -417,7 +441,7 @@ def build_solver_host_launch_contract(arguments: Mapping[str, Any]) -> Dict[str,
         result = build_host_launch_contract(raw_document, launch)
         return {"capabilityId": capability_id, "capabilityVersion": CAPABILITY_VERSION, "status": "pass", "inputValidated": True, **result}
     except Exception as exc:
-        return _invalid_result(capability_id, str(exc), error_code_from_exception(exc, INVALID_PROJECT_DOCUMENT))
+        return _invalid_result(capability_id, exc, error_code_from_exception(exc, INVALID_PROJECT_DOCUMENT))
 
 
 def apply_solver_host_project_change(arguments: Mapping[str, Any]) -> Dict[str, Any]:
@@ -430,7 +454,7 @@ def apply_solver_host_project_change(arguments: Mapping[str, Any]) -> Dict[str, 
         result = apply_host_project_change(raw_document, change)
         return {"capabilityId": capability_id, "capabilityVersion": CAPABILITY_VERSION, "status": "pass", "inputValidated": True, **result}
     except Exception as exc:
-        return _invalid_result(capability_id, str(exc), error_code_from_exception(exc, INVALID_PROJECT_DOCUMENT))
+        return _invalid_result(capability_id, exc, error_code_from_exception(exc, INVALID_PROJECT_DOCUMENT))
 
 
 def create_solver_host_save_request(arguments: Mapping[str, Any]) -> Dict[str, Any]:
@@ -440,7 +464,7 @@ def create_solver_host_save_request(arguments: Mapping[str, Any]) -> Dict[str, A
         result = create_host_save_request(raw_document)
         return {"capabilityId": capability_id, "capabilityVersion": CAPABILITY_VERSION, "status": "pass", "inputValidated": True, **result}
     except Exception as exc:
-        return _invalid_result(capability_id, str(exc), error_code_from_exception(exc, INVALID_PROJECT_DOCUMENT))
+        return _invalid_result(capability_id, exc, error_code_from_exception(exc, INVALID_PROJECT_DOCUMENT))
 
 
 def build_solver_host_save_result_event(arguments: Mapping[str, Any]) -> Dict[str, Any]:
@@ -453,7 +477,7 @@ def build_solver_host_save_result_event(arguments: Mapping[str, Any]) -> Dict[st
         event_result = build_host_save_result_event(raw_document, result)
         return {"capabilityId": capability_id, "capabilityVersion": CAPABILITY_VERSION, "status": event_result["status"], "inputValidated": True, **event_result}
     except Exception as exc:
-        return _invalid_result(capability_id, str(exc), error_code_from_exception(exc, INVALID_PROJECT_DOCUMENT))
+        return _invalid_result(capability_id, exc, error_code_from_exception(exc, INVALID_PROJECT_DOCUMENT))
 
 
 def solve_solver_project_document(arguments: Mapping[str, Any]) -> Dict[str, Any]:
@@ -463,7 +487,7 @@ def solve_solver_project_document(arguments: Mapping[str, Any]) -> Dict[str, Any
         result = solve_project_document(raw_document)
         return {"capabilityId": capability_id, "capabilityVersion": CAPABILITY_VERSION, "status": result["status"], "inputValidated": True, **result}
     except Exception as exc:
-        return _invalid_result(capability_id, str(exc), error_code_from_exception(exc, SOLVE_FAILED))
+        return _invalid_result(capability_id, exc, error_code_from_exception(exc, SOLVE_FAILED))
 
 
 def build_solver_export_metadata(arguments: Mapping[str, Any]) -> Dict[str, Any]:
@@ -481,7 +505,7 @@ def build_solver_export_metadata(arguments: Mapping[str, Any]) -> Dict[str, Any]
             "warnings": [],
         }
     except Exception as exc:
-        return _invalid_result(capability_id, str(exc), error_code_from_exception(exc, EXPORT_FAILED))
+        return _invalid_result(capability_id, exc, error_code_from_exception(exc, EXPORT_FAILED))
 
 
 def build_solver_export_artifact(arguments: Mapping[str, Any]) -> Dict[str, Any]:
@@ -499,7 +523,7 @@ def build_solver_export_artifact(arguments: Mapping[str, Any]) -> Dict[str, Any]
             "warnings": [],
         }
     except Exception as exc:
-        return _invalid_result(capability_id, str(exc), error_code_from_exception(exc, EXPORT_FAILED))
+        return _invalid_result(capability_id, exc, error_code_from_exception(exc, EXPORT_FAILED))
 
 
 def list_solver_builtin_templates(arguments: Mapping[str, Any]) -> Dict[str, Any]:

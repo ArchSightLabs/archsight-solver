@@ -63,6 +63,10 @@ interface WorkbenchModelCanvasProps {
   mode: AnalysisMode;
   compact?: boolean;
   modelPreviewStyle?: ModelPreviewStyle;
+  controller?: WorkbenchModelCanvasController;
+}
+
+export interface WorkbenchModelCanvasController {
   selection?: WorkbenchSelection | null;
   selectionSet?: WorkbenchSelection[];
   canDeleteSelection?: boolean;
@@ -198,6 +202,9 @@ export function WorkbenchModelCanvas({
   mode,
   compact = false,
   modelPreviewStyle = "simple",
+  controller = {},
+}: WorkbenchModelCanvasProps) {
+  const {
   selection,
   selectionSet = [],
   canDeleteSelection = false,
@@ -220,7 +227,7 @@ export function WorkbenchModelCanvas({
   onSelect,
   onSelectionSetChange,
   onUndoWorkspace,
-}: WorkbenchModelCanvasProps) {
+  } = controller;
   const surfaceRef = useRef<HTMLDivElement | null>(null);
   const boardRef = useRef<HTMLDivElement | null>(null);
   const marqueeRef = useRef<MarqueeSelectionState | null>(null);

@@ -1,18 +1,16 @@
 from __future__ import annotations
 
 import os
-import threading
-import time
 import uuid
-from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, Mapping
 
 from flask import Blueprint, jsonify, request, url_for
 
+from backend.application.calculation import build_calculation_result
 from backend.api.errors import ApiError, error_payload
 from backend.api.sensitivity import build_sensitivity_response
-from backend.api.calculation_response import build_calculation_response
+from backend.contracts.calculation_response import api_v1_response_from_stored_result
 from backend.services.job_store import DuplicateClientJobError
 from backend.services.job_store import load_job as _load_job
 from backend.services.job_store import load_job_by_client_id as _load_job_by_client_id
@@ -20,6 +18,7 @@ from backend.services.job_store import prune_completed_jobs as _prune_completed_
 from backend.services.job_store import store_job as _store_job
 from backend.services.job_store import update_job as _update_job
 from backend.services.job_store import bulk_fail_stale_jobs as _bulk_fail_stale_jobs
+from backend.services.job_runtime import LocalJobRuntime
 
 jobs_bp = Blueprint("jobs", __name__)
 
@@ -29,9 +28,9 @@ SUPPORTED_OPERATIONS = {"calculate", "preview", "sensitivity"}
 ACTIVE_STATUSES = {"queued", "running"}
 HEARTBEAT_TIMEOUT_SECONDS = 30.0
 
-_executor = ThreadPoolExecutor(max_workers=MAX_WORKERS, thread_name_prefix="solver-job")
-_futures: Dict[str, Future[Any]] = {}
-_lock = threading.Lock()
+_job_runtime = LocalJobRuntime(max_workers=MAX_WORKERS)
+# Kept as a read-only compatibility surface for tests and process-local diagnostics.
+_futures = _job_runtime.futures
 
 
 def _utc_now() -> str:
@@ -88,22 +87,10 @@ def _parse_heartbeat_at(value: Any) -> datetime | None:
     return parsed.astimezone(timezone.utc)
 
 
-def _heartbeat_loop() -> None:
-    while True:
-        try:
-            with _lock:
-                active_job_ids = list(_futures.keys())
-            if active_job_ids:
-                now = _utc_now()
-                for job_id in active_job_ids:
-                    _update_job(job_id, lastHeartbeatAt=now)
-        except Exception:
-            pass  # pragma: no cover
-        time.sleep(5.0)
-
-
-_heartbeat_thread = threading.Thread(target=_heartbeat_loop, daemon=True, name="solver-heartbeat")
-_heartbeat_thread.start()
+def _write_job_heartbeats(active_job_ids: list[str]) -> None:
+    now = _utc_now()
+    for job_id in active_job_ids:
+        _update_job(job_id, lastHeartbeatAt=now)
 
 
 def _job_public_view(record: Mapping[str, Any], *, include_result: bool = False) -> Dict[str, Any]:
@@ -126,7 +113,7 @@ def _job_public_view(record: Mapping[str, Any], *, include_result: bool = False)
         },
     }
     if include_result and record.get("status") == "succeeded":
-        view["result"] = record.get("result")
+        view["result"] = api_v1_response_from_stored_result(record.get("result"))
     if record.get("status") == "failed":
         view["error"] = record.get("error")
     return view
@@ -150,7 +137,7 @@ def _run_job(job_id: str) -> None:
         if operation == "sensitivity":
             result = build_sensitivity_response(payload)
         else:
-            result = build_calculation_response(payload, operation=operation)
+            result = build_calculation_result(payload, operation=operation)
         current = _load_job(job_id)
         completed_at = _utc_now()
         if current and current.get("cancelRequested"):
@@ -179,16 +166,22 @@ def _run_job(job_id: str) -> None:
             updatedAt=completed_at,
         )
     finally:
-        with _lock:
-            _futures.pop(job_id, None)
+        _job_runtime.discard(job_id)
+
+
+def start_job_runtime() -> bool:
+    """Start this worker process's executor on application lifecycle entry."""
+    return _job_runtime.start(_run_job, _write_job_heartbeats)
+
+
+def shutdown_job_runtime() -> None:
+    _job_runtime.shutdown()
 
 
 def _prune_completed_jobs() -> None:
     job_ids = _prune_completed_job_records(MAX_JOBS)
     if job_ids:
-        with _lock:
-            for job_id in job_ids:
-                _futures.pop(job_id, None)
+        _job_runtime.discard_many(job_ids)
 
 
 def _reconcile_local_job_handle(record: Mapping[str, Any]) -> Dict[str, Any]:
@@ -196,9 +189,8 @@ def _reconcile_local_job_handle(record: Mapping[str, Any]) -> Dict[str, Any]:
         return dict(record)
 
     job_id = str(record["jobId"])
-    with _lock:
-        if job_id in _futures:
-            return dict(record)
+    if _job_runtime.contains(job_id):
+        return dict(record)
 
     if os.environ.get("ARCHSIGHT_SOLVER_DISABLE_ORPHAN_CHECK") == "1":
         return dict(record)
@@ -228,8 +220,7 @@ def reconcile_all_orphans() -> int:
     if os.environ.get("ARCHSIGHT_SOLVER_DISABLE_ORPHAN_CHECK") == "1":
         return 0
 
-    with _lock:
-        exclude_jobs = list(_futures.keys())
+    exclude_jobs = _job_runtime.active_job_ids()
 
     now = datetime.now(timezone.utc)
     cutoff = now - timedelta(seconds=HEARTBEAT_TIMEOUT_SECONDS)
@@ -288,16 +279,15 @@ def submit_job():
     }
 
     _prune_completed_jobs()
-    with _lock:
-        try:
-            _store_job(record)
-        except DuplicateClientJobError:
-            if client_job_id:
-                existing_job = _load_job_by_client_id(client_job_id, tenant_id=tenant_id)
-                if existing_job:
-                    return _job_submission_response(existing_job, idempotent_hit=True)
-            raise
-        _futures[job_id] = _executor.submit(_run_job, job_id)
+    try:
+        _store_job(record)
+    except DuplicateClientJobError:
+        if client_job_id:
+            existing_job = _load_job_by_client_id(client_job_id, tenant_id=tenant_id)
+            if existing_job:
+                return _job_submission_response(existing_job, idempotent_hit=True)
+        raise
+    _job_runtime.submit(job_id)
 
     return _job_submission_response(record, idempotent_hit=False)
 
@@ -321,7 +311,7 @@ def get_job_result(job_id: str):
     status = record["status"]
     if status != "succeeded":
         return jsonify(_job_public_view(record)), 202 if status in {"queued", "running"} else 409
-    result = record.get("result")
+    result = api_v1_response_from_stored_result(record.get("result"))
     return jsonify(result)
 
 
@@ -334,12 +324,7 @@ def cancel_job(job_id: str):
     if record["status"] in {"succeeded", "failed", "cancelled"}:
         return jsonify(_job_public_view(record))
     updated = _update_job(job_id, cancelRequested=True, updatedAt=_utc_now())
-    cancelled_before_start = False
-    with _lock:
-        future = _futures.get(job_id)
-        if future is not None and future.cancel():
-            _futures.pop(job_id, None)
-            cancelled_before_start = True
+    cancelled_before_start = _job_runtime.cancel(job_id)
     if cancelled_before_start:
         completed_at = _utc_now()
         updated = _update_job(job_id, status="cancelled", completedAt=completed_at, updatedAt=completed_at)

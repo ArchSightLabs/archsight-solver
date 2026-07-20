@@ -552,7 +552,7 @@ SOLVER_JOB_REQUEST_SCHEMA: Dict[str, Any] = {
         "payload": SOLVER_PAYLOAD_SCHEMA,
         "clientJobId": {
             "type": "string",
-            "description": "调用方自定义追踪 ID；不参与幂等去重。",
+            "description": "调用方自定义追踪 ID；在同一租户内参与幂等去重。",
         },
     },
     "additionalProperties": False,
