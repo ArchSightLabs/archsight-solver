@@ -17,7 +17,7 @@ test("workspace undo and redo controls are moved out of the global header", () =
 });
 
 test("workspace undo and redo controls are wired into the parameter modeling toolbar", () => {
-  const modelCanvas = source("./WorkbenchModelCanvas.tsx");
+  const modelCanvas = source("./WorkbenchModelCanvasChrome.tsx");
   assert.match(modelCanvas, /Undo2/u);
   assert.match(modelCanvas, /Redo2/u);
   assert.match(modelCanvas, /canUndoWorkspace/u);
@@ -41,11 +41,14 @@ test("workspace history is exposed by the project document hook", () => {
 
 test("workspace undo and redo buttons plus keyboard shortcuts are connected in App", () => {
   const app = source("../App.tsx");
-  assert.match(app, /onUndoWorkspace: undoWorkspaceChange/u);
-  assert.match(app, /onRedoWorkspace: redoWorkspaceChange/u);
+  const controllerHook = source("../hooks/useWorkbenchModelCanvasController.ts");
+  const chromeHook = source("../hooks/useWorkbenchAppChrome.ts");
   assert.match(app, /canUndoWorkspace,/u);
   assert.match(app, /canRedoWorkspace,/u);
-  assert.match(app, /event\.ctrlKey \|\| event\.metaKey/u);
-  assert.match(app, /key === "z" && event\.shiftKey/u);
-  assert.match(app, /key === "y"/u);
+  assert.match(app, /useWorkbenchModelCanvasController/u);
+  assert.match(controllerHook, /onUndoWorkspace: undoWorkspaceChange/u);
+  assert.match(controllerHook, /onRedoWorkspace: redoWorkspaceChange/u);
+  assert.match(chromeHook, /event\.ctrlKey \|\| event\.metaKey/u);
+  assert.match(chromeHook, /key === ['"]z['"] && event\.shiftKey/u);
+  assert.match(chromeHook, /key === ['"]y['"]/u);
 });
