@@ -15,7 +15,6 @@ def calculate():
         response = build_calculation_response(data, operation='calculate')
         job_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc).isoformat()
-        client_id = request.headers.get("X-Client-ID", "synchronous-client")
 
         try:
             from backend.api.jobs import MAX_JOBS
@@ -23,7 +22,6 @@ def calculate():
 
             store_job({
                 "jobId": job_id,
-                "clientJobId": client_id,
                 "operation": "calculate",
                 "payload": data,
                 "status": "succeeded",
