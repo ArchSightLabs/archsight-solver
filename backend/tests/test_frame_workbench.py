@@ -472,4 +472,9 @@ def test_frame_calculate_returns_stable_validation_errors(client, explicit_two_b
     data = response.get_json()
     assert data["success"] is False
     assert data["error"]["message"] == expected_error
-    assert data["error"]["code"] == "FRAME_INVALID_REQUEST"
+    expected_code = "FRAME_INVALID_REQUEST"
+    if "ID 重复" in expected_error:
+        expected_code = "STRUCTURE_DUPLICATE_ID"
+    elif "引用了不存在" in expected_error or "起止节点无效" in expected_error:
+        expected_code = "STRUCTURE_INVALID_REFERENCE"
+    assert data["error"]["code"] == expected_code

@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 import re
 from typing import Any, Dict, List, Mapping, Optional
 
+from backend.common.domain_errors import SolverDomainError
+
 
 class ApiError(ValueError):
     def __init__(self, message: str, *, code: str = "COMMON_INVALID_REQUEST", status_code: int = 400):
@@ -27,6 +29,8 @@ def analysis_type_for_error(data: Mapping[str, Any] | None) -> Optional[str]:
 
 def error_code_for_exception(exc: Exception, data: Mapping[str, Any] | None = None) -> str:
     if isinstance(exc, ApiError):
+        return exc.code
+    if isinstance(exc, SolverDomainError):
         return exc.code
     analysis_type = analysis_type_for_error(data)
     if analysis_type == "beam":
@@ -230,6 +234,22 @@ def diagnostic_issues_for_message(message: str, analysis_type: Optional[str]) ->
     return [_enrich_issue(item, normalized, analysis_type) for item in issues]
 
 
+def diagnostic_issues_for_exception(exc: Exception, analysis_type: Optional[str]) -> List[Dict[str, Any]]:
+    if not isinstance(exc, SolverDomainError):
+        return diagnostic_issues_for_message(str(exc), analysis_type)
+    return [{
+        "code": exc.code,
+        "severity": "error",
+        "title": exc.title,
+        "detail": exc.detail,
+        "suggestions": list(exc.suggestions),
+        "category": exc.category,
+        "analysisType": analysis_type,
+        "objectRefs": list(exc.object_refs),
+        "actions": [{"id": exc.action_id, "label": exc.action_label}],
+    }]
+
+
 def error_payload(
     exc: Exception | str,
     *,
@@ -240,7 +260,11 @@ def error_payload(
     message = str(exc)
     resolved_code = code or (error_code_for_exception(exc, data) if isinstance(exc, Exception) else "COMMON_INVALID_REQUEST")
     analysis_type = analysis_type_for_error(data)
-    issues = diagnostic_issues_for_message(message, analysis_type)
+    issues = (
+        diagnostic_issues_for_exception(exc, analysis_type)
+        if isinstance(exc, Exception)
+        else diagnostic_issues_for_message(message, analysis_type)
+    )
     payload: Dict[str, Any] = {
         "success": False,
         "operation": operation,

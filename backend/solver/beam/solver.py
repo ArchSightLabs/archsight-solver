@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Sequence, Tuple
 
 import numpy as np
 
+from backend.common.domain_errors import StructureStabilityError
 from backend.common.numbers import cumulative, round_list, to_float
 from backend.common.analysis_assumptions import DEFAULT_DEFLECTION_LIMIT_RATIO
 from backend.common.units import from_si, to_si
@@ -330,7 +331,7 @@ def finite_element_solution(
 
     free_dofs = [i for i in range(ndof) if i not in constrained_dofs]
     if not free_dofs:
-        raise ValueError("约束条件过多，系统无自由度可求解")
+        raise StructureStabilityError("约束条件过多，系统无自由度可求解", kind="overconstrained")
 
     displacement = np.zeros(ndof, dtype=float)
     solved = solve_free_dofs(

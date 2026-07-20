@@ -7,6 +7,7 @@ import numpy as np
 from scipy.sparse import issparse, lil_matrix
 from scipy.sparse.linalg import MatrixRankWarning, spsolve
 
+from backend.common.domain_errors import StructureStabilityError
 from backend.common.solver_backend import normalize_solver_backend
 from backend.config import get_sparse_dof_threshold
 
@@ -52,7 +53,7 @@ def solve_free_dofs(
     free_dof_list = list(free_dofs)
     prescribed = np.zeros(load_vector.shape[0], dtype=float) if prescribed_displacements is None else np.asarray(prescribed_displacements, dtype=float)
     if prescribed.shape[0] != load_vector.shape[0]:
-        raise ValueError(singular_message)
+        raise StructureStabilityError(singular_message, kind="singular")
     if issparse(stiffness):
         k_ff = stiffness[free_dof_list, :][:, free_dof_list].tocsc()
         f_f = load_vector[free_dof_list] - np.asarray(stiffness[free_dof_list, :] @ prescribed, dtype=float).reshape(len(free_dof_list))
@@ -61,9 +62,9 @@ def solve_free_dofs(
                 warnings.simplefilter("error", MatrixRankWarning)
                 solved = np.asarray(spsolve(k_ff, f_f), dtype=float)
         except (MatrixRankWarning, ValueError, RuntimeError) as exc:
-            raise ValueError(singular_message) from exc
+            raise StructureStabilityError(singular_message, kind="singular") from exc
         if solved.shape[0] != len(free_dof_list) or not np.all(np.isfinite(solved)):
-            raise ValueError(singular_message)
+            raise StructureStabilityError(singular_message, kind="singular")
         sparse_nnz = int(k_ff.nnz)
         sparse_density = float(sparse_nnz / max(1, k_ff.shape[0] * k_ff.shape[1]))
     else:
@@ -71,7 +72,7 @@ def solve_free_dofs(
         all_dofs = list(range(load_vector.shape[0]))
         f_f = load_vector[free_dof_list] - stiffness[np.ix_(free_dof_list, all_dofs)] @ prescribed
         if np.linalg.matrix_rank(k_ff) < len(free_dof_list):
-            raise ValueError(singular_message)
+            raise StructureStabilityError(singular_message, kind="singular")
         solved = np.linalg.solve(k_ff, f_f)
         sparse_nnz = None
         sparse_density = None

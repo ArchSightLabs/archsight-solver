@@ -6,6 +6,7 @@ import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from app import app
+from backend.contracts.diagnostics import error_payload
 
 
 @pytest.fixture
@@ -44,6 +45,15 @@ def issue_codes(response):
 
 def issue_for_code(response, code):
     return next(issue for issue in response.get_json()["diagnostics"]["issues"] if issue["code"] == code)
+
+
+def test_legacy_value_error_string_mapper_remains_a_compatibility_fallback():
+    payload = error_payload(ValueError("节点 ID 重复: LEGACY-N1"), operation="calculate", data={"analysisType": "frame"})
+
+    assert payload["error"]["code"] == "FRAME_INVALID_REQUEST"
+    issue = payload["diagnostics"]["issues"][0]
+    assert issue["code"] == "STRUCTURE_DUPLICATE_ID"
+    assert {"kind": "node", "id": "LEGACY-N1"} in issue["objectRefs"]
 
 
 def _beam_base_payload():
@@ -124,7 +134,8 @@ def test_beam_error_contracts(client, payload_factory, expected_error):
     response = client.post("/api/calculate", json=payload_factory())
 
     assert response.status_code == 400
-    assert_error_response(response, expected_error, "BEAM_INVALID_REQUEST")
+    expected_code = "STRUCTURE_SINGULAR_STIFFNESS" if "刚度矩阵奇异" in expected_error else "BEAM_INVALID_REQUEST"
+    assert_error_response(response, expected_error, expected_code)
 
 
 def test_beam_singular_error_returns_engineering_diagnostic(client):
@@ -287,7 +298,16 @@ def test_frame_error_contracts(client, payload_factory, expected_error):
     response = client.post("/api/calculate", json=payload_factory())
 
     assert response.status_code == 400
-    assert_error_response(response, expected_error, "FRAME_INVALID_REQUEST")
+    expected_code = "FRAME_INVALID_REQUEST"
+    if "ID 重复" in expected_error:
+        expected_code = "STRUCTURE_DUPLICATE_ID"
+    elif "引用了不存在" in expected_error or "起止节点无效" in expected_error:
+        expected_code = "STRUCTURE_INVALID_REFERENCE"
+    elif "约束条件不足" in expected_error:
+        expected_code = "STRUCTURE_UNSTABLE_CONSTRAINTS"
+    elif "截面面积必须大于 0" in expected_error or "截面惯性矩必须大于 0" in expected_error:
+        expected_code = "STRUCTURE_INVALID_STIFFNESS_INPUT"
+    assert_error_response(response, expected_error, expected_code)
 
 
 def test_frame_invalid_reference_error_returns_engineering_diagnostic(client):

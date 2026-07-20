@@ -4,6 +4,11 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from backend.common.material_catalog import get_material_spec
+from backend.common.domain_errors import (
+    DuplicateStructureIdError,
+    InvalidStiffnessInputError,
+    InvalidStructureReferenceError,
+)
 from backend.common.numbers import to_float
 from backend.common.support_catalog import support_constraint_dof_map, support_constraint_dofs as catalog_support_constraint_dofs, support_labels
 from backend.normalizers.section_library import resolve_section
@@ -208,7 +213,7 @@ def parse_nodes(
     for index, node in enumerate(raw_nodes):
         node_id = str(node.get("id") or node_label(index))
         if node_id in seen_ids:
-            raise ValueError(f"节点 ID 重复: {node_id}")
+            raise DuplicateStructureIdError("node", node_id, f"节点 ID 重复: {node_id}")
         seen_ids.add(node_id)
         if not allow_springs and node.get("springs") not in (None, "", []):
             raise ValueError(unsupported_springs_error)
@@ -218,7 +223,7 @@ def parse_nodes(
             raise ValueError(unsupported_condensed_dofs_error)
         if not allow_support_displacements and node.get("supportDisplacements") not in (None, "", []):
             raise ValueError(unsupported_support_displacements_error)
-        springs = parse_node_springs(node.get("springs", []))
+        springs = parse_node_springs(node.get("springs", []), node_id=node_id)
         support_angle_deg = parse_support_angle(node.get("supportAngleDeg", node.get("rollerAngleDeg")))
         support_type = parse_support_type(node.get("supportType", node.get("support", "free")), labels)
         support_displacements = parse_node_support_displacements(node.get("supportDisplacements", []))
@@ -267,7 +272,7 @@ def parse_support_angle(value: Any) -> Optional[float]:
     return angle
 
 
-def parse_node_springs(raw_springs: Any) -> List[Dict[str, Any]]:
+def parse_node_springs(raw_springs: Any, *, node_id: str = "unknown") -> List[Dict[str, Any]]:
     if raw_springs in (None, ""):
         return []
     if not isinstance(raw_springs, Sequence) or isinstance(raw_springs, (str, bytes)):
@@ -292,7 +297,7 @@ def parse_node_springs(raw_springs: Any) -> List[Dict[str, Any]]:
             )
             key = "stiffnessKnPerM"
         if stiffness <= 0:
-            raise ValueError("节点弹性约束刚度必须大于 0")
+            raise InvalidStiffnessInputError("node", node_id, "节点弹性约束刚度必须大于 0")
         springs.append({"dof": dof, key: stiffness})
     return springs
 
@@ -399,22 +404,29 @@ def parse_members(
     for index, member in enumerate(raw_members):
         member_id = str(member.get("id") or member_label(index))
         if member_id in seen_ids:
-            raise ValueError(f"构件 ID 重复: {member_id}")
+            raise DuplicateStructureIdError("member", member_id, f"构件 ID 重复: {member_id}")
         seen_ids.add(member_id)
         start = str(member.get("start") or member.get("i") or "")
         end = str(member.get("end") or member.get("j") or "")
         if start not in node_ids or end not in node_ids:
-            raise ValueError(f"构件 {member_id} 的起止节点无效")
+            invalid_node = start if start not in node_ids else end
+            raise InvalidStructureReferenceError(
+                "member",
+                member_id,
+                f"构件 {member_id} 的起止节点无效",
+                referenced_kind="node",
+                referenced_id=invalid_node,
+            )
         section = resolve_section(member) if include_bending else {}
         e_gpa = to_float(member.get("E_GPa", member.get("E")), 210.0)
         a_cm2 = to_float(member.get("A_cm2", member.get("A")), section.get("A_cm2", 120.0))
         i_cm4 = to_float(member.get("I_cm4", member.get("I")), section.get("I_cm4", 8000.0)) if include_bending else None
         if e_gpa <= 0:
-            raise ValueError(f"构件 {member_id} 的弹性模量必须大于 0")
+            raise InvalidStiffnessInputError("member", member_id, f"构件 {member_id} 的弹性模量必须大于 0")
         if a_cm2 <= 0:
-            raise ValueError(f"构件 {member_id} 的截面面积必须大于 0")
+            raise InvalidStiffnessInputError("member", member_id, f"构件 {member_id} 的截面面积必须大于 0")
         if include_bending and (i_cm4 is None or i_cm4 <= 0):
-            raise ValueError(f"构件 {member_id} 的截面惯性矩必须大于 0")
+            raise InvalidStiffnessInputError("member", member_id, f"构件 {member_id} 的截面惯性矩必须大于 0")
         members.append(
             StructuralMember(
                 id=member_id,
@@ -636,7 +648,7 @@ def preprocess_truss_member_loads(
         member_id = str(load.get("member") or "")
         member = member_by_id.get(member_id)
         if not member:
-            raise ValueError("桁架构件荷载引用了不存在的杆件")
+            raise InvalidStructureReferenceError("load", member_id or "unknown", "桁架构件荷载引用了不存在的杆件", referenced_kind="member", referenced_id=member_id or "unknown")
         start_node = node_by_id[member.start]
         end_node = node_by_id[member.end]
         length = ((end_node.x - start_node.x) ** 2 + (end_node.y - start_node.y) ** 2) ** 0.5
@@ -715,7 +727,7 @@ def parse_loads(
         if load_type == "nodal":
             node_id = str(load.get("node") or "")
             if node_id not in node_ids:
-                raise ValueError("节点荷载引用了不存在的节点")
+                raise InvalidStructureReferenceError("load", node_id or "unknown", "节点荷载引用了不存在的节点", referenced_kind="node", referenced_id=node_id or "unknown")
             values = {
                 "fxKn": to_float(load.get("fxKn", 0.0), 0.0),
                 "fyKn": to_float(load.get("fyKn", 0.0), 0.0),
@@ -728,7 +740,7 @@ def parse_loads(
                 raise ValueError("桁架当前仅支持节点荷载")
             member_id = str(load.get("member") or "")
             if member_id not in member_ids:
-                raise ValueError("构件荷载引用了不存在的构件")
+                raise InvalidStructureReferenceError("load", member_id or "unknown", "构件荷载引用了不存在的构件", referenced_kind="member", referenced_id=member_id or "unknown")
             values = parse_distributed_load_values(load)
             loads.append(
                 StructuralLoad(
@@ -742,7 +754,7 @@ def parse_loads(
                 raise ValueError("桁架当前仅支持节点荷载")
             member_id = str(load.get("member") or "")
             if member_id not in member_ids:
-                raise ValueError("构件荷载引用了不存在的构件")
+                raise InvalidStructureReferenceError("load", member_id or "unknown", "构件荷载引用了不存在的构件", referenced_kind="member", referenced_id=member_id or "unknown")
             loads.append(
                 StructuralLoad(
                     type="member_point",
@@ -753,7 +765,7 @@ def parse_loads(
         elif load_type == "temperature":
             member_id = str(load.get("member") or "")
             if member_id not in member_ids:
-                raise ValueError("构件荷载引用了不存在的构件")
+                raise InvalidStructureReferenceError("load", member_id or "unknown", "构件荷载引用了不存在的构件", referenced_kind="member", referenced_id=member_id or "unknown")
             loads.append(
                 StructuralLoad(
                     type="temperature",
@@ -786,7 +798,7 @@ def parse_load_cases(
             raise ValueError("荷载工况必须使用对象定义")
         case_id = str(raw_case.get("id") or f"LC{index + 1}").strip() or f"LC{index + 1}"
         if case_id in seen_ids:
-            raise ValueError(f"荷载工况 ID 重复: {case_id}")
+            raise DuplicateStructureIdError("loadCase", case_id, f"荷载工况 ID 重复: {case_id}")
         seen_ids.add(case_id)
         loads = parse_loads(raw_case.get("loads", []), nodes, members, allow_distributed=allow_distributed)
         load_cases.append(
@@ -814,7 +826,7 @@ def parse_load_combinations(raw_combinations: Any, load_cases: Sequence[LoadCase
             raise ValueError("荷载组合必须使用对象定义")
         combination_id = str(raw_combination.get("id") or f"COMB{index + 1}").strip() or f"COMB{index + 1}"
         if combination_id in seen_ids:
-            raise ValueError(f"荷载组合 ID 重复: {combination_id}")
+            raise DuplicateStructureIdError("loadCombination", combination_id, f"荷载组合 ID 重复: {combination_id}")
         seen_ids.add(combination_id)
         raw_factors = raw_combination.get("factors", {})
         if not isinstance(raw_factors, Mapping) or not raw_factors:
@@ -822,7 +834,13 @@ def parse_load_combinations(raw_combinations: Any, load_cases: Sequence[LoadCase
         factors = {str(case_id).strip(): to_float(factor, 0.0) for case_id, factor in raw_factors.items()}
         unknown = sorted(set(factors) - case_ids)
         if unknown:
-            raise ValueError(f"荷载组合引用了不存在的工况: {unknown[0]}")
+            raise InvalidStructureReferenceError(
+                "loadCombination",
+                combination_id,
+                f"荷载组合引用了不存在的工况: {unknown[0]}",
+                referenced_kind="loadCase",
+                referenced_id=unknown[0],
+            )
         if all(abs(value) < 1e-12 for value in factors.values()):
             raise ValueError("荷载组合 factors 不能全部为 0")
         combinations.append(

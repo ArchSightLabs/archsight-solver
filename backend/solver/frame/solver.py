@@ -5,6 +5,7 @@ from typing import Any, Dict, List
 import numpy as np
 from scipy.sparse import issparse
 
+from backend.common.domain_errors import StructureStabilityError
 from backend.common.support_catalog import support_dof_indexes
 from backend.solver.linear_system import solve_free_dofs
 
@@ -59,7 +60,7 @@ def solve_frame_system(structure: Dict[str, Any], assembly: Dict[str, Any]) -> D
     constraint_target = np.array(constraint_values, dtype=float) if constraint_values else np.zeros(0, dtype=float)
     constraint_rank = int(np.linalg.matrix_rank(constraint_matrix)) if constraint_rows else 0
     if constraint_rank < 3:
-        raise ValueError("框架约束条件不足，系统无稳定自由度可求解")
+        raise StructureStabilityError("框架约束条件不足，系统无稳定自由度可求解")
     free_dofs = [i for i in range(ndof) if i not in constrained_dofs]
 
     if not has_general_constraint:
@@ -120,13 +121,13 @@ def solve_frame_system(structure: Dict[str, Any], assembly: Dict[str, Any]) -> D
     stiffness_dense = stiffness.toarray() if issparse(stiffness) else stiffness
     free_basis = _null_space(constraint_matrix, ndof)
     if free_basis.shape[1] == 0:
-        raise ValueError("框架约束条件过多，系统无自由度可求解")
+        raise StructureStabilityError("框架约束条件过多，系统无自由度可求解", kind="overconstrained")
 
     particular_displacements = _particular_solution(constraint_matrix, constraint_target, ndof)
     k_reduced = free_basis.T @ stiffness_dense @ free_basis
     f_reduced = free_basis.T @ (load_vector - stiffness_dense @ particular_displacements)
     if np.linalg.matrix_rank(k_reduced) < k_reduced.shape[0]:
-        raise ValueError("框架刚度矩阵奇异，请检查支座与构件连接")
+        raise StructureStabilityError("框架刚度矩阵奇异，请检查支座与构件连接", kind="singular")
 
     generalized_displacements = np.linalg.solve(k_reduced, f_reduced)
     displacements = particular_displacements + free_basis @ generalized_displacements
