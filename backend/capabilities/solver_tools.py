@@ -7,7 +7,7 @@ from backend.capabilities.beam_deflection import _build_solver_payload, _formula
 from backend.application.calculation import build_calculation_result
 from backend.application.sensitivity import build_sensitivity_response
 from backend.common.domain_errors import SolverDomainError
-from backend.contracts.diagnostics import analysis_type_for_error, diagnostic_issues_for_exception, diagnostic_issues_for_message
+from backend.contracts.diagnostics import analysis_type_for_error, diagnostic_issues_for_exception, legacy_diagnostic_issues_for_message
 from backend.contracts.calculation_response import build_api_v1_response
 from backend.benchmarks.catalog import iter_benchmark_cases
 from backend.benchmarks.runner import BenchmarkCaseError, evaluate_benchmark_case_by_id
@@ -49,7 +49,7 @@ def _failure_diagnostics(error: Exception | str, analysis_type: str | None = Non
     issues = (
         diagnostic_issues_for_exception(error, analysis_type)
         if isinstance(error, Exception)
-        else diagnostic_issues_for_message(error, analysis_type)
+        else legacy_diagnostic_issues_for_message(error, analysis_type)
     )
     return {
         "warnings": [],

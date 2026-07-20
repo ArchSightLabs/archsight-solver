@@ -277,7 +277,7 @@ def _validate_schema(value: Any, schema: Mapping[str, Any], path: str = "argumen
 
 
 def _invalid_tool_call(name: str, message: str) -> Dict[str, Any]:
-    from backend.contracts.diagnostics import diagnostic_issues_for_message
+    from backend.contracts.diagnostics import legacy_diagnostic_issues_for_message
 
     return {
         "content": [{"type": "text", "text": message}],
@@ -289,7 +289,7 @@ def _invalid_tool_call(name: str, message: str) -> Dict[str, Any]:
             "diagnostics": {
                 "warnings": [],
                 "infos": [],
-                "issues": diagnostic_issues_for_message(message, None),
+                "issues": legacy_diagnostic_issues_for_message(message, None),
             },
             "warnings": [message],
         },

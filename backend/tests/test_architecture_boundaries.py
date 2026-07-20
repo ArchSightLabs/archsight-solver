@@ -43,3 +43,17 @@ def test_backend_dependencies_point_inward():
                     violations.append(f"{relative_path} -> {imported_module}")
 
     assert violations == [], "后端依赖必须指向 common/contracts/application/solver 内层：\n" + "\n".join(violations)
+
+def test_backend_hotspot_facades_remain_deep_and_small():
+    line_budgets = {
+        "backend/contracts/json_schemas.py": 120,
+        "backend/normalizers/structural_model.py": 120,
+    }
+
+    violations = []
+    for relative_path, budget in line_budgets.items():
+        line_count = len((REPOSITORY_ROOT / relative_path).read_text(encoding="utf-8").splitlines())
+        if line_count > budget:
+            violations.append(f"{relative_path}: {line_count} > {budget}")
+
+    assert violations == [], "兼容 facade 不得重新吸收领域 Implementation：\n" + "\n".join(violations)

@@ -8,7 +8,8 @@ import type { SolverProject } from "./solver-project.ts";
 import {
   SOLVER_HOST_CAPABILITIES,
   SOLVER_HOST_PROTOCOL_VERSION,
-} from "./generated/solver-contract.ts";
+} from "./generated/solver-contract-runtime.ts";
+import type { SolverHostMessageDto } from "./generated/solver-contract-dto.ts";
 
 export { SOLVER_HOST_CAPABILITIES, SOLVER_HOST_PROTOCOL_VERSION };
 export const HOST_LAUNCH_MESSAGE = "archsight.solver.host.launch";
@@ -18,11 +19,9 @@ export const SOLVER_READY_MESSAGE = "archsight.solver.ready";
 export const SOLVER_PROJECT_CHANGED_MESSAGE = "archsight.solver.project.changed";
 export const SOLVER_SAVE_REQUEST_MESSAGE = "archsight.solver.project.saveRequest";
 export const SOLVER_ERROR_MESSAGE = "archsight.solver.error";
-export interface SolverHostMessage<TPayload = unknown> {
+export interface SolverHostMessage<TPayload = unknown>
+  extends Partial<Omit<SolverHostMessageDto, "type" | "payload">> {
   type: string;
-  protocolVersion?: string;
-  sessionId?: string;
-  nonce?: string;
   payload?: TPayload;
 }
 

@@ -47,7 +47,9 @@ def test_truss_contract_document_matches_project_terms():
     source_text = "\n".join(
         [
             (ROOT / "backend" / "normalizers" / "truss" / "request_normalizer.py").read_text(encoding="utf-8"),
-            (ROOT / "backend" / "normalizers" / "structural_model.py").read_text(encoding="utf-8"),
+            (ROOT / "backend" / "normalizers" / "structural_model_nodes.py").read_text(encoding="utf-8"),
+            (ROOT / "backend" / "normalizers" / "structural_model_members.py").read_text(encoding="utf-8"),
+            (ROOT / "backend" / "normalizers" / "structural_model_loads.py").read_text(encoding="utf-8"),
             (ROOT / "backend" / "solver" / "truss" / "solver.py").read_text(encoding="utf-8"),
         ]
     )

@@ -35,9 +35,9 @@ RUN groupadd --system app \
     && useradd --system --gid app --create-home --home-dir /home/app app
 
 COPY requirements.txt ./
-RUN pip install --retries 5 --timeout 120 --upgrade pip \
+RUN pip install --no-compile --retries 5 --timeout 120 --upgrade pip \
     && attempt=1 \
-    && until pip install --retries 5 --timeout 120 -r requirements.txt; do \
+    && until pip install --no-compile --retries 5 --timeout 120 -r requirements.txt; do \
         if [ "$attempt" -ge 3 ]; then exit 1; fi; \
         attempt=$((attempt + 1)); \
         echo "Python 依赖下载中断，复用 pip 缓存执行第 ${attempt} 次安装。" >&2; \
