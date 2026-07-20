@@ -16,6 +16,7 @@ REQUIRED_PATHS = (
     "examples/host-iframe-demo/solver-host-client.js",
     "examples/host-iframe-demo/sample-project.slv",
     "frontend/public/runtime-config.js",
+    "frontend/playwright.config.ts",
     "frontend/src/lib/workbench-presentation.ts",
     "frontend/tests/visual/release-1-6-1-host-reference.spec.ts",
     "frontend/tests/visual/release-1-6-2-acceptance.spec.ts",
@@ -28,6 +29,10 @@ REQUIRED_PATHS = (
 REQUIRED_MARKERS = {
     "app.py": ("ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS", 'Cache-Control', "frame-ancestors"),
     "Dockerfile": ("USER app", "HEALTHCHECK"),
+    "frontend/playwright.config.ts": (
+        'command: "npm run dev -- --host 127.0.0.1 --port 6241 --strictPort"',
+        "reuseExistingServer: false",
+    ),
     "frontend/index.html": ('src="/runtime-config.js"',),
     "examples/host-iframe-demo/host.js": (
         'searchParams.set("embed", "1")',
@@ -83,6 +88,12 @@ def main() -> int:
         for marker in markers:
             if marker not in text:
                 failures.append(f"{relative_path} 缺少门禁标记: {marker}")
+
+    playwright_config_path = ROOT / "frontend/playwright.config.ts"
+    if playwright_config_path.is_file():
+        playwright_config = playwright_config_path.read_text(encoding="utf-8")
+        if playwright_config.count("reuseExistingServer: false") != 2:
+            failures.append("frontend/playwright.config.ts 必须让 Solver 与 Host 两个测试服务都由当前验收进程独占")
 
     deploy_expectations = {
         "deploy/.env.example": ("IMAGE_TAG=v1.6.2", "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS="),

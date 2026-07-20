@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
 
+// Match the other v1.6.2 release flows: WebKit startup can exceed Playwright's
+// default 30-second test budget after the preceding browser projects.
+test.setTimeout(120_000);
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => window.localStorage.clear());
 });

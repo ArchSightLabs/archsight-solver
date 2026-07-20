@@ -134,12 +134,17 @@
             <li>固化 Host Protocol 1.0 状态机、请求关联、超时、迟到消息和错误语义，并明确 1.x 兼容、弃用与升级规则。</li>
             <li>新增无框架 TypeScript <code>SolverHostClient</code>，统一精确 origin、会话校验、保存握手与超时处理；仓库内 Reference Host 已迁移使用该 Client，不再直接编写 <code>postMessage</code>。</li>
             <li>新增 v1.6.2 canonical 工程统一验收，同一份 <code>.slv</code> 在独立模式和真实双 origin 嵌入模式完成计算、修改失效、重算、导出、保存、刷新重开和只读审阅。</li>
+            <li>增加后端架构依赖门禁，解除求解、归一化、工作流和 API 层之间的反向依赖；内部计算结果收敛为唯一 canonical 契约，兼容字段只在 HTTP 边界组装。</li>
+            <li>将结构化领域异常、异步作业生命周期和跨栈 JSON Schema / TypeScript DTO 纳入统一契约，生成类型与后端 Schema 漂移会直接阻断发布。</li>
+            <li>拆分 <code>json_schemas.py</code>、<code>structural_model.py</code>、<code>model-workflow-actions.ts</code>、<code>App.tsx</code> 和 Canvas 等深层热点，前端运行结果收敛到工程对象这一唯一状态源。</li>
+            <li>优化交付体积与依赖卫生：生产主入口约 390 kB（gzip 约 107 kB），候选镜像约 352 MB，并保留非 root、健康检查与精确 Host origin 约束。</li>
           </ul>
           <p class="section-label">质量门禁</p>
           <ul>
             <li>保留 v1.6.1 Reference Host、v1.6 Host 和 v1.5 工作台跨版本回归，并将 v1.6.2 统一验收接入 CI 与 tag release。</li>
             <li>Docker 门禁对构建后的镜像运行健康检查和 v1.6.2 canonical Host 接入，不以本地开发服务器结果替代镜像验收。</li>
             <li>Docker 依赖安装在瞬态网络中断后保留 pip 缓存并有界重试，候选镜像仍以构建后验收和漏洞扫描结果为准。</li>
+            <li>Playwright 发布验收独占 Solver/Host 测试服务并使用严格端口，避免并行测试进程复用服务后在长 WebKit 套件中途被回收；长场景统一使用明确的 120 秒测试预算。</li>
             <li>tag release 继续执行生产依赖审计、Trivy 已修复 HIGH / CRITICAL 漏洞零容忍、SPDX SBOM、制品哈希和 GitHub Release 门禁。</li>
           </ul>
       </article>

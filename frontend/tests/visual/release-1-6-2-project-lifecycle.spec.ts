@@ -1,6 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { resolve } from "node:path";
 
+// WebKit can spend more than the default 30 seconds loading the Vite workbench
+// after the Chromium and Firefox release suites. Keep assertion timeouts strict,
+// but give these file-lifecycle scenarios the same test budget as other v1.6.2 E2E flows.
+test.setTimeout(120_000);
+
 declare global {
   interface Window {
     __completeProjectSavePicker?: () => void;
