@@ -6,7 +6,7 @@ import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from app import app
-from backend.contracts.diagnostics import error_payload
+from backend.contracts.diagnostics import error_payload, legacy_diagnostic_issues_for_message
 
 
 @pytest.fixture
@@ -54,6 +54,13 @@ def test_legacy_value_error_string_mapper_remains_a_compatibility_fallback():
     issue = payload["diagnostics"]["issues"][0]
     assert issue["code"] == "STRUCTURE_DUPLICATE_ID"
     assert {"kind": "node", "id": "LEGACY-N1"} in issue["objectRefs"]
+
+
+def test_legacy_string_mapper_is_exposed_as_an_explicit_compatibility_adapter():
+    issues = legacy_diagnostic_issues_for_message("节点 ID 重复: LEGACY-N2", "frame")
+
+    assert issues[0]["code"] == "STRUCTURE_DUPLICATE_ID"
+    assert {"kind": "node", "id": "LEGACY-N2"} in issues[0]["objectRefs"]
 
 
 def _beam_base_payload():

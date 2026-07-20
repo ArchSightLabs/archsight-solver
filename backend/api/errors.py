@@ -5,6 +5,7 @@ from backend.contracts.diagnostics import (
     analysis_type_for_error,
     diagnostic_issues_for_message,
     diagnostic_issues_for_exception,
+    legacy_diagnostic_issues_for_message,
     error_code_for_exception,
     error_payload,
 )
@@ -14,6 +15,7 @@ __all__ = [
     "analysis_type_for_error",
     "diagnostic_issues_for_message",
     "diagnostic_issues_for_exception",
+    "legacy_diagnostic_issues_for_message",
     "error_code_for_exception",
     "error_payload",
 ]

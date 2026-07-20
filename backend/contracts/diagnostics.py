@@ -121,7 +121,8 @@ def _enrich_issue(issue: Dict[str, Any], message: str, analysis_type: Optional[s
     }
 
 
-def diagnostic_issues_for_message(message: str, analysis_type: Optional[str]) -> List[Dict[str, Any]]:
+def legacy_diagnostic_issues_for_message(message: str, analysis_type: Optional[str]) -> List[Dict[str, Any]]:
+    """Map historical ValueError text to structured issues at compatibility edges."""
     issues: List[Dict[str, Any]] = []
     normalized = message.strip()
 
@@ -236,7 +237,7 @@ def diagnostic_issues_for_message(message: str, analysis_type: Optional[str]) ->
 
 def diagnostic_issues_for_exception(exc: Exception, analysis_type: Optional[str]) -> List[Dict[str, Any]]:
     if not isinstance(exc, SolverDomainError):
-        return diagnostic_issues_for_message(str(exc), analysis_type)
+        return legacy_diagnostic_issues_for_message(str(exc), analysis_type)
     return [{
         "code": exc.code,
         "severity": "error",
@@ -263,7 +264,7 @@ def error_payload(
     issues = (
         diagnostic_issues_for_exception(exc, analysis_type)
         if isinstance(exc, Exception)
-        else diagnostic_issues_for_message(message, analysis_type)
+        else legacy_diagnostic_issues_for_message(message, analysis_type)
     )
     payload: Dict[str, Any] = {
         "success": False,
@@ -286,3 +287,8 @@ def error_payload(
     if analysis_type is not None:
         payload["analysisType"] = analysis_type
     return payload
+
+
+# Public compatibility alias. New call sites must use the explicit legacy adapter or
+# pass an Exception to diagnostic_issues_for_exception/error_payload.
+diagnostic_issues_for_message = legacy_diagnostic_issues_for_message

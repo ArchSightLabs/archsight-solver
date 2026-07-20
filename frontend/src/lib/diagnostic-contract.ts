@@ -1,30 +1,21 @@
 import type { AnalysisMode } from "../types/structure.ts";
 
-import type { SolverDiagnosticSeverity } from "./generated/solver-contract.ts";
+import type { SolverDiagnosticIssueDto } from "./generated/solver-contract-dto.ts";
+import type { SolverDiagnosticSeverity } from "./generated/solver-contract-runtime.ts";
 
-export type { SolverDiagnosticSeverity } from "./generated/solver-contract.ts";
+export type { SolverDiagnosticSeverity } from "./generated/solver-contract-runtime.ts";
 export type SolverDiagnosticCategory = "input" | "reference" | "constraint" | "solver" | "result" | "system";
 
-export interface SolverDiagnosticObjectRef {
-  kind: string;
-  id: string;
-}
+export type SolverDiagnosticObjectRef = SolverDiagnosticIssueDto["objectRefs"][number];
+export type SolverDiagnosticAction = SolverDiagnosticIssueDto["actions"][number];
 
-export interface SolverDiagnosticAction {
-  id: string;
-  label: string;
-}
-
-export interface SolverDiagnosticIssue {
-  code: string;
+export interface SolverDiagnosticIssue extends Omit<
+  SolverDiagnosticIssueDto,
+  "severity" | "category" | "analysisType"
+> {
   severity: SolverDiagnosticSeverity;
   category: SolverDiagnosticCategory;
-  title: string;
-  detail: string;
-  suggestions: string[];
   analysisType: AnalysisMode | null;
-  objectRefs: SolverDiagnosticObjectRef[];
-  actions: SolverDiagnosticAction[];
 }
 
 function recordOf(value: unknown): Record<string, unknown> | null {

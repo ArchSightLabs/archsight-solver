@@ -11,7 +11,7 @@ from app import app
 from backend.common.support_catalog import support_specs
 from backend.contracts.openapi import build_openapi_document
 from backend.contracts.json_schemas import API_SCHEMA_VERSION, SCHEMA_ID_BASE_URI, schema_by_id, schema_registry
-from scripts.generate_contract_types import OUTPUT_PATH, render_typescript
+from scripts.generate_contract_types import DTO_OUTPUT_PATH, OUTPUT_PATH, RUNTIME_OUTPUT_PATH, render_typescript
 from backend.project_documents import create_default_project_document
 from backend.project_workflow import build_export_artifact_metadata, build_host_launch_contract
 from backend.template_registry import list_builtin_template_registry
@@ -162,7 +162,11 @@ def _assert_source_contains(path, tokens):
 
 
 def test_generated_frontend_contract_types_match_backend_json_schemas():
-    assert OUTPUT_PATH.read_text(encoding="utf-8") == render_typescript()
+    expected = render_typescript()
+
+    assert RUNTIME_OUTPUT_PATH.read_text(encoding="utf-8") == expected["runtime"]
+    assert DTO_OUTPUT_PATH.read_text(encoding="utf-8") == expected["dto"]
+    assert OUTPUT_PATH.read_text(encoding="utf-8") == expected["barrel"]
 
 
 def test_schema_registry_contains_api_and_tool_contracts():

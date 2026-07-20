@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 from backend.capabilities.solver_tools import TOOL_HANDLERS
-from backend.contracts.diagnostics import diagnostic_issues_for_message
+from backend.contracts.diagnostics import legacy_diagnostic_issues_for_message
 
 
 def _read_payload(input_path: str | None) -> Dict[str, Any]:
@@ -45,7 +45,7 @@ def main(argv: list[str] | None = None) -> int:
             "diagnostics": {
                 "warnings": [],
                 "infos": [],
-                "issues": diagnostic_issues_for_message(message, None),
+                "issues": legacy_diagnostic_issues_for_message(message, None),
             },
             "warnings": [message],
         }
