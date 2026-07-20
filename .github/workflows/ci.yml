@@ -37,6 +37,7 @@ jobs:
         run: |
           python scripts/check_versions.py
           python scripts/check_release_gate.py
+          python scripts/generate_contract_types.py --check
 
       - name: Run backend tests
         run: uv run python -m pytest backend/tests -q

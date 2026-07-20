@@ -23,12 +23,12 @@
 | `backend/application/` | 应用层编排，承接结构求解前后的业务流程。 |
 | `backend/benchmarks/` | 公开验证集目录、字段说明、运行器、报告生成和投稿包维护工具。 |
 | `backend/capabilities/` | 本地 CLI、MCP server 和确定性工具封装。 |
-| `backend/contracts/` | JSON Schema Registry 与 OpenAPI 文档生成。 |
+| `backend/contracts/` | JSON Schema Registry、canonical 计算结果适配与 OpenAPI 文档生成。 |
 | `backend/examples/` | 可导入工作台的公开工程案例生成逻辑。 |
 | `backend/exporters/` | WORD / XLSX 计算书导出。 |
 | `backend/normalizers/` | 梁系、桁架、框架输入归一化和 ASMS-JSON 预处理。 |
 | `backend/presenters/` | 面向 API 或前端的结果表达转换。 |
-| `backend/services/` | 求解服务、导出服务和工作台适配层。 |
+| `backend/services/` | 求解服务、导出服务、异步作业运行时和工作台适配层。 |
 | `backend/solver/` | 结构力学求解核心，包括梁、框架、桁架计算。 |
 | `backend/tests/` | 后端单元测试、契约测试、benchmark 回归和 MCP/CLI 测试。 |
 
@@ -40,6 +40,7 @@
 | `frontend/src/components/` | 工作台组件、预览组件、结果面板、对话框和 UI 控件。 |
 | `frontend/src/hooks/` | 计算、导出、敏感性分析等前端业务动作封装。 |
 | `frontend/src/lib/` | 项目文件、payload 构造、模板库、文本模型、图表数据等纯逻辑。 |
+| `frontend/src/lib/generated/` | 由后端 JSON Schema 生成并受 CI 门禁保护的跨栈 TypeScript 契约。 |
 | `frontend/scripts/sync-release-notes.mjs` | 将根目录 `CHANGELOG.md` 同步为前端静态发布记录 Markdown 与 HTML。 |
 | `frontend/src/types/` | 前端共享类型定义。 |
 

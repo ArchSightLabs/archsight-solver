@@ -1,6 +1,8 @@
 import type { AnalysisMode } from "../types/structure.ts";
 
-export type SolverDiagnosticSeverity = "error" | "warning" | "info";
+import type { SolverDiagnosticSeverity } from "./generated/solver-contract.ts";
+
+export type { SolverDiagnosticSeverity } from "./generated/solver-contract.ts";
 export type SolverDiagnosticCategory = "input" | "reference" | "constraint" | "solver" | "result" | "system";
 
 export interface SolverDiagnosticObjectRef {

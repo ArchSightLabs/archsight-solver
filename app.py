@@ -21,7 +21,7 @@ from backend.api.calculate import calculate_bp
 from backend.api.contracts import contracts_bp
 from backend.api.examples import examples_bp
 from backend.api.export import export_bp
-from backend.api.jobs import jobs_bp, reconcile_all_orphans
+from backend.api.jobs import jobs_bp, reconcile_all_orphans, start_job_runtime
 from backend.api.preview import preview_bp
 from backend.api.sensitivity import sensitivity_bp
 from backend.config import get_backend_host, get_backend_port
@@ -97,15 +97,6 @@ def create_app(*, static_folder: str | os.PathLike[str] | None = None) -> Flask:
     register_request_hooks(flask_app)
     register_static_routes(flask_app)
 
-    # 启动期处理孤儿任务
-    with flask_app.app_context():
-        try:
-            count = reconcile_all_orphans()
-            if count > 0:
-                flask_app.logger.info("Reconciled %d orphaned jobs during startup.", count)
-        except Exception as exc:
-            flask_app.logger.warning("Failed to reconcile orphaned jobs on startup: %s", exc)
-
     return flask_app
 
 
@@ -139,6 +130,17 @@ def register_blueprints(flask_app: Flask, blueprints: Iterable) -> None:
 
 
 def register_request_hooks(flask_app: Flask) -> None:
+    @flask_app.before_request
+    def ensure_job_runtime():
+        if not start_job_runtime():
+            return
+        try:
+            count = reconcile_all_orphans()
+            if count > 0:
+                flask_app.logger.info("Reconciled %d orphaned jobs during worker startup.", count)
+        except Exception as exc:
+            flask_app.logger.warning("Failed to reconcile orphaned jobs during worker startup: %s", exc)
+
     @flask_app.before_request
     def log_telemetry():
         client_id = request.headers.get("X-Client-ID", "anonymous")

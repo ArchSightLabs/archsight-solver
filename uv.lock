@@ -20,7 +20,6 @@ dependencies = [
     { name = "numpy" },
     { name = "openpyxl" },
     { name = "pandas" },
-    { name = "pytest" },
     { name = "python-docx" },
     { name = "python-dotenv" },
     { name = "scipy" },
@@ -29,6 +28,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "debugpy" },
+    { name = "pytest" },
 ]
 
 [package.metadata]
@@ -38,14 +38,16 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.4.4" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pandas", specifier = ">=3.0.2" },
-    { name = "pytest", specifier = ">=9.0.2" },
     { name = "python-docx", specifier = ">=1.2.0" },
     { name = "python-dotenv", specifier = ">=1.2.2" },
     { name = "scipy", specifier = ">=1.17.1" },
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "debugpy", specifier = ">=1.8.20" }]
+dev = [
+    { name = "debugpy", specifier = ">=1.8.20" },
+    { name = "pytest", specifier = ">=9.0.2" },
+]
 
 [[package]]
 name = "blinker"
