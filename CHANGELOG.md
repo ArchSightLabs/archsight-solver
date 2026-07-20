@@ -27,6 +27,7 @@
 - Docker 门禁对构建后的镜像运行健康检查和 v1.6.2 canonical Host 接入，不以本地开发服务器结果替代镜像验收。
 - Docker 依赖安装在瞬态网络中断后保留 pip 缓存并有界重试，候选镜像仍以构建后验收和漏洞扫描结果为准。
 - Playwright 发布验收独占 Solver/Host 测试服务并使用严格端口，避免并行测试进程复用服务后在长 WebKit 套件中途被回收；长场景统一使用明确的 120 秒测试预算。
+- Flask 更新至 3.1.3、pytest 锁定至 9.1.1，关闭 GitHub 已识别且已有修复版本的运行时与开发依赖告警。
 - tag release 继续执行生产依赖审计、Trivy 已修复 HIGH / CRITICAL 漏洞零容忍、SPDX SBOM、制品哈希和 GitHub Release 门禁。
 
 ## v1.6.1
