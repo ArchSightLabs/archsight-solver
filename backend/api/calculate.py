@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify
 import traceback
+from backend.application.calculation import build_calculation_result
 from backend.api.errors import ApiError, error_payload
-from backend.api.calculation_response import build_calculation_response
+from backend.contracts.calculation_response import build_api_v1_response
 import uuid
 from datetime import datetime, timezone
 from backend.services.job_store import store_job, prune_completed_jobs
@@ -12,7 +13,8 @@ calculate_bp = Blueprint('calculate', __name__)
 def calculate():
     data = request.json or {}
     try:
-        response = build_calculation_response(data, operation='calculate')
+        calculation_result = build_calculation_result(data, operation='calculate')
+        response = build_api_v1_response(calculation_result)
         job_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc).isoformat()
 
@@ -25,7 +27,7 @@ def calculate():
                 "operation": "calculate",
                 "payload": data,
                 "status": "succeeded",
-                "result": response,
+                "result": calculation_result,
                 "createdAt": now,
                 "updatedAt": now,
                 "startedAt": now,

@@ -10,9 +10,10 @@ from typing import Any, Dict, Mapping
 
 from flask import Blueprint, jsonify, request, url_for
 
+from backend.application.calculation import build_calculation_result
 from backend.api.errors import ApiError, error_payload
 from backend.api.sensitivity import build_sensitivity_response
-from backend.api.calculation_response import build_calculation_response
+from backend.contracts.calculation_response import api_v1_response_from_stored_result
 from backend.services.job_store import DuplicateClientJobError
 from backend.services.job_store import load_job as _load_job
 from backend.services.job_store import load_job_by_client_id as _load_job_by_client_id
@@ -126,7 +127,7 @@ def _job_public_view(record: Mapping[str, Any], *, include_result: bool = False)
         },
     }
     if include_result and record.get("status") == "succeeded":
-        view["result"] = record.get("result")
+        view["result"] = api_v1_response_from_stored_result(record.get("result"))
     if record.get("status") == "failed":
         view["error"] = record.get("error")
     return view
@@ -150,7 +151,7 @@ def _run_job(job_id: str) -> None:
         if operation == "sensitivity":
             result = build_sensitivity_response(payload)
         else:
-            result = build_calculation_response(payload, operation=operation)
+            result = build_calculation_result(payload, operation=operation)
         current = _load_job(job_id)
         completed_at = _utc_now()
         if current and current.get("cancelRequested"):
@@ -321,7 +322,7 @@ def get_job_result(job_id: str):
     status = record["status"]
     if status != "succeeded":
         return jsonify(_job_public_view(record)), 202 if status in {"queued", "running"} else 409
-    result = record.get("result")
+    result = api_v1_response_from_stored_result(record.get("result"))
     return jsonify(result)
 
 

@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Mapping
 
-from backend.application.calculation import build_calculation_response
+from backend.application.calculation import build_calculation_result
 from backend.common.material_catalog import get_material_name
 from backend.integration_errors import (
     EXPORT_FAILED,
@@ -359,7 +359,7 @@ def solve_project_document(raw_document: str | Mapping[str, Any], now: str | Non
     project_document = _validated_project_document(raw_document)
     payload = active_project_payload(project_document)
     try:
-        result = build_calculation_response(payload, operation="project_document_solve")
+        result = build_calculation_result(payload, operation="project_document_solve")
     except Exception as exc:
         raise IntegrationContractError(SOLVE_FAILED, f"项目文档求解失败: {exc}") from exc
     summary = _as_record(result.get("summary"))

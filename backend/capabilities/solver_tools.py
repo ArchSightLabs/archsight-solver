@@ -4,9 +4,10 @@ import json
 from typing import Any, Callable, Dict, Mapping
 
 from backend.capabilities.beam_deflection import _build_solver_payload, _formula_ref, solve_beam_deflection_capability
-from backend.application.calculation import build_calculation_response
+from backend.application.calculation import build_calculation_result
 from backend.application.sensitivity import build_sensitivity_response
 from backend.contracts.diagnostics import analysis_type_for_error, diagnostic_issues_for_message
+from backend.contracts.calculation_response import build_api_v1_response
 from backend.benchmarks.catalog import iter_benchmark_cases
 from backend.benchmarks.runner import BenchmarkCaseError, evaluate_benchmark_case_by_id
 from backend.integration_errors import (
@@ -253,7 +254,8 @@ def solve_calculate(arguments: Mapping[str, Any]) -> Dict[str, Any]:
         payload = raw_payload
         if not isinstance(payload, Mapping):
             raise ToolInputError("payload 必须是结构求解输入对象")
-        result = build_calculation_response(dict(payload), operation="calculate")
+        result = build_calculation_result(dict(payload), operation="calculate")
+        public_result = build_api_v1_response(result)
         summary = result.get("summary", {})
         return {
             "capabilityId": capability_id,
@@ -263,7 +265,7 @@ def solve_calculate(arguments: Mapping[str, Any]) -> Dict[str, Any]:
             "analysisType": result.get("analysisType"),
             "summary": summary,
             "diagnostics": result.get("diagnostics", {}),
-            "results": result.get("results", {}),
+            "results": public_result.get("results", {}),
             "warnings": [
                 "通用求解工具返回完整结构分析结果摘要；工程签审仍需人工复核。"
             ],

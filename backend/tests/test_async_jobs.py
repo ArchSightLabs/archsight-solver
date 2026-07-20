@@ -78,7 +78,11 @@ def test_async_job_result_is_read_from_shared_store_not_future_memory(client):
     job = _wait_for_job(client, submitted["jobId"])
 
     assert job["status"] == "succeeded"
-    assert _load_job(submitted["jobId"])["result"]["analysisType"] == "beam"
+    stored_result = _load_job(submitted["jobId"])["result"]
+    assert stored_result["storageSchema"] == "solver-calculation-result@1"
+    assert stored_result["analysisType"] == "beam"
+    assert stored_result["solution"]["beam"]
+    assert "results" not in stored_result
 
     _futures.clear()
     status_response = client.get(f"/api/jobs/{submitted['jobId']}")

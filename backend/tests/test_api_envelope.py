@@ -6,6 +6,7 @@ import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from app import app
+from backend.services.job_store import load_job
 
 
 def _beam_payload():
@@ -154,3 +155,7 @@ def test_sync_calculations_do_not_treat_browser_client_id_as_idempotency_key(mon
     assert first_data["meta"]["jobCacheStatus"] == "succeeded"
     assert second_data["meta"]["jobCacheStatus"] == "succeeded"
     assert first_data["jobId"] != second_data["jobId"]
+    first_stored_result = load_job(first_data["jobId"])["result"]
+    assert first_stored_result["storageSchema"] == "solver-calculation-result@1"
+    assert "success" not in first_stored_result
+    assert "results" not in first_stored_result

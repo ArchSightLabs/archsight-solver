@@ -2,7 +2,7 @@ import copy
 
 import numpy as np
 
-from backend.application.calculation import build_calculation_response
+from backend.application.calculation import build_calculation_result
 from backend.common.analysis_types import get_analysis_type
 from backend.common.result_metric_catalog import default_sensitivity_metric, sensitivity_response_meta
 from backend.contracts.diagnostics import ApiError
@@ -159,14 +159,14 @@ def _scale_truss_payload(data, target, factor):
 
 
 def _beam_metric_value(payload, target_span_index, response_metric):
-    response = build_calculation_response(payload)
+    response = build_calculation_result(payload)["solution"]
 
     if response_metric == "max_moment":
-        moment_values = response.get("solution", {}).get("element_end_moments", [])
+        moment_values = response.get("element_end_moments", [])
         return float(max((abs(value) / 1000.0 for value in moment_values), default=0.0))
 
     if response_metric == "max_shear":
-        shear_values = response.get("solution", {}).get("element_end_shears", [])
+        shear_values = response.get("element_end_shears", [])
         return float(max((abs(value) / 1000.0 for value in shear_values), default=0.0))
 
     beam = response.get("beam", {})
@@ -178,7 +178,7 @@ def _beam_metric_value(payload, target_span_index, response_metric):
 
 
 def _frame_metric_value(payload, response_metric):
-    response = build_calculation_response(payload)
+    response = build_calculation_result(payload)["solution"]
     if response_metric == "max_ux":
         return float(max((abs(item["uxMm"]) for item in response.get("nodeResults", [])), default=0.0))
     if response_metric == "max_uy":
@@ -195,7 +195,7 @@ def _frame_metric_value(payload, response_metric):
 
 
 def _truss_metric_value(payload, response_metric):
-    response = build_calculation_response(payload)
+    response = build_calculation_result(payload)["solution"]
     if response_metric == "max_member_axial":
         return float(max((abs(item["axialForceKn"]) for item in response.get("memberResults", [])), default=0.0))
     if response_metric == "max_member_stress":
