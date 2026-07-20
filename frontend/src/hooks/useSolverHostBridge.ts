@@ -22,7 +22,6 @@ import type { ProjectFileHandle } from "../lib/project-file.ts";
 import type { SolverProject } from "../lib/solver-project.ts";
 
 interface UseSolverHostBridgeOptions {
-  applyCurrentRuntimeToProject: (sourceProject: SolverProject) => SolverProject;
   project: SolverProject;
   replaceProject: (
     nextProject: SolverProject,
@@ -32,7 +31,6 @@ interface UseSolverHostBridgeOptions {
     message: string,
   ) => void;
   setFileStatusMessage: (message: string) => void;
-  syncRuntimeFromProject: (project: SolverProject) => void;
   onHostModeChange?: (mode: "editable" | "readonly") => void;
   getProjectRevision: () => number;
   onHostSaveResult?: (status: string, projectRevision: number | null) => void;
@@ -47,11 +45,9 @@ function postToHost(message: SolverHostMessage, targetOrigin: string) {
 }
 
 export function useSolverHostBridge({
-  applyCurrentRuntimeToProject,
   project,
   replaceProject,
   setFileStatusMessage,
-  syncRuntimeFromProject,
   onHostModeChange,
   getProjectRevision,
   onHostSaveResult,
@@ -102,11 +98,11 @@ export function useSolverHostBridge({
     }
     pendingSaveRequestsRef.current.set(requestId, getProjectRevision());
     postToHost(
-      buildSaveRequestMessage(protocolState.sessionId, applyCurrentRuntimeToProject(projectRef.current), protocolState.nonce, requestId),
+      buildSaveRequestMessage(protocolState.sessionId, projectRef.current, protocolState.nonce, requestId),
       hostOrigin,
     );
     return true;
-  }, [applyCurrentRuntimeToProject, getProjectRevision, hostOrigin, setFileStatusMessage]);
+  }, [getProjectRevision, hostOrigin, setFileStatusMessage]);
 
   useEffect(() => {
     const handleMessage = (event: globalThis.MessageEvent) => {
@@ -147,7 +143,6 @@ export function useSolverHostBridge({
             launch.projectFile.updatedAt,
             launch.mode === "readonly" ? "已从外部宿主加载只读工程。" : "已从外部宿主加载工程。"
           );
-          syncRuntimeFromProject(launch.projectFile.project);
           return;
         }
         const requestSave = parseHostRequestSaveMessage(message);
@@ -193,7 +188,7 @@ export function useSolverHostBridge({
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [allowedOriginList, hostOrigin, nonce, onHostModeChange, onHostSaveResult, replaceProject, requestHostSave, sessionId, setFileStatusMessage, syncRuntimeFromProject]);
+  }, [allowedOriginList, hostOrigin, nonce, onHostModeChange, onHostSaveResult, replaceProject, requestHostSave, sessionId, setFileStatusMessage]);
 
   useEffect(() => {
     // React 按声明顺序执行 effect。必须先注册上方的 message listener，再向宿主宣布 ready；
@@ -220,10 +215,10 @@ export function useSolverHostBridge({
     protocolStateRef.current = transition.state;
     if (!transition.accepted) return;
     postToHost(
-      buildProjectChangedMessage(protocolState.sessionId, applyCurrentRuntimeToProject(projectRef.current), protocolState.nonce),
+      buildProjectChangedMessage(protocolState.sessionId, projectRef.current, protocolState.nonce),
       hostOrigin,
     );
-  }, [applyCurrentRuntimeToProject, hostOrigin]);
+  }, [hostOrigin]);
 
   return {
     hostSessionId: sessionId,

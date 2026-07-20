@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   addAnalysisObjectToProject,
+  clearAnalysisObjectResults,
+  commitAnalysisObjectResult,
   createAnalysisObject,
   createDefaultSolverProject,
   createWorkspaceFromProject,
@@ -141,6 +143,30 @@ test("更新活动对象工作台状态不会修改其他分析对象", () => {
   assert.equal(getActiveAnalysisObject(next).type, "frame");
   assert.equal(createWorkspaceFromProject(next).frame.span, 9.5);
   assert.equal(next.objects.find((object) => object.type === "beam")?.name, "梁系-1");
+});
+
+test("计算结果按显式对象编号提交且不会污染当前活动对象", () => {
+  const project = addAnalysisObjectToProject(createDefaultSolverProject(), "frame", "A轴框架");
+  const beamObject = project.objects.find((object) => object.type === "beam");
+  assert.ok(beamObject);
+  const result = { analysisType: "beam", summary: { statusCode: "PASS" } } as never;
+  const provenance = createResultProvenance({
+    analysisObjectId: beamObject.id,
+    analysisType: "beam",
+    payload: { analysisType: "beam", spans: [6], q: 10 },
+    projectRevision: 3,
+  });
+
+  const committed = commitAnalysisObjectResult(project, beamObject.id, result, provenance);
+
+  assert.equal(committed.activeObjectId, project.activeObjectId);
+  assert.equal(getActiveAnalysisObject(committed).type, "frame");
+  assert.equal(committed.objects.find((object) => object.id === beamObject.id)?.results, result);
+  assert.equal(getActiveAnalysisObject(committed).results, null);
+
+  const cleared = clearAnalysisObjectResults(committed, beamObject.id);
+  assert.equal(cleared.objects.find((object) => object.id === beamObject.id)?.results, null);
+  assert.equal(cleared.objects.find((object) => object.id === beamObject.id)?.resultProvenance, null);
 });
 
 test("删除活动对象后切换到剩余对象，单对象项目不删除", () => {

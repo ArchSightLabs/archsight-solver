@@ -1,5 +1,5 @@
-import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import type { AnalysisMode, FrameFormPayload, TrussFormPayload } from "../types/structure";
 import type { BeamApiPayload, BeamCalculationResults, SensitivityResults } from "../types/beam";
 import type { FrameCalculationResults, TrussCalculationResults } from "../types/structure";
@@ -36,6 +36,23 @@ export type AnalysisResults = BeamCalculationResults | FrameCalculationResults |
 export type ExportFormat = "docx" | "xlsx";
 type CalculationPayload = BeamApiPayload | FrameFormPayload | TrussFormPayload;
 
+interface UseWorkbenchActionsOptions {
+  activeAnalysisObjectId: string;
+  activeBenchmark?: BenchmarkCaseSource;
+  analysisData: AnalysisResults;
+  clientId: string;
+  getProjectRevision: () => number;
+  onCommitAnalysisResult: (objectId: string, result: Exclude<AnalysisResults, null>, provenance: ResultProvenance) => void;
+  onCommitSensitivityResult: (objectId: string, result: SensitivityResults, provenance: ResultProvenance) => void;
+  projectName: string;
+  reportExportOptions: ReportExportOptions;
+  sensitivityData: SensitivityResults | null;
+  setCompactWorkbenchView: (view: "parameters" | "results") => void;
+  setWorkspace: Dispatch<SetStateAction<WorkspaceState>>;
+  resultProvenance: ResultProvenance | null;
+  workspace: WorkspaceState;
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 const apiUrl = (path: string) => `${API_BASE_URL}${path}`;
 type ApiErrorResponse = {
@@ -64,24 +81,26 @@ async function readApiError(response: ApiErrorResponse, fallback: string): Promi
   return { message: (await response.text()) || fallback, diagnostics: [] };
 }
 
-export function useWorkbenchActions(
-  workspace: WorkspaceState,
-  setWorkspace: React.Dispatch<React.SetStateAction<WorkspaceState>>,
-  setCompactWorkbenchView: (view: "parameters" | "results") => void,
-  clientId: string,
-  reportExportOptions: ReportExportOptions,
-  projectName: string,
-  activeAnalysisObjectId: string,
-  getProjectRevision: () => number,
-  activeBenchmark?: BenchmarkCaseSource
-) {
-  const [analysisData, setAnalysisData] = useState<AnalysisResults>(null);
-  const [sensitivityData, setSensitivityData] = useState<SensitivityResults | null>(null);
+export function useWorkbenchActions({
+  activeAnalysisObjectId,
+  activeBenchmark,
+  analysisData,
+  clientId,
+  getProjectRevision,
+  onCommitAnalysisResult,
+  onCommitSensitivityResult,
+  projectName,
+  reportExportOptions,
+  resultProvenance,
+  sensitivityData,
+  setCompactWorkbenchView,
+  setWorkspace,
+  workspace,
+}: UseWorkbenchActionsOptions) {
   const [isSolving, setIsSolving] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [exportingFormat, setExportingFormat] = useState<ExportFormat | null>(null);
   const [operationNotice, setOperationNotice] = useState<WorkbenchOperationNotice | null>(null);
-  const [resultProvenance, setResultProvenance] = useState<ResultProvenance | null>(null);
   const activeAnalysisObjectIdRef = useRef(activeAnalysisObjectId);
   const solveRequestSequenceRef = useRef(0);
   const sensitivityRequestSequenceRef = useRef(0);
@@ -150,24 +169,25 @@ export function useWorkbenchActions(
         throw new WorkbenchApiError(await readApiError(response, "后端连接失败"));
       }
       const result = normalizeAnalysisResponse(await response.json());
-      if (activeAnalysisObjectIdRef.current !== requestObjectId || solveRequestSequenceRef.current !== requestSequence) {
+      if (solveRequestSequenceRef.current !== requestSequence) {
         return null;
       }
-      setAnalysisData(result);
-      setResultProvenance(createResultProvenance({
+      const provenance = createResultProvenance({
         analysisObjectId: requestObjectId,
         analysisType,
         payload: data as unknown as Record<string, unknown>,
         projectRevision: requestProjectRevision,
         result,
-      }));
-      setSensitivityData(null); // Reset sensitivity on new solve
-      setCompactWorkbenchView("results");
-      setOperationNotice(operationCompletedNotice("solve", analysisType));
+      });
+      onCommitAnalysisResult(requestObjectId, result, provenance);
+      if (activeAnalysisObjectIdRef.current === requestObjectId) {
+        setCompactWorkbenchView("results");
+        setOperationNotice(operationCompletedNotice("solve", analysisType));
+      }
       return result;
     } catch (error) {
       console.error("求解失败：", error);
-      if (activeAnalysisObjectIdRef.current !== requestObjectId || solveRequestSequenceRef.current !== requestSequence) {
+      if (solveRequestSequenceRef.current !== requestSequence || activeAnalysisObjectIdRef.current !== requestObjectId) {
         return null;
       }
       setOperationNotice(operationFailedNotice(
@@ -229,18 +249,20 @@ export function useWorkbenchActions(
       if (!res.ok) {
         throw new WorkbenchApiError(apiErrorDetails(data, "敏感性分析失败"));
       }
-      if (activeAnalysisObjectIdRef.current !== requestObjectId || sensitivityRequestSequenceRef.current !== requestSequence) {
+      if (sensitivityRequestSequenceRef.current !== requestSequence) {
         return;
       }
-      setSensitivityData(data);
-      setResultProvenance(createResultProvenance({
+      const provenance = createResultProvenance({
         analysisObjectId: requestObjectId,
         analysisType: workspace.analysisMode,
         payload: currentPayload as unknown as Record<string, unknown>,
         projectRevision: requestProjectRevision,
         result: data,
-      }));
-      setOperationNotice(operationCompletedNotice("sensitivity", workspace.analysisMode));
+      });
+      onCommitSensitivityResult(requestObjectId, data, provenance);
+      if (activeAnalysisObjectIdRef.current === requestObjectId) {
+        setOperationNotice(operationCompletedNotice("sensitivity", workspace.analysisMode));
+      }
     } catch (error) {
       if (activeAnalysisObjectIdRef.current !== requestObjectId || sensitivityRequestSequenceRef.current !== requestSequence) {
         return;
@@ -352,13 +374,7 @@ export function useWorkbenchActions(
   };
 
   return {
-    analysisData,
-    setAnalysisData,
-    resultProvenance,
-    setResultProvenance,
     resultValidity,
-    sensitivityData,
-    setSensitivityData,
     isSolving,
     isScanning,
     exportingFormat,

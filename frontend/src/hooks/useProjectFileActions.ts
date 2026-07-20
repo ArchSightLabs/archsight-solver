@@ -11,14 +11,12 @@ import {
   type ProjectFileHandle,
 } from "../lib/project-file";
 import {
-  getActiveAnalysisObject,
   normalizeSolverProject,
   type SolverProject,
 } from "../lib/solver-project";
 import type { ProjectDocumentSnapshot } from "../lib/project-document-lifecycle";
 
 interface UseProjectFileActionsOptions {
-  applyCurrentRuntimeToProject: (sourceProject: SolverProject) => SolverProject;
   isProjectDirty: boolean;
   isProjectReadOnly: boolean;
   completeProjectFileSave: (
@@ -30,7 +28,6 @@ interface UseProjectFileActionsOptions {
     message: string,
   ) => boolean;
   getProjectDocumentSnapshot: () => ProjectDocumentSnapshot;
-  markRuntimePersisted: () => void;
   onNewProjectRequested: () => void;
   onProjectOpened: () => void;
   onPublicExampleClosed: () => void;
@@ -43,23 +40,19 @@ interface UseProjectFileActionsOptions {
     savedAt: string | null,
     message: string,
   ) => void;
-  syncRuntimeFromAnalysisObject: (object: ReturnType<typeof getActiveAnalysisObject>) => void;
 }
 
 export function useProjectFileActions({
-  applyCurrentRuntimeToProject,
   completeProjectFileSave,
   getProjectDocumentSnapshot,
   isProjectDirty,
   isProjectReadOnly,
-  markRuntimePersisted,
   onNewProjectRequested,
   onProjectOpened,
   onPublicExampleClosed,
   project,
   projectFileHandle,
   replaceProject,
-  syncRuntimeFromAnalysisObject,
 }: UseProjectFileActionsOptions) {
   const projectFileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -74,9 +67,8 @@ export function useProjectFileActions({
     message: string,
   ) => {
     replaceProject(nextProject, fileName, handle, savedAt, message);
-    syncRuntimeFromAnalysisObject(getActiveAnalysisObject(nextProject));
     onProjectOpened();
-  }, [onProjectOpened, replaceProject, syncRuntimeFromAnalysisObject]);
+  }, [onProjectOpened, replaceProject]);
 
   const handleNewProjectFile = useCallback(() => {
     if (isProjectReadOnly) return;
@@ -88,10 +80,10 @@ export function useProjectFileActions({
     if (isProjectReadOnly) return;
     try {
       const projectSnapshot = getProjectDocumentSnapshot();
-      const savedProject = applyCurrentRuntimeToProject(project);
+      const savedProject = project;
       const projectFile = createArchSightSolverProjectFile(savedProject);
       const result = await saveArchSightSolverProjectFile(projectFile, projectFileHandle, forceSaveAs);
-      const accepted = completeProjectFileSave(
+      completeProjectFileSave(
         savedProject,
         projectSnapshot,
         result.fileName,
@@ -99,14 +91,11 @@ export function useProjectFileActions({
         result.savedAt,
         result.mode === "download" ? `已下载导出：${result.fileName}` : `${forceSaveAs ? "另存为" : "保存"}成功：${result.fileName}`
       );
-      if (accepted) {
-        markRuntimePersisted();
-      }
     } catch (error) {
       if (isFilePickerAbort(error)) return;
       alert(`项目文件保存失败：${error instanceof Error ? error.message : "未知错误"}`);
     }
-  }, [applyCurrentRuntimeToProject, completeProjectFileSave, getProjectDocumentSnapshot, isProjectReadOnly, markRuntimePersisted, project, projectFileHandle]);
+  }, [completeProjectFileSave, getProjectDocumentSnapshot, isProjectReadOnly, project, projectFileHandle]);
 
   const handleOpenProjectFile = useCallback(() => {
     if (isProjectReadOnly) return;

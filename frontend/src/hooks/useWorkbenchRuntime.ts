@@ -1,13 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useMemo, type Dispatch, type SetStateAction } from "react";
 import type { SensitivityResults } from "../types/beam";
 import type { WorkspaceState } from "../lib/workspace-state";
 import { buildModelDiagnostics, type ModelDiagnostics } from "../lib/model-diagnostics";
-import {
-  updateActiveAnalysisObject,
-  type AnalysisObject,
-  type SolverProject,
-  type WorkbenchView,
-} from "../lib/solver-project";
+import { type AnalysisObject, type WorkbenchView } from "../lib/solver-project";
 import type { ReportExportOptions } from "../lib/report-options";
 import { buildBeamPayload, buildFramePayload, buildTrussPayload, validateCustomFrameWorkspace, validateCustomTrussWorkspace } from "../solver-payload";
 import { beamResultForView, frameResultForView, trussResultForView } from "../lib/api-envelope";
@@ -21,50 +16,45 @@ const BENCHMARK_SUBMISSION_NEEDS_RESULT_REASON = "请先运行当前分析对象
 interface UseWorkbenchRuntimeOptions {
   activeAnalysisObject: AnalysisObject;
   clientId: string;
+  clearAnalysisResults: (objectId: string) => boolean;
+  commitAnalysisResult: (objectId: string, result: Exclude<AnalysisResults, null>, provenance: ResultProvenance) => boolean;
+  commitSensitivityResult: (objectId: string, result: SensitivityResults, provenance: ResultProvenance) => boolean;
   getProjectRevision: () => number;
-  markProjectDirty: () => void;
   modelDiagnostics: ModelDiagnostics;
   projectName: string;
   reportExportOptions: ReportExportOptions;
   resetWorkbenchContext: () => void;
-  setProject: Dispatch<SetStateAction<SolverProject>>;
+  setWorkbenchView: Dispatch<SetStateAction<WorkbenchView>>;
   updateWorkspace: Dispatch<SetStateAction<WorkspaceState>>;
+  workbenchView: WorkbenchView;
   workspace: WorkspaceState;
 }
 
 export function useWorkbenchRuntime({
   activeAnalysisObject,
   clientId,
+  clearAnalysisResults,
+  commitAnalysisResult,
+  commitSensitivityResult,
   getProjectRevision,
-  markProjectDirty,
   modelDiagnostics,
   projectName,
   reportExportOptions,
   resetWorkbenchContext,
-  setProject,
+  setWorkbenchView,
   updateWorkspace,
+  workbenchView,
   workspace,
 }: UseWorkbenchRuntimeOptions) {
-  const [workbenchView, setWorkbenchView] = useState<WorkbenchView>("model");
-  const skipNextRuntimePersistRef = useRef(true);
-  const lastRuntimePersistRef = useRef<{
-    analysisData: AnalysisResults;
-    sensitivityData: SensitivityResults | null;
-    resultProvenance: ResultProvenance | null;
-    workbenchView: WorkbenchView;
-  }>({ analysisData: null, sensitivityData: null, resultProvenance: null, workbenchView: "model" });
+  const analysisData = activeAnalysisObject.results;
+  const sensitivityData = activeAnalysisObject.sensitivityResults;
+  const resultProvenance = activeAnalysisObject.resultProvenance;
   const setCompactWorkbenchView = useCallback((view: "parameters" | "results") => {
     setWorkbenchView(view === "results" ? "results" : "model");
-  }, []);
+  }, [setWorkbenchView]);
 
   const {
-    analysisData,
-    setAnalysisData,
-    resultProvenance,
-    setResultProvenance,
     resultValidity,
-    sensitivityData,
-    setSensitivityData,
     isSolving,
     isScanning,
     exportingFormat,
@@ -74,96 +64,40 @@ export function useWorkbenchRuntime({
     handleRunPayload,
     handleSensitivity: runSensitivity,
     handleExport,
-  } = useWorkbenchActions(
-    workspace,
-    updateWorkspace,
-    setCompactWorkbenchView,
+  } = useWorkbenchActions({
+    activeAnalysisObjectId: activeAnalysisObject.id,
+    activeBenchmark: activeAnalysisObject.benchmark,
+    analysisData,
     clientId,
-    reportExportOptions,
-    projectName,
-    activeAnalysisObject.id,
     getProjectRevision,
-    activeAnalysisObject.benchmark
-  );
-
-  useEffect(() => {
-    const previousRuntime = lastRuntimePersistRef.current;
-    const isSameRuntime =
-      previousRuntime.analysisData === analysisData &&
-      previousRuntime.sensitivityData === sensitivityData &&
-      previousRuntime.resultProvenance === resultProvenance &&
-      previousRuntime.workbenchView === workbenchView;
-
-    if (skipNextRuntimePersistRef.current) {
-      skipNextRuntimePersistRef.current = false;
-      lastRuntimePersistRef.current = { analysisData, sensitivityData, resultProvenance, workbenchView };
-      return;
-    }
-    if (isSameRuntime) {
-      return;
-    }
-    lastRuntimePersistRef.current = { analysisData, sensitivityData, resultProvenance, workbenchView };
-    setProject((current) => updateActiveAnalysisObject(current, (object) => ({
-      ...object,
-      results: analysisData,
-      sensitivityResults: sensitivityData,
-      resultProvenance,
-      workbenchView,
-    })));
-    markProjectDirty();
-  }, [analysisData, markProjectDirty, resultProvenance, sensitivityData, setProject, workbenchView]);
-
-  const syncRuntimeFromAnalysisObject = useCallback((object: AnalysisObject) => {
-    skipNextRuntimePersistRef.current = true;
-    setAnalysisData(object.results);
-    setSensitivityData(object.sensitivityResults);
-    setResultProvenance(object.resultProvenance);
-    setOperationNotice(null);
-    setWorkbenchView(object.workbenchView);
-    resetWorkbenchContext();
-  }, [resetWorkbenchContext, setAnalysisData, setOperationNotice, setResultProvenance, setSensitivityData]);
+    onCommitAnalysisResult: commitAnalysisResult,
+    onCommitSensitivityResult: commitSensitivityResult,
+    projectName,
+    reportExportOptions,
+    resultProvenance,
+    sensitivityData,
+    setCompactWorkbenchView,
+    setWorkspace: updateWorkspace,
+    workspace,
+  });
 
   const resetRuntimeForNewAnalysisObject = useCallback(() => {
-    skipNextRuntimePersistRef.current = true;
-    setAnalysisData(null);
-    setSensitivityData(null);
-    setResultProvenance(null);
     setOperationNotice(null);
     setWorkbenchView("model");
     resetWorkbenchContext();
-  }, [resetWorkbenchContext, setAnalysisData, setOperationNotice, setResultProvenance, setSensitivityData]);
+  }, [resetWorkbenchContext, setOperationNotice, setWorkbenchView]);
+
+  const handleAnalysisObjectChanged = useCallback(() => {
+    setOperationNotice(null);
+    resetWorkbenchContext();
+  }, [resetWorkbenchContext, setOperationNotice]);
 
   const clearCurrentAnalysisRuntime = useCallback(() => {
-    skipNextRuntimePersistRef.current = true;
-    lastRuntimePersistRef.current = { analysisData: null, sensitivityData: null, resultProvenance: null, workbenchView: "model" };
-    setAnalysisData(null);
-    setSensitivityData(null);
-    setResultProvenance(null);
+    clearAnalysisResults(activeAnalysisObject.id);
     setOperationNotice(null);
     setWorkbenchView("model");
-    setProject((current) => updateActiveAnalysisObject(current, (object) => ({
-      ...object,
-      results: null,
-      sensitivityResults: null,
-      resultProvenance: null,
-      workbenchView: "model",
-    })));
-    markProjectDirty();
     resetWorkbenchContext();
-  }, [markProjectDirty, resetWorkbenchContext, setAnalysisData, setOperationNotice, setProject, setResultProvenance, setSensitivityData]);
-
-  const markRuntimePersisted = useCallback(() => {
-    skipNextRuntimePersistRef.current = true;
-    lastRuntimePersistRef.current = { analysisData, sensitivityData, resultProvenance, workbenchView };
-  }, [analysisData, resultProvenance, sensitivityData, workbenchView]);
-
-  const applyCurrentRuntimeToProject = useCallback((sourceProject: SolverProject) => updateActiveAnalysisObject(sourceProject, (object) => ({
-    ...object,
-    results: analysisData,
-    sensitivityResults: sensitivityData,
-    resultProvenance,
-    workbenchView,
-  })), [analysisData, resultProvenance, sensitivityData, workbenchView]);
+  }, [activeAnalysisObject.id, clearAnalysisResults, resetWorkbenchContext, setOperationNotice, setWorkbenchView]);
 
   const analysisMode = workspace.analysisMode;
   const frameResults = useMemo(() => frameResultForView(analysisData), [analysisData]);
@@ -253,31 +187,29 @@ export function useWorkbenchRuntime({
     }
     setWorkbenchView("results");
     return handleRunPayload(payload);
-  }, [blockIfDiagnosticsFailed, handleRunPayload, projectName]);
+  }, [blockIfDiagnosticsFailed, handleRunPayload, projectName, setWorkbenchView]);
 
   return {
     analysisData,
-    applyCurrentRuntimeToProject,
     beamResults,
     benchmarkSubmissionContext,
     clearCurrentAnalysisRuntime,
     exportingFormat,
     frameResults,
     handleExport,
+    handleAnalysisObjectChanged,
     handleRunAndReview,
     handleRunCurrentModule,
     handleRunWorkspace,
     handleSensitivity,
     isScanning,
     isSolving,
-    markRuntimePersisted,
     operationNotice,
     resultProvenance,
     resultValidity,
     resetRuntimeForNewAnalysisObject,
     runLabel,
     sensitivityData,
-    syncRuntimeFromAnalysisObject,
     trussResults,
     workbenchView,
     setWorkbenchView,
