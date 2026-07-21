@@ -33,6 +33,8 @@ cp docker-compose.yml.example docker-compose.yml
 
 - `IMAGE_REPOSITORY`：应用镜像仓库地址，不包含 TAG。
 - `IMAGE_TAG`：应用镜像 TAG，默认 `v1.6.2`；正式环境应使用不可变版本标签，不使用 `latest`。
+- `NODE_IMAGE`：前端构建基础镜像；示例使用带 digest 的官方 Public ECR Docker Library 镜像，避免依赖不稳定的 Docker Hub 代理。
+- `PYTHON_IMAGE`：运行时基础镜像；与 `NODE_IMAGE` 一样固定 digest，可按网络环境切换 registry，但不得省略 digest。
 - `APP_HOST_BIND`：宿主机监听地址，默认 `127.0.0.1`，避免直接暴露容器端口。
 - `APP_HOST_PORT`：宿主机本地监听端口，默认 `6280`，仅绑定 `127.0.0.1`，供公共 Nginx 反向代理。
 - `ARCHSIGHT_GUNICORN_WORKERS`：Gunicorn worker 数量，默认 `4`。
@@ -64,7 +66,7 @@ IMAGE_TAG=v1.6.2
 ..\scripts\build-image.ps1 -Tag v1.6.2 -Push
 ```
 
-若不传 `-Tag`，构建脚本会读取 `deploy/.env` 中的 `IMAGE_TAG`。
+若不传 `-Tag`，构建脚本会读取 `deploy/.env` 中的 `IMAGE_TAG`。构建脚本也会读取 `NODE_IMAGE` 与 `PYTHON_IMAGE` 并显式传入 Dockerfile；需要主动刷新固定基础镜像时使用 `-RefreshBaseImages`，不应把本地缓存是否存在当作构建成功条件。
 
 在 Windows 本地可以通过 SSH 远程触发服务器部署：
 

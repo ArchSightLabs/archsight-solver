@@ -1,5 +1,5 @@
-ARG NODE_IMAGE=node:22-bookworm-slim
-ARG PYTHON_IMAGE=python:3.13-slim
+ARG NODE_IMAGE=node:22-bookworm-slim@sha256:6c74791e557ce11fc957704f6d4fe134a7bc8d6f5ca4403205b2966bd488f6b3
+ARG PYTHON_IMAGE=python:3.13-slim@sha256:6771159cd4fa5d9bba1258caf0b82e6b73458c694d178ad97c5e925c2d0e1a91
 
 FROM ${NODE_IMAGE} AS frontend-builder
 

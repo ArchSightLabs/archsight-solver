@@ -21,6 +21,7 @@ REQUIRED_PATHS = (
     "frontend/tests/visual/release-1-6-1-host-reference.spec.ts",
     "frontend/tests/visual/release-1-6-2-acceptance.spec.ts",
     "scripts/run_host_iframe_demo.py",
+    "scripts/build-image.ps1",
     "scripts/check_versions.py",
     "Dockerfile",
     "deploy/.env.example",
@@ -28,7 +29,19 @@ REQUIRED_PATHS = (
 )
 REQUIRED_MARKERS = {
     "app.py": ("ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS", 'Cache-Control', "frame-ancestors"),
-    "Dockerfile": ("USER app", "HEALTHCHECK"),
+    "Dockerfile": (
+        "USER app",
+        "HEALTHCHECK",
+        "node:22-bookworm-slim@sha256:6c74791e557ce11fc957704f6d4fe134a7bc8d6f5ca4403205b2966bd488f6b3",
+        "python:3.13-slim@sha256:6771159cd4fa5d9bba1258caf0b82e6b73458c694d178ad97c5e925c2d0e1a91",
+    ),
+    "scripts/build-image.ps1": (
+        '"NODE_IMAGE"',
+        '"PYTHON_IMAGE"',
+        '"NODE_IMAGE=$NodeImage"',
+        '"PYTHON_IMAGE=$PythonImage"',
+        "$RefreshBaseImages",
+    ),
     "frontend/playwright.config.ts": (
         'command: "npm run dev -- --host 127.0.0.1 --port 6241 --strictPort"',
         "reuseExistingServer: false",
@@ -95,8 +108,17 @@ def main() -> int:
         if playwright_config.count("reuseExistingServer: false") != 2:
             failures.append("frontend/playwright.config.ts 必须让 Solver 与 Host 两个测试服务都由当前验收进程独占")
 
+    build_script_path = ROOT / "scripts/build-image.ps1"
+    if build_script_path.is_file() and "DOCKER_BUILDKIT" in build_script_path.read_text(encoding="utf-8"):
+        failures.append("scripts/build-image.ps1 不得回退到已弃用的 Legacy Builder")
+
     deploy_expectations = {
-        "deploy/.env.example": ("IMAGE_TAG=v1.6.2", "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS="),
+        "deploy/.env.example": (
+            "IMAGE_TAG=v1.6.2",
+            "NODE_IMAGE=public.ecr.aws/docker/library/node:22-bookworm-slim@sha256:",
+            "PYTHON_IMAGE=public.ecr.aws/docker/library/python:3.13-slim@sha256:",
+            "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS=",
+        ),
         "deploy/docker-compose.yml.example": (
             "${IMAGE_TAG:-v1.6.2}",
             "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS: ${ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS:-}",

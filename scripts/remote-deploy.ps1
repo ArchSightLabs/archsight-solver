@@ -7,8 +7,10 @@ param(
     [string]$IdentityFile = "",
     [string]$DeployPath = "~/archsight-solver/deploy",
     [string]$Tag = "",
+    [string]$NodeImage = "",
+    [string]$PythonImage = "",
+    [switch]$RefreshBaseImages,
     [switch]$BuildAndPush,
-    [switch]$LegacyBuilder,
     [switch]$DryRun
 )
 
@@ -65,10 +67,15 @@ if ($BuildAndPush) {
     if ($Tag) {
         $buildArgs += @("-Tag", $Tag)
     }
-    if ($LegacyBuilder) {
-        $buildArgs += "-LegacyBuilder"
+    if ($NodeImage) {
+        $buildArgs += @("-NodeImage", $NodeImage)
     }
-
+    if ($PythonImage) {
+        $buildArgs += @("-PythonImage", $PythonImage)
+    }
+    if ($RefreshBaseImages) {
+        $buildArgs += "-RefreshBaseImages"
+    }
     Write-Host "开始构建并推送镜像..."
     if ($DryRun) {
         Write-Host "Dry run: $buildScript $($buildArgs -join ' ')"

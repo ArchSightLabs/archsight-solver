@@ -14,6 +14,14 @@
 docker build -t archsight-solver:latest .
 ```
 
+Dockerfile 默认将 Node 22 与 Python 3.13 基础镜像固定到已验证 digest。若 Docker Hub 直连或本地 mirror 不稳定，推荐通过构建脚本和 `deploy/.env` 显式使用同 digest 的官方 Public ECR Docker Library 镜像：
+
+```powershell
+.\scripts\build-image.ps1 -Tag v1.6.2
+```
+
+脚本读取 `NODE_IMAGE` 与 `PYTHON_IMAGE`；`-RefreshBaseImages` 会先单独拉取两份固定基础镜像，用于主动刷新或诊断，不是每次构建的必要步骤。
+
 本地运行：
 
 ```powershell
@@ -52,11 +60,7 @@ docker build -t archsight-solver:v1.6.2 -t registry.example.com/example-namespac
 docker push registry.example.com/example-namespace/archsight-solver:v1.6.2
 ```
 
-如果 Docker 环境在拉取基础镜像时不稳定，可临时关闭 BuildKit：
-
-```powershell
-$env:DOCKER_BUILDKIT="0"; docker build -t archsight-solver:latest .
-```
+构建脚本只使用 BuildKit；不要通过 `DOCKER_BUILDKIT=0` 回退到已弃用的 Legacy Builder。镜像源异常应通过固定 digest、显式 `NODE_IMAGE` / `PYTHON_IMAGE` 和 `-RefreshBaseImages` 处理。
 
 ## Docker Compose
 

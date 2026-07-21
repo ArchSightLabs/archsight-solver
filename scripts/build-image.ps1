@@ -6,8 +6,10 @@ param(
     [string]$Tag = "",
     [string]$EnvFile = "deploy/.env",
     [string]$EnableBusuanzi = "",
+    [string]$NodeImage = "",
+    [string]$PythonImage = "",
+    [switch]$RefreshBaseImages,
     [switch]$Push,
-    [switch]$LegacyBuilder,
     [switch]$DryRun
 )
 
@@ -58,6 +60,8 @@ $Repository = Resolve-ConfigValue $Repository "IMAGE_REPOSITORY_NAME" "IMAGE_REP
 $ImageRepository = Resolve-ConfigValue $ImageRepository "IMAGE_REPOSITORY" "IMAGE_REPOSITORY" ""
 $Tag = Resolve-ConfigValue $Tag "IMAGE_TAG" "IMAGE_TAG" "latest"
 $EnableBusuanzi = Resolve-ConfigValue $EnableBusuanzi "VITE_ENABLE_BUSUANZI" "VITE_ENABLE_BUSUANZI" "false"
+$NodeImage = Resolve-ConfigValue $NodeImage "NODE_IMAGE" "NODE_IMAGE" "node:22-bookworm-slim@sha256:6c74791e557ce11fc957704f6d4fe134a7bc8d6f5ca4403205b2966bd488f6b3"
+$PythonImage = Resolve-ConfigValue $PythonImage "PYTHON_IMAGE" "PYTHON_IMAGE" "python:3.13-slim@sha256:6771159cd4fa5d9bba1258caf0b82e6b73458c694d178ad97c5e925c2d0e1a91"
 
 $remoteRepository = if ($ImageRepository) { $ImageRepository } else { "$Registry/$Namespace/$Repository" }
 $remoteImage = "$remoteRepository`:$Tag"
@@ -67,41 +71,42 @@ Write-Host "Repository root: $repoRoot"
 Write-Host "Local image:     $localImage"
 Write-Host "Remote image:    $remoteImage"
 Write-Host "Busuanzi stats:  $EnableBusuanzi"
+Write-Host "Node base image: $NodeImage"
+Write-Host "Python base:     $PythonImage"
 
 if ($DryRun) {
     Write-Host "Dry run: image tags resolved; docker build was not executed."
     return
 }
 
-$oldBuildKit = $env:DOCKER_BUILDKIT
-if ($LegacyBuilder) {
-    $env:DOCKER_BUILDKIT = "0"
-    Write-Host "Legacy builder enabled (DOCKER_BUILDKIT=0)."
-}
-
-try {
-    & docker build --build-arg "VITE_ENABLE_BUSUANZI=$EnableBusuanzi" -t $localImage -t $remoteImage .
-    if ($LASTEXITCODE -ne 0) {
-        throw "docker build failed with exit code $LASTEXITCODE"
-    }
-
-    if ($Push) {
-        & docker push $remoteImage
+if ($RefreshBaseImages) {
+    foreach ($baseImage in @($NodeImage, $PythonImage)) {
+        Write-Host "Refreshing base image: $baseImage"
+        & docker pull $baseImage
         if ($LASTEXITCODE -ne 0) {
-            throw "docker push failed with exit code $LASTEXITCODE"
+            throw "docker pull failed for $baseImage with exit code $LASTEXITCODE"
         }
     }
+}
 
-    Write-Host "Done."
-    Write-Host "Local image:  $localImage"
-    Write-Host "Remote image: $remoteImage"
+& docker build `
+    --build-arg "NODE_IMAGE=$NodeImage" `
+    --build-arg "PYTHON_IMAGE=$PythonImage" `
+    --build-arg "VITE_ENABLE_BUSUANZI=$EnableBusuanzi" `
+    -t $localImage `
+    -t $remoteImage `
+    .
+if ($LASTEXITCODE -ne 0) {
+    throw "docker build failed with exit code $LASTEXITCODE"
 }
-finally {
-    if ($LegacyBuilder) {
-        if ($null -eq $oldBuildKit) {
-            Remove-Item Env:DOCKER_BUILDKIT -ErrorAction SilentlyContinue
-        } else {
-            $env:DOCKER_BUILDKIT = $oldBuildKit
-        }
+
+if ($Push) {
+    & docker push $remoteImage
+    if ($LASTEXITCODE -ne 0) {
+        throw "docker push failed with exit code $LASTEXITCODE"
     }
 }
+
+Write-Host "Done."
+Write-Host "Local image:  $localImage"
+Write-Host "Remote image: $remoteImage"
