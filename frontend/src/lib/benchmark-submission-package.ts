@@ -191,7 +191,10 @@ export function parseJsonObject(text: string, label: string): Record<string, unk
   try {
     value = JSON.parse(text);
   } catch (error) {
-    throw new Error(`${label} 不是有效 JSON: ${error instanceof Error ? error.message : "解析失败"}`);
+    throw new Error(
+      `${label} 不是有效 JSON: ${error instanceof Error ? error.message : "解析失败"}`,
+      { cause: error }
+    );
   }
   return parseObjectPayload(value, label);
 }

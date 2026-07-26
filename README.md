@@ -24,6 +24,8 @@ Apache-2.0 不授予 ArchSight、ArchSight Solver、ArchSightLabs、项目 logo�
 
 ## 快速开始
 
+前端开发与构建需要 Node.js `>=22.22.0`。
+
 ```bash
 python app.py
 npm --prefix frontend run dev

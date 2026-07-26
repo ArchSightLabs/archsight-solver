@@ -18,6 +18,8 @@ $env:BEAM_SOLVER_BACKEND_PORT="6240"; python app.py
 
 ## 前端
 
+前端开发与构建需要 Node.js `>=22.22.0`。
+
 ```bash
 cd frontend
 npm run dev
