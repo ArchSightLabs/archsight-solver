@@ -30,6 +30,35 @@ def test_public_docs_prioritize_professional_modeling_and_export_evidence():
     assert "不要只改 UI、API 或导出中的单一入口" in contributing
 
 
+def test_public_quickstart_is_reproducible_from_a_fresh_clone():
+    readme = _read_doc("README.md")
+    quickstart = _read_doc("docs/quickstart.md")
+
+    for document in (readme, quickstart):
+        assert "Python `>=3.13`" in document
+        assert "Node.js `>=22.22.0`" in document
+        assert "uv sync --frozen" in document
+        assert "npm --prefix frontend ci" in document
+        assert "uv run python app.py" in document
+
+    assert "git clone https://github.com/ArchSightLabs/archsight-solver.git" in readme
+    assert "uv run python -m pytest backend/tests -q" in quickstart
+
+    repository_usage_docs = (
+        readme,
+        quickstart,
+        _read_doc("CONTRIBUTING.md"),
+        _read_doc("docs/agent-integration.md"),
+        _read_doc("docs/agent-engineering-workflow.md"),
+        _read_doc("examples/host-iframe-demo/README.md"),
+    )
+    for document in repository_usage_docs:
+        assert "python -m backend." not in document.replace("uv run python -m backend.", "")
+        assert "python scripts/run_host_iframe_demo.py" not in document.replace(
+            "uv run python scripts/run_host_iframe_demo.py", ""
+        )
+
+
 def test_public_roadmap_tracks_current_benchmark_catalog_counts():
     roadmap = _read_doc("docs/roadmap.md")
     catalog = json.loads(_read_doc("backend/benchmarks/benchmark_cases.json"))

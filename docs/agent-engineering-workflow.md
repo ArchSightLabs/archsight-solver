@@ -37,7 +37,7 @@
 
 3. **执行确定性求解**
    - REST：`POST /api/calculate`
-   - CLI：`python -m backend.capabilities.solver_cli calculate --input payload.json --pretty`
+   - CLI：`uv run python -m backend.capabilities.solver_cli calculate --input payload.json --pretty`
    - MCP：调用 `calculate` tool，参数为 `{ "payload": <ASMS-JSON> }`
 
 4. **执行公开验证集复核**
@@ -87,13 +87,13 @@
 执行：
 
 ```powershell
-python -m backend.capabilities.solver_cli calculate --input payload.json --pretty
+uv run python -m backend.capabilities.solver_cli calculate --input payload.json --pretty
 ```
 
 公开验证集复核：
 
 ```powershell
-'{"caseId":"beam-simply-supported-uniform"}' | python -m backend.capabilities.solver_cli benchmark_case_run --pretty
+'{"caseId":"beam-simply-supported-uniform"}' | uv run python -m backend.capabilities.solver_cli benchmark_case_run --pretty
 ```
 
 ## MCP 调用
@@ -101,7 +101,7 @@ python -m backend.capabilities.solver_cli calculate --input payload.json --prett
 启动本地 stdio MCP Server：
 
 ```powershell
-python -m backend.capabilities.mcp_server
+uv run python -m backend.capabilities.mcp_server
 ```
 
 推荐 Agent Host 先读取以下资源，再生成或校验 payload：

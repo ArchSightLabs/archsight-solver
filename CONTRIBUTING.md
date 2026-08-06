@@ -28,7 +28,7 @@ SPDX-License-Identifier: Apache-2.0
 
 提交代码前，请至少完成以下检查：
 
-- 后端：`python -m pytest backend/tests -q`
+- 后端：`uv run python -m pytest backend/tests -q`
 - 前端：`npm --prefix frontend run lint`
 - 前端构建：`npm --prefix frontend run build`
 - 运行时依赖：`npm --prefix frontend audit --omit=dev --audit-level=moderate`

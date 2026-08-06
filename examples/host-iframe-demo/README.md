@@ -13,7 +13,7 @@ Host Protocol 1.0 的完整状态、拒绝规则和兼容承诺见 [`../../docs/
 完成仓库依赖安装后，在仓库根目录运行：
 
 ```bash
-python scripts/run_host_iframe_demo.py
+uv run python scripts/run_host_iframe_demo.py
 ```
 
 启动器默认提供：
@@ -24,7 +24,7 @@ python scripts/run_host_iframe_demo.py
 浏览器访问 Reference Host 即可。宿主页会在 iframe 加载后主动发送 `launch`，因此即使浏览器不提供 `document.referrer`，接入仍然可靠。也可只启动宿主并连接已有 Solver：
 
 ```bash
-python scripts/run_host_iframe_demo.py --host-only --solver-url http://127.0.0.1:6241
+uv run python scripts/run_host_iframe_demo.py --host-only --solver-url http://127.0.0.1:6241
 ```
 
 不要直接以 `file://` 打开 `index.html`；文件 URL 的 origin 是 opaque `null`，会被 Solver 的精确 origin 白名单拒绝。
@@ -84,5 +84,5 @@ iframe.contentWindow.postMessage({
 `sample-project.slv` 是纳入前后端自动化验证的 canonical 示例。接入方还可运行：
 
 ```bash
-python -m backend.capabilities.solver_cli project_document_health --input examples/host-iframe-demo/sample-project.slv --pretty
+uv run python -m backend.capabilities.solver_cli project_document_health --input examples/host-iframe-demo/sample-project.slv --pretty
 ```

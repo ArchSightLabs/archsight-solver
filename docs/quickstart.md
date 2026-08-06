@@ -2,10 +2,21 @@
 
 本文面向本地开发、教学演示和 Agent 集成调试，汇总后端、前端、测试、CLI、MCP 和公开案例接口的常用命令。
 
+## 环境与安装
+
+需要 Python `>=3.13`、[uv](https://docs.astral.sh/uv/) 和 Node.js `>=22.22.0`。仓库使用 `uv.lock` 和 `frontend/package-lock.json` 固定可复现依赖；首次启动前执行：
+
+```bash
+git clone https://github.com/ArchSightLabs/archsight-solver.git
+cd archsight-solver
+uv sync --frozen
+npm --prefix frontend ci
+```
+
 ## 后端
 
 ```bash
-python app.py
+uv run python app.py
 ```
 
 默认地址：`http://127.0.0.1:6240`
@@ -13,7 +24,7 @@ python app.py
 临时修改端口：
 
 ```powershell
-$env:BEAM_SOLVER_BACKEND_PORT="6240"; python app.py
+$env:BEAM_SOLVER_BACKEND_PORT="6240"; uv run python app.py
 ```
 
 ## 前端
@@ -36,7 +47,7 @@ $env:BEAM_SOLVER_BACKEND_TARGET="http://127.0.0.1:6240"; npm run dev
 ## 测试
 
 ```bash
-python -m pytest backend/tests -q
+uv run python -m pytest backend/tests -q
 npm --prefix frontend run lint
 npm --prefix frontend run test:unit
 npm --prefix frontend run build
@@ -73,38 +84,38 @@ Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:6240/api/jobs" -ContentTyp
   "load": {"value": 10.0, "unit": "kN/m", "case": "uniform"},
   "boundaryCondition": "simply_supported"
 }
-'@ | python -m backend.capabilities.beam_deflection --pretty
+'@ | uv run python -m backend.capabilities.beam_deflection --pretty
 ```
 
 通用求解工具：
 
 ```powershell
 '{"payload":{"analysisType":"beam","beamType":"simply_supported","loadType":"uniform","spans":[6],"q":12,"E":206,"I":85000}}' |
-  python -m backend.capabilities.solver_cli calculate --pretty
+  uv run python -m backend.capabilities.solver_cli calculate --pretty
 ```
 
 执行公开验证集算例：
 
 ```powershell
-'{"caseId":"BM-001"}' | python -m backend.capabilities.solver_cli benchmark_case_run --pretty
+'{"caseId":"BM-001"}' | uv run python -m backend.capabilities.solver_cli benchmark_case_run --pretty
 ```
 
 检查项目文件契约与托管状态：
 
 ```powershell
-python -m backend.capabilities.solver_cli project_document_health --input project.slv --pretty
+uv run python -m backend.capabilities.solver_cli project_document_health --input project.slv --pretty
 ```
 
 读取内置模板 registry：
 
 ```powershell
-'{}' | python -m backend.capabilities.solver_cli project_template_registry --pretty
+'{}' | uv run python -m backend.capabilities.solver_cli project_template_registry --pretty
 ```
 
 ## MCP Server
 
 ```powershell
-python -m backend.capabilities.mcp_server
+uv run python -m backend.capabilities.mcp_server
 ```
 
 当前 MCP tools：

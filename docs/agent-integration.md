@@ -43,10 +43,10 @@ REST API 适合承载认证、审计、限流、异步作业和私有部署边�
 示例：
 
 ```bash
-python -m backend.capabilities.solver_cli calculate --input payload.json --pretty
-python -m backend.capabilities.solver_cli benchmark_case_run --input case.json --pretty
-python -m backend.capabilities.solver_cli project_document_health --input project.slv --pretty
-echo '{}' | python -m backend.capabilities.solver_cli project_template_registry --pretty
+uv run python -m backend.capabilities.solver_cli calculate --input payload.json --pretty
+uv run python -m backend.capabilities.solver_cli benchmark_case_run --input case.json --pretty
+uv run python -m backend.capabilities.solver_cli project_document_health --input project.slv --pretty
+echo '{}' | uv run python -m backend.capabilities.solver_cli project_template_registry --pretty
 ```
 
 安装为项目脚本后：
@@ -62,7 +62,7 @@ CLI 适合在 CI、离线环境和 Agent 沙箱中复现同一份结构模型。
 本地 stdio MCP Server：
 
 ```bash
-python -m backend.capabilities.mcp_server
+uv run python -m backend.capabilities.mcp_server
 ```
 
 MCP 适合让 Agent 发现可用工具、读取协议文档、读取 schema 和运行公开验证算例。
@@ -102,7 +102,7 @@ Solver 产品版本与 Host Protocol 版本相互独立。当前实现只接受�
 本仓库提供可自动验收的 Reference Host：
 
 ```bash
-python scripts/run_host_iframe_demo.py
+uv run python scripts/run_host_iframe_demo.py
 ```
 
 该命令在 `127.0.0.1:6241` 启动 Solver，在 `127.0.0.1:6250` 启动中性宿主，真实演示 launch、变更消息、localStorage 托管保存和刷新重开。不要直接用 `file://` 打开 HTML；opaque `null` origin 会被精确白名单拒绝。完整示例见 `examples/host-iframe-demo/README.md`。

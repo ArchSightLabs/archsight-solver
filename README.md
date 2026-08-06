@@ -24,10 +24,19 @@ Apache-2.0 不授予 ArchSight、ArchSight Solver、ArchSightLabs、项目 logo�
 
 ## 快速开始
 
-前端开发与构建需要 Node.js `>=22.22.0`。
+需要 Python `>=3.13`、[uv](https://docs.astral.sh/uv/) 和 Node.js `>=22.22.0`。首次克隆后先按锁文件安装依赖：
 
 ```bash
-python app.py
+git clone https://github.com/ArchSightLabs/archsight-solver.git
+cd archsight-solver
+uv sync --frozen
+npm --prefix frontend ci
+```
+
+然后在两个终端分别启动后端和前端：
+
+```bash
+uv run python app.py
 npm --prefix frontend run dev
 ```
 
@@ -39,7 +48,7 @@ npm --prefix frontend run dev
 运行测试：
 
 ```bash
-python -m pytest backend/tests -q
+uv run python -m pytest backend/tests -q
 npm --prefix frontend run test:unit
 ```
 
@@ -97,7 +106,7 @@ v1.6.1 的发布方向是“仓库内置 Reference Host 验证 + 项目契约可
 
 当前状态：**已发布（2026-07-16）**。`v1.6.1` tag 与 GitHub Release 固定本次代码基线；线上镜像可由维护者另行手动构建和推送，运行中部署是否更新独立安排。
 
-- `python scripts/run_host_iframe_demo.py` 一条命令启动两个真实 origin，演示 launch、项目变更、托管保存和刷新重开。
+- `uv run python scripts/run_host_iframe_demo.py` 一条命令启动两个真实 origin，演示 launch、项目变更、托管保存和刷新重开。
 - Reference Host 由宿主管理工程新建、打开、保存和只读审阅；Solver 使用 `embed=1` 仅呈现结构分析工作台，不重复平台级文件、案例、投稿、主题和系统设置入口。
 - Host iframe 消息协议继续使用精确 origin allowlist、sessionId、nonce 和父窗口来源约束，不向 `*` 发送 ready 或项目文档。
 - Reference Host 在 launch 前检查 Solver 的必要 capabilities，并为宿主发起的保存请求提供超时失败反馈，避免旧实现被误判为可接入。
@@ -124,9 +133,9 @@ ArchSight Solver 使用 **ASMS-JSON** 作为结构模型入口标准，让 Web�
 公开验证集当前覆盖梁系、二维平面桁架、二维平面框架和框架梁退化验证等基础力学场景。前端顶部“公开案例”入口可直接打开由 benchmark 生成的三个验证工程。
 
 ```bash
-python -m pytest backend/tests/test_benchmark_cases.py backend/tests/test_benchmark_runner.py -q
-python -m backend.benchmarks.report --output docs/verification/benchmark-validation-report.md
-python -m backend.benchmarks.catalog_summary --output docs/verification/benchmark-catalog-summary.md
+uv run python -m pytest backend/tests/test_benchmark_cases.py backend/tests/test_benchmark_runner.py -q
+uv run python -m backend.benchmarks.report --output docs/verification/benchmark-validation-report.md
+uv run python -m backend.benchmarks.catalog_summary --output docs/verification/benchmark-catalog-summary.md
 ```
 
 验证方法见 [Benchmark 方法论](docs/verification/benchmark-methodology.md)，验证报告见 [公开验证集报告](docs/verification/benchmark-validation-report.md)，人工阅读用算例目录见 [Benchmark 算例目录摘要](docs/verification/benchmark-catalog-summary.md)。公开案例和计算书会显示对应 `caseId`、验证来源、标准值和容许误差；云端或私有部署可通过 `POST /api/benchmark-submissions` 执行投稿前校验，也可在前端顶部“验证投稿”生成单文件 JSON，并通过 GitHub Issue 或官方邮箱 `archsight-labs@qq.com` 提交给维护者复核。
@@ -162,7 +171,7 @@ python -m backend.benchmarks.catalog_summary --output docs/verification/benchmar
 - 优先补算例、补测试、补文档、补交互，再扩功能。
 - 新增能力必须补可验证的示例和回归用例。
 - 计算结果、图表、导出内容和 UI 文案应使用结构工程专业术语。
-- 典型回归算例以 `backend/tests` 和公开 benchmark 为准；新增公开算例必须提供模型输入、标准结果、容许误差和验证来源。推荐先在前端生成验证投稿包，再通过 GitHub “公开验证算例投稿” Issue 或官方邮箱 `archsight-labs@qq.com` 提交；维护者审核通过后可用 `python -m backend.benchmarks.review_submission <json> --append` 合并投稿包。
+- 典型回归算例以 `backend/tests` 和公开 benchmark 为准；新增公开算例必须提供模型输入、标准结果、容许误差和验证来源。推荐先在前端生成验证投稿包，再通过 GitHub “公开验证算例投稿” Issue 或官方邮箱 `archsight-labs@qq.com` 提交；维护者审核通过后可用 `uv run python -m backend.benchmarks.review_submission <json> --append` 合并投稿包。
 
 贡献前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
