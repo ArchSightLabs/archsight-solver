@@ -39,6 +39,7 @@ venv.bak/
 # Project specifics
 *.xlsx
 .DS_Store
+tmp_out/
 .pytest_cache/
 .tmp-pytest/
 .tmp-pytest-cache/
