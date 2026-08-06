@@ -143,7 +143,14 @@ def main() -> int:
             "${IMAGE_TAG:-v1.6.2}",
             "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS: ${ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS:-}",
         ),
-        "deploy/deploy.sh": ('${IMAGE_TAG:-v1.6.2}',),
+        "deploy/deploy.sh": (
+            '${IMAGE_TAG:-v1.6.2}',
+            'ps --all --quiet',
+            "docker inspect --format",
+            "DEPLOY_HEALTH_TIMEOUT_SECONDS",
+            "logs --tail=100",
+            "wait_for_services_healthy",
+        ),
         "docs/deployment.md": ("archsight-solver:v1.6.2", "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS"),
     }
     for relative_path, expected_markers in deploy_expectations.items():

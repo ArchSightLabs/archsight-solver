@@ -58,6 +58,94 @@ else
     exit 1
 fi
 
+DEPLOY_HEALTH_TIMEOUT_SECONDS="${DEPLOY_HEALTH_TIMEOUT_SECONDS:-120}"
+DEPLOY_HEALTH_POLL_SECONDS="${DEPLOY_HEALTH_POLL_SECONDS:-2}"
+
+require_positive_integer() {
+    local name="$1"
+    local value="$2"
+    if [[ ! "${value}" =~ ^[1-9][0-9]*$ ]]; then
+        echo "错误: ${name} 必须是正整数，当前值为 ${value}。"
+        return 1
+    fi
+}
+
+print_recent_logs() {
+    "${COMPOSE_CMD[@]}" --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" logs --tail=100 || true
+}
+
+wait_for_services_healthy() {
+    local -a container_ids=()
+    local container_id
+    while IFS= read -r container_id; do
+        if [ -n "${container_id}" ]; then
+            container_ids+=("${container_id}")
+        fi
+    done < <("${COMPOSE_CMD[@]}" --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" ps --all --quiet)
+
+    if [ "${#container_ids[@]}" -eq 0 ]; then
+        echo "错误: Compose 更新后没有可检查的容器。"
+        print_recent_logs
+        return 1
+    fi
+
+    local deadline=$((SECONDS + DEPLOY_HEALTH_TIMEOUT_SECONDS))
+    while (( SECONDS < deadline )); do
+        local all_ready=true
+        local inspection
+        local state
+        local health
+        for container_id in "${container_ids[@]}"; do
+            if ! inspection="$(docker inspect --format '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}' "${container_id}")"; then
+                echo "错误: 无法读取容器 ${container_id} 的健康状态。"
+                print_recent_logs
+                return 1
+            fi
+            state="${inspection%% *}"
+            health="${inspection#* }"
+
+            case "${state}" in
+                exited|dead|removing|paused)
+                    echo "错误: 容器 ${container_id} 进入 ${state} 状态。"
+                    print_recent_logs
+                    return 1
+                    ;;
+            esac
+
+            case "${health}" in
+                healthy)
+                    ;;
+                starting)
+                    all_ready=false
+                    ;;
+                missing)
+                    echo "错误: 容器 ${container_id} 未定义 Docker HEALTHCHECK。"
+                    print_recent_logs
+                    return 1
+                    ;;
+                *)
+                    echo "错误: 容器 ${container_id} 的健康状态为 ${health}。"
+                    print_recent_logs
+                    return 1
+                    ;;
+            esac
+        done
+
+        if [ "${all_ready}" = true ]; then
+            echo "容器健康检查通过。"
+            return 0
+        fi
+        sleep "${DEPLOY_HEALTH_POLL_SECONDS}"
+    done
+
+    echo "错误: 容器在 ${DEPLOY_HEALTH_TIMEOUT_SECONDS} 秒内未达到 healthy 状态。"
+    print_recent_logs
+    return 1
+}
+
+require_positive_integer "DEPLOY_HEALTH_TIMEOUT_SECONDS" "${DEPLOY_HEALTH_TIMEOUT_SECONDS}"
+require_positive_integer "DEPLOY_HEALTH_POLL_SECONDS" "${DEPLOY_HEALTH_POLL_SECONDS}"
+
 echo "部署目录: ${SCRIPT_DIR}"
 echo "Compose 文件: ${COMPOSE_FILE}"
 echo "镜像地址: ${IMAGE}"
@@ -66,14 +154,17 @@ echo "Compose: ${COMPOSE_CMD[*]}"
 export IMAGE_REPOSITORY
 export IMAGE_TAG
 
-echo "[1/3] 拉取镜像..."
+echo "[1/4] 拉取镜像..."
 "${COMPOSE_CMD[@]}" --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" pull
 
-echo "[2/3] 更新容器..."
+echo "[2/4] 更新容器..."
 "${COMPOSE_CMD[@]}" --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" up -d --remove-orphans
 
-echo "[3/3] 当前服务状态..."
+echo "[3/4] 当前服务状态..."
 "${COMPOSE_CMD[@]}" --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" ps
+
+echo "[4/4] 等待容器健康检查..."
+wait_for_services_healthy
 
 echo "部署完成。"
 echo "查看日志: ${COMPOSE_CMD[*]} --env-file ${ENV_FILE} -f ${COMPOSE_FILE} logs -f"

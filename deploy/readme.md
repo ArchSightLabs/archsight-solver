@@ -39,6 +39,8 @@ cp docker-compose.yml.example docker-compose.yml
 - `APP_HOST_PORT`：宿主机本地监听端口，默认 `6280`，仅绑定 `127.0.0.1`，供公共 Nginx 反向代理。
 - `ARCHSIGHT_GUNICORN_WORKERS`：Gunicorn worker 数量，默认 `4`。
 - `ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS`：运行时允许嵌入 Solver 的宿主 origin，多个值使用逗号分隔；必须填写完整 `http/https origin`，不接受 `*` 或子域通配。
+- `DEPLOY_HEALTH_TIMEOUT_SECONDS`：部署脚本等待容器健康检查的最长时间，默认 `120` 秒。
+- `DEPLOY_HEALTH_POLL_SECONDS`：部署脚本轮询容器健康状态的间隔，默认 `2` 秒。
 
 ## 启动与更新
 
@@ -101,7 +103,7 @@ docker compose down
 
 ## 发布后检查与回滚
 
-正式更新前记录当前镜像标签，并确保该标签仍可从镜像仓库拉取。执行 `./deploy.sh v1.6.2` 后，应等待容器健康检查变为 `healthy`，再检查首页、三类分析对象的典型求解以及 DOCX / XLSX 导出入口。
+正式更新前记录当前镜像标签，并确保该标签仍可从镜像仓库拉取。`./deploy.sh v1.6.2` 只有在 Compose 容器通过 Docker 健康检查后才会返回成功；若容器进入 `unhealthy` / `exited` / `dead` 状态或等待超时，脚本会打印最近 100 行日志并以非零状态退出。脚本成功后，仍应人工检查首页、三类分析对象的典型求解以及 DOCX / XLSX 导出入口。
 
 ```bash
 docker inspect --format '{{.Config.Image}} {{if .State.Health}}{{.State.Health.Status}}{{end}}' archsight-solver-app
