@@ -116,11 +116,34 @@
       </button>
     </div>
     <header>
-      <span class="tag">当前版本 v1.6.2</span>
+      <span class="tag">当前版本 v1.6.3</span>
       <h1>版本发布记录</h1>
     </header>
 
     <section class="release-list" aria-label="版本发布记录">
+      <article class="release">
+        <div class="release-head">
+          <h2>v1.6.3</h2>
+          <span class="date"></span>
+        </div>
+          <p class="section-label">重点变化</p>
+          <ul>
+            <li>修复前端 brace expansion 拒绝服务风险，并把生产依赖与构建工具链分别纳入漏洞门禁；首次克隆和 Windows CI 显式安装、校验 Rolldown 原生可选绑定，避免“本机缓存可构建、干净环境失败”。</li>
+            <li>Docker 构建继续固定基础镜像 digest，并允许通过同 digest 的 Public ECR 镜像源规避失效代理缓存；部署脚本只有在 Compose 容器全部进入 <code>healthy</code> 后才返回成功，异常状态和超时会输出最近日志。</li>
+            <li><code>/api/jobs</code> 的 <code>X-Tenant-Id</code> 明确为 <code>clientJobId</code> 幂等命名空间，并同步进入 OpenAPI 与 CORS 预检；该字段不承担认证、授权或读取隔离，既有 <code>jobId</code> 访问边界不变。</li>
+            <li>公开验证集扩展到 66 个通过算例，其中 A 级 22 个、B 级 26 个、C 级 1 个、D 级 17 个；B 级算例均可由仓库内独立刚度法基线复跑，不再只是标签声明。</li>
+            <li>新增二维杆系坐标变换解析算例，覆盖斜构件端位移、刚体平移、桁架轴力、框架轴力与弯矩恢复；独立参考实现进一步覆盖 <code>global_y</code> 分布荷载、转动弹簧和轴向斜撑。</li>
+            <li>建立三类结构规模基线与 weekly nightly 质量任务，持续复跑性能漂移和 Chromium / Firefox / WebKit 计算书导出矩阵；不把单次性能数据写成营销承诺。</li>
+          </ul>
+          <p class="section-label">质量门禁</p>
+          <ul>
+            <li>后端全量测试、前端 lint / TypeScript、400 项单元测试和生产构建通过。</li>
+            <li>独立刚度法基线 26/26 通过；公开 benchmark 66/66 通过，发布工程与版本一致性检查通过。</li>
+            <li>Chromium 中 v1.6.1 Reference Host 与 v1.6.2 canonical 工程主链路 10 项通过，覆盖双 origin 保存重开、非法 origin 拒绝、结果失效、重算、导出和只读审阅。</li>
+            <li>Tag 发布仍必须复跑完整 CI、构建后镜像 Host 验收、依赖审计、Trivy HIGH / CRITICAL 门禁、SPDX SBOM 和制品校验和；候选提交、GitHub Release、目标镜像仓库推送与线上更新保持为四个独立状态。</li>
+          </ul>
+      </article>
+
       <article class="release">
         <div class="release-head">
           <h2>v1.6.2</h2>

@@ -2,7 +2,7 @@
 
 本文说明 ArchSight Solver 的本地镜像构建、容器运行和 Docker Compose 入口。
 
-当前仓库版本为 2026-07-21 正式发布的 v1.6.2。Tag 发布工作流生成 GitHub Release、不可变 GHCR 镜像和校验制品；推送到其他镜像仓库及更新线上服务器仍是独立操作，只有目标仓库中的不可变镜像实际存在并完成摘要核对后才能部署。
+当前仓库版本为 v1.6.3 发布候选，已发布稳定版本仍为 2026-07-21 发布的 v1.6.2。Tag 发布工作流生成 GitHub Release、不可变 GHCR 镜像和校验制品；候选提交本身不等于已发布，推送到其他镜像仓库及更新线上服务器仍是独立操作。只有目标仓库中的 v1.6.3 不可变镜像实际存在并完成摘要核对后才能部署。
 
 ## 单镜像模式
 
@@ -17,7 +17,7 @@ docker build -t archsight-solver:latest .
 Dockerfile 默认将 Node 22 与 Python 3.13 基础镜像固定到已验证 digest。若 Docker Hub 直连或本地 mirror 不稳定，推荐通过构建脚本和 `deploy/.env` 显式使用同 digest 的官方 Public ECR Docker Library 镜像：
 
 ```powershell
-.\scripts\build-image.ps1 -Tag v1.6.2
+.\scripts\build-image.ps1 -Tag v1.6.3
 ```
 
 脚本读取 `NODE_IMAGE` 与 `PYTHON_IMAGE`；`-RefreshBaseImages` 会先单独拉取两份固定基础镜像，用于主动刷新或诊断，不是每次构建的必要步骤。
@@ -51,13 +51,13 @@ docker login --username=<your-account> registry.example.com
 构建并打标签：
 
 ```powershell
-docker build -t archsight-solver:v1.6.2 -t registry.example.com/example-namespace/archsight-solver:v1.6.2 .
+docker build -t archsight-solver:v1.6.3 -t registry.example.com/example-namespace/archsight-solver:v1.6.3 .
 ```
 
 推送：
 
 ```powershell
-docker push registry.example.com/example-namespace/archsight-solver:v1.6.2
+docker push registry.example.com/example-namespace/archsight-solver:v1.6.3
 ```
 
 构建脚本只使用 BuildKit；不要通过 `DOCKER_BUILDKIT=0` 回退到已弃用的 Legacy Builder。镜像源异常应通过固定 digest、显式 `NODE_IMAGE` / `PYTHON_IMAGE` 和 `-RefreshBaseImages` 处理。
@@ -74,10 +74,10 @@ Compose 默认将容器内 `6240` 端口绑定到宿主机本地端口。如需�
 
 ## 正式发布制品
 
-推送 `v1.6.2` 形式的 Git tag 后，GitHub Actions 发布工作流会复跑版本、后端、前端、Playwright 和 Docker 门禁，并生成以下可追踪制品：
+推送 `v1.6.3` 形式的 Git tag 后，GitHub Actions 发布工作流会复跑版本、后端、前端、Playwright 和 Docker 门禁，并生成以下可追踪制品：
 
-- `ghcr.io/<owner>/archsight-solver:v1.6.2` 不可变版本镜像。
-- Docker 镜像归档 `archsight-solver-v1.6.2.tar.gz`。
+- `ghcr.io/<owner>/archsight-solver:v1.6.3` 不可变版本镜像。
+- Docker 镜像归档 `archsight-solver-v1.6.3.tar.gz`。
 - SPDX JSON SBOM、Trivy 高危/严重漏洞扫描报告和 `SHA256SUMS`。
 - 从 `CHANGELOG.md` 当前版本段提取的 GitHub Release 说明。
 
@@ -85,10 +85,10 @@ Compose 默认将容器内 `6240` 端口绑定到宿主机本地端口。如需�
 
 ## 回滚
 
-升级前记录当前容器镜像标签与健康状态。`deploy/deploy.sh` 会有界等待 Docker `HEALTHCHECK` 变为 `healthy`，失败时输出最近的容器日志并返回非零状态；脚本成功后仍需复核首页、典型求解和导出入口。若失败，重新以先前不可变标签执行部署：
+升级前记录当前容器镜像标签与健康状态。`deploy/deploy.sh` 会有界等待 Docker `HEALTHCHECK` 变为 `healthy`，失败时输出最近的容器日志并返回非零状态；脚本成功后仍需复核首页、典型求解和导出入口。若失败，重新以先前不可变标签执行部署；当前候选的直接回滚基线是 v1.6.2：
 
 ```bash
-./deploy/deploy.sh v1.5.0
+./deploy/deploy.sh v1.6.2
 docker inspect --format '{{.Config.Image}} {{if .State.Health}}{{.State.Health.Status}}{{end}}' archsight-solver-app
 ```
 

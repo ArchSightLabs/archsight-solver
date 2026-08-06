@@ -87,6 +87,18 @@ v1.5.0 跳过 v1.4.1，直接收口 v1.4.0 发布后的遗留事项，重点是�
 
 发布范围、验收口径和后续质量路线见 [路线图](docs/roadmap.md)。
 
+## v1.6.3 发布候选
+
+v1.6.3 是 v1.6.2 的可靠性与专业验证补丁，当前仅完成仓库内候选整理，尚未创建 tag、推送远程或更新线上服务器。
+
+- 修复前端依赖风险并加强生产依赖、构建工具链与 Windows 原生可选绑定门禁。
+- 部署脚本等待全部容器进入 `healthy` 后才返回成功，Docker 构建继续使用固定 digest，并支持同 digest 的备用官方镜像源。
+- `/api/jobs` 的 `X-Tenant-Id` 可通过 OpenAPI 与 CORS 预检发现，但仍只用于 `clientJobId` 幂等命名空间，不是认证或访问隔离字段。
+- 公开验证集达到 66 个通过算例；26 个 B 级算例均由仓库内独立刚度法基线复跑，坐标变换、全局竖向荷载和轴向斜撑获得更直接的交叉验证。
+- nightly 持续复跑三类结构规模基线和三浏览器计算书导出，不把单次性能结果包装为线上承诺。
+
+候选证据和正式发布前仍需复跑的镜像、安全及制品门禁见 [v1.6.3 发布候选验收](docs/verification/release-1-6-3-acceptance.md)。已发布稳定版本仍为 v1.6.2。
+
 ## v1.6.2 发布重点
 
 v1.6.2 的统一主题是“Solver 工作台与宿主接入成熟度”：先让工程生命周期、诊断、结果来源和导出边界可持续使用，再让 Host Protocol、轻量 Client 和 Reference Host 稳定复用同一套能力。
@@ -161,6 +173,7 @@ uv run python -m backend.benchmarks.catalog_summary --output docs/verification/b
 | [公开验证集报告](docs/verification/benchmark-validation-report.md) | 当前公开验证集自动生成报告 | 当前验证报告 |
 | [Benchmark 算例目录摘要](docs/verification/benchmark-catalog-summary.md) | 按结构体系列出算例目的、来源、标准值、容差和模板映射 | 当前验证摘要 |
 | [跨浏览器视觉回归](docs/verification/visual-regression.md) | 前端工作台视觉回归说明 | 当前验证说明 |
+| [v1.6.3 发布候选验收](docs/verification/release-1-6-3-acceptance.md) | 可靠性补丁、验证证据、镜像与发布授权边界 | v1.6.3 候选基线 |
 | [v1.6.2 发布验收](docs/verification/release-1-6-2-acceptance.md) | 工作台与宿主接入统一验收、镜像门禁、升级与回滚 | v1.6.2 发布基线 |
 | [v1.6.1 发布验收清单](docs/verification/release-1-6-1-acceptance.md) | 真实双 origin Reference Host、项目契约、版本与发布门禁 | v1.6.1 发布基线 |
 | [温度作用后续评估](docs/temperature-action-evaluation.md) | 平面框架均匀温差边界与后续温度扩展评估矩阵 | v1.5.0 边界材料 |

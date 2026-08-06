@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_PATHS = (
     ".github/workflows/release.yml",
     ".github/workflows/nightly-quality.yml",
+    "docs/verification/release-1-6-3-acceptance.md",
     "docs/verification/release-1-6-2-acceptance.md",
     "docs/verification/release-1-6-1-acceptance.md",
     "docs/verification/release-1-6-acceptance.md",
@@ -134,24 +135,24 @@ def main() -> int:
 
     deploy_expectations = {
         "deploy/.env.example": (
-            "IMAGE_TAG=v1.6.2",
+            "IMAGE_TAG=v1.6.3",
             "NODE_IMAGE=public.ecr.aws/docker/library/node:22-bookworm-slim@sha256:",
             "PYTHON_IMAGE=public.ecr.aws/docker/library/python:3.13-slim@sha256:",
             "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS=",
         ),
         "deploy/docker-compose.yml.example": (
-            "${IMAGE_TAG:-v1.6.2}",
+            "${IMAGE_TAG:-v1.6.3}",
             "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS: ${ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS:-}",
         ),
         "deploy/deploy.sh": (
-            '${IMAGE_TAG:-v1.6.2}',
+            '${IMAGE_TAG:-v1.6.3}',
             'ps --all --quiet',
             "docker inspect --format",
             "DEPLOY_HEALTH_TIMEOUT_SECONDS",
             "logs --tail=100",
             "wait_for_services_healthy",
         ),
-        "docs/deployment.md": ("archsight-solver:v1.6.2", "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS"),
+        "docs/deployment.md": ("archsight-solver:v1.6.3", "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS"),
     }
     for relative_path, expected_markers in deploy_expectations.items():
         text = (ROOT / relative_path).read_text(encoding="utf-8")
