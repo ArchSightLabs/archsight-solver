@@ -75,6 +75,16 @@ def _job_submission_response(record: Mapping[str, Any], *, idempotent_hit: bool)
     return response
 
 
+def _load_job_for_request(job_id: str) -> Dict[str, Any] | None:
+    tenant_id = _tenant_id_from_request()
+    record = _load_job(job_id)
+    if record is None:
+        return None
+    if str(record.get("tenantId", "default")) != tenant_id:
+        return None
+    return record
+
+
 def _parse_heartbeat_at(value: Any) -> datetime | None:
     if not isinstance(value, str) or not value.strip():
         return None
@@ -294,7 +304,7 @@ def submit_job():
 
 @jobs_bp.route("/jobs/<job_id>", methods=["GET"])
 def get_job(job_id: str):
-    record = _load_job(job_id)
+    record = _load_job_for_request(job_id)
     if record is None:
         return jsonify(error_payload("未找到异步求解作业", operation="job_status", code="COMMON_JOB_NOT_FOUND")), 404
     record = _reconcile_local_job_handle(record)
@@ -304,7 +314,7 @@ def get_job(job_id: str):
 
 @jobs_bp.route("/jobs/<job_id>/result", methods=["GET"])
 def get_job_result(job_id: str):
-    record = _load_job(job_id)
+    record = _load_job_for_request(job_id)
     if record is None:
         return jsonify(error_payload("未找到异步求解作业", operation="job_result", code="COMMON_JOB_NOT_FOUND")), 404
     record = _reconcile_local_job_handle(record)
@@ -317,7 +327,7 @@ def get_job_result(job_id: str):
 
 @jobs_bp.route("/jobs/<job_id>", methods=["DELETE"])
 def cancel_job(job_id: str):
-    record = _load_job(job_id)
+    record = _load_job_for_request(job_id)
     if record is None:
         return jsonify(error_payload("未找到异步求解作业", operation="cancel_job", code="COMMON_JOB_NOT_FOUND")), 404
     record = _reconcile_local_job_handle(record)

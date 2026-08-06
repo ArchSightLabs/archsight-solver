@@ -54,6 +54,26 @@ test("项目归一化保留有效结果来源并清除对象不匹配的来源",
   assert.equal(mismatched.objects[0].resultProvenance, null);
 });
 
+test("旧工程在有结果时应自动回填结果来源证据用于继续导出", () => {
+  const project = createDefaultSolverProject(new Date("2026-05-21T12:00:00.000Z"));
+  const object = project.objects[0];
+
+  const normalized = normalizeSolverProject({
+    ...project,
+    objects: [{
+      ...object,
+      resultProvenance: null,
+      results: { analysisType: "beam", summary: { statusCode: "PASS" }, diag: [] },
+      sensitivityResults: null,
+      updatedAt: "2026-06-01T10:00:00.000Z",
+    }],
+  });
+
+  assert.equal(normalized.objects[0].resultProvenance !== null, true);
+  assert.equal(normalized.objects[0].resultProvenance?.analysisObjectId, object.id);
+  assert.equal(normalized.objects[0].resultProvenance?.analysisType, "beam");
+});
+
 test("项目级建模图显示样式兼容旧梁系设置字段", () => {
   const project = createDefaultSolverProject(new Date("2026-05-21T12:00:00.000Z"));
   const normalized = normalizeSolverProject({
