@@ -71,8 +71,10 @@ jobs:
       - name: Unit tests
         run: npm run test:unit
 
-      - name: Audit production dependencies
-        run: npm audit --omit=dev --audit-level=moderate
+      - name: Audit production and build dependencies
+        run: |
+          npm audit --omit=dev --audit-level=moderate
+          npm audit --audit-level=high
 
       - name: Build
         run: npm run build

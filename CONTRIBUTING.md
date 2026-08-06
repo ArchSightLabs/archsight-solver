@@ -31,6 +31,10 @@ SPDX-License-Identifier: Apache-2.0
 - 后端：`python -m pytest backend/tests -q`
 - 前端：`npm --prefix frontend run lint`
 - 前端构建：`npm --prefix frontend run build`
+- 运行时依赖：`npm --prefix frontend audit --omit=dev --audit-level=moderate`
+- 构建与测试工具链：`npm --prefix frontend audit --audit-level=high`
+
+运行时依赖对 `moderate` 及以上漏洞执行门禁；开发依赖会在 CI 中执行构建、静态检查和测试，因此对可修复的 `high` / `critical` 漏洞同样执行门禁。
 
 如果改动涉及计算结果，请补充或更新对应的回归用例。
 

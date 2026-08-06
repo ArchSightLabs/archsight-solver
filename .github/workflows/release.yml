@@ -56,6 +56,7 @@ jobs:
           npm --prefix frontend run lint
           npm --prefix frontend run test:unit
           npm --prefix frontend audit --omit=dev --audit-level=moderate
+          npm --prefix frontend audit --audit-level=high
           npm --prefix frontend run build
           git diff --exit-code -- frontend/public/docs/release-notes.md frontend/public/docs/release-notes.html
 

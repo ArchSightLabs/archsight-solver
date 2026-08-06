@@ -71,6 +71,7 @@ REQUIRED_MARKERS = {
         "release-1-6-1-host-reference.spec.ts",
         "release-1-6-2-acceptance.spec.ts",
         "npm audit --omit=dev --audit-level=moderate",
+        "npm audit --audit-level=high",
         "ARCHSIGHT_SOLVER_E2E_URL",
         "Run built image Host integration",
     ),
@@ -83,6 +84,8 @@ REQUIRED_MARKERS = {
         "ARCHSIGHT_SOLVER_E2E_URL",
         "Run built image Host integration",
         "release-1-6-2-acceptance.spec.ts",
+        "npm --prefix frontend audit --omit=dev --audit-level=moderate",
+        "npm --prefix frontend audit --audit-level=high",
     ),
     ".github/workflows/nightly-quality.yml": (
         'cron: "0 20 * * 0"',
