@@ -5,7 +5,7 @@ import { defaultAnalysisObjectNameForMode } from "./analysis-vocabulary.ts";
 import type { LegacyAnalysisResults } from "./api-envelope.ts";
 import { materialLibraryFromCustomMaterials, normalizeProjectCustomMaterials } from "./material-presets.ts";
 import { normalizeReportExportOptions, type ReportExportOptions } from "./report-options.ts";
-import { createResultProvenance, normalizeResultProvenance, type ResultProvenance } from "./result-provenance.ts";
+import { normalizeResultProvenance, type ResultProvenance } from "./result-provenance.ts";
 import {
   createDefaultBeamWorkspaceState,
   createDefaultFrameWorkspaceState,
@@ -16,36 +16,6 @@ import {
   normalizeWorkspaceState,
   type WorkspaceState,
 } from "./workspace-state.ts";
-import { buildBeamPayload, buildFramePayload, buildTrussPayload } from "../solver-payload.ts";
-
-function buildPayloadForAnalysisType(type: AnalysisObjectType, state: AnalysisObjectState, projectName: string) {
-  if (type === "beam") return buildBeamPayload(state as BeamWorkspaceState, projectName);
-  if (type === "frame") return buildFramePayload(state as FrameWorkspaceState, projectName);
-  return buildTrussPayload(state as TrussWorkspaceState, projectName);
-}
-
-function inferLegacyResultProvenance(
-  object: AnalysisObject,
-  normalizedState: AnalysisObjectState,
-): ResultProvenance | null {
-  if (!object.results && !object.sensitivityResults) {
-    return null;
-  }
-  const payload = buildPayloadForAnalysisType(object.type, normalizedState, object.name);
-  if (!payload) {
-    return null;
-  }
-  const solvedAt = String((object.updatedAt || "").trim() || new Date().toISOString());
-  const rawRevision = Number(Date.parse(solvedAt));
-  return createResultProvenance({
-    analysisObjectId: object.id,
-    analysisType: object.type,
-    payload,
-    projectRevision: Number.isFinite(rawRevision) ? Math.floor(rawRevision / 1000) : 0,
-    result: object.results ?? object.sensitivityResults,
-    solvedAt,
-  });
-}
 
 export type AnalysisObjectType = AnalysisMode;
 export type WorkbenchView = "model" | "results" | "sensitivity";
@@ -232,32 +202,14 @@ function normalizeAnalysisObject(rawObject: unknown, index: number): AnalysisObj
   const now = new Date().toISOString();
   const id = String(raw.id ?? createId(type));
   const resultProvenance = normalizeResultProvenance(raw.resultProvenance);
-  const state = normalizeStateForType(type, raw.state);
-  const name = String(raw.name ?? defaultAnalysisObjectName(type, index + 1)).trim() || defaultAnalysisObjectName(type, index + 1);
-  const provisionalObject: AnalysisObject = {
-    id,
-    name,
-    type,
-    state,
-    results: raw.results ?? null,
-    sensitivityResults: raw.sensitivityResults ?? null,
-    resultProvenance: null,
-    workbenchView: raw.workbenchView === "results" || raw.workbenchView === "sensitivity" || raw.workbenchView === "model" ? raw.workbenchView : "model",
-    benchmark: normalizeBenchmarkCaseSource(raw.benchmark),
-    createdAt: String(raw.createdAt ?? now),
-    updatedAt: String(raw.updatedAt ?? now),
-  };
-  const normalizedResultProvenance = resultProvenance?.analysisObjectId === id && resultProvenance.analysisType === type
-    ? resultProvenance
-    : inferLegacyResultProvenance(provisionalObject, state);
   return {
     id,
-    name,
+    name: String(raw.name ?? defaultAnalysisObjectName(type, index + 1)).trim() || defaultAnalysisObjectName(type, index + 1),
     type,
-    state,
+    state: normalizeStateForType(type, raw.state),
     results: raw.results ?? null,
     sensitivityResults: raw.sensitivityResults ?? null,
-    resultProvenance: normalizedResultProvenance,
+    resultProvenance: resultProvenance?.analysisObjectId === id && resultProvenance.analysisType === type ? resultProvenance : null,
     workbenchView: raw.workbenchView === "results" || raw.workbenchView === "sensitivity" || raw.workbenchView === "model" ? raw.workbenchView : "model",
     benchmark: normalizeBenchmarkCaseSource(raw.benchmark),
     createdAt: String(raw.createdAt ?? now),

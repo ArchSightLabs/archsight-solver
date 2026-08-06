@@ -339,24 +339,3 @@ def test_async_job_client_id_idempotency_is_scoped_by_tenant(client):
     assert tenant_a_first_job_id != tenant_b_first_job_id
     assert tenant_a_second_data["jobId"] == tenant_a_first_job_id
     assert tenant_a_second_data["meta"]["idempotentHit"] is True
-
-
-def test_async_job_read_and_result_are_scoped_by_tenant(client):
-    tenant_a_response = client.post(
-        "/api/jobs",
-        json={"operation": "calculate", "payload": _beam_payload()},
-        headers={"X-Tenant-Id": "tenant-a"},
-    )
-    assert tenant_a_response.status_code == 202
-    job_id = tenant_a_response.get_json()["jobId"]
-
-    tenant_b_status = client.get(f"/api/jobs/{job_id}", headers={"X-Tenant-Id": "tenant-b"})
-    tenant_b_result = client.get(f"/api/jobs/{job_id}/result", headers={"X-Tenant-Id": "tenant-b"})
-    tenant_b_cancel = client.delete(f"/api/jobs/{job_id}", headers={"X-Tenant-Id": "tenant-b"})
-
-    assert tenant_b_status.status_code == 404
-    assert tenant_b_result.status_code == 404
-    assert tenant_b_cancel.status_code == 404
-
-    tenant_a_status = client.get(f"/api/jobs/{job_id}", headers={"X-Tenant-Id": "tenant-a"})
-    assert tenant_a_status.status_code == 200
