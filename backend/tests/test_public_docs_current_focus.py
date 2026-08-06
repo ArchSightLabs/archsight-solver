@@ -38,7 +38,7 @@ def test_public_quickstart_is_reproducible_from_a_fresh_clone():
         assert "Python `>=3.13`" in document
         assert "Node.js `>=22.22.0`" in document
         assert "uv sync --frozen" in document
-        assert "npm --prefix frontend ci" in document
+        assert "npm --prefix frontend ci --include=optional" in document
         assert "uv run python app.py" in document
 
     assert "git clone https://github.com/ArchSightLabs/archsight-solver.git" in readme

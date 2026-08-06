@@ -77,7 +77,7 @@ jobs:
       - name: Install dependencies and browser
         run: |
           uv sync --frozen
-          npm --prefix frontend ci
+          npm --prefix frontend ci --include=optional
           npm --prefix frontend exec playwright install --with-deps ${{ matrix.browser }}
 
       - name: Run DOCX export matrix

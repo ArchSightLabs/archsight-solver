@@ -70,6 +70,8 @@ REQUIRED_MARKERS = {
         "release-1-6-host-integration.spec.ts",
         "release-1-6-1-host-reference.spec.ts",
         "release-1-6-2-acceptance.spec.ts",
+        "npm ci --include=optional",
+        "npm --prefix frontend ci --include=optional",
         "npm audit --omit=dev --audit-level=moderate",
         "npm audit --audit-level=high",
         "ARCHSIGHT_SOLVER_E2E_URL",
@@ -84,6 +86,7 @@ REQUIRED_MARKERS = {
         "ARCHSIGHT_SOLVER_E2E_URL",
         "Run built image Host integration",
         "release-1-6-2-acceptance.spec.ts",
+        "npm --prefix frontend ci --include=optional",
         "npm --prefix frontend audit --omit=dev --audit-level=moderate",
         "npm --prefix frontend audit --audit-level=high",
     ),
@@ -94,6 +97,7 @@ REQUIRED_MARKERS = {
         "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
         "workbench-export-docx.spec.ts",
         "browser: [chromium, firefox, webkit]",
+        "npm --prefix frontend ci --include=optional",
     ),
 }
 

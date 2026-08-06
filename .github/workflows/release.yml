@@ -48,7 +48,7 @@ jobs:
       - name: Install dependencies
         run: |
           uv sync --frozen
-          npm --prefix frontend ci
+          npm --prefix frontend ci --include=optional
 
       - name: Run release tests
         run: |

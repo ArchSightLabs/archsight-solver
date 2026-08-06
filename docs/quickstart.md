@@ -10,7 +10,7 @@
 git clone https://github.com/ArchSightLabs/archsight-solver.git
 cd archsight-solver
 uv sync --frozen
-npm --prefix frontend ci
+npm --prefix frontend ci --include=optional
 ```
 
 ## 后端

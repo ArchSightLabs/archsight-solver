@@ -63,7 +63,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --include=optional
 
       - name: Typecheck
         run: npm run lint
@@ -115,7 +115,7 @@ jobs:
 
       - name: Install container Host E2E dependencies
         run: |
-          npm --prefix frontend ci
+          npm --prefix frontend ci --include=optional
           npm --prefix frontend exec playwright install --with-deps chromium
 
       - name: Build release image

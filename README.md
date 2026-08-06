@@ -30,7 +30,7 @@ Apache-2.0 不授予 ArchSight、ArchSight Solver、ArchSightLabs、项目 logo�
 git clone https://github.com/ArchSightLabs/archsight-solver.git
 cd archsight-solver
 uv sync --frozen
-npm --prefix frontend ci
+npm --prefix frontend ci --include=optional
 ```
 
 然后在两个终端分别启动后端和前端：
