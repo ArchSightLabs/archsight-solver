@@ -1,4 +1,6 @@
 from pathlib import Path
+from collections import Counter
+import json
 import re
 
 
@@ -26,6 +28,29 @@ def test_public_docs_prioritize_professional_modeling_and_export_evidence():
     assert "data/verification/template_benchmark_map.json" in roadmap
     assert "shared/report-figures.json" in roadmap
     assert "不要只改 UI、API 或导出中的单一入口" in contributing
+
+
+def test_public_roadmap_tracks_current_benchmark_catalog_counts():
+    roadmap = _read_doc("docs/roadmap.md")
+    catalog = json.loads(_read_doc("backend/benchmarks/benchmark_cases.json"))
+    categories = Counter(case["category"] for case in catalog["cases"])
+    beam_count = categories["beam"]
+    frame_count = categories["frame"] + categories["frame-beam-verify"]
+    truss_count = categories["truss"] + categories["truss-verify"]
+
+    assert f"公开验证集包含 {len(catalog['cases'])} 个通过算例" in roadmap
+    assert f"| 梁系 | {beam_count} |" in roadmap
+    assert f"| 二维平面桁架 | {truss_count} |" in roadmap
+    assert f"| 二维平面框架 | {frame_count} |" in roadmap
+
+
+def test_learning_docs_describe_current_three_module_load_case_ui():
+    learning = _read_doc("docs/learning/load-cases-and-combinations.md")
+
+    assert "三类模块当前均已具备工况与组合的可视化编辑" in learning
+    assert "三类模块可在 UI 中维护工况/组合、切换结果来源" in learning
+    assert "梁系和平面桁架仍需要补齐 UI" not in learning
+    assert "梁系和二维平面桁架的多工况 UI 属于后续补齐项" not in learning
 
 
 def _release_date(markdown: str, version: str) -> str:
