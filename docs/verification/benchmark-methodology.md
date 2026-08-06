@@ -23,6 +23,22 @@
 
 每个 benchmark 的 `verification` 元数据会暴露机器可读的 `verificationLevel`、`verificationLevelLabel` 和 `verificationLevelDescription`。内部回归基线不能包装成外部独立验证。文档和计算书应区分“解析解”“独立基线”“工程软件对标”和“内部回归”。
 
+## 仓库内独立基线
+
+B 级算例必须能在不调用生产求解链路的前提下复跑。仓库提供
+`backend.benchmarks.independent_stiffness`，直接从 benchmark payload 读取节点、
+构件、支座和荷载，使用标准二维框架或桁架刚度矩阵与 NumPy 线性求解复算结果。
+该模块不导入生产 `normalizer`、`assembler`、`solver`、`recover` 或
+`presenter`，用于发现生产装配、约束和结果恢复与独立公式实现之间的漂移。
+
+当前参考实现覆盖现有 B 级算例需要的节点荷载、全构件线性分布荷载、固定/铰接/
+滚动支座和 `rz` 转动弹簧。超出该范围的荷载或约束会明确拒绝，不能静默降级为
+B 级证据。
+
+```powershell
+python -m backend.benchmarks.independent_stiffness
+```
+
 ## 当前覆盖
 
 公开验证集覆盖：
@@ -64,6 +80,7 @@
 常用验证命令：
 
 ```bash
+python -m backend.benchmarks.independent_stiffness
 python -m pytest backend/tests/test_benchmark_cases.py backend/tests/test_benchmark_runner.py -q
 python -m backend.benchmarks.report --output docs/verification/benchmark-validation-report.md
 python -m backend.benchmarks.catalog_summary --output docs/verification/benchmark-catalog-summary.md

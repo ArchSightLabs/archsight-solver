@@ -305,7 +305,7 @@
       },
       "verification": {
         "sourceType": "independent-stiffness-baseline",
-        "reference": "二维平面框架杆单元独立刚度法工作表基线，门式刚架水平荷载与梁均布荷载组合工况",
+        "reference": "仓库内 backend.benchmarks.independent_stiffness 二维平面框架独立矩阵复算，门式刚架水平荷载与梁均布荷载组合工况",
         "method": "用独立矩阵装配基线校验最大节点位移、构件弯矩和模型规模",
         "checkedMetrics": [
           "最大节点位移",
@@ -430,7 +430,7 @@
       },
       "verification": {
         "sourceType": "independent-stiffness-baseline",
-        "reference": "二维平面框架杆单元独立刚度法工作表基线，柱脚转动弹簧门式刚架工况",
+        "reference": "仓库内 backend.benchmarks.independent_stiffness 二维平面框架独立矩阵复算，柱脚转动弹簧门式刚架工况",
         "method": "校验转动弹簧进入整体刚度矩阵后的最大节点位移和最大构件弯矩",
         "checkedMetrics": [
           "最大节点位移",
@@ -548,7 +548,7 @@
       },
       "verification": {
         "sourceType": "independent-stiffness-baseline",
-        "reference": "二维平面桁架杆单元独立刚度法工作表基线，四节点简单屋架竖向节点荷载工况",
+        "reference": "仓库内 backend.benchmarks.independent_stiffness 二维平面桁架独立矩阵复算，四节点简单屋架竖向节点荷载工况",
         "method": "校验节点位移、杆件轴力和模型规模",
         "checkedMetrics": [
           "节点位移",
@@ -695,7 +695,7 @@
       },
       "verification": {
         "sourceType": "independent-stiffness-baseline",
-        "reference": "二维平面框架杆单元独立刚度法工作表基线，显式双跨单层框架工况",
+        "reference": "仓库内 backend.benchmarks.independent_stiffness 二维平面框架独立矩阵复算，显式双跨单层框架工况",
         "method": "校验多跨梁分布荷载、混合支座和侧向节点荷载下的最大节点位移与构件弯矩",
         "checkedMetrics": [
           "最大节点位移",
@@ -890,7 +890,7 @@
       },
       "verification": {
         "sourceType": "independent-stiffness-baseline",
-        "reference": "二维平面桁架杆单元独立刚度法工作表基线，Pratt 型屋架多节点竖向荷载工况",
+        "reference": "仓库内 backend.benchmarks.independent_stiffness 二维平面桁架独立矩阵复算，Pratt 型屋架多节点竖向荷载工况",
         "method": "校验节点位移、杆件轴力和控制杆件编号",
         "checkedMetrics": [
           "节点位移",

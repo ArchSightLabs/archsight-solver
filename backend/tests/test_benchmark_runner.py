@@ -1,10 +1,15 @@
 import os
 import sys
+from pathlib import Path
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from backend.benchmarks.report import build_report
 from backend.benchmarks.runner import evaluate_benchmark_case_by_id, evaluate_benchmark_suite
+
+
+ROOT = Path(__file__).resolve().parents[2]
+REPORT_PATH = ROOT / "docs" / "verification" / "benchmark-validation-report.md"
 
 
 def test_benchmark_runner_executes_single_case_with_metric_checks():
@@ -163,6 +168,12 @@ def test_benchmark_report_keeps_public_examples_entrypoint():
     assert "A 级验证" in report
     assert "GET /api/examples/projects" in report
     assert "公开案例" in report
+    assert "python -m backend.benchmarks.independent_stiffness" in report
     assert "N1 支座反力矩(kN·m)=-50.0（标准 -50）" in report
     assert "N2 竖向位移(mm)=-0.315（标准 -0.315）" in report
     assert "支座 2 竖向反力绝对值(kN)=36.0（标准 36）" in report
+
+
+def test_benchmark_report_file_is_generated_from_source():
+    assert REPORT_PATH.exists()
+    assert REPORT_PATH.read_text(encoding="utf-8") == build_report()

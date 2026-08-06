@@ -106,6 +106,7 @@
 ## 使用方式
 
 ```powershell
+python -m backend.benchmarks.independent_stiffness
 python -m pytest backend/tests/test_benchmark_cases.py backend/tests/test_benchmark_runner.py -q
 python -m backend.benchmarks.report --output docs/verification/benchmark-validation-report.md
 ```

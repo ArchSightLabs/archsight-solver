@@ -16,6 +16,7 @@
 | `benchmark_cases.json` | 公开验证集目录，保存算例输入、标准值、误差阈值和验证来源。 |
 | `catalog.py` | 读取和筛选 benchmark catalog。 |
 | `catalog_summary.py` | 生成 `docs/verification/benchmark-catalog-summary.md`，供人工快速阅读算例目录和模板映射。 |
+| `independent_stiffness.py` | 使用不依赖生产求解链路的标准矩阵法复跑全部 B 级框架和桁架基线。 |
 | `runner.py` | 执行单个或全部 benchmark，并将实际结果与标准值比较。 |
 | `report.py` | 生成 `docs/verification/benchmark-validation-report.md`。 |
 | `submissions.py` | 校验外部投稿算例，确认模型、标准值、容许误差和验证来源齐全。 |
@@ -87,6 +88,7 @@
 6. 运行测试和报告生成：
 
 ```powershell
+python -m backend.benchmarks.independent_stiffness
 python -m pytest backend/tests/test_benchmark_contracts.py backend/tests/test_benchmark_cases.py backend/tests/test_benchmark_runner.py -q
 python -m backend.benchmarks.report --output docs/verification/benchmark-validation-report.md
 python -m backend.benchmarks.catalog_summary --output docs/verification/benchmark-catalog-summary.md
