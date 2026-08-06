@@ -59,8 +59,17 @@ exit 1
 def _path_for_bash(bash: str, path: Path) -> str:
     if os.name != "nt":
         return str(path)
+    quoted_path = shlex.quote(str(path))
     converted = subprocess.run(
-        [bash, "-lc", f"wslpath -a {shlex.quote(str(path))}"],
+        [
+            bash,
+            "-lc",
+            "if command -v wslpath >/dev/null 2>&1; then "
+            f"wslpath -a {quoted_path}; "
+            "elif command -v cygpath >/dev/null 2>&1; then "
+            f"cygpath -u {quoted_path}; "
+            "else exit 127; fi",
+        ],
         capture_output=True,
         text=True,
         encoding="utf-8",
