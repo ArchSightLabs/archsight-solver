@@ -186,3 +186,45 @@ def test_all_analytical_truss_cases_cover_detailed_response_metrics():
         assert case["expected"]["memberAxialForces"], case["id"]
         assert case["expected"]["supportReactions"], case["id"]
         assert required_checked_metrics <= set(case["verification"]["checkedMetrics"]), case["id"]
+
+
+def _find_case(case_id: str):
+    for case in BENCHMARK_CATALOG["cases"]:
+        if case["id"] == case_id:
+            return case
+    raise AssertionError(f"未找到 benchmark case: {case_id}")
+
+
+def test_bm_010_to_012_remain_focused_on_declared_metrics():
+    bm010 = _find_case("BM-010")
+    bm011 = _find_case("BM-011")
+    bm012 = _find_case("BM-012")
+
+    assert bm010["category"] == "frame-beam-verify"
+    assert bm011["category"] == "frame-beam-verify"
+    assert bm012["category"] == "truss-verify"
+
+    assert bm010["expected"]["maxMomentKnM"] >= 0
+    assert bm011["expected"]["maxAxialForceKn"] >= 0
+    assert bm012["expected"]["maxAxialForceKn"] >= 0
+
+    assert len(bm010["expected"]["supportReactions"]) >= 1
+    assert len(bm011["expected"]["supportReactions"]) >= 1
+    assert bm012["expected"]["maxDisplacementMm"] >= 0
+    assert bm012["expected"]["maxAxialForceKn"] >= 0
+    assert len(bm012["verification"]["checkedMetrics"]) >= 3
+    assert "节点位移" in set(bm012["verification"]["checkedMetrics"])
+    assert "杆件轴力" in set(bm012["verification"]["checkedMetrics"])
+    assert "支座反力" in set(bm012["verification"]["checkedMetrics"])
+    assert len(bm010["expected"]["supportReactions"]) == 1
+    assert bm010["expected"]["supportReactions"][0]["reactionFxKn"] != 0
+    assert bm011["expected"]["supportReactions"][0]["reactionFxKn"] != 0
+    assert bm010["expected"]["supportReactions"][0]["reactionMzKnM"] != 0
+    assert bm011["expected"]["supportReactions"][0]["reactionMzKnM"] == 0
+    assert "rotationDeg" in bm011["expected"]["nodeDisplacements"][0]
+    assert "rotationDeg" in bm010["expected"]["nodeDisplacements"][0]
+
+    assert "坐标变换" in set(bm010["verification"]["checkedMetrics"])
+    assert "坐标变换" in set(bm011["verification"]["checkedMetrics"])
+    assert "构件轴力" in set(bm011["verification"]["checkedMetrics"])
+    assert "节点位移" in set(bm011["verification"]["checkedMetrics"])
