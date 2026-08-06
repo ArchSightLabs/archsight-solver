@@ -1,18 +1,24 @@
-# v1.5.0 规模与性能基线
+# v1.6.2 规模与性能基线
 
-本文记录 v1.5.0 的规模边界验证口径。性能结论必须来自可复跑脚本或测试，不写成营销承诺。
+本文记录 v1.6.2 的规模边界验证口径。性能结论必须来自可复跑脚本或测试，不写成营销承诺。
 
 ## 运行命令
 
 ```powershell
-python scripts/measure_scale_baseline.py --repeat 3 --output docs/verification/performance-baseline-v1.5.0.json
+python scripts/measure_scale_baseline.py --repeat 3 --output docs/verification/performance-baseline-v1.6.2.json
 ```
 
-脚本覆盖三类代表路径：
+脚本覆盖三类结构的 7 个规模梯度：
 
 - `beam-100-spans`：100 跨连续梁，用于观察梁系大跨数求解路径。
+- `beam-300-spans`：300 跨连续梁，用于捕获稀疏求解与结果采样随跨数增长的退化。
 - `frame-4x3-grid`：4 跨 3 层显式平面框架，用于观察节点 / 构件规模增长。
+- `frame-8x6-grid`：8 跨 6 层显式平面框架，共 63 节点、102 构件。
 - `truss-public-benchmark`：公开桁架 benchmark，用于确认公开验证口径下的桁架求解路径。
+- `truss-20-panel-parallel-chord`：20 节间平行弦桁架，共 42 节点、81 杆件。
+- `truss-50-panel-parallel-chord`：50 节间平行弦桁架，共 102 节点、201 杆件。
+
+性能脚本记录求解状态但不把正常的工程审阅结论改写为“合格”：50 节间桁架因当前荷载与截面下的位移控制返回 `REVIEW`，该状态作为参考基线的一部分被持续比较；若后续静默变为其他状态，nightly 会报告漂移。
 
 ## 发布口径
 

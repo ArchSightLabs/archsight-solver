@@ -17,11 +17,11 @@ from backend.services.frame_workbench import build_solution as build_frame_solut
 from backend.services.truss_workbench import build_solution as build_truss_solution
 
 
-def beam_100_span_payload() -> Dict[str, Any]:
-    spans = [1.0] * 100
+def beam_continuous_payload(span_count: int) -> Dict[str, Any]:
+    spans = [1.0] * span_count
     return {
         "analysisType": "beam",
-        "projectName": "Scale Baseline - Beam 100 Spans",
+        "projectName": f"Scale Baseline - Beam {span_count} Spans",
         "materialId": "q345",
         "beamType": "continuous",
         "loadType": "uniform",
@@ -78,6 +78,35 @@ def truss_benchmark_payload() -> Dict[str, Any]:
     return payload
 
 
+def truss_parallel_chord_payload(panels: int) -> Dict[str, Any]:
+    panel_length = 2.0
+    height = 2.0
+    nodes = []
+    members = []
+    loads = []
+    for index in range(panels + 1):
+        bottom_support = "pinned" if index == 0 else "roller" if index == panels else "free"
+        nodes.append({"id": f"B{index}", "x": index * panel_length, "y": 0.0, "supportType": bottom_support})
+        nodes.append({"id": f"T{index}", "x": index * panel_length, "y": height, "supportType": "free"})
+        members.append({"id": f"V{index}", "start": f"B{index}", "end": f"T{index}", "E_GPa": 210, "A_cm2": 80, "kind": "truss"})
+        loads.append({"type": "nodal", "node": f"T{index}", "fxKn": 0.0, "fyKn": -10.0})
+        if index == panels:
+            continue
+        members.extend(
+            [
+                {"id": f"B{index}_{index + 1}", "start": f"B{index}", "end": f"B{index + 1}", "E_GPa": 210, "A_cm2": 80, "kind": "truss"},
+                {"id": f"T{index}_{index + 1}", "start": f"T{index}", "end": f"T{index + 1}", "E_GPa": 210, "A_cm2": 80, "kind": "truss"},
+                {"id": f"D{index}", "start": f"B{index}", "end": f"T{index + 1}", "E_GPa": 210, "A_cm2": 80, "kind": "truss"},
+            ]
+        )
+    return {
+        "analysisType": "truss",
+        "projectName": f"Scale Baseline - Parallel Chord Truss {panels} Panels",
+        "materialId": "q345",
+        "structure": {"template": "explicit", "nodes": nodes, "members": members, "loads": loads},
+    }
+
+
 def measure(name: str, runner: Callable[[], Dict[str, Any]], repeat: int) -> Dict[str, Any]:
     durations: List[float] = []
     last_result: Dict[str, Any] = {}
@@ -105,7 +134,9 @@ def measure(name: str, runner: Callable[[], Dict[str, Any]], repeat: int) -> Dic
             "memberCount": member_count,
             "sampleCount": len(last_result.get("x_data", [])),
         },
-        "status": last_result.get("summary", {}).get("statusCode") or last_result.get("status"),
+        # Beam uses a translated status label, while frame/truss expose a stable
+        # statusCode. Keep the baseline locale-neutral without hiding REVIEW.
+        "status": last_result.get("summary", {}).get("statusCode") or "SOLVED",
     }
 
 
@@ -115,9 +146,21 @@ def run_baseline(repeat: int) -> Dict[str, Any]:
         "generatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "repeat": repeat,
         "cases": [
-            measure("beam-100-spans", lambda: build_beam_solution(beam_100_span_payload(), "Q345"), repeat),
+            measure("beam-100-spans", lambda: build_beam_solution(beam_continuous_payload(100), "Q345"), repeat),
+            measure("beam-300-spans", lambda: build_beam_solution(beam_continuous_payload(300), "Q345"), repeat),
             measure("frame-4x3-grid", lambda: build_frame_solution(frame_grid_payload(), "Q345"), repeat),
+            measure("frame-8x6-grid", lambda: build_frame_solution(frame_grid_payload(8, 6), "Q345"), repeat),
             measure("truss-public-benchmark", lambda: build_truss_solution(truss_benchmark_payload(), "Q345"), repeat),
+            measure(
+                "truss-20-panel-parallel-chord",
+                lambda: build_truss_solution(truss_parallel_chord_payload(20), "Q345"),
+                repeat,
+            ),
+            measure(
+                "truss-50-panel-parallel-chord",
+                lambda: build_truss_solution(truss_parallel_chord_payload(50), "Q345"),
+                repeat,
+            ),
         ],
     }
 

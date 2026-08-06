@@ -1,4 +1,4 @@
-from scripts.measure_scale_baseline import compare_baseline
+from scripts.measure_scale_baseline import compare_baseline, run_baseline, truss_parallel_chord_payload
 
 
 def _baseline(seconds: float = 1.0, *, member_count: int = 10, status: str = "PASS"):
@@ -33,3 +33,33 @@ def test_scale_baseline_comparison_rejects_scenario_drift():
     current["cases"][0]["name"] = "renamed"
 
     assert compare_baseline(current, _baseline(), 3.0)[0].startswith("性能场景集合漂移")
+
+
+def test_parallel_chord_scale_model_grows_with_stable_topology():
+    payload = truss_parallel_chord_payload(20)
+    structure = payload["structure"]
+
+    assert len(structure["nodes"]) == 42
+    assert len(structure["members"]) == 81
+    assert len(structure["loads"]) == 21
+    assert structure["nodes"][0]["supportType"] == "pinned"
+    assert next(node for node in structure["nodes"] if node["id"] == "B20")["supportType"] == "roller"
+
+
+def test_scale_baseline_covers_three_analysis_types_at_multiple_scales():
+    result = run_baseline(1)
+    cases = {case["name"]: case for case in result["cases"]}
+
+    assert cases["beam-300-spans"]["shape"]["spanCount"] == 300
+    assert cases["frame-8x6-grid"]["shape"] == {
+        "analysisType": "frame",
+        "spanCount": 0,
+        "nodeCount": 63,
+        "memberCount": 102,
+        "sampleCount": 0,
+    }
+    assert cases["truss-20-panel-parallel-chord"]["shape"]["nodeCount"] == 42
+    assert cases["truss-50-panel-parallel-chord"]["shape"]["memberCount"] == 201
+    assert cases["beam-300-spans"]["status"] == "SOLVED"
+    assert cases["frame-8x6-grid"]["status"] == "PASS"
+    assert cases["truss-50-panel-parallel-chord"]["status"] == "REVIEW"

@@ -87,7 +87,7 @@ REQUIRED_MARKERS = {
     ".github/workflows/nightly-quality.yml": (
         'cron: "0 20 * * 0"',
         "scripts/measure_scale_baseline.py",
-        "performance-baseline-v1.5.0.json",
+        "performance-baseline-v1.6.2.json",
         "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
         "workbench-export-docx.spec.ts",
         "browser: [chromium, firefox, webkit]",

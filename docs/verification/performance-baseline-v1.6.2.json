@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-06T04:49:03Z",
+  "repeat": 3,
+  "cases": [
+    {
+      "name": "beam-100-spans",
+      "repeat": 3,
+      "seconds": {
+        "min": 0.095047,
+        "median": 0.098034,
+        "max": 0.109719
+      },
+      "shape": {
+        "analysisType": "beam",
+        "spanCount": 100,
+        "nodeCount": 101,
+        "memberCount": 100,
+        "sampleCount": 4202
+      },
+      "status": "SOLVED"
+    },
+    {
+      "name": "beam-300-spans",
+      "repeat": 3,
+      "seconds": {
+        "min": 0.563191,
+        "median": 0.636386,
+        "max": 0.69171
+      },
+      "shape": {
+        "analysisType": "beam",
+        "spanCount": 300,
+        "nodeCount": 301,
+        "memberCount": 300,
+        "sampleCount": 12602
+      },
+      "status": "SOLVED"
+    },
+    {
+      "name": "frame-4x3-grid",
+      "repeat": 3,
+      "seconds": {
+        "min": 0.007053,
+        "median": 0.00972,
+        "max": 0.011288
+      },
+      "shape": {
+        "analysisType": "frame",
+        "spanCount": 0,
+        "nodeCount": 20,
+        "memberCount": 27,
+        "sampleCount": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "frame-8x6-grid",
+      "repeat": 3,
+      "seconds": {
+        "min": 0.029991,
+        "median": 0.031838,
+        "max": 0.033209
+      },
+      "shape": {
+        "analysisType": "frame",
+        "spanCount": 0,
+        "nodeCount": 63,
+        "memberCount": 102,
+        "sampleCount": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "truss-public-benchmark",
+      "repeat": 3,
+      "seconds": {
+        "min": 0.002626,
+        "median": 0.002637,
+        "max": 0.003082
+      },
+      "shape": {
+        "analysisType": "truss",
+        "spanCount": 0,
+        "nodeCount": 4,
+        "memberCount": 5,
+        "sampleCount": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "truss-20-panel-parallel-chord",
+      "repeat": 3,
+      "seconds": {
+        "min": 0.005202,
+        "median": 0.005278,
+        "max": 0.005334
+      },
+      "shape": {
+        "analysisType": "truss",
+        "spanCount": 0,
+        "nodeCount": 42,
+        "memberCount": 81,
+        "sampleCount": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "truss-50-panel-parallel-chord",
+      "repeat": 3,
+      "seconds": {
+        "min": 0.022608,
+        "median": 0.023313,
+        "max": 0.023602
+      },
+      "shape": {
+        "analysisType": "truss",
+        "spanCount": 0,
+        "nodeCount": 102,
+        "memberCount": 201,
+        "sampleCount": 0
+      },
+      "status": "REVIEW"
+    }
+  ]
+}
