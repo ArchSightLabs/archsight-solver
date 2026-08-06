@@ -1209,6 +1209,18 @@
         "maxDisplacementNodeId": "N2",
         "maxAxialForceKn": 31.25,
         "maxAxialForceMemberId": "M1",
+        "nodeDisplacements": [
+          {
+            "nodeId": "N2",
+            "uxMm": 0.14765625,
+            "uyMm": -0.0666666667
+          },
+          {
+            "nodeId": "N3",
+            "uxMm": 0.1,
+            "uyMm": 0
+          }
+        ],
         "memberAxialForces": [
           {
             "memberId": "M1",
@@ -1242,6 +1254,7 @@
       "tolerances": {
         "maxDisplacementMm": 0.005,
         "maxAxialForceKn": 0.1,
+        "nodeDisplacementMm": 0.001,
         "memberAxialForceKn": 0.1,
         "reactionKn": 0.1
       },

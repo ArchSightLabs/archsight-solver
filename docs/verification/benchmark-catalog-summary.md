@@ -58,7 +58,7 @@
 
 | Case ID | 名称 | 目的 | 验证等级 | 验证来源 | 校核指标 | 标准值 | 容许误差 |
 |---|---|---|---|---|---|---|---|
-| `BM-002` | 对称平面桁架（顶点水平荷载，轴力与位移验证） | 验证平面静定桁架的轴力计算与节点位移，对标节点平衡法解析解 T_AB=31.25kN(拉)、T_BC=-31.25kN(压)、T_AC=25kN(拉)，确认拉压状态标注与支座反力正确性。 | A 级验证 | 教材解析解 | 节点位移、杆件轴力、支座反力 | nodeCount=3；memberCount=3；statusCode=PASS；maxDisplacementMm=0.162；maxDisplacementNodeId=N2；maxAxialForceKn=31.25；maxAxialForceMemberId=M1；memberAxialForces=3 项；supportReactions=2 项 | maxDisplacementMm=0.005；maxAxialForceKn=0.1；memberAxialForceKn=0.1；reactionKn=0.1 |
+| `BM-002` | 对称平面桁架（顶点水平荷载，轴力与位移验证） | 验证平面静定桁架的轴力计算与节点位移，对标节点平衡法解析解 T_AB=31.25kN(拉)、T_BC=-31.25kN(压)、T_AC=25kN(拉)，确认拉压状态标注与支座反力正确性。 | A 级验证 | 教材解析解 | 节点位移、杆件轴力、支座反力 | nodeCount=3；memberCount=3；statusCode=PASS；maxDisplacementMm=0.162；maxDisplacementNodeId=N2；maxAxialForceKn=31.25；maxAxialForceMemberId=M1；nodeDisplacements=2 项；memberAxialForces=3 项；supportReactions=2 项 | maxDisplacementMm=0.005；maxAxialForceKn=0.1；nodeDisplacementMm=0.001；memberAxialForceKn=0.1；reactionKn=0.1 |
 | `BM-009` | 对称三杆桁架顶点竖向荷载（拉压与位移验证） | 验证对称三杆静定桁架在顶点竖向荷载下的对称支座反力、斜杆受压、下弦受拉和节点位移，补齐桁架解析验证仅覆盖水平荷载的缺口。 | A 级验证 | 教材解析解 | 节点位移、杆件轴力、支座反力 | nodeCount=3；memberCount=3；statusCode=PASS；maxDisplacementMm=0.325；maxDisplacementNodeId=N2；maxAxialForceKn=50；maxAxialForceMemberId=M1；nodeDisplacements=2 项；memberAxialForces=3 项；supportReactions=2 项 | maxDisplacementMm=0.001；maxAxialForceKn=0.001；nodeDisplacementMm=0.001；memberAxialForceKn=0.001；reactionKn=0.001 |
 
 ## 框架梁退化验证

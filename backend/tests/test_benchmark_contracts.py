@@ -155,3 +155,29 @@ def test_all_analytical_frame_beam_cases_cover_force_and_deformation_metrics():
         assert "nodeDisplacements" in expected or "midSpanDisplacementMm" in expected, case["id"]
         assert {"支座反力", "构件弯矩"} <= checked_metrics, case["id"]
         assert checked_metrics & {"跨中挠度", "节点位移", "节点转角"}, case["id"]
+
+
+def test_all_analytical_truss_cases_cover_detailed_response_metrics():
+    required_expected = {
+        "statusCode",
+        "maxDisplacementMm",
+        "maxAxialForceKn",
+        "nodeDisplacements",
+        "memberAxialForces",
+        "supportReactions",
+    }
+    required_checked_metrics = {"节点位移", "杆件轴力", "支座反力"}
+    analytical_trusses = [
+        case
+        for case in BENCHMARK_CATALOG["cases"]
+        if case["category"] == "truss-verify"
+        and case["verification"]["verificationLevel"] == "A"
+    ]
+
+    assert len(analytical_trusses) >= 2
+    for case in analytical_trusses:
+        assert required_expected <= set(case["expected"]), case["id"]
+        assert case["expected"]["nodeDisplacements"], case["id"]
+        assert case["expected"]["memberAxialForces"], case["id"]
+        assert case["expected"]["supportReactions"], case["id"]
+        assert required_checked_metrics <= set(case["verification"]["checkedMetrics"]), case["id"]

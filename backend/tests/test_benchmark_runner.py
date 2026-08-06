@@ -31,6 +31,7 @@ def test_beam_analytical_runner_checks_force_and_displacement_metrics():
 
 def test_benchmark_runner_checks_detailed_frame_and_truss_analytical_metrics():
     frame = evaluate_benchmark_case_by_id("BM-008")
+    truss_horizontal = evaluate_benchmark_case_by_id("BM-002")
     truss = evaluate_benchmark_case_by_id("BM-009")
 
     assert frame["status"] == "pass"
@@ -39,6 +40,14 @@ def test_benchmark_runner_checks_detailed_frame_and_truss_analytical_metrics():
         "N1 支座反力矩(kN·m)",
         "N2 竖向位移(mm)",
         "N2 转角(°)",
+    }
+    assert truss_horizontal["status"] == "pass"
+    assert {check["metric"] for check in truss_horizontal["checks"]} >= {
+        "N2 水平位移(mm)",
+        "N2 竖向位移(mm)",
+        "N3 水平位移(mm)",
+        "M1 杆件轴力(kN)",
+        "N1 X 向支座反力(kN)",
     }
     assert truss["status"] == "pass"
     assert {check["metric"] for check in truss["checks"]} >= {
