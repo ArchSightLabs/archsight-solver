@@ -179,6 +179,12 @@ def _paths() -> Dict[str, Any]:
             "post": {
                 "tags": ["jobs"],
                 "summary": "提交异步作业",
+                "parameters": [
+                    _header_parameter(
+                        "X-Tenant-Id",
+                        "异步作业 clientJobId 的幂等命名空间，不代表认证或访问隔离",
+                    )
+                ],
                 "requestBody": _json_request("job-request"),
                 "responses": {
                     **_json_response({"type": "object", "additionalProperties": True}, description="Accepted", status="202"),
@@ -282,6 +288,16 @@ def _path_parameter(name: str) -> Dict[str, Any]:
         "in": "path",
         "required": True,
         "schema": {"type": "string"},
+    }
+
+
+def _header_parameter(name: str, description: str) -> Dict[str, Any]:
+    return {
+        "name": name,
+        "in": "header",
+        "required": False,
+        "description": description,
+        "schema": {"type": "string", "maxLength": 128},
     }
 
 

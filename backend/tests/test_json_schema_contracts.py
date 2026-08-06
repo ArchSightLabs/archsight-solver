@@ -629,6 +629,14 @@ def test_openapi_document_reuses_schema_registry():
     }
     assert document["components"]["schemas"]["export-payload"]["properties"]["format"]["enum"] == ["xlsx", "docx"]
     assert "500" in document["paths"]["/api/export"]["post"]["responses"]
+    tenant_header = next(
+        parameter
+        for parameter in document["paths"]["/api/jobs"]["post"]["parameters"]
+        if parameter["in"] == "header" and parameter["name"] == "X-Tenant-Id"
+    )
+    assert tenant_header["required"] is False
+    assert tenant_header["schema"] == {"type": "string", "maxLength": 128}
+    assert "不代表认证或访问隔离" in tenant_header["description"]
     assert document["paths"]["/api/benchmark-submissions"]["post"]["requestBody"]["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/benchmark-submission-input"
     }

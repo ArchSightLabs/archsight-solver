@@ -292,6 +292,8 @@ Content-Type: application/json
 
 提交本地轻量异步作业，适合本机批量计算、Agent 自动调用和避免同步请求阻塞。当前开源实现不是生产级分布式任务队列：每个服务 worker 在首次请求时启动本进程的 `ThreadPoolExecutor` 与心跳，进程退出时关闭；状态和结果默认写入本地 SQLite，并记录执行进程 ID。多容器、多主机、高吞吐或需要可靠重试的部署，应接入共享数据库、Redis 或专用任务队列。
 
+可选请求头 `X-Tenant-Id` 用于划分 `clientJobId` 的幂等命名空间，最长 128 个字符；它不是身份认证、授权或作业访问隔离凭据。
+
 ```json
 {
   "operation": "calculate",
@@ -314,7 +316,7 @@ Content-Type: application/json
 - `Location: /api/jobs/{jobId}`
 - `Retry-After: 1`
 
-`clientJobId` 在同一 `X-Tenant-Id` 内作为幂等键；相同租户重复提交会返回已有作业，不同租户可复用同一 ID。同步 `/api/calculate` 的 `X-Client-ID` 仅用于调用方审计，不复用这项幂等语义。
+`clientJobId` 在同一 `X-Tenant-Id` 内作为幂等键；相同命名空间重复提交会返回已有作业，不同命名空间可复用同一 ID。同步 `/api/calculate` 的 `X-Client-ID` 仅用于调用方审计，不复用这项幂等语义。
 
 ## GET /api/jobs/{jobId}
 

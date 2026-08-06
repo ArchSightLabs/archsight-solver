@@ -16,6 +16,28 @@ def test_app_factory_preserves_global_app_compatibility(tmp_path):
     assert response.headers["Access-Control-Allow-Origin"] == "*"
 
 
+def test_async_job_preflight_allows_the_documented_tenant_header(tmp_path):
+    (tmp_path / "index.html").write_text("<!doctype html><title>ArchSight</title>", encoding="utf-8")
+    factory_app = create_app(static_folder=tmp_path)
+
+    response = factory_app.test_client().options(
+        "/api/jobs",
+        headers={
+            "Origin": "https://client.example.edu",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type,x-tenant-id",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["Access-Control-Allow-Origin"] == "*"
+    allowed_headers = {
+        value.strip().lower()
+        for value in response.headers["Access-Control-Allow-Headers"].split(",")
+    }
+    assert {"content-type", "x-tenant-id"}.issubset(allowed_headers)
+
+
 def test_runtime_config_exposes_host_allowlist_without_baking_it_into_frontend(monkeypatch, tmp_path):
     (tmp_path / "index.html").write_text("<!doctype html><title>ArchSight</title>", encoding="utf-8")
     monkeypatch.setenv(

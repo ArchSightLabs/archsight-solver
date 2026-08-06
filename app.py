@@ -150,7 +150,7 @@ def register_request_hooks(flask_app: Flask) -> None:
     @flask_app.after_request
     def after_request(response):
         response.headers.add("Access-Control-Allow-Origin", "*")
-        response.headers.add("Access-Control-Allow-Headers", "Content-Type,X-Client-ID")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type,X-Client-ID,X-Tenant-Id")
         response.headers.add("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS")
         if response.mimetype == "text/html":
             frame_ancestors = " ".join(["'self'", *get_host_allowed_origins()])
