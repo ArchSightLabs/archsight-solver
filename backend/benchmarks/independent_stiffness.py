@@ -21,7 +21,11 @@ def _frame_local_stiffness(member: Mapping[str, Any], length: float) -> np.ndarr
     area = _float(member["A_cm2"]) * 1e-4
     inertia = _float(member["I_cm4"]) * 1e-8
     axial = elastic_modulus * area / length
-    flexural = elastic_modulus * inertia
+    is_axial_brace = (
+        member.get("kind") == "brace"
+        or member.get("elementType") == "truss"
+    )
+    flexural = 0.0 if is_axial_brace else elastic_modulus * inertia
     return np.array(
         [
             [axial, 0.0, 0.0, -axial, 0.0, 0.0],
@@ -86,6 +90,20 @@ def _consistent_transverse_load(length: float, start: float, end: float) -> np.n
             0.0,
             length * (3 * start + 7 * end) / 20,
             -length**2 * (2 * start + 3 * end) / 60,
+        ],
+        dtype=float,
+    )
+
+
+def _consistent_axial_load(length: float, start: float, end: float) -> np.ndarray:
+    return np.array(
+        [
+            length * (2 * start + end) / 6,
+            0.0,
+            0.0,
+            length * (start + 2 * end) / 6,
+            0.0,
+            0.0,
         ],
         dtype=float,
     )
@@ -225,22 +243,41 @@ def solve_frame_reference(payload: Mapping[str, Any]) -> dict[str, Any]:
             continue
         if load_type != "distributed":
             raise IndependentBaselineError(f"独立框架基线不支持荷载类型: {load_type}")
-        if load.get("direction", "local_y") != "local_y":
-            raise IndependentBaselineError("独立框架基线当前只支持构件 local_y 分布荷载")
         record = member_records[str(load["member"])]
         fallback = _float(load.get("wyKnPerM", 0.0))
         distributed_start = _float(load.get("qStartKnPerM", fallback))
         distributed_end = _float(load.get("qEndKnPerM", fallback))
-        equivalent = _consistent_transverse_load(
+        direction = str(load.get("direction", "local_y"))
+        if direction == "local_y":
+            axial_start = axial_end = 0.0
+            transverse_start = distributed_start
+            transverse_end = distributed_end
+        elif direction == "global_y":
+            transform = record["transform"]
+            sine = _float(transform[0, 1])
+            cosine = _float(transform[0, 0])
+            axial_start = sine * distributed_start
+            axial_end = sine * distributed_end
+            transverse_start = cosine * distributed_start
+            transverse_end = cosine * distributed_end
+        else:
+            raise IndependentBaselineError(
+                f"独立框架基线不支持分布荷载方向: {direction}"
+            )
+        equivalent = _consistent_axial_load(
             _float(record["length"]),
-            distributed_start,
-            distributed_end,
+            axial_start,
+            axial_end,
+        ) + _consistent_transverse_load(
+            _float(record["length"]),
+            transverse_start,
+            transverse_end,
         )
         dofs = list(record["dofs"])
         loads[dofs] += record["transform"].T @ equivalent
         record["equivalentLoad"] += equivalent
-        record["distributedStart"] += distributed_start
-        record["distributedEnd"] += distributed_end
+        record["distributedStart"] += transverse_start
+        record["distributedEnd"] += transverse_end
 
     fixed = set(_frame_fixed_dofs(nodes, node_index))
     free = [dof for dof in range(dof_count) if dof not in fixed]

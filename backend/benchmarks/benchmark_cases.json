@@ -3956,18 +3956,18 @@
         "maxMomentKnM": 0.01
       },
       "verification": {
-        "sourceType": "internal-regression",
-        "reference": "当前版本二维平面框架求解器公开内部回归基线",
-        "method": "调用 benchmark runner 锁定二维平面框架状态码、对象数量、最大节点位移和最大构件弯矩，作为公开内部回归门禁。",
+        "sourceType": "independent-stiffness-baseline",
+        "reference": "仓库内 backend.benchmarks.independent_stiffness 二维平面框架独立矩阵复算",
+        "method": "用独立矩阵装配复算节点数量、构件数量、最大节点位移和最大构件弯矩，并与生产 benchmark runner 交叉校验",
         "checkedMetrics": [
           "最大节点位移",
           "构件弯矩",
           "节点数量",
           "构件数量"
         ],
-        "verificationLevel": "D",
-        "verificationLevelLabel": "D 级验证",
-        "verificationLevelDescription": "项目内部回归基线，只用于防止行为漂移，不作为外部专业背书。"
+        "verificationLevel": "B",
+        "verificationLevelLabel": "B 级验证",
+        "verificationLevelDescription": "独立刚度法基线或独立矩阵法算例，可用于校验装配、约束和结果恢复。"
       }
     },
     {
@@ -4176,18 +4176,18 @@
         "maxMomentKnM": 0.01
       },
       "verification": {
-        "sourceType": "internal-regression",
-        "reference": "当前版本二维平面框架求解器公开内部回归基线",
-        "method": "调用 benchmark runner 锁定二维平面框架状态码、对象数量、最大节点位移和最大构件弯矩，作为公开内部回归门禁。",
+        "sourceType": "independent-stiffness-baseline",
+        "reference": "仓库内 backend.benchmarks.independent_stiffness 二维平面框架独立矩阵复算",
+        "method": "用独立矩阵装配复算节点数量、构件数量、最大节点位移和最大构件弯矩，并与生产 benchmark runner 交叉校验",
         "checkedMetrics": [
           "最大节点位移",
           "构件弯矩",
           "节点数量",
           "构件数量"
         ],
-        "verificationLevel": "D",
-        "verificationLevelLabel": "D 级验证",
-        "verificationLevelDescription": "项目内部回归基线，只用于防止行为漂移，不作为外部专业背书。"
+        "verificationLevel": "B",
+        "verificationLevelLabel": "B 级验证",
+        "verificationLevelDescription": "独立刚度法基线或独立矩阵法算例，可用于校验装配、约束和结果恢复。"
       }
     },
     {
@@ -4325,18 +4325,18 @@
         "maxMomentKnM": 0.01
       },
       "verification": {
-        "sourceType": "internal-regression",
-        "reference": "当前版本二维平面框架求解器公开内部回归基线",
-        "method": "调用 benchmark runner 锁定二维平面框架状态码、对象数量、最大节点位移和最大构件弯矩，作为公开内部回归门禁。",
+        "sourceType": "independent-stiffness-baseline",
+        "reference": "仓库内 backend.benchmarks.independent_stiffness 二维平面框架独立矩阵复算",
+        "method": "用独立矩阵装配复算节点数量、构件数量、最大节点位移和最大构件弯矩，并与生产 benchmark runner 交叉校验",
         "checkedMetrics": [
           "最大节点位移",
           "构件弯矩",
           "节点数量",
           "构件数量"
         ],
-        "verificationLevel": "D",
-        "verificationLevelLabel": "D 级验证",
-        "verificationLevelDescription": "项目内部回归基线，只用于防止行为漂移，不作为外部专业背书。"
+        "verificationLevel": "B",
+        "verificationLevelLabel": "B 级验证",
+        "verificationLevelDescription": "独立刚度法基线或独立矩阵法算例，可用于校验装配、约束和结果恢复。"
       }
     },
     {
@@ -4454,18 +4454,18 @@
         "maxMomentKnM": 0.01
       },
       "verification": {
-        "sourceType": "internal-regression",
-        "reference": "当前版本二维平面框架求解器公开内部回归基线",
-        "method": "调用 benchmark runner 锁定二维平面框架状态码、对象数量、最大节点位移和最大构件弯矩，作为公开内部回归门禁。",
+        "sourceType": "independent-stiffness-baseline",
+        "reference": "仓库内 backend.benchmarks.independent_stiffness 二维平面框架独立矩阵复算",
+        "method": "用独立矩阵装配复算节点数量、构件数量、最大节点位移和最大构件弯矩，并与生产 benchmark runner 交叉校验",
         "checkedMetrics": [
           "最大节点位移",
           "构件弯矩",
           "节点数量",
           "构件数量"
         ],
-        "verificationLevel": "D",
-        "verificationLevelLabel": "D 级验证",
-        "verificationLevelDescription": "项目内部回归基线，只用于防止行为漂移，不作为外部专业背书。"
+        "verificationLevel": "B",
+        "verificationLevelLabel": "B 级验证",
+        "verificationLevelDescription": "独立刚度法基线或独立矩阵法算例，可用于校验装配、约束和结果恢复。"
       }
     },
     {
@@ -4567,18 +4567,18 @@
         "maxMomentKnM": 0.01
       },
       "verification": {
-        "sourceType": "internal-regression",
-        "reference": "当前版本二维平面框架求解器公开内部回归基线",
-        "method": "调用 benchmark runner 锁定二维平面框架状态码、对象数量、最大节点位移和最大构件弯矩，作为公开内部回归门禁。",
+        "sourceType": "independent-stiffness-baseline",
+        "reference": "仓库内 backend.benchmarks.independent_stiffness 二维平面框架独立矩阵复算",
+        "method": "用独立矩阵装配复算节点数量、构件数量、最大节点位移和最大构件弯矩，并与生产 benchmark runner 交叉校验",
         "checkedMetrics": [
           "最大节点位移",
           "构件弯矩",
           "节点数量",
           "构件数量"
         ],
-        "verificationLevel": "D",
-        "verificationLevelLabel": "D 级验证",
-        "verificationLevelDescription": "项目内部回归基线，只用于防止行为漂移，不作为外部专业背书。"
+        "verificationLevel": "B",
+        "verificationLevelLabel": "B 级验证",
+        "verificationLevelDescription": "独立刚度法基线或独立矩阵法算例，可用于校验装配、约束和结果恢复。"
       }
     },
     {
@@ -4832,18 +4832,18 @@
         "maxMomentKnM": 0.01
       },
       "verification": {
-        "sourceType": "internal-regression",
-        "reference": "当前版本二维平面框架求解器公开内部回归基线",
-        "method": "调用 benchmark runner 锁定二维平面框架状态码、对象数量、最大节点位移和最大构件弯矩，作为公开内部回归门禁。",
+        "sourceType": "independent-stiffness-baseline",
+        "reference": "仓库内 backend.benchmarks.independent_stiffness 二维平面框架独立矩阵复算",
+        "method": "用独立矩阵装配复算节点数量、构件数量、最大节点位移和最大构件弯矩，并与生产 benchmark runner 交叉校验",
         "checkedMetrics": [
           "最大节点位移",
           "构件弯矩",
           "节点数量",
           "构件数量"
         ],
-        "verificationLevel": "D",
-        "verificationLevelLabel": "D 级验证",
-        "verificationLevelDescription": "项目内部回归基线，只用于防止行为漂移，不作为外部专业背书。"
+        "verificationLevel": "B",
+        "verificationLevelLabel": "B 级验证",
+        "verificationLevelDescription": "独立刚度法基线或独立矩阵法算例，可用于校验装配、约束和结果恢复。"
       }
     },
     {
@@ -5070,18 +5070,18 @@
         "maxMomentKnM": 0.01
       },
       "verification": {
-        "sourceType": "internal-regression",
-        "reference": "当前版本二维平面框架求解器公开内部回归基线",
-        "method": "调用 benchmark runner 锁定二维平面框架状态码、对象数量、最大节点位移和最大构件弯矩，作为公开内部回归门禁。",
+        "sourceType": "independent-stiffness-baseline",
+        "reference": "仓库内 backend.benchmarks.independent_stiffness 二维平面框架独立矩阵复算",
+        "method": "用独立矩阵装配复算节点数量、构件数量、最大节点位移和最大构件弯矩，并与生产 benchmark runner 交叉校验",
         "checkedMetrics": [
           "最大节点位移",
           "构件弯矩",
           "节点数量",
           "构件数量"
         ],
-        "verificationLevel": "D",
-        "verificationLevelLabel": "D 级验证",
-        "verificationLevelDescription": "项目内部回归基线，只用于防止行为漂移，不作为外部专业背书。"
+        "verificationLevel": "B",
+        "verificationLevelLabel": "B 级验证",
+        "verificationLevelDescription": "独立刚度法基线或独立矩阵法算例，可用于校验装配、约束和结果恢复。"
       }
     },
     {

@@ -79,15 +79,15 @@
 | `beam-simply-supported-partial-uniform` | beam | D 级验证 | 通过 | 最大挠度(mm)=3.3617（标准 3.3617）；最大挠度位置(m)=3.5（标准 3.5） |
 | `beam-cantilever-partial-uniform` | beam | D 级验证 | 通过 | 最大挠度(mm)=12.4363（标准 12.4363）；最大挠度位置(m)=6.0（标准 6.0） |
 | `beam-continuous-elastic-middle-support` | beam | D 级验证 | 通过 | 最大挠度(mm)=0.0903（标准 0.0903）；最大挠度位置(m)=1.678571（标准 1.6786） |
-| `frame-template-portal-single-bay` | frame | D 级验证 | 通过 | 最大节点位移(mm)=0.062（标准 0.062）；最大构件弯矩(kN·m)=42.9081（标准 42.9081） |
-| `frame-template-two-story` | frame | D 级验证 | 通过 | 最大节点位移(mm)=3.6609（标准 3.6609）；最大构件弯矩(kN·m)=45.5072（标准 45.5072） |
-| `frame-template-braced-frame` | frame | D 级验证 | 通过 | 最大节点位移(mm)=0.0738（标准 0.0738）；最大构件弯矩(kN·m)=28.5827（标准 28.5827） |
-| `frame-template-gable-frame` | frame | D 级验证 | 通过 | 最大节点位移(mm)=21.4015（标准 21.4015）；最大构件弯矩(kN·m)=94.9912（标准 94.9912） |
-| `frame-portal-global-y-heavy` | frame | D 级验证 | 通过 | 最大节点位移(mm)=1.6007（标准 1.6007）；最大构件弯矩(kN·m)=54.8848（标准 54.8848） |
+| `frame-template-portal-single-bay` | frame | B 级验证 | 通过 | 最大节点位移(mm)=0.062（标准 0.062）；最大构件弯矩(kN·m)=42.9081（标准 42.9081） |
+| `frame-template-two-story` | frame | B 级验证 | 通过 | 最大节点位移(mm)=3.6609（标准 3.6609）；最大构件弯矩(kN·m)=45.5072（标准 45.5072） |
+| `frame-template-braced-frame` | frame | B 级验证 | 通过 | 最大节点位移(mm)=0.0738（标准 0.0738）；最大构件弯矩(kN·m)=28.5827（标准 28.5827） |
+| `frame-template-gable-frame` | frame | B 级验证 | 通过 | 最大节点位移(mm)=21.4015（标准 21.4015）；最大构件弯矩(kN·m)=94.9912（标准 94.9912） |
+| `frame-portal-global-y-heavy` | frame | B 级验证 | 通过 | 最大节点位移(mm)=1.6007（标准 1.6007）；最大构件弯矩(kN·m)=54.8848（标准 54.8848） |
 | `frame-portal-local-y-load` | frame | B 级验证 | 通过 | 最大节点位移(mm)=1.9104（标准 1.9104）；最大构件弯矩(kN·m)=41.7494（标准 41.7494） |
-| `frame-two-bay-asymmetric-load` | frame | D 级验证 | 通过 | 最大节点位移(mm)=0.8678（标准 0.8678）；最大构件弯矩(kN·m)=44.0042（标准 44.0042） |
+| `frame-two-bay-asymmetric-load` | frame | B 级验证 | 通过 | 最大节点位移(mm)=0.8678（标准 0.8678）；最大构件弯矩(kN·m)=44.0042（标准 44.0042） |
 | `frame-portal-member-point-quarter` | frame | D 级验证 | 通过 | 最大节点位移(mm)=2.3208（标准 2.3208）；最大构件弯矩(kN·m)=24.7257（标准 24.7257） |
-| `frame-elastic-column-base` | frame | D 级验证 | 通过 | 最大节点位移(mm)=4.2507（标准 4.2507）；最大构件弯矩(kN·m)=46.6847（标准 46.6847） |
+| `frame-elastic-column-base` | frame | B 级验证 | 通过 | 最大节点位移(mm)=4.2507（标准 4.2507）；最大构件弯矩(kN·m)=46.6847（标准 46.6847） |
 | `truss-template-parallel-chord` | truss | B 级验证 | 通过 | 最大节点位移(mm)=2.1479245358843513（标准 2.1479）；最大杆件轴力(kN)=49.99999999999997（标准 50.0）；控制节点=N7（标准 N7）；控制杆件=D1（标准 D1） |
 | `truss-parallel-chord-asymmetric` | truss | B 级验证 | 通过 | 最大节点位移(mm)=2.7736279499612597（标准 2.7736）；最大杆件轴力(kN)=67.22222222222214（标准 67.2222）；控制节点=N7（标准 N7）；控制杆件=D3（标准 D3） |
 | `truss-parallel-chord-member-weight` | truss | D 级验证 | 通过 | 最大节点位移(mm)=0.23710786933238176（标准 0.2371）；最大杆件轴力(kN)=5.3333333333333295（标准 5.3333）；控制节点=N7（标准 N7）；控制杆件=D1（标准 D1） |

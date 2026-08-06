@@ -101,9 +101,9 @@ def test_benchmark_catalog_contains_external_or_analytical_cross_checks():
 def test_benchmark_catalog_keeps_independently_verifiable_evidence_growing():
     levels = Counter(case["verification"]["verificationLevel"] for case in BENCHMARK_CATALOG["cases"])
 
-    assert levels["A"] + levels["B"] + levels["C"] >= 42
+    assert levels["A"] + levels["B"] + levels["C"] >= 49
     assert levels["A"] >= 22
-    assert levels["B"] >= 19
+    assert levels["B"] >= 26
 
 
 def test_benchmark_catalog_has_detailed_analytical_checks_for_frame_and_truss():

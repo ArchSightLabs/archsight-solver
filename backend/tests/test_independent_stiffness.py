@@ -1,11 +1,14 @@
 import copy
 import inspect
 
+import pytest
+
 import backend.benchmarks.independent_stiffness as independent_stiffness
 from backend.benchmarks.catalog import load_benchmark_catalog
 from backend.benchmarks.independent_stiffness import (
     evaluate_independent_case,
     evaluate_independent_suite,
+    solve_frame_reference,
     solve_truss_reference,
 )
 
@@ -60,6 +63,28 @@ def test_independent_stiffness_preserves_symmetric_control_member_ties():
     assert result["maxDisplacementNodeIds"] == ["N6"]
     assert result["maxAxialForceMemberIds"] == ["T1", "T4"]
     assert case["expected"]["maxAxialForceMemberId"] in result["maxAxialForceMemberIds"]
+
+
+def test_independent_stiffness_reproduces_global_y_and_axial_brace_frames():
+    cases_by_id = {
+        case["id"]: case
+        for case in load_benchmark_catalog()["cases"]
+    }
+    case_ids = {
+        "frame-template-portal-single-bay",
+        "frame-template-two-story",
+        "frame-template-braced-frame",
+        "frame-template-gable-frame",
+        "frame-portal-global-y-heavy",
+        "frame-two-bay-asymmetric-load",
+        "frame-elastic-column-base",
+    }
+
+    results = [evaluate_independent_case(cases_by_id[case_id]) for case_id in case_ids]
+    braced = solve_frame_reference(cases_by_id["frame-template-braced-frame"]["payload"])
+
+    assert all(result["passed"] for result in results)
+    assert braced["maxMomentKnM"] == pytest.approx(28.5827, abs=0.01)
 
 
 def test_independent_stiffness_fails_when_catalog_standard_value_drifts():
