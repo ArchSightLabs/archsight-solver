@@ -48,6 +48,62 @@ def test_benchmark_runner_checks_detailed_frame_and_truss_analytical_metrics():
     }
 
 
+def test_benchmark_runner_checks_additional_frame_beam_displacement_metrics():
+    frame_003 = evaluate_benchmark_case_by_id("BM-003")
+    frame_004 = evaluate_benchmark_case_by_id("BM-004")
+    frame_005 = evaluate_benchmark_case_by_id("BM-005")
+    frame_006 = evaluate_benchmark_case_by_id("BM-006")
+    frame_007 = evaluate_benchmark_case_by_id("BM-007")
+
+    assert frame_003["status"] == "pass"
+    assert {check["metric"] for check in frame_003["checks"]} >= {
+        "状态码",
+        "最大构件弯矩(kN·m)",
+        "N1 支座竖向反力(kN)",
+        "N2 支座竖向反力(kN)",
+        "N2 转角(°)",
+    }
+
+    assert frame_004["status"] == "pass"
+    assert {check["metric"] for check in frame_004["checks"]} >= {
+        "状态码",
+        "最大构件弯矩(kN·m)",
+        "N1 支座竖向反力(kN)",
+        "N2 竖向位移(mm)",
+        "N1 转角(°)",
+        "N3 支座竖向反力(kN)",
+        "N3 转角(°)",
+    }
+
+    assert frame_005["status"] == "pass"
+    assert {check["metric"] for check in frame_005["checks"]} >= {
+        "状态码",
+        "最大构件弯矩(kN·m)",
+        "N1 支座竖向反力(kN)",
+        "N2 竖向位移(mm)",
+        "N2 转角(°)",
+    }
+
+    assert frame_006["status"] == "pass"
+    assert {check["metric"] for check in frame_006["checks"]} >= {
+        "状态码",
+        "最大构件弯矩(kN·m)",
+        "N1 支座竖向反力(kN)",
+        "N2 竖向位移(mm)",
+        "N2 转角(°)",
+    }
+
+    assert frame_007["status"] == "pass"
+    assert {check["metric"] for check in frame_007["checks"]} >= {
+        "状态码",
+        "最大构件弯矩(kN·m)",
+        "N1 支座竖向反力(kN)",
+        "N2 竖向位移(mm)",
+        "N2 转角(°)",
+        "N3 支座竖向反力(kN)",
+    }
+
+
 def test_benchmark_runner_executes_suite():
     result = evaluate_benchmark_suite()
 

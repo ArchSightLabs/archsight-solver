@@ -1028,7 +1028,8 @@
         "formula_RB": "R_B = 3qL/8 = 3×20×4/8 = 30 kN（滚动端竖向反力）",
         "formula_RA": "R_A = 5qL/8 = 5×20×4/8 = 50 kN（固端竖向反力）",
         "formula_MA": "M_A = qL²/8 = 20×16/8 = 40 kN·m（固端弯矩）",
-        "formula_max_sagging": "M_sag = 9qL²/128 = 22.5 kN·m at x=5L/8=2.5m（最大正弯矩，无独立节点验证）"
+        "formula_max_sagging": "M_sag = 9qL²/128 = 22.5 kN·m at x=5L/8=2.5m（最大正弯矩，无独立节点验证）",
+        "formula_roller_rotation": "theta_B = qL³/(48EI) = 0.000666667 rad = 0.0381972°"
       },
       "payload": {
         "analysisType": "frame",
@@ -1073,6 +1074,7 @@
       "expected": {
         "nodeCount": 2,
         "memberCount": 1,
+        "statusCode": "PASS",
         "maxMomentKnM": 40,
         "supportReactions": [
           {
@@ -1083,19 +1085,26 @@
             "nodeId": "N2",
             "reactionFyKn": 30
           }
+        ],
+        "nodeDisplacements": [
+          {
+            "nodeId": "N2",
+            "rotationDeg": 0.0381971863
+          }
         ]
       },
       "tolerances": {
         "maxMomentKnM": 0.1,
-        "reactionFyKn": 0.1
+        "reactionFyKn": 0.1,
+        "rotationDeg": 0.000001
       },
       "verification": {
         "sourceType": "textbook-analytical",
         "reference": "材料力学固端-滚动支座单跨梁全跨均布荷载力法解析解：RB=3qL/8，RA=5qL/8，MA=qL^2/8",
-        "method": "以框架杆单元模型对标一次超静定梁支座反力和固端弯矩",
+        "method": "以框架杆单元模型对标一次超静定梁支座反力、固端弯矩和滚动端转角",
         "checkedMetrics": [
           "支座反力",
-          "跨中挠度",
+          "节点转角",
           "构件弯矩"
         ],
         "verificationLevel": "A",
@@ -1604,7 +1613,15 @@
       "id": "BM-004",
       "category": "frame-beam-verify",
       "title": "简支梁全跨均布荷载（框架梁退化验证）",
-      "purpose": "验证框架梁单元退化为简支梁时的支座反力与最大弯矩。",
+      "purpose": "验证框架梁单元退化为简支梁时的支座反力、最大弯矩、跨中挠度和支座转角。",
+      "theory": {
+        "description": "简支梁全跨均布荷载经典解析解",
+        "L_m": 8,
+        "q_kNperM": 12,
+        "EI_kNm2": 60000,
+        "formula_midspan_deflection": "v(L/2) = -5qL⁴/(384EI) = -10.6667 mm",
+        "formula_support_rotation": "theta_A = -qL³/(24EI) = -0.244462°，theta_B = -theta_A"
+      },
       "payload": {
         "analysisType": "frame",
         "projectName": "BM-004: Simply Supported Beam UDL",
@@ -1679,18 +1696,36 @@
             "nodeId": "N3",
             "reactionFyKn": 48.0
           }
+        ],
+        "nodeDisplacements": [
+          {
+            "nodeId": "N1",
+            "rotationDeg": -0.2444619926
+          },
+          {
+            "nodeId": "N2",
+            "uyMm": -10.6666666667
+          },
+          {
+            "nodeId": "N3",
+            "rotationDeg": 0.2444619926
+          }
         ]
       },
       "tolerances": {
         "maxMomentKnM": 0.1,
-        "reactionFyKn": 0.1
+        "reactionFyKn": 0.1,
+        "nodeDisplacementMm": 0.001,
+        "rotationDeg": 0.000001
       },
       "verification": {
         "sourceType": "textbook-analytical",
         "reference": "材料力学简支梁全跨均布荷载解析解：RA=RB=qL/2，Mmax=qL^2/8",
-        "method": "以框架杆单元退化梁模型对标教材解析反力和最大弯矩",
+        "method": "以框架杆单元退化梁模型对标教材解析反力、弯矩、跨中挠度和支座转角",
         "checkedMetrics": [
           "支座反力",
+          "节点位移",
+          "节点转角",
           "构件弯矩"
         ],
         "verificationLevel": "A",
@@ -1702,7 +1737,15 @@
       "id": "BM-005",
       "category": "frame-beam-verify",
       "title": "悬臂梁全跨均布荷载（框架梁退化验证）",
-      "purpose": "验证框架梁单元退化为悬臂梁时的固定端反力与最大弯矩。",
+      "purpose": "验证框架梁单元退化为悬臂梁时的固定端反力、最大弯矩、自由端挠度和转角。",
+      "theory": {
+        "description": "悬臂梁全跨均布荷载经典解析解",
+        "L_m": 3,
+        "q_kNperM": 15,
+        "EI_kNm2": 36000,
+        "formula_tip_deflection": "v_B = -qL⁴/(8EI) = -4.21875 mm",
+        "formula_tip_rotation": "theta_B = -qL³/(6EI) = -0.107430°"
+      },
       "payload": {
         "analysisType": "frame",
         "projectName": "BM-005: Cantilever Beam UDL",
@@ -1753,18 +1796,29 @@
             "nodeId": "N1",
             "reactionFyKn": 45.0
           }
+        ],
+        "nodeDisplacements": [
+          {
+            "nodeId": "N2",
+            "uyMm": -4.21875,
+            "rotationDeg": -0.1074295866
+          }
         ]
       },
       "tolerances": {
         "maxMomentKnM": 0.1,
-        "reactionFyKn": 0.1
+        "reactionFyKn": 0.1,
+        "nodeDisplacementMm": 0.001,
+        "rotationDeg": 0.000001
       },
       "verification": {
         "sourceType": "textbook-analytical",
         "reference": "材料力学悬臂梁全跨均布荷载解析解：V=qL，Mmax=qL^2/2",
-        "method": "以框架杆单元退化梁模型对标教材解析反力和最大弯矩",
+        "method": "以框架杆单元退化梁模型对标教材解析反力、弯矩、自由端挠度和转角",
         "checkedMetrics": [
           "支座反力",
+          "节点位移",
+          "节点转角",
           "构件弯矩"
         ],
         "verificationLevel": "A",
@@ -1776,7 +1830,15 @@
       "id": "BM-006",
       "category": "frame-beam-verify",
       "title": "悬臂梁自由端集中荷载（框架梁退化验证）",
-      "purpose": "验证框架梁单元处理悬臂自由端集中力的固定端反力与最大弯矩。",
+      "purpose": "验证框架梁单元处理悬臂自由端集中力的固定端反力、最大弯矩、自由端挠度和转角。",
+      "theory": {
+        "description": "悬臂梁自由端集中荷载经典解析解",
+        "L_m": 5,
+        "P_kN": 36,
+        "EI_kNm2": 48000,
+        "formula_tip_deflection": "v_B = -PL³/(3EI) = -31.25 mm",
+        "formula_tip_rotation": "theta_B = -PL²/(2EI) = -0.537148°"
+      },
       "payload": {
         "analysisType": "frame",
         "projectName": "BM-006: Cantilever End Point",
@@ -1829,18 +1891,29 @@
             "nodeId": "N1",
             "reactionFyKn": 36.0
           }
+        ],
+        "nodeDisplacements": [
+          {
+            "nodeId": "N2",
+            "uyMm": -31.25,
+            "rotationDeg": -0.5371479329
+          }
         ]
       },
       "tolerances": {
         "maxMomentKnM": 0.1,
-        "reactionFyKn": 0.1
+        "reactionFyKn": 0.1,
+        "nodeDisplacementMm": 0.001,
+        "rotationDeg": 0.000001
       },
       "verification": {
         "sourceType": "textbook-analytical",
         "reference": "材料力学悬臂梁自由端集中荷载解析解：V=P，Mmax=PL",
-        "method": "以框架杆单元退化梁模型对标教材解析反力和最大弯矩",
+        "method": "以框架杆单元退化梁模型对标教材解析反力、弯矩、自由端挠度和转角",
         "checkedMetrics": [
           "支座反力",
+          "节点位移",
+          "节点转角",
           "构件弯矩"
         ],
         "verificationLevel": "A",
@@ -1852,7 +1925,14 @@
       "id": "BM-007",
       "category": "frame-beam-verify",
       "title": "双跨简支退化梁分段均布荷载",
-      "purpose": "验证框架梁分段建模下不同均布荷载段的反力和最大弯矩回归。",
+      "purpose": "验证框架梁分段建模下不同均布荷载段的反力、最大弯矩、分段节点挠度和转角。",
+      "theory": {
+        "description": "左半跨 8 kN/m、右半跨 16 kN/m 的简支梁分段积分解",
+        "L_m": 6,
+        "EI_kNm2": 44000,
+        "formula_midnode_deflection": "EI·v(3m) = -202.5 kN·m³，v(3m) = -4.602273 mm",
+        "formula_midnode_rotation": "EI·theta(3m) = -4.5 kN·m²，theta(3m) = -0.00585980°"
+      },
       "payload": {
         "analysisType": "frame",
         "projectName": "BM-007: Segmented Beam UDL",
@@ -1927,18 +2007,29 @@
             "nodeId": "N3",
             "reactionFyKn": 42.0
           }
+        ],
+        "nodeDisplacements": [
+          {
+            "nodeId": "N2",
+            "uyMm": -4.6022727273,
+            "rotationDeg": -0.0058597956
+          }
         ]
       },
       "tolerances": {
         "maxMomentKnM": 0.1,
-        "reactionFyKn": 0.1
+        "reactionFyKn": 0.1,
+        "nodeDisplacementMm": 0.001,
+        "rotationDeg": 0.000001
       },
       "verification": {
         "sourceType": "textbook-analytical",
         "reference": "分段均布荷载简支梁静力平衡解析基线，结合框架梁杆端力回归最大弯矩",
-        "method": "以框架杆单元退化梁模型对标教材解析反力和最大弯矩",
+        "method": "以框架杆单元退化梁模型对标分段积分所得的反力、弯矩、节点挠度和转角",
         "checkedMetrics": [
           "支座反力",
+          "节点位移",
+          "节点转角",
           "构件弯矩"
         ],
         "verificationLevel": "A",
