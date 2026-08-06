@@ -6793,6 +6793,209 @@
         "verificationLevelLabel": "A 级验证",
         "verificationLevelDescription": "教材解析解或标准公式，可用于校验基本公式、单位换算、边界条件和符号约定。"
       }
+    },
+    {
+      "id": "BM-010",
+      "category": "frame-beam-verify",
+      "title": "竖向悬臂柱水平顶推（坐标变换与弯曲验证）",
+      "purpose": "验证竖向框架构件在全局水平荷载下的局部弯曲响应、固定端水平反力与反力矩、自由端水平位移和转角，补齐现有解析算例以水平梁为主的坐标变换缺口。",
+      "theory": {
+        "description": "竖向悬臂柱自由端水平集中力经典解析解",
+        "L_m": 4,
+        "P_kN": 30,
+        "E_GPa": 200,
+        "I_cm4": 25000,
+        "formula_reactions": "R_Ax = -P = -30 kN，M_A = PL = 120 kN·m",
+        "formula_tip_rotation": "theta_B = -PL^2/(2EI) = -0.0048 rad = -0.275020 deg",
+        "formula_tip_displacement": "u_B = PL^3/(3EI) = 0.0128 m = 12.8 mm"
+      },
+      "payload": {
+        "analysisType": "frame",
+        "projectName": "BM-010: Vertical Cantilever - Horizontal Tip Load",
+        "materialId": "steel-verify",
+        "structure": {
+          "template": "explicit",
+          "nodes": [
+            {"id": "N1", "x": 0, "y": 0, "supportType": "fixed"},
+            {"id": "N2", "x": 0, "y": 4, "supportType": "free"}
+          ],
+          "members": [
+            {"id": "C1", "start": "N1", "end": "N2", "E_GPa": 200, "A_cm2": 10000, "I_cm4": 25000, "kind": "column"}
+          ],
+          "loads": [
+            {"type": "nodal", "node": "N2", "fxKn": 30, "fyKn": 0, "mzKnM": 0}
+          ]
+        }
+      },
+      "expected": {
+        "nodeCount": 2,
+        "memberCount": 1,
+        "statusCode": "PASS",
+        "maxMomentKnM": 120,
+        "supportReactions": [
+          {"nodeId": "N1", "reactionFxKn": -30, "reactionFyKn": 0, "reactionMzKnM": 120}
+        ],
+        "nodeDisplacements": [
+          {"nodeId": "N2", "uxMm": 12.8, "uyMm": 0, "rotationDeg": -0.2750197417}
+        ]
+      },
+      "tolerances": {
+        "maxMomentKnM": 0.001,
+        "reactionFxKn": 0.001,
+        "reactionFyKn": 0.001,
+        "reactionMzKnM": 0.001,
+        "nodeDisplacementMm": 0.001,
+        "rotationDeg": 0.000001
+      },
+      "verification": {
+        "sourceType": "textbook-analytical",
+        "reference": "材料力学悬臂构件自由端横向集中力解析解：MA=PL，theta=PL^2/(2EI)，u=PL^3/(3EI)",
+        "method": "将竖向构件的全局水平响应对标悬臂梁解析解，逐项校核坐标变换后的反力、反力矩、位移与转角",
+        "checkedMetrics": ["支座反力", "节点位移", "节点转角", "构件弯矩", "坐标变换"],
+        "verificationLevel": "A",
+        "verificationLevelLabel": "A 级验证",
+        "verificationLevelDescription": "教材解析解或标准公式，可用于校验基本公式、单位换算、边界条件和符号约定。"
+      }
+    },
+    {
+      "id": "BM-011",
+      "category": "frame-beam-verify",
+      "title": "3-4-5 斜杆轴向拉伸（全局—局部坐标验证）",
+      "purpose": "验证倾斜框架构件在沿杆轴向荷载下的轴向刚度、全局位移分量、双向支座反力和零弯矩响应，避免坐标变换只由竖直或水平构件覆盖。",
+      "theory": {
+        "description": "3-4-5 斜杆轴向拉伸解析解",
+        "nodes": "A(0,0) 固定，B(3,4) 自由，L=5 m",
+        "P_kN": 100,
+        "E_GPa": 200,
+        "A_cm2": 100,
+        "formula_extension": "delta = PL/(EA) = 0.25 mm",
+        "formula_displacement_components": "u_Bx = 3delta/5 = 0.15 mm，u_By = 4delta/5 = 0.20 mm",
+        "formula_reactions": "R_Ax = -3P/5 = -60 kN，R_Ay = -4P/5 = -80 kN"
+      },
+      "payload": {
+        "analysisType": "frame",
+        "projectName": "BM-011: Inclined Member - Axial Tension",
+        "materialId": "steel-verify",
+        "structure": {
+          "template": "explicit",
+          "nodes": [
+            {"id": "N1", "x": 0, "y": 0, "supportType": "fixed"},
+            {"id": "N2", "x": 3, "y": 4, "supportType": "free"}
+          ],
+          "members": [
+            {"id": "M1", "start": "N1", "end": "N2", "E_GPa": 200, "A_cm2": 100, "I_cm4": 25000, "kind": "column"}
+          ],
+          "loads": [
+            {"type": "nodal", "node": "N2", "fxKn": 60, "fyKn": 80, "mzKnM": 0}
+          ]
+        }
+      },
+      "expected": {
+        "nodeCount": 2,
+        "memberCount": 1,
+        "statusCode": "PASS",
+        "maxMomentKnM": 0,
+        "maxAxialForceKn": 100,
+        "supportReactions": [
+          {"nodeId": "N1", "reactionFxKn": -60, "reactionFyKn": -80, "reactionMzKnM": 0}
+        ],
+        "nodeDisplacements": [
+          {"nodeId": "N2", "uxMm": 0.15, "uyMm": 0.2, "rotationDeg": 0}
+        ]
+      },
+      "tolerances": {
+        "maxMomentKnM": 0.001,
+        "maxAxialForceKn": 0.001,
+        "reactionFxKn": 0.001,
+        "reactionFyKn": 0.001,
+        "reactionMzKnM": 0.001,
+        "nodeDisplacementMm": 0.001,
+        "rotationDeg": 0.000001
+      },
+      "verification": {
+        "sourceType": "textbook-analytical",
+        "reference": "材料力学等截面直杆轴向拉伸解析解：delta=PL/(EA)，全局分量按 3-4-5 方向余弦分解",
+        "method": "以轴向伸长公式和方向余弦独立推导全局位移、双向支座反力、轴力峰值与零弯矩",
+        "checkedMetrics": ["构件轴力", "支座反力", "节点位移", "构件弯矩", "坐标变换"],
+        "verificationLevel": "A",
+        "verificationLevelLabel": "A 级验证",
+        "verificationLevelDescription": "教材解析解或标准公式，可用于校验基本公式、单位换算、边界条件和符号约定。"
+      }
+    },
+    {
+      "id": "BM-012",
+      "category": "truss-verify",
+      "title": "非对称直角三杆桁架水平荷载（零杆与位移验证）",
+      "purpose": "验证非对称 3-4-5 直角静定桁架在水平节点荷载下的拉压杆、零杆、非对称支座反力和双向节点位移，补齐现有专项解析验证集中于对称几何的缺口。",
+      "theory": {
+        "description": "非对称直角三杆静定桁架节点平衡法与杆件变形协调解析解",
+        "nodes": "A(0,0) 铰支，B(3,4) 自由，C(3,0) 滚动支座",
+        "P_kN": 60,
+        "E_GPa": 200,
+        "A_cm2": 100,
+        "formula_member_forces": "N_AB = 5P/3 = 100 kN（拉），N_BC = -4P/3 = -80 kN（压），N_AC = 0",
+        "formula_reactions": "R_Ax = -60 kN，R_Ay = -80 kN，R_Cy = 80 kN",
+        "formula_node_displacement": "u_Bx = 0.63 mm，u_By = -0.16 mm，|u_B| = 0.65 mm"
+      },
+      "payload": {
+        "analysisType": "truss",
+        "projectName": "BM-012: Asymmetric Right-triangle Truss - Horizontal Load",
+        "materialId": "steel-verify",
+        "structure": {
+          "template": "explicit",
+          "nodes": [
+            {"id": "N1", "x": 0, "y": 0, "supportType": "pinned"},
+            {"id": "N2", "x": 3, "y": 4, "supportType": "free"},
+            {"id": "N3", "x": 3, "y": 0, "supportType": "roller"}
+          ],
+          "members": [
+            {"id": "M1", "start": "N1", "end": "N2", "E_GPa": 200, "A_cm2": 100, "kind": "truss"},
+            {"id": "M2", "start": "N2", "end": "N3", "E_GPa": 200, "A_cm2": 100, "kind": "truss"},
+            {"id": "M3", "start": "N1", "end": "N3", "E_GPa": 200, "A_cm2": 100, "kind": "truss"}
+          ],
+          "loads": [
+            {"type": "nodal", "node": "N2", "fxKn": 60, "fyKn": 0}
+          ]
+        }
+      },
+      "expected": {
+        "nodeCount": 3,
+        "memberCount": 3,
+        "statusCode": "PASS",
+        "maxDisplacementMm": 0.65,
+        "maxDisplacementNodeId": "N2",
+        "maxAxialForceKn": 100,
+        "maxAxialForceMemberId": "M1",
+        "nodeDisplacements": [
+          {"nodeId": "N2", "uxMm": 0.63, "uyMm": -0.16},
+          {"nodeId": "N3", "uxMm": 0, "uyMm": 0}
+        ],
+        "memberAxialForces": [
+          {"memberId": "M1", "axialForceKn": 100, "forceState": "tension"},
+          {"memberId": "M2", "axialForceKn": -80, "forceState": "compression"},
+          {"memberId": "M3", "axialForceKn": 0, "forceState": "near_zero"}
+        ],
+        "supportReactions": [
+          {"nodeId": "N1", "rxKn": -60, "ryKn": -80},
+          {"nodeId": "N3", "rxKn": 0, "ryKn": 80}
+        ]
+      },
+      "tolerances": {
+        "maxDisplacementMm": 0.001,
+        "maxAxialForceKn": 0.001,
+        "nodeDisplacementMm": 0.001,
+        "memberAxialForceKn": 0.001,
+        "reactionKn": 0.001
+      },
+      "verification": {
+        "sourceType": "textbook-analytical",
+        "reference": "结构力学静定平面桁架节点平衡法与杆件变形协调：3-4-5 直角三杆体系",
+        "method": "以节点平衡法校核拉压杆、零杆和支座反力，以杆件轴向变形协调独立推导自由节点双向位移",
+        "checkedMetrics": ["节点位移", "杆件轴力", "支座反力"],
+        "verificationLevel": "A",
+        "verificationLevelLabel": "A 级验证",
+        "verificationLevelDescription": "教材解析解或标准公式，可用于校验基本公式、单位换算、边界条件和符号约定。"
+      }
     }
   ]
 }

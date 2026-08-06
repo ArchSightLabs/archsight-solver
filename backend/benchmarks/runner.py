@@ -154,9 +154,27 @@ def _evaluate_response(case: Mapping[str, Any], data: Mapping[str, Any]) -> list
                 tolerances["maxMomentKnM"],
             )
         )
+        if "maxAxialForceKn" in expected:
+            checks.append(
+                _check(
+                    "最大构件轴力(kN)",
+                    summary["peakInternalForces"]["maxAbsAxialKn"],
+                    expected["maxAxialForceKn"],
+                    tolerances["maxAxialForceKn"],
+                )
+            )
         for reaction in expected.get("supportReactions", []):
             node_id = reaction["nodeId"]
             result = node_by_id[node_id]
+            if "reactionFxKn" in reaction:
+                checks.append(
+                    _check(
+                        f"{node_id} 支座水平反力(kN)",
+                        result["reactionFxKn"],
+                        reaction["reactionFxKn"],
+                        tolerances["reactionFxKn"],
+                    )
+                )
             if "reactionFyKn" in reaction:
                 checks.append(
                     _check(
@@ -189,6 +207,15 @@ def _evaluate_response(case: Mapping[str, Any], data: Mapping[str, Any]) -> list
         for displacement in expected.get("nodeDisplacements", []):
             node_id = displacement["nodeId"]
             result = node_by_id[node_id]
+            if "uxMm" in displacement:
+                checks.append(
+                    _check(
+                        f"{node_id} 水平位移(mm)",
+                        result["uxMm"],
+                        displacement["uxMm"],
+                        tolerances["nodeDisplacementMm"],
+                    )
+                )
             if "uyMm" in displacement:
                 checks.append(
                     _check(
@@ -232,6 +259,14 @@ def _evaluate_response(case: Mapping[str, Any], data: Mapping[str, Any]) -> list
                 tolerances["maxAxialForceKn"],
             )
         )
+        if "maxDisplacementNodeId" in expected:
+            checks.append(
+                _check("控制节点", summary["maxDisplacementNodeId"], expected["maxDisplacementNodeId"])
+            )
+        if "maxAxialForceMemberId" in expected:
+            checks.append(
+                _check("控制杆件", summary["maxAxialForceMemberId"], expected["maxAxialForceMemberId"])
+            )
         for expected_node in expected.get("nodeDisplacements", []):
             node_id = expected_node["nodeId"]
             result = node_by_id[node_id]

@@ -135,6 +135,11 @@ def test_benchmark_case_regressions(client, case):
         if "supportReactions" in expected:
             for rxn in expected["supportReactions"]:
                 nid = rxn["nodeId"]
+                if "reactionFxKn" in rxn:
+                    assert node_by_id[nid]["reactionFxKn"] == pytest.approx(
+                        rxn["reactionFxKn"],
+                        abs=tolerances["reactionFxKn"],
+                    ), f"{nid} 支座水平反力应为 {rxn['reactionFxKn']} kN"
                 if "reactionFyKn" in rxn:
                     assert node_by_id[nid]["reactionFyKn"] == pytest.approx(
                         rxn["reactionFyKn"],
@@ -168,6 +173,10 @@ def test_benchmark_case_regressions(client, case):
 
         for exp_node in expected.get("nodeDisplacements", []):
             result = node_by_id[exp_node["nodeId"]]
+            if "uxMm" in exp_node:
+                assert result["uxMm"] == pytest.approx(
+                    exp_node["uxMm"], abs=tolerances["nodeDisplacementMm"]
+                )
             if "uyMm" in exp_node:
                 assert result["uyMm"] == pytest.approx(
                     exp_node["uyMm"], abs=tolerances["nodeDisplacementMm"]
@@ -183,6 +192,12 @@ def test_benchmark_case_regressions(client, case):
             expected["maxMomentKnM"],
             abs=tolerances["maxMomentKnM"],
         ), f"最大弯矩应为 {expected['maxMomentKnM']} kN·m"
+
+        if "maxAxialForceKn" in expected:
+            assert summary["peakInternalForces"]["maxAbsAxialKn"] == pytest.approx(
+                expected["maxAxialForceKn"],
+                abs=tolerances["maxAxialForceKn"],
+            ), f"最大轴力应为 {expected['maxAxialForceKn']} kN"
     elif case["category"] == "truss-verify":
         # 桁架力学验证分支：支持杆件轴力（拉/压）与节点位移详细校验
         # 对应 BM-002（对称平面桁架）

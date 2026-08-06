@@ -57,6 +57,40 @@ def test_benchmark_runner_checks_detailed_frame_and_truss_analytical_metrics():
     }
 
 
+def test_benchmark_runner_checks_coordinate_transform_and_asymmetric_truss_metrics():
+    lateral_column = evaluate_benchmark_case_by_id("BM-010")
+    inclined_member = evaluate_benchmark_case_by_id("BM-011")
+    asymmetric_truss = evaluate_benchmark_case_by_id("BM-012")
+
+    assert lateral_column["status"] == "pass"
+    assert {check["metric"] for check in lateral_column["checks"]} >= {
+        "N1 支座水平反力(kN)",
+        "N1 支座反力矩(kN·m)",
+        "N2 水平位移(mm)",
+        "N2 转角(°)",
+    }
+    assert inclined_member["status"] == "pass"
+    assert {check["metric"] for check in inclined_member["checks"]} >= {
+        "最大构件轴力(kN)",
+        "N1 支座水平反力(kN)",
+        "N1 支座竖向反力(kN)",
+        "N2 水平位移(mm)",
+        "N2 竖向位移(mm)",
+    }
+    assert asymmetric_truss["status"] == "pass"
+    assert {check["metric"] for check in asymmetric_truss["checks"]} >= {
+        "控制节点",
+        "控制杆件",
+        "N2 水平位移(mm)",
+        "N2 竖向位移(mm)",
+        "M1 杆件轴力(kN)",
+        "M2 杆件轴力(kN)",
+        "M3 拉压状态",
+        "N1 X 向支座反力(kN)",
+        "N3 Y 向支座反力(kN)",
+    }
+
+
 def test_benchmark_runner_checks_additional_frame_beam_displacement_metrics():
     frame_003 = evaluate_benchmark_case_by_id("BM-003")
     frame_004 = evaluate_benchmark_case_by_id("BM-004")

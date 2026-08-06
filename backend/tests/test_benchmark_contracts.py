@@ -32,7 +32,7 @@ PROFESSIONAL_METRICS_BY_CATEGORY = {
     "beam": {"最大挠度", "峰值位置", "支座反力", "构件弯矩", "剪力", "支座数量"},
     "frame": {"最大节点位移", "节点位移", "构件弯矩", "支座反力", "节点数量", "构件数量"},
     "truss": {"节点位移", "杆件轴力", "杆件轴应力", "支座反力", "节点数量", "杆件数量"},
-    "frame-beam-verify": {"支座反力", "跨中挠度", "构件弯矩", "最大节点位移", "节点位移", "节点转角"},
+    "frame-beam-verify": {"支座反力", "跨中挠度", "构件弯矩", "构件轴力", "最大节点位移", "节点位移", "节点转角", "坐标变换"},
     "truss-verify": {"节点位移", "杆件轴力", "杆件轴应力", "支座反力", "平衡误差"},
 }
 
@@ -155,6 +155,10 @@ def test_all_analytical_frame_beam_cases_cover_force_and_deformation_metrics():
         assert "nodeDisplacements" in expected or "midSpanDisplacementMm" in expected, case["id"]
         assert {"支座反力", "构件弯矩"} <= checked_metrics, case["id"]
         assert checked_metrics & {"跨中挠度", "节点位移", "节点转角"}, case["id"]
+        if any("reactionFxKn" in r for r in expected["supportReactions"]):
+            assert "坐标变换" in checked_metrics, case["id"]
+        if "maxAxialForceKn" in expected:
+            assert "构件轴力" in checked_metrics, case["id"]
 
 
 def test_all_analytical_truss_cases_cover_detailed_response_metrics():

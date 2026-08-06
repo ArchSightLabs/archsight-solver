@@ -3,7 +3,7 @@
 > 本文件由 `python -m backend.benchmarks.catalog_summary --output docs/verification/benchmark-catalog-summary.md` 生成。`backend/benchmarks/benchmark_cases.json` 仍是机器事实源。
 
 - 算例目录版本：2026-08-06
-- 算例总数：63
+- 算例总数：66
 - 用途：帮助人工快速阅读算例目的、验证来源、关键指标、标准值和容许误差。
 
 ## 二维平面桁架
@@ -54,16 +54,17 @@
 
 ## 桁架专项验证
 
-- 算例数量：2
+- 算例数量：3
 
 | Case ID | 名称 | 目的 | 验证等级 | 验证来源 | 校核指标 | 标准值 | 容许误差 |
 |---|---|---|---|---|---|---|---|
 | `BM-002` | 对称平面桁架（顶点水平荷载，轴力与位移验证） | 验证平面静定桁架的轴力计算与节点位移，对标节点平衡法解析解 T_AB=31.25kN(拉)、T_BC=-31.25kN(压)、T_AC=25kN(拉)，确认拉压状态标注与支座反力正确性。 | A 级验证 | 教材解析解 | 节点位移、杆件轴力、支座反力 | nodeCount=3；memberCount=3；statusCode=PASS；maxDisplacementMm=0.162；maxDisplacementNodeId=N2；maxAxialForceKn=31.25；maxAxialForceMemberId=M1；nodeDisplacements=2 项；memberAxialForces=3 项；supportReactions=2 项 | maxDisplacementMm=0.005；maxAxialForceKn=0.1；nodeDisplacementMm=0.001；memberAxialForceKn=0.1；reactionKn=0.1 |
 | `BM-009` | 对称三杆桁架顶点竖向荷载（拉压与位移验证） | 验证对称三杆静定桁架在顶点竖向荷载下的对称支座反力、斜杆受压、下弦受拉和节点位移，补齐桁架解析验证仅覆盖水平荷载的缺口。 | A 级验证 | 教材解析解 | 节点位移、杆件轴力、支座反力 | nodeCount=3；memberCount=3；statusCode=PASS；maxDisplacementMm=0.325；maxDisplacementNodeId=N2；maxAxialForceKn=50；maxAxialForceMemberId=M1；nodeDisplacements=2 项；memberAxialForces=3 项；supportReactions=2 项 | maxDisplacementMm=0.001；maxAxialForceKn=0.001；nodeDisplacementMm=0.001；memberAxialForceKn=0.001；reactionKn=0.001 |
+| `BM-012` | 非对称直角三杆桁架水平荷载（零杆与位移验证） | 验证非对称 3-4-5 直角静定桁架在水平节点荷载下的拉压杆、零杆、非对称支座反力和双向节点位移，补齐现有专项解析验证集中于对称几何的缺口。 | A 级验证 | 教材解析解 | 节点位移、杆件轴力、支座反力 | nodeCount=3；memberCount=3；statusCode=PASS；maxDisplacementMm=0.65；maxDisplacementNodeId=N2；maxAxialForceKn=100；maxAxialForceMemberId=M1；nodeDisplacements=2 项；memberAxialForces=3 项；supportReactions=2 项 | maxDisplacementMm=0.001；maxAxialForceKn=0.001；nodeDisplacementMm=0.001；memberAxialForceKn=0.001；reactionKn=0.001 |
 
 ## 框架梁退化验证
 
-- 算例数量：7
+- 算例数量：9
 
 | Case ID | 名称 | 目的 | 验证等级 | 验证来源 | 校核指标 | 标准值 | 容许误差 |
 |---|---|---|---|---|---|---|---|
@@ -74,6 +75,8 @@
 | `BM-006` | 悬臂梁自由端集中荷载（框架梁退化验证） | 验证框架梁单元处理悬臂自由端集中力的固定端反力、最大弯矩、自由端挠度和转角。 | A 级验证 | 教材解析解 | 支座反力、节点位移、节点转角、构件弯矩 | nodeCount=2；memberCount=1；statusCode=REVIEW；maxMomentKnM=180.0；supportReactions=1 项；nodeDisplacements=1 项 | maxMomentKnM=0.1；reactionFyKn=0.1；nodeDisplacementMm=0.001；rotationDeg=1e-06 |
 | `BM-007` | 双跨简支退化梁分段均布荷载 | 验证框架梁分段建模下不同均布荷载段的反力、最大弯矩、分段节点挠度和转角。 | A 级验证 | 教材解析解 | 支座反力、节点位移、节点转角、构件弯矩 | nodeCount=3；memberCount=2；statusCode=PASS；maxMomentKnM=55.125；supportReactions=2 项；nodeDisplacements=1 项 | maxMomentKnM=0.1；reactionFyKn=0.1；nodeDisplacementMm=0.001；rotationDeg=1e-06 |
 | `BM-008` | 悬臂梁自由端集中弯矩（转角与反力矩验证） | 验证框架梁单元在纯弯曲工况下的固定端反力矩、自由端转角和自由端竖向位移，补齐只校核力与弯矩峰值而未校核转角的解析验证缺口。 | A 级验证 | 教材解析解 | 支座反力、节点位移、节点转角、构件弯矩 | nodeCount=2；memberCount=1；statusCode=PASS；maxMomentKnM=50；supportReactions=1 项；nodeDisplacements=1 项 | maxMomentKnM=0.001；reactionFyKn=0.001；reactionMzKnM=0.001；nodeDisplacementMm=0.001；rotationDeg=1e-06 |
+| `BM-010` | 竖向悬臂柱水平顶推（坐标变换与弯曲验证） | 验证竖向框架构件在全局水平荷载下的局部弯曲响应、固定端水平反力与反力矩、自由端水平位移和转角，补齐现有解析算例以水平梁为主的坐标变换缺口。 | A 级验证 | 教材解析解 | 支座反力、节点位移、节点转角、构件弯矩、坐标变换 | nodeCount=2；memberCount=1；statusCode=PASS；maxMomentKnM=120；supportReactions=1 项；nodeDisplacements=1 项 | maxMomentKnM=0.001；reactionFxKn=0.001；reactionFyKn=0.001；reactionMzKnM=0.001；nodeDisplacementMm=0.001；rotationDeg=1e-06 |
+| `BM-011` | 3-4-5 斜杆轴向拉伸（全局—局部坐标验证） | 验证倾斜框架构件在沿杆轴向荷载下的轴向刚度、全局位移分量、双向支座反力和零弯矩响应，避免坐标变换只由竖直或水平构件覆盖。 | A 级验证 | 教材解析解 | 构件轴力、支座反力、节点位移、构件弯矩、坐标变换 | nodeCount=2；memberCount=1；statusCode=PASS；maxMomentKnM=0；maxAxialForceKn=100；supportReactions=1 项；nodeDisplacements=1 项 | maxMomentKnM=0.001；maxAxialForceKn=0.001；reactionFxKn=0.001；reactionFyKn=0.001；reactionMzKnM=0.001；nodeDisplacementMm=0.001；rotationDeg=1e-06 |
 
 ## 梁系
 
