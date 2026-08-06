@@ -98,6 +98,7 @@ scripts/*
 !scripts/check_versions.py
 !scripts/generate_contract_types.py
 !scripts/generate_benchmark_report.py
+!scripts/measure_scale_baseline.py
 !scripts/kill-ports.ps1
 !scripts/remote-deploy.ps1
 !scripts/run_host_iframe_demo.py

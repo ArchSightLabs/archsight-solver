@@ -9,6 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_PATHS = (
     ".github/workflows/release.yml",
+    ".github/workflows/nightly-quality.yml",
     "docs/verification/release-1-6-2-acceptance.md",
     "docs/verification/release-1-6-1-acceptance.md",
     "docs/verification/release-1-6-acceptance.md",
@@ -82,6 +83,14 @@ REQUIRED_MARKERS = {
         "ARCHSIGHT_SOLVER_E2E_URL",
         "Run built image Host integration",
         "release-1-6-2-acceptance.spec.ts",
+    ),
+    ".github/workflows/nightly-quality.yml": (
+        'cron: "0 20 * * 0"',
+        "scripts/measure_scale_baseline.py",
+        "performance-baseline-v1.5.0.json",
+        "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+        "workbench-export-docx.spec.ts",
+        "browser: [chromium, firefox, webkit]",
     ),
 }
 
