@@ -123,10 +123,16 @@ def test_benchmark_case_regressions(client, case):
         if "supportReactions" in expected:
             for rxn in expected["supportReactions"]:
                 nid = rxn["nodeId"]
-                assert node_by_id[nid]["reactionFyKn"] == pytest.approx(
-                    rxn["reactionFyKn"],
-                    abs=tolerances["reactionFyKn"],
-                ), f"{nid} 支座竖向反力应为 {rxn['reactionFyKn']} kN"
+                if "reactionFyKn" in rxn:
+                    assert node_by_id[nid]["reactionFyKn"] == pytest.approx(
+                        rxn["reactionFyKn"],
+                        abs=tolerances["reactionFyKn"],
+                    ), f"{nid} 支座竖向反力应为 {rxn['reactionFyKn']} kN"
+                if "reactionMzKnM" in rxn:
+                    assert node_by_id[nid]["reactionMzKnM"] == pytest.approx(
+                        rxn["reactionMzKnM"],
+                        abs=tolerances["reactionMzKnM"],
+                    ), f"{nid} 支座反力矩应为 {rxn['reactionMzKnM']} kN·m"
         else:
             # 向后兼容：BM-001 旧格式（按节点顺序索引）
             node_ids = list(node_by_id.keys())
@@ -147,6 +153,17 @@ def test_benchmark_case_regressions(client, case):
                 expected["midSpanDisplacementMm"],
                 abs=tolerances["midSpanDisplacementMm"],
             ), f"跨中挠度应为 {expected['midSpanDisplacementMm']} mm"
+
+        for exp_node in expected.get("nodeDisplacements", []):
+            result = node_by_id[exp_node["nodeId"]]
+            if "uyMm" in exp_node:
+                assert result["uyMm"] == pytest.approx(
+                    exp_node["uyMm"], abs=tolerances["nodeDisplacementMm"]
+                )
+            if "rotationDeg" in exp_node:
+                assert result["rotationDeg"] == pytest.approx(
+                    exp_node["rotationDeg"], abs=tolerances["rotationDeg"]
+                )
 
         # ③ 最大弯矩验证（所有 frame-beam-verify 案例必须通过）
         summary = data["summary"]

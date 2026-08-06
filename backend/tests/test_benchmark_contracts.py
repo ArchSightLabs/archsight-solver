@@ -1,6 +1,7 @@
 import os
 import sys
 import re
+from collections import Counter
 from datetime import date
 
 import pytest
@@ -31,7 +32,7 @@ PROFESSIONAL_METRICS_BY_CATEGORY = {
     "beam": {"最大挠度", "峰值位置", "支座反力", "构件弯矩", "剪力", "支座数量"},
     "frame": {"最大节点位移", "节点位移", "构件弯矩", "支座反力", "节点数量", "构件数量"},
     "truss": {"节点位移", "杆件轴力", "杆件轴应力", "支座反力", "节点数量", "杆件数量"},
-    "frame-beam-verify": {"支座反力", "跨中挠度", "构件弯矩", "最大节点位移"},
+    "frame-beam-verify": {"支座反力", "跨中挠度", "构件弯矩", "最大节点位移", "节点位移", "节点转角"},
     "truss-verify": {"节点位移", "杆件轴力", "杆件轴应力", "支座反力", "平衡误差"},
 }
 
@@ -95,3 +96,21 @@ def test_benchmark_catalog_contains_external_or_analytical_cross_checks():
     assert "textbook-analytical" in source_types
     assert "independent-stiffness-baseline" in source_types
     assert "internal-regression" in source_types
+
+
+def test_benchmark_catalog_keeps_independently_verifiable_evidence_growing():
+    levels = Counter(case["verification"]["verificationLevel"] for case in BENCHMARK_CATALOG["cases"])
+
+    assert levels["A"] + levels["B"] + levels["C"] >= 25
+    assert levels["A"] >= 19
+
+
+def test_benchmark_catalog_has_detailed_analytical_checks_for_frame_and_truss():
+    analytical_by_category = Counter(
+        case["category"]
+        for case in BENCHMARK_CATALOG["cases"]
+        if case["verification"]["verificationLevel"] == "A"
+    )
+
+    assert analytical_by_category["frame-beam-verify"] >= 7
+    assert analytical_by_category["truss-verify"] >= 2

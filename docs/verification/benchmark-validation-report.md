@@ -1,8 +1,8 @@
 # ArchSight Solver 公开验证集报告
 
-- 算例目录版本：2026-06-04
-- 算例数量：61
-- 通过数量：61
+- 算例目录版本：2026-08-06
+- 算例数量：63
+- 通过数量：63
 - 未通过数量：0
 - 验证等级：A, B, C, D
 - 来源类型：engineering-software, independent-stiffness-baseline, internal-regression, textbook-analytical
@@ -16,8 +16,8 @@
 工作台顶部提供“公开案例”入口，可直接打开由本验证集生成的三个工程：
 
 - 梁系公开验证工程：22 个梁系分析对象。
-- 二维平面桁架公开验证工程：16 个桁架分析对象。
-- 二维平面框架公开验证工程：23 个框架与框架梁退化分析对象。
+- 二维平面桁架公开验证工程：17 个桁架分析对象。
+- 二维平面框架公开验证工程：24 个框架与框架梁退化分析对象。
 
 每个分析对象均保留 `caseId`、来源类型、校核指标、标准值、容许误差和可用出处链接。打开工程后可直接查看模型、运行计算、查看图形结果并导出计算书，无需重新输入参数建模。
 
@@ -36,67 +36,69 @@
 
 | 算例 | 类型 | 验证等级 | 状态 | 关键校核 |
 |---|---|---|---|---|
-| `beam-simply-supported-uniform` | beam | A 级验证 | 通过 | 支座数量=2（标准 2）；最大挠度(mm)=1.1565（标准 1.1565）；最大挠度位置(m)=3.0（标准 3） |
-| `beam-cantilever-uniform` | beam | A 级验证 | 通过 | 支座数量=1（标准 1）；最大挠度(mm)=7.3403（标准 7.3403）；最大挠度位置(m)=5.0（标准 5） |
-| `beam-simply-supported-center-point` | beam | A 级验证 | 通过 | 支座数量=2（标准 2）；最大挠度(mm)=11.25（标准 11.25）；最大挠度位置(m)=3.0（标准 3） |
-| `beam-cantilever-end-point` | beam | A 级验证 | 通过 | 支座数量=1（标准 1）；最大挠度(mm)=26.6667（标准 26.6667）；最大挠度位置(m)=4.0（标准 4） |
-| `frame-portal-benchmark` | frame | B 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；构件数量=3（标准 3） |
-| `frame-portal-rotational-spring` | frame | B 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；构件数量=3（标准 3） |
-| `truss-simple-roof` | truss | B 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；杆件数量=5（标准 5） |
-| `frame-explicit-two-bay` | frame | B 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=6（标准 6）；构件数量=5（标准 5） |
-| `truss-pratt-roof` | truss | B 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=7（标准 7）；杆件数量=11（标准 11） |
-| `BM-001` | frame-beam-verify | A 级验证 | 通过 | 节点数量=3（标准 3）；构件数量=2（标准 2）；最大构件弯矩(kN·m)=150.0（标准 150） |
-| `BM-003` | frame-beam-verify | A 级验证 | 通过 | 节点数量=2（标准 2）；构件数量=1（标准 1）；最大构件弯矩(kN·m)=40.0（标准 40） |
-| `BM-002` | truss-verify | A 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=3（标准 3）；杆件数量=3（标准 3） |
-| `beam-simply-supported-uniform-8m` | beam | A 级验证 | 通过 | 支座数量=2（标准 2）；最大挠度(mm)=4.2667（标准 4.2667）；最大挠度位置(m)=4.0（标准 4.0） |
-| `beam-simply-supported-uniform-4m` | beam | A 级验证 | 通过 | 支座数量=2（标准 2）；最大挠度(mm)=0.7937（标准 0.7937）；最大挠度位置(m)=2.0（标准 2.0） |
-| `beam-cantilever-uniform-6m` | beam | A 级验证 | 通过 | 支座数量=1（标准 1）；最大挠度(mm)=5.4（标准 5.4）；最大挠度位置(m)=6.0（标准 6.0） |
-| `beam-cantilever-end-point-3m` | beam | A 级验证 | 通过 | 支座数量=1（标准 1）；最大挠度(mm)=10.9756（标准 10.9756）；最大挠度位置(m)=3.0（标准 3.0） |
-| `beam-simply-supported-center-point-9m` | beam | A 级验证 | 通过 | 支座数量=2（标准 2）；最大挠度(mm)=10.125（标准 10.125）；最大挠度位置(m)=4.5（标准 4.5） |
-| `beam-continuous-two-span-uniform` | beam | D 级验证 | 通过 | 支座数量=3（标准 3）；最大挠度(mm)=0.0962（标准 0.0962）；最大挠度位置(m)=6.321429（标准 6.3214） |
-| `beam-continuous-three-span-uniform` | beam | D 级验证 | 通过 | 支座数量=4（标准 4）；最大挠度(mm)=0.0414（标准 0.0414）；最大挠度位置(m)=5.0（标准 5.0） |
-| `beam-continuous-unequal-span-point` | beam | D 级验证 | 通过 | 支座数量=4（标准 4）；最大挠度(mm)=0.4209（标准 0.4209）；最大挠度位置(m)=5.821429（标准 5.8214） |
-| `BM-004` | frame-beam-verify | A 级验证 | 通过 | 节点数量=3（标准 3）；构件数量=2（标准 2）；最大构件弯矩(kN·m)=96.0（标准 96.0） |
-| `BM-005` | frame-beam-verify | A 级验证 | 通过 | 节点数量=2（标准 2）；构件数量=1（标准 1）；最大构件弯矩(kN·m)=67.5（标准 67.5） |
-| `BM-006` | frame-beam-verify | A 级验证 | 通过 | 节点数量=2（标准 2）；构件数量=1（标准 1）；最大构件弯矩(kN·m)=180.0（标准 180.0） |
-| `BM-007` | frame-beam-verify | A 级验证 | 通过 | 节点数量=3（标准 3）；构件数量=2（标准 2）；最大构件弯矩(kN·m)=55.125（标准 55.125） |
-| `frame-portal-light-load` | frame | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；构件数量=3（标准 3） |
-| `frame-portal-top-vertical-load` | frame | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；构件数量=3（标准 3） |
-| `frame-inclined-member-load` | frame | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=3（标准 3）；构件数量=2（标准 2） |
-| `frame-member-point-load` | frame | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；构件数量=3（标准 3） |
-| `truss-warren-roof` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=7（标准 7）；杆件数量=11（标准 11） |
-| `truss-pratt-bridge` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=8（标准 8）；杆件数量=13（标准 13） |
-| `truss-howe-roof` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=7（标准 7）；杆件数量=11（标准 11） |
-| `truss-member-self-weight` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=3（标准 3）；杆件数量=3（标准 3） |
-| `truss-cantilever-panel` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=6（标准 6）；杆件数量=9（标准 9） |
-| `beam-template-three-span-linear` | beam | D 级验证 | 通过 | 支座数量=4（标准 4）；最大挠度(mm)=4.4056（标准 4.4056）；最大挠度位置(m)=6.5（标准 6.5） |
-| `beam-template-fixed-fixed-uniform` | beam | A 级验证 | 通过 | 支座数量=2（标准 2）；最大挠度(mm)=2.4575（标准 2.4575）；最大挠度位置(m)=3.0（标准 3.0） |
-| `beam-template-propped-cantilever-point` | beam | D 级验证 | 通过 | 支座数量=2（标准 2）；最大挠度(mm)=3.5332（标准 3.5332）；最大挠度位置(m)=2.75（标准 2.75） |
-| `beam-continuous-four-span-uniform` | beam | D 级验证 | 通过 | 支座数量=5（标准 5）；最大挠度(mm)=0.031（标准 0.031）；最大挠度位置(m)=4.964286（标准 4.9643） |
-| `beam-continuous-four-span-point` | beam | D 级验证 | 通过 | 支座数量=5（标准 5）；最大挠度(mm)=0.1316（标准 0.1316）；最大挠度位置(m)=5.392857（标准 5.3929） |
-| `beam-continuous-two-span-partial-uniform` | beam | D 级验证 | 通过 | 支座数量=3（标准 3）；最大挠度(mm)=0.295（标准 0.295）；最大挠度位置(m)=2.428571（标准 2.4286） |
-| `beam-continuous-two-point-loads` | beam | D 级验证 | 通过 | 支座数量=4（标准 4）；最大挠度(mm)=0.1938（标准 0.1938）；最大挠度位置(m)=2.0（标准 2.0） |
-| `beam-simply-supported-partial-uniform` | beam | D 级验证 | 通过 | 支座数量=2（标准 2）；最大挠度(mm)=3.3617（标准 3.3617）；最大挠度位置(m)=3.5（标准 3.5） |
-| `beam-cantilever-partial-uniform` | beam | D 级验证 | 通过 | 支座数量=1（标准 1）；最大挠度(mm)=12.4363（标准 12.4363）；最大挠度位置(m)=6.0（标准 6.0） |
-| `beam-continuous-elastic-middle-support` | beam | D 级验证 | 通过 | 支座数量=3（标准 3）；最大挠度(mm)=0.0903（标准 0.0903）；最大挠度位置(m)=1.678571（标准 1.6786） |
-| `frame-template-portal-single-bay` | frame | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；构件数量=3（标准 3） |
-| `frame-template-two-story` | frame | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=9（标准 9）；构件数量=10（标准 10） |
-| `frame-template-braced-frame` | frame | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；构件数量=5（标准 5） |
-| `frame-template-gable-frame` | frame | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=5（标准 5）；构件数量=4（标准 4） |
-| `frame-portal-global-y-heavy` | frame | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；构件数量=3（标准 3） |
-| `frame-portal-local-y-load` | frame | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；构件数量=3（标准 3） |
-| `frame-two-bay-asymmetric-load` | frame | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=6（标准 6）；构件数量=5（标准 5） |
-| `frame-portal-member-point-quarter` | frame | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；构件数量=3（标准 3） |
-| `frame-elastic-column-base` | frame | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；构件数量=3（标准 3） |
-| `truss-template-parallel-chord` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=8（标准 8）；杆件数量=13（标准 13） |
-| `truss-parallel-chord-asymmetric` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=8（标准 8）；杆件数量=13（标准 13） |
-| `truss-parallel-chord-member-weight` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=8（标准 8）；杆件数量=13（标准 13） |
-| `truss-simple-roof-horizontal-load` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；杆件数量=5（标准 5） |
-| `truss-simple-roof-unbalanced` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；杆件数量=5（标准 5） |
-| `truss-cantilever-tip-single` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=6（标准 6）；杆件数量=9（标准 9） |
-| `truss-cantilever-tip-horizontal` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=6（标准 6）；杆件数量=9（标准 9） |
-| `truss-cantilever-member-weight` | truss | D 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=6（标准 6）；杆件数量=9（标准 9） |
-| `frame-sap2000-commercial-benchmark` | frame | C 级验证 | 通过 | 状态码=PASS（标准 PASS）；节点数量=4（标准 4）；构件数量=3（标准 3） |
+| `beam-simply-supported-uniform` | beam | A 级验证 | 通过 | 最大挠度(mm)=1.1565（标准 1.1565）；最大挠度位置(m)=3.0（标准 3） |
+| `beam-cantilever-uniform` | beam | A 级验证 | 通过 | 最大挠度(mm)=7.3403（标准 7.3403）；最大挠度位置(m)=5.0（标准 5） |
+| `beam-simply-supported-center-point` | beam | A 级验证 | 通过 | 最大挠度(mm)=11.25（标准 11.25）；最大挠度位置(m)=3.0（标准 3） |
+| `beam-cantilever-end-point` | beam | A 级验证 | 通过 | 最大挠度(mm)=26.6667（标准 26.6667）；最大挠度位置(m)=4.0（标准 4） |
+| `frame-portal-benchmark` | frame | B 级验证 | 通过 | 最大节点位移(mm)=3.8141（标准 3.8141）；最大构件弯矩(kN·m)=58.1043（标准 58.1043） |
+| `frame-portal-rotational-spring` | frame | B 级验证 | 通过 | 最大节点位移(mm)=1.6422（标准 1.6422）；最大构件弯矩(kN·m)=22.1652（标准 22.1652） |
+| `truss-simple-roof` | truss | B 级验证 | 通过 | 最大节点位移(mm)=8.820910488163527（标准 8.8209）；最大杆件轴力(kN)=133.3333333333338（标准 133.3333）；控制节点=N2（标准 N2）；控制杆件=M2（标准 M2） |
+| `frame-explicit-two-bay` | frame | B 级验证 | 通过 | 最大节点位移(mm)=11.8027（标准 11.8027）；最大构件弯矩(kN·m)=56.3701（标准 56.3701） |
+| `truss-pratt-roof` | truss | B 级验证 | 通过 | 最大节点位移(mm)=1.4956600052633653（标准 1.4957）；最大杆件轴力(kN)=60.09252125773314（标准 60.0925）；控制节点=N6（标准 N6）；控制杆件=T4（标准 T4） |
+| `BM-001` | frame-beam-verify | A 级验证 | 通过 | 最大构件弯矩(kN·m)=150.0（标准 150）；N1 支座竖向反力(kN)=50.0（标准 50）；N3 支座竖向反力(kN)=50.0（标准 50）；跨中挠度(mm)=-11.250000000000009（标准 -11.25） |
+| `BM-003` | frame-beam-verify | A 级验证 | 通过 | 最大构件弯矩(kN·m)=40.0（标准 40）；N1 支座竖向反力(kN)=50.0（标准 50）；N2 支座竖向反力(kN)=30.000000000000007（标准 30） |
+| `BM-002` | truss-verify | A 级验证 | 通过 | 最大节点位移(mm)=0.16200868065787996（标准 0.162）；最大杆件轴力(kN)=31.249999999999996（标准 31.25）；M1 杆件轴力(kN)=31.249999999999996（标准 31.25）；M1 拉压状态=tension（标准 tension）；M2 杆件轴力(kN)=-31.249999999999996（标准 -31.25） |
+| `beam-simply-supported-uniform-8m` | beam | A 级验证 | 通过 | 最大挠度(mm)=4.2667（标准 4.2667）；最大挠度位置(m)=4.0（标准 4.0） |
+| `beam-simply-supported-uniform-4m` | beam | A 级验证 | 通过 | 最大挠度(mm)=0.7937（标准 0.7937）；最大挠度位置(m)=2.0（标准 2.0） |
+| `beam-cantilever-uniform-6m` | beam | A 级验证 | 通过 | 最大挠度(mm)=5.4（标准 5.4）；最大挠度位置(m)=6.0（标准 6.0） |
+| `beam-cantilever-end-point-3m` | beam | A 级验证 | 通过 | 最大挠度(mm)=10.9756（标准 10.9756）；最大挠度位置(m)=3.0（标准 3.0） |
+| `beam-simply-supported-center-point-9m` | beam | A 级验证 | 通过 | 最大挠度(mm)=10.125（标准 10.125）；最大挠度位置(m)=4.5（标准 4.5） |
+| `beam-continuous-two-span-uniform` | beam | D 级验证 | 通过 | 最大挠度(mm)=0.0962（标准 0.0962）；最大挠度位置(m)=6.321429（标准 6.3214） |
+| `beam-continuous-three-span-uniform` | beam | D 级验证 | 通过 | 最大挠度(mm)=0.0414（标准 0.0414）；最大挠度位置(m)=5.0（标准 5.0） |
+| `beam-continuous-unequal-span-point` | beam | D 级验证 | 通过 | 最大挠度(mm)=0.4209（标准 0.4209）；最大挠度位置(m)=5.821429（标准 5.8214） |
+| `BM-004` | frame-beam-verify | A 级验证 | 通过 | 最大构件弯矩(kN·m)=96.0（标准 96.0）；N1 支座竖向反力(kN)=48.00000000000001（标准 48.0）；N3 支座竖向反力(kN)=47.999999999999986（标准 48.0） |
+| `BM-005` | frame-beam-verify | A 级验证 | 通过 | 最大构件弯矩(kN·m)=67.5（标准 67.5）；N1 支座竖向反力(kN)=44.999999999999986（标准 45.0） |
+| `BM-006` | frame-beam-verify | A 级验证 | 通过 | 最大构件弯矩(kN·m)=180.0（标准 180.0）；N1 支座竖向反力(kN)=36.0（标准 36.0） |
+| `BM-007` | frame-beam-verify | A 级验证 | 通过 | 最大构件弯矩(kN·m)=55.125（标准 55.125）；N1 支座竖向反力(kN)=30.0（标准 30.0）；N3 支座竖向反力(kN)=42.0（标准 42.0） |
+| `frame-portal-light-load` | frame | D 级验证 | 通过 | 最大节点位移(mm)=1.5297（标准 1.5297）；最大构件弯矩(kN·m)=23.4271（标准 23.4271） |
+| `frame-portal-top-vertical-load` | frame | D 级验证 | 通过 | 最大节点位移(mm)=1.4242（标准 1.4242）；最大构件弯矩(kN·m)=49.9148（标准 49.9148） |
+| `frame-inclined-member-load` | frame | D 级验证 | 通过 | 最大节点位移(mm)=2.57（标准 2.57）；最大构件弯矩(kN·m)=24.2499（标准 24.2499） |
+| `frame-member-point-load` | frame | D 级验证 | 通过 | 最大节点位移(mm)=2.8075（标准 2.8075）；最大构件弯矩(kN·m)=35.1079（标准 35.1079） |
+| `truss-warren-roof` | truss | D 级验证 | 通过 | 最大节点位移(mm)=1.677072638697021（标准 1.6771）；最大杆件轴力(kN)=43.33333333333336（标准 43.3333）；控制节点=N6（标准 N6）；控制杆件=L2（标准 L2） |
+| `truss-pratt-bridge` | truss | D 级验证 | 通过 | 最大节点位移(mm)=2.2410810985584004（标准 2.2411）；最大杆件轴力(kN)=50.911688245431456（标准 50.9117）；控制节点=N7（标准 N7）；控制杆件=D1（标准 D1） |
+| `truss-howe-roof` | truss | D 级验证 | 通过 | 最大节点位移(mm)=2.026513042513397（标准 2.0265）；最大杆件轴力(kN)=52.1428571428571（标准 52.1429）；控制节点=N6（标准 N6）；控制杆件=B2（标准 B2） |
+| `truss-member-self-weight` | truss | D 级验证 | 通过 | 最大节点位移(mm)=0.2774644991761796（标准 0.2775）；最大杆件轴力(kN)=17.74213562373095（标准 17.7421）；控制节点=N3（标准 N3）；控制杆件=M1（标准 M1） |
+| `truss-cantilever-panel` | truss | D 级验证 | 通过 | 最大节点位移(mm)=7.431391882370829（标准 7.4314）；最大杆件轴力(kN)=133.3333333333334（标准 133.3333）；控制节点=N5（标准 N5）；控制杆件=L1（标准 L1） |
+| `beam-template-three-span-linear` | beam | D 级验证 | 通过 | 最大挠度(mm)=4.4056（标准 4.4056）；最大挠度位置(m)=6.5（标准 6.5） |
+| `beam-template-fixed-fixed-uniform` | beam | A 级验证 | 通过 | 最大挠度(mm)=2.4575（标准 2.4575）；最大挠度位置(m)=3.0（标准 3.0） |
+| `beam-template-propped-cantilever-point` | beam | D 级验证 | 通过 | 最大挠度(mm)=3.5332（标准 3.5332）；最大挠度位置(m)=2.75（标准 2.75） |
+| `beam-continuous-four-span-uniform` | beam | D 级验证 | 通过 | 最大挠度(mm)=0.031（标准 0.031）；最大挠度位置(m)=4.964286（标准 4.9643） |
+| `beam-continuous-four-span-point` | beam | D 级验证 | 通过 | 最大挠度(mm)=0.1316（标准 0.1316）；最大挠度位置(m)=5.392857（标准 5.3929） |
+| `beam-continuous-two-span-partial-uniform` | beam | D 级验证 | 通过 | 最大挠度(mm)=0.295（标准 0.295）；最大挠度位置(m)=2.428571（标准 2.4286） |
+| `beam-continuous-two-point-loads` | beam | D 级验证 | 通过 | 最大挠度(mm)=0.1938（标准 0.1938）；最大挠度位置(m)=2.0（标准 2.0） |
+| `beam-simply-supported-partial-uniform` | beam | D 级验证 | 通过 | 最大挠度(mm)=3.3617（标准 3.3617）；最大挠度位置(m)=3.5（标准 3.5） |
+| `beam-cantilever-partial-uniform` | beam | D 级验证 | 通过 | 最大挠度(mm)=12.4363（标准 12.4363）；最大挠度位置(m)=6.0（标准 6.0） |
+| `beam-continuous-elastic-middle-support` | beam | D 级验证 | 通过 | 最大挠度(mm)=0.0903（标准 0.0903）；最大挠度位置(m)=1.678571（标准 1.6786） |
+| `frame-template-portal-single-bay` | frame | D 级验证 | 通过 | 最大节点位移(mm)=0.062（标准 0.062）；最大构件弯矩(kN·m)=42.9081（标准 42.9081） |
+| `frame-template-two-story` | frame | D 级验证 | 通过 | 最大节点位移(mm)=3.6609（标准 3.6609）；最大构件弯矩(kN·m)=45.5072（标准 45.5072） |
+| `frame-template-braced-frame` | frame | D 级验证 | 通过 | 最大节点位移(mm)=0.0738（标准 0.0738）；最大构件弯矩(kN·m)=28.5827（标准 28.5827） |
+| `frame-template-gable-frame` | frame | D 级验证 | 通过 | 最大节点位移(mm)=21.4015（标准 21.4015）；最大构件弯矩(kN·m)=94.9912（标准 94.9912） |
+| `frame-portal-global-y-heavy` | frame | D 级验证 | 通过 | 最大节点位移(mm)=1.6007（标准 1.6007）；最大构件弯矩(kN·m)=54.8848（标准 54.8848） |
+| `frame-portal-local-y-load` | frame | D 级验证 | 通过 | 最大节点位移(mm)=1.9104（标准 1.9104）；最大构件弯矩(kN·m)=41.7494（标准 41.7494） |
+| `frame-two-bay-asymmetric-load` | frame | D 级验证 | 通过 | 最大节点位移(mm)=0.8678（标准 0.8678）；最大构件弯矩(kN·m)=44.0042（标准 44.0042） |
+| `frame-portal-member-point-quarter` | frame | D 级验证 | 通过 | 最大节点位移(mm)=2.3208（标准 2.3208）；最大构件弯矩(kN·m)=24.7257（标准 24.7257） |
+| `frame-elastic-column-base` | frame | D 级验证 | 通过 | 最大节点位移(mm)=4.2507（标准 4.2507）；最大构件弯矩(kN·m)=46.6847（标准 46.6847） |
+| `truss-template-parallel-chord` | truss | D 级验证 | 通过 | 最大节点位移(mm)=2.1479245358843513（标准 2.1479）；最大杆件轴力(kN)=49.99999999999997（标准 50.0）；控制节点=N7（标准 N7）；控制杆件=D1（标准 D1） |
+| `truss-parallel-chord-asymmetric` | truss | D 级验证 | 通过 | 最大节点位移(mm)=2.7736279499612597（标准 2.7736）；最大杆件轴力(kN)=67.22222222222214（标准 67.2222）；控制节点=N7（标准 N7）；控制杆件=D3（标准 D3） |
+| `truss-parallel-chord-member-weight` | truss | D 级验证 | 通过 | 最大节点位移(mm)=0.23710786933238176（标准 0.2371）；最大杆件轴力(kN)=5.3333333333333295（标准 5.3333）；控制节点=N7（标准 N7）；控制杆件=D1（标准 D1） |
+| `truss-simple-roof-horizontal-load` | truss | D 级验证 | 通过 | 最大节点位移(mm)=9.175676472031606（标准 9.1757）；最大杆件轴力(kN)=130.66666666666654（标准 130.6667）；控制节点=N2（标准 N2）；控制杆件=M2（标准 M2） |
+| `truss-simple-roof-unbalanced` | truss | D 级验证 | 通过 | 最大节点位移(mm)=9.647630064883025（标准 9.6476）；最大杆件轴力(kN)=136.20971485086153（标准 136.2097）；控制节点=N2（标准 N2）；控制杆件=M3（标准 M3） |
+| `truss-cantilever-tip-single` | truss | D 级验证 | 通过 | 最大节点位移(mm)=8.029840150304533（标准 8.0298）；最大杆件轴力(kN)=146.66666666666674（标准 146.6667）；控制节点=N6（标准 N6）；控制杆件=L1（标准 L1） |
+| `truss-cantilever-tip-horizontal` | truss | D 级验证 | 通过 | 最大节点位移(mm)=5.965377948344621（标准 5.9654）；最大杆件轴力(kN)=91.66666666666674（标准 91.6667）；控制节点=N5（标准 N5）；控制杆件=L1（标准 L1） |
+| `truss-cantilever-member-weight` | truss | D 级验证 | 通过 | 最大节点位移(mm)=0.5838858786308713（标准 0.5839）；最大杆件轴力(kN)=11.200000000000006（标准 11.2）；控制节点=N5（标准 N5）；控制杆件=L1（标准 L1） |
+| `frame-sap2000-commercial-benchmark` | frame | C 级验证 | 通过 | 最大节点位移(mm)=12.1755（标准 12.1755）；最大构件弯矩(kN·m)=116.9707（标准 116.9707） |
+| `BM-008` | frame-beam-verify | A 级验证 | 通过 | 最大构件弯矩(kN·m)=50.0（标准 50）；N1 支座竖向反力(kN)=-1.5612511283791264e-15（标准 0）；N1 支座反力矩(kN·m)=-50.0（标准 -50）；N2 竖向位移(mm)=8.0（标准 8）；N2 转角(°)=0.2291831180523293（标准 0.2291831181） |
+| `BM-009` | truss-verify | A 级验证 | 通过 | 最大节点位移(mm)=0.325（标准 0.325）；最大杆件轴力(kN)=50.0（标准 50）；N2 水平位移(mm)=0.07999999999999999（标准 0.08）；N2 竖向位移(mm)=-0.315（标准 -0.315）；N3 水平位移(mm)=0.15999999999999998（标准 0.16） |
 
 ## 使用方式
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-06-04",
+  "updatedAt": "2026-08-06",
   "cases": [
     {
       "id": "beam-simply-supported-uniform",
@@ -6474,6 +6474,145 @@
         "verificationLevel": "C",
         "verificationLevelLabel": "C 级验证",
         "verificationLevelDescription": "商业软件对标，用于验证工程高频场景下的结构响应。"
+      }
+    },
+    {
+      "id": "BM-008",
+      "category": "frame-beam-verify",
+      "title": "悬臂梁自由端集中弯矩（转角与反力矩验证）",
+      "purpose": "验证框架梁单元在纯弯曲工况下的固定端反力矩、自由端转角和自由端竖向位移，补齐只校核力与弯矩峰值而未校核转角的解析验证缺口。",
+      "theory": {
+        "description": "悬臂梁自由端集中弯矩经典解析解",
+        "L_m": 4,
+        "M_kNm": 50,
+        "E_GPa": 200,
+        "I_cm4": 25000,
+        "formula_reaction_moment": "M_A = -M = -50 kN·m",
+        "formula_tip_rotation": "theta_B = ML/(EI) = 0.004 rad = 0.229183 deg",
+        "formula_tip_deflection": "v_B = ML^2/(2EI) = 0.008 m = 8 mm"
+      },
+      "payload": {
+        "analysisType": "frame",
+        "projectName": "BM-008: Cantilever Beam - End Moment",
+        "materialId": "steel-verify",
+        "structure": {
+          "template": "explicit",
+          "nodes": [
+            {"id": "N1", "x": 0, "y": 0, "supportType": "fixed"},
+            {"id": "N2", "x": 4, "y": 0, "supportType": "free"}
+          ],
+          "members": [
+            {"id": "B1", "start": "N1", "end": "N2", "E_GPa": 200, "A_cm2": 10000, "I_cm4": 25000, "kind": "beam"}
+          ],
+          "loads": [
+            {"type": "nodal", "node": "N2", "fxKn": 0, "fyKn": 0, "mzKnM": 50}
+          ]
+        }
+      },
+      "expected": {
+        "nodeCount": 2,
+        "memberCount": 1,
+        "statusCode": "PASS",
+        "maxMomentKnM": 50,
+        "supportReactions": [
+          {"nodeId": "N1", "reactionFyKn": 0, "reactionMzKnM": -50}
+        ],
+        "nodeDisplacements": [
+          {"nodeId": "N2", "uyMm": 8, "rotationDeg": 0.2291831181}
+        ]
+      },
+      "tolerances": {
+        "maxMomentKnM": 0.001,
+        "reactionFyKn": 0.001,
+        "reactionMzKnM": 0.001,
+        "nodeDisplacementMm": 0.001,
+        "rotationDeg": 0.000001
+      },
+      "verification": {
+        "sourceType": "textbook-analytical",
+        "reference": "材料力学悬臂梁自由端集中弯矩解析解：MA=-M，theta=ML/(EI)，v=ML^2/(2EI)",
+        "method": "以框架梁杆单元对标纯弯曲工况的固定端反力矩、自由端转角和竖向位移",
+        "checkedMetrics": ["支座反力", "节点位移", "节点转角", "构件弯矩"],
+        "verificationLevel": "A",
+        "verificationLevelLabel": "A 级验证",
+        "verificationLevelDescription": "教材解析解或标准公式，可用于校验基本公式、单位换算、边界条件和符号约定。"
+      }
+    },
+    {
+      "id": "BM-009",
+      "category": "truss-verify",
+      "title": "对称三杆桁架顶点竖向荷载（拉压与位移验证）",
+      "purpose": "验证对称三杆静定桁架在顶点竖向荷载下的对称支座反力、斜杆受压、下弦受拉和节点位移，补齐桁架解析验证仅覆盖水平荷载的缺口。",
+      "theory": {
+        "description": "3-4-5 对称三杆静定桁架节点平衡法与单位荷载法解析解",
+        "nodes": "A(0,0) 铰支，B(4,3) 自由顶点，C(8,0) 滚动支座",
+        "P_kN": 60,
+        "E_GPa": 200,
+        "A_cm2": 100,
+        "formula_diagonals": "N_AB = N_BC = -5P/6 = -50 kN（压）",
+        "formula_bottom_chord": "N_AC = 2P/3 = 40 kN（拉）",
+        "formula_reactions": "R_Ay = R_Cy = P/2 = 30 kN",
+        "formula_apex_vertical_displacement": "v_B = -10.5P/(EA) = -0.315 mm",
+        "formula_roller_horizontal_displacement": "u_C = N_AC L_AC/(EA) = 0.16 mm"
+      },
+      "payload": {
+        "analysisType": "truss",
+        "projectName": "BM-009: Symmetric Three-member Truss - Apex Vertical Load",
+        "materialId": "steel-verify",
+        "structure": {
+          "template": "explicit",
+          "nodes": [
+            {"id": "N1", "x": 0, "y": 0, "supportType": "pinned"},
+            {"id": "N2", "x": 4, "y": 3, "supportType": "free"},
+            {"id": "N3", "x": 8, "y": 0, "supportType": "roller"}
+          ],
+          "members": [
+            {"id": "M1", "start": "N1", "end": "N2", "E_GPa": 200, "A_cm2": 100, "kind": "truss"},
+            {"id": "M2", "start": "N2", "end": "N3", "E_GPa": 200, "A_cm2": 100, "kind": "truss"},
+            {"id": "M3", "start": "N1", "end": "N3", "E_GPa": 200, "A_cm2": 100, "kind": "truss"}
+          ],
+          "loads": [
+            {"type": "nodal", "node": "N2", "fxKn": 0, "fyKn": -60}
+          ]
+        }
+      },
+      "expected": {
+        "nodeCount": 3,
+        "memberCount": 3,
+        "statusCode": "PASS",
+        "maxDisplacementMm": 0.325,
+        "maxDisplacementNodeId": "N2",
+        "maxAxialForceKn": 50,
+        "maxAxialForceMemberId": "M1",
+        "nodeDisplacements": [
+          {"nodeId": "N2", "uxMm": 0.08, "uyMm": -0.315},
+          {"nodeId": "N3", "uxMm": 0.16, "uyMm": 0}
+        ],
+        "memberAxialForces": [
+          {"memberId": "M1", "axialForceKn": -50, "forceState": "compression"},
+          {"memberId": "M2", "axialForceKn": -50, "forceState": "compression"},
+          {"memberId": "M3", "axialForceKn": 40, "forceState": "tension"}
+        ],
+        "supportReactions": [
+          {"nodeId": "N1", "rxKn": 0, "ryKn": 30},
+          {"nodeId": "N3", "rxKn": 0, "ryKn": 30}
+        ]
+      },
+      "tolerances": {
+        "maxDisplacementMm": 0.001,
+        "maxAxialForceKn": 0.001,
+        "nodeDisplacementMm": 0.001,
+        "memberAxialForceKn": 0.001,
+        "reactionKn": 0.001
+      },
+      "verification": {
+        "sourceType": "textbook-analytical",
+        "reference": "结构力学对称三杆静定平面桁架节点平衡法与单位荷载法解析解",
+        "method": "以节点平衡法校核杆件轴力和支座反力，以单位荷载法校核顶点竖向位移和滚动支座水平位移",
+        "checkedMetrics": ["节点位移", "杆件轴力", "支座反力"],
+        "verificationLevel": "A",
+        "verificationLevelLabel": "A 级验证",
+        "verificationLevelDescription": "教材解析解或标准公式，可用于校验基本公式、单位换算、边界条件和符号约定。"
       }
     }
   ]

@@ -114,6 +114,8 @@ def _evaluate_response(case: Mapping[str, Any], data: Mapping[str, Any]) -> list
     if category == "frame-beam-verify":
         summary = data["summary"]
         node_by_id = _node_results_by_id(data)
+        if "statusCode" in expected:
+            checks.append(_check("状态码", summary["statusCode"], expected["statusCode"]))
         checks.append(_check("节点数量", len(data["nodeIds"]), expected["nodeCount"]))
         checks.append(_check("构件数量", len(data["memberIds"]), expected["memberCount"]))
         checks.append(
@@ -126,14 +128,25 @@ def _evaluate_response(case: Mapping[str, Any], data: Mapping[str, Any]) -> list
         )
         for reaction in expected.get("supportReactions", []):
             node_id = reaction["nodeId"]
-            checks.append(
-                _check(
-                    f"{node_id} 支座竖向反力(kN)",
-                    node_by_id[node_id]["reactionFyKn"],
-                    reaction["reactionFyKn"],
-                    tolerances["reactionFyKn"],
+            result = node_by_id[node_id]
+            if "reactionFyKn" in reaction:
+                checks.append(
+                    _check(
+                        f"{node_id} 支座竖向反力(kN)",
+                        result["reactionFyKn"],
+                        reaction["reactionFyKn"],
+                        tolerances["reactionFyKn"],
+                    )
                 )
-            )
+            if "reactionMzKnM" in reaction:
+                checks.append(
+                    _check(
+                        f"{node_id} 支座反力矩(kN·m)",
+                        result["reactionMzKnM"],
+                        reaction["reactionMzKnM"],
+                        tolerances["reactionMzKnM"],
+                    )
+                )
         if "midSpanDisplacementMm" in expected:
             node_ids = list(node_by_id)
             mid_node_id = node_ids[1]
@@ -145,6 +158,27 @@ def _evaluate_response(case: Mapping[str, Any], data: Mapping[str, Any]) -> list
                     tolerances["midSpanDisplacementMm"],
                 )
             )
+        for displacement in expected.get("nodeDisplacements", []):
+            node_id = displacement["nodeId"]
+            result = node_by_id[node_id]
+            if "uyMm" in displacement:
+                checks.append(
+                    _check(
+                        f"{node_id} 竖向位移(mm)",
+                        result["uyMm"],
+                        displacement["uyMm"],
+                        tolerances["nodeDisplacementMm"],
+                    )
+                )
+            if "rotationDeg" in displacement:
+                checks.append(
+                    _check(
+                        f"{node_id} 转角(°)",
+                        result["rotationDeg"],
+                        displacement["rotationDeg"],
+                        tolerances["rotationDeg"],
+                    )
+                )
         return checks
 
     if category == "truss-verify":
@@ -170,6 +204,27 @@ def _evaluate_response(case: Mapping[str, Any], data: Mapping[str, Any]) -> list
                 tolerances["maxAxialForceKn"],
             )
         )
+        for expected_node in expected.get("nodeDisplacements", []):
+            node_id = expected_node["nodeId"]
+            result = node_by_id[node_id]
+            if "uxMm" in expected_node:
+                checks.append(
+                    _check(
+                        f"{node_id} 水平位移(mm)",
+                        result["uxMm"],
+                        expected_node["uxMm"],
+                        tolerances["nodeDisplacementMm"],
+                    )
+                )
+            if "uyMm" in expected_node:
+                checks.append(
+                    _check(
+                        f"{node_id} 竖向位移(mm)",
+                        result["uyMm"],
+                        expected_node["uyMm"],
+                        tolerances["nodeDisplacementMm"],
+                    )
+                )
         for expected_member in expected.get("memberAxialForces", []):
             member_id = expected_member["memberId"]
             result = member_by_id[member_id]
