@@ -149,23 +149,9 @@ def register_request_hooks(flask_app: Flask) -> None:
 
     @flask_app.after_request
     def after_request(response):
-        allowed_origins = get_host_allowed_origins()
-        request_origin = request.headers.get("Origin")
-        if request_origin is None:
-            response.headers["Access-Control-Allow-Origin"] = "*"
-        else:
-            parsed_origin = normalize_host_allowed_origins(request_origin)
-            if parsed_origin:
-                normalized_request_origin = parsed_origin[0]
-                same_origin = f"{request.scheme}://{request.host}"
-                if not allowed_origins:
-                    if normalized_request_origin == same_origin:
-                        response.headers["Access-Control-Allow-Origin"] = normalized_request_origin
-                elif normalized_request_origin in allowed_origins:
-                    response.headers["Access-Control-Allow-Origin"] = normalized_request_origin
-        response.headers["Vary"] = "Origin"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type,X-Client-ID"
-        response.headers["Access-Control-Allow-Methods"] = "GET,PUT,POST,DELETE,OPTIONS"
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type,X-Client-ID")
+        response.headers.add("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS")
         if response.mimetype == "text/html":
             frame_ancestors = " ".join(["'self'", *get_host_allowed_origins()])
             response.headers["Content-Security-Policy"] = f"frame-ancestors {frame_ancestors}"
