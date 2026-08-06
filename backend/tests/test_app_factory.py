@@ -16,6 +16,22 @@ def test_app_factory_preserves_global_app_compatibility(tmp_path):
     assert response.headers["Access-Control-Allow-Origin"] == "*"
 
 
+def test_api_request_cors_is_restricted_to_host_allowlist_by_origin(monkeypatch, tmp_path):
+    (tmp_path / "index.html").write_text("<!doctype html><title>ArchSight</title>", encoding="utf-8")
+    monkeypatch.setenv(
+        "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS",
+        "https://classroom.example.edu,https://review.example.edu",
+    )
+    factory_app = create_app(static_folder=tmp_path)
+
+    allowed = factory_app.test_client().get("/", headers={"Origin": "https://classroom.example.edu"})
+    denied = factory_app.test_client().get("/", headers={"Origin": "https://evil.example.edu"})
+
+    assert allowed.headers["Access-Control-Allow-Origin"] == "https://classroom.example.edu"
+    assert denied.headers.get("Access-Control-Allow-Origin") is None
+    assert allowed.headers["Vary"] == "Origin"
+
+
 def test_runtime_config_exposes_host_allowlist_without_baking_it_into_frontend(monkeypatch, tmp_path):
     (tmp_path / "index.html").write_text("<!doctype html><title>ArchSight</title>", encoding="utf-8")
     monkeypatch.setenv(
