@@ -1269,20 +1269,26 @@
       "expected": {
         "maxDeflectionMm": 4.2667,
         "maxDeflectionXM": 4.0,
-        "supportCount": 2
+        "supportCount": 2,
+        "maxMomentKnM": 64,
+        "maxShearKn": 32,
+        "supportReactionMagnitudesKn": [32, 32]
       },
       "tolerances": {
         "maxDeflectionMm": 0.01,
-        "maxDeflectionXM": 0.02
+        "maxDeflectionXM": 0.02,
+        "maxMomentKnM": 0.01,
+        "maxShearKn": 0.01,
+        "supportReactionKn": 0.01
       },
       "verification": {
         "sourceType": "textbook-analytical",
-        "reference": "材料力学简支梁全跨均布荷载经典解析解，delta_max = 5qL^4/(384EI)",
-        "method": "校验最大挠度、峰值位置和支座数量。",
+        "reference": "材料力学简支梁全跨均布荷载经典解析解：R=qL/2，Vmax=qL/2，Mmax=qL^2/8，delta_max=5qL^4/(384EI)",
+        "method": "校验支座反力、最大剪力、最大弯矩、最大挠度和峰值位置。",
         "checkedMetrics": [
           "最大挠度",
           "峰值位置",
-          "支座数量"
+          "支座数量", "构件弯矩", "剪力", "支座反力"
         ],
         "verificationLevel": "A",
         "verificationLevelLabel": "A 级验证",
@@ -1308,20 +1314,26 @@
       "expected": {
         "maxDeflectionMm": 0.7937,
         "maxDeflectionXM": 2.0,
-        "supportCount": 2
+        "supportCount": 2,
+        "maxMomentKnM": 30,
+        "maxShearKn": 30,
+        "supportReactionMagnitudesKn": [30, 30]
       },
       "tolerances": {
         "maxDeflectionMm": 0.01,
-        "maxDeflectionXM": 0.02
+        "maxDeflectionXM": 0.02,
+        "maxMomentKnM": 0.01,
+        "maxShearKn": 0.01,
+        "supportReactionKn": 0.01
       },
       "verification": {
         "sourceType": "textbook-analytical",
-        "reference": "材料力学简支梁全跨均布荷载经典解析解，delta_max = 5qL^4/(384EI)",
-        "method": "校验最大挠度、峰值位置和支座数量。",
+        "reference": "材料力学简支梁全跨均布荷载经典解析解：R=qL/2，Vmax=qL/2，Mmax=qL^2/8，delta_max=5qL^4/(384EI)",
+        "method": "校验支座反力、最大剪力、最大弯矩、最大挠度和峰值位置。",
         "checkedMetrics": [
           "最大挠度",
           "峰值位置",
-          "支座数量"
+          "支座数量", "构件弯矩", "剪力", "支座反力"
         ],
         "verificationLevel": "A",
         "verificationLevelLabel": "A 级验证",
@@ -1347,20 +1359,26 @@
       "expected": {
         "maxDeflectionMm": 5.4,
         "maxDeflectionXM": 6.0,
-        "supportCount": 1
+        "supportCount": 1,
+        "maxMomentKnM": 108,
+        "maxShearKn": 36,
+        "supportReactionMagnitudesKn": [36]
       },
       "tolerances": {
         "maxDeflectionMm": 0.01,
-        "maxDeflectionXM": 0.02
+        "maxDeflectionXM": 0.02,
+        "maxMomentKnM": 0.01,
+        "maxShearKn": 0.01,
+        "supportReactionKn": 0.01
       },
       "verification": {
         "sourceType": "textbook-analytical",
-        "reference": "材料力学悬臂梁全跨均布荷载经典解析解，delta_free = qL^4/(8EI)",
-        "method": "校验最大挠度、峰值位置和支座数量。",
+        "reference": "材料力学悬臂梁全跨均布荷载经典解析解：R=qL，Vmax=qL，Mmax=qL^2/2，delta_free=qL^4/(8EI)",
+        "method": "校验支座反力、最大剪力、最大弯矩、最大挠度和峰值位置。",
         "checkedMetrics": [
           "最大挠度",
           "峰值位置",
-          "支座数量"
+          "支座数量", "构件弯矩", "剪力", "支座反力"
         ],
         "verificationLevel": "A",
         "verificationLevelLabel": "A 级验证",
@@ -1387,20 +1405,26 @@
       "expected": {
         "maxDeflectionMm": 10.9756,
         "maxDeflectionXM": 3.0,
-        "supportCount": 1
+        "supportCount": 1,
+        "maxMomentKnM": 90,
+        "maxShearKn": 30,
+        "supportReactionMagnitudesKn": [30]
       },
       "tolerances": {
         "maxDeflectionMm": 0.01,
-        "maxDeflectionXM": 0.02
+        "maxDeflectionXM": 0.02,
+        "maxMomentKnM": 0.01,
+        "maxShearKn": 0.01,
+        "supportReactionKn": 0.01
       },
       "verification": {
         "sourceType": "textbook-analytical",
-        "reference": "材料力学悬臂梁自由端集中荷载经典解析解，delta_free = PL^3/(3EI)",
-        "method": "校验最大挠度、峰值位置和支座数量。",
+        "reference": "材料力学悬臂梁自由端集中荷载经典解析解：R=P，Vmax=P，Mmax=PL，delta_free=PL^3/(3EI)",
+        "method": "校验支座反力、最大剪力、最大弯矩、最大挠度和峰值位置。",
         "checkedMetrics": [
           "最大挠度",
           "峰值位置",
-          "支座数量"
+          "支座数量", "构件弯矩", "剪力", "支座反力"
         ],
         "verificationLevel": "A",
         "verificationLevelLabel": "A 级验证",
@@ -1427,20 +1451,26 @@
       "expected": {
         "maxDeflectionMm": 10.125,
         "maxDeflectionXM": 4.5,
-        "supportCount": 2
+        "supportCount": 2,
+        "maxMomentKnM": 180,
+        "maxShearKn": 40,
+        "supportReactionMagnitudesKn": [40, 40]
       },
       "tolerances": {
         "maxDeflectionMm": 0.01,
-        "maxDeflectionXM": 0.02
+        "maxDeflectionXM": 0.02,
+        "maxMomentKnM": 0.01,
+        "maxShearKn": 0.01,
+        "supportReactionKn": 0.01
       },
       "verification": {
         "sourceType": "textbook-analytical",
-        "reference": "材料力学简支梁跨中集中荷载经典解析解，delta_mid = PL^3/(48EI)",
-        "method": "校验最大挠度、峰值位置和支座数量。",
+        "reference": "材料力学简支梁跨中集中荷载经典解析解：R=P/2，Vmax=P/2，Mmax=PL/4，delta_mid=PL^3/(48EI)",
+        "method": "校验支座反力、最大剪力、最大弯矩、最大挠度和峰值位置。",
         "checkedMetrics": [
           "最大挠度",
           "峰值位置",
-          "支座数量"
+          "支座数量", "构件弯矩", "剪力", "支座反力"
         ],
         "verificationLevel": "A",
         "verificationLevelLabel": "A 级验证",
@@ -3313,20 +3343,29 @@
       "expected": {
         "maxDeflectionMm": 2.4575,
         "maxDeflectionXM": 3.0,
-        "supportCount": 2
+        "supportCount": 2,
+        "maxMomentKnM": 45,
+        "maxShearKn": 45,
+        "supportReactionMagnitudesKn": [45, 45]
       },
       "tolerances": {
         "maxDeflectionMm": 0.01,
-        "maxDeflectionXM": 0.02
+        "maxDeflectionXM": 0.02,
+        "maxMomentKnM": 0.01,
+        "maxShearKn": 0.01,
+        "supportReactionKn": 0.01
       },
       "verification": {
         "sourceType": "textbook-analytical",
-        "reference": "材料力学两端固结梁全跨均布荷载经典解析解，delta_mid = qL^4/(384EI)",
-        "method": "按自定义固定支座约束计算最大挠度和峰值位置，并与固定端梁解析挠度量级对标。",
+        "reference": "材料力学两端固结梁全跨均布荷载经典解析解：R=qL/2，Vmax=qL/2，|M|max=qL^2/12，delta_mid=qL^4/(384EI)",
+        "method": "按固定支座约束与解析支座反力、剪力、弯矩、最大挠度和峰值位置对标。",
         "checkedMetrics": [
           "最大挠度",
           "峰值位置",
-          "支座数量"
+          "支座数量",
+          "构件弯矩",
+          "剪力",
+          "支座反力"
         ],
         "verificationLevel": "A",
         "verificationLevelLabel": "A 级验证",

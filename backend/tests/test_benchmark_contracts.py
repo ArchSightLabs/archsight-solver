@@ -114,3 +114,24 @@ def test_benchmark_catalog_has_detailed_analytical_checks_for_frame_and_truss():
 
     assert analytical_by_category["frame-beam-verify"] >= 7
     assert analytical_by_category["truss-verify"] >= 2
+
+
+def test_all_analytical_beam_cases_cover_force_and_displacement_metrics():
+    required_expected = {
+        "maxDeflectionMm",
+        "maxDeflectionXM",
+        "maxMomentKnM",
+        "maxShearKn",
+        "supportReactionMagnitudesKn",
+    }
+    required_checked_metrics = {"最大挠度", "峰值位置", "构件弯矩", "剪力", "支座反力"}
+    analytical_beams = [
+        case
+        for case in BENCHMARK_CATALOG["cases"]
+        if case["category"] == "beam" and case["verification"]["verificationLevel"] == "A"
+    ]
+
+    assert len(analytical_beams) >= 10
+    for case in analytical_beams:
+        assert required_expected <= set(case["expected"]), case["id"]
+        assert required_checked_metrics <= set(case["verification"]["checkedMetrics"]), case["id"]
