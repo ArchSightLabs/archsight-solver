@@ -21,20 +21,29 @@
       "expected": {
         "maxDeflectionMm": 1.1565,
         "maxDeflectionXM": 3,
-        "supportCount": 2
+        "supportCount": 2,
+        "maxMomentKnM": 54,
+        "maxShearKn": 36,
+        "supportReactionMagnitudesKn": [36, 36]
       },
       "tolerances": {
         "maxDeflectionMm": 0.01,
-        "maxDeflectionXM": 0.01
+        "maxDeflectionXM": 0.01,
+        "maxMomentKnM": 0.01,
+        "maxShearKn": 0.01,
+        "supportReactionKn": 0.01
       },
       "verification": {
         "sourceType": "textbook-analytical",
-        "reference": "材料力学简支梁全跨均布荷载经典解析解，delta_max = 5qL^4/(384EI)",
-        "method": "按 GPa、kN/m、cm^4 单位换算后与解析最大挠度和峰值位置对标",
+        "reference": "材料力学简支梁全跨均布荷载经典解析解：R=qL/2，Vmax=qL/2，Mmax=qL^2/8，delta_max=5qL^4/(384EI)",
+        "method": "按 GPa、kN/m、cm^4 单位换算后与解析支座反力、剪力、弯矩、最大挠度和峰值位置对标",
         "checkedMetrics": [
           "最大挠度",
           "峰值位置",
-          "支座数量"
+          "支座数量",
+          "构件弯矩",
+          "剪力",
+          "支座反力"
         ],
         "verificationLevel": "A",
         "verificationLevelLabel": "A 级验证",
@@ -60,20 +69,29 @@
       "expected": {
         "maxDeflectionMm": 7.3403,
         "maxDeflectionXM": 5,
-        "supportCount": 1
+        "supportCount": 1,
+        "maxMomentKnM": 150,
+        "maxShearKn": 60,
+        "supportReactionMagnitudesKn": [60]
       },
       "tolerances": {
         "maxDeflectionMm": 0.01,
-        "maxDeflectionXM": 0.01
+        "maxDeflectionXM": 0.01,
+        "maxMomentKnM": 0.01,
+        "maxShearKn": 0.01,
+        "supportReactionKn": 0.01
       },
       "verification": {
         "sourceType": "textbook-analytical",
-        "reference": "材料力学悬臂梁全跨均布荷载经典解析解，delta_free = qL^4/(8EI)",
-        "method": "按自由端控制挠度与支座数量校验悬臂边界",
+        "reference": "材料力学悬臂梁全跨均布荷载经典解析解：R=qL，Vmax=qL，Mmax=qL^2/2，delta_free=qL^4/(8EI)",
+        "method": "按固定端反力、剪力、弯矩和自由端控制挠度校验悬臂边界",
         "checkedMetrics": [
           "最大挠度",
           "峰值位置",
-          "支座数量"
+          "支座数量",
+          "构件弯矩",
+          "剪力",
+          "支座反力"
         ],
         "verificationLevel": "A",
         "verificationLevelLabel": "A 级验证",
@@ -100,24 +118,33 @@
       "expected": {
         "maxDeflectionMm": 11.25,
         "maxDeflectionXM": 3,
-        "supportCount": 2
+        "supportCount": 2,
+        "maxMomentKnM": 150,
+        "maxShearKn": 50,
+        "supportReactionMagnitudesKn": [50, 50]
       },
       "tolerances": {
         "maxDeflectionMm": 0.01,
-        "maxDeflectionXM": 0.01
+        "maxDeflectionXM": 0.01,
+        "maxMomentKnM": 0.01,
+        "maxShearKn": 0.01,
+        "supportReactionKn": 0.01
       },
       "verification": {
         "sourceType": "textbook-analytical",
-        "reference": "材料力学简支梁跨中集中荷载经典解析解，delta_mid = PL^3/(48EI)",
+        "reference": "材料力学简支梁跨中集中荷载经典解析解：R=P/2，Vmax=P/2，Mmax=PL/4，delta_mid=PL^3/(48EI)",
         "sourceLinks": [
           "https://en.wikipedia.org/wiki/Deflection_(engineering)",
           "https://www.purdue.edu/freeform/me323/wp-content/uploads/sites/2/2018/10/ME323_F18_Hw7_final.pdf"
         ],
-        "method": "按 kN、GPa、cm^4 单位换算后与跨中最大挠度和峰值位置对标",
+        "method": "按 kN、GPa、cm^4 单位换算后与解析支座反力、剪力、弯矩、跨中最大挠度和峰值位置对标",
         "checkedMetrics": [
           "最大挠度",
           "峰值位置",
-          "支座数量"
+          "支座数量",
+          "构件弯矩",
+          "剪力",
+          "支座反力"
         ],
         "verificationLevel": "A",
         "verificationLevelLabel": "A 级验证",
@@ -144,23 +171,32 @@
       "expected": {
         "maxDeflectionMm": 26.6667,
         "maxDeflectionXM": 4,
-        "supportCount": 1
+        "supportCount": 1,
+        "maxMomentKnM": 160,
+        "maxShearKn": 40,
+        "supportReactionMagnitudesKn": [40]
       },
       "tolerances": {
         "maxDeflectionMm": 0.01,
-        "maxDeflectionXM": 0.01
+        "maxDeflectionXM": 0.01,
+        "maxMomentKnM": 0.01,
+        "maxShearKn": 0.01,
+        "supportReactionKn": 0.01
       },
       "verification": {
         "sourceType": "textbook-analytical",
-        "reference": "材料力学悬臂梁自由端集中荷载经典解析解，delta_free = PL^3/(3EI)",
+        "reference": "材料力学悬臂梁自由端集中荷载经典解析解：R=P，Vmax=P，Mmax=PL，delta_free=PL^3/(3EI)",
         "sourceLinks": [
           "https://www.purdue.edu/freeform/me323/wp-content/uploads/sites/2/2018/03/equations.pdf"
         ],
-        "method": "按自由端最大挠度和支座数量校验悬臂边界与集中荷载处理",
+        "method": "按固定端反力、剪力、弯矩和自由端最大挠度校验悬臂边界与集中荷载处理",
         "checkedMetrics": [
           "最大挠度",
           "峰值位置",
-          "支座数量"
+          "支座数量",
+          "构件弯矩",
+          "剪力",
+          "支座反力"
         ],
         "verificationLevel": "A",
         "verificationLevelLabel": "A 级验证",

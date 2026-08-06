@@ -80,6 +80,18 @@ def test_benchmark_case_regressions(client, case):
             expected["maxDeflectionXM"],
             abs=tolerances["maxDeflectionXM"],
         )
+        if "maxMomentKnM" in expected:
+            assert data["controlValues"]["maxMomentKnM"] == pytest.approx(
+                expected["maxMomentKnM"], abs=tolerances["maxMomentKnM"]
+            )
+        if "maxShearKn" in expected:
+            assert data["controlValues"]["maxShearKn"] == pytest.approx(
+                expected["maxShearKn"], abs=tolerances["maxShearKn"]
+            )
+        for index, expected_reaction in enumerate(expected.get("supportReactionMagnitudesKn", [])):
+            assert abs(beam["reactions"][index]["valueKn"]) == pytest.approx(
+                expected_reaction, abs=tolerances["supportReactionKn"]
+            )
     elif case["category"] == "frame":
         summary = data["summary"]
         assert data["analysisType"] == "frame"

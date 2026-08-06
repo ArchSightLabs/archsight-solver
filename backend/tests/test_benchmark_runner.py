@@ -16,6 +16,19 @@ def test_benchmark_runner_executes_single_case_with_metric_checks():
     assert {check["metric"] for check in result["checks"]} >= {"最大构件弯矩(kN·m)", "跨中挠度(mm)"}
 
 
+def test_beam_analytical_runner_checks_force_and_displacement_metrics():
+    result = evaluate_benchmark_case_by_id("beam-simply-supported-uniform")
+
+    assert result["status"] == "pass"
+    assert {check["metric"] for check in result["checks"]} >= {
+        "最大挠度(mm)",
+        "最大弯矩(kN·m)",
+        "最大剪力(kN)",
+        "支座 1 竖向反力绝对值(kN)",
+        "支座 2 竖向反力绝对值(kN)",
+    }
+
+
 def test_benchmark_runner_checks_detailed_frame_and_truss_analytical_metrics():
     frame = evaluate_benchmark_case_by_id("BM-008")
     truss = evaluate_benchmark_case_by_id("BM-009")
@@ -53,3 +66,4 @@ def test_benchmark_report_keeps_public_examples_entrypoint():
     assert "公开案例" in report
     assert "N1 支座反力矩(kN·m)=-50.0（标准 -50）" in report
     assert "N2 竖向位移(mm)=-0.315（标准 -0.315）" in report
+    assert "支座 2 竖向反力绝对值(kN)=36.0（标准 36）" in report

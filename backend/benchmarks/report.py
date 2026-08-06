@@ -14,7 +14,7 @@ def _format_check_summary(checks: list[dict]) -> str:
         return "；".join(f"{check['metric']} 未通过：{check['error']}" for check in failed)
     summary_metrics = {"状态码", "节点数量", "构件数量", "杆件数量", "支座数量"}
     detailed_checks = [check for check in checks if check["metric"] not in summary_metrics]
-    key_checks = (detailed_checks or checks)[:5]
+    key_checks = (detailed_checks or checks)[:6]
     return "；".join(
         f"{check['metric']}={check['actual']}（标准 {check['expected']}）"
         for check in key_checks

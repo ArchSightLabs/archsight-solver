@@ -81,10 +81,10 @@
 
 | Case ID | 名称 | 目的 | 验证等级 | 验证来源 | 校核指标 | 标准值 | 容许误差 |
 |---|---|---|---|---|---|---|---|
-| `beam-simply-supported-uniform` | 简支梁均布荷载 | 验证基础梁系求解、支座约束和挠度峰值位置。 | A 级验证 | 教材解析解 | 最大挠度、峰值位置、支座数量 | maxDeflectionMm=1.1565；maxDeflectionXM=3；supportCount=2 | maxDeflectionMm=0.01；maxDeflectionXM=0.01 |
-| `beam-cantilever-uniform` | 悬臂梁均布荷载 | 验证悬臂边界和末端控制位移。 | A 级验证 | 教材解析解 | 最大挠度、峰值位置、支座数量 | maxDeflectionMm=7.3403；maxDeflectionXM=5；supportCount=1 | maxDeflectionMm=0.01；maxDeflectionXM=0.01 |
-| `beam-simply-supported-center-point` | 简支梁跨中集中荷载 | 验证简支梁集中荷载、跨中峰值挠度位置和梁单元集中力等效节点荷载处理。 | A 级验证 | 教材解析解 | 最大挠度、峰值位置、支座数量 | maxDeflectionMm=11.25；maxDeflectionXM=3；supportCount=2 | maxDeflectionMm=0.01；maxDeflectionXM=0.01 |
-| `beam-cantilever-end-point` | 悬臂梁自由端集中荷载 | 验证悬臂梁固定端约束、自由端集中荷载和最大挠度位置。 | A 级验证 | 教材解析解 | 最大挠度、峰值位置、支座数量 | maxDeflectionMm=26.6667；maxDeflectionXM=4；supportCount=1 | maxDeflectionMm=0.01；maxDeflectionXM=0.01 |
+| `beam-simply-supported-uniform` | 简支梁均布荷载 | 验证基础梁系求解、支座约束和挠度峰值位置。 | A 级验证 | 教材解析解 | 最大挠度、峰值位置、支座数量、构件弯矩、剪力、支座反力 | maxDeflectionMm=1.1565；maxDeflectionXM=3；supportCount=2；maxMomentKnM=54；maxShearKn=36；supportReactionMagnitudesKn=2 项 | maxDeflectionMm=0.01；maxDeflectionXM=0.01；maxMomentKnM=0.01；maxShearKn=0.01；supportReactionKn=0.01 |
+| `beam-cantilever-uniform` | 悬臂梁均布荷载 | 验证悬臂边界和末端控制位移。 | A 级验证 | 教材解析解 | 最大挠度、峰值位置、支座数量、构件弯矩、剪力、支座反力 | maxDeflectionMm=7.3403；maxDeflectionXM=5；supportCount=1；maxMomentKnM=150；maxShearKn=60；supportReactionMagnitudesKn=1 项 | maxDeflectionMm=0.01；maxDeflectionXM=0.01；maxMomentKnM=0.01；maxShearKn=0.01；supportReactionKn=0.01 |
+| `beam-simply-supported-center-point` | 简支梁跨中集中荷载 | 验证简支梁集中荷载、跨中峰值挠度位置和梁单元集中力等效节点荷载处理。 | A 级验证 | 教材解析解 | 最大挠度、峰值位置、支座数量、构件弯矩、剪力、支座反力 | maxDeflectionMm=11.25；maxDeflectionXM=3；supportCount=2；maxMomentKnM=150；maxShearKn=50；supportReactionMagnitudesKn=2 项 | maxDeflectionMm=0.01；maxDeflectionXM=0.01；maxMomentKnM=0.01；maxShearKn=0.01；supportReactionKn=0.01 |
+| `beam-cantilever-end-point` | 悬臂梁自由端集中荷载 | 验证悬臂梁固定端约束、自由端集中荷载和最大挠度位置。 | A 级验证 | 教材解析解 | 最大挠度、峰值位置、支座数量、构件弯矩、剪力、支座反力 | maxDeflectionMm=26.6667；maxDeflectionXM=4；supportCount=1；maxMomentKnM=160；maxShearKn=40；supportReactionMagnitudesKn=1 项 | maxDeflectionMm=0.01；maxDeflectionXM=0.01；maxMomentKnM=0.01；maxShearKn=0.01；supportReactionKn=0.01 |
 | `beam-simply-supported-uniform-8m` | 简支梁均布荷载 8m | 扩展简支梁均布荷载解析回归，覆盖较大跨度与较小截面惯性矩。 | A 级验证 | 教材解析解 | 最大挠度、峰值位置、支座数量 | maxDeflectionMm=4.2667；maxDeflectionXM=4.0；supportCount=2 | maxDeflectionMm=0.01；maxDeflectionXM=0.02 |
 | `beam-simply-supported-uniform-4m` | 简支梁均布荷载 4m | 扩展短跨简支梁均布荷载解析回归，约束单位换算与峰值位置。 | A 级验证 | 教材解析解 | 最大挠度、峰值位置、支座数量 | maxDeflectionMm=0.7937；maxDeflectionXM=2.0；supportCount=2 | maxDeflectionMm=0.01；maxDeflectionXM=0.02 |
 | `beam-cantilever-uniform-6m` | 悬臂梁均布荷载 6m | 扩展悬臂梁均布荷载解析回归，覆盖自由端控制挠度。 | A 级验证 | 教材解析解 | 最大挠度、峰值位置、支座数量 | maxDeflectionMm=5.4；maxDeflectionXM=6.0；supportCount=1 | maxDeflectionMm=0.01；maxDeflectionXM=0.02 |

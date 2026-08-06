@@ -44,6 +44,7 @@ def _evaluate_response(case: Mapping[str, Any], data: Mapping[str, Any]) -> list
 
     if category == "beam":
         beam = data["beam"]
+        control_values = data.get("controlValues", {})
         checks.append(_check("支座数量", len(beam["supports"]), expected["supportCount"]))
         checks.append(
             _check(
@@ -61,6 +62,33 @@ def _evaluate_response(case: Mapping[str, Any], data: Mapping[str, Any]) -> list
                 tolerances["maxDeflectionXM"],
             )
         )
+        if "maxMomentKnM" in expected:
+            checks.append(
+                _check(
+                    "最大弯矩(kN·m)",
+                    control_values["maxMomentKnM"],
+                    expected["maxMomentKnM"],
+                    tolerances["maxMomentKnM"],
+                )
+            )
+        if "maxShearKn" in expected:
+            checks.append(
+                _check(
+                    "最大剪力(kN)",
+                    control_values["maxShearKn"],
+                    expected["maxShearKn"],
+                    tolerances["maxShearKn"],
+                )
+            )
+        for index, expected_reaction in enumerate(expected.get("supportReactionMagnitudesKn", [])):
+            checks.append(
+                _check(
+                    f"支座 {index + 1} 竖向反力绝对值(kN)",
+                    abs(float(beam["reactions"][index]["valueKn"])),
+                    expected_reaction,
+                    tolerances["supportReactionKn"],
+                )
+            )
         return checks
 
     if category == "frame":
