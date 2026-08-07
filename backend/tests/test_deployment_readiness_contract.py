@@ -153,6 +153,16 @@ def test_deploy_readiness_reuses_the_image_healthcheck_contract():
     assert "会有界等待 Docker `HEALTHCHECK` 变为 `healthy`" in deployment_doc
 
 
+def test_runtime_image_removes_build_only_package_installer():
+    dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+
+    install_dependencies = "pip install --no-compile --retries 5 --timeout 120 -r requirements.txt"
+    remove_installer = "python -m pip uninstall --yes pip"
+    assert install_dependencies in dockerfile
+    assert remove_installer in dockerfile
+    assert dockerfile.index(install_dependencies) < dockerfile.index(remove_installer)
+
+
 def test_deploy_script_waits_until_the_container_is_healthy(tmp_path):
     completed = _run_deploy_with_fake_docker(tmp_path, health_mode="healthy")
 

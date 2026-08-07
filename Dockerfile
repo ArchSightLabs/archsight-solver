@@ -42,6 +42,7 @@ RUN pip install --no-compile --retries 5 --timeout 120 --upgrade pip \
         attempt=$((attempt + 1)); \
         echo "Python 依赖下载中断，复用 pip 缓存执行第 ${attempt} 次安装。" >&2; \
       done \
+    && python -m pip uninstall --yes pip \
     && rm -rf /root/.cache/pip
 
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
