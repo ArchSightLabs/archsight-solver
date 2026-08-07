@@ -24,6 +24,7 @@ v1.6.3 是向后兼容的补丁版，不新增结构分析域，不改变 ASMS-J
 - v1.6.2 工作台工程生命周期、诊断和结果有效性在 Chromium / Firefox / WebKit 中通过。
 - v1.6.1 Reference Host、v1.6 Host 和 v1.5 工作台跨版本浏览器回归通过。
 - 框架 / 桁架 DOCX 同源工程图与数据曲线导出在 Chromium / Firefox / WebKit 中通过。
+- CI 与 Tag Release 必须阻断 Chromium 工作台主链路和 DOCX 导出回归；weekly nightly 继续独立阻断完整三浏览器 DOCX 矩阵。
 - 构建后镜像以非 root 用户运行并进入 `healthy`，容器内 Reference Host canonical 嵌入链路通过。
 - Tag 工作流重新生成 Trivy 报告、SPDX SBOM、镜像归档和 `SHA256SUMS`，并确认无已有修复版本的 HIGH / CRITICAL 漏洞。
 
@@ -40,6 +41,7 @@ v1.6.3 是向后兼容的补丁版，不新增结构分析域，不改变 ASMS-J
 | v1.6.2 三浏览器交付主链路 | 工程生命周期、诊断与结果有效性在 Chromium / Firefox / WebKit 共 39/39 通过 |
 | 跨版本兼容 | Chromium 中 v1.6.1 Reference Host、v1.6 Host、v1.5 快速建模与荷载场景共 19/19 通过 |
 | DOCX 三浏览器导出 | 框架 / 桁架同源工程图与数据曲线选项在 Chromium / Firefox / WebKit 共 12/12 通过 |
+| 自动发布门禁 | CI 与 Tag Release 已纳入 Chromium 生命周期、诊断、结果有效性和 DOCX 导出；weekly nightly 保留 Chromium / Firefox / WebKit DOCX 矩阵 |
 | 依赖审计 | production moderate 与完整工具链 high 两道门禁均为 0 vulnerabilities |
 | 构建后镜像 | `archsight-solver:1.6.3-rc` 构建成功；镜像 `sha256:875041a8c450…`、352,269,916 bytes；用户 `app`；health `healthy`；首页与 runtime config 200；CSP 精确包含测试 Host origin；容器公开案例 66 个；容器 Host canonical 1 项通过 |
 | Tag Release 制品 | 未执行；只有用户明确决定发布后才能创建 tag 并由远端工作流生成 |

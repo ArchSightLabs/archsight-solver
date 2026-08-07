@@ -141,6 +141,7 @@
             <li>独立刚度法基线 26/26 通过；公开 benchmark 66/66 通过，发布工程与版本一致性检查通过。</li>
             <li>v1.6.2 工程生命周期、诊断与结果有效性在 Chromium / Firefox / WebKit 共 39/39 通过；Chromium 跨版本回归 19/19 通过，覆盖 v1.6.1 Reference Host、v1.6 Host、v1.5 快速建模与荷载场景。</li>
             <li>框架 / 桁架 DOCX 同源工程图与数据曲线选项在 Chromium / Firefox / WebKit 共 12/12 通过。</li>
+            <li>CI 与 Tag Release 直接阻断 Chromium 工程生命周期、诊断、结果有效性和 DOCX 导出回归；weekly nightly 继续阻断完整三浏览器 DOCX 矩阵。</li>
             <li>Tag 发布仍必须复跑完整 CI、构建后镜像 Host 验收、依赖审计、Trivy HIGH / CRITICAL 门禁、SPDX SBOM 和制品校验和；候选提交、GitHub Release、目标镜像仓库推送与线上更新保持为四个独立状态。</li>
           </ul>
       </article>

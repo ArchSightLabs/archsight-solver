@@ -64,10 +64,14 @@ jobs:
         run: |
           npm --prefix frontend exec playwright install --with-deps chromium
           npm --prefix frontend run test:visual -- release-1-6-2-acceptance.spec.ts --project=chromium --workers=1
+          npm --prefix frontend run test:visual -- release-1-6-2-project-lifecycle.spec.ts --project=chromium --workers=1
+          npm --prefix frontend run test:visual -- release-1-6-2-diagnostics.spec.ts --project=chromium --workers=1
+          npm --prefix frontend run test:visual -- release-1-6-2-result-validity.spec.ts --project=chromium --workers=1
           npm --prefix frontend run test:visual -- release-1-6-1-host-reference.spec.ts --project=chromium --workers=1
           npm --prefix frontend run test:visual -- release-1-6-host-integration.spec.ts --project=chromium --workers=1
           npm --prefix frontend run test:visual -- release-1-5-quick-modeling.spec.ts --project=chromium --workers=1
           npm --prefix frontend run test:visual -- release-1-5-load-scenarios.spec.ts --project=chromium --workers=1
+          npm --prefix frontend run test:visual -- workbench-export-docx.spec.ts --project=chromium --workers=1 --reporter=list
 
       - name: Build release image
         run: |

@@ -88,10 +88,14 @@ jobs:
       - name: Run release workbench smoke
         run: |
           npm run test:visual -- release-1-6-2-acceptance.spec.ts --project=chromium --workers=1
+          npm run test:visual -- release-1-6-2-project-lifecycle.spec.ts --project=chromium --workers=1
+          npm run test:visual -- release-1-6-2-diagnostics.spec.ts --project=chromium --workers=1
+          npm run test:visual -- release-1-6-2-result-validity.spec.ts --project=chromium --workers=1
           npm run test:visual -- release-1-6-1-host-reference.spec.ts --project=chromium --workers=1
           npm run test:visual -- release-1-6-host-integration.spec.ts --project=chromium --workers=1
           npm run test:visual -- release-1-5-quick-modeling.spec.ts --project=chromium --workers=1
           npm run test:visual -- release-1-5-load-scenarios.spec.ts --project=chromium --workers=1
+          npm run test:visual -- workbench-export-docx.spec.ts --project=chromium --workers=1 --reporter=list
 
   frontend-windows:
     name: Frontend Windows Native Build
