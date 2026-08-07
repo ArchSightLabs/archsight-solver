@@ -1,11 +1,23 @@
 from __future__ import annotations
 
 import argparse
+import math
 from collections import Counter
 from pathlib import Path
 
 from backend.benchmarks.catalog import load_benchmark_catalog
 from backend.benchmarks.runner import evaluate_benchmark_suite
+
+
+def _format_report_value(value: object) -> str:
+    if not isinstance(value, float) or not math.isfinite(value):
+        return str(value)
+
+    normalized = 0.0 if abs(value) < 1e-12 else value
+    rendered = format(normalized, ".10g")
+    if "e" not in rendered.lower() and "." not in rendered:
+        rendered += ".0"
+    return rendered
 
 
 def _format_check_summary(checks: list[dict]) -> str:
@@ -16,7 +28,8 @@ def _format_check_summary(checks: list[dict]) -> str:
     detailed_checks = [check for check in checks if check["metric"] not in summary_metrics]
     key_checks = (detailed_checks or checks)[:6]
     return "；".join(
-        f"{check['metric']}={check['actual']}（标准 {check['expected']}）"
+        f"{check['metric']}={_format_report_value(check['actual'])}"
+        f"（标准 {_format_report_value(check['expected'])}）"
         for check in key_checks
     )
 

@@ -4,7 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from backend.benchmarks.report import build_report
+from backend.benchmarks.report import _format_check_summary, build_report
 from backend.benchmarks.runner import evaluate_benchmark_case_by_id, evaluate_benchmark_suite
 
 
@@ -172,6 +172,22 @@ def test_benchmark_report_keeps_public_examples_entrypoint():
     assert "N1 支座反力矩(kN·m)=-50.0（标准 -50）" in report
     assert "N2 竖向位移(mm)=-0.315（标准 -0.315）" in report
     assert "支座 2 竖向反力绝对值(kN)=36.0（标准 36）" in report
+
+
+def test_benchmark_report_normalizes_platform_float_noise():
+    baseline = [
+        {"passed": True, "metric": "最大杆件轴力(kN)", "actual": 133.333333333405, "expected": 133.3333}
+    ]
+    perturbed = [
+        {"passed": True, "metric": "最大杆件轴力(kN)", "actual": 133.3333333338, "expected": 133.3333}
+    ]
+    near_zero = [
+        {"passed": True, "metric": "支座反力(kN)", "actual": -1.5612511283791264e-15, "expected": 0}
+    ]
+
+    assert _format_check_summary(baseline) == _format_check_summary(perturbed)
+    assert _format_check_summary(baseline) == "最大杆件轴力(kN)=133.3333333（标准 133.3333）"
+    assert _format_check_summary(near_zero) == "支座反力(kN)=0.0（标准 0）"
 
 
 def test_benchmark_report_file_is_generated_from_source():
