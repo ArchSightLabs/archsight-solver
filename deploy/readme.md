@@ -2,7 +2,7 @@
 
 本目录用于服务器生产部署，部署方式为：拉取已构建好的应用镜像，将应用容器绑定到宿主机本地端口，再由公共 Nginx 反向代理。
 
-当前仓库候选版本为 v1.6.3，已发布稳定版本仍为 2026-07-21 发布的 v1.6.2。仓库示例预置 v1.6.3 候选标签仅用于发布复核；只有对应 Tag、GitHub Release 和不可变镜像真实存在并完成摘要核对后才能部署，其他目标镜像仓库推送及线上更新仍由维护者独立执行。
+当前仓库稳定版本为 2026-08-07 发布的 v1.6.3。GitHub Tag Release 生成 GitHub Release、不可变 GHCR 镜像和校验制品；只有目标镜像仓库中的 v1.6.3 不可变镜像真实存在并完成摘要核对后才能部署，其他目标镜像仓库推送及线上更新仍由维护者独立执行。
 
 ## 目录结构
 
@@ -32,7 +32,7 @@ cp docker-compose.yml.example docker-compose.yml
 主要变量：
 
 - `IMAGE_REPOSITORY`：应用镜像仓库地址，不包含 TAG。
-- `IMAGE_TAG`：应用镜像 TAG，候选默认 `v1.6.3`；正式环境只能使用已经发布且完成摘要核对的不可变版本标签，不使用 `latest`。
+- `IMAGE_TAG`：应用镜像 TAG，当前默认 `v1.6.3`；正式环境只能使用已经发布且完成摘要核对的不可变版本标签，不使用 `latest`。
 - `NODE_IMAGE`：前端构建基础镜像；示例使用带 digest 的官方 Public ECR Docker Library 镜像，避免依赖不稳定的 Docker Hub 代理。
 - `PYTHON_IMAGE`：运行时基础镜像；与 `NODE_IMAGE` 一样固定 digest，可按网络环境切换 registry，但不得省略 digest。
 - `APP_HOST_BIND`：宿主机监听地址，默认 `127.0.0.1`，避免直接暴露容器端口。
