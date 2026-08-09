@@ -156,10 +156,10 @@ def test_v170_bilingual_entry_and_golden_flows_share_one_verification_contract()
         assert "1e-6" in document
         assert "digital signature" in document.lower() or "数字签名" in document
 
-    assert "archsight_solver-1.8.0-py3-none-any.whl" in quickstart_en
+    assert "archsight_solver-1.7.0-py3-none-any.whl" in quickstart_en
     assert "archsight-solver-tool verification_package_create" in quickstart_en
     assert "archsight-solver-mcp" in quickstart_en
-    assert "ghcr.io/archsightlabs/archsight-solver:v1.8.0" in quickstart_en
+    assert "ghcr.io/archsightlabs/archsight-solver:v1.7.0" in quickstart_en
     assert "Host Client" in quickstart_en
     example_request = json.loads(_read_doc("examples/verification-package/create-request.json"))
     assert example_request["payload"]["analysisType"] == "beam"
@@ -183,6 +183,7 @@ def test_v170_new_public_document_links_resolve_inside_repository():
         "docs/en/quickstart.md",
         "docs/en/capabilities.md",
         "docs/en/verification-package.md",
+        "docs/release-governance.md",
     )
     for path in document_paths:
         document_path = ROOT / path
@@ -192,6 +193,15 @@ def test_v170_new_public_document_links_resolve_inside_repository():
                 continue
             resolved = (document_path.parent / target).resolve()
             assert resolved.is_file(), f"{path} 包含失效本地链接: {raw_target}"
+
+
+def test_release_governance_blocks_back_to_back_minor_releases():
+    governance = _read_doc("docs/release-governance.md")
+
+    assert "不少于 24 小时" in governance
+    assert "同一天不得连续发布两个稳定次版本" in governance
+    assert "维护者明确说出要发布的版本号" in governance
+    assert "不超过五条重点" in governance
 
 
 def test_v170_quickstarts_and_golden_flows_are_published_as_online_pages():

@@ -84,7 +84,7 @@ jobs:
         run: |
           npm --prefix frontend run test:visual -- workbench-export-docx.spec.ts --project=${{ matrix.browser }} --workers=1 --reporter=list
           npm --prefix frontend run test:visual -- release-1-7-verification-package.spec.ts --project=${{ matrix.browser }} --workers=1 --reporter=list
-          npm --prefix frontend run test:visual -- release-1-8-learning-paths.spec.ts --project=${{ matrix.browser }} --workers=1 --reporter=list
+          npm --prefix frontend run test:visual -- release-1-7-learning-paths.spec.ts --project=${{ matrix.browser }} --workers=1 --reporter=list
 
       - name: Upload browser evidence on failure
         if: failure()

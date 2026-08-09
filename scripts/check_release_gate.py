@@ -10,13 +10,13 @@ ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_PATHS = (
     ".github/workflows/release.yml",
     ".github/workflows/nightly-quality.yml",
-    "docs/verification/release-1-8-acceptance.md",
     "docs/verification/release-1-7-acceptance.md",
     "docs/verification/release-1-6-3-acceptance.md",
     "docs/verification/release-1-6-2-acceptance.md",
     "docs/verification/release-1-6-1-acceptance.md",
     "docs/verification/release-1-6-acceptance.md",
     "docs/analytics-and-privacy.md",
+    "docs/release-governance.md",
     "examples/host-iframe-demo/host.js",
     "examples/host-iframe-demo/solver-host-client.js",
     "examples/host-iframe-demo/sample-project.slv",
@@ -29,7 +29,7 @@ REQUIRED_PATHS = (
     "frontend/tests/visual/release-1-6-2-diagnostics.spec.ts",
     "frontend/tests/visual/release-1-6-2-result-validity.spec.ts",
     "frontend/tests/visual/release-1-7-verification-package.spec.ts",
-    "frontend/tests/visual/release-1-8-learning-paths.spec.ts",
+    "frontend/tests/visual/release-1-7-learning-paths.spec.ts",
     "frontend/tests/visual/workbench-export-docx.spec.ts",
     "scripts/run_host_iframe_demo.py",
     "scripts/build-image.ps1",
@@ -39,6 +39,11 @@ REQUIRED_PATHS = (
     "deploy/docker-compose.yml.example",
 )
 REQUIRED_MARKERS = {
+    "docs/release-governance.md": (
+        "不少于 24 小时",
+        "同一天不得连续发布两个稳定次版本",
+        "维护者明确说出要发布的版本号",
+    ),
     "app.py": ("ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS", 'Cache-Control', "frame-ancestors"),
     "Dockerfile": (
         "USER app",
@@ -92,7 +97,7 @@ REQUIRED_MARKERS = {
         "release-1-6-2-diagnostics.spec.ts",
         "release-1-6-2-result-validity.spec.ts",
         "release-1-7-verification-package.spec.ts",
-        "release-1-8-learning-paths.spec.ts",
+        "release-1-7-learning-paths.spec.ts",
         "workbench-export-docx.spec.ts",
         "npm ci --include=optional",
         "npm --prefix frontend ci --include=optional",
@@ -118,7 +123,7 @@ REQUIRED_MARKERS = {
         "release-1-6-2-diagnostics.spec.ts",
         "release-1-6-2-result-validity.spec.ts",
         "release-1-7-verification-package.spec.ts",
-        "release-1-8-learning-paths.spec.ts",
+        "release-1-7-learning-paths.spec.ts",
         "workbench-export-docx.spec.ts",
         "npm --prefix frontend ci --include=optional",
         "npm --prefix frontend audit --omit=dev --audit-level=moderate",
@@ -131,7 +136,7 @@ REQUIRED_MARKERS = {
         "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
         "workbench-export-docx.spec.ts",
         "release-1-7-verification-package.spec.ts",
-        "release-1-8-learning-paths.spec.ts",
+        "release-1-7-learning-paths.spec.ts",
         "browser: [chromium, firefox, webkit]",
         "npm --prefix frontend ci --include=optional",
     ),
@@ -166,24 +171,24 @@ def main() -> int:
 
     deploy_expectations = {
         "deploy/.env.example": (
-            "IMAGE_TAG=v1.8.0",
+            "IMAGE_TAG=v1.7.0",
             "NODE_IMAGE=public.ecr.aws/docker/library/node:22-bookworm-slim@sha256:",
             "PYTHON_IMAGE=public.ecr.aws/docker/library/python:3.13-slim@sha256:",
             "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS=",
         ),
         "deploy/docker-compose.yml.example": (
-            "${IMAGE_TAG:-v1.8.0}",
+            "${IMAGE_TAG:-v1.7.0}",
             "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS: ${ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS:-}",
         ),
         "deploy/deploy.sh": (
-            '${IMAGE_TAG:-v1.8.0}',
+            '${IMAGE_TAG:-v1.7.0}',
             'ps --all --quiet',
             "docker inspect --format",
             "DEPLOY_HEALTH_TIMEOUT_SECONDS",
             "logs --tail=100",
             "wait_for_services_healthy",
         ),
-        "docs/deployment.md": ("archsight-solver:v1.8.0", "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS", "VITE_UMAMI_WEBSITE_ID"),
+        "docs/deployment.md": ("archsight-solver:v1.7.0", "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS", "VITE_UMAMI_WEBSITE_ID"),
     }
     for relative_path, expected_markers in deploy_expectations.items():
         text = (ROOT / relative_path).read_text(encoding="utf-8")

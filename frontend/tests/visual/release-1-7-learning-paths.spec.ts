@@ -49,8 +49,8 @@ function calculationEnvelope(payload: CalculationPayload) {
     },
     diagnostics: { status: "合格", statusCode: "PASS" },
     meta: {
-      modelHash: `model-release-1-8-${payload.analysisType}`,
-      requestHash: `request-release-1-8-${payload.analysisType}`,
+      modelHash: `model-release-1-7-${payload.analysisType}`,
+      requestHash: `request-release-1-7-${payload.analysisType}`,
     },
     errors: [],
   };
@@ -103,7 +103,7 @@ const learningPaths = [
 ] as const;
 
 for (const learningPath of learningPaths) {
-  test(`v1.8 ${learningPath.title} 完成预判、计算与可信证据导出`, async ({ page }) => {
+  test(`v1.7 ${learningPath.title} 完成预判、计算与可信证据导出`, async ({ page }) => {
     await page.addInitScript(() => localStorage.clear());
     await installApiMocks(page);
 
