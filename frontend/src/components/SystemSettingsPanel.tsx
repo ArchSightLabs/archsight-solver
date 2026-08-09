@@ -3,7 +3,6 @@ import { BarChart3, BookOpen, ChevronDown, ClipboardList, ExternalLink, Github, 
 import { Button } from "./ui/button";
 import type { ModelPreviewStyle } from "../types/beam";
 import { APP_VERSION, BUSUANZI_VISIT_STATS_ENABLED, GITHUB_REPOSITORY_URL } from "../lib/app-metadata";
-import { isUmamiAnalyticsEnabled } from "../analytics/umami-analytics";
 
 interface VisitStats {
   pageViews: string;
@@ -26,7 +25,6 @@ const MODEL_PREVIEW_STYLE_OPTIONS: Array<{ label: string; value: ModelPreviewSty
   { label: "彩色高亮", value: "color", description: "梁系、框架和桁架建模图使用蓝色结构对象与橙色荷载" },
   { label: "工程简图", value: "simple", description: "梁系、框架和桁架建模图使用低饱和黑白表达" },
 ];
-const STATUS_LINE_CLASS = "rounded-lg border border-slate-200/80 bg-slate-50 px-3 py-2 text-[11px] font-semibold leading-5 text-slate-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300";
 
 function settingButtonClass(compact: boolean) {
   return `flex min-h-12 w-full items-center justify-between gap-3 rounded-lg border border-slate-200/80 bg-white px-3 py-2.5 text-left text-slate-950 shadow-sm transition-colors hover:border-sky-300/70 hover:bg-sky-50 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100 dark:hover:border-sky-400/45 dark:hover:bg-sky-400/10 ${compact ? "text-xs" : "text-sm"}`;
@@ -74,53 +72,37 @@ function CollapsibleSettingsSection({
 
 function VisitStatsBlock({ stats, visible }: { stats: VisitStats; visible: boolean }) {
   const [statsVisible, setStatsVisible] = useState(visible);
-  const umamiEnabled = isUmamiAnalyticsEnabled();
+
+  if (!BUSUANZI_VISIT_STATS_ENABLED) return null;
 
   return (
     <div className="rounded-lg border border-slate-200/80 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
-      <div className="mb-2 flex items-center justify-between gap-3">
+      <div className={`${statsVisible ? "mb-2" : ""} flex items-center justify-between gap-3`}>
         <div className="flex items-center gap-2 text-xs font-black">
           <BarChart3 className="h-4 w-4 text-sky-500" />
           访问统计
         </div>
-        {BUSUANZI_VISIT_STATS_ENABLED ? (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setStatsVisible((current) => !current)}
-            className="h-7 rounded-lg border-slate-200 bg-white px-2.5 text-[11px] font-bold text-slate-700 hover:border-sky-300 hover:bg-sky-50 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100 dark:hover:bg-sky-400/10"
-          >
-            {statsVisible ? "隐藏" : "查看"}
-          </Button>
-        ) : null}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setStatsVisible((current) => !current)}
+          className="h-7 rounded-lg border-slate-200 bg-white px-2.5 text-[11px] font-bold text-slate-700 hover:border-sky-300 hover:bg-sky-50 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100 dark:hover:bg-sky-400/10"
+        >
+          {statsVisible ? "隐藏" : "查看"}
+        </Button>
       </div>
-      {BUSUANZI_VISIT_STATS_ENABLED ? (
-        statsVisible ? (
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-lg border border-slate-200/80 bg-slate-50 px-3 py-2 dark:border-white/10 dark:bg-white/[0.035]">
-                <div className="text-[10px] font-bold text-muted-foreground">总访问量</div>
-                <div className="mt-1 text-lg font-black text-foreground">{stats.pageViews || "加载中"}</div>
-              </div>
-              <div className="rounded-lg border border-slate-200/80 bg-slate-50 px-3 py-2 dark:border-white/10 dark:bg-white/[0.035]">
-                <div className="text-[10px] font-bold text-muted-foreground">访客数</div>
-                <div className="mt-1 text-lg font-black text-foreground">{stats.uniqueVisitors || "加载中"}</div>
-              </div>
-            </div>
-            <div className={STATUS_LINE_CLASS}>公开 PV/UV：Busuanzi 已启用。</div>
+      {statsVisible ? (
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-lg border border-slate-200/80 bg-slate-50 px-3 py-2 dark:border-white/10 dark:bg-white/[0.035]">
+            <div className="text-[10px] font-bold text-muted-foreground">总访问量</div>
+            <div className="mt-1 text-lg font-black text-foreground">{stats.pageViews || "加载中"}</div>
           </div>
-        ) : (
-          <div className={STATUS_LINE_CLASS}>公开 PV/UV：Busuanzi 已启用，数值默认隐藏。</div>
-        )
-      ) : (
-        <div className={STATUS_LINE_CLASS}>公开 PV/UV：Busuanzi 未启用。</div>
-      )}
-      <div className={`${STATUS_LINE_CLASS} mt-3`}>
-        <div>匿名产品分析：Umami {umamiEnabled ? "已启用" : "未启用"}。</div>
-        <div className="mt-1 font-medium text-muted-foreground">
-          仅记录页面访问和受限的求解、敏感性分析、导出、工程打开/保存事件；不上传工程模型、文件名、计算结果或自由文本。
+          <div className="rounded-lg border border-slate-200/80 bg-slate-50 px-3 py-2 dark:border-white/10 dark:bg-white/[0.035]">
+            <div className="text-[10px] font-bold text-muted-foreground">访客数</div>
+            <div className="mt-1 text-lg font-black text-foreground">{stats.uniqueVisitors || "加载中"}</div>
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }

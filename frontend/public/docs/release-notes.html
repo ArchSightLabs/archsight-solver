@@ -128,21 +128,13 @@
         </div>
           <p class="section-label">重点变化</p>
           <ul>
-            <li>新增 <code>archsight-solver-verification-package@1.0.0</code> 可信计算包，统一携带原始输入、归一化请求、计算模型、记录结果、诊断、来源证据、求解器版本、复算策略与 SHA-256 完整性摘要。</li>
-            <li>REST API、CLI 与 MCP 共用同一套可信计算包生成、校验和复算能力；固定绝对/相对容差返回 <code>pass</code>、<code>review</code> 或 <code>fail</code>，并区分完整性与数值复算结论。</li>
-            <li>工作台“成果导出”可直接下载 <code>.solver-verification.json</code>；导出期间若工程修订或分析对象发生变化，会丢弃迟到响应，避免把新工程与旧结果拼成伪证据。</li>
-            <li>Python wheel/sdist 纳入运行时资源并通过隔离安装检查，安装后无需源码仓库即可使用 CLI/MCP；无框架 <code>@archsight/solver-host-client</code> 作为独立 tarball 分发，保持 Host Protocol <code>1.0.0</code>。</li>
-            <li>Tag Release 同步生成 wheel、sdist、Host Client tarball、不可变 GHCR 镜像、离线镜像归档、SPDX SBOM、Trivy 报告和 <code>SHA256SUMS</code>，支持开发者从 GitHub Release 直接获取可核验资产。</li>
-            <li>新增中英文五分钟路径、可信计算包指南与三条黄金流程，覆盖结构工程师、开发者和 Agent Host；三类结构对象共享同一套创建、验证和浏览器导出验收。</li>
-            <li>保留 Busuanzi 公开累计 PV/UV，并可按官方域名白名单启用自托管 Umami 匿名里程碑事件；默认关闭，不采集模型、参数、项目、文件、计算结果或身份。</li>
+            <li>新增可信计算包：工作台、REST API、CLI 与 MCP 生成同一格式的计算证据，可校验完整性并独立复算。</li>
+            <li>Python wheel、源码包、Host Client 与离线 Docker 镜像可直接获取；GitHub Release 同步提供校验和、安全报告与 SBOM。</li>
+            <li>新增中英文五分钟上手路径和三条黄金流程，覆盖结构工程师、开发者与 Agent Host。</li>
           </ul>
-          <p class="section-label">质量门禁</p>
+          <p class="section-label">发布验证</p>
           <ul>
-            <li>后端全量测试 631 passed、2 skipped；独立刚度法 26/26 通过，契约生成、运行时资源同步和发布工程检查通过。</li>
-            <li>前端 lint / TypeScript、408 项单元测试和生产构建通过；production moderate 与完整工具链 high 依赖审计均为 0 vulnerabilities。</li>
-            <li>Chromium / Firefox / WebKit 的三类可信计算包导出与复算 9/9、DOCX 导出 12/12 通过；Chromium 工程生命周期、诊断、结果有效性与跨版本 Host/工作台回归全部通过。</li>
-            <li>wheel/sdist 与 Host Client tarball 在独立目录中完成全依赖安装、运行、类型和协议检查；构建后 Docker 镜像以非 root 用户运行并通过健康、REST/模块 CLI 可信计算包与 Host 集成验证。</li>
-            <li>正式 Tag 工作流必须在同一提交复跑全部门禁并生成 GitHub Release 制品；其他镜像仓库推送与线上服务器更新继续作为独立操作。</li>
+            <li>后端、独立刚度法、前端、三浏览器导出与复算、发行包隔离安装及 Docker 镜像验收全部通过。</li>
           </ul>
       </article>
 

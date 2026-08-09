@@ -101,3 +101,12 @@ test("系统显示设置使用跨结构对象视觉口径", () => {
   assert.match(systemSettings, /蓝色结构对象与橙色荷载/u);
   assert.doesNotMatch(systemSettings, /蓝色构件/u);
 });
+
+test("系统设置只展示公开访问数字，不暴露后台统计实现", () => {
+  const systemSettings = readFileSync(new URL("../components/SystemSettingsPanel.tsx", import.meta.url), "utf-8");
+
+  assert.match(systemSettings, /访问统计/u);
+  assert.match(systemSettings, /总访问量/u);
+  assert.match(systemSettings, /访客数/u);
+  assert.doesNotMatch(systemSettings, /匿名产品分析|Umami \{umamiEnabled|Busuanzi 已启用|仅记录页面访问/u);
+});
