@@ -51,6 +51,33 @@ export interface BenchmarkCaseSource {
   toleranceSummary: string;
   expected: Record<string, unknown>;
   tolerances: Record<string, unknown>;
+  learning?: BenchmarkLearningPath;
+}
+
+export interface BenchmarkLearningOption {
+  id: string;
+  label: string;
+}
+
+export interface BenchmarkLearningPrediction {
+  id: string;
+  prompt: string;
+  options: BenchmarkLearningOption[];
+  expectedOptionId: string;
+  explanation: string;
+}
+
+export interface BenchmarkLearningPath {
+  pathId: string;
+  featured: boolean;
+  durationMinutes: number;
+  title: string;
+  objective: string;
+  modelFocus: string[];
+  predictions: BenchmarkLearningPrediction[];
+  graphicalChecks: string[];
+  proves: string[];
+  doesNotProve: string[];
 }
 
 export interface AnalysisObject {
@@ -252,6 +279,61 @@ function normalizeBenchmarkCaseSource(rawSource: unknown): BenchmarkCaseSource |
     toleranceSummary: String(source.toleranceSummary ?? ""),
     expected: source.expected && typeof source.expected === "object" ? source.expected : {},
     tolerances: source.tolerances && typeof source.tolerances === "object" ? source.tolerances : {},
+    learning: normalizeBenchmarkLearningPath(source.learning),
+  };
+}
+
+function normalizeStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => String(item ?? "").trim()).filter(Boolean);
+}
+
+function normalizeBenchmarkLearningPath(rawLearning: unknown): BenchmarkLearningPath | undefined {
+  if (!rawLearning || typeof rawLearning !== "object") return undefined;
+  const learning = rawLearning as Partial<BenchmarkLearningPath>;
+  const pathId = String(learning.pathId ?? "").trim();
+  const predictions = Array.isArray(learning.predictions)
+    ? learning.predictions.flatMap((rawPrediction) => {
+        if (!rawPrediction || typeof rawPrediction !== "object") return [];
+        const prediction = rawPrediction as Partial<BenchmarkLearningPrediction>;
+        const id = String(prediction.id ?? "").trim();
+        const prompt = String(prediction.prompt ?? "").trim();
+        const expectedOptionId = String(prediction.expectedOptionId ?? "").trim();
+        const seenOptionIds = new Set<string>();
+        const options = Array.isArray(prediction.options)
+          ? prediction.options.flatMap((rawOption) => {
+              if (!rawOption || typeof rawOption !== "object") return [];
+              const option = rawOption as Partial<BenchmarkLearningOption>;
+              const optionId = String(option.id ?? "").trim();
+              const label = String(option.label ?? "").trim();
+              if (!optionId || !label || seenOptionIds.has(optionId)) return [];
+              seenOptionIds.add(optionId);
+              return [{ id: optionId, label }];
+            })
+          : [];
+        if (!id || !prompt || options.length < 2 || !options.some((option) => option.id === expectedOptionId)) return [];
+        return [{
+          id,
+          prompt,
+          options,
+          expectedOptionId,
+          explanation: String(prediction.explanation ?? "").trim(),
+        }];
+      })
+    : [];
+  if (!pathId || predictions.length === 0) return undefined;
+  const durationMinutes = Number(learning.durationMinutes);
+  return {
+    pathId,
+    featured: learning.featured === true,
+    durationMinutes: Number.isInteger(durationMinutes) && durationMinutes > 0 ? durationMinutes : 5,
+    title: String(learning.title ?? pathId).trim() || pathId,
+    objective: String(learning.objective ?? "").trim(),
+    modelFocus: normalizeStringList(learning.modelFocus),
+    predictions,
+    graphicalChecks: normalizeStringList(learning.graphicalChecks),
+    proves: normalizeStringList(learning.proves),
+    doesNotProve: normalizeStringList(learning.doesNotProve),
   };
 }
 

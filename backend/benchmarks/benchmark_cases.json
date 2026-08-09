@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-08-06",
+  "updatedAt": "2026-08-09",
   "cases": [
     {
       "id": "beam-simply-supported-uniform",
@@ -103,6 +103,66 @@
       "category": "beam",
       "title": "简支梁跨中集中荷载",
       "purpose": "验证简支梁集中荷载、跨中峰值挠度位置和梁单元集中力等效节点荷载处理。",
+      "learning": {
+        "pathId": "beam-symmetry-path",
+        "featured": true,
+        "durationMinutes": 5,
+        "title": "简支梁：先判反力，再读弯矩与挠度",
+        "objective": "用对称性、平衡条件和经典解析解建立支座反力、弯矩图与挠度曲线之间的联系。",
+        "modelFocus": [
+          "6 m 单跨简支梁",
+          "跨中 100 kN 集中荷载",
+          "两端竖向约束与跨中对称性"
+        ],
+        "predictions": [
+          {
+            "id": "support-reactions",
+            "prompt": "两端支座的竖向反力如何分配？",
+            "options": [
+              {"id": "symmetric-50", "label": "两端各 50 kN，方向向上"},
+              {"id": "left-100", "label": "左端 100 kN，右端为 0"},
+              {"id": "both-100", "label": "两端各 100 kN，方向向上"}
+            ],
+            "expectedOptionId": "symmetric-50",
+            "explanation": "结构与荷载关于跨中对称，竖向力平衡给出两端各承担 P/2。"
+          },
+          {
+            "id": "moment-position",
+            "prompt": "最大正弯矩出现在哪里？",
+            "options": [
+              {"id": "midspan", "label": "跨中集中荷载处"},
+              {"id": "supports", "label": "两端支座处"},
+              {"id": "quarter", "label": "四分之一跨处"}
+            ],
+            "expectedOptionId": "midspan",
+            "explanation": "跨中左右剪力变号，弯矩在跨中达到 PL/4=150 kN·m。"
+          },
+          {
+            "id": "deflection-position",
+            "prompt": "最大挠度的方向和位置是什么？",
+            "options": [
+              {"id": "midspan-down", "label": "跨中向下，支座处为零"},
+              {"id": "supports-down", "label": "支座处向下最大"},
+              {"id": "midspan-up", "label": "跨中向上最大"}
+            ],
+            "expectedOptionId": "midspan-down",
+            "explanation": "简支边界使两端挠度为零，对称荷载下跨中向下挠度达到 PL³/(48EI)=11.25 mm。"
+          }
+        ],
+        "graphicalChecks": [
+          "剪力图在跨中发生 100 kN 跳变，左右幅值各 50 kN",
+          "弯矩图为对称三角形，跨中峰值 150 kN·m",
+          "挠度曲线两端归零，跨中向下达到 11.25 mm"
+        ],
+        "proves": [
+          "当前单位、边界条件和集中荷载下的反力、剪力、弯矩、挠度与解析解一致",
+          "结果图的峰值位置和符号与结构力学预判一致"
+        ],
+        "doesNotProve": [
+          "材料非线性、稳定、动力或规范承载力结论",
+          "其他边界、荷载或截面条件下的工程正确性"
+        ]
+      },
       "payload": {
         "beamType": "simply_supported",
         "loadType": "point",
@@ -6722,6 +6782,66 @@
       "category": "truss-verify",
       "title": "对称三杆桁架顶点竖向荷载（拉压与位移验证）",
       "purpose": "验证对称三杆静定桁架在顶点竖向荷载下的对称支座反力、斜杆受压、下弦受拉和节点位移，补齐桁架解析验证仅覆盖水平荷载的缺口。",
+      "learning": {
+        "pathId": "truss-force-path",
+        "featured": true,
+        "durationMinutes": 5,
+        "title": "三杆桁架：先判拉压，再看位移",
+        "objective": "用整体平衡和节点法判断支座反力与杆件拉压，再用单位荷载法结果核对节点位移。",
+        "modelFocus": [
+          "3-4-5 对称三杆静定桁架",
+          "顶点 60 kN 竖向向下荷载",
+          "左铰右滚的平面桁架边界"
+        ],
+        "predictions": [
+          {
+            "id": "support-reactions",
+            "prompt": "两个支座的竖向反力如何分配？",
+            "options": [
+              {"id": "symmetric-30", "label": "两端各 30 kN，方向向上"},
+              {"id": "left-60", "label": "左端 60 kN，右端为 0"},
+              {"id": "both-60", "label": "两端各 60 kN，方向向上"}
+            ],
+            "expectedOptionId": "symmetric-30",
+            "explanation": "结构与荷载关于中线对称，竖向力平衡给出两端各承担 P/2。"
+          },
+          {
+            "id": "member-forces",
+            "prompt": "两根斜杆和下弦杆分别处于什么受力状态？",
+            "options": [
+              {"id": "diagonal-compression-bottom-tension", "label": "两根斜杆受压，下弦受拉"},
+              {"id": "all-tension", "label": "三根杆件均受拉"},
+              {"id": "diagonal-tension-bottom-compression", "label": "两根斜杆受拉，下弦受压"}
+            ],
+            "expectedOptionId": "diagonal-compression-bottom-tension",
+            "explanation": "顶点节点平衡得到两根斜杆各 -50 kN，下弦为 +40 kN。"
+          },
+          {
+            "id": "node-displacement",
+            "prompt": "自由顶点和右侧滚动支座的位移趋势是什么？",
+            "options": [
+              {"id": "apex-down-roller-right", "label": "顶点向下，右侧滚动支座向右"},
+              {"id": "apex-up-roller-left", "label": "顶点向上，右侧滚动支座向左"},
+              {"id": "supports-no-horizontal", "label": "顶点向下，右侧支座无水平位移"}
+            ],
+            "expectedOptionId": "apex-down-roller-right",
+            "explanation": "单位荷载法给出顶点竖向位移 -0.315 mm；下弦受拉伸长使右滚支水平向右 0.16 mm。"
+          }
+        ],
+        "graphicalChecks": [
+          "轴力图中两根斜杆为受压，下弦为受拉",
+          "两端竖向反力对称且合力与 60 kN 外荷载平衡",
+          "位移图显示顶点下移、右侧滚动支座允许水平移动"
+        ],
+        "proves": [
+          "当前平面桁架假定下支座反力、杆件轴力和节点位移与解析解一致",
+          "拉压符号、滚动支座自由度和位移方向表达一致"
+        ],
+        "doesNotProve": [
+          "杆件弯曲、节点刚接、屈曲或规范承载力结论",
+          "三维效应、施工偏差或材料非线性"
+        ]
+      },
       "theory": {
         "description": "3-4-5 对称三杆静定桁架节点平衡法与单位荷载法解析解",
         "nodes": "A(0,0) 铰支，B(4,3) 自由顶点，C(8,0) 滚动支座",
@@ -6799,6 +6919,66 @@
       "category": "frame-beam-verify",
       "title": "竖向悬臂柱水平顶推（坐标变换与弯曲验证）",
       "purpose": "验证竖向框架构件在全局水平荷载下的局部弯曲响应、固定端水平反力与反力矩、自由端水平位移和转角，补齐现有解析算例以水平梁为主的坐标变换缺口。",
+      "learning": {
+        "pathId": "frame-cantilever-path",
+        "featured": true,
+        "durationMinutes": 5,
+        "title": "悬臂柱：用变形读懂反力与弯矩",
+        "objective": "从自由端水平位移出发，连接固定端反力、构件弯矩和全局/局部坐标变换。",
+        "modelFocus": [
+          "4 m 竖向悬臂柱",
+          "自由端 30 kN 水平向右荷载",
+          "固定端 ux、uy、rz 三自由度约束"
+        ],
+        "predictions": [
+          {
+            "id": "tip-displacement",
+            "prompt": "自由端的主要位移方向是什么？",
+            "options": [
+              {"id": "right", "label": "随荷载向右，水平位移约 12.8 mm"},
+              {"id": "left", "label": "逆荷载向左"},
+              {"id": "vertical", "label": "主要沿柱轴线向下"}
+            ],
+            "expectedOptionId": "right",
+            "explanation": "自由端横向集中力使悬臂柱沿荷载方向弯曲，u=PL³/(3EI)=12.8 mm。"
+          },
+          {
+            "id": "base-reactions",
+            "prompt": "固定端需要提供哪组主要反力？",
+            "options": [
+              {"id": "fx-minus-30-m-plus-120", "label": "水平反力 -30 kN，反力矩 +120 kN·m"},
+              {"id": "fx-plus-30-no-moment", "label": "水平反力 +30 kN，无反力矩"},
+              {"id": "vertical-only", "label": "仅有 30 kN 竖向反力"}
+            ],
+            "expectedOptionId": "fx-minus-30-m-plus-120",
+            "explanation": "整体平衡要求固定端水平反力抵消外荷载，并以 PL=120 kN·m 抵消倾覆力矩。"
+          },
+          {
+            "id": "moment-shape",
+            "prompt": "构件弯矩沿柱高如何变化？",
+            "options": [
+              {"id": "base-max-tip-zero", "label": "固定端最大，自由端降为零"},
+              {"id": "tip-max-base-zero", "label": "自由端最大，固定端为零"},
+              {"id": "uniform", "label": "沿柱高保持常值"}
+            ],
+            "expectedOptionId": "base-max-tip-zero",
+            "explanation": "自由端集中力产生线性弯矩分布，固定端绝对值最大为 PL，自由端为零。"
+          }
+        ],
+        "graphicalChecks": [
+          "位移图中自由端向右，固定端位移和转角为零",
+          "弯矩图从固定端 120 kN·m 线性减小至自由端零",
+          "支座反力与 30 kN 水平荷载及 120 kN·m 力矩保持整体平衡"
+        ],
+        "proves": [
+          "竖向框架构件在水平荷载下的坐标变换、弯曲位移和固定端反力与解析解一致",
+          "节点位移、构件弯矩和支座反力图形语义一致"
+        ],
+        "doesNotProve": [
+          "二阶效应、屈曲、塑性或规范承载力结论",
+          "多构件框架、节点半刚接或空间效应"
+        ]
+      },
       "theory": {
         "description": "竖向悬臂柱自由端水平集中力经典解析解",
         "L_m": 4,

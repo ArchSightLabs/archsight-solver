@@ -460,6 +460,30 @@ def _export_payload_schema() -> Dict[str, Any]:
                 },
                 "additionalProperties": True,
             },
+            "learningReview": {
+                "type": "object",
+                "description": "可选学习复核记录；只保存路径、算例、预判和所选选项的稳定枚举标识，展示文案由 benchmark 事实源解析。",
+                "required": ["schemaVersion", "pathId", "caseId", "reviewed", "answers"],
+                "properties": {
+                    "schemaVersion": {"type": "integer", "const": 1},
+                    "pathId": {"type": "string"},
+                    "caseId": {"type": "string"},
+                    "reviewed": {"type": "boolean"},
+                    "answers": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "required": ["predictionId", "selectedOptionId"],
+                            "properties": {
+                                "predictionId": {"type": "string"},
+                                "selectedOptionId": {"type": "string"},
+                            },
+                            "additionalProperties": False,
+                        },
+                    },
+                },
+                "additionalProperties": False,
+            },
             "reportOptions": {
                 "type": "object",
                 "description": "可选计算书模板与数据曲线设置；受力变形图和核心工程图固定导出。",
@@ -513,6 +537,47 @@ def _schema_registry_response_schema() -> Dict[str, Any]:
 
 
 def _public_example_projects_response_schema() -> Dict[str, Any]:
+    learning_option = {
+        "type": "object",
+        "required": ["id", "label"],
+        "properties": {
+            "id": {"type": "string"},
+            "label": {"type": "string"},
+        },
+        "additionalProperties": False,
+    }
+    learning_prediction = {
+        "type": "object",
+        "required": ["id", "prompt", "options", "expectedOptionId", "explanation"],
+        "properties": {
+            "id": {"type": "string"},
+            "prompt": {"type": "string"},
+            "options": {"type": "array", "minItems": 2, "items": learning_option},
+            "expectedOptionId": {"type": "string"},
+            "explanation": {"type": "string"},
+        },
+        "additionalProperties": False,
+    }
+    learning_path = {
+        "type": "object",
+        "required": [
+            "pathId", "featured", "durationMinutes", "title", "objective", "modelFocus",
+            "predictions", "graphicalChecks", "proves", "doesNotProve",
+        ],
+        "properties": {
+            "pathId": {"type": "string"},
+            "featured": {"type": "boolean"},
+            "durationMinutes": {"type": "integer", "minimum": 1},
+            "title": {"type": "string"},
+            "objective": {"type": "string"},
+            "modelFocus": {"type": "array", "items": {"type": "string"}},
+            "predictions": {"type": "array", "minItems": 1, "items": learning_prediction},
+            "graphicalChecks": {"type": "array", "items": {"type": "string"}},
+            "proves": {"type": "array", "items": {"type": "string"}},
+            "doesNotProve": {"type": "array", "items": {"type": "string"}},
+        },
+        "additionalProperties": False,
+    }
     benchmark_meta = {
         "type": "object",
         "required": ["caseId", "sourceType", "sourceLabel"],
@@ -535,6 +600,7 @@ def _public_example_projects_response_schema() -> Dict[str, Any]:
             "toleranceSummary": {"type": "string"},
             "expected": {"type": "object", "additionalProperties": True},
             "tolerances": {"type": "object", "additionalProperties": True},
+            "learning": learning_path,
         },
         "additionalProperties": True,
     }

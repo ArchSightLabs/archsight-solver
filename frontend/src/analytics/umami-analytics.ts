@@ -45,7 +45,11 @@ export type SolverAnalyticsEventName =
   | "export_completed"
   | "export_failed"
   | "project_opened"
-  | "project_saved";
+  | "project_saved"
+  | "learning_path_opened"
+  | "learning_prediction_submitted"
+  | "learning_evidence_viewed"
+  | "learning_path_completed";
 
 export interface SolverAnalyticsEventData {
   readonly analysis_mode?: AnalysisMode;

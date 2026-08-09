@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BookOpenCheck, ExternalLink, FolderOpen, Loader2, ShieldCheck, X } from "lucide-react";
+import { ArrowRight, BookOpenCheck, Clock3, ExternalLink, FolderOpen, GraduationCap, Loader2, ShieldCheck, X } from "lucide-react";
 import { analysisVocabulary } from "../lib/analysis-vocabulary";
 import { getAnalysisObjectDisplayName, type SolverProject } from "../lib/solver-project";
 import { Button } from "./ui/button";
@@ -120,6 +120,11 @@ export function PublicExamplesDialog({ onClose, onOpenProject }: PublicExamplesD
     () => catalog?.projects.find((project) => project.id === selectedProjectId) ?? catalog?.projects[0] ?? null,
     [catalog, selectedProjectId]
   );
+  const featuredLearningPaths = useMemo(() => catalog?.projects.flatMap((project) =>
+    project.project.objects.flatMap((object) => object.benchmark?.learning?.featured
+      ? [{ project, object, learning: object.benchmark.learning }]
+      : []),
+  ) ?? [], [catalog]);
   const defaultSelectedObjectIds = useMemo(() => {
     const firstObjectId = selectedProject?.project.objects[0]?.id;
     return firstObjectId ? [firstObjectId] : [];
@@ -162,6 +167,13 @@ export function PublicExamplesDialog({ onClose, onOpenProject }: PublicExamplesD
       ? selectedProject.title
       : `${selectedProject.title}（已选 ${selectedObjects.length} 个对象）`;
     onOpenProject(project, title);
+  };
+
+  const openLearningPath = (project: PublicExampleProject, object: SolverProject["objects"][number]) => {
+    onOpenProject(
+      createSelectedProject(project.project, [object]),
+      `${object.benchmark?.learning?.title ?? object.name}（五分钟路径）`,
+    );
   };
 
   return (
@@ -217,6 +229,38 @@ export function PublicExamplesDialog({ onClose, onOpenProject }: PublicExamplesD
             </aside>
 
             <section className="min-h-0 overflow-auto bg-slate-50 p-4 dark:bg-slate-950 sm:p-5">
+              {featuredLearningPaths.length ? (
+                <div className="mb-5 rounded-xl border border-sky-300 bg-sky-50/80 p-3 dark:border-sky-800 dark:bg-sky-950/35">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <GraduationCap className="h-4 w-4 shrink-0 text-sky-700 dark:text-sky-300" />
+                      <div className="font-black">三条五分钟学习路径</div>
+                    </div>
+                    <span className="text-xs font-bold text-muted-foreground">先预判，再计算并核对</span>
+                  </div>
+                  <div className="grid gap-2 md:grid-cols-3">
+                    {featuredLearningPaths.map(({ project, object, learning }) => (
+                      <button
+                        key={learning.pathId}
+                        type="button"
+                        onClick={() => openLearningPath(project, object)}
+                        className="group rounded-lg border border-slate-300 bg-white p-3 text-left transition-colors hover:border-sky-500 hover:bg-sky-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-sky-500 dark:hover:bg-slate-800"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="text-sm font-black leading-5">{learning.title}</div>
+                          <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-sky-600 transition-transform group-hover:translate-x-0.5 dark:text-sky-300" />
+                        </div>
+                        <div className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">{learning.objective}</div>
+                        <div className="mt-2 flex items-center gap-1 text-[11px] font-black text-sky-700 dark:text-sky-200">
+                          <Clock3 className="h-3 w-3" />
+                          {learning.durationMinutes} 分钟 · {object.benchmark?.verificationLevelLabel}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <h2 className="text-lg font-black tracking-tight">{selectedProject.title}</h2>

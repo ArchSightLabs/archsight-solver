@@ -328,7 +328,7 @@ def _state_from_case(case: Mapping[str, Any]) -> Dict[str, Any]:
 def _benchmark_meta(case: Mapping[str, Any]) -> Dict[str, Any]:
     verification = case.get("verification", {})
     source_type = str(verification.get("sourceType", "internal-regression")) if isinstance(verification, Mapping) else "internal-regression"
-    return {
+    metadata = {
         "caseId": case.get("id"),
         "category": case.get("category"),
         "title": case.get("title"),
@@ -348,6 +348,10 @@ def _benchmark_meta(case: Mapping[str, Any]) -> Dict[str, Any]:
         "expected": case.get("expected", {}),
         "tolerances": case.get("tolerances", {}),
     }
+    learning = case.get("learning")
+    if isinstance(learning, Mapping):
+        metadata["learning"] = dict(learning)
+    return metadata
 
 
 def _object_from_case(case: Mapping[str, Any], index: int, timestamp: str) -> Dict[str, Any]:

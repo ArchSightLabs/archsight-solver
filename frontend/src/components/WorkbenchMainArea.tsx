@@ -7,7 +7,8 @@ import {
 } from "lucide-react";
 import type { ModelPreviewStyle } from "../types/beam";
 import type { WorkspaceState } from "../lib/workspace-state";
-import type { SolverProject } from "../lib/solver-project";
+import { getActiveAnalysisObject, type SolverProject } from "../lib/solver-project";
+import type { LearningReview } from "../lib/learning-review";
 import type { VisitStats } from "../hooks/useVisitStats";
 import { GlassCard } from "./ui/GlassCard";
 import { Button } from "./ui/button";
@@ -27,6 +28,7 @@ import type { ResultValidity } from "../lib/result-provenance";
 import type { WorkbenchOperationNotice as WorkbenchOperationNoticeModel } from "../lib/workbench-operation-status";
 import type { WorkbenchView } from "../lib/solver-project";
 import type { ResultDisplayOption } from "./workbench-result-model";
+import { VerificationLearningPanel } from "./VerificationLearningPanel";
 
 const LazyWorkbenchModelCanvas = lazy(() => import("./WorkbenchModelCanvas").then((module) => ({ default: module.WorkbenchModelCanvas })));
 const LazyWorkbenchSensitivityPanel = lazy(() => import("./WorkbenchSensitivityPanel").then((module) => ({ default: module.WorkbenchSensitivityPanel })));
@@ -43,7 +45,7 @@ interface WorkbenchMainAreaProps {
   beamResults: BeamCalculationResults | null;
   exportingFormat: ExportFormat | null;
   frameResults: FrameCalculationResults | null;
-  handleExport: (format: ExportFormat, resultSource?: ResultDisplayOption) => void;
+  handleExport: (format: ExportFormat, resultSource?: ResultDisplayOption, learningReview?: LearningReview) => void;
   handleInspectorResizeStart: PointerEventHandler<HTMLButtonElement>;
   handleModuleNavResizeStart: PointerEventHandler<HTMLButtonElement>;
   handleModelDiagnosticNavigate: (diagnostic: ModelDiagnosticIssue) => void;
@@ -139,6 +141,7 @@ export function WorkbenchMainArea({
   userManualHref,
   updateWorkspace,
 }: WorkbenchMainAreaProps) {
+  const activeAnalysisObject = getActiveAnalysisObject(project);
   return (
     <main className={`relative z-10 mx-auto max-w-[118rem] px-4 pt-4 ${isEmbeddedWorkbench ? "pb-4 sm:px-4 sm:pb-4 sm:pt-4" : "pb-12 sm:px-6 sm:pb-16 sm:pt-6 xl:pb-0"}`}>
       <div
@@ -203,6 +206,19 @@ export function WorkbenchMainArea({
               />
             </GlassCard>
           </div>
+
+          {activeAnalysisObject.benchmark?.learning ? (
+            <VerificationLearningPanel
+              key={`${activeAnalysisObject.id}:${activeAnalysisObject.benchmark.learning.pathId}`}
+              analysisMode={analysisMode}
+              benchmark={activeAnalysisObject.benchmark}
+              exportingFormat={exportingFormat}
+              isSolving={isSolving}
+              resultValidity={resultValidity}
+              onRunAndReview={handleRunAndReview}
+              onExport={(format, learningReview) => handleExport(format, undefined, learningReview)}
+            />
+          ) : null}
 
           <WorkbenchViewTabs value={workbenchView} onChange={setWorkbenchView} />
           <Suspense fallback={<LoadingPanel compact={isCompactWorkbench} />}>

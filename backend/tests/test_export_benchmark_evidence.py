@@ -39,6 +39,48 @@ def test_export_evidence_tables_include_public_benchmark_source_and_expected_val
     assert all("弯矩" not in row[1] and "剪力" not in row[1] for row in rows if row[0].startswith("当前算例"))
 
 
+def test_export_evidence_resolves_learning_review_from_catalog_instead_of_client_labels():
+    case = find_benchmark_case("BM-009")
+    examples = build_public_validation_projects()
+    benchmark = next(
+        obj["benchmark"]
+        for project in examples["projects"]
+        for obj in project["project"]["objects"]
+        if obj["benchmark"]["caseId"] == "BM-009"
+    )
+    payload = {
+        **case["payload"],
+        "benchmark": benchmark,
+        "learningReview": {
+            "schemaVersion": 1,
+            "pathId": "truss-force-path",
+            "caseId": "BM-009",
+            "reviewed": True,
+            "answers": [
+                {"predictionId": "support-reactions", "selectedOptionId": "symmetric-30"},
+                {"predictionId": "member-forces", "selectedOptionId": "diagonal-compression-bottom-tension"},
+                {"predictionId": "node-displacement", "selectedOptionId": "apex-down-roller-right"},
+            ],
+            "clientLabel": "不得进入计算书的伪造文案",
+        },
+    }
+
+    report = build_report_model(
+        payload,
+        analysis_type="truss",
+        material_name="测试材料",
+        sensitivity_results=None,
+        report_images=None,
+    )
+    rows = build_evidence_tables(report, "truss", "测试材料")["校核证据"].astype(str).values.tolist()
+    text = "\n".join(" | ".join(row) for row in rows)
+
+    assert "三杆桁架：先判拉压，再看位移" in text
+    assert "支座反力" in text
+    assert "判断一致" in text
+    assert "不得进入计算书的伪造文案" not in text
+
+
 def test_frame_truss_evidence_input_summary_preserves_material_and_support_semantics():
     frame_solution = {
         "structure": {

@@ -5,7 +5,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional
 
 import pandas as pd
 
-from backend.benchmarks.catalog import load_benchmark_catalog
+from backend.benchmarks.catalog import find_benchmark_case, load_benchmark_catalog
 from backend.exporters.common.analysis_assumptions import analysis_assumption_table_rows
 from backend.common.support_catalog import support_constraint_dofs, support_label, support_released_dofs, support_system_note
 from backend.contracts.json_schemas import API_SCHEMA_VERSION
@@ -145,6 +145,7 @@ def _beam_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str,
                 ["竖向平衡校核", f"外荷载合力 {round(load_total, 6)} kN；支座反力合力 {round(reaction_total, 6)} kN", f"残差 {round(residual, 6)} kN，相对误差 {_format_percent(relative)}"],
                 ["公开验证集", _benchmark_summary_text("beam"), "仅证明当前分析类型验证集覆盖范围内的回归一致性"],
                 *_active_benchmark_rows(solution),
+                *_learning_review_rows(solution),
                 ["标准/教学校核", _symbolic_check_text(solution), "有解析或教材公式时列出理论值、求解值和适用限制"],
                 ["控制挠度", f"{round(solution.get('max_deflection_mm', 0.0), 6)} mm @ x={round(solution.get('max_deflection_position_m', 0.0), 6)} m", f"允许值 {round(solution.get('allowable_mm', 0.0), 6)} mm"],
                 ["控制弯矩", f"{round(max_moment_value, 6)} kN.m @ x={round(max_moment_x, 6)} m", "按弯矩图绝对值最大点提取"],
@@ -224,6 +225,7 @@ def _frame_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str
                 ["Y 向平衡校核", f"外荷载 {round(equilibrium['loadFyKn'], 6)} kN；支座反力 {round(equilibrium['reactionFyKn'], 6)} kN", f"残差 {round(equilibrium['residualFyKn'], 6)} kN，相对误差 {_format_percent(equilibrium['relativeFy'])}"],
                 ["公开验证集", _benchmark_summary_text("frame"), "仅证明当前分析类型验证集覆盖范围内的回归一致性"],
                 *_active_benchmark_rows(solution),
+                *_learning_review_rows(solution),
                 ["控制位移", _node_control_text(max_node), f"允许值 {round(solution.get('summary', {}).get('allowableMm', 0.0), 6)} mm"],
                 ["控制弯矩", _frame_moment_text(max_moment), "按所有杆端弯矩绝对值最大提取"],
                 ["稳定初筛", f"P-Delta: {solution.get('secondOrder', {}).get('riskLevel', '未启用')}；屈曲: {solution.get('buckling', {}).get('riskLevel', '未启用')}", "该项为初筛提示"],
@@ -283,6 +285,7 @@ def _truss_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str
                 ["Y 向平衡校核", f"外荷载 {round(equilibrium['loadFyKn'], 6)} kN；支座反力 {round(equilibrium['reactionFyKn'], 6)} kN", f"残差 {round(equilibrium['residualFyKn'], 6)} kN，相对误差 {_format_percent(equilibrium['relativeFy'])}"],
                 ["公开验证集", _benchmark_summary_text("truss"), "仅证明当前分析类型验证集覆盖范围内的回归一致性"],
                 *_active_benchmark_rows(solution),
+                *_learning_review_rows(solution),
                 ["求解残差", f"RMS 相对误差 {solution.get('summary', {}).get('equilibriumRmsRelativeError', '—')}", f"最大残差 {solution.get('summary', {}).get('equilibriumMaxResidualN', '—')} N"],
                 ["控制位移", _node_control_text(max_node), f"允许值 {round(solution.get('summary', {}).get('allowableMm', 0.0), 6)} mm"],
                 ["控制轴力", f"{max_member.get('memberId', '—')}：{round(abs(float(max_member.get('axialForceKn', 0.0))), 6)} kN", "按杆件轴力绝对值最大提取"],
@@ -415,6 +418,55 @@ def _active_benchmark_rows(solution: Mapping[str, Any]) -> List[List[str]]:
         rows.append(["当前算例标准值", expected, "来源于 benchmark expected 字段"])
     if tolerance:
         rows.append(["当前算例容许误差", tolerance, "来源于 benchmark tolerances 字段"])
+    return rows
+
+
+def _learning_review_rows(solution: Mapping[str, Any]) -> List[List[str]]:
+    review = solution.get("learningReview")
+    if not isinstance(review, Mapping):
+        return []
+    case_id = str(review.get("caseId", "")).strip()
+    path_id = str(review.get("pathId", "")).strip()
+    case = find_benchmark_case(case_id)
+    learning = case.get("learning") if isinstance(case, Mapping) else None
+    if not isinstance(learning, Mapping) or str(learning.get("pathId", "")) != path_id:
+        return []
+
+    answer_items = review.get("answers")
+    answers = {
+        str(item.get("predictionId", "")): str(item.get("selectedOptionId", ""))
+        for item in answer_items
+        if isinstance(item, Mapping)
+    } if isinstance(answer_items, list) else {}
+    rows = [[
+        "学习复核路径",
+        str(learning.get("title") or path_id),
+        f"{case_id} / {'已查看证据' if review.get('reviewed') is True else '已提交预判'}",
+    ]]
+    predictions = learning.get("predictions")
+    if not isinstance(predictions, list):
+        return rows
+    for prediction in predictions:
+        if not isinstance(prediction, Mapping):
+            continue
+        prediction_id = str(prediction.get("id", ""))
+        options = prediction.get("options")
+        option_by_id = {
+            str(option.get("id", "")): str(option.get("label", ""))
+            for option in options
+            if isinstance(option, Mapping)
+        } if isinstance(options, list) else {}
+        selected_id = answers.get(prediction_id, "")
+        expected_id = str(prediction.get("expectedOptionId", ""))
+        selected_label = option_by_id.get(selected_id, "未作答")
+        expected_label = option_by_id.get(expected_id, "标准答案缺失")
+        status = "判断一致" if selected_id and selected_id == expected_id else "需要复核"
+        explanation = str(prediction.get("explanation", ""))
+        rows.append([
+            f"预判：{prediction.get('prompt', prediction_id)}",
+            f"选择：{selected_label}；标准：{expected_label}",
+            f"{status}。{explanation}",
+        ])
     return rows
 
 

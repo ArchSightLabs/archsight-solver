@@ -662,6 +662,10 @@ def test_openapi_document_reuses_schema_registry():
         "$ref": "#/components/schemas/verification-package-verify-response"
     }
     assert document["components"]["schemas"]["export-payload"]["properties"]["format"]["enum"] == ["xlsx", "docx"]
+    learning_review = document["components"]["schemas"]["export-payload"]["properties"]["learningReview"]
+    assert learning_review["properties"]["schemaVersion"] == {"type": "integer", "const": 1}
+    assert learning_review["properties"]["answers"]["items"]["additionalProperties"] is False
+    assert learning_review["additionalProperties"] is False
     assert "500" in document["paths"]["/api/export"]["post"]["responses"]
     tenant_header = next(
         parameter

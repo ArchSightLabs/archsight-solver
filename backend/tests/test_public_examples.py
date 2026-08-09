@@ -100,3 +100,36 @@ def test_public_examples_endpoint_is_published_in_openapi():
     assert "verificationLevelLabel" in benchmark_schema["properties"]
     assert "expectedSummary" in benchmark_schema["properties"]
     assert "toleranceSummary" in benchmark_schema["properties"]
+    assert "learning" in benchmark_schema["properties"]
+
+
+def test_public_examples_expose_three_featured_a_level_learning_paths():
+    examples = build_public_validation_projects()
+    featured = [
+        (obj["type"], obj["benchmark"])
+        for project in examples["projects"]
+        for obj in project["project"]["objects"]
+        if obj["benchmark"].get("learning", {}).get("featured") is True
+    ]
+
+    assert [(analysis_type, benchmark["caseId"]) for analysis_type, benchmark in featured] == [
+        ("beam", "beam-simply-supported-center-point"),
+        ("truss", "BM-009"),
+        ("frame", "BM-010"),
+    ]
+    assert {benchmark["verificationLevel"] for _, benchmark in featured} == {"A"}
+    assert len({benchmark["learning"]["pathId"] for _, benchmark in featured}) == 3
+
+    for _, benchmark in featured:
+        learning = benchmark["learning"]
+        assert learning["durationMinutes"] == 5
+        assert len(learning["predictions"]) == 3
+        assert learning["modelFocus"]
+        assert learning["graphicalChecks"]
+        assert learning["proves"]
+        assert learning["doesNotProve"]
+        for prediction in learning["predictions"]:
+            option_ids = {option["id"] for option in prediction["options"]}
+            assert len(option_ids) >= 2
+            assert prediction["expectedOptionId"] in option_ids
+            assert "freeText" not in prediction

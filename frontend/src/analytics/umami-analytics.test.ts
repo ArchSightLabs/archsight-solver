@@ -101,6 +101,35 @@ test("关键行为事件只携带枚举字段和版本上下文", async () => {
   assert.doesNotMatch(JSON.stringify(calls), /project_name|file_name|model|result|error_message|user_id/u);
 });
 
+test("学习路径事件只携带分析类型和公共版本上下文", async () => {
+  const calls: Array<{ name: string; data?: Record<string, string | number | boolean> }> = [];
+  const fixture = createRuntime({
+    tracker: {
+      track: (name, data) => calls.push({ name, data }),
+    },
+  });
+
+  for (const name of [
+    "learning_path_opened",
+    "learning_prediction_submitted",
+    "learning_evidence_viewed",
+    "learning_path_completed",
+  ] as const) {
+    assert.equal(
+      await trackSolverAnalyticsEvent(name, { analysis_mode: "truss" }, enabledConfig, fixture.runtime),
+      true,
+    );
+  }
+
+  assert.deepEqual(calls.map((call) => call.name), [
+    "learning_path_opened",
+    "learning_prediction_submitted",
+    "learning_evidence_viewed",
+    "learning_path_completed",
+  ]);
+  assert.doesNotMatch(JSON.stringify(calls), /case_id|answer|option|prompt|project|model|result|file|user|identity/u);
+});
+
 test("统计服务异常不会传播到工作台", async () => {
   const fixture = createRuntime({
     tracker: {

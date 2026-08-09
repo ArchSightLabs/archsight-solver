@@ -209,6 +209,29 @@ test("规范化项目时保留公开验证算例元数据", () => {
           metricSummary: "最大挠度 1.1565 mm",
           expected: { maxDeflectionMm: 1.1565 },
           tolerances: { maxDeflectionMm: 0.01 },
+          learning: {
+            pathId: "beam-symmetry-path",
+            featured: true,
+            durationMinutes: 5,
+            title: "简支梁：先判反力，再读弯矩与挠度",
+            objective: "用对称性和经典解析解核对结果。",
+            modelFocus: ["支座", "集中荷载"],
+            predictions: [
+              {
+                id: "support-reactions",
+                prompt: "两端支座反力如何分配？",
+                options: [
+                  { id: "symmetric", label: "两端相等" },
+                  { id: "left-only", label: "全部由左端承担" },
+                ],
+                expectedOptionId: "symmetric",
+                explanation: "结构与荷载关于跨中对称。",
+              },
+            ],
+            graphicalChecks: ["弯矩图跨中达到峰值"],
+            proves: ["当前边界和荷载下的解析一致性"],
+            doesNotProve: ["规范设计结论"],
+          },
         },
       },
     ],
@@ -219,6 +242,8 @@ test("规范化项目时保留公开验证算例元数据", () => {
   assert.equal(normalized.objects[0].benchmark?.verificationLevel, "A");
   assert.equal(normalized.objects[0].benchmark?.verificationLevelLabel, "A 级验证");
   assert.deepEqual(normalized.objects[0].benchmark?.checkedMetrics, ["最大挠度"]);
+  assert.equal(normalized.objects[0].benchmark?.learning?.pathId, "beam-symmetry-path");
+  assert.equal(normalized.objects[0].benchmark?.learning?.predictions[0]?.expectedOptionId, "symmetric");
 });
 
 test("规范化旧公开验证算例时回填内部回归等级", () => {

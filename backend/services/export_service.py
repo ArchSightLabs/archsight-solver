@@ -41,6 +41,8 @@ def build_report_model(
         solution = {**solution, "resultSource": data["resultSource"]}
     if isinstance(data.get("resultProvenance"), dict):
         solution = {**solution, "resultProvenance": data["resultProvenance"]}
+    if isinstance(data.get("learningReview"), dict):
+        solution = {**solution, "learningReview": data["learningReview"]}
     validate_result_source(solution)
     return ReportModel.from_solution(
         analysis_type=analysis_type,

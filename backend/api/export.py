@@ -43,6 +43,7 @@ def export():
                 'benchmark': data.get('benchmark'),
                 'resultSource': data.get('resultSource'),
                 'resultProvenance': data.get('resultProvenance'),
+                'learningReview': data.get('learningReview'),
             })
             data = job_payload
 

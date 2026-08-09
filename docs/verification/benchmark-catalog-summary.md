@@ -2,7 +2,7 @@
 
 > 本文件由 `python -m backend.benchmarks.catalog_summary --output docs/verification/benchmark-catalog-summary.md` 生成。`backend/benchmarks/benchmark_cases.json` 仍是机器事实源。
 
-- 算例目录版本：2026-08-06
+- 算例目录版本：2026-08-09
 - 算例总数：66
 - 用途：帮助人工快速阅读算例目的、验证来源、关键指标、标准值和容许误差。
 

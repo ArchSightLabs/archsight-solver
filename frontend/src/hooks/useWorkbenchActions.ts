@@ -11,6 +11,7 @@ import type { SolverDiagnosticIssue } from "../lib/diagnostic-contract";
 import { buildReportImages } from "../lib/report-images";
 import { reportExportOptionsForMode, type ReportExportOptions } from "../lib/report-options";
 import type { BenchmarkCaseSource } from "../lib/solver-project";
+import type { LearningReview } from "../lib/learning-review";
 import {
   buildDisplayedBeamResults,
   buildDisplayedFrameResults,
@@ -295,7 +296,11 @@ export function useWorkbenchActions({
     }
   };
 
-  const handleExport = async (format: ExportFormat = "docx", resultSource?: ResultDisplayOption) => {
+  const handleExport = async (
+    format: ExportFormat = "docx",
+    resultSource?: ResultDisplayOption,
+    learningReview?: LearningReview,
+  ) => {
     if (resultValidity.status !== "current" || !resultProvenance) {
       setOperationNotice(validationNotice(resultValidity.message));
       return;
@@ -336,8 +341,8 @@ export function useWorkbenchActions({
       };
       const exportPayload =
         format === "docx" && sensitivityData
-          ? { ...payload, format, sensitivityResults: sensitivityData, reportOptions: effectiveReportOptions, benchmark: activeBenchmark, jobId, resultSource: exportResultSource, resultProvenance: exportedProvenance }
-          : { ...payload, format, benchmark: activeBenchmark, jobId, resultSource: exportResultSource, reportOptions: effectiveReportOptions, resultProvenance: exportedProvenance };
+          ? { ...payload, format, sensitivityResults: sensitivityData, reportOptions: effectiveReportOptions, benchmark: activeBenchmark, jobId, resultSource: exportResultSource, resultProvenance: exportedProvenance, ...(learningReview ? { learningReview } : {}) }
+          : { ...payload, format, benchmark: activeBenchmark, jobId, resultSource: exportResultSource, reportOptions: effectiveReportOptions, resultProvenance: exportedProvenance, ...(learningReview ? { learningReview } : {}) };
       const beamResultsForReport = buildDisplayedBeamResults(beamResultForView(analysisData), resultSource);
       const frameResultsForReport = buildDisplayedFrameResults(frameResultForView(analysisData), resultSource);
       const trussResultsForReport = buildDisplayedTrussResults(trussResultForView(analysisData), resultSource);
@@ -371,6 +376,7 @@ export function useWorkbenchActions({
         resultSource: exportResultSource,
         resultProvenance: exportedProvenance,
         ...(activeBenchmark ? { benchmark: activeBenchmark } : {}),
+        ...(learningReview ? { learningReview } : {}),
         ...(jobId ? { jobId } : {}),
       };
       const isVerificationPackage = format === "verification-package";

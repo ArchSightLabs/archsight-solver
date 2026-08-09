@@ -20,6 +20,7 @@ Umami tracker 自动记录不含 query 和 hash 的页面访问。Solver 另外�
 | `export_started` / `export_completed` / `export_failed` | 当前结果通过有效性检查后开始导出 DOCX/XLSX 及其终态 | `analysis_mode`、`export_format`；失败时增加 `failure_kind` |
 | `project_opened` | 用户通过原生文件选择、文件输入或公开验证工程打开项目 | `project_source` |
 | `project_saved` | 工程通过原生文件系统或浏览器下载成功保存 | `save_method` |
+| `learning_path_opened` / `learning_prediction_submitted` / `learning_evidence_viewed` / `learning_path_completed` | 用户打开五分钟路径、提交枚举预判、看到当前结果证据或完成证据导出 | `analysis_mode` |
 
 每个事件自动附加 `schema_version`、公开的 `app_version` 和 `workspace_mode`（独立工作台或嵌入模式）。`failure_kind` 只有 `api` / `client` 两个类别，不发送错误正文。
 
