@@ -24,6 +24,7 @@ from backend.api.export import export_bp
 from backend.api.jobs import jobs_bp, reconcile_all_orphans, start_job_runtime
 from backend.api.preview import preview_bp
 from backend.api.sensitivity import sensitivity_bp
+from backend.api.verification_packages import verification_packages_bp
 from backend.config import get_backend_host, get_backend_port
 
 
@@ -36,6 +37,7 @@ API_BLUEPRINTS = (
     preview_bp,
     sensitivity_bp,
     export_bp,
+    verification_packages_bp,
 )
 
 

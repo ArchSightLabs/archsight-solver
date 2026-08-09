@@ -15,6 +15,7 @@ from scripts.generate_contract_types import DTO_OUTPUT_PATH, OUTPUT_PATH, RUNTIM
 from backend.project_documents import create_default_project_document
 from backend.project_workflow import build_export_artifact_metadata, build_host_launch_contract
 from backend.template_registry import list_builtin_template_registry
+from backend.verification_package import create_verification_package, verify_verification_package
 
 
 HOST_PROTOCOL_1_CAPABILITIES = {
@@ -187,12 +188,19 @@ def test_schema_registry_contains_api_and_tool_contracts():
     assert "solver-host-message" in registry
     assert "solver-artifact-manifest" in registry
     assert "solver-template-registry" in registry
+    assert "solver-verification-package" in registry
+    assert "verification-package-create-input" in registry
+    assert "verification-package-verify-input" in registry
+    assert "verification-package-report" in registry
     for schema_id in ("asms-beam-model", "asms-frame-model", "asms-truss-model"):
         assert registry[schema_id]["properties"]["schemaVersion"]["const"] == API_SCHEMA_VERSION
     assert registry["project-file-manifest"]["properties"]["projectFileKind"]["enum"] == ["single-json", "zip-container", "project-folder"]
     assert registry["solver-host-message"]["properties"]["protocolVersion"]["const"] == "1.0.0"
     assert registry["solver-artifact-manifest"]["properties"]["artifactType"]["const"] == "solver.export"
     assert registry["solver-template-registry"]["properties"]["templates"]["items"]["properties"]["source"]["const"] == "builtin"
+    assert registry["solver-verification-package"]["properties"]["format"]["const"] == "archsight-solver-verification-package"
+    assert registry["solver-verification-package"]["properties"]["formatVersion"]["const"] == "1.0.0"
+    assert registry["solver-verification-package"]["properties"]["integrity"]["properties"]["algorithm"]["const"] == "sha256"
     assert "primaryResultMetrics" in registry["solver-template-registry"]["properties"]["templates"]["items"]["required"]
     assert "entryPoints" in registry["solver-template-registry"]["properties"]["templates"]["items"]["properties"]
     assert registry["empty-tool-input"]["additionalProperties"] is False
@@ -230,6 +238,24 @@ def test_v1_6_runtime_contract_objects_validate_against_declared_schemas():
     }
 
     for schema_id, instance in runtime_objects.items():
+        validator, _ = _runtime_contract_validator(registry[schema_id])
+        validator.check_schema(registry[schema_id])
+        validator.validate(instance)
+
+
+def test_verification_package_and_report_validate_against_published_schemas():
+    registry = schema_registry()
+    package = create_verification_package(
+        {"beamType": "simply_supported", "loadType": "uniform", "q": 12, "E": 206, "I": 85000, "spans": [6]},
+        solver_version="1.7.0",
+        created_at="2026-08-09T00:00:00+00:00",
+    )
+    report = verify_verification_package(package, current_solver_version="1.7.0")
+
+    for schema_id, instance in (
+        ("solver-verification-package", package),
+        ("verification-package-report", report),
+    ):
         validator, _ = _runtime_contract_validator(registry[schema_id])
         validator.check_schema(registry[schema_id])
         validator.validate(instance)
@@ -615,6 +641,8 @@ def test_openapi_document_reuses_schema_registry():
     assert document["info"]["title"] == "ArchSight Solver API"
     assert "/api/calculate" in document["paths"]
     assert "/api/contracts/openapi" in document["paths"]
+    assert "/api/verification-packages" in document["paths"]
+    assert "/api/verification-packages/verify" in document["paths"]
     assert "calculate-payload" in document["components"]["schemas"]
     assert document["paths"]["/api/calculate"]["post"]["requestBody"]["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/calculate-payload"
@@ -626,6 +654,12 @@ def test_openapi_document_reuses_schema_registry():
     assert document["components"]["schemas"]["sensitivity-payload"]["properties"]["config"]["properties"]["steps"]["maximum"] == 50
     assert document["paths"]["/api/export"]["post"]["requestBody"]["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/export-payload"
+    }
+    assert document["paths"]["/api/verification-packages"]["post"]["requestBody"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/verification-package-create-input"
+    }
+    assert document["paths"]["/api/verification-packages/verify"]["post"]["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/verification-package-verify-response"
     }
     assert document["components"]["schemas"]["export-payload"]["properties"]["format"]["enum"] == ["xlsx", "docx"]
     assert "500" in document["paths"]["/api/export"]["post"]["responses"]

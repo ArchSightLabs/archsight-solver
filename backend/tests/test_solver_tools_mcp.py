@@ -15,6 +15,8 @@ from backend.capabilities.solver_tools import (
     solve_frame_displacement,
     solve_sensitivity_analysis,
     solve_truss_member_force,
+    create_solver_verification_package,
+    verify_solver_verification_package,
 )
 from backend.project_documents import create_default_project_document
 from backend.tests.test_frame_workbench import frame_payload
@@ -69,6 +71,88 @@ def test_calculate_tool_returns_unified_summary():
     assert result["status"] == "pass"
     assert result["analysisType"] == "beam"
     assert result["summary"]["statusCode"] == "PASS"
+
+
+def test_verification_package_tools_create_and_replay_same_contract():
+    created = create_solver_verification_package(
+        {"payload": {"beamType": "simply_supported", "loadType": "uniform", "q": 12, "E": 206, "I": 85000, "spans": [6]}}
+    )
+
+    assert created["capabilityId"] == "solver.verification_package_create"
+    assert created["status"] == "pass"
+    assert created["package"]["format"] == "archsight-solver-verification-package"
+
+    verified = verify_solver_verification_package({"package": created["package"]})
+
+    assert verified["capabilityId"] == "solver.verification_package_verify"
+    assert verified["status"] == "pass"
+    assert verified["verification"]["integrityValid"] is True
+    assert verified["verification"]["replayMatched"] is True
+
+
+def test_cli_creates_and_verifies_the_public_verification_package_contract():
+    arguments = {
+        "payload": {
+            "beamType": "simply_supported",
+            "loadType": "uniform",
+            "q": 12,
+            "E": 206,
+            "I": 85000,
+            "spans": [6],
+        }
+    }
+    created_process = subprocess.run(
+        [sys.executable, "-m", "backend.capabilities.solver_cli", "verification_package_create"],
+        input=json.dumps(arguments, ensure_ascii=False),
+        text=True,
+        encoding="utf-8",
+        capture_output=True,
+        check=True,
+    )
+    created = json.loads(created_process.stdout)
+
+    verified_process = subprocess.run(
+        [sys.executable, "-m", "backend.capabilities.solver_cli", "verification_package_verify"],
+        input=json.dumps({"package": created["package"]}, ensure_ascii=False),
+        text=True,
+        encoding="utf-8",
+        capture_output=True,
+        check=True,
+    )
+    verified = json.loads(verified_process.stdout)
+
+    assert created["status"] == "pass"
+    assert verified["status"] == "pass"
+    assert verified["verification"]["replayMatched"] is True
+
+
+def test_mcp_creates_and_verifies_the_public_verification_package_contract():
+    created_call = mcp_server._call_tool(
+        {
+            "name": "verification_package_create",
+            "arguments": {
+                "payload": {
+                    "beamType": "simply_supported",
+                    "loadType": "uniform",
+                    "q": 12,
+                    "E": 206,
+                    "I": 85000,
+                    "spans": [6],
+                }
+            },
+        }
+    )
+    package = created_call["structuredContent"]["package"]
+    verified_call = mcp_server._call_tool(
+        {
+            "name": "verification_package_verify",
+            "arguments": {"package": package},
+        }
+    )
+
+    assert created_call["isError"] is False
+    assert verified_call["isError"] is False
+    assert verified_call["structuredContent"]["verification"]["replayMatched"] is True
 
 
 def test_cli_and_mcp_tool_failures_share_structured_diagnostics():
@@ -179,6 +263,8 @@ def test_mcp_server_lists_and_calls_tools_over_stdio():
         "benchmark_case_run",
         "project_document_health",
         "project_template_registry",
+        "verification_package_create",
+        "verification_package_verify",
     } <= tool_names
     tool_defs = {tool["name"]: tool for tool in responses[1]["result"]["tools"]}
     assert tool_defs["calculate"]["annotations"]["readOnlyHint"] is True
@@ -190,6 +276,8 @@ def test_mcp_server_lists_and_calls_tools_over_stdio():
     )
     assert tool_defs["project_document_health"]["inputSchema"]["title"] == "项目文档工具输入"
     assert tool_defs["project_template_registry"]["inputSchema"]["title"] == "空工具输入"
+    assert tool_defs["verification_package_create"]["inputSchema"]["title"] == "可信计算包生成输入"
+    assert tool_defs["verification_package_verify"]["inputSchema"]["title"] == "可信计算包复算输入"
     call_result = responses[2]["result"]
     assert call_result["isError"] is False
     assert call_result["structuredContent"]["capabilityId"] == "solver.beam_deflection_serviceability_check"

@@ -87,6 +87,7 @@ def build_openapi_document() -> Dict[str, Any]:
             {"name": "export", "description": "计算书导出"},
             {"name": "examples", "description": "公开工程案例与验证集工程入口"},
             {"name": "benchmark-submissions", "description": "公开验证算例投稿前自动校验"},
+            {"name": "verification-packages", "description": "可信计算包生成、完整性校验与复算"},
         ],
     }
 
@@ -149,6 +150,29 @@ def _paths() -> Dict[str, Any]:
                 "requestBody": _json_request("sensitivity-payload"),
                 "responses": {
                     **_json_response("sensitivity-response"),
+                    **_error_response(),
+                },
+            }
+        },
+        "/api/verification-packages": {
+            "post": {
+                "tags": ["verification-packages"],
+                "summary": "生成可信计算包并立即复算校验",
+                "description": "保存原始输入、规范化请求、模型、完整结果与 SHA-256 完整性摘要；摘要不是数字签名或工程签审。",
+                "requestBody": _json_request("verification-package-create-input"),
+                "responses": {
+                    **_json_response("verification-package-create-response"),
+                    **_error_response(),
+                },
+            }
+        },
+        "/api/verification-packages/verify": {
+            "post": {
+                "tags": ["verification-packages"],
+                "summary": "校验并复算可信计算包",
+                "requestBody": _json_request("verification-package-verify-input"),
+                "responses": {
+                    **_json_response("verification-package-verify-response"),
                     **_error_response(),
                 },
             }

@@ -33,6 +33,7 @@ from backend.services.beam_workbench import build_solution as build_beam_solutio
 from backend.services.frame_workbench import build_solution as build_frame_solution
 from backend.services.truss_workbench import build_solution as build_truss_solution
 from backend.template_registry import list_builtin_template_registry
+from backend.verification_package import create_verification_package, verify_verification_package
 
 CAPABILITY_VERSION = "2026-05-25"
 
@@ -298,6 +299,57 @@ def solve_calculate(arguments: Mapping[str, Any]) -> Dict[str, Any]:
         return _error_result(capability_id, _contextual_tool_error(exc, "通用求解失败"), analysis_type=analysis_type)
 
 
+def create_solver_verification_package(arguments: Mapping[str, Any]) -> Dict[str, Any]:
+    capability_id = "solver.verification_package_create"
+    raw_payload = arguments.get("payload")
+    analysis_type = analysis_type_for_error(raw_payload if isinstance(raw_payload, Mapping) else None)
+    try:
+        if not isinstance(raw_payload, Mapping):
+            raise ToolInputError("payload 必须是结构求解输入对象")
+        evidence = arguments.get("evidence")
+        if evidence is not None and not isinstance(evidence, Mapping):
+            raise ToolInputError("evidence 必须是对象")
+        package = create_verification_package(raw_payload, evidence=evidence)
+        verification = verify_verification_package(package)
+        return {
+            "capabilityId": capability_id,
+            "capabilityVersion": CAPABILITY_VERSION,
+            "status": verification["status"],
+            "inputValidated": True,
+            "analysisType": package["analysis"]["analysisType"],
+            "package": package,
+            "verification": verification,
+            "warnings": [
+                "SHA-256 仅用于内容完整性校验，不是数字签名、工程认证或设计签审结论。"
+            ],
+        }
+    except ToolInputError as exc:
+        return _invalid_result(capability_id, exc, analysis_type=analysis_type)
+    except Exception as exc:
+        return _error_result(capability_id, _contextual_tool_error(exc, "可信计算包生成失败"), analysis_type=analysis_type)
+
+
+def verify_solver_verification_package(arguments: Mapping[str, Any]) -> Dict[str, Any]:
+    capability_id = "solver.verification_package_verify"
+    package = arguments.get("package")
+    try:
+        if not isinstance(package, Mapping):
+            raise ToolInputError("package 必须是验证包对象")
+        verification = verify_verification_package(package)
+        return {
+            "capabilityId": capability_id,
+            "capabilityVersion": CAPABILITY_VERSION,
+            "status": verification["status"],
+            "inputValidated": True,
+            "verification": verification,
+            "warnings": list(verification["warnings"]),
+        }
+    except ToolInputError as exc:
+        return _invalid_result(capability_id, exc)
+    except Exception as exc:
+        return _error_result(capability_id, _contextual_tool_error(exc, "可信计算包复算失败"))
+
+
 def solve_sensitivity_analysis(arguments: Mapping[str, Any]) -> Dict[str, Any]:
     capability_id = "solver.sensitivity_analysis"
     raw_payload = arguments.get("payload")
@@ -546,6 +598,8 @@ TOOL_HANDLERS: Dict[str, ToolHandler] = {
     "frame_displacement": solve_frame_displacement,
     "truss_member_force": solve_truss_member_force,
     "calculate": solve_calculate,
+    "verification_package_create": create_solver_verification_package,
+    "verification_package_verify": verify_solver_verification_package,
     "sensitivity_analysis": solve_sensitivity_analysis,
     "benchmark_case_list": list_benchmark_cases,
     "benchmark_case_run": run_benchmark_case,

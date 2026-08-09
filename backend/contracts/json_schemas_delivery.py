@@ -240,9 +240,173 @@ TEMPLATE_REGISTRY_SCHEMA: Dict[str, Any] = {
     "additionalProperties": True,
 }
 
+VERIFICATION_HASH_SCHEMA: Dict[str, Any] = {
+    "type": "string",
+    "pattern": "^[0-9a-f]{64}$",
+}
+
+VERIFICATION_PACKAGE_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("solver-verification-package"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "ArchSight Solver 可信计算包",
+    "description": "保存单次结构求解输入、结果、来源证据和 SHA-256 完整性摘要，支持当前求解器复算。摘要不是数字签名或工程签审。",
+    "type": "object",
+    "required": ["format", "formatVersion", "createdAt", "solver", "analysis", "evidence", "replayPolicy", "integrity"],
+    "properties": {
+        "format": {"type": "string", "const": "archsight-solver-verification-package"},
+        "formatVersion": {"type": "string", "const": "1.0.0"},
+        "createdAt": {"type": "string", "format": "date-time"},
+        "solver": {
+            "type": "object",
+            "required": ["name", "version", "responseEnvelopeVersion", "calculationStorageSchema"],
+            "properties": {
+                "name": {"type": "string", "const": "archsight-solver"},
+                "version": {"type": "string", "minLength": 1},
+                "responseEnvelopeVersion": {"type": "string", "const": "v1"},
+                "calculationStorageSchema": {"type": "string", "const": "solver-calculation-result@1"},
+            },
+            "additionalProperties": False,
+        },
+        "analysis": {
+            "type": "object",
+            "required": ["analysisType", "input", "request", "model", "recordedResult", "diagnostics"],
+            "properties": {
+                "analysisType": {"type": "string", "enum": ["beam", "frame", "truss"]},
+                "input": {"type": "object", "additionalProperties": True},
+                "request": {"type": "object", "additionalProperties": True},
+                "normalizedRequest": {"type": "object", "additionalProperties": True},
+                "model": {"type": "object", "additionalProperties": True},
+                "recordedResult": {"type": "object", "additionalProperties": True},
+                "diagnostics": {"type": "object", "additionalProperties": True},
+            },
+            "additionalProperties": False,
+        },
+        "evidence": {"type": "object", "additionalProperties": True},
+        "replayPolicy": {
+            "type": "object",
+            "required": ["absoluteTolerance", "relativeTolerance", "ignoredPaths"],
+            "properties": {
+                "absoluteTolerance": {"type": "number", "const": 1e-8},
+                "relativeTolerance": {"type": "number", "const": 1e-6},
+                "ignoredPaths": {"type": "array", "maxItems": 0},
+            },
+            "additionalProperties": False,
+        },
+        "integrity": {
+            "type": "object",
+            "required": ["algorithm", "inputHash", "requestHash", "modelHash", "recordedResultHash", "packageHash"],
+            "properties": {
+                "algorithm": {"type": "string", "const": "sha256"},
+                "inputHash": VERIFICATION_HASH_SCHEMA,
+                "requestHash": VERIFICATION_HASH_SCHEMA,
+                "modelHash": VERIFICATION_HASH_SCHEMA,
+                "recordedResultHash": VERIFICATION_HASH_SCHEMA,
+                "packageHash": VERIFICATION_HASH_SCHEMA,
+            },
+            "additionalProperties": False,
+        },
+    },
+    "additionalProperties": False,
+}
+
+VERIFICATION_PACKAGE_CREATE_INPUT_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("verification-package-create-input"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "可信计算包生成输入",
+    "type": "object",
+    "required": ["payload"],
+    "properties": {
+        "payload": {"type": "object", "additionalProperties": True},
+        "evidence": {"type": "object", "additionalProperties": True},
+    },
+    "additionalProperties": False,
+}
+
+VERIFICATION_PACKAGE_VERIFY_INPUT_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("verification-package-verify-input"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "可信计算包复算输入",
+    "type": "object",
+    "required": ["package"],
+    "properties": {"package": VERIFICATION_PACKAGE_SCHEMA},
+    "additionalProperties": False,
+}
+
+VERIFICATION_PACKAGE_REPORT_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("verification-package-report"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "可信计算包复算报告",
+    "type": "object",
+    "required": ["status", "formatValid", "integrityValid", "replayMatched", "versionMatch", "recordedSolverVersion", "currentSolverVersion", "mismatches", "warnings", "disclaimer"],
+    "properties": {
+        "status": {"type": "string", "enum": ["pass", "review", "fail"]},
+        "formatValid": {"type": "boolean"},
+        "integrityValid": {"type": "boolean"},
+        "replayMatched": {"type": ["boolean", "null"]},
+        "versionMatch": {"type": "boolean"},
+        "recordedSolverVersion": {"type": ["string", "null"]},
+        "currentSolverVersion": {"type": "string"},
+        "mismatches": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+                "type": "object",
+                "required": ["path", "detail"],
+                "properties": {
+                    "path": {"type": "string"},
+                    "detail": {"type": "string"},
+                    "expected": {},
+                    "actual": {},
+                },
+                "additionalProperties": False,
+            },
+        },
+        "warnings": {"type": "array", "items": {"type": "string"}},
+        "disclaimer": {"type": "string"},
+    },
+    "additionalProperties": False,
+}
+
+VERIFICATION_PACKAGE_CREATE_RESPONSE_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("verification-package-create-response"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "可信计算包生成响应",
+    "type": "object",
+    "required": ["success", "operation", "version", "package", "verification"],
+    "properties": {
+        "success": {"type": "boolean", "const": True},
+        "operation": {"type": "string", "const": "verification_package_create"},
+        "version": {"type": "string", "const": "v1"},
+        "package": VERIFICATION_PACKAGE_SCHEMA,
+        "verification": VERIFICATION_PACKAGE_REPORT_SCHEMA,
+    },
+    "additionalProperties": False,
+}
+
+VERIFICATION_PACKAGE_VERIFY_RESPONSE_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("verification-package-verify-response"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "可信计算包复算响应",
+    "type": "object",
+    "required": ["success", "operation", "version", "verification"],
+    "properties": {
+        "success": {"type": "boolean", "const": True},
+        "operation": {"type": "string", "const": "verification_package_verify"},
+        "version": {"type": "string", "const": "v1"},
+        "verification": VERIFICATION_PACKAGE_REPORT_SCHEMA,
+    },
+    "additionalProperties": False,
+}
+
 DELIVERY_SCHEMA_REGISTRY: Dict[str, Dict[str, Any]] = {
     "project-file-manifest": PROJECT_FILE_MANIFEST_SCHEMA,
     "solver-host-message": HOST_MESSAGE_SCHEMA,
     "solver-artifact-manifest": ARTIFACT_MANIFEST_SCHEMA,
     "solver-template-registry": TEMPLATE_REGISTRY_SCHEMA,
+    "solver-verification-package": VERIFICATION_PACKAGE_SCHEMA,
+    "verification-package-create-input": VERIFICATION_PACKAGE_CREATE_INPUT_SCHEMA,
+    "verification-package-verify-input": VERIFICATION_PACKAGE_VERIFY_INPUT_SCHEMA,
+    "verification-package-report": VERIFICATION_PACKAGE_REPORT_SCHEMA,
+    "verification-package-create-response": VERIFICATION_PACKAGE_CREATE_RESPONSE_SCHEMA,
+    "verification-package-verify-response": VERIFICATION_PACKAGE_VERIFY_RESPONSE_SCHEMA,
 }

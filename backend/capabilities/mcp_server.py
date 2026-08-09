@@ -21,6 +21,10 @@ from backend.contracts.json_schemas import (
     TRUSS_TOOL_INPUT_SCHEMA,
     schema_registry,
 )
+from backend.contracts.json_schemas_delivery import (
+    VERIFICATION_PACKAGE_CREATE_INPUT_SCHEMA,
+    VERIFICATION_PACKAGE_VERIFY_INPUT_SCHEMA,
+)
 
 PROTOCOL_VERSION = "2025-06-18"
 SERVER_NAME = "archsight-solver-mcp"
@@ -87,6 +91,22 @@ TOOL_DEFINITIONS = [
         "inputSchema": CALCULATE_TOOL_INPUT_SCHEMA,
         "outputSchema": CAPABILITY_RESULT_SCHEMA,
         "annotations": {**READ_ONLY_ANNOTATIONS, "title": "通用结构求解"},
+    },
+    {
+        "name": "verification_package_create",
+        "title": "生成可信计算包",
+        "description": "调用通用结构求解链，保存输入、模型、完整结果、证据与 SHA-256 摘要，并立即执行复算校验。",
+        "inputSchema": VERIFICATION_PACKAGE_CREATE_INPUT_SCHEMA,
+        "outputSchema": CAPABILITY_RESULT_SCHEMA,
+        "annotations": {**READ_ONLY_ANNOTATIONS, "title": "生成可信计算包"},
+    },
+    {
+        "name": "verification_package_verify",
+        "title": "校验并复算可信计算包",
+        "description": "检查可信计算包格式与 SHA-256 完整性，并用当前求解器复算；摘要不构成数字签名或工程签审。",
+        "inputSchema": VERIFICATION_PACKAGE_VERIFY_INPUT_SCHEMA,
+        "outputSchema": CAPABILITY_RESULT_SCHEMA,
+        "annotations": {**READ_ONLY_ANNOTATIONS, "title": "校验并复算可信计算包"},
     },
     {
         "name": "sensitivity_analysis",
