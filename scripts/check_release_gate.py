@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_PATHS = (
     ".github/workflows/release.yml",
     ".github/workflows/nightly-quality.yml",
+    "docs/verification/release-1-7-acceptance.md",
     "docs/verification/release-1-6-3-acceptance.md",
     "docs/verification/release-1-6-2-acceptance.md",
     "docs/verification/release-1-6-1-acceptance.md",
@@ -44,6 +45,8 @@ REQUIRED_MARKERS = {
         "ARG VITE_ENABLE_BUSUANZI=true",
         "ARG VITE_UMAMI_ENABLED=true",
         "ARG VITE_UMAMI_WEBSITE_ID=21791f13-6214-44db-8724-0e1dcd656bfb",
+        "COPY LICENSE /app/LICENSE",
+        "COPY pyproject.toml ./pyproject.toml",
         "node:22-bookworm-slim@sha256:6c74791e557ce11fc957704f6d4fe134a7bc8d6f5ca4403205b2966bd488f6b3",
         "python:3.13-slim@sha256:6771159cd4fa5d9bba1258caf0b82e6b73458c694d178ad97c5e925c2d0e1a91",
     ),
@@ -158,24 +161,24 @@ def main() -> int:
 
     deploy_expectations = {
         "deploy/.env.example": (
-            "IMAGE_TAG=v1.6.3",
+            "IMAGE_TAG=v1.7.0",
             "NODE_IMAGE=public.ecr.aws/docker/library/node:22-bookworm-slim@sha256:",
             "PYTHON_IMAGE=public.ecr.aws/docker/library/python:3.13-slim@sha256:",
             "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS=",
         ),
         "deploy/docker-compose.yml.example": (
-            "${IMAGE_TAG:-v1.6.3}",
+            "${IMAGE_TAG:-v1.7.0}",
             "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS: ${ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS:-}",
         ),
         "deploy/deploy.sh": (
-            '${IMAGE_TAG:-v1.6.3}',
+            '${IMAGE_TAG:-v1.7.0}',
             'ps --all --quiet',
             "docker inspect --format",
             "DEPLOY_HEALTH_TIMEOUT_SECONDS",
             "logs --tail=100",
             "wait_for_services_healthy",
         ),
-        "docs/deployment.md": ("archsight-solver:v1.6.3", "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS", "VITE_UMAMI_WEBSITE_ID"),
+        "docs/deployment.md": ("archsight-solver:v1.7.0", "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS", "VITE_UMAMI_WEBSITE_ID"),
     }
     for relative_path, expected_markers in deploy_expectations.items():
         text = (ROOT / relative_path).read_text(encoding="utf-8")

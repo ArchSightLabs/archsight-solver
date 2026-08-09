@@ -1,4 +1,5 @@
 from copy import deepcopy
+from importlib import metadata
 
 import pytest
 
@@ -7,6 +8,7 @@ from backend.tests.test_truss_workbench import _base_payload
 from backend.verification_package import (
     VERIFICATION_PACKAGE_FORMAT,
     VERIFICATION_PACKAGE_FORMAT_VERSION,
+    _solver_version,
     create_verification_package,
     verify_verification_package,
 )
@@ -22,6 +24,17 @@ def _beam_payload():
         "spanProperties": [{"E": 206.0, "I": 85000.0}],
         "q": 12.0,
     }
+
+
+def test_solver_version_falls_back_to_source_project_metadata(monkeypatch):
+    def missing_distribution(_distribution_name: str):
+        raise metadata.PackageNotFoundError
+
+    from backend import verification_package
+
+    monkeypatch.setattr(verification_package.metadata, "version", missing_distribution)
+
+    assert _solver_version() == "1.7.0"
 
 
 def test_verification_package_replays_and_validates_integrity():

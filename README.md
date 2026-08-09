@@ -69,7 +69,7 @@ npm --prefix frontend run test:unit
 
 ## v1.7.0 版本主题
 
-v1.7.0 把 Solver 从“可计算、可导出”提升为“可携带、可复核、可嵌入”的开放结构计算基础设施，同时继续保持 Apache-2.0 开源、免费和既有二维线弹性静力分析边界。
+v1.7.0 于 2026-08-09 发布，把 Solver 从“可计算、可导出”提升为“可携带、可复核、可嵌入”的开放结构计算基础设施，同时继续保持 Apache-2.0 开源、免费和既有二维线弹性静力分析边界。
 
 - 工作台、REST、CLI 与 MCP 共享 `archsight-solver-verification-package@1.0.0`，可生成、校验并复算同一种可信计算包。
 - Python wheel/sdist 与无框架 Host Client tarball 作为 GitHub Release 资产分发，不强制依赖 PyPI 或 npm registry。
@@ -77,6 +77,8 @@ v1.7.0 把 Solver 从“可计算、可导出”提升为“可携带、可复�
 - 发布门槛来自仓库内自动化、三类黄金流程、浏览器、Docker 和制品证据，不依赖外部访谈、招募试用者或第三方接入数量。
 
 直接开始：[五分钟路径](docs/quickstart.md) · [可信计算包指南](docs/verification-package.md) · [三条黄金流程](docs/golden-flows.md) · [English entry](README.en.md)
+
+完整验证证据、Tag Release 门禁与回滚边界见 [v1.7.0 发布验收](docs/verification/release-1-7-acceptance.md)。
 
 ## v1.3.0 发布重点
 
@@ -191,6 +193,7 @@ uv run python -m backend.benchmarks.catalog_summary --output docs/verification/b
 | [公开验证集报告](docs/verification/benchmark-validation-report.md) | 当前公开验证集自动生成报告 | 当前验证报告 |
 | [Benchmark 算例目录摘要](docs/verification/benchmark-catalog-summary.md) | 按结构体系列出算例目的、来源、标准值、容差和模板映射 | 当前验证摘要 |
 | [跨浏览器视觉回归](docs/verification/visual-regression.md) | 前端工作台视觉回归说明 | 当前验证说明 |
+| [v1.7.0 发布验收](docs/verification/release-1-7-acceptance.md) | 可信计算包、开发者分发、三浏览器与 Docker 候选证据 | v1.7.0 发布基线 |
 | [v1.6.3 发布验收](docs/verification/release-1-6-3-acceptance.md) | 可靠性补丁、验证证据、镜像与发布授权边界 | v1.6.3 发布基线 |
 | [v1.6.2 发布验收](docs/verification/release-1-6-2-acceptance.md) | 工作台与宿主接入统一验收、镜像门禁、升级与回滚 | v1.6.2 发布基线 |
 | [v1.6.1 发布验收清单](docs/verification/release-1-6-1-acceptance.md) | 真实双 origin Reference Host、项目契约、版本与发布门禁 | v1.6.1 发布基线 |

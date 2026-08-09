@@ -2,7 +2,7 @@
 
 本目录用于服务器生产部署，部署方式为：拉取已构建好的应用镜像，将应用容器绑定到宿主机本地端口，再由公共 Nginx 反向代理。
 
-当前仓库稳定版本为 2026-08-07 发布的 v1.6.3。GitHub Tag Release 生成 GitHub Release、不可变 GHCR 镜像和校验制品；只有目标镜像仓库中的 v1.6.3 不可变镜像真实存在并完成摘要核对后才能部署，其他目标镜像仓库推送及线上更新仍由维护者独立执行。
+当前仓库稳定版本为 2026-08-09 发布的 v1.7.0。GitHub Tag Release 生成 GitHub Release、不可变 GHCR 镜像和校验制品；只有目标镜像仓库中的 v1.7.0 不可变镜像真实存在并完成摘要核对后才能部署，其他目标镜像仓库推送及线上更新仍由维护者独立执行。
 
 ## 目录结构
 
@@ -32,7 +32,7 @@ cp docker-compose.yml.example docker-compose.yml
 主要变量：
 
 - `IMAGE_REPOSITORY`：应用镜像仓库地址，不包含 TAG。
-- `IMAGE_TAG`：应用镜像 TAG，当前默认 `v1.6.3`；正式环境只能使用已经发布且完成摘要核对的不可变版本标签，不使用 `latest`。
+- `IMAGE_TAG`：应用镜像 TAG，当前默认 `v1.7.0`；正式环境只能使用已经发布且完成摘要核对的不可变版本标签，不使用 `latest`。
 - `NODE_IMAGE`：前端构建基础镜像；示例使用带 digest 的官方 Public ECR Docker Library 镜像，避免依赖不稳定的 Docker Hub 代理。
 - `PYTHON_IMAGE`：运行时基础镜像；与 `NODE_IMAGE` 一样固定 digest，可按网络环境切换 registry，但不得省略 digest。
 - `APP_HOST_BIND`：宿主机监听地址，默认 `127.0.0.1`，避免直接暴露容器端口。
@@ -53,19 +53,19 @@ cp docker-compose.yml.example docker-compose.yml
 如需部署指定镜像 TAG，可修改 `.env`：
 
 ```env
-IMAGE_TAG=v1.6.3
+IMAGE_TAG=v1.7.0
 ```
 
 也可以用部署脚本临时覆盖，不会改写 `.env`：
 
 ```bash
-./deploy.sh v1.6.3
+./deploy.sh v1.7.0
 ```
 
 构建镜像时同样使用该 TAG：
 
 ```powershell
-..\scripts\build-image.ps1 -Tag v1.6.3 -Push
+..\scripts\build-image.ps1 -Tag v1.7.0 -Push
 ```
 
 若不传 `-Tag`，构建脚本会读取 `deploy/.env` 中的 `IMAGE_TAG`。构建脚本也会读取 `NODE_IMAGE` 与 `PYTHON_IMAGE` 并显式传入 Dockerfile；需要主动刷新固定基础镜像时使用 `-RefreshBaseImages`，不应把本地缓存是否存在当作构建成功条件。
@@ -73,13 +73,13 @@ IMAGE_TAG=v1.6.3
 在 Windows 本地可以通过 SSH 远程触发服务器部署：
 
 ```powershell
-.\scripts\remote-deploy.ps1 -Server your-server -User root -DeployPath /opt/archsight-solver/deploy -Tag v1.6.3
+.\scripts\remote-deploy.ps1 -Server your-server -User root -DeployPath /opt/archsight-solver/deploy -Tag v1.7.0
 ```
 
 如果需要本地先构建并推送镜像，再远程更新服务器：
 
 ```powershell
-.\scripts\remote-deploy.ps1 -Server your-server -User root -DeployPath /opt/archsight-solver/deploy -Tag v1.6.3 -BuildAndPush
+.\scripts\remote-deploy.ps1 -Server your-server -User root -DeployPath /opt/archsight-solver/deploy -Tag v1.7.0 -BuildAndPush
 ```
 
 部署脚本会自动兼容新版 Compose 与旧版 Compose：
@@ -103,7 +103,7 @@ docker compose down
 
 ## 发布后检查与回滚
 
-正式更新前记录当前镜像标签，并确保该标签仍可从镜像仓库拉取。仅在 v1.6.3 已正式发布且目标镜像摘要核对完成后执行 `./deploy.sh v1.6.3`；脚本只有在 Compose 容器通过 Docker 健康检查后才会返回成功。若容器进入 `unhealthy` / `exited` / `dead` 状态或等待超时，脚本会打印最近 100 行日志并以非零状态退出。脚本成功后，仍应人工检查首页、三类分析对象的典型求解以及 DOCX / XLSX 导出入口。
+正式更新前记录当前镜像标签，并确保该标签仍可从镜像仓库拉取。仅在 v1.7.0 已正式发布且目标镜像摘要核对完成后执行 `./deploy.sh v1.7.0`；脚本只有在 Compose 容器通过 Docker 健康检查后才会返回成功。若容器进入 `unhealthy` / `exited` / `dead` 状态或等待超时，脚本会打印最近 100 行日志并以非零状态退出。脚本成功后，仍应人工检查首页、三类分析对象的典型求解以及 DOCX / XLSX / 可信计算包导出入口。
 
 ```bash
 docker inspect --format '{{.Config.Image}} {{if .State.Health}}{{.State.Health.Status}}{{end}}' archsight-solver-app
@@ -113,7 +113,7 @@ docker compose logs --tail=200 app
 若健康检查失败、核心求解不可用或导出链路异常，使用更新前记录的不可变标签重新执行部署。以下示例回退到上一正式版本；实际标签以发布记录为准：
 
 ```bash
-./deploy.sh v1.6.2
+./deploy.sh v1.6.3
 docker inspect --format '{{.Config.Image}} {{if .State.Health}}{{.State.Health.Status}}{{end}}' archsight-solver-app
 ```
 

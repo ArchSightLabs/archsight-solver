@@ -84,6 +84,27 @@ def main() -> int:
             f"{notes_state!r} / {notes_state_value!r}"
         )
 
+    release_markers = {
+        "README.en.md": (
+            f"archsight_solver-{expected}-py3-none-any.whl",
+            f"ghcr.io/archsightlabs/archsight-solver:v{expected}",
+            f"archsight-solver-host-client-{expected}.tgz",
+        ),
+        "docs/en/quickstart.md": (
+            f"archsight_solver-{expected}-py3-none-any.whl",
+            f"archsight-solver-v{expected}.tar.gz",
+            f"ghcr.io/archsightlabs/archsight-solver:v{expected}",
+            f"archsight-solver-host-client-{expected}.tgz",
+        ),
+        "docs/quickstart.md": (f"archsight_solver-{expected}-py3-none-any.whl",),
+        "docs/golden-flows.md": (f"archsight_solver-{expected}-py3-none-any.whl",),
+    }
+    for relative_path, markers in release_markers.items():
+        text = (ROOT / relative_path).read_text(encoding="utf-8")
+        for marker in markers:
+            if marker not in text:
+                mismatches.append(f"{relative_path} 发布资产版本未对齐: {marker!r}")
+
     if mismatches:
         print(f"版本检查失败: 期望所有发布入口均为 {expected}")
         for mismatch in mismatches:

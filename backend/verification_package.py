@@ -3,9 +3,11 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import tomllib
 from copy import deepcopy
 from datetime import datetime, timezone
 from importlib import metadata
+from pathlib import Path
 from typing import Any, Dict, Mapping
 
 from backend.application.calculation import build_calculation_result
@@ -23,7 +25,13 @@ def _solver_version() -> str:
     try:
         return metadata.version("archsight-solver")
     except metadata.PackageNotFoundError:
-        return "unknown"
+        pyproject_path = Path(__file__).resolve().parents[1] / "pyproject.toml"
+        try:
+            pyproject = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
+            version = pyproject["project"]["version"]
+        except (FileNotFoundError, KeyError, OSError, tomllib.TOMLDecodeError):
+            return "unknown"
+        return version if isinstance(version, str) and version else "unknown"
 
 
 def _canonical_json(value: Any) -> str:

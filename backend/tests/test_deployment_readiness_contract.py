@@ -163,6 +163,21 @@ def test_runtime_image_removes_build_only_package_installer():
     assert dockerfile.index(install_dependencies) < dockerfile.index(remove_installer)
 
 
+def test_frontend_image_includes_license_required_by_host_client_build():
+    dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+
+    copy_license = "COPY LICENSE /app/LICENSE"
+    build_frontend = 'RUN NODE_OPTIONS="--max-old-space-size=4096" npm run build'
+    assert copy_license in dockerfile
+    assert dockerfile.index(copy_license) < dockerfile.index(build_frontend)
+
+
+def test_runtime_image_includes_project_version_source():
+    dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+
+    assert "COPY pyproject.toml ./pyproject.toml" in dockerfile
+
+
 def test_deploy_script_waits_until_the_container_is_healthy(tmp_path):
     completed = _run_deploy_with_fake_docker(tmp_path, health_mode="healthy")
 

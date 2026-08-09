@@ -2,6 +2,30 @@
 
 <!-- 本文件由根目录 CHANGELOG.md 生成，请勿直接编辑；运行 npm --prefix frontend run sync:release-notes 更新。 -->
 
+## v1.7.0
+
+发布时间：2026-08-09
+
+本版把 Solver 从“可计算、可导出”推进为“可携带、可复核、可嵌入”的开放结构计算基础设施。项目继续保持 Apache-2.0 开源、免费，不新增账号、组织、订阅、远程存储或平台业务，也不扩大到三维、动力、非线性、规范设计和工程签审；发布验收依赖仓库内可复现证据，不把外部访谈、试用者招募或第三方接入数量设为门槛。
+
+重点变化：
+
+- 新增 `archsight-solver-verification-package@1.0.0` 可信计算包，统一携带原始输入、归一化请求、计算模型、记录结果、诊断、来源证据、求解器版本、复算策略与 SHA-256 完整性摘要。
+- REST API、CLI 与 MCP 共用同一套可信计算包生成、校验和复算能力；固定绝对/相对容差返回 `pass`、`review` 或 `fail`，并区分完整性与数值复算结论。
+- 工作台“成果导出”可直接下载 `.solver-verification.json`；导出期间若工程修订或分析对象发生变化，会丢弃迟到响应，避免把新工程与旧结果拼成伪证据。
+- Python wheel/sdist 纳入运行时资源并通过隔离安装检查，安装后无需源码仓库即可使用 CLI/MCP；无框架 `@archsight/solver-host-client` 作为独立 tarball 分发，保持 Host Protocol `1.0.0`。
+- Tag Release 同步生成 wheel、sdist、Host Client tarball、不可变 GHCR 镜像、离线镜像归档、SPDX SBOM、Trivy 报告和 `SHA256SUMS`，支持开发者从 GitHub Release 直接获取可核验资产。
+- 新增中英文五分钟路径、可信计算包指南与三条黄金流程，覆盖结构工程师、开发者和 Agent Host；三类结构对象共享同一套创建、验证和浏览器导出验收。
+- 保留 Busuanzi 公开累计 PV/UV，并可按官方域名白名单启用自托管 Umami 匿名里程碑事件；默认关闭，不采集模型、参数、项目、文件、计算结果或身份。
+
+质量门禁：
+
+- 后端全量测试 631 passed、2 skipped；独立刚度法 26/26 通过，契约生成、运行时资源同步和发布工程检查通过。
+- 前端 lint / TypeScript、408 项单元测试和生产构建通过；production moderate 与完整工具链 high 依赖审计均为 0 vulnerabilities。
+- Chromium / Firefox / WebKit 的三类可信计算包导出与复算 9/9、DOCX 导出 12/12 通过；Chromium 工程生命周期、诊断、结果有效性与跨版本 Host/工作台回归全部通过。
+- wheel/sdist 与 Host Client tarball 在独立目录中完成全依赖安装、运行、类型和协议检查；构建后 Docker 镜像以非 root 用户运行并通过健康、REST/模块 CLI 可信计算包与 Host 集成验证。
+- 正式 Tag 工作流必须在同一提交复跑全部门禁并生成 GitHub Release 制品；其他镜像仓库推送与线上服务器更新继续作为独立操作。
+
 ## v1.6.3
 
 发布时间：2026-08-07

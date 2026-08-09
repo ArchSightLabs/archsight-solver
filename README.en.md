@@ -63,9 +63,9 @@ See the [English quickstart](docs/en/quickstart.md) for GitHub Release installat
 
 Each v1.7 GitHub Release is designed to include:
 
-- Python wheel and source distribution for the CLI and MCP server.
-- `@archsight/solver-host-client` tarball with zero runtime dependencies.
-- Immutable GHCR image and an offline Docker image archive.
+- Python wheel `archsight_solver-1.7.0-py3-none-any.whl` and source distribution for the CLI and MCP server.
+- `archsight-solver-host-client-1.7.0.tgz` with zero runtime dependencies.
+- Immutable `ghcr.io/archsightlabs/archsight-solver:v1.7.0` image and an offline Docker image archive.
 - SPDX SBOM, Trivy report, and `SHA256SUMS`.
 
 PyPI and npm registry publication are not required. The versioned assets attached to the GitHub Release are the direct distribution path.

@@ -29,6 +29,7 @@ RUN npm ci --include=optional \
 
 COPY frontend/ ./
 COPY CHANGELOG.md /app/CHANGELOG.md
+COPY LICENSE /app/LICENSE
 COPY data/ /app/data/
 COPY shared/ /app/shared/
 RUN NODE_OPTIONS="--max-old-space-size=4096" npm run build
@@ -59,6 +60,7 @@ RUN pip install --no-compile --retries 5 --timeout 120 --upgrade pip \
 
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 COPY app.py ./app.py
+COPY pyproject.toml ./pyproject.toml
 COPY backend ./backend
 COPY config ./config
 COPY data ./data
