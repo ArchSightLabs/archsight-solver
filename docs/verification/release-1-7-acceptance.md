@@ -1,6 +1,6 @@
 # v1.7.0 发布验收
 
-> 状态：发布线合并候选 GO。代码与本地候选制品已通过；只有 Tag Release、目标镜像和线上部署继续通过，才恢复为正式发布 GO。
+> 状态：正式发布 GO。合并后的 Tag、Release、分发资产、目标镜像和线上部署均已通过验证。
 
 ## 发布定位
 
@@ -30,12 +30,12 @@ v1.7.0 的主题是“可携带、可复核、可解释”。本版把两条原�
 
 ## 正式发布门禁
 
-- [ ] 合并提交的主分支 CI 全绿。
-- [ ] 重建后的 `v1.7.0` 标注 Tag 与 GitHub Release 指向同一提交。
-- [ ] GHCR、离线镜像、SPDX SBOM、Trivy 报告和 `SHA256SUMS` 可核验。
-- [ ] 同日临时发布的 `v1.8.0` Release 与 Tag 已撤下，重写前证据保留在维护记录中。
-- [ ] 目标镜像仓库和线上部署使用合并后的 `v1.7.0`，三条路径完成真实求解及 DOCX、XLSX、可信计算包下载。
-- [ ] 上一可用镜像、部署配置和回滚动作已记录。
+- [x] 合并提交的主分支 CI 全绿。
+- [x] 重建后的 `v1.7.0` 标注 Tag 与 GitHub Release 指向同一提交。
+- [x] GHCR、离线镜像、SPDX SBOM、Trivy 报告和 `SHA256SUMS` 可核验。
+- [x] 同日临时发布的 `v1.8.0` Release 与 Tag 已撤下，重写前证据保留在维护记录中。
+- [x] 目标镜像仓库和线上部署使用合并后的 `v1.7.0`，三条路径完成真实求解及 DOCX、XLSX、可信计算包下载。
+- [x] 上一可用镜像、部署配置和回滚动作已记录。
 
 ## 候选复核命令
 
@@ -69,6 +69,17 @@ git diff --check
 - Host Client：版本 1.7.0、零运行时依赖、运行时导入、类型导入与 Host Protocol `1.0.0` 通过。
 - 候选镜像：`archsight-solver:1.7.0-consolidated-rc`，镜像 ID `sha256:14ead4273b04de11ca98de9450e36d326dfd5d1a204cd996dfa881e9a9260617`，用户 `app`、健康状态 `healthy`、首页 200；构建后学习路径 3/3、canonical Host 1/1 通过。
 - 本地分发摘要：wheel `61d16c5e1e44eae9e58deb28e9f24f61c2ac644e8a37bd2434b88a1eee674803`；sdist `223f0301ae0036ff17365b7d94c2ad412c0d1cb237a2fb890e43b16eb694b59a`；Host Client `0ccf112912d824a4996ee06f829e8eeee821223ed70ad7e1fea07e52ab893da6`。
+
+## 正式发布证据（2026-08-09）
+
+- 合并提交 `b52641c5ff0023fcf161c9e5cde396ffb3abf65a` 的主分支 CI `31319672328` 全绿，覆盖后端、前端工作台、Windows 原生构建和 Docker Release Gate。
+- 重建后的标注 Tag `v1.7.0` 指向 `b52641c`；Release 流水线 `31320083589` 全绿，GitHub Release 于 `2026-08-09T15:10:03Z` 发布并成为 latest。
+- 7 个 Release 资产全部可下载；`SHA256SUMS` 的 6 个制品条目全部独立复核匹配，wheel 与 Host Client 元数据均为 `1.7.0`，Trivy 的 HIGH/CRITICAL 为 0。
+- GHCR `v1.7.0` 摘要为 `sha256:4c6a6b1ba7431abc44469cdfdc5692b0d13533147a68d3f0c832a2bc58c9719f`。
+- 目标仓库镜像 `v1.7.0-b52641c` 摘要为 `sha256:6c6a0823c48a5fd8a973989c8e48b05f9a58c2fa59c5fa1a07f41866a2e4167e`，镜像 ID 为 `sha256:14ead4273b04de11ca98de9450e36d326dfd5d1a204cd996dfa881e9a9260617`。
+- `v1.8.0` GitHub Release、本地 Tag 与远端 Tag 均已撤下；latest 为合并后的 `v1.7.0`。
+- `solver.archsight.cn` 已部署 `v1.7.0-b52641c`，容器为 `running|healthy`；中英文五分钟上手、黄金流程和发布记录均返回 200，三条学习路径完成 3 次真实计算、6 次导出和 3 次可信证据包生成。
+- 部署前镜像为 `v1.8.0-ee5abe4`；配置备份位于 `/root/archsight-solver/backups/.env.before-v1.7.0-b52641c-20260809T153500Z`，旧镜像继续作为受控回滚证据保留。
 
 ## 发布线纠偏边界
 
