@@ -1,6 +1,6 @@
 # v1.8.0 发布验收
 
-> 状态：本地候选 GO。只有同一提交上的 `v1.8.0` Tag Release、不可变镜像和线上部署继续通过，才判定正式发布完成。
+> 状态：正式发布 GO。`v1.8.0` Tag Release、不可变镜像、线上部署与三条真实学习路径均已验收通过。
 
 ## 发布定位
 
@@ -31,9 +31,9 @@ v1.8.0 的主题是“可验证的结构力学学习与复核工作台”。本�
 ## 正式发布门禁
 
 - [x] 中文 Lore Commit 完整；发版提交完成后工作树保持干净。
-- [ ] `v1.8.0` tag 与同提交 GitHub Release 全绿。
-- [ ] GHCR 不可变镜像、SBOM、Trivy 报告、离线镜像归档和 `SHA256SUMS` 可核验。
-- [ ] 线上部署健康，三条路径完成真实冒烟，并记录上一版本不可变回滚目标。
+- [x] `v1.8.0` tag 与同提交 GitHub Release 全绿。
+- [x] GHCR 不可变镜像、SBOM、Trivy 报告、离线镜像归档和 `SHA256SUMS` 可核验。
+- [x] 线上部署健康，三条路径完成真实冒烟，并记录上一版本不可变回滚目标。
 
 ## 当前实施证据（2026-08-09）
 
@@ -46,3 +46,13 @@ v1.8.0 的主题是“可验证的结构力学学习与复核工作台”。本�
 - 契约与发布工程：OpenAPI、运行时资源同步、发布工程门禁和 `git diff --check` 通过。
 - 发行包：wheel/sdist 与 Host Client tarball 隔离验收通过；wheel 识别版本 1.8.0、14 项运行时资源、66 个 benchmark、24 个模板和 12 个 MCP tools，可信计算包复算为 `pass`。
 - Docker：候选镜像 `archsight-solver:1.8.0-rc` 为 `sha256:9e4758beda2350b696b46bb8586e5c6336321d5c74de59920930c1c3a2dc1675`，352638030 bytes，用户 `app`、健康状态 `healthy`；容器公开案例返回三条路径及各三项预判，构建后 UI 3/3、canonical Host 1/1 通过。
+
+## 正式发布证据（2026-08-09）
+
+- 主分支 CI：run `31314621382` 全绿；`v1.8.0` 标注 Tag 指向 `ee5abe4003fdb039ba1dadf1dbb26ecf6bc49e2e`。
+- Tag Release：run `31314883974` 全绿；[GitHub Release](https://github.com/ArchSightLabs/archsight-solver/releases/tag/v1.8.0) 已正式发布，包含 wheel、sdist、Host Client、离线镜像、SPDX SBOM、Trivy 报告和 `SHA256SUMS`。
+- 制品核验：下载后的 `SHA256SUMS` 与 Release 资产摘要一致；Trivy 对有修复版本的 HIGH/CRITICAL 漏洞检出为 0。
+- 镜像：GHCR 发布日志记录 digest `sha256:bf53a8c8bd9e502314f89988926b192e88842a0b992d98fd65acc80c3095332c`；线上仓库标签 `v1.8.0-ee5abe4` 的 manifest digest 为 `sha256:d6f99993bf52145fb45baa65ab430eb7da547998bc5d7722adfb910a5ba85b54`。
+- 线上部署：`solver.archsight.cn` 容器使用镜像 ID `sha256:9e4758beda2350b696b46bb8586e5c6336321d5c74de59920930c1c3a2dc1675` 且保持 `healthy`。
+- 线上冒烟：Chromium 中梁、平面桁架、平面框架 3/3 通过真实求解、三项预判复核，并分别成功下载 DOCX、XLSX 和可信计算包；服务日志同步记录三组 `/api/calculate`、`/api/export` 和 `/api/verification-packages` 请求。
+- 回滚目标：`v1.7.0-bb3ce98`；部署前环境备份为 `/root/archsight-solver/backups/.env.before-v1.8.0-ee5abe4-20260809T211919`。
