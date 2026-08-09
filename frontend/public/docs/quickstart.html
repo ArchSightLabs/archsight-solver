@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>快速开始与本地工具 · ArchSight Solver</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <script>
+    (() => {
+      const storedTheme = window.localStorage.getItem("archsight:theme");
+      const theme = storedTheme === "light" ? "light" : "dark";
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.style.colorScheme = theme;
+    })();
+  </script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07111f;
+      --card: rgba(13, 26, 45, 0.78);
+      --text: #e6edf7;
+      --muted: #a9b8cd;
+      --line: #263852;
+      --accent: #13bff2;
+      --accent-soft: rgba(19, 191, 242, 0.13);
+      --code: #0b1728;
+    }
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg: #eef3f8;
+      --card: rgba(255, 255, 255, 0.9);
+      --text: #0f172a;
+      --muted: #475569;
+      --line: #cbd5e1;
+      --accent: #0369a1;
+      --accent-soft: rgba(14, 165, 233, 0.1);
+      --code: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif; line-height: 1.72; }
+    main { width: min(980px, calc(100% - 32px)); margin: 0 auto; padding: 42px 0 72px; }
+    .doc-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 24px; }
+    .back { color: var(--accent); font-weight: 800; text-decoration: none; }
+    .theme-toggle { border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 8px; cursor: pointer; font: inherit; font-size: 0.88rem; font-weight: 700; padding: 8px 12px; }
+    .theme-toggle:hover { border-color: var(--accent); background: var(--accent-soft); }
+    .page-header { margin: 18px 0 26px; }
+    .page-header p { margin: 0 0 8px; color: var(--accent); font-size: 0.82rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+    .toc { border: 1px solid var(--line); background: var(--card); border-radius: 10px; margin-bottom: 28px; padding: 16px; }
+    .toc div { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 8px; }
+    .toc a { font-size: 0.9rem; text-decoration: none; }
+    article { border: 1px solid var(--line); background: var(--card); border-radius: 10px; padding: clamp(18px, 4vw, 34px); }
+    h1 { margin: 0 0 10px; font-size: clamp(1.75rem, 4vw, 2.7rem); line-height: 1.2; }
+    h2 { border-top: 1px solid var(--line); margin: 36px 0 12px; padding-top: 28px; font-size: 1.42rem; scroll-margin-top: 20px; }
+    h3 { margin: 26px 0 10px; font-size: 1.12rem; }
+    p, li, td { color: var(--muted); }
+    a { color: var(--accent); }
+    strong { color: var(--text); }
+    ul, ol { padding-left: 1.35rem; }
+    li + li { margin-top: 7px; }
+    code { border-radius: 5px; background: var(--code); color: var(--text); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; padding: 0.12em 0.34em; }
+    pre { overflow-x: auto; border: 1px solid var(--line); border-radius: 9px; background: var(--code); padding: 15px; }
+    pre code { background: transparent; padding: 0; }
+    blockquote { border-left: 4px solid var(--accent); background: var(--accent-soft); color: var(--muted); margin: 18px 0; padding: 12px 16px; }
+    .table-wrap { overflow-x: auto; margin: 18px 0; }
+    table { width: 100%; border-collapse: collapse; min-width: 560px; }
+    th, td { border: 1px solid var(--line); padding: 10px 12px; text-align: left; vertical-align: top; }
+    th { background: var(--accent-soft); color: var(--text); }
+    hr { border: 0; border-top: 1px solid var(--line); margin: 30px 0; }
+    @media (max-width: 640px) { main { padding-top: 24px; } article { border-radius: 8px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="doc-actions">
+      <a class="back" href="/">返回工作台</a>
+      <button class="theme-toggle" type="button" data-theme-toggle>切换为<span data-theme-label>浅色阅读</span></button>
+    </div>
+    <header class="page-header">
+      <p>ArchSight Solver v1.7.0</p>
+      <h1>快速开始与本地工具</h1>
+    </header>
+      <nav class="toc" aria-label="本页目录">
+        <strong>本页目录</strong>
+        <div><a href="#环境与安装">环境与安装</a><a href="#后端">后端</a><a href="#前端">前端</a><a href="#测试">测试</a><a href="#github-release-五分钟路径">GitHub Release 五分钟路径</a><a href="#异步-api-与公开案例">异步 API 与公开案例</a><a href="#cli">CLI</a><a href="#mcp-server">MCP Server</a><a href="#二维框架快速验证">二维框架快速验证</a></div>
+      </nav>
+    <article>
+      <p>中文 | <a href="/docs/quickstart.en.html">English</a></p>
+      <p>本文面向本地开发、教学演示和 Agent 集成调试，汇总后端、前端、测试、CLI、MCP 和公开案例接口的常用命令。</p>
+      <h2 id="环境与安装">环境与安装</h2>
+      <p>需要 Python <code>&gt;=3.13</code>、<a href="https://docs.astral.sh/uv/">uv</a> 和 Node.js <code>&gt;=22.22.0</code>。仓库使用 <code>uv.lock</code> 和 <code>frontend/package-lock.json</code> 固定可复现依赖；首次启动前执行：</p>
+      <pre><code class="language-bash">git clone https://github.com/ArchSightLabs/archsight-solver.git
+cd archsight-solver
+uv sync --frozen
+npm --prefix frontend ci --include=optional</code></pre>
+      <h2 id="后端">后端</h2>
+      <pre><code class="language-bash">uv run python app.py</code></pre>
+      <p>默认地址：<code>http://127.0.0.1:6240</code></p>
+      <p>临时修改端口：</p>
+      <pre><code class="language-powershell">$env:BEAM_SOLVER_BACKEND_PORT=&quot;6240&quot;; uv run python app.py</code></pre>
+      <h2 id="前端">前端</h2>
+      <p>前端开发与构建需要 Node.js <code>&gt;=22.22.0</code>。</p>
+      <pre><code class="language-bash">cd frontend
+npm run dev</code></pre>
+      <p>默认地址：<code>http://127.0.0.1:6241</code></p>
+      <p>前端开发服务默认将 <code>/api</code> 代理到 <code>http://127.0.0.1:6240</code>。如需对接其他后端端口：</p>
+      <pre><code class="language-powershell">$env:BEAM_SOLVER_BACKEND_TARGET=&quot;http://127.0.0.1:6240&quot;; npm run dev</code></pre>
+      <h2 id="测试">测试</h2>
+      <pre><code class="language-bash">uv run python -m pytest backend/tests -q
+npm --prefix frontend run lint
+npm --prefix frontend run test:unit
+npm --prefix frontend run build</code></pre>
+      <h2 id="github-release-五分钟路径">GitHub Release 五分钟路径</h2>
+      <p>如果只需要 CLI / MCP，不必克隆仓库。下载 v1.7.0 Release 的 <code>archsight_solver-1.7.0-py3-none-any.whl</code> 与 <code>SHA256SUMS</code>，校验后安装：</p>
+      <pre><code class="language-powershell">python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install .\archsight_solver-1.7.0-py3-none-any.whl</code></pre>
+      <p>按<a href="https://github.com/ArchSightLabs/archsight-solver/blob/main/docs/verification-package.md">可信计算包指南</a>准备 <code>create-request.json</code>；源码仓库可直接复制 <code>examples/verification-package/create-request.json</code>。然后生成并复算：</p>
+      <pre><code class="language-powershell">archsight-solver-tool verification_package_create --input create-request.json --pretty &gt; created.json
+python -c &quot;import json; d=json.load(open(&#39;created.json&#39;,encoding=&#39;utf-8&#39;)); json.dump({&#39;package&#39;:d[&#39;package&#39;]},open(&#39;verify-request.json&#39;,&#39;w&#39;,encoding=&#39;utf-8&#39;),ensure_ascii=False)&quot;
+archsight-solver-tool verification_package_verify --input verify-request.json --pretty</code></pre>
+      <p>成功输出应包含 <code>status: &quot;pass&quot;</code>、<code>integrityValid: true</code> 和 <code>replayMatched: true</code>。安装态 wheel 自带 CLI/MCP 所需的契约、Benchmark、模板、材料、支座、截面和文档资源，不依赖仓库 cwd。完整 Web/API 使用 GHCR 不可变版本镜像或同一 Release 的离线镜像归档。</p>
+      <h2 id="异步-api-与公开案例">异步 API 与公开案例</h2>
+      <p>提交异步计算作业：</p>
+      <pre><code class="language-powershell">Invoke-RestMethod -Method Post -Uri &quot;http://127.0.0.1:6240/api/jobs&quot; -ContentType &quot;application/json&quot; -Body &#39;{&quot;operation&quot;:&quot;calculate&quot;,&quot;payload&quot;:{&quot;beamType&quot;:&quot;simply_supported&quot;,&quot;loadType&quot;:&quot;uniform&quot;,&quot;q&quot;:12,&quot;E&quot;:206,&quot;I&quot;:85000,&quot;spans&quot;:[6]}}&#39;</code></pre>
+      <p>公开验证工程：</p>
+      <ul>
+        <li>REST：<code>GET /api/examples/projects</code></li>
+        <li>前端：顶部“公开案例”入口</li>
+      </ul>
+      <p>机器可读契约：</p>
+      <ul>
+        <li><code>GET /api/contracts/schemas</code></li>
+        <li><code>GET /api/contracts/openapi</code></li>
+      </ul>
+      <h2 id="cli">CLI</h2>
+      <p>梁挠度工具：</p>
+      <pre><code class="language-powershell">@&#39;
+{
+  &quot;span&quot;: {&quot;value&quot;: 6.0, &quot;unit&quot;: &quot;m&quot;},
+  &quot;elasticModulus&quot;: {&quot;value&quot;: 210.0, &quot;unit&quot;: &quot;GPa&quot;},
+  &quot;secondMomentOfArea&quot;: {&quot;value&quot;: 4500.0, &quot;unit&quot;: &quot;cm4&quot;},
+  &quot;load&quot;: {&quot;value&quot;: 10.0, &quot;unit&quot;: &quot;kN/m&quot;, &quot;case&quot;: &quot;uniform&quot;},
+  &quot;boundaryCondition&quot;: &quot;simply_supported&quot;
+}
+&#39;@ | uv run python -m backend.capabilities.beam_deflection --pretty</code></pre>
+      <p>通用求解工具：</p>
+      <pre><code class="language-powershell">&#39;{&quot;payload&quot;:{&quot;analysisType&quot;:&quot;beam&quot;,&quot;beamType&quot;:&quot;simply_supported&quot;,&quot;loadType&quot;:&quot;uniform&quot;,&quot;spans&quot;:[6],&quot;q&quot;:12,&quot;E&quot;:206,&quot;I&quot;:85000}}&#39; |
+  uv run python -m backend.capabilities.solver_cli calculate --pretty</code></pre>
+      <p>执行公开验证集算例：</p>
+      <pre><code class="language-powershell">&#39;{&quot;caseId&quot;:&quot;BM-001&quot;}&#39; | uv run python -m backend.capabilities.solver_cli benchmark_case_run --pretty</code></pre>
+      <p>检查项目文件契约与托管状态：</p>
+      <pre><code class="language-powershell">uv run python -m backend.capabilities.solver_cli project_document_health --input project.slv --pretty</code></pre>
+      <p>读取内置模板 registry：</p>
+      <pre><code class="language-powershell">&#39;{}&#39; | uv run python -m backend.capabilities.solver_cli project_template_registry --pretty</code></pre>
+      <p>生成与复算可信计算包：</p>
+      <pre><code class="language-powershell">uv run python -m backend.capabilities.solver_cli verification_package_create --input create-request.json --pretty &gt; created.json
+python -c &quot;import json; d=json.load(open(&#39;created.json&#39;,encoding=&#39;utf-8&#39;)); json.dump({&#39;package&#39;:d[&#39;package&#39;]},open(&#39;verify-request.json&#39;,&#39;w&#39;,encoding=&#39;utf-8&#39;),ensure_ascii=False)&quot;
+uv run python -m backend.capabilities.solver_cli verification_package_verify --input verify-request.json --pretty</code></pre>
+      <h2 id="mcp-server">MCP Server</h2>
+      <pre><code class="language-powershell">uv run python -m backend.capabilities.mcp_server</code></pre>
+      <p>当前 MCP tools：</p>
+      <ul>
+        <li><code>beam_deflection</code></li>
+        <li><code>beam_deflection_serviceability_check</code></li>
+        <li><code>frame_displacement</code></li>
+        <li><code>truss_member_force</code></li>
+        <li><code>calculate</code></li>
+        <li><code>sensitivity_analysis</code></li>
+        <li><code>benchmark_case_list</code></li>
+        <li><code>benchmark_case_run</code></li>
+        <li><code>project_document_health</code></li>
+        <li><code>project_template_registry</code></li>
+        <li><code>verification_package_create</code></li>
+        <li><code>verification_package_verify</code></li>
+      </ul>
+      <p>当前 MCP resources：</p>
+      <ul>
+        <li><code>archsight://schemas</code></li>
+        <li><code>archsight://docs/asms-json</code></li>
+        <li><code>archsight://examples/asms-few-shots</code></li>
+        <li><code>archsight://benchmark/catalog</code></li>
+        <li><code>archsight://docs/benchmark-validation</code></li>
+        <li><code>archsight://docs/mcp-resources</code></li>
+      </ul>
+      <p>资源路径、更新责任和验收检查见 <a href="https://github.com/ArchSightLabs/archsight-solver/blob/main/docs/mcp-resources.md">MCP Resources 清单与生成口径</a>。</p>
+      <p>可信计算包的字段、状态、容差与责任边界见<a href="https://github.com/ArchSightLabs/archsight-solver/blob/main/docs/verification-package.md">可信计算包 1.0</a>，按角色复跑的完整路径见<a href="/docs/golden-flows.html">v1.7 三条黄金流程</a>。</p>
+      <h2 id="二维框架快速验证">二维框架快速验证</h2>
+      <pre><code class="language-powershell">$payload = @{
+  analysisType = &quot;frame&quot;
+  projectName = &quot;Benchmark Portal Frame&quot;
+  materialId = &quot;q345&quot;
+  structure = @{
+    template = &quot;portal_frame&quot;
+    span = 6.0
+    height = 4.0
+    left_support = &quot;fixed&quot;
+    right_support = &quot;fixed&quot;
+    beam_load_kn_per_m = 18.0
+    lateral_load_kn = 24.0
+    top_vertical_load_kn = 0.0
+  }
+} | ConvertTo-Json -Depth 8
+
+Invoke-RestMethod -Method Post -Uri &quot;http://127.0.0.1:6240/api/calculate&quot; -ContentType &quot;application/json&quot; -Body $payload</code></pre>
+      <p>预期返回 <code>analysisType: &quot;frame&quot;</code>，并在 <code>summary</code> 中包含最大节点位移、最大构件弯矩、控制节点和校核状态。</p>
+    </article>
+    <script>
+      (() => {
+        const applyTheme = (theme, persist = false) => {
+          const normalized = theme === "light" ? "light" : "dark";
+          document.documentElement.dataset.theme = normalized;
+          document.documentElement.style.colorScheme = normalized;
+          document.querySelectorAll("[data-theme-label]").forEach((item) => {
+            item.textContent = normalized === "dark" ? "浅色阅读" : "深色阅读";
+          });
+          if (persist) window.localStorage.setItem("archsight:theme", normalized);
+        };
+        applyTheme(window.localStorage.getItem("archsight:theme"));
+        document.querySelector("[data-theme-toggle]")?.addEventListener("click", () => {
+          applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark", true);
+        });
+        window.addEventListener("storage", (event) => {
+          if (event.key === "archsight:theme") applyTheme(event.newValue);
+        });
+      })();
+    </script>
+  </main>
+</body>
+</html>

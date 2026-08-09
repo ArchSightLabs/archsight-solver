@@ -110,3 +110,12 @@ test("系统设置只展示公开访问数字，不暴露后台统计实现", ()
   assert.match(systemSettings, /访客数/u);
   assert.doesNotMatch(systemSettings, /匿名产品分析|Umami \{umamiEnabled|Busuanzi 已启用|仅记录页面访问/u);
 });
+
+test("资源与模板提供线上快速开始和黄金流程入口", () => {
+  const systemSettings = readFileSync(new URL("../components/SystemSettingsPanel.tsx", import.meta.url), "utf-8");
+
+  assert.match(systemSettings, /\/docs\/quickstart\.html/u);
+  assert.match(systemSettings, /五分钟上手/u);
+  assert.match(systemSettings, /\/docs\/golden-flows\.html/u);
+  assert.match(systemSettings, /黄金流程/u);
+});

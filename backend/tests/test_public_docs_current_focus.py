@@ -192,3 +192,24 @@ def test_v170_new_public_document_links_resolve_inside_repository():
                 continue
             resolved = (document_path.parent / target).resolve()
             assert resolved.is_file(), f"{path} 包含失效本地链接: {raw_target}"
+
+
+def test_v170_quickstarts_and_golden_flows_are_published_as_online_pages():
+    changelog = _read_doc("CHANGELOG.md")
+    release_html = _read_doc("frontend/public/docs/release-notes.html")
+    quickstart_zh_html = _read_doc("frontend/public/docs/quickstart.html")
+    quickstart_en_html = _read_doc("frontend/public/docs/quickstart.en.html")
+    golden_flows_html = _read_doc("frontend/public/docs/golden-flows.html")
+
+    assert "https://solver.archsight.cn/docs/quickstart.html" in changelog
+    assert "https://solver.archsight.cn/docs/golden-flows.html" in changelog
+    assert 'href="https://solver.archsight.cn/docs/quickstart.html"' in release_html
+    assert 'href="https://solver.archsight.cn/docs/golden-flows.html"' in release_html
+
+    assert "GitHub Release 五分钟路径" in quickstart_zh_html
+    assert 'href="/docs/quickstart.en.html"' in quickstart_zh_html
+    assert "Five-minute quickstart" in quickstart_en_html
+    assert 'href="/docs/quickstart.html"' in quickstart_en_html
+    assert "流程 A：结构工程师携带并复核一次计算" in golden_flows_html
+    assert "流程 C：开发者五分钟创建并验证计算包" in golden_flows_html
+    assert 'href="/docs/quickstart.en.html"' in golden_flows_html

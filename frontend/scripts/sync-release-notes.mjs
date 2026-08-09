@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { renderPublicGuideHtml } from './public-guide-renderer.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(__dirname, '../..')
@@ -8,6 +9,38 @@ const changelogPath = path.join(repoRoot, 'CHANGELOG.md')
 const publicDocsDir = path.join(repoRoot, 'frontend', 'public', 'docs')
 const releaseNotesMarkdownPath = path.join(publicDocsDir, 'release-notes.md')
 const releaseNotesHtmlPath = path.join(publicDocsDir, 'release-notes.html')
+const publicGuideSpecs = [
+  {
+    sourcePath: 'docs/quickstart.md',
+    outputPath: 'quickstart.html',
+    lang: 'zh-CN',
+    backLabel: '返回工作台',
+    contentsLabel: '本页目录',
+    themeButtonPrefix: '切换为',
+    lightThemeLabel: '浅色阅读',
+    darkThemeLabel: '深色阅读',
+  },
+  {
+    sourcePath: 'docs/en/quickstart.md',
+    outputPath: 'quickstart.en.html',
+    lang: 'en',
+    backLabel: 'Back to workbench',
+    contentsLabel: 'On this page',
+    themeButtonPrefix: 'Switch to ',
+    lightThemeLabel: 'light reading',
+    darkThemeLabel: 'dark reading',
+  },
+  {
+    sourcePath: 'docs/golden-flows.md',
+    outputPath: 'golden-flows.html',
+    lang: 'zh-CN',
+    backLabel: '返回工作台',
+    contentsLabel: '三条流程',
+    themeButtonPrefix: '切换为',
+    lightThemeLabel: '浅色阅读',
+    darkThemeLabel: '深色阅读',
+  },
+]
 
 function normalizeMarkdown(markdown) {
   return markdown.replace(/\r\n/g, '\n').trimEnd() + '\n'
@@ -291,4 +324,10 @@ mkdirSync(publicDocsDir, { recursive: true })
 writeFileSync(releaseNotesMarkdownPath, renderPublicMarkdown(changelogMarkdown), 'utf-8')
 writeFileSync(releaseNotesHtmlPath, releaseNotesHtml, 'utf-8')
 
-console.log(`已同步 ${path.relative(repoRoot, releaseNotesMarkdownPath)} 和 ${path.relative(repoRoot, releaseNotesHtmlPath)}`)
+for (const guide of publicGuideSpecs) {
+  const markdown = normalizeMarkdown(readFileSync(path.join(repoRoot, guide.sourcePath), 'utf-8'))
+  const html = renderPublicGuideHtml(markdown, guide)
+  writeFileSync(path.join(publicDocsDir, guide.outputPath), html, 'utf-8')
+}
+
+console.log(`已同步版本发布记录与 ${publicGuideSpecs.length} 个线上指南页面。`)

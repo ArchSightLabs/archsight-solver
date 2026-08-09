@@ -1,5 +1,5 @@
 import { type ReactNode, useId, useState } from "react";
-import { BarChart3, BookOpen, ChevronDown, ClipboardList, ExternalLink, Github, Info, Library, Palette, Settings, X } from "lucide-react";
+import { BarChart3, BookOpen, ChevronDown, ClipboardList, ExternalLink, Github, Info, Library, Palette, Route, Settings, Timer, X } from "lucide-react";
 import { Button } from "./ui/button";
 import type { ModelPreviewStyle } from "../types/beam";
 import { APP_VERSION, BUSUANZI_VISIT_STATS_ENABLED, GITHUB_REPOSITORY_URL } from "../lib/app-metadata";
@@ -25,6 +25,8 @@ const MODEL_PREVIEW_STYLE_OPTIONS: Array<{ label: string; value: ModelPreviewSty
   { label: "彩色高亮", value: "color", description: "梁系、框架和桁架建模图使用蓝色结构对象与橙色荷载" },
   { label: "工程简图", value: "simple", description: "梁系、框架和桁架建模图使用低饱和黑白表达" },
 ];
+const QUICKSTART_HREF = "/docs/quickstart.html";
+const GOLDEN_FLOWS_HREF = "/docs/golden-flows.html";
 
 function settingButtonClass(compact: boolean) {
   return `flex min-h-12 w-full items-center justify-between gap-3 rounded-lg border border-slate-200/80 bg-white px-3 py-2.5 text-left text-slate-950 shadow-sm transition-colors hover:border-sky-300/70 hover:bg-sky-50 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100 dark:hover:border-sky-400/45 dark:hover:bg-sky-400/10 ${compact ? "text-xs" : "text-sm"}`;
@@ -182,6 +184,28 @@ export function SystemSettingsPanel({
 
           <CollapsibleSettingsSection title="资源与模板" icon={<BookOpen className="h-4 w-4 text-sky-500" />}>
             <div className="grid gap-2">
+              <a className={settingButtonClass(compact)} href={QUICKSTART_HREF} target="_blank" rel="noreferrer">
+                <span className="flex min-w-0 items-center gap-3">
+                  <span className={iconBoxClass()}>
+                    <Timer className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate font-bold">五分钟上手</span>
+                  </span>
+                </span>
+                <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" />
+              </a>
+              <a className={settingButtonClass(compact)} href={GOLDEN_FLOWS_HREF} target="_blank" rel="noreferrer">
+                <span className="flex min-w-0 items-center gap-3">
+                  <span className={iconBoxClass()}>
+                    <Route className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate font-bold">黄金流程</span>
+                  </span>
+                </span>
+                <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" />
+              </a>
               <a className={settingButtonClass(compact)} href={GITHUB_REPOSITORY_URL} target="_blank" rel="noreferrer">
                 <span className="flex min-w-0 items-center gap-3">
                   <span className={iconBoxClass()}>

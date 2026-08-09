@@ -12,7 +12,7 @@
 
 - 新增可信计算包：工作台、REST API、CLI 与 MCP 生成同一格式的计算证据，可校验完整性并独立复算。
 - Python wheel、源码包、Host Client 与离线 Docker 镜像可直接获取；GitHub Release 同步提供校验和、安全报告与 SBOM。
-- 新增中英文五分钟上手路径和三条黄金流程，覆盖结构工程师、开发者与 Agent Host。
+- 新增[中英文五分钟上手路径](https://solver.archsight.cn/docs/quickstart.html)和[三条黄金流程](https://solver.archsight.cn/docs/golden-flows.html)，覆盖结构工程师、开发者与 Agent Host。
 
 发布验证：
 

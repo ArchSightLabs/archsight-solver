@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Five-minute quickstart · ArchSight Solver</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <script>
+    (() => {
+      const storedTheme = window.localStorage.getItem("archsight:theme");
+      const theme = storedTheme === "light" ? "light" : "dark";
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.style.colorScheme = theme;
+    })();
+  </script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07111f;
+      --card: rgba(13, 26, 45, 0.78);
+      --text: #e6edf7;
+      --muted: #a9b8cd;
+      --line: #263852;
+      --accent: #13bff2;
+      --accent-soft: rgba(19, 191, 242, 0.13);
+      --code: #0b1728;
+    }
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg: #eef3f8;
+      --card: rgba(255, 255, 255, 0.9);
+      --text: #0f172a;
+      --muted: #475569;
+      --line: #cbd5e1;
+      --accent: #0369a1;
+      --accent-soft: rgba(14, 165, 233, 0.1);
+      --code: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif; line-height: 1.72; }
+    main { width: min(980px, calc(100% - 32px)); margin: 0 auto; padding: 42px 0 72px; }
+    .doc-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 24px; }
+    .back { color: var(--accent); font-weight: 800; text-decoration: none; }
+    .theme-toggle { border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 8px; cursor: pointer; font: inherit; font-size: 0.88rem; font-weight: 700; padding: 8px 12px; }
+    .theme-toggle:hover { border-color: var(--accent); background: var(--accent-soft); }
+    .page-header { margin: 18px 0 26px; }
+    .page-header p { margin: 0 0 8px; color: var(--accent); font-size: 0.82rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+    .toc { border: 1px solid var(--line); background: var(--card); border-radius: 10px; margin-bottom: 28px; padding: 16px; }
+    .toc div { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 8px; }
+    .toc a { font-size: 0.9rem; text-decoration: none; }
+    article { border: 1px solid var(--line); background: var(--card); border-radius: 10px; padding: clamp(18px, 4vw, 34px); }
+    h1 { margin: 0 0 10px; font-size: clamp(1.75rem, 4vw, 2.7rem); line-height: 1.2; }
+    h2 { border-top: 1px solid var(--line); margin: 36px 0 12px; padding-top: 28px; font-size: 1.42rem; scroll-margin-top: 20px; }
+    h3 { margin: 26px 0 10px; font-size: 1.12rem; }
+    p, li, td { color: var(--muted); }
+    a { color: var(--accent); }
+    strong { color: var(--text); }
+    ul, ol { padding-left: 1.35rem; }
+    li + li { margin-top: 7px; }
+    code { border-radius: 5px; background: var(--code); color: var(--text); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; padding: 0.12em 0.34em; }
+    pre { overflow-x: auto; border: 1px solid var(--line); border-radius: 9px; background: var(--code); padding: 15px; }
+    pre code { background: transparent; padding: 0; }
+    blockquote { border-left: 4px solid var(--accent); background: var(--accent-soft); color: var(--muted); margin: 18px 0; padding: 12px 16px; }
+    .table-wrap { overflow-x: auto; margin: 18px 0; }
+    table { width: 100%; border-collapse: collapse; min-width: 560px; }
+    th, td { border: 1px solid var(--line); padding: 10px 12px; text-align: left; vertical-align: top; }
+    th { background: var(--accent-soft); color: var(--text); }
+    hr { border: 0; border-top: 1px solid var(--line); margin: 30px 0; }
+    @media (max-width: 640px) { main { padding-top: 24px; } article { border-radius: 8px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="doc-actions">
+      <a class="back" href="/">Back to workbench</a>
+      <button class="theme-toggle" type="button" data-theme-toggle>Switch to <span data-theme-label>light reading</span></button>
+    </div>
+    <header class="page-header">
+      <p>ArchSight Solver v1.7.0</p>
+      <h1>Five-minute quickstart</h1>
+    </header>
+      <nav class="toc" aria-label="On this page">
+        <strong>On this page</strong>
+        <div><a href="#1.-try-the-workbench">1. Try the workbench</a><a href="#2.-install-the-cli-and-mcp-server-from-a-github-release">2. Install the CLI and MCP server from a GitHub Release</a><a href="#3.-run-the-complete-web-api-image">3. Run the complete Web/API image</a><a href="#4.-install-the-framework-free-host-client">4. Install the framework-free Host Client</a><a href="#5.-run-from-source">5. Run from source</a><a href="#next">Next</a></div>
+      </nav>
+    <article>
+      <p><a href="/docs/quickstart.html">中文快速开始</a> | English</p>
+      <p>Choose one path. The Web path needs no installation. The GitHub Release wheel provides the CLI and MCP server. Docker provides the complete Web/API runtime. A source checkout is for development and contribution.</p>
+      <h2 id="1.-try-the-workbench">1. Try the workbench</h2>
+      <p>Open <a href="https://solver.archsight.cn/">solver.archsight.cn</a>, select a built-in template or public benchmark, run the analysis, and inspect diagnostics plus the current result source. From <strong>成果导出</strong> you can download a DOCX/XLSX result or a verification package.</p>
+      <p>No account is required. The public site is a demonstration environment; save important work as a local <code>.slv</code> project file.</p>
+      <h2 id="2.-install-the-cli-and-mcp-server-from-a-github-release">2. Install the CLI and MCP server from a GitHub Release</h2>
+      <p>Requirements: Python <code>&gt;=3.13</code>.</p>
+      <p>Download <code>archsight_solver-1.7.0-py3-none-any.whl</code> from the <a href="https://github.com/ArchSightLabs/archsight-solver/releases/tag/v1.7.0">v1.7.0 GitHub Release</a>, then install it into a virtual environment:</p>
+      <pre><code class="language-bash">python -m venv .venv
+# Linux/macOS: source .venv/bin/activate
+# Windows PowerShell: .\.venv\Scripts\Activate.ps1
+python -m pip install ./archsight_solver-1.7.0-py3-none-any.whl</code></pre>
+      <p>Create <code>create-request.json</code> (a source checkout also includes <code>examples/verification-package/create-request.json</code>):</p>
+      <pre><code class="language-json">{
+  &quot;payload&quot;: {
+    &quot;analysisType&quot;: &quot;beam&quot;,
+    &quot;beamType&quot;: &quot;simply_supported&quot;,
+    &quot;loadType&quot;: &quot;uniform&quot;,
+    &quot;spans&quot;: [6],
+    &quot;q&quot;: 12,
+    &quot;E&quot;: 206,
+    &quot;I&quot;: 85000
+  },
+  &quot;evidence&quot;: {
+    &quot;source&quot;: &quot;five-minute-quickstart&quot;
+  }
+}</code></pre>
+      <p>Create and replay a verification package:</p>
+      <pre><code class="language-bash">archsight-solver-tool verification_package_create --input create-request.json --pretty &gt; created.json
+python -c &quot;import json; d=json.load(open(&#39;created.json&#39;,encoding=&#39;utf-8&#39;)); json.dump({&#39;package&#39;:d[&#39;package&#39;]},open(&#39;verify-request.json&#39;,&#39;w&#39;,encoding=&#39;utf-8&#39;),ensure_ascii=False)&quot;
+archsight-solver-tool verification_package_verify --input verify-request.json --pretty</code></pre>
+      <p>Success means the second command returns <code>status: &quot;pass&quot;</code>, <code>integrityValid: true</code>, and <code>replayMatched: true</code>.</p>
+      <p>Start the MCP server with:</p>
+      <pre><code class="language-bash">archsight-solver-mcp</code></pre>
+      <p>The installed distribution includes runtime schemas, benchmark data, templates, materials, supports, sections, and MCP documentation. It does not depend on a repository checkout or current working directory.</p>
+      <h2 id="3.-run-the-complete-web-api-image">3. Run the complete Web/API image</h2>
+      <pre><code class="language-bash">docker run --rm -p 127.0.0.1:6240:6240 ghcr.io/archsightlabs/archsight-solver:v1.7.0</code></pre>
+      <p>Open <code>http://127.0.0.1:6240</code>. The single image serves the frontend and <code>/api</code>. Use an immutable <code>v1.7.0</code> tag or recorded digest for reproducible deployment; do not use <code>latest</code> as release evidence.</p>
+      <p>If GHCR is unavailable, download <code>archsight-solver-v1.7.0.tar.gz</code> from the GitHub Release and load it:</p>
+      <pre><code class="language-bash">docker load --input archsight-solver-v1.7.0.tar.gz
+docker run --rm -p 127.0.0.1:6240:6240 archsight-solver:release</code></pre>
+      <p>Verify downloaded assets against <code>SHA256SUMS</code> from the same Release before use.</p>
+      <h2 id="4.-install-the-framework-free-host-client">4. Install the framework-free Host Client</h2>
+      <p>Download <code>archsight-solver-host-client-1.7.0.tgz</code> from the GitHub Release:</p>
+      <pre><code class="language-bash">npm install ./archsight-solver-host-client-1.7.0.tgz</code></pre>
+      <pre><code class="language-ts">import { SolverHostClient } from &quot;@archsight/solver-host-client&quot;;
+
+const client = new SolverHostClient({
+  iframe: document.querySelector(&quot;#solver&quot;) as HTMLIFrameElement,
+  solverOrigin: &quot;https://solver.example.com&quot;,
+});</code></pre>
+      <p>The package has zero runtime dependencies and implements Host Protocol 1.0. Exact-origin allowlists, session ID, nonce, parent-window checks, CSP <code>frame-ancestors</code>, save ownership, and read-only behavior remain the host&#39;s responsibility. See the <a href="https://github.com/ArchSightLabs/archsight-solver/blob/main/docs/host-client.md">Host Client guide</a>.</p>
+      <h2 id="5.-run-from-source">5. Run from source</h2>
+      <p>Requirements: Python <code>&gt;=3.13</code>, <a href="https://docs.astral.sh/uv/">uv</a>, and Node.js <code>&gt;=22.22.0</code>.</p>
+      <pre><code class="language-bash">git clone https://github.com/ArchSightLabs/archsight-solver.git
+cd archsight-solver
+uv sync --frozen
+npm --prefix frontend ci --include=optional</code></pre>
+      <p>Start two terminals:</p>
+      <pre><code class="language-bash">uv run python app.py
+npm --prefix frontend run dev</code></pre>
+      <ul>
+        <li>API: <code>http://127.0.0.1:6240</code></li>
+        <li>Web: <code>http://127.0.0.1:6241</code></li>
+      </ul>
+      <p>Main local gates:</p>
+      <pre><code class="language-bash">uv run python -m pytest backend/tests -q
+npm --prefix frontend run lint
+npm --prefix frontend run test:unit
+npm --prefix frontend run build</code></pre>
+      <h2 id="next">Next</h2>
+      <ul>
+        <li><a href="https://github.com/ArchSightLabs/archsight-solver/blob/main/docs/en/capabilities.md">Capabilities and limits</a></li>
+        <li><a href="https://github.com/ArchSightLabs/archsight-solver/blob/main/docs/en/verification-package.md">Verification package guide</a></li>
+        <li><a href="https://github.com/ArchSightLabs/archsight-solver/blob/main/docs/api-reference.md">REST API reference</a></li>
+        <li><a href="https://github.com/ArchSightLabs/archsight-solver/blob/main/docs/asms-json-schema.md">ASMS-JSON model contract</a></li>
+        <li><a href="https://github.com/ArchSightLabs/archsight-solver/blob/main/docs/host-protocol-1.md">Host Protocol 1.0</a></li>
+        <li><a href="/docs/golden-flows.html">Chinese golden flows</a></li>
+      </ul>
+    </article>
+    <script>
+      (() => {
+        const applyTheme = (theme, persist = false) => {
+          const normalized = theme === "light" ? "light" : "dark";
+          document.documentElement.dataset.theme = normalized;
+          document.documentElement.style.colorScheme = normalized;
+          document.querySelectorAll("[data-theme-label]").forEach((item) => {
+            item.textContent = normalized === "dark" ? "light reading" : "dark reading";
+          });
+          if (persist) window.localStorage.setItem("archsight:theme", normalized);
+        };
+        applyTheme(window.localStorage.getItem("archsight:theme"));
+        document.querySelector("[data-theme-toggle]")?.addEventListener("click", () => {
+          applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark", true);
+        });
+        window.addEventListener("storage", (event) => {
+          if (event.key === "archsight:theme") applyTheme(event.newValue);
+        });
+      })();
+    </script>
+  </main>
+</body>
+</html>

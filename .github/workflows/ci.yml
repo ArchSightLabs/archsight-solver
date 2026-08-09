@@ -79,8 +79,8 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Verify generated release notes are current
-        run: git diff --exit-code -- public/docs/release-notes.md public/docs/release-notes.html
+      - name: Verify generated public docs are current
+        run: git diff --exit-code -- public/docs/release-notes.md public/docs/release-notes.html public/docs/quickstart.html public/docs/quickstart.en.html public/docs/golden-flows.html
 
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
