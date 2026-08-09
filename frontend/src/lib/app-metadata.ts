@@ -5,6 +5,7 @@ type ViteRuntimeEnv = {
   readonly VITE_GITHUB_REPOSITORY_URL?: string;
   readonly VITE_BENCHMARK_SUBMISSION_EMAIL?: string;
   readonly VITE_ENABLE_BUSUANZI?: string;
+  readonly VITE_BUSUANZI_DOMAINS?: string;
 };
 
 const frontendPackageVersion = (frontendPackage as { version?: string }).version ?? "0.0.0";
@@ -15,7 +16,14 @@ export const GITHUB_REPOSITORY_URL =
   viteEnv.VITE_GITHUB_REPOSITORY_URL || "https://github.com/ArchSightLabs/archsight-solver";
 export const BENCHMARK_SUBMISSION_EMAIL =
   viteEnv.VITE_BENCHMARK_SUBMISSION_EMAIL || "archsight-labs@qq.com";
-export const BUSUANZI_VISIT_STATS_ENABLED = viteEnv.VITE_ENABLE_BUSUANZI === "true";
+const busuanziAllowedDomains = (viteEnv.VITE_BUSUANZI_DOMAINS ?? "solver.archsight.cn")
+  .split(",")
+  .map((domain) => domain.trim().toLowerCase())
+  .filter(Boolean);
+export const BUSUANZI_VISIT_STATS_ENABLED =
+  viteEnv.VITE_ENABLE_BUSUANZI === "true" &&
+  typeof window !== "undefined" &&
+  busuanziAllowedDomains.includes(window.location.hostname.toLowerCase());
 export const BUSUANZI_SCRIPT_SRC = "https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js";
 
 export function loadBusuanziVisitStats() {

@@ -3,7 +3,13 @@ services:
     build:
       context: .
       args:
-        VITE_ENABLE_BUSUANZI: ${VITE_ENABLE_BUSUANZI:-false}
+        VITE_ENABLE_BUSUANZI: ${VITE_ENABLE_BUSUANZI:-true}
+        VITE_BUSUANZI_DOMAINS: ${VITE_BUSUANZI_DOMAINS:-solver.archsight.cn}
+        VITE_UMAMI_ENABLED: ${VITE_UMAMI_ENABLED:-true}
+        VITE_UMAMI_SCRIPT_URL: ${VITE_UMAMI_SCRIPT_URL:-https://analytics.archsight.cn/script.js}
+        VITE_UMAMI_WEBSITE_ID: ${VITE_UMAMI_WEBSITE_ID:-21791f13-6214-44db-8724-0e1dcd656bfb}
+        VITE_UMAMI_DOMAINS: ${VITE_UMAMI_DOMAINS:-solver.archsight.cn}
+        VITE_UMAMI_TAG: ${VITE_UMAMI_TAG:-production}
     container_name: archsight-solver-app
     restart: always
     environment:

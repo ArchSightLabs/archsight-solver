@@ -3,6 +3,7 @@ import { BarChart3, BookOpen, ChevronDown, ClipboardList, ExternalLink, Github, 
 import { Button } from "./ui/button";
 import type { ModelPreviewStyle } from "../types/beam";
 import { APP_VERSION, BUSUANZI_VISIT_STATS_ENABLED, GITHUB_REPOSITORY_URL } from "../lib/app-metadata";
+import { isUmamiAnalyticsEnabled } from "../analytics/umami-analytics";
 
 interface VisitStats {
   pageViews: string;
@@ -73,6 +74,7 @@ function CollapsibleSettingsSection({
 
 function VisitStatsBlock({ stats, visible }: { stats: VisitStats; visible: boolean }) {
   const [statsVisible, setStatsVisible] = useState(visible);
+  const umamiEnabled = isUmamiAnalyticsEnabled();
 
   return (
     <div className="rounded-lg border border-slate-200/80 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
@@ -105,20 +107,20 @@ function VisitStatsBlock({ stats, visible }: { stats: VisitStats; visible: boole
                 <div className="mt-1 text-lg font-black text-foreground">{stats.uniqueVisitors || "加载中"}</div>
               </div>
             </div>
-            <div className={STATUS_LINE_CLASS}>
-              已启用 PV/UV 统计。
-            </div>
+            <div className={STATUS_LINE_CLASS}>公开 PV/UV：Busuanzi 已启用。</div>
           </div>
         ) : (
-          <div className={STATUS_LINE_CLASS}>
-            已启用，默认隐藏。
-          </div>
+          <div className={STATUS_LINE_CLASS}>公开 PV/UV：Busuanzi 已启用，数值默认隐藏。</div>
         )
       ) : (
-        <div className={STATUS_LINE_CLASS}>
-          未启用。
-        </div>
+        <div className={STATUS_LINE_CLASS}>公开 PV/UV：Busuanzi 未启用。</div>
       )}
+      <div className={`${STATUS_LINE_CLASS} mt-3`}>
+        <div>匿名产品分析：Umami {umamiEnabled ? "已启用" : "未启用"}。</div>
+        <div className="mt-1 font-medium text-muted-foreground">
+          仅记录页面访问和受限的求解、敏感性分析、导出、工程打开/保存事件；不上传工程模型、文件名、计算结果或自由文本。
+        </div>
+      </div>
     </div>
   );
 }

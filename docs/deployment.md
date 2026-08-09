@@ -22,6 +22,24 @@ Dockerfile 默认将 Node 22 与 Python 3.13 基础镜像固定到已验证 dige
 
 脚本读取 `NODE_IMAGE` 与 `PYTHON_IMAGE`；`-RefreshBaseImages` 会先单独拉取两份固定基础镜像，用于主动刷新或诊断，不是每次构建的必要步骤。
 
+## 正式演示站访问统计
+
+Docker 镜像的前端配置在**构建阶段**写入，容器启动后的环境变量不能改写已经生成的 Vite 静态资源。官方镜像默认仅允许在 `solver.archsight.cn` 加载两类统计：
+
+- Busuanzi：在“系统设置 / 关于”中展示公开累计 PV/UV；
+- ArchSight 自托管 Umami：使用 website ID `21791f13-6214-44db-8724-0e1dcd656bfb` 记录匿名页面访问和受限的工作台事件。
+
+域名允许列表会阻止本地开发地址、CI 和其他自托管域名向官方统计服务发送数据。派生部署应保持关闭，或替换成自己的服务和 website ID：
+
+```powershell
+docker build `
+  --build-arg VITE_ENABLE_BUSUANZI=false `
+  --build-arg VITE_UMAMI_ENABLED=false `
+  -t archsight-solver:latest .
+```
+
+需要接入自有 Umami 时，构建参数包括 `VITE_UMAMI_ENABLED`、`VITE_UMAMI_SCRIPT_URL`、`VITE_UMAMI_WEBSITE_ID`、`VITE_UMAMI_DOMAINS` 和 `VITE_UMAMI_TAG`。完整事件与隐私边界见 [访问统计与隐私边界](analytics-and-privacy.md)。
+
 本地运行：
 
 ```powershell

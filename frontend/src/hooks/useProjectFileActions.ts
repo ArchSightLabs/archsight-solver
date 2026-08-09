@@ -15,6 +15,7 @@ import {
   type SolverProject,
 } from "../lib/solver-project";
 import type { ProjectDocumentSnapshot } from "../lib/project-document-lifecycle";
+import { trackSolverAnalyticsEvent } from "../analytics/umami-analytics";
 
 interface UseProjectFileActionsOptions {
   isProjectDirty: boolean;
@@ -65,9 +66,11 @@ export function useProjectFileActions({
     handle: ProjectFileHandle | null,
     savedAt: string | null,
     message: string,
+    source: "native_file" | "file_input" | "public_example",
   ) => {
     replaceProject(nextProject, fileName, handle, savedAt, message);
     onProjectOpened();
+    void trackSolverAnalyticsEvent("project_opened", { project_source: source });
   }, [onProjectOpened, replaceProject]);
 
   const handleNewProjectFile = useCallback(() => {
@@ -83,7 +86,7 @@ export function useProjectFileActions({
       const savedProject = project;
       const projectFile = createArchSightSolverProjectFile(savedProject);
       const result = await saveArchSightSolverProjectFile(projectFile, projectFileHandle, forceSaveAs);
-      completeProjectFileSave(
+      const completed = completeProjectFileSave(
         savedProject,
         projectSnapshot,
         result.fileName,
@@ -91,6 +94,9 @@ export function useProjectFileActions({
         result.savedAt,
         result.mode === "download" ? `已下载导出：${result.fileName}` : `${forceSaveAs ? "另存为" : "保存"}成功：${result.fileName}`
       );
+      if (completed) {
+        void trackSolverAnalyticsEvent("project_saved", { save_method: result.mode });
+      }
     } catch (error) {
       if (isFilePickerAbort(error)) return;
       alert(`项目文件保存失败：${error instanceof Error ? error.message : "未知错误"}`);
@@ -109,7 +115,7 @@ export function useProjectFileActions({
       try {
         const { projectFile, handle, fileName } = await openArchSightSolverProjectFileWithPicker();
         const diagnosticsMessage = projectFileDiagnosticsMessage(projectFile.diagnostics ?? []);
-        loadProject(projectFile.project, fileName, handle, projectFile.updatedAt, diagnosticsMessage ? `已打开：${fileName}；${diagnosticsMessage}` : `已打开：${fileName}`);
+        loadProject(projectFile.project, fileName, handle, projectFile.updatedAt, diagnosticsMessage ? `已打开：${fileName}；${diagnosticsMessage}` : `已打开：${fileName}`, "native_file");
       } catch (error) {
         if (isFilePickerAbort(error)) return;
         alert(`项目文件读取失败：${error instanceof Error ? error.message : "未知错误"}`);
@@ -121,7 +127,7 @@ export function useProjectFileActions({
     if (isProjectReadOnly) return;
     if (!confirmDiscardUnsavedChanges()) return;
     const normalizedProject = normalizeSolverProject(nextProject);
-    loadProject(normalizedProject, null, null, normalizedProject.updatedAt, `已打开公开验证工程：${title}`);
+    loadProject(normalizedProject, null, null, normalizedProject.updatedAt, `已打开公开验证工程：${title}`, "public_example");
     onPublicExampleClosed();
   }, [confirmDiscardUnsavedChanges, isProjectReadOnly, loadProject, onPublicExampleClosed]);
 
@@ -140,7 +146,7 @@ export function useProjectFileActions({
       const projectFile = await readArchSightSolverProjectFile(file);
       const fileName = file.name || getArchSightSolverProjectFileName(projectFile.project);
       const diagnosticsMessage = projectFileDiagnosticsMessage(projectFile.diagnostics ?? []);
-      loadProject(projectFile.project, fileName, null, projectFile.updatedAt, diagnosticsMessage ? `已打开：${fileName}；${diagnosticsMessage}` : `已打开：${fileName}`);
+      loadProject(projectFile.project, fileName, null, projectFile.updatedAt, diagnosticsMessage ? `已打开：${fileName}；${diagnosticsMessage}` : `已打开：${fileName}`, "file_input");
     } catch (error) {
       alert(`项目文件读取失败：${error instanceof Error ? error.message : "未知错误"}`);
     }

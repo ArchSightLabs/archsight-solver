@@ -31,6 +31,7 @@ import {
   validationNotice,
   type WorkbenchOperationNotice,
 } from "../lib/workbench-operation-status";
+import { trackSolverAnalyticsEvent } from "../analytics/umami-analytics";
 
 export type AnalysisResults = BeamCalculationResults | FrameCalculationResults | TrussCalculationResults | null;
 export type ExportFormat = "docx" | "xlsx";
@@ -155,6 +156,7 @@ export function useWorkbenchActions({
     setWorkspace((current) => ({ ...current, analysisMode: analysisType }));
     setIsSolving(true);
     setOperationNotice(operationRunningNotice("solve", analysisType));
+    void trackSolverAnalyticsEvent("calculation_started", { analysis_mode: analysisType });
     try {
       const response = await fetch(apiUrl("/api/calculate"), {
         method: "POST",
@@ -184,6 +186,7 @@ export function useWorkbenchActions({
         setCompactWorkbenchView("results");
         setOperationNotice(operationCompletedNotice("solve", analysisType));
       }
+      void trackSolverAnalyticsEvent("calculation_completed", { analysis_mode: analysisType });
       return result;
     } catch (error) {
       console.error("求解失败：", error);
@@ -195,6 +198,10 @@ export function useWorkbenchActions({
         error instanceof Error ? error.message : "未知错误",
         error instanceof WorkbenchApiError ? error.diagnostics : [],
       ));
+      void trackSolverAnalyticsEvent("calculation_failed", {
+        analysis_mode: analysisType,
+        failure_kind: error instanceof WorkbenchApiError ? "api" : "client",
+      });
       return null;
     } finally {
       if (solveRequestSequenceRef.current === requestSequence) setIsSolving(false);
@@ -223,6 +230,7 @@ export function useWorkbenchActions({
     sensitivityRequestSequenceRef.current = requestSequence;
     setIsScanning(true);
     setOperationNotice(operationRunningNotice("sensitivity", workspace.analysisMode));
+    void trackSolverAnalyticsEvent("sensitivity_started", { analysis_mode: workspace.analysisMode });
     try {
       const requestBody =
         workspace.analysisMode === "beam"
@@ -263,6 +271,7 @@ export function useWorkbenchActions({
       if (activeAnalysisObjectIdRef.current === requestObjectId) {
         setOperationNotice(operationCompletedNotice("sensitivity", workspace.analysisMode));
       }
+      void trackSolverAnalyticsEvent("sensitivity_completed", { analysis_mode: workspace.analysisMode });
     } catch (error) {
       if (activeAnalysisObjectIdRef.current !== requestObjectId || sensitivityRequestSequenceRef.current !== requestSequence) {
         return;
@@ -272,6 +281,10 @@ export function useWorkbenchActions({
         error instanceof Error ? error.message : String(error),
         error instanceof WorkbenchApiError ? error.diagnostics : [],
       ));
+      void trackSolverAnalyticsEvent("sensitivity_failed", {
+        analysis_mode: workspace.analysisMode,
+        failure_kind: error instanceof WorkbenchApiError ? "api" : "client",
+      });
     } finally {
       if (sensitivityRequestSequenceRef.current === requestSequence) setIsScanning(false);
     }
@@ -307,6 +320,10 @@ export function useWorkbenchActions({
         setOperationNotice(validationNotice("所选工况或组合不属于当前计算结果，请重新选择结果来源。"));
         return;
       }
+      void trackSolverAnalyticsEvent("export_started", {
+        analysis_mode: workspace.analysisMode,
+        export_format: format,
+      });
       const exportedProvenance = {
         ...resultProvenance,
         currentProjectRevision: getProjectRevision(),
@@ -337,6 +354,11 @@ export function useWorkbenchActions({
           : exportPayload;
       if (getProjectRevision() !== exportStartRevision || activeAnalysisObjectIdRef.current !== resultProvenance.analysisObjectId) {
         setOperationNotice(validationNotice("导出准备期间工程或分析对象已变化，本次导出已取消，请确认当前结果后重试。"));
+        void trackSolverAnalyticsEvent("export_failed", {
+          analysis_mode: workspace.analysisMode,
+          export_format: format,
+          failure_kind: "client",
+        });
         return;
       }
       const response = await fetch(apiUrl("/api/export"), {
@@ -362,12 +384,21 @@ export function useWorkbenchActions({
       anchor.remove();
       window.URL.revokeObjectURL(url);
       setOperationNotice(operationCompletedNotice(exportOperation, workspace.analysisMode));
+      void trackSolverAnalyticsEvent("export_completed", {
+        analysis_mode: workspace.analysisMode,
+        export_format: format,
+      });
     } catch (error) {
       setOperationNotice(operationFailedNotice(
         exportOperation,
         error instanceof Error ? error.message : "未知错误",
         error instanceof WorkbenchApiError ? error.diagnostics : [],
       ));
+      void trackSolverAnalyticsEvent("export_failed", {
+        analysis_mode: workspace.analysisMode,
+        export_format: format,
+        failure_kind: error instanceof WorkbenchApiError ? "api" : "client",
+      });
     } finally {
       setExportingFormat(null);
     }

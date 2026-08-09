@@ -14,6 +14,7 @@ REQUIRED_PATHS = (
     "docs/verification/release-1-6-2-acceptance.md",
     "docs/verification/release-1-6-1-acceptance.md",
     "docs/verification/release-1-6-acceptance.md",
+    "docs/analytics-and-privacy.md",
     "examples/host-iframe-demo/host.js",
     "examples/host-iframe-demo/solver-host-client.js",
     "examples/host-iframe-demo/sample-project.slv",
@@ -39,6 +40,9 @@ REQUIRED_MARKERS = {
         "USER app",
         "HEALTHCHECK",
         "python -m pip uninstall --yes pip",
+        "ARG VITE_ENABLE_BUSUANZI=true",
+        "ARG VITE_UMAMI_ENABLED=true",
+        "ARG VITE_UMAMI_WEBSITE_ID=21791f13-6214-44db-8724-0e1dcd656bfb",
         "node:22-bookworm-slim@sha256:6c74791e557ce11fc957704f6d4fe134a7bc8d6f5ca4403205b2966bd488f6b3",
         "python:3.13-slim@sha256:6771159cd4fa5d9bba1258caf0b82e6b73458c694d178ad97c5e925c2d0e1a91",
     ),
@@ -47,6 +51,8 @@ REQUIRED_MARKERS = {
         '"PYTHON_IMAGE"',
         '"NODE_IMAGE=$NodeImage"',
         '"PYTHON_IMAGE=$PythonImage"',
+        '"VITE_ENABLE_BUSUANZI=$EnableBusuanzi"',
+        '"VITE_UMAMI_WEBSITE_ID=$UmamiWebsiteId"',
         "$RefreshBaseImages",
     ),
     "frontend/playwright.config.ts": (
@@ -165,7 +171,7 @@ def main() -> int:
             "logs --tail=100",
             "wait_for_services_healthy",
         ),
-        "docs/deployment.md": ("archsight-solver:v1.6.3", "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS"),
+        "docs/deployment.md": ("archsight-solver:v1.6.3", "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS", "VITE_UMAMI_WEBSITE_ID"),
     }
     for relative_path, expected_markers in deploy_expectations.items():
         text = (ROOT / relative_path).read_text(encoding="utf-8")
