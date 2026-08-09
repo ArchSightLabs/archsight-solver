@@ -2,7 +2,7 @@ import type { AnalysisMode } from "../types/structure.ts";
 import { analysisVocabulary } from "./analysis-vocabulary.ts";
 import type { SolverDiagnosticIssue } from "./diagnostic-contract.ts";
 
-export type WorkbenchOperation = "solve" | "sensitivity" | "exportDocx" | "exportXlsx" | "validation";
+export type WorkbenchOperation = "solve" | "sensitivity" | "exportDocx" | "exportXlsx" | "exportVerificationPackage" | "validation";
 export type WorkbenchOperationTone = "info" | "success" | "error";
 export type WorkbenchOperationPhase = "running" | "complete" | "error";
 
@@ -19,6 +19,7 @@ const OPERATION_LABELS: Record<WorkbenchOperation, string> = {
   sensitivity: "参数敏感性分析",
   exportDocx: "计算书导出",
   exportXlsx: "参数表导出",
+  exportVerificationPackage: "可信计算包导出",
   validation: "模型输入校核",
 };
 
@@ -26,13 +27,15 @@ export function solvingRunLabel(mode: AnalysisMode): string {
   return `${analysisVocabulary(mode).systemLabel}计算中...`;
 }
 
-export function exportOperationForFormat(format: "docx" | "xlsx"): WorkbenchOperation {
-  return format === "docx" ? "exportDocx" : "exportXlsx";
+export function exportOperationForFormat(format: "docx" | "xlsx" | "verification-package"): WorkbenchOperation {
+  if (format === "docx") return "exportDocx";
+  return format === "xlsx" ? "exportXlsx" : "exportVerificationPackage";
 }
 
-export function exportToolbarLabel(format: "docx" | "xlsx" | null): string {
+export function exportToolbarLabel(format: "docx" | "xlsx" | "verification-package" | null): string {
   if (format === "docx") return "生成计算书...";
   if (format === "xlsx") return "生成参数表...";
+  if (format === "verification-package") return "生成可信计算包...";
   return "成果导出";
 }
 
@@ -70,6 +73,14 @@ export function operationRunningNotice(operation: WorkbenchOperation, mode: Anal
       message: "正在写入输入参数、计算摘要和结构结果数据表。",
     };
   }
+  if (operation === "exportVerificationPackage") {
+    return {
+      phase: "running",
+      tone: "info",
+      title: "正在生成可信计算包",
+      message: "正在封装输入、记录结果和来源证据，并执行完整性校验与复算。",
+    };
+  }
   return validationNotice("正在校核模型输入。");
 }
 
@@ -105,6 +116,14 @@ export function operationCompletedNotice(operation: WorkbenchOperation, mode: An
       tone: "success",
       title: "Excel 参数表已生成",
       message: "文件已交给浏览器下载；请在下载目录中查看。",
+    };
+  }
+  if (operation === "exportVerificationPackage") {
+    return {
+      phase: "complete",
+      tone: "success",
+      title: "可信计算包已生成",
+      message: "文件已通过生成后的完整性校验与复算，并交给浏览器下载。",
     };
   }
   return validationNotice("模型输入校核完成。");

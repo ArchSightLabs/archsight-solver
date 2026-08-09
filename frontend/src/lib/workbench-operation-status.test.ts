@@ -18,13 +18,16 @@ test("工作台操作状态保留三类结构体系的专业求解文案", () =>
   assert.equal(operationRunningNotice("solve", "frame").title, "正在运行平面框架线弹性静力分析");
 });
 
-test("工作台导出状态区分计算书和参数表", () => {
+test("工作台导出状态区分计算书、参数表和可信计算包", () => {
   assert.equal(exportOperationForFormat("docx"), "exportDocx");
   assert.equal(exportOperationForFormat("xlsx"), "exportXlsx");
+  assert.equal(exportOperationForFormat("verification-package"), "exportVerificationPackage");
   assert.equal(exportToolbarLabel(null), "成果导出");
   assert.equal(exportToolbarLabel("docx"), "生成计算书...");
+  assert.equal(exportToolbarLabel("verification-package"), "生成可信计算包...");
   assert.equal(operationCompletedNotice("exportDocx", "beam").title, "Word 计算书已生成");
   assert.equal(operationRunningNotice("exportXlsx", "truss").message, "正在写入输入参数、计算摘要和结构结果数据表。");
+  assert.equal(operationCompletedNotice("exportVerificationPackage", "frame").title, "可信计算包已生成");
 });
 
 test("工作台错误提示使用统一的内联校核语义", () => {

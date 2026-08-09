@@ -49,7 +49,7 @@ export type SolverAnalyticsEventName =
 
 export interface SolverAnalyticsEventData {
   readonly analysis_mode?: AnalysisMode;
-  readonly export_format?: "docx" | "xlsx";
+  readonly export_format?: "docx" | "xlsx" | "verification-package";
   readonly failure_kind?: "api" | "client";
   readonly project_source?: "native_file" | "file_input" | "public_example";
   readonly save_method?: "native" | "download";

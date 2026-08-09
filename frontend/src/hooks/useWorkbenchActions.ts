@@ -32,9 +32,14 @@ import {
   type WorkbenchOperationNotice,
 } from "../lib/workbench-operation-status";
 import { trackSolverAnalyticsEvent } from "../analytics/umami-analytics";
+import {
+  parseVerificationPackageCreateResponse,
+  serializeVerificationPackage,
+  verificationPackageFilename,
+} from "../lib/verification-package";
 
 export type AnalysisResults = BeamCalculationResults | FrameCalculationResults | TrussCalculationResults | null;
-export type ExportFormat = "docx" | "xlsx";
+export type ExportFormat = "docx" | "xlsx" | "verification-package";
 type CalculationPayload = BeamApiPayload | FrameFormPayload | TrussFormPayload;
 
 interface UseWorkbenchActionsOptions {
@@ -361,24 +366,50 @@ export function useWorkbenchActions({
         });
         return;
       }
-      const response = await fetch(apiUrl("/api/export"), {
+      const verificationEvidence = {
+        source: "archsight-solver-web-workbench",
+        resultSource: exportResultSource,
+        resultProvenance: exportedProvenance,
+        ...(activeBenchmark ? { benchmark: activeBenchmark } : {}),
+        ...(jobId ? { jobId } : {}),
+      };
+      const isVerificationPackage = format === "verification-package";
+      const response = await fetch(apiUrl(isVerificationPackage ? "/api/verification-packages" : "/api/export"), {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
           "X-Client-ID": clientId
         },
         mode: "cors",
-        body: JSON.stringify(payloadWithReportImages),
+        body: JSON.stringify(isVerificationPackage
+          ? { payload, evidence: verificationEvidence }
+          : payloadWithReportImages),
       });
       if (!response.ok) {
         throw new WorkbenchApiError(await readApiError(response, "导出失败"));
       }
-      const blob = await response.blob();
+      const responseBody = isVerificationPackage
+        ? parseVerificationPackageCreateResponse(await response.json())
+        : null;
+      if (getProjectRevision() !== exportStartRevision || activeAnalysisObjectIdRef.current !== resultProvenance.analysisObjectId) {
+        setOperationNotice(validationNotice("导出期间工程或分析对象已变化，返回文件已丢弃，请确认当前结果后重试。"));
+        void trackSolverAnalyticsEvent("export_failed", {
+          analysis_mode: workspace.analysisMode,
+          export_format: format,
+          failure_kind: "client",
+        });
+        return;
+      }
+      const blob = isVerificationPackage
+        ? new globalThis.Blob([serializeVerificationPackage(responseBody!.package)], { type: "application/json;charset=utf-8" })
+        : await response.blob();
       const url = window.URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
       const modeName = analysisVocabulary(workspace.analysisMode).systemLabel;
-      anchor.download = `${modeName}-计算书.${format}`;
+      anchor.download = isVerificationPackage
+        ? verificationPackageFilename(workspace.analysisMode)
+        : `${modeName}-计算书.${format}`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();

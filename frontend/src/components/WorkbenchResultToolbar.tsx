@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, FileText, Play, RotateCw, Settings2, Table2 } from "lucide-react";
+import { ChevronDown, FileCheck2, FileText, Play, RotateCw, Settings2, Table2 } from "lucide-react";
 import { Button } from "./ui/button";
 import type { ExportFormat } from "../hooks/useWorkbenchActions";
 import {
@@ -158,6 +158,18 @@ export function WorkbenchResultToolbar({
               <span className="min-w-0">
                 <span className="block text-sm font-black">导出参数表</span>
                 <span className="block truncate text-[11px] font-bold text-slate-500 dark:text-slate-400">Excel · 输入参数与结果数据</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => handleExportFormat("verification-package")}
+              className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              <FileCheck2 className="h-4 w-4 shrink-0" />
+              <span className="min-w-0">
+                <span className="block text-sm font-black">导出可信计算包</span>
+                <span className="block truncate text-[11px] font-bold text-slate-500 dark:text-slate-400">JSON · 输入、结果、来源证据与复算摘要</span>
               </span>
             </button>
             <div className="mt-1.5 border-t border-slate-200 p-1.5 dark:border-slate-800">

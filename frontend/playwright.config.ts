@@ -17,6 +17,7 @@ process.env.NO_PROXY = mergeNoProxyHosts(process.env.NO_PROXY);
 process.env.no_proxy = mergeNoProxyHosts(process.env.no_proxy);
 
 const externalSolverUrl = process.env.ARCHSIGHT_SOLVER_E2E_URL?.trim();
+const skipReferenceHostServer = process.env.ARCHSIGHT_SOLVER_E2E_SKIP_REFERENCE_HOST === "1";
 const solverE2EUrl = new URL(externalSolverUrl || "http://127.0.0.1:6241").origin;
 const hostE2EUrl = "http://127.0.0.1:6250";
 const solverWebServer = {
@@ -58,7 +59,9 @@ export default defineConfig({
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
-  webServer: externalSolverUrl ? hostWebServer : [solverWebServer, hostWebServer],
+  webServer: externalSolverUrl
+    ? (skipReferenceHostServer ? undefined : hostWebServer)
+    : (skipReferenceHostServer ? solverWebServer : [solverWebServer, hostWebServer]),
   projects: [
     {
       name: "chromium",
