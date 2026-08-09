@@ -1,0 +1,35 @@
+{
+  "name": "@archsight/solver-host-client",
+  "version": "1.6.3",
+  "description": "Framework-free browser client for ArchSight Solver Host Protocol 1.0.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/solver-host-client.js",
+  "module": "./dist/solver-host-client.js",
+  "types": "./dist/solver-host-client.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/solver-host-client.d.ts",
+      "import": "./dist/solver-host-client.js",
+      "default": "./dist/solver-host-client.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "NOTICE.md",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ArchSight/archsight-solver.git",
+    "directory": "packages/solver-host-client"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

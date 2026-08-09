@@ -51,6 +51,7 @@ def main() -> int:
 
     frontend_package = _read_json("frontend/package.json")
     frontend_lock = _read_json("frontend/package-lock.json")
+    host_client_package = _read_json("packages/solver-host-client/package.json")
     lock_root = frontend_lock.get("packages", {}).get("", {})  # type: ignore[union-attr]
     changelog_version, changelog_state, changelog_state_value = _first_release("CHANGELOG.md")
     notes_version, notes_state, notes_state_value = _first_release("frontend/public/docs/release-notes.md")
@@ -59,6 +60,7 @@ def main() -> int:
         "frontend/package.json": frontend_package.get("version"),
         "frontend/package-lock.json": frontend_lock.get("version"),
         "frontend/package-lock.json packages['']": lock_root.get("version"),
+        "packages/solver-host-client/package.json": host_client_package.get("version"),
         "uv.lock": _uv_project_version(),
         "CHANGELOG.md": changelog_version,
         "frontend/public/docs/release-notes.md": notes_version,

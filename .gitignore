@@ -8,6 +8,8 @@ env/
 build/
 develop-eggs/
 dist/
+!packages/solver-host-client/dist/
+!packages/solver-host-client/dist/**
 downloads/
 eggs/
 .eggs/
