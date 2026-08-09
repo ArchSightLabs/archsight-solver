@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import pandas as pd
+from docx import Document
+
 from backend.benchmarks.catalog import find_benchmark_case
 from backend.examples.public_validation_projects import build_public_validation_projects
 from backend.contracts.json_schemas import API_SCHEMA_VERSION
 from backend.exporters.common.evidence import build_evidence_tables, build_report_review_table
-from backend.services.export_service import build_report_model
+from backend.services.export_service import build_report_model, export_report
 
 
 def _table_text(table) -> str:
@@ -79,6 +82,22 @@ def test_export_evidence_resolves_learning_review_from_catalog_instead_of_client
     assert "支座反力" in text
     assert "判断一致" in text
     assert "不得进入计算书的伪造文案" not in text
+
+    docx_artifact = export_report(report, "docx")
+    docx = Document(docx_artifact.buffer)
+    docx_text = "\n".join(
+        cell.text
+        for table in docx.tables
+        for row in table.rows
+        for cell in row.cells
+    )
+    assert "三杆桁架：先判拉压，再看位移" in docx_text
+    assert "判断一致" in docx_text
+
+    xlsx_artifact = export_report(report, "xlsx")
+    xlsx_text = pd.read_excel(xlsx_artifact.buffer, sheet_name="05_校核证据", header=None).to_string()
+    assert "三杆桁架：先判拉压，再看位移" in xlsx_text
+    assert "判断一致" in xlsx_text
 
 
 def test_frame_truss_evidence_input_summary_preserves_material_and_support_semantics():
