@@ -172,6 +172,15 @@ def test_frontend_image_includes_license_required_by_host_client_build():
     assert dockerfile.index(copy_license) < dockerfile.index(build_frontend)
 
 
+def test_frontend_image_includes_public_guide_sources_before_build():
+    dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+
+    copy_docs = "COPY docs/ /app/docs/"
+    build_frontend = 'RUN NODE_OPTIONS="--max-old-space-size=4096" npm run build'
+    assert copy_docs in dockerfile
+    assert dockerfile.index(copy_docs) < dockerfile.index(build_frontend)
+
+
 def test_runtime_image_includes_project_version_source():
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
 
