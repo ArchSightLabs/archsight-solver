@@ -59,6 +59,18 @@ jobs:
           npm --prefix frontend audit --audit-level=high
           npm --prefix frontend run build
           git diff --exit-code -- frontend/public/docs/release-notes.md frontend/public/docs/release-notes.html
+          git diff --exit-code -- examples/host-iframe-demo/solver-host-client.js packages/solver-host-client
+
+      - name: Build and verify developer distribution assets
+        shell: bash
+        run: |
+          mkdir -p dist
+          python scripts/sync_runtime_resources.py --check
+          uv build --wheel --sdist --out-dir dist
+          npm pack ./packages/solver-host-client --pack-destination dist
+          python_version="${VERSION#v}"
+          python scripts/check_python_distribution.py "dist/archsight_solver-${python_version}-py3-none-any.whl"
+          node frontend/scripts/check-host-client-package.mjs "dist/archsight-solver-host-client-${python_version}.tgz"
 
       - name: Run Playwright release smoke
         run: |
@@ -182,7 +194,7 @@ jobs:
               raise SystemExit(f"CHANGELOG.md 中未找到 {version} 发布说明")
           Path("dist/release-notes.md").write_text(match.group(1).strip() + "\n", encoding="utf-8")
           PY
-          sha256sum dist/*.tar.gz dist/*.spdx.json dist/trivy-report.json > dist/SHA256SUMS
+          sha256sum dist/*.tar.gz dist/*.whl dist/*.tgz dist/*.spdx.json dist/trivy-report.json > dist/SHA256SUMS
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
@@ -205,6 +217,9 @@ jobs:
         run: |
           gh release create "$VERSION" \
             dist/archsight-solver-*.tar.gz \
+            dist/archsight_solver-*.tar.gz \
+            dist/archsight_solver-*.whl \
+            dist/archsight-solver-host-client-*.tgz \
             dist/archsight-solver-*.spdx.json \
             dist/trivy-report.json \
             dist/SHA256SUMS \
