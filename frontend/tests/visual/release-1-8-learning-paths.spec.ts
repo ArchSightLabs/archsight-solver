@@ -11,8 +11,8 @@ type CalculationPayload = { analysisType: "beam" | "frame" | "truss" } & Record<
 
 function publicExampleCatalog() {
   const output = execFileSync(
-    "uv",
-    ["run", "python", "-c", "import json; from backend.examples.public_validation_projects import build_public_validation_projects; print(json.dumps(build_public_validation_projects()))"],
+    "python",
+    ["-c", "import json; from backend.examples.public_validation_projects import build_public_validation_projects; print(json.dumps(build_public_validation_projects()))"],
     { cwd: repositoryRoot, encoding: "utf-8" },
   );
   return JSON.parse(output) as Record<string, unknown>;
