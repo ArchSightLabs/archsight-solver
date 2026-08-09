@@ -56,7 +56,7 @@ archsight-solver-tool verification_package_verify --input verify-request.json --
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install .\archsight_solver-1.7.0-py3-none-any.whl
+python -m pip install .\archsight_solver-1.8.0-py3-none-any.whl
 ```
 
 2. 按[五分钟英文 Quickstart](en/quickstart.md)创建 `create-request.json`。

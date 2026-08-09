@@ -92,6 +92,7 @@ jobs:
           npm run test:visual -- release-1-6-2-diagnostics.spec.ts --project=chromium --workers=1
           npm run test:visual -- release-1-6-2-result-validity.spec.ts --project=chromium --workers=1
           npm run test:visual -- release-1-7-verification-package.spec.ts --project=chromium --workers=1
+          npm run test:visual -- release-1-8-learning-paths.spec.ts --project=chromium --workers=1
           npm run test:visual -- release-1-6-1-host-reference.spec.ts --project=chromium --workers=1
           npm run test:visual -- release-1-6-host-integration.spec.ts --project=chromium --workers=1
           npm run test:visual -- release-1-5-quick-modeling.spec.ts --project=chromium --workers=1

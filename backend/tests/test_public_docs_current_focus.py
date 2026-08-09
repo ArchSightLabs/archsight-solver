@@ -156,10 +156,10 @@ def test_v170_bilingual_entry_and_golden_flows_share_one_verification_contract()
         assert "1e-6" in document
         assert "digital signature" in document.lower() or "数字签名" in document
 
-    assert "archsight_solver-1.7.0-py3-none-any.whl" in quickstart_en
+    assert "archsight_solver-1.8.0-py3-none-any.whl" in quickstart_en
     assert "archsight-solver-tool verification_package_create" in quickstart_en
     assert "archsight-solver-mcp" in quickstart_en
-    assert "ghcr.io/archsightlabs/archsight-solver:v1.7.0" in quickstart_en
+    assert "ghcr.io/archsightlabs/archsight-solver:v1.8.0" in quickstart_en
     assert "Host Client" in quickstart_en
     example_request = json.loads(_read_doc("examples/verification-package/create-request.json"))
     assert example_request["payload"]["analysisType"] == "beam"
