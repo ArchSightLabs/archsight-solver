@@ -1,0 +1,50 @@
+{
+  "default": {
+    "template": "standard",
+    "figureMode": "overlay",
+    "figureScope": "all",
+    "reviewStatus": "draft"
+  },
+  "legacyDefault": {
+    "template": "complete",
+    "figureMode": "both",
+    "figureScope": "all",
+    "reviewStatus": "draft"
+  },
+  "templates": [
+    {
+      "value": "standard",
+      "label": "标准计算书"
+    },
+    {
+      "value": "complete",
+      "label": "详细计算书"
+    }
+  ],
+  "figureModes": [
+    {
+      "value": "overlay",
+      "label": "不含数据曲线"
+    },
+    {
+      "value": "both",
+      "label": "包含数据曲线"
+    }
+  ],
+  "figureScopes": [
+    {
+      "value": "all",
+      "label": "受力变形图与核心工程图"
+    }
+  ],
+  "reviewStatuses": [
+    {
+      "value": "draft",
+      "label": "草稿"
+    },
+    {
+      "value": "ready_for_review",
+      "label": "可审阅"
+    }
+  ]
+}

@@ -3,8 +3,9 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from functools import lru_cache
-from pathlib import Path
 from typing import Any, Dict, List, Tuple
+
+from backend.runtime_resources import runtime_resource_path
 
 
 @dataclass(frozen=True)
@@ -18,7 +19,7 @@ class MaterialSpec:
     note: str
 
 
-_MATERIALS_PATH = Path(__file__).resolve().parents[2] / "shared" / "materials.json"
+_MATERIALS_PATH = runtime_resource_path("shared/materials.json")
 _CATEGORY_LABELS = {
     "custom": "自定义材料",
     "steel": "结构钢",

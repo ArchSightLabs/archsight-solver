@@ -3,12 +3,13 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from functools import lru_cache
-from pathlib import Path
 from typing import Literal, TypeVar
+
+from backend.runtime_resources import runtime_resource_path
 
 ReportFigureScope = Literal["control", "all"]
 TReportFigure = TypeVar("TReportFigure")
-_REPORT_FIGURES_PATH = Path(__file__).resolve().parents[3] / "shared" / "report-figures.json"
+_REPORT_FIGURES_PATH = runtime_resource_path("shared/report-figures.json")
 
 
 @dataclass(frozen=True)

@@ -1,0 +1,241 @@
+# ArchSight Structural Model Schema (ASMS-JSON)
+
+## 定位
+
+ASMS-JSON 是 ArchSight Solver 对外开放的结构力学数据协议，用 JSON 描述梁系、二维平面桁架和二维平面框架模型。
+
+它不是为了替代 IFC、SAF、OpenSees Tcl 或商业结构软件模型文件，而是服务于更轻量的工程计算场景：
+
+- Web 前端建模。
+- AI Agent 生成确定性求解输入。
+- 企业内系统调用结构校核服务。
+- 教材算例、benchmark 和计算书复核。
+
+战略上，ASMS-JSON 应成为本项目的“力学数据入口标准”：前端、API、CLI、MCP、benchmark 和导出计算书都围绕同一套结构化模型工作。
+
+## 协议入口与同源执行面
+
+ASMS-JSON 的公开价值在于把“模型是什么”和“从哪里调用”分离。结构模型由 ASMS-JSON 表达，调用入口可以是 Web 前端、REST API、CLI、MCP、benchmark 或计算书导出，但它们不应各自发明一套 payload。
+
+最小闭环：
+
+```text
+自然语言工况
+  -> ASMS-JSON 结构模型
+  -> REST / CLI / MCP 同源求解
+  -> benchmark 回归复核
+  -> WORD / XLSX 计算书归档
+```
+
+核心分工：
+
+- **ASMS-JSON 是入口**：描述结构类型、几何、材料截面、支座、荷载和输出指标。
+- **JSON Schema 是契约**：通过 `/api/contracts/schemas/asms-model` 及子 schema 约束字段、单位和基础类型。
+- **benchmark 是证据**：公开验证集使用同源 payload 复核求解链路，不把示例和测试割裂。
+- **REST / CLI / MCP 是执行面**：`POST /api/calculate` 直接接收 ASMS-JSON；CLI 和 MCP 为工具调用稳定性使用 `{ "payload": <ASMS-JSON> }` 包装。
+
+因此，本文件是 ASMS-JSON 的权威协议说明，负责字段语义、单位、结构体系差异、版本策略和协议级错误；Agent 如何从自然语言生成 payload、如何调用工具和如何归档结果，放在 `docs/agent-engineering-workflow.md` 中说明。
+
+## 版本策略
+
+- 当前协议名：`ASMS-JSON`
+- 当前版本：`0.1`
+- 当前 ASMS-JSON 契约版本字段：`schemaVersion: "2026-05-30"`
+- Schema Registry：`GET /api/contracts/schemas`
+- 总入口：`GET /api/contracts/schemas/asms-model`
+- 关键字段漂移矩阵：`shared/asms-contract-fields.json`
+
+`schemaVersion` 是结构模型的字段语义版本，三类模型均可声明。Web 工作台、REST API、CLI、MCP、benchmark、项目文件和 WORD / XLSX 计算书围绕同一个 ASMS-JSON 契约版本运行；旧项目文件导入时会给出兼容提示，并在重新保存后写入当前契约版本。它不同于 benchmark catalog 的整数 `schemaVersion`，也不同于项目文件自身的文件格式版本。
+
+后续破坏性修改应提升协议版本，兼容性扩展优先通过新增字段实现。新增会跨越 Schema、OpenAPI、前端类型、payload builder 和公开文档的关键字段时，应先更新 `shared/asms-contract-fields.json`，再补实现和测试；`backend/tests/test_json_schema_contracts.py` 会用该矩阵做跨栈漂移检查。
+
+## 统一单位
+
+| 物理量 | 字段 | 单位 |
+|---|---|---|
+| 坐标、跨度、荷载位置 | `x`、`y`、`spans`、`pointLoadPositionM` | m |
+| 弹性模量 | `E`、`E_GPa` | GPa |
+| 截面惯性矩 | `I`、`I_cm4` | cm^4 |
+| 截面面积 | `A_cm2` | cm^2 |
+| 线膨胀系数 | `alphaPerC`、`thermalExpansionPerC` | 1/°C |
+| 集中力 | `fxKn`、`fyKn`、`pointLoadKn`、`forceKn` | kN |
+| 均布荷载 | `q`、`wyKnPerM`、`qStartKnPerM`、`qEndKnPerM` | kN/m |
+| 弯矩 | `mzKnM` | kN·m |
+
+约定：
+
+- 框架与桁架节点力：`fxKn` 向右为正，`fyKn` 向上为正。
+- 桁架杆件轴力：拉为正，压为负。
+- 梁系 `q` 兼容当前 UI 习惯，正值表示向下均布荷载。
+
+荷载方向、挠度方向、局部坐标和结果摘要绝对值的详细说明见 [符号与方向约定](learning/sign-conventions.md)。
+
+## 梁系模型
+
+Schema：`asms-beam-model`
+
+最小输入：
+
+```json
+{
+  "analysisType": "beam",
+  "schemaVersion": "2026-05-30",
+  "beamType": "simply_supported",
+  "loadType": "uniform",
+  "spans": [6],
+  "E": 206,
+  "I": 85000,
+  "q": 12
+}
+```
+
+字段说明：
+
+- `beamType`：`continuous`、`simply_supported`、`cantilever`。
+- `loadType`：`none`、`uniform`、`point`、`linear`、`distributed`、`combined`。
+- `spans`：跨长数组，单位 m。
+- `spanProperties`：逐跨材料与截面参数，优先级高于全局 `E` / `I`。
+- `spanProperties[].materialId`：跨段材料库编号；用于保留材料语义，`E` / `I` 仍是梁单元刚度计算输入。
+- `supports`：自定义支座数组，用于连续梁或非标准边界。
+- `loads`：叠加荷载数组，用于多荷载工况。
+
+集中荷载示例：
+
+```json
+{
+  "analysisType": "beam",
+  "beamType": "cantilever",
+  "loadType": "point",
+  "spans": [4],
+  "E": 200,
+  "I": 16000,
+  "pointLoadKn": 40,
+  "pointLoadPositionM": 4
+}
+```
+
+## 二维平面桁架模型
+
+Schema：`asms-truss-model`
+
+```json
+{
+  "analysisType": "truss",
+  "schemaVersion": "2026-05-30",
+  "projectName": "三杆静定桁架",
+  "structure": {
+    "template": "explicit",
+    "nodes": [
+      {"id": "N1", "x": 0, "y": 0, "supportType": "pinned"},
+      {"id": "N2", "x": 4, "y": 3, "supportType": "free"},
+      {"id": "N3", "x": 8, "y": 0, "supportType": "roller"}
+    ],
+    "members": [
+      {"id": "M1", "start": "N1", "end": "N2", "materialId": "steel-verify", "E_GPa": 200, "A_cm2": 100, "kind": "truss"},
+      {"id": "M2", "start": "N2", "end": "N3", "materialId": "steel-verify", "E_GPa": 200, "A_cm2": 100, "kind": "truss"},
+      {"id": "M3", "start": "N1", "end": "N3", "materialId": "steel-verify", "E_GPa": 200, "A_cm2": 100, "kind": "truss"}
+    ],
+    "loads": [
+      {"type": "nodal", "node": "N2", "fxKn": 50, "fyKn": 0}
+    ]
+  }
+}
+```
+
+桁架协议约束：
+
+- 杆件只承受轴力，不输出弯矩主指标。
+- 节点仅含 `ux`、`uy` 平动自由度；`supportType` 使用 `pinned`、`roller`、`free`，不支持 `supportAngleDeg`、`springs`、`supportDisplacements` 或 `condensedDofs`。
+- `members[].materialId` 保留杆件材料编号；桁架刚度计算以 `E_GPa` 与 `A_cm2` 为准。
+- 荷载以节点荷载为主，也支持可等效为节点荷载的杆件荷载；`selfWeightKnPerM` 表示杆件自重线荷载，`distributed` / `member_load` / `member` 可用 `direction`、`wyKnPerM`、`qStartKnPerM`、`qEndKnPerM` 描述线荷载。
+- `loadCases` / `loadCombinations` 支持多工况与组合包络；桁架杆件荷载会先等效为节点荷载再参与求解。
+- 支座不足、零长度杆件、重复 ID、无效节点引用都属于协议级错误。
+
+## 二维平面框架模型
+
+Schema：`asms-frame-model`
+
+框架模型由节点、构件和荷载组成。
+
+```json
+{
+  "analysisType": "frame",
+  "schemaVersion": "2026-05-30",
+  "projectName": "门式刚架",
+  "structure": {
+    "template": "explicit",
+    "nodes": [
+      {"id": "N1", "x": 0, "y": 0, "supportType": "fixed"},
+      {"id": "N2", "x": 6, "y": 0, "supportType": "fixed"},
+      {"id": "N3", "x": 0, "y": 4, "supportType": "free"},
+      {"id": "N4", "x": 6, "y": 4, "supportType": "free"}
+    ],
+    "members": [
+      {"id": "C1", "start": "N1", "end": "N3", "materialId": "q345", "E_GPa": 210, "A_cm2": 240, "I_cm4": 12000, "kind": "column"},
+      {"id": "B1", "start": "N3", "end": "N4", "materialId": "q345", "E_GPa": 210, "A_cm2": 220, "I_cm4": 15000, "kind": "beam"},
+      {"id": "C2", "start": "N2", "end": "N4", "materialId": "q345", "E_GPa": 210, "A_cm2": 240, "I_cm4": 12000, "kind": "column"}
+    ],
+    "loads": [
+      {"type": "distributed", "member": "B1", "direction": "local_y", "qStartKnPerM": -18, "qEndKnPerM": -18},
+      {"type": "nodal", "node": "N4", "fxKn": 24, "fyKn": 0, "mzKnM": 0}
+    ]
+  }
+}
+```
+
+框架节点：
+
+- `id`：节点唯一编号。
+- `x` / `y`：平面坐标，单位 m。
+- `supportType`：`free`、`pinned`、`roller`、`fixed`。
+- `supportAngleDeg`：滚动支座法向角，单位 °；仅对平面框架 `roller` 支座生效，`90` 表示竖向法向约束。
+- `springs`：框架节点弹性约束，可表达柱脚转动有限刚度等边界；`ux` / `uy` 使用 `stiffnessKnPerM`，`rz` 使用 `stiffnessKnMPerRad`。
+- `supportDisplacements`：框架节点支座位移；`ux` / `uy` / `n` 使用 `displacementMm`，`rz` 使用 `rotationDeg`，仅对当前支座已约束自由度生效。
+
+构件：
+
+- `start` / `end`：起止节点 ID。
+- `materialId`：材料库编号，用于保留构件材料语义、前端编辑口径和计算书材料摘要。
+- `E_GPa`、`A_cm2`、`I_cm4`：线弹性求解采用的刚度与截面输入。
+- `kind`：工程语义标签，如 `beam`、`column`。
+- `endReleases`：构件端部释放；当前支持 `start` / `end` 端 `rz` 转角释放。
+- `internalHinges`：构件内部铰；`ratio` 为内部铰相对构件起点的位置比例。
+
+荷载：
+
+- `nodal`：节点荷载。
+- `distributed`：构件分布荷载；`qStartKnPerM` / `qEndKnPerM` 表示线性强度，`startRatio` / `endRatio` 表示作用范围。
+- `member_point`：构件集中荷载；`forceKn` 为集中力，`positionRatio` 为构件内位置比例。
+- `temperature`：二维框架构件均匀温度荷载；`deltaTempC` 为温差，`alphaPerC` 为线膨胀系数，正温差表示自由伸长。省略 `alphaPerC` 时，系统优先使用构件 `materialId` 对应材料库的 `thermalExpansionPerC`，再回退到 `1.2e-5`。当前不覆盖截面温度梯度、瞬态热传导或徐变松弛。
+- `loadCases` / `loadCombinations`：荷载工况与组合包络；组合 `factors` 按工况 ID 给出系数，`tags` 可标记 ULS、SLS 或包络用途。
+
+## Benchmark 与协议绑定
+
+公开验证集使用同一套 ASMS-JSON：
+
+- `backend/benchmarks/benchmark_cases.json`
+- `backend/tests/test_benchmark_cases.py`
+- `backend/benchmarks/report.py`
+
+这意味着每个公开算例既是测试用例，也是协议样例。新增协议字段时，应优先新增一个 benchmark 覆盖其工程含义。
+
+## Agent few-shot 样例
+
+Agent 工程流样例同样使用 ASMS-JSON：
+
+- 文档：`docs/agent-engineering-workflow.md`
+- 数据：`data/agent_workflows/asms_few_shots.json`
+- MCP 资源：`archsight://examples/asms-few-shots`
+- 回归：`backend/tests/test_agent_workflow_examples.py`
+
+这些样例把自然语言工况、ASMS-JSON、CLI/MCP 调用、公开验证集复核和计算书导出放在同一个可测试闭环中。它们是 Agent 生成模型输入的 few-shot 资料，不是规范设计书，也不替代工程师签审。
+
+## 生态策略
+
+ASMS-JSON 的开放价值不在于“锁死用户”，而在于降低生态接入成本：
+
+- 前端、Agent、BIM/ERP 插件、教学脚本都能生成同一种结构模型。
+- 下游报告、验证集、MCP 工具和企业 API 能复用同一 payload。
+- 一旦形成稳定样例库，外部贡献者可以先贡献数据协议与 benchmark，再贡献求解器实现。
+
+这比只开源 UI 或单个 Python 函数更有战略价值：数据协议会逐步沉淀为事实上的工程协作边界。

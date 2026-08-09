@@ -3,12 +3,11 @@ from __future__ import annotations
 import json
 import os
 from functools import lru_cache
-from pathlib import Path
 from typing import Any, Dict, Mapping
 
+from backend.runtime_resources import runtime_resource_path
 
-ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_CONFIG_PATH = ROOT / "config" / "defaults.json"
+DEFAULT_CONFIG_PATH = runtime_resource_path("config/defaults.json")
 
 
 @lru_cache(maxsize=1)

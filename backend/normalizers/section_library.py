@@ -4,16 +4,15 @@ import csv
 import json
 import math
 from functools import lru_cache
-from pathlib import Path
 from typing import Any, Dict, Mapping
 
 from backend.common.numbers import to_float
 from backend.common.units import from_si
+from backend.runtime_resources import runtime_resource_path
 
 
-ROOT = Path(__file__).resolve().parents[2]
-SECTION_LIBRARY_PATH = ROOT / "data" / "sections" / "builtin_sections.json"
-SECTION_LIBRARY_CSV_PATH = ROOT / "data" / "sections" / "builtin_sections.csv"
+SECTION_LIBRARY_PATH = runtime_resource_path("data/sections/builtin_sections.json")
+SECTION_LIBRARY_CSV_PATH = runtime_resource_path("data/sections/builtin_sections.csv")
 
 
 @lru_cache(maxsize=1)

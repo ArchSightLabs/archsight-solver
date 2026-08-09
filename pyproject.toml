@@ -33,3 +33,15 @@ dev = [
 [tool.setuptools.packages.find]
 include = ["backend*"]
 exclude = ["backend.tests*"]
+
+[tool.setuptools.package-data]
+backend = [
+    "resources/shared/*.json",
+    "resources/data/verification/*.json",
+    "resources/data/sections/*",
+    "resources/data/agent_workflows/*.json",
+    "resources/docs/*.md",
+    "resources/docs/verification/*.md",
+    "resources/config/*.json",
+]
+"backend.benchmarks" = ["*.json", "*.md"]

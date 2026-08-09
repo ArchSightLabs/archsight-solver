@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import json
 from copy import deepcopy
-from pathlib import Path
 from typing import Any, Mapping
 
 from backend.benchmarks.catalog import find_benchmark_case
+from backend.runtime_resources import runtime_resource_path
 
 
-ROOT = Path(__file__).resolve().parents[1]
-TEMPLATE_BENCHMARK_MAP_PATH = ROOT / "data" / "verification" / "template_benchmark_map.json"
+TEMPLATE_BENCHMARK_MAP_PATH = runtime_resource_path("data/verification/template_benchmark_map.json")
 TEMPLATE_REGISTRY_VERSION = "1.0.0"
 
 STRUCTURE_TYPE_LABELS = {

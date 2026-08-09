@@ -3,8 +3,9 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from functools import lru_cache
-from pathlib import Path
 from typing import Dict, Iterable, Literal, Tuple
+
+from backend.runtime_resources import runtime_resource_path
 
 
 AnalysisType = Literal["beam", "truss", "frame"]
@@ -16,7 +17,7 @@ class AnalysisAssumptionRow:
     value: str
 
 
-_ASSUMPTIONS_PATH = Path(__file__).resolve().parents[3] / "shared" / "analysis-assumptions.json"
+_ASSUMPTIONS_PATH = runtime_resource_path("shared/analysis-assumptions.json")
 
 
 @lru_cache(maxsize=1)

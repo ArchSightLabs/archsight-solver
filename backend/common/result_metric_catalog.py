@@ -3,8 +3,9 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from functools import lru_cache
-from pathlib import Path
 from typing import Dict, Literal, Tuple
+
+from backend.runtime_resources import runtime_resource_path
 
 
 AnalysisType = Literal["beam", "truss", "frame"]
@@ -26,7 +27,7 @@ class ResultMetricGroup:
     sensitivity_responses: Tuple[ResultMetricSpec, ...]
 
 
-_RESULT_METRICS_PATH = Path(__file__).resolve().parents[2] / "shared" / "result-metrics.json"
+_RESULT_METRICS_PATH = runtime_resource_path("shared/result-metrics.json")
 
 
 def _metric_spec(row: dict) -> ResultMetricSpec:

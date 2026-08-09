@@ -1,0 +1,30 @@
+[
+  {
+    "sectionId": "rect_300x500",
+    "name": "矩形截面 300x500 mm",
+    "A_cm2": 1500.0,
+    "I_cm4": 312500.0,
+    "source": "builtin"
+  },
+  {
+    "sectionId": "rect_250x450",
+    "name": "矩形截面 250x450 mm",
+    "A_cm2": 1125.0,
+    "I_cm4": 189843.75,
+    "source": "builtin"
+  },
+  {
+    "sectionId": "circle_d300",
+    "name": "圆形截面 D300 mm",
+    "A_cm2": 706.8583,
+    "I_cm4": 39760.782,
+    "source": "builtin"
+  },
+  {
+    "sectionId": "h300x150x6x10",
+    "name": "焊接 H 型钢 H300x150x6x10",
+    "A_cm2": 46.8,
+    "I_cm4": 7357.8,
+    "source": "builtin"
+  }
+]

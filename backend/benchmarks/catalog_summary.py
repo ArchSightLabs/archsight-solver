@@ -6,11 +6,12 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
-from backend.benchmarks.catalog import ROOT, load_benchmark_catalog
+from backend.benchmarks.catalog import load_benchmark_catalog
 from backend.benchmarks.verification_levels import normalize_verification_metadata
+from backend.runtime_resources import runtime_resource_path
 
 
-TEMPLATE_BENCHMARK_MAP_PATH = ROOT / "data" / "verification" / "template_benchmark_map.json"
+TEMPLATE_BENCHMARK_MAP_PATH = runtime_resource_path("data/verification/template_benchmark_map.json")
 
 
 SOURCE_LABELS = {

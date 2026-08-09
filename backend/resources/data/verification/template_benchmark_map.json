@@ -1,0 +1,294 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-06-04",
+  "templates": [
+    {
+      "module": "beam",
+      "templateId": "simple-span-uniform",
+      "templateTitle": "简支梁均布荷载",
+      "validationRefs": [
+        {
+          "caseId": "beam-simply-supported-uniform",
+          "relation": "对应",
+          "note": "同为单跨简支梁全跨均布荷载，主要复核最大挠度与峰值位置。"
+        }
+      ]
+    },
+    {
+      "module": "beam",
+      "templateId": "simple-span-center-point",
+      "templateTitle": "简支梁跨中集中荷载",
+      "validationRefs": [
+        {
+          "caseId": "beam-simply-supported-center-point",
+          "relation": "对应",
+          "note": "同为单跨简支梁跨中集中荷载，主要复核跨中最大挠度、峰值位置与两端支座反力。"
+        }
+      ]
+    },
+    {
+      "module": "beam",
+      "templateId": "cantilever-uniform",
+      "templateTitle": "悬臂梁均布荷载",
+      "validationRefs": [
+        {
+          "caseId": "beam-cantilever-uniform",
+          "relation": "对应",
+          "note": "同为悬臂梁全跨均布荷载，主要复核自由端挠度与固定端边界。"
+        }
+      ]
+    },
+    {
+      "module": "beam",
+      "templateId": "cantilever-tip-load",
+      "templateTitle": "悬臂梁自由端集中力",
+      "validationRefs": [
+        {
+          "caseId": "beam-cantilever-end-point",
+          "relation": "对应",
+          "note": "同为悬臂梁自由端集中荷载，主要复核自由端挠度。"
+        }
+      ]
+    },
+    {
+      "module": "beam",
+      "templateId": "two-span-continuous",
+      "templateTitle": "两跨连续梁均布荷载",
+      "validationRefs": [
+        {
+          "caseId": "beam-continuous-two-span-uniform",
+          "relation": "对应",
+          "note": "同为两跨连续梁均布荷载，主要复核连续梁变形控制值。"
+        }
+      ]
+    },
+    {
+      "module": "beam",
+      "templateId": "three-span-continuous-uniform",
+      "templateTitle": "三跨连续梁均布荷载",
+      "validationRefs": [
+        {
+          "caseId": "beam-continuous-three-span-uniform",
+          "relation": "对应",
+          "note": "同为三跨连续梁全跨均布荷载，主要复核多内支座连续梁的变形控制值。"
+        }
+      ]
+    },
+    {
+      "module": "beam",
+      "templateId": "three-span-linear",
+      "templateTitle": "三跨连续梁线性分布荷载",
+      "validationRefs": [
+        {
+          "caseId": "beam-template-three-span-linear",
+          "relation": "对应",
+          "note": "同为三跨连续梁线性分布荷载模板，直接复核线性荷载范围、最大挠度和峰值位置。"
+        }
+      ]
+    },
+    {
+      "module": "beam",
+      "templateId": "unequal-span-continuous-point",
+      "templateTitle": "不等跨连续梁集中荷载",
+      "validationRefs": [
+        {
+          "caseId": "beam-continuous-unequal-span-point",
+          "relation": "对应",
+          "note": "同为不等跨连续梁集中荷载，主要复核非对称跨长下的峰值位置与支座数量。"
+        }
+      ]
+    },
+    {
+      "module": "frame",
+      "templateId": "portal-single-bay",
+      "templateTitle": "单跨单层刚架",
+      "validationRefs": [
+        {
+          "caseId": "frame-template-portal-single-bay",
+          "relation": "对应",
+          "note": "同为单跨单层刚架模板，直接复核梁面均布荷载、节点竖向荷载、位移与构件弯矩。"
+        }
+      ]
+    },
+    {
+      "module": "frame",
+      "templateId": "portal-rotational-spring",
+      "templateTitle": "弹性柱脚门式刚架",
+      "validationRefs": [
+        {
+          "caseId": "frame-portal-rotational-spring",
+          "relation": "对应",
+          "note": "同为柱脚转动弹簧门式刚架，主要复核半刚性边界对节点位移和支座弯矩的影响。"
+        }
+      ]
+    },
+    {
+      "module": "frame",
+      "templateId": "frame-two-bay",
+      "templateTitle": "两跨单层框架",
+      "validationRefs": [
+        {
+          "caseId": "frame-explicit-two-bay",
+          "relation": "对应",
+          "note": "同为显式两跨单层框架，主要复核节点位移、构件弯矩与对象数量。"
+        }
+      ]
+    },
+    {
+      "module": "frame",
+      "templateId": "frame-two-story",
+      "templateTitle": "两层两跨框架",
+      "validationRefs": [
+        {
+          "caseId": "frame-template-two-story",
+          "relation": "对应",
+          "note": "同为两层两跨规则框架模板，直接复核楼层节点位移、梁柱弯矩和对象数量。"
+        }
+      ]
+    },
+    {
+      "module": "frame",
+      "templateId": "braced-frame",
+      "templateTitle": "带斜撑框架",
+      "validationRefs": [
+        {
+          "caseId": "frame-template-braced-frame",
+          "relation": "对应",
+          "note": "同为带斜撑框架模板，直接复核斜撑端部释放、节点位移和构件弯矩。"
+        }
+      ]
+    },
+    {
+      "module": "frame",
+      "templateId": "inclined-member-local-load",
+      "templateTitle": "斜梁门式刚架局部荷载",
+      "validationRefs": [
+        {
+          "caseId": "frame-inclined-member-load",
+          "relation": "对应",
+          "note": "同为斜构件局部坐标分布荷载，主要复核 local_y 荷载转换和斜构件杆端力。"
+        }
+      ]
+    },
+    {
+      "module": "frame",
+      "templateId": "frame-member-point-load",
+      "templateTitle": "框架梁构件内集中荷载",
+      "validationRefs": [
+        {
+          "caseId": "frame-member-point-load",
+          "relation": "对应",
+          "note": "同为框架梁构件内集中荷载，主要复核构件内集中力转换与杆端内力。"
+        }
+      ]
+    },
+    {
+      "module": "truss",
+      "templateId": "simple-roof-truss",
+      "templateTitle": "简支三角屋架",
+      "validationRefs": [
+        {
+          "caseId": "truss-simple-roof",
+          "relation": "对应",
+          "note": "同为简支屋架节点荷载，主要复核节点位移与杆件轴力。"
+        }
+      ]
+    },
+    {
+      "module": "truss",
+      "templateId": "pratt-truss",
+      "templateTitle": "Pratt 桁架",
+      "validationRefs": [
+        {
+          "caseId": "truss-pratt-bridge",
+          "relation": "对应",
+          "note": "同为 Pratt 桁架，主要复核节点位移、杆件轴力和控制杆件。"
+        }
+      ]
+    },
+    {
+      "module": "truss",
+      "templateId": "warren-truss",
+      "templateTitle": "Warren 桁架",
+      "validationRefs": [
+        {
+          "caseId": "truss-warren-roof",
+          "relation": "对应",
+          "note": "同为 Warren 桁架，主要复核节点位移与杆件轴力。"
+        }
+      ]
+    },
+    {
+      "module": "truss",
+      "templateId": "howe-roof-truss",
+      "templateTitle": "Howe 型屋架",
+      "validationRefs": [
+        {
+          "caseId": "truss-howe-roof",
+          "relation": "对应",
+          "note": "同为 Howe 型屋架，主要复核反向斜腹杆布置下的节点位移与杆件轴力。"
+        }
+      ]
+    },
+    {
+      "module": "truss",
+      "templateId": "cantilever-truss",
+      "templateTitle": "悬臂桁架",
+      "validationRefs": [
+        {
+          "caseId": "truss-cantilever-panel",
+          "relation": "对应",
+          "note": "同为悬挑桁架体系，主要复核自由端节点位移与杆件轴力。"
+        }
+      ]
+    },
+    {
+      "module": "beam",
+      "templateId": "fixed-fixed-uniform",
+      "templateTitle": "两端固结均布荷载",
+      "validationRefs": [
+        {
+          "caseId": "beam-template-fixed-fixed-uniform",
+          "relation": "对应",
+          "note": "同为两端固结单跨梁全跨均布荷载，直接复核固定端边界和跨中挠度。"
+        }
+      ]
+    },
+    {
+      "module": "beam",
+      "templateId": "propped-cantilever-point",
+      "templateTitle": "一端固结一端简支",
+      "validationRefs": [
+        {
+          "caseId": "beam-template-propped-cantilever-point",
+          "relation": "对应",
+          "note": "同为左端固结、右端滚动支座并承受跨中集中荷载，直接复核超静定边界。"
+        }
+      ]
+    },
+    {
+      "module": "frame",
+      "templateId": "gable-frame",
+      "templateTitle": "坡屋面门式刚架",
+      "validationRefs": [
+        {
+          "caseId": "frame-template-gable-frame",
+          "relation": "对应",
+          "note": "同为坡屋面门式刚架模板，直接复核斜梁全局竖向荷载、节点位移和构件弯矩。"
+        }
+      ]
+    },
+    {
+      "module": "truss",
+      "templateId": "parallel-chord-truss",
+      "templateTitle": "平行弦桁架",
+      "validationRefs": [
+        {
+          "caseId": "truss-template-parallel-chord",
+          "relation": "对应",
+          "note": "同为平行弦桥式桁架模板，直接复核节点位移、杆件轴力和控制杆件。"
+        }
+      ]
+    }
+  ]
+}

@@ -25,16 +25,17 @@ from backend.contracts.json_schemas_delivery import (
     VERIFICATION_PACKAGE_CREATE_INPUT_SCHEMA,
     VERIFICATION_PACKAGE_VERIFY_INPUT_SCHEMA,
 )
+from backend.runtime_resources import runtime_resource_path
 
 PROTOCOL_VERSION = "2025-06-18"
 SERVER_NAME = "archsight-solver-mcp"
 SERVER_VERSION = "0.1.0"
 
-ROOT = Path(__file__).resolve().parents[2]
-ASMS_PROTOCOL_DOC_PATH = ROOT / "docs" / "asms-json-schema.md"
-AGENT_FEW_SHOT_PATH = ROOT / "data" / "agent_workflows" / "asms_few_shots.json"
-BENCHMARK_DOC_PATH = ROOT / "docs" / "verification" / "benchmark-validation-report.md"
-MCP_RESOURCES_DOC_PATH = ROOT / "docs" / "mcp-resources.md"
+ROOT = runtime_resource_path(".")
+ASMS_PROTOCOL_DOC_PATH = runtime_resource_path("docs/asms-json-schema.md")
+AGENT_FEW_SHOT_PATH = runtime_resource_path("data/agent_workflows/asms_few_shots.json")
+BENCHMARK_DOC_PATH = runtime_resource_path("docs/verification/benchmark-validation-report.md")
+MCP_RESOURCES_DOC_PATH = runtime_resource_path("docs/mcp-resources.md")
 
 FILE_RESOURCE_PATHS = {
     "archsight://docs/asms-json": ASMS_PROTOCOL_DOC_PATH,
