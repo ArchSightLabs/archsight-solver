@@ -3,18 +3,29 @@ import { expect, test, type Page } from "@playwright/test";
 
 test.setTimeout(60_000);
 
-type CalculationPayload = { analysisType: "beam" } & Record<string, unknown>;
+type CalculationPayload = { analysisType: "beam" | "frame" | "truss" } & Record<string, unknown>;
 
 function calculationEnvelope(payload: CalculationPayload) {
   return {
     success: true,
     operation: "calculate",
     version: "v1",
-    analysisType: "beam",
+    analysisType: payload.analysisType,
     request: payload,
-    model: { analysisType: "beam", spans: payload.spans },
+    model: { analysisType: payload.analysisType, spans: payload.spans, structure: payload.structure },
     results: {
-      summary: { status: "合格", statusCode: "PASS", maxDeflectionMm: 1, maxMomentKnM: 1 },
+      summary: {
+        status: "合格",
+        statusCode: "PASS",
+        allowableMm: 10,
+        allowableRatio: 250,
+        maxDeflectionMm: 1,
+        maxDisplacementMm: 1,
+        maxVerticalMm: 1,
+        maxRotationDeg: 0.01,
+        maxMomentKnM: 1,
+        maxAxialForceKn: 1,
+      },
       preview: null,
       nodeResults: [],
       memberResults: [],
@@ -24,7 +35,10 @@ function calculationEnvelope(payload: CalculationPayload) {
       series: {},
     },
     diagnostics: { status: "合格", statusCode: "PASS" },
-    meta: { modelHash: "model-release-1-7", requestHash: "request-release-1-7" },
+    meta: {
+      modelHash: `model-release-1-7-${payload.analysisType}`,
+      requestHash: `request-release-1-7-${payload.analysisType}`,
+    },
     errors: [],
   };
 }
@@ -150,4 +164,72 @@ test("v1.7 可信计算包响应返回前模型变化时丢弃文件", async ({ 
   await page.getByRole("tab", { name: /结构计算/ }).click();
   await expect(page.getByText(/返回文件已丢弃/)).toBeVisible();
   expect(downloads).toEqual([]);
+});
+
+test("v1.7 梁、平面框架和平面桁架均从当前 provenance 导出可信计算包", async ({ page }) => {
+  await page.addInitScript(() => localStorage.clear());
+  await mockCalculation(page);
+
+  const createRequests: Array<{
+    payload: CalculationPayload;
+    evidence: Record<string, unknown> & {
+      resultProvenance: { analysisType: string; modelSignature: string };
+      resultSource: { source: string; id: string };
+    };
+  }> = [];
+  await page.route("**/api/verification-packages", async (route) => {
+    const request = route.request().postDataJSON() as (typeof createRequests)[number];
+    createRequests.push(request);
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(verificationCreateResponse(request)),
+    });
+  });
+
+  await page.goto("/");
+  const moduleRail = page.locator("aside").filter({ hasText: "分析对象" });
+  const scenarios = [
+    {
+      analysisType: "beam",
+      object: null,
+      run: "运行梁系计算",
+      complete: "梁系计算完成",
+      filename: "archsight-solver-beam.solver-verification.json",
+    },
+    {
+      analysisType: "frame",
+      object: /平面框架-1\s+(平面框架|框架)/u,
+      run: "运行平面框架计算",
+      complete: "平面框架计算完成",
+      filename: "archsight-solver-frame.solver-verification.json",
+    },
+    {
+      analysisType: "truss",
+      object: /平面桁架-1\s+(平面桁架|桁架)/u,
+      run: "运行平面桁架计算",
+      complete: "平面桁架计算完成",
+      filename: "archsight-solver-truss.solver-verification.json",
+    },
+  ] as const;
+
+  for (const scenario of scenarios) {
+    if (scenario.object) {
+      await moduleRail.getByRole("button", { name: scenario.object }).click();
+    }
+    await page.getByRole("tab", { name: /结构计算/ }).click();
+    await page.getByRole("button", { name: scenario.run }).click();
+    await expect(page.getByText(scenario.complete)).toBeVisible();
+
+    await page.getByRole("button", { name: "成果导出" }).click();
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("menuitem", { name: /导出可信计算包/ }).click();
+    expect((await downloadPromise).suggestedFilename()).toBe(scenario.filename);
+
+    const request = createRequests.at(-1);
+    expect(request?.payload.analysisType).toBe(scenario.analysisType);
+    expect(request?.evidence.resultProvenance.analysisType).toBe(scenario.analysisType);
+    expect(request?.evidence.resultProvenance.modelSignature).toMatch(/^fnv1a64:/u);
+    expect(request?.evidence.resultSource).toMatchObject({ source: "primary", id: "__primary__" });
+  }
 });

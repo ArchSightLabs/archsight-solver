@@ -79,6 +79,7 @@ jobs:
           npm --prefix frontend run test:visual -- release-1-6-2-project-lifecycle.spec.ts --project=chromium --workers=1
           npm --prefix frontend run test:visual -- release-1-6-2-diagnostics.spec.ts --project=chromium --workers=1
           npm --prefix frontend run test:visual -- release-1-6-2-result-validity.spec.ts --project=chromium --workers=1
+          npm --prefix frontend run test:visual -- release-1-7-verification-package.spec.ts --project=chromium --workers=1
           npm --prefix frontend run test:visual -- release-1-6-1-host-reference.spec.ts --project=chromium --workers=1
           npm --prefix frontend run test:visual -- release-1-6-host-integration.spec.ts --project=chromium --workers=1
           npm --prefix frontend run test:visual -- release-1-5-quick-modeling.spec.ts --project=chromium --workers=1

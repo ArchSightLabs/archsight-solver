@@ -1,0 +1,16 @@
+{
+  "payload": {
+    "analysisType": "beam",
+    "beamType": "simply_supported",
+    "loadType": "uniform",
+    "spans": [
+      6
+    ],
+    "q": 12,
+    "E": 206,
+    "I": 85000
+  },
+  "evidence": {
+    "source": "five-minute-quickstart"
+  }
+}

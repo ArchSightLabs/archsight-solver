@@ -1,5 +1,7 @@
 # ArchSight Solver
 
+中文 | [English](README.en.md)
+
 一个面向结构工程师、教师和进阶学习者的**开源核心、Web 原生、透明可验证**的结构力学求解器工作台。
 
 ArchSight Solver 当前聚焦三类典型结构分析：
@@ -60,9 +62,21 @@ npm --prefix frontend run test:unit
 - 支座反力、剪力、弯矩、挠度、节点位移、杆件轴力等专业结果输出。
 - 结构图、荷载图、内力图、挠度曲线和结果摘要展示。
 - 项目模板库、公开验证工程、WORD / XLSX 计算书导出。
+- 可携带输入、记录结果、来源证据、SHA-256 摘要与复算规则的可信计算包。
 - ASMS-JSON 数据协议、REST API、CLI、MCP tools、基准算例与错误契约。
 
 详细功能边界见 [功能与适用边界](docs/capabilities.md)。
+
+## v1.7.0 版本主题
+
+v1.7.0 把 Solver 从“可计算、可导出”提升为“可携带、可复核、可嵌入”的开放结构计算基础设施，同时继续保持 Apache-2.0 开源、免费和既有二维线弹性静力分析边界。
+
+- 工作台、REST、CLI 与 MCP 共享 `archsight-solver-verification-package@1.0.0`，可生成、校验并复算同一种可信计算包。
+- Python wheel/sdist 与无框架 Host Client tarball 作为 GitHub Release 资产分发，不强制依赖 PyPI 或 npm registry。
+- 官方演示站可选启用固定白名单的匿名里程碑统计；默认关闭，不采集模型、参数、项目、文件、结果或身份。
+- 发布门槛来自仓库内自动化、三类黄金流程、浏览器、Docker 和制品证据，不依赖外部访谈、招募试用者或第三方接入数量。
+
+直接开始：[五分钟路径](docs/quickstart.md) · [可信计算包指南](docs/verification-package.md) · [三条黄金流程](docs/golden-flows.md) · [English entry](README.en.md)
 
 ## v1.3.0 发布重点
 
@@ -158,6 +172,9 @@ uv run python -m backend.benchmarks.catalog_summary --output docs/verification/b
 |---|---|---|
 | [快速开始与本地工具](docs/quickstart.md) | 本地启动、测试、CLI、MCP 与公开案例接口 | 当前快速开始 |
 | [功能与适用边界](docs/capabilities.md) | 功能范围、适用人群、身份边界与非目标 | 当前能力说明 |
+| [可信计算包指南](docs/verification-package.md) | 工作台、REST、CLI、MCP 的生成、完整性校验与复算 | v1.7 当前契约 |
+| [三条黄金流程](docs/golden-flows.md) | 工程师、教师/学习者、开发者的可复跑成功路径 | v1.7 验收入口 |
+| [English README](README.en.md) | English quickstart, capabilities, verification, and boundaries | v1.7 English entry |
 | [结构力学入门](docs/learning/README.md) | 梁系、平面桁架、平面框架的概念、术语和图形入门 | 当前学习入口 |
 | [源码目录说明](docs/source-layout.md) | 后端、前端、数据、测试和本地忽略目录说明 | 当前源码导航 |
 | [版本发布记录](CHANGELOG.md) | 仓库级发布记录；前端发布记录页面由该文件同步生成 | 当前发布记录 |

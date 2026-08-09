@@ -1,0 +1,102 @@
+# ArchSight Solver
+
+[中文](README.md) | English
+
+ArchSight Solver is an Apache-2.0, web-native structural mechanics workbench for deterministic, transparent, and reproducible analysis. It is built for structural engineers, educators, advanced learners, developers, and agent runtimes.
+
+[Try the public workbench](https://solver.archsight.cn/) · [Five-minute quickstart](docs/en/quickstart.md) · [Capabilities and limits](docs/en/capabilities.md) · [Verification packages](docs/en/verification-package.md)
+
+## What it solves
+
+- Beam systems: simply supported, continuous, and cantilever beams.
+- Two-dimensional plane trusses.
+- Two-dimensional plane frames.
+- Linear-elastic, small-displacement, deterministic static analysis only.
+
+The workbench reports reactions, displacements, member forces, shear, bending moment, deflection, diagnostics, and result provenance as appropriate for each system. It also supports load cases and combinations, public benchmark projects, DOCX/XLSX reports, ASMS-JSON, REST, CLI, MCP, and Host Protocol 1.0.
+
+## Why v1.7 matters
+
+v1.7 adds a portable verification package shared by the Web workbench, REST API, CLI, and MCP. A package contains the solver input, normalized request, model, recorded result, diagnostics, source evidence, solver version, replay policy, and SHA-256 integrity digests.
+
+The same package can be replayed with the current solver and returns one of three states:
+
+- `pass`: integrity is valid and replay matches under the published tolerance.
+- `review`: replay matches, but a version difference requires human review.
+- `fail`: format, integrity, or replay comparison failed.
+
+A digest is not a digital signature, identity proof, engineering certification, or safety approval. Solver results still require review by a qualified professional for their intended use.
+
+## Run from source
+
+Requirements: Python `>=3.13`, [uv](https://docs.astral.sh/uv/), and Node.js `>=22.22.0`.
+
+```bash
+git clone https://github.com/ArchSightLabs/archsight-solver.git
+cd archsight-solver
+uv sync --frozen
+npm --prefix frontend ci --include=optional
+```
+
+Start the backend and frontend in separate terminals:
+
+```bash
+uv run python app.py
+npm --prefix frontend run dev
+```
+
+- API: `http://127.0.0.1:6240`
+- Web: `http://127.0.0.1:6241`
+
+Run the main local gates:
+
+```bash
+uv run python -m pytest backend/tests -q
+npm --prefix frontend run lint
+npm --prefix frontend run test:unit
+npm --prefix frontend run build
+```
+
+See the [English quickstart](docs/en/quickstart.md) for GitHub Release installation, Docker, CLI/MCP verification, and the framework-free Host Client package.
+
+## Open distribution
+
+Each v1.7 GitHub Release is designed to include:
+
+- Python wheel and source distribution for the CLI and MCP server.
+- `@archsight/solver-host-client` tarball with zero runtime dependencies.
+- Immutable GHCR image and an offline Docker image archive.
+- SPDX SBOM, Trivy report, and `SHA256SUMS`.
+
+PyPI and npm registry publication are not required. The versioned assets attached to the GitHub Release are the direct distribution path.
+
+## Trust and responsibility boundary
+
+ArchSight Solver does not provide:
+
+- 3D frames or spatial structures.
+- Dynamic, buckling, nonlinear, or contact analysis.
+- Code-based member design, reinforcement design, construction safety approval, or engineering sign-off.
+- Accounts, organizations, subscriptions, cloud project storage, or a multi-tenant platform.
+- Digital signatures, certificates, third-party certification, or replacement of licensed engineering judgment.
+
+The public demonstration may optionally enable privacy-bounded aggregate milestone analytics. Analytics are disabled by default and never include structural models, parameters, project or file names, results, error text, user identity, or device fingerprints. See [Analytics and privacy](docs/analytics-and-privacy.md) (Chinese source of truth).
+
+## Documentation
+
+- [English quickstart](docs/en/quickstart.md)
+- [English capabilities](docs/en/capabilities.md)
+- [English verification package guide](docs/en/verification-package.md)
+- [Chinese documentation index](README.md#文档入口)
+- [REST API reference](docs/api-reference.md)
+- [ASMS-JSON](docs/asms-json-schema.md)
+- [Host Protocol 1.0](docs/host-protocol-1.md)
+- [Public benchmark methodology](docs/verification/benchmark-methodology.md)
+
+The Chinese technical documentation remains the semantic source of truth. The English entry is intentionally bounded to installation, public capabilities, verification, and responsibility limits so the two surfaces remain maintainable.
+
+## License and trademarks
+
+The repository code, documentation, and test samples are licensed under [Apache-2.0](LICENSE). Keep [NOTICE.md](NOTICE.md) when redistributing.
+
+Apache-2.0 does not grant rights to the ArchSight, ArchSight Solver, ArchSightLabs, logo, or official-domain trademarks. Forks and commercial services must use a clearly distinct product identity and must not imply official certification, partnership, or endorsement. See [TRADEMARKS.md](TRADEMARKS.md).

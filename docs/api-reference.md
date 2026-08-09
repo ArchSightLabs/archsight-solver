@@ -288,6 +288,40 @@ Content-Type: application/json
 
 图形导出回归入口：`npm --prefix frontend run test:visual:export-docx`。该入口按 Chromium / Firefox / WebKit 顺序验证框架与桁架 DOCX 请求携带前端同源 PNG。
 
+## POST /api/verification-packages
+
+执行现有确定性求解，生成 `archsight-solver-verification-package@1.0.0`，并在同一响应中立即完成格式、SHA-256 完整性与容差复算检查。
+
+```json
+{
+  "payload": {
+    "analysisType": "beam",
+    "beamType": "simply_supported",
+    "loadType": "uniform",
+    "spans": [6],
+    "q": 12,
+    "E": 206,
+    "I": 85000
+  },
+  "evidence": {
+    "source": "api-reference"
+  }
+}
+```
+
+成功响应包含 `package` 和 `verification`。`verification.status` 为 `pass`、`review` 或 `fail`；完整字段、固定容差和责任边界见[可信计算包 1.0](verification-package.md)。
+
+## POST /api/verification-packages/verify
+
+接收 `{ "package": <完整可信计算包> }`，重新检查格式与完整性，并使用当前求解器重放记录输入。内部 Hash 破坏或结果超差返回结构化 `fail` 报告；请求体不是合法包对象时返回 `VERIFICATION_PACKAGE_INVALID_INPUT`。
+
+机器可读契约：
+
+- `GET /api/contracts/schemas/solver-verification-package`
+- `GET /api/contracts/schemas/verification-package-create-input`
+- `GET /api/contracts/schemas/verification-package-report`
+- `GET /api/contracts/openapi`
+
 ## POST /api/jobs
 
 提交本地轻量异步作业，适合本机批量计算、Agent 自动调用和避免同步请求阻塞。当前开源实现不是生产级分布式任务队列：每个服务 worker 在首次请求时启动本进程的 `ThreadPoolExecutor` 与心跳，进程退出时关闭；状态和结果默认写入本地 SQLite，并记录执行进程 ID。多容器、多主机、高吞吐或需要可靠重试的部署，应接入共享数据库、Redis 或专用任务队列。
@@ -474,25 +508,32 @@ python -m backend.benchmarks.review_submission path/to/benchmark-submission.json
 
 ```powershell
 '{"payload":{"analysisType":"beam","beamType":"simply_supported","loadType":"uniform","spans":[6],"q":12,"E":206,"I":85000}}' |
-  python -m backend.capabilities.solver_cli calculate --pretty
+  uv run python -m backend.capabilities.solver_cli calculate --pretty
 ```
 
 执行公开验证集算例：
 
 ```powershell
-'{"caseId":"BM-001"}' | python -m backend.capabilities.solver_cli benchmark_case_run --pretty
+'{"caseId":"BM-001"}' | uv run python -m backend.capabilities.solver_cli benchmark_case_run --pretty
 ```
 
 检查项目文件契约与托管状态：
 
 ```powershell
-python -m backend.capabilities.solver_cli project_document_health --input project.slv --pretty
+uv run python -m backend.capabilities.solver_cli project_document_health --input project.slv --pretty
 ```
 
 读取内置模板 registry：
 
 ```powershell
-'{}' | python -m backend.capabilities.solver_cli project_template_registry --pretty
+'{}' | uv run python -m backend.capabilities.solver_cli project_template_registry --pretty
+```
+
+可信计算包：
+
+```powershell
+uv run python -m backend.capabilities.solver_cli verification_package_create --input create-request.json --pretty
+uv run python -m backend.capabilities.solver_cli verification_package_verify --input verify-request.json --pretty
 ```
 
 ## MCP Server
@@ -500,7 +541,7 @@ python -m backend.capabilities.solver_cli project_document_health --input projec
 启动：
 
 ```powershell
-python -m backend.capabilities.mcp_server
+uv run python -m backend.capabilities.mcp_server
 ```
 
 Tools：
@@ -515,6 +556,8 @@ Tools：
 - `benchmark_case_run`
 - `project_document_health`
 - `project_template_registry`
+- `verification_package_create`
+- `verification_package_verify`
 
 Resources：
 
@@ -538,6 +581,8 @@ Prompts：
 - `COMMON_UNSUPPORTED_ASYNC_OPERATION`：不支持的异步作业类型。
 - `COMMON_JOB_NOT_FOUND`：异步作业不存在。
 - `COMMON_SCHEMA_NOT_FOUND`：Schema 不存在。
+- `VERIFICATION_PACKAGE_INVALID_INPUT`：可信计算包生成或验证请求不满足公开输入契约。
+- `VERIFICATION_PACKAGE_CREATE_FAILED`：可信计算包生成或生成后复算失败。
 - `BENCHMARK_SUBMISSION_INVALID`：公开验证算例投稿草案不满足必填字段、力学口径或自动校验入口要求。
 - `BEAM_INVALID_REQUEST`：梁系输入错误。
 - `FRAME_INVALID_REQUEST`：框架输入错误。

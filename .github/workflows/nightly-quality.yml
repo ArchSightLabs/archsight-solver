@@ -48,8 +48,8 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
-  docx-browser-matrix:
-    name: DOCX export (${{ matrix.browser }})
+  export-browser-matrix:
+    name: Export evidence (${{ matrix.browser }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -80,19 +80,16 @@ jobs:
           npm --prefix frontend ci --include=optional
           npm --prefix frontend exec playwright install --with-deps ${{ matrix.browser }}
 
-      - name: Run DOCX export matrix
-        run: >-
-          npm --prefix frontend run test:visual --
-          workbench-export-docx.spec.ts
-          --project=${{ matrix.browser }}
-          --workers=1
-          --reporter=list
+      - name: Run export evidence matrix
+        run: |
+          npm --prefix frontend run test:visual -- workbench-export-docx.spec.ts --project=${{ matrix.browser }} --workers=1 --reporter=list
+          npm --prefix frontend run test:visual -- release-1-7-verification-package.spec.ts --project=${{ matrix.browser }} --workers=1 --reporter=list
 
       - name: Upload browser evidence on failure
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: nightly-docx-${{ matrix.browser }}-${{ github.run_id }}
+          name: nightly-export-${{ matrix.browser }}-${{ github.run_id }}
           path: |
             frontend/test-results
             frontend/playwright-report

@@ -118,3 +118,77 @@ def test_v161_host_reference_has_bounded_product_acceptance_and_protocol_lifecyc
     assert "### Host Protocol 生命周期" in agent_integration
     assert "当前实现只接受精确的 `1.0.0`" in agent_integration
     assert "发布时间：2026-07-16" in changelog
+
+
+def test_v170_bilingual_entry_and_golden_flows_share_one_verification_contract():
+    readme_zh = _read_doc("README.md")
+    readme_en = _read_doc("README.en.md")
+    quickstart_zh = _read_doc("docs/quickstart.md")
+    quickstart_en = _read_doc("docs/en/quickstart.md")
+    capabilities_zh = _read_doc("docs/capabilities.md")
+    capabilities_en = _read_doc("docs/en/capabilities.md")
+    verification_zh = _read_doc("docs/verification-package.md")
+    verification_en = _read_doc("docs/en/verification-package.md")
+    golden_flows = _read_doc("docs/golden-flows.md")
+
+    assert "[English](README.en.md)" in readme_zh
+    assert "[中文](README.md)" in readme_en
+    assert "[English](en/quickstart.md)" in quickstart_zh
+    assert "[中文快速开始](../quickstart.md)" in quickstart_en
+    assert "[English](en/capabilities.md)" in capabilities_zh
+    assert "[中文](../capabilities.md)" in capabilities_en
+
+    for document in (readme_zh, readme_en, capabilities_zh, capabilities_en):
+        assert "beam" in document.lower() or "梁系" in document
+        assert "truss" in document.lower() or "平面桁架" in document
+        assert "frame" in document.lower() or "平面框架" in document
+    for document in (readme_en, capabilities_en):
+        assert "linear-elastic" in document.lower()
+        assert "3D" in document
+        assert "engineering sign-off" in document
+
+    for document in (verification_zh, verification_en):
+        assert "archsight-solver-verification-package@1.0.0" in document
+        assert "POST /api/verification-packages" in document
+        assert "verification_package_create" in document
+        assert "verification_package_verify" in document
+        assert "1e-8" in document
+        assert "1e-6" in document
+        assert "digital signature" in document.lower() or "数字签名" in document
+
+    assert "archsight_solver-1.7.0-py3-none-any.whl" in quickstart_en
+    assert "archsight-solver-tool verification_package_create" in quickstart_en
+    assert "archsight-solver-mcp" in quickstart_en
+    assert "ghcr.io/archsightlabs/archsight-solver:v1.7.0" in quickstart_en
+    assert "Host Client" in quickstart_en
+    example_request = json.loads(_read_doc("examples/verification-package/create-request.json"))
+    assert example_request["payload"]["analysisType"] == "beam"
+    assert example_request["evidence"]["source"] == "five-minute-quickstart"
+
+    assert "流程 A：结构工程师" in golden_flows
+    assert "流程 B：教师或学习者" in golden_flows
+    assert "流程 C：开发者" in golden_flows
+    assert "不要求招募外部试用者" in golden_flows
+    assert "不要求第三方系统完成接入" in golden_flows
+
+
+def test_v170_new_public_document_links_resolve_inside_repository():
+    document_paths = (
+        "README.md",
+        "README.en.md",
+        "docs/quickstart.md",
+        "docs/capabilities.md",
+        "docs/verification-package.md",
+        "docs/golden-flows.md",
+        "docs/en/quickstart.md",
+        "docs/en/capabilities.md",
+        "docs/en/verification-package.md",
+    )
+    for path in document_paths:
+        document_path = ROOT / path
+        for raw_target in re.findall(r"\[[^\]]+\]\(([^)]+)\)", _read_doc(path)):
+            target = raw_target.split("#", 1)[0]
+            if not target or target.startswith(("http://", "https://", "mailto:")):
+                continue
+            resolved = (document_path.parent / target).resolve()
+            assert resolved.is_file(), f"{path} 包含失效本地链接: {raw_target}"

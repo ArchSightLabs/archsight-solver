@@ -1,5 +1,7 @@
 # 快速开始与本地工具
 
+中文 | [English](en/quickstart.md)
+
 本文面向本地开发、教学演示和 Agent 集成调试，汇总后端、前端、测试、CLI、MCP 和公开案例接口的常用命令。
 
 ## 环境与安装
@@ -52,6 +54,26 @@ npm --prefix frontend run lint
 npm --prefix frontend run test:unit
 npm --prefix frontend run build
 ```
+
+## GitHub Release 五分钟路径
+
+如果只需要 CLI / MCP，不必克隆仓库。下载 v1.7.0 Release 的 `archsight_solver-1.7.0-py3-none-any.whl` 与 `SHA256SUMS`，校验后安装：
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install .\archsight_solver-1.7.0-py3-none-any.whl
+```
+
+按[可信计算包指南](verification-package.md)准备 `create-request.json`；源码仓库可直接复制 `examples/verification-package/create-request.json`。然后生成并复算：
+
+```powershell
+archsight-solver-tool verification_package_create --input create-request.json --pretty > created.json
+python -c "import json; d=json.load(open('created.json',encoding='utf-8')); json.dump({'package':d['package']},open('verify-request.json','w',encoding='utf-8'),ensure_ascii=False)"
+archsight-solver-tool verification_package_verify --input verify-request.json --pretty
+```
+
+成功输出应包含 `status: "pass"`、`integrityValid: true` 和 `replayMatched: true`。安装态 wheel 自带 CLI/MCP 所需的契约、Benchmark、模板、材料、支座、截面和文档资源，不依赖仓库 cwd。完整 Web/API 使用 GHCR 不可变版本镜像或同一 Release 的离线镜像归档。
 
 ## 异步 API 与公开案例
 
@@ -112,6 +134,14 @@ uv run python -m backend.capabilities.solver_cli project_document_health --input
 '{}' | uv run python -m backend.capabilities.solver_cli project_template_registry --pretty
 ```
 
+生成与复算可信计算包：
+
+```powershell
+uv run python -m backend.capabilities.solver_cli verification_package_create --input create-request.json --pretty > created.json
+python -c "import json; d=json.load(open('created.json',encoding='utf-8')); json.dump({'package':d['package']},open('verify-request.json','w',encoding='utf-8'),ensure_ascii=False)"
+uv run python -m backend.capabilities.solver_cli verification_package_verify --input verify-request.json --pretty
+```
+
 ## MCP Server
 
 ```powershell
@@ -130,6 +160,8 @@ uv run python -m backend.capabilities.mcp_server
 - `benchmark_case_run`
 - `project_document_health`
 - `project_template_registry`
+- `verification_package_create`
+- `verification_package_verify`
 
 当前 MCP resources：
 
@@ -141,6 +173,8 @@ uv run python -m backend.capabilities.mcp_server
 - `archsight://docs/mcp-resources`
 
 资源路径、更新责任和验收检查见 [MCP Resources 清单与生成口径](mcp-resources.md)。
+
+可信计算包的字段、状态、容差与责任边界见[可信计算包 1.0](verification-package.md)，按角色复跑的完整路径见[v1.7 三条黄金流程](golden-flows.md)。
 
 ## 二维框架快速验证
 
