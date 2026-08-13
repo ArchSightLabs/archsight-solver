@@ -46,6 +46,7 @@ type BeamDiagramSelectionKey = BeamDiagramMetricKey | "all";
 type LabelLayout = DiagramPlacedLabel;
 type KeyPointAnnotation = {
   point: BeamAnnotationPoint;
+  kindLabel: string;
   valueLabel: string;
   stationLabel: string;
   layout: LabelLayout;
@@ -193,8 +194,18 @@ function nodeBadgeBlockers(beam: BeamPreviewData, mapX: (x: number) => number, c
   });
 }
 
+function beamKeyPointKindLabel(kind: BeamAnnotationPoint["kind"], metricKey: BeamDiagramMetricKey) {
+  if (kind === "zero-crossing") return metricKey === "momentKnM" ? "反弯" : "零点";
+  if (kind === "jump-left") return "跳变左";
+  if (kind === "jump-right") return "跳变右";
+  if (kind === "global-extreme") return "全局极值";
+  if (kind === "local-extreme") return "局部极值";
+  return "端点";
+}
+
 function buildLabelLayout(params: {
   extreme: SvgPoint;
+  kindLabel: string;
   valueLabel: string;
   stationLabel: string;
   compact: boolean;
@@ -203,6 +214,7 @@ function buildLabelLayout(params: {
   mapX: (x: number) => number;
   extraBlockers?: DiagramLabelBlocker[];
 }): LabelLayout {
+  const kindFontSize = params.compact ? 9 : 11;
   const valueFontSize = params.compact ? 11 : 13;
   const stationFontSize = params.compact ? 9 : 11;
   const lineGap = params.compact ? 14 : 16;
@@ -217,6 +229,7 @@ function buildLabelLayout(params: {
   return placeDiagramLabel({
     anchor: params.extreme,
     lines: [
+      { text: params.kindLabel, fontSize: kindFontSize },
       { text: params.valueLabel, fontSize: valueFontSize },
       { text: params.stationLabel, fontSize: stationFontSize },
     ],
@@ -279,11 +292,15 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
     }, null);
     const keyPoints: BeamAnnotationPoint[] = findBeamDiagramKeyPoints(samples, selectedMetric.key)
       .map((point) => {
-        const svgPoint = resultPoints[point.index];
-        if (!svgPoint) return null;
+        const svgPoint = {
+          x: mapX(point.x),
+          y: BEAM_Y + valueToSvgOffset * point.value * offsetScale,
+          value: point.value,
+          stationM: point.x,
+        };
         return {
           ...svgPoint,
-          key: `${point.kind}-${point.index}-${point.x.toFixed(4)}`,
+          key: `${point.kind}-${point.x.toFixed(4)}-${point.value.toFixed(4)}`,
           kind: point.kind,
           priority: point.priority,
         };
@@ -313,10 +330,12 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
       .slice()
       .sort((a, b) => b.priority - a.priority || Math.abs(b.value) - Math.abs(a.value))
       .map((point) => {
+        const kindLabel = beamKeyPointKindLabel(point.kind, selectedMetric.key);
         const valueLabel = valueText(point.value, selectedMetric.unit);
         const stationLabel = `x = ${point.stationM.toFixed(2)} m`;
         const layout = buildLabelLayout({
           extreme: point,
+          kindLabel,
           valueLabel,
           stationLabel,
           compact,
@@ -326,10 +345,10 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
           extraBlockers: occupied,
         });
         occupied.push({ ...layout.rect, weight: point.kind === "global-extreme" ? 14 : 11 });
-        return { point, valueLabel, stationLabel, layout };
+        return { point, kindLabel, valueLabel, stationLabel, layout };
       })
       .sort((a, b) => a.point.x - b.point.x || a.point.y - b.point.y);
-  }, [beam, compact, diagram, selectedMetric.unit]);
+  }, [beam, compact, diagram, selectedMetric.key, selectedMetric.unit]);
 
   if (!results || !beam || !diagram) {
     return <ResultDiagramEmptyState compact={compact} label="暂无梁系工程图数据" />;
@@ -473,10 +492,23 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
             })}
           </g>
 
-          {keyPointAnnotations.map(({ point, valueLabel, stationLabel, layout }) => {
+          {keyPointAnnotations.map(({ point, kindLabel, valueLabel, stationLabel, layout }) => {
             const isGlobalExtreme = point.kind === "global-extreme";
             return (
-              <g key={point.key}>
+              <g key={point.key} data-keypoint-kind={point.kind} aria-label={`${kindLabel} ${stationLabel} ${valueLabel}`}>
+                <text
+                  x={layout.textX}
+                  y={layout.valueY - (compact ? 12 : 14)}
+                  fill="var(--structure-preview-label)"
+                  stroke="var(--structure-preview-text-halo)"
+                  strokeWidth={STATION_TEXT_HALO_WIDTH}
+                  paintOrder="stroke"
+                  fontSize={compact ? "9" : "11"}
+                  fontFamily={DIAGRAM_NUMERIC_FONT}
+                  fontWeight="600"
+                >
+                  {kindLabel}
+                </text>
                 <circle
                   cx={point.x}
                   cy={point.y}

@@ -1,8 +1,11 @@
+import type { TrussPreviewData } from "../types/structure.ts";
 import { TRUSS_REPORT_OVERLAY_FIGURES, type TrussReportFigure } from "./report-figure-catalog.ts";
 import { clamp } from "./result-diagram-geometry.ts";
 import { STRUCTURE_VISUAL_STROKES } from "./structure-visual-tokens.ts";
 
 export type TrussDiagramMetricKey = "axialForceKn" | "displacementMm";
+
+export type TrussDisplacementKeyPointKind = "control" | "zero" | "end";
 
 export interface TrussDiagramMetric {
   key: TrussDiagramMetricKey;
@@ -16,6 +19,13 @@ export interface TrussDisplacementDisplayScaleInput {
   modelWidthPx: number;
   modelHeightPx: number;
   compact?: boolean;
+}
+
+export interface TrussDisplacementKeyPoint {
+  nodeId: string;
+  value: number;
+  kind: TrussDisplacementKeyPointKind;
+  priority: number;
 }
 
 const TRUSS_RESULT_KEY_BY_REPORT_METRIC: Record<TrussReportFigure["metric"], TrussDiagramMetricKey> = {
@@ -33,6 +43,75 @@ export const DEFAULT_TRUSS_DIAGRAM_METRIC_KEY: TrussDiagramMetricKey = TRUSS_DIA
 
 export function getTrussDiagramMetric(key: TrussDiagramMetricKey): TrussDiagramMetric {
   return TRUSS_DIAGRAM_METRICS.find((metric) => metric.key === key) ?? TRUSS_DIAGRAM_METRICS[0];
+}
+
+function keyPointPriority(kind: TrussDisplacementKeyPointKind) {
+  if (kind === "control") return 1000;
+  if (kind === "zero") return 900;
+  return 920;
+}
+
+export function findTrussDisplacementKeyPoints(truss: TrussPreviewData): TrussDisplacementKeyPoint[] {
+  const nodeResults = truss.nodeResults ?? [];
+  if (!nodeResults.length) return [];
+
+  const maxAbs = Math.max(...nodeResults.map((node) => Math.abs(node.displacementMm)), 0);
+  if (maxAbs <= 1e-9) return [];
+
+  const zeroTolerance = Math.max(maxAbs * 1e-9, 1e-9);
+  const nodeGeometry = new Map(truss.nodes.map((node) => [node.id, node]));
+
+  const candidates = new Map<string, TrussDisplacementKeyPoint>();
+  const addCandidate = (candidate: TrussDisplacementKeyPoint) => {
+    const current = candidates.get(candidate.nodeId);
+    if (
+      !current ||
+      candidate.priority > current.priority ||
+      (candidate.priority === current.priority && Math.abs(candidate.value) > Math.abs(current.value))
+    ) {
+      candidates.set(candidate.nodeId, candidate);
+    }
+  };
+
+  const controlNode = nodeResults.reduce((current, node) => (Math.abs(node.displacementMm) > Math.abs(current.displacementMm) ? node : current), nodeResults[0]);
+  addCandidate({
+    nodeId: controlNode.nodeId,
+    value: controlNode.displacementMm,
+    kind: "control",
+    priority: keyPointPriority("control"),
+  });
+
+  const boundaryNodes = nodeResults
+    .slice()
+    .sort((a, b) => {
+      const aNode = nodeGeometry.get(a.nodeId);
+      const bNode = nodeGeometry.get(b.nodeId);
+      return (aNode?.x ?? a.x) - (bNode?.x ?? b.x) || (aNode?.y ?? a.y) - (bNode?.y ?? b.y) || a.nodeId.localeCompare(b.nodeId);
+    });
+  [boundaryNodes[0], boundaryNodes.at(-1)].forEach((node) => {
+    if (!node) return;
+    addCandidate({
+      nodeId: node.nodeId,
+      value: node.displacementMm,
+      kind: "end",
+      priority: keyPointPriority("end"),
+    });
+  });
+
+  nodeResults.forEach((node) => {
+    if (Math.abs(node.displacementMm) <= zeroTolerance) {
+      addCandidate({
+        nodeId: node.nodeId,
+        value: node.displacementMm,
+        kind: "zero",
+        priority: keyPointPriority("zero"),
+      });
+    }
+  });
+
+  return Array.from(candidates.values())
+    .sort((a, b) => b.priority - a.priority || Math.abs(b.value) - Math.abs(a.value) || a.nodeId.localeCompare(b.nodeId))
+    .sort((a, b) => b.priority - a.priority || a.nodeId.localeCompare(b.nodeId));
 }
 
 export function trussAxialMemberStrokeWidth(axialForceKn: number, maxAbsAxialKn: number): number {

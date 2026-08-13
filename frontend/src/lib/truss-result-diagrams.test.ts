@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   DEFAULT_TRUSS_DIAGRAM_METRIC_KEY,
   autoTrussDisplacementDisplayScale,
+  findTrussDisplacementKeyPoints,
   getTrussDiagramMetric,
   trussAxialMemberStrokeWidth,
   TRUSS_DIAGRAM_METRICS,
@@ -84,4 +85,95 @@ test("桁架节点位移自动显示倍率在无有效位移时不显示", () =>
     }),
     0,
   );
+});
+
+test("桁架节点位移关键点只暴露可审计节点值", () => {
+  const keyPoints = findTrussDisplacementKeyPoints({
+    analysisType: "truss",
+    structureType: "demo",
+    structureTypeLabel: "demo",
+    nodes: [
+      { id: "A", x: 0, y: 0, role: "support", supportType: "pinned" },
+      { id: "B", x: 1, y: 0, role: "joint" },
+      { id: "C", x: 2, y: 0, role: "support", supportType: "roller" },
+      { id: "D", x: 3, y: 0, role: "joint" },
+    ],
+    members: [
+      { id: "M1", start: "A", end: "B" },
+      { id: "M2", start: "B", end: "C" },
+      { id: "M3", start: "C", end: "D" },
+    ],
+    loads: [],
+    nodeResults: [
+      { nodeId: "A", x: 0, y: 0, uxMm: 0, uyMm: 0, displacementMm: 0, rxKn: 0, ryKn: 0, supportType: "pinned" },
+      { nodeId: "B", x: 1, y: 0, uxMm: 0, uyMm: 0, displacementMm: 3.5, rxKn: 0, ryKn: 0, supportType: "free" },
+      { nodeId: "C", x: 2, y: 0, uxMm: 0, uyMm: 0, displacementMm: 0, rxKn: 0, ryKn: 0, supportType: "roller" },
+      { nodeId: "D", x: 3, y: 0, uxMm: 0, uyMm: 0, displacementMm: -1.25, rxKn: 0, ryKn: 0, supportType: "free" },
+    ],
+    memberResults: [
+      { memberId: "M1", kind: "", startNode: "A", endNode: "B", lengthM: 1, axialForceKn: 10, axialStressMpa: 0, forceState: "tension" },
+      { memberId: "M2", kind: "", startNode: "B", endNode: "C", lengthM: 1, axialForceKn: 5, axialStressMpa: 0, forceState: "tension" },
+      { memberId: "M3", kind: "", startNode: "C", endNode: "D", lengthM: 1, axialForceKn: -4, axialStressMpa: 0, forceState: "compression" },
+    ],
+    deformedNodes: [],
+    deformationScale: 1,
+    summary: {
+      allowableMm: 10,
+      allowableRatio: 1,
+      maxDisplacementMm: 3.5,
+      maxAxialForceKn: 10,
+      maxDisplacementNodeId: "B",
+      maxAxialForceMemberId: "M1",
+      statusCode: "PASS",
+      status: "ok",
+      method: "demo",
+    },
+    warnings: [],
+  });
+
+  assert.ok(keyPoints.some((point) => point.kind === "control" && point.nodeId === "B"));
+  assert.ok(keyPoints.some((point) => point.kind === "end" && point.nodeId === "A"));
+  assert.ok(keyPoints.some((point) => point.kind === "end" && point.nodeId === "D"));
+  assert.ok(keyPoints.some((point) => point.kind === "zero" && point.nodeId === "C"));
+});
+
+test("桁架节点位移关键点不按显示数量裁掉可审计节点", () => {
+  const nodeIds = ["A", "B", "C", "D", "E", "F", "G"];
+  const keyPoints = findTrussDisplacementKeyPoints({
+    analysisType: "truss",
+    structureType: "demo",
+    structureTypeLabel: "demo",
+    nodes: nodeIds.map((id, index) => ({ id, x: index, y: 0, role: "joint" })),
+    members: nodeIds.slice(1).map((id, index) => ({ id: `M${index + 1}`, start: nodeIds[index], end: id })),
+    loads: [],
+    nodeResults: nodeIds.map((nodeId, index) => ({
+      nodeId,
+      x: index,
+      y: 0,
+      uxMm: 0,
+      uyMm: 0,
+      displacementMm: index === 3 ? 2 : 0,
+      rxKn: 0,
+      ryKn: 0,
+      supportType: "free",
+    })),
+    memberResults: [],
+    deformedNodes: [],
+    deformationScale: 1,
+    summary: {
+      allowableMm: 10,
+      allowableRatio: 0.2,
+      maxDisplacementMm: 2,
+      maxAxialForceKn: 0,
+      maxDisplacementNodeId: "D",
+      maxAxialForceMemberId: "M1",
+      statusCode: "PASS",
+      status: "ok",
+      method: "demo",
+    },
+    warnings: [],
+  });
+
+  assert.equal(keyPoints.length, 7);
+  assert.ok(keyPoints.some((point) => point.kind === "zero" && point.nodeId === "F"));
 });

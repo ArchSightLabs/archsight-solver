@@ -3,8 +3,10 @@ import type { FrameMemberDiagram, FramePreviewData, SupportType } from "../types
 import {
   DEFAULT_FRAME_DIAGRAM_METRIC_KEY,
   findFrameDiagramExtreme,
+  findFrameDiagramKeyPoints,
   FRAME_DIAGRAM_METRICS,
   getFrameDiagramMetric,
+  type FrameDiagramKeyPointKind,
   type FrameDiagramMetric,
   type FrameDiagramMetricKey,
 } from "../lib/frame-member-diagrams";
@@ -43,6 +45,23 @@ interface FrameMemberDiagramsProps {
 
 type SvgPoint = { x: number; y: number };
 type FrameDiagramSelectionKey = FrameDiagramMetricKey | "all";
+type FrameDiagramSvgPoint = SvgPoint & {
+  value: number;
+  stationRatio: number;
+  stationM: number;
+  key: string;
+  kind: FrameDiagramKeyPointKind;
+  priority: number;
+};
+
+type RenderedFrameMemberDiagram = {
+  id: string;
+  basePoints: SvgPoint[];
+  resultPoints: SvgPoint[];
+  resultPath: string;
+  areaPath: string;
+  keyPoints: FrameDiagramSvgPoint[];
+};
 
 function supportMarker(type: SupportType, x: number, y: number, angleDeg?: number) {
   if (type === "fixed") {
@@ -143,6 +162,23 @@ function placedById(labels: DiagramPlacedLabel[]) {
   return new Map(labels.map((label) => [label.id, label]));
 }
 
+function frameKeyPointPriority(kind: FrameDiagramKeyPointKind) {
+  if (kind === "global-extreme") return 1000;
+  if (kind === "jump-left" || kind === "jump-right") return 920;
+  if (kind === "zero-crossing") return 900;
+  if (kind === "endpoint") return 760;
+  return 700;
+}
+
+function frameKeyPointKindLabel(kind: FrameDiagramKeyPointKind, metricKey: FrameDiagramMetricKey) {
+  if (kind === "zero-crossing") return metricKey === "momentKnM" ? "反弯" : "零点";
+  if (kind === "jump-left") return "跳变左";
+  if (kind === "jump-right") return "跳变右";
+  if (kind === "global-extreme") return "全局极值";
+  if (kind === "local-extreme") return "局部极值";
+  return "端点";
+}
+
 function FrameStructureDiagram({
   frame,
   diagrams,
@@ -166,7 +202,6 @@ function FrameStructureDiagram({
     const values = diagrams.flatMap((diagram) => metricValues(diagram, metric).map((value) => Math.abs(value)));
     return values.length ? Math.max(...values) : 0;
   }, [diagrams, metric]);
-  const extreme = useMemo(() => findFrameDiagramExtreme(diagrams, metric), [diagrams, metric]);
   const offsetScale = rawMaxAbs > 1e-9 ? (compact ? 42 : 58) / rawMaxAbs : 0;
   const frameCenter = useMemo(() => {
     return {
@@ -179,7 +214,7 @@ function FrameStructureDiagram({
     [frame, compact],
   );
 
-  const renderedMembers = useMemo(() => {
+  const renderedMembers = useMemo<RenderedFrameMemberDiagram[]>(() => {
     return frame.members.flatMap((member) => {
       const diagram = diagramsByMember.get(member.id);
       const start = layout.nodeMap.get(member.start);
@@ -207,6 +242,24 @@ function FrameStructureDiagram({
         value: pair.value,
         stationRatio: pair.ratio,
       }));
+      const keyPoints = findFrameDiagramKeyPoints(diagram, metric).map((keyPoint) => {
+        const stationRatioValue = clamp(keyPoint.stationRatio, 0, 1);
+        const baseX = start.x + dx * stationRatioValue;
+        const baseY = start.y + dy * stationRatioValue;
+        const svgPoint = {
+          x: baseX + nx * keyPoint.value * offsetScale,
+          y: baseY + ny * keyPoint.value * offsetScale,
+          value: keyPoint.value,
+          stationRatio: stationRatioValue,
+          stationM: keyPoint.stationM,
+        };
+        return {
+          ...svgPoint,
+          key: `${keyPoint.kind}-${member.id}-${keyPoint.stationM.toFixed(4)}-${keyPoint.value.toFixed(4)}`,
+          kind: keyPoint.kind,
+          priority: keyPoint.priority,
+        };
+      });
 
       return [{
         id: member.id,
@@ -214,20 +267,10 @@ function FrameStructureDiagram({
         resultPoints,
         resultPath: svgPathFromPoints(resultPoints),
         areaPath: svgAreaPath(basePoints, resultPoints),
+        keyPoints,
       }];
     });
   }, [diagramsByMember, frame.members, layout.nodeMap, metric, offsetScale]);
-
-  const extremePoint = useMemo(() => {
-    if (!extreme) return null;
-    const member = renderedMembers.find((item) => item.id === extreme.memberId);
-    if (!member) return null;
-    return member.resultPoints.reduce<{ x: number; y: number; value: number; stationRatio: number } | null>((current, point) => {
-      const distance = Math.abs(point.stationRatio - extreme.stationRatio);
-      if (!current || distance < Math.abs(current.stationRatio - extreme.stationRatio)) return point;
-      return current;
-    }, null);
-  }, [extreme, renderedMembers]);
 
   const labelLayouts = useMemo(() => {
     const bounds = { left: 10, top: 16, right: canvasSize.width - 10, bottom: canvasSize.height - 16 };
@@ -276,22 +319,26 @@ function FrameStructureDiagram({
         lineGap: 0,
       });
     });
-    if (extreme && extremePoint) {
-      labels.push({
-        id: "extreme-label",
-        anchor: extremePoint,
-        lines: [
-          { text: valueText(extreme.value, metric.unit), fontSize: compact ? 11 : 13 },
-          { text: `${extreme.memberId} / ${extreme.stationM.toFixed(2)} m`, fontSize: compact ? 9 : 11 },
-        ],
-        candidates: labelCandidatesAroundPoint(compact ? 14 : 18, compact ? 30 : 38),
-        priority: 70,
-        occupiedWeight: 13,
-        paddingX: 0,
-        paddingY: 0,
-        lineGap: 5,
+    renderedMembers.forEach((member) => {
+      member.keyPoints.forEach((point) => {
+        const kindLabel = frameKeyPointKindLabel(point.kind, metric.key);
+        labels.push({
+          id: `keypoint-${member.id}-${point.key}`,
+          anchor: point,
+          lines: [
+            { text: kindLabel, fontSize: compact ? 9 : 11 },
+            { text: valueText(point.value, metric.unit), fontSize: compact ? 11 : 13 },
+            { text: `x = ${point.stationM.toFixed(2)} m`, fontSize: compact ? 9 : 11 },
+          ],
+          candidates: labelCandidatesAroundPoint(compact ? 14 : 18, compact ? 30 : 38),
+          priority: frameKeyPointPriority(point.kind),
+          occupiedWeight: point.kind === "global-extreme" ? 13 : 11,
+          paddingX: 0,
+          paddingY: 0,
+          lineGap: 5,
+        });
       });
-    }
+    });
     frame.members.forEach((member) => {
       const start = layout.nodeMap.get(member.start);
       const end = layout.nodeMap.get(member.end);
@@ -317,7 +364,7 @@ function FrameStructureDiagram({
       });
     });
     return placedById(placeDiagramLabels(labels, { baseBlockers, bounds }));
-  }, [canvasSize, compact, dimensionLegendRows, extreme, extremePoint, frame.members, frame.nodes, frameCenter, layout.nodeMap, metric.unit, renderedMembers]);
+  }, [canvasSize, compact, dimensionLegendRows, frame.members, frame.nodes, frameCenter, layout.nodeMap, metric.key, metric.unit, renderedMembers]);
 
   return (
     <div
@@ -453,28 +500,31 @@ function FrameStructureDiagram({
           );
         })}
 
-        {extreme && extremePoint && labelLayouts.get("extreme-label") ? (
-          <g>
-            {(() => {
-              const label = labelLayouts.get("extreme-label");
-              const valueLine = label?.lines[0];
-              const stationLine = label?.lines[1];
-              if (!label || !valueLine || !stationLine) return null;
-              return (
-                <>
-                  <circle cx={extremePoint.x} cy={extremePoint.y} r="5" fill={metric.color} stroke="var(--structure-preview-text-halo)" strokeWidth="2" />
-                  <line x1={extremePoint.x} y1={extremePoint.y} x2={label.connectorX} y2={label.connectorY} stroke={metric.color} strokeWidth="1.5" strokeDasharray="4 4" />
-                  <text x={valueLine.x} y={valueLine.y} textAnchor={label.textAnchor} fill={metric.color} stroke="var(--structure-preview-text-halo)" strokeWidth="5" paintOrder="stroke" fontSize={valueLine.fontSize} fontFamily="Fira Code" fontWeight="700">
-                    {valueLine.text}
-                  </text>
-                  <text x={stationLine.x} y={stationLine.y} textAnchor={label.textAnchor} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke" fontSize={stationLine.fontSize} fontFamily="Fira Code">
-                    {stationLine.text}
-                  </text>
-                </>
-              );
-            })()}
-          </g>
-        ) : null}
+        {renderedMembers.flatMap((member) =>
+          member.keyPoints.map((point) => {
+            const label = labelLayouts.get(`keypoint-${member.id}-${point.key}`);
+            const kindLine = label?.lines[0];
+            const valueLine = label?.lines[1];
+            const stationLine = label?.lines[2];
+            if (!label || !kindLine || !valueLine || !stationLine) return null;
+            const isGlobalExtreme = point.kind === "global-extreme";
+            return (
+              <g key={`keypoint-${member.id}-${point.key}`} data-keypoint-kind={point.kind} aria-label={`${kindLine.text} ${member.id} ${stationLine.text} ${valueLine.text}`}>
+                <text x={kindLine.x} y={kindLine.y} textAnchor={label.textAnchor} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke" fontSize={kindLine.fontSize} fontFamily="Fira Code" fontWeight="600">
+                  {kindLine.text}
+                </text>
+                <circle cx={point.x} cy={point.y} r={isGlobalExtreme ? 5 : 4.2} fill={metric.color} fillOpacity={isGlobalExtreme ? 1 : 0.88} stroke="var(--structure-preview-text-halo)" strokeWidth={isGlobalExtreme ? "1.4" : "1.1"} />
+                <line x1={point.x} y1={point.y} x2={label.connectorX} y2={label.connectorY} stroke={metric.color} strokeWidth="1.4" strokeDasharray="4 4" />
+                <text x={valueLine.x} y={valueLine.y} textAnchor={label.textAnchor} fill={metric.color} stroke="var(--structure-preview-text-halo)" strokeWidth="5" paintOrder="stroke" fontSize={valueLine.fontSize} fontFamily="Fira Code" fontWeight={isGlobalExtreme ? "700" : "650"}>
+                  {valueLine.text}
+                </text>
+                <text x={stationLine.x} y={stationLine.y} textAnchor={label.textAnchor} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke" fontSize={stationLine.fontSize} fontFamily="Fira Code">
+                  {stationLine.text}
+                </text>
+              </g>
+            );
+          }),
+        )}
       </svg>
     </div>
   );

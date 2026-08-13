@@ -20,6 +20,7 @@ import { STRUCTURE_RESULT_COLORS, STRUCTURE_VISUAL_STROKES } from "../lib/struct
 import {
   DEFAULT_TRUSS_DIAGRAM_METRIC_KEY,
   autoTrussDisplacementDisplayScale,
+  findTrussDisplacementKeyPoints,
   getTrussDiagramMetric,
   trussAxialMemberStrokeWidth,
   TRUSS_DIAGRAM_METRICS,
@@ -78,6 +79,12 @@ function trussDiagramControlLabel(key: TrussDiagramSelectionKey): string {
   if (key === "displacementMm") return summaryMetricLabel("truss", "max_node_displacement", "最大节点位移");
   if (key === "axialForceKn") return summaryMetricLabel("truss", "max_member_axial", `最大${modelObjectMemberTerm("truss")}轴力`);
   return "控制值";
+}
+
+function trussDisplacementKindLabel(kind: "control" | "zero" | "end") {
+  if (kind === "control") return "控制值";
+  if (kind === "zero") return "零点";
+  return "端点";
 }
 
 function memberLabelPlacement(start: { x: number; y: number }, end: { x: number; y: number }, offset: number, canvasSize: ResultPreviewCanvasSize) {
@@ -165,10 +172,15 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
   const maxAbsAxial = useMemo(() => Math.max(...(truss?.memberResults ?? []).map((result) => Math.abs(result.axialForceKn)), 0), [truss]);
   const maxDisplacementNode = useMemo(() => {
     return (truss?.nodeResults ?? []).reduce<TrussNodeResult | null>((current, node) => {
-      if (!current || node.displacementMm > current.displacementMm) return node;
+      if (!current || Math.abs(node.displacementMm) > Math.abs(current.displacementMm)) return node;
       return current;
     }, null);
   }, [truss]);
+  const maxDisplacementMm = Math.abs(maxDisplacementNode?.displacementMm ?? 0);
+  const displacementKeyPoints = useMemo(() => {
+    if (!truss || selectedMetricKey !== "displacementMm") return [];
+    return findTrussDisplacementKeyPoints(truss);
+  }, [selectedMetricKey, truss]);
   const controlAxial = useMemo(() => {
     return (truss?.memberResults ?? []).reduce<TrussMemberResult | null>((current, member) => {
       if (!current || Math.abs(member.axialForceKn) > Math.abs(current.axialForceKn)) return member;
@@ -181,15 +193,15 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
   );
 
   const autoDisplacementDisplayScale = useMemo(() => {
-    if (!truss || !layout || !maxDisplacementNode || maxDisplacementNode.displacementMm <= 1e-9) return 0;
+    if (!truss || !layout || maxDisplacementMm <= 1e-9) return 0;
     return autoTrussDisplacementDisplayScale({
-      maxDisplacementMm: maxDisplacementNode.displacementMm,
+      maxDisplacementMm,
       layoutScalePxPerM: layout.scale,
       modelWidthPx: layout.bounds.right - layout.bounds.left,
       modelHeightPx: layout.bounds.bottom - layout.bounds.top,
       compact,
     });
-  }, [compact, layout, maxDisplacementNode, truss]);
+  }, [compact, layout, maxDisplacementMm, truss]);
   const displacementDisplayScale = manualDisplacementScale ?? autoDisplacementDisplayScale;
   const displacementScaleMax = Math.max(200, Math.ceil((autoDisplacementDisplayScale * 2) / 10) * 10);
   const displayScaleValue = Math.round(clamp(displacementDisplayScale, 1, displacementScaleMax));
@@ -271,6 +283,29 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
         extraScore: isSupportedNode ? (rect) => scoreTrussSupportedNodeLabelClearance(rect, point.y, compact ? 6 : 8) : undefined,
       });
     });
+    if (selectedMetricKey === "displacementMm") {
+      displacementKeyPoints.forEach((keyPoint) => {
+        const node = truss.nodeResults.find((result) => result.nodeId === keyPoint.nodeId);
+        const point = (node ? renderedDeformedMap.get(node.nodeId) : undefined) ?? layout.nodeMap.get(keyPoint.nodeId);
+        if (!point) return;
+        const kindLabel = trussDisplacementKindLabel(keyPoint.kind);
+        labels.push({
+          id: `displacement-${keyPoint.nodeId}`,
+          anchor: point,
+          lines: [
+            { text: kindLabel, fontSize: compact ? 9 : 11 },
+            { text: valueText(keyPoint.value, "mm"), fontSize: compact ? 11 : 13 },
+            { text: keyPoint.nodeId, fontSize: compact ? 9 : 11 },
+          ],
+          candidates: outwardLabelCandidates(point, center, compact ? 12 : 16, compact ? 30 : 38),
+          priority: keyPoint.priority,
+          occupiedWeight: keyPoint.kind === "control" ? 13 : 11,
+          paddingX: 0,
+          paddingY: 0,
+          lineGap: 0,
+        });
+      });
+    }
     truss.members.forEach((member) => {
       const start = layout.nodeMap.get(member.start);
       const end = layout.nodeMap.get(member.end);
@@ -297,29 +332,13 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
         distanceWeight: 0.2,
       });
     });
-    if (selectedMetricKey === "displacementMm" && maxDisplacementNode) {
-      const deformed = renderedDeformedMap.get(maxDisplacementNode.nodeId);
-      if (deformed) {
-        labels.push({
-          id: "max-displacement",
-          anchor: deformed,
-          lines: [{ text: valueText(maxDisplacementNode.displacementMm, "mm"), fontSize: compact ? 11 : 13 }],
-          candidates: outwardLabelCandidates(deformed, center, compact ? 12 : 16, compact ? 30 : 38),
-          priority: 70,
-          occupiedWeight: 13,
-          paddingX: 0,
-          paddingY: 0,
-          lineGap: 0,
-        });
-      }
-    }
     return placedById(placeDiagramLabels(labels, { baseBlockers, bounds }));
   }, [
     compact,
     canvasSize,
     dimensionLegendRows,
     layout,
-    maxDisplacementNode,
+    displacementKeyPoints,
     memberResultsById,
     renderedDeformedMap,
     selectedMetricKey,
@@ -510,12 +529,8 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
             if (!point) return null;
             const supportType = supportTypeById.get(node.id) ?? "free";
             const deformed = renderedDeformedMap.get(node.id);
-            const nodeResult = truss.nodeResults.find((result) => result.nodeId === node.id);
-            const showDisplacementLabel = selectedMetricKey === "displacementMm" && nodeResult?.nodeId === maxDisplacementNode?.nodeId && deformed;
             const label = labelLayouts.get(`node-${node.id}`);
             const line = label?.lines[0];
-            const displacementLabel = showDisplacementLabel ? labelLayouts.get("max-displacement") : null;
-            const displacementLine = displacementLabel?.lines[0];
             return (
               <g key={node.id}>
                 <circle cx={point.x} cy={point.y} r="4.5" fill="var(--structure-preview-node)" />
@@ -540,14 +555,37 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
                 ) : null}
                 {supportMarker(supportType, point.x, point.y)}
                 {selectedMetricKey === "displacementMm" && deformed ? <circle cx={deformed.x} cy={deformed.y} r="4" fill="var(--structure-preview-deformed-node)" stroke="var(--structure-preview-deformed-node-stroke)" strokeWidth="1" /> : null}
-                {showDisplacementLabel && nodeResult && displacementLabel && displacementLine && deformed ? (
-                  <text x={displacementLine.x} y={displacementLine.y} textAnchor={displacementLabel.textAnchor} fill="var(--structure-preview-deformed-start)" stroke="var(--structure-preview-text-halo)" strokeWidth="5" paintOrder="stroke" fontSize={displacementLine.fontSize} fontFamily="Fira Code" fontWeight="700">
-                    {displacementLine.text}
-                  </text>
-                ) : null}
               </g>
             );
           })}
+
+          {selectedMetricKey === "displacementMm"
+            ? displacementKeyPoints.map((keyPoint) => {
+                const node = truss.nodeResults.find((result) => result.nodeId === keyPoint.nodeId);
+                const anchor = (node ? renderedDeformedMap.get(node.nodeId) : undefined) ?? (node ? layout.nodeMap.get(node.nodeId) : undefined);
+                const label = labelLayouts.get(`displacement-${keyPoint.nodeId}`);
+                const kindLine = label?.lines[0];
+                const valueLine = label?.lines[1];
+                const nodeLine = label?.lines[2];
+                if (!anchor || !label || !kindLine || !valueLine || !nodeLine) return null;
+                const isControl = keyPoint.kind === "control";
+                return (
+                  <g key={`displacement-${keyPoint.nodeId}`} data-keypoint-kind={keyPoint.kind} aria-label={`${kindLine.text} ${keyPoint.nodeId} ${nodeLine.text} ${valueLine.text}`}>
+                    <text x={kindLine.x} y={kindLine.y} textAnchor={label.textAnchor} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke" fontSize={kindLine.fontSize} fontFamily="Fira Code" fontWeight="600">
+                      {kindLine.text}
+                    </text>
+                    <circle cx={anchor.x} cy={anchor.y} r={isControl ? 4.8 : 4.1} fill="var(--structure-preview-deformed-start)" fillOpacity={isControl ? 1 : 0.88} stroke="var(--structure-preview-text-halo)" strokeWidth={isControl ? "1.3" : "1.05"} />
+                    <line x1={anchor.x} y1={anchor.y} x2={label.connectorX} y2={label.connectorY} stroke="var(--structure-preview-deformed-start)" strokeWidth="1.35" strokeDasharray="4 4" />
+                    <text x={valueLine.x} y={valueLine.y} textAnchor={label.textAnchor} fill="var(--structure-preview-deformed-start)" stroke="var(--structure-preview-text-halo)" strokeWidth="5" paintOrder="stroke" fontSize={valueLine.fontSize} fontFamily="Fira Code" fontWeight={isControl ? "700" : "650"}>
+                      {valueLine.text}
+                    </text>
+                    <text x={nodeLine.x} y={nodeLine.y} textAnchor={label.textAnchor} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke" fontSize={nodeLine.fontSize} fontFamily="Fira Code">
+                      {nodeLine.text}
+                    </text>
+                  </g>
+                );
+              })
+            : null}
         </svg>
       </div>
     </ResultDiagramCard>
