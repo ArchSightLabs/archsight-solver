@@ -23,7 +23,7 @@ ArchSight Solver is a deterministic structural mechanics workbench and integrati
 ### Two-dimensional plane trusses
 
 - Roof, bridge-type, cantilever, and teaching trusses.
-- Nodal loads and member self-weight converted to equivalent nodal loads.
+- Nodal loads, member self-weight converted to equivalent nodal loads, and uniform member temperature loads under linear-elastic static assumptions.
 - Node displacement, support reaction, member axial force, and axial stress.
 - Truss nodes use translation only (`ux`, `uy`); truss members do not carry bending moment.
 
@@ -32,9 +32,10 @@ ArchSight Solver is a deterministic structural mechanics workbench and integrati
 - Portal frames, explicit 2D frames, and frame-beam degradation checks.
 - Nodal, distributed member, concentrated member, and uniform member temperature loads, plus basic load cases and combinations.
 - Node displacement, support reaction, member-end axial/shear/moment, and controlling member values.
+- An optional member-Euler critical-load and first-order response amplification screen. This diagnostic is not a formal second-order P-Delta, global eigenvalue buckling, or code stability analysis.
 - Frame nodes use `ux`, `uy`, and `rz`.
 
-Temperature support is limited to uniform temperature change on a 2D linear-elastic frame member. It does not include through-section gradients, transient heat transfer, creep, or bridge-specific thermal fields.
+Temperature support is limited to uniform temperature change on 2D linear-elastic frame and truss members. It does not include through-section gradients, transient heat transfer, creep, or bridge-specific thermal fields.
 
 ## Workbench and evidence
 
@@ -66,7 +67,7 @@ The public demonstration may enable allowlisted aggregate milestone events. Anal
 ## Explicit non-goals
 
 - 3D frames, spatial structures, shells, solids, or BIM authoring.
-- Dynamic, response-spectrum, buckling, nonlinear, plastic, or contact analysis.
+- Dynamic or response-spectrum analysis; formal second-order P-Delta or global eigenvalue buckling; nonlinear material, plastic, contact, or post-buckling analysis. The current frame diagnostic is only a bounded member-Euler screen.
 - Code-based member design, reinforcement design, construction safety approval, or engineering sign-off.
 - OpenSeesPy or another external solver as the runtime kernel.
 - Accounts, organizations, subscriptions, cloud collaboration, or a plugin marketplace.
