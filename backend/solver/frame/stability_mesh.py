@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Mapping, Sequence, Tuple
 
 import numpy as np
 from scipy.linalg import eig as dense_generalized_eig
+from scipy.linalg import eigh as dense_symmetric_generalized_eigh
 from scipy.sparse import csc_matrix, isspmatrix
 from scipy.sparse.linalg import eigsh
 
@@ -20,6 +21,12 @@ MIN_MEMBER_SUBDIVISIONS = 4
 MAX_MEMBER_SUBDIVISIONS = 12
 DEFAULT_DENSE_DOF_LIMIT = 240
 DEFAULT_SPARSE_DOF_LIMIT = 1600
+EIGEN_CLUSTER_RELATIVE_TOLERANCE = 1e-8
+EIGEN_CLUSTER_ABSOLUTE_TOLERANCE = 1e-10
+EIGEN_DEGENERATE_RELATIVE_TOLERANCE = 1e-11
+EIGEN_DEGENERATE_ABSOLUTE_TOLERANCE = 1e-12
+EIGEN_RESIDUAL_TOLERANCE = 1e-8
+EIGEN_RESIDUAL_REPORTING_ZERO_TOLERANCE = 1e-10
 
 
 def solve_frame_stability_mesh(
@@ -66,25 +73,25 @@ def solve_frame_stability_mesh(
         "freeDofCount": int(free_basis.shape[1]),
         "denseDofLimit": int(dense_dof_limit),
         "sparseDofLimit": int(sparse_dof_limit),
+        "requestedSolverMode": "dense" if reduced_dof <= dense_dof_limit else "sparse",
         "solverMode": "dense" if reduced_dof <= dense_dof_limit else "sparse",
         "solverBackend": "dense" if reduced_dof <= dense_dof_limit else "sparse",
         "subdivisionCount": int(sum(item.get("subdivisions", 0) for item in mesh["memberSubdivisions"])),
         "memberSubdivisions": mesh["memberSubdivisions"],
     }
 
-    modes = _solve_modes(
+    modes, eigen_solver_mode = _solve_modes(
         original_structure=structure,
         structure=mesh["structure"],
         assembly=assembly,
         free_basis=free_basis,
-        k_matrix=k_matrix,
-        g_matrix=g_matrix,
         k_reduced=k_reduced,
         g_reduced=g_reduced,
         mode_count=mode_count,
         dense_dof_limit=dense_dof_limit,
-        sparse_dof_limit=sparse_dof_limit,
     )
+    diagnostics["solverMode"] = eigen_solver_mode
+    diagnostics["solverBackend"] = eigen_solver_mode
     diagnostics["modeCountReturned"] = len(modes)
     diagnostics["convergedModes"] = len(modes)
     diagnostics["minCriticalLoadFactor"] = modes[0]["criticalLoadFactor"] if modes else None
@@ -255,41 +262,19 @@ def _solve_modes(
     structure: Mapping[str, Any],
     assembly: Mapping[str, Any],
     free_basis: np.ndarray,
-    k_matrix: np.ndarray,
-    g_matrix: np.ndarray,
     k_reduced: np.ndarray,
     g_reduced: np.ndarray,
     mode_count: int,
     dense_dof_limit: int,
-    sparse_dof_limit: int,
-) -> List[Dict[str, Any]]:
+) -> Tuple[List[Dict[str, Any]], str]:
     reduced_dof = int(k_reduced.shape[0])
     if reduced_dof <= dense_dof_limit:
-        eigenvalues, eigenvectors = dense_generalized_eig(k_reduced, g_reduced)
-        candidates: List[Tuple[float, np.ndarray]] = []
-        for value, vector in zip(eigenvalues, eigenvectors.T):
-            if abs(value.imag) > 1e-8:
-                continue
-            real_value = float(value.real)
-            if not math.isfinite(real_value) or real_value <= 0:
-                continue
-            candidates.append((real_value, np.asarray(vector.real, dtype=float)))
-        candidates.sort(key=lambda item: item[0])
+        candidates = _dense_eigen_candidates(k_reduced, g_reduced)
+        eigen_solver_mode = "dense"
     else:
-        sparse_limit = min(int(mode_count) + 4, max(1, reduced_dof - 2))
-        g_sparse = csc_matrix(g_reduced)
-        k_sparse = csc_matrix(k_reduced)
-        if sparse_limit >= reduced_dof:
-            sparse_limit = max(1, reduced_dof - 2)
-        if sparse_limit <= 0:
-            raise FrameBucklingSolveError("屈曲分析模型自由度过少，无法执行稀疏特征求解")
-        mu_values, mu_vectors = eigsh(g_sparse, k=sparse_limit, M=k_sparse, which="LA")
-        candidates = []
-        for value, vector in zip(mu_values, mu_vectors.T):
-            if not math.isfinite(float(value)) or float(value) <= 0:
-                continue
-            candidates.append((1.0 / float(value), np.asarray(vector, dtype=float)))
-        candidates.sort(key=lambda item: item[0])
+        candidates, eigen_solver_mode = _sparse_eigen_candidates(k_reduced, g_reduced, mode_count)
+
+    candidates = _canonicalize_eigen_clusters(candidates, k_reduced, g_reduced, free_basis, structure)
 
     modes: List[Dict[str, Any]] = []
     for mode_index, (critical_load_factor, reduced_vector) in enumerate(candidates[:mode_count], start=1):
@@ -300,19 +285,24 @@ def _solve_modes(
             full_mode = full_mode / output_scale
         reduced_residual = _buckling_residual(k_reduced, g_reduced, reduced_vector, critical_load_factor)
         constraint_residual = float(np.linalg.norm(_homogeneous_constraint_matrix(structure, len(structure.get("nodes", [])) * 3) @ full_mode))
-        if reduced_residual > 1e-8:
+        if reduced_residual > EIGEN_RESIDUAL_TOLERANCE:
             raise FrameBucklingResidualError(f"模态 {mode_index} 特征方程残差超限")
         if constraint_residual > 1e-10:
             raise FrameBucklingResidualError(f"模态 {mode_index} 约束残差超限")
         member_shapes = _member_mode_shapes(original_structure, structure, assembly["member_records"], full_mode)
         full_mode, member_shapes, translation_scale = _normalize_output_mode(full_mode, member_shapes)
+        reported_residual = (
+            0.0
+            if reduced_residual <= EIGEN_RESIDUAL_REPORTING_ZERO_TOLERANCE
+            else round(float(reduced_residual), 12)
+        )
         modes.append(
             {
                 "modeNumber": mode_index,
                 "criticalLoadFactor": round(float(critical_load_factor), 8),
-                "normalizedResidual": round(float(reduced_residual), 12),
-                "residualNorm": round(float(reduced_residual), 12),
-                "eigenResidualNorm": round(float(reduced_residual), 12),
+                "normalizedResidual": reported_residual,
+                "residualNorm": reported_residual,
+                "eigenResidualNorm": reported_residual,
                 "constraintResidual": round(float(constraint_residual), 12),
                 "constraintResidualNorm": round(float(constraint_residual), 12),
                 "normalization": {
@@ -323,7 +313,244 @@ def _solve_modes(
                 "memberModeShapes": member_shapes,
             }
         )
-    return modes
+    return modes, eigen_solver_mode
+
+
+def _dense_eigen_candidates(
+    k_reduced: np.ndarray,
+    g_reduced: np.ndarray,
+) -> List[Tuple[float, np.ndarray]]:
+    eigenvalues, eigenvectors = dense_generalized_eig(k_reduced, g_reduced)
+    candidates: List[Tuple[float, np.ndarray]] = []
+    for value, vector in zip(eigenvalues, eigenvectors.T):
+        if abs(value.imag) > 1e-8:
+            continue
+        real_value = float(value.real)
+        if not math.isfinite(real_value) or real_value <= 0:
+            continue
+        candidates.append((real_value, np.asarray(vector.real, dtype=float)))
+    candidates.sort(key=lambda item: item[0])
+    return candidates
+
+
+def _sparse_eigen_candidates(
+    k_reduced: np.ndarray,
+    g_reduced: np.ndarray,
+    mode_count: int,
+) -> Tuple[List[Tuple[float, np.ndarray]], str]:
+    reduced_dof = int(k_reduced.shape[0])
+    maximum_sparse_modes = max(1, reduced_dof - 2)
+    sparse_limit = min(maximum_sparse_modes, max(int(mode_count) + 4, 2))
+    if sparse_limit <= 0:
+        raise FrameBucklingSolveError("屈曲分析模型自由度过少，无法执行稀疏特征求解")
+
+    g_sparse = csc_matrix(g_reduced)
+    k_sparse = csc_matrix(k_reduced)
+    deterministic_start = np.arange(1, reduced_dof + 1, dtype=float)
+    deterministic_start /= max(float(np.linalg.norm(deterministic_start)), 1.0)
+
+    while True:
+        mu_values, mu_vectors = eigsh(
+            g_sparse,
+            k=sparse_limit,
+            M=k_sparse,
+            which="LA",
+            v0=deterministic_start,
+        )
+        candidates: List[Tuple[float, np.ndarray]] = []
+        for value, vector in zip(mu_values, mu_vectors.T):
+            if not math.isfinite(float(value)) or float(value) <= 0:
+                continue
+            candidates.append((1.0 / float(value), np.asarray(vector, dtype=float)))
+        candidates.sort(key=lambda item: item[0])
+
+        cluster_reaches_boundary = False
+        if candidates and int(mode_count) > 0 and len(candidates) >= int(mode_count):
+            cluster_end = int(mode_count) - 1
+            while cluster_end + 1 < len(candidates) and _eigenvalues_share_cluster(
+                candidates[cluster_end][0],
+                candidates[cluster_end + 1][0],
+            ):
+                cluster_end += 1
+            cluster_reaches_boundary = cluster_end == len(candidates) - 1
+        needs_more_candidates = len(candidates) < int(mode_count) or cluster_reaches_boundary
+        if not needs_more_candidates:
+            return candidates, "sparse"
+        if sparse_limit >= maximum_sparse_modes:
+            return _dense_eigen_candidates(k_reduced, g_reduced), "dense-fallback"
+        next_limit = min(maximum_sparse_modes, max(sparse_limit + 4, int(math.ceil(sparse_limit * 1.5))))
+        if next_limit <= sparse_limit:
+            return _dense_eigen_candidates(k_reduced, g_reduced), "dense-fallback"
+        sparse_limit = next_limit
+
+
+def _canonicalize_eigen_clusters(
+    candidates: Sequence[Tuple[float, np.ndarray]],
+    k_reduced: np.ndarray,
+    g_reduced: np.ndarray,
+    free_basis: np.ndarray,
+    structure: Mapping[str, Any],
+) -> List[Tuple[float, np.ndarray]]:
+    if not candidates:
+        return []
+
+    clusters: List[List[Tuple[float, np.ndarray]]] = []
+    for candidate in sorted(candidates, key=lambda item: item[0]):
+        if not clusters or not _eigenvalues_share_cluster(clusters[-1][-1][0], candidate[0]):
+            clusters.append([candidate])
+        else:
+            clusters[-1].append(candidate)
+
+    canonical: List[Tuple[float, np.ndarray]] = []
+    anchor_order = _physical_dof_anchor_order(structure)
+    for cluster in clusters:
+        if len(cluster) == 1:
+            canonical.extend(cluster)
+            continue
+        canonical_cluster = _canonicalize_eigen_cluster(
+            cluster,
+            k_reduced,
+            g_reduced,
+            free_basis,
+            anchor_order,
+        )
+        canonical.extend(canonical_cluster)
+    canonical.sort(key=lambda item: item[0])
+    return canonical
+
+
+def _canonicalize_eigen_cluster(
+    cluster: Sequence[Tuple[float, np.ndarray]],
+    k_reduced: np.ndarray,
+    g_reduced: np.ndarray,
+    free_basis: np.ndarray,
+    anchor_order: Sequence[int],
+) -> List[Tuple[float, np.ndarray]]:
+    reduced_vectors = np.column_stack([np.asarray(vector, dtype=float) for _, vector in cluster])
+    reduced_basis, upper = np.linalg.qr(reduced_vectors, mode="reduced")
+    diagonal = np.abs(np.diag(upper))
+    maximum_diagonal = float(np.max(diagonal)) if diagonal.size else 0.0
+    rank_tolerance = np.finfo(float).eps * max(reduced_vectors.shape) * max(maximum_diagonal, 1.0)
+    if int(np.count_nonzero(diagonal > rank_tolerance)) < len(cluster):
+        raise FrameBucklingSolveError("屈曲特征簇无法建立完整的确定性子空间")
+
+    projected_k = reduced_basis.T @ k_reduced @ reduced_basis
+    projected_g = reduced_basis.T @ g_reduced @ reduced_basis
+    projected_k = 0.5 * (projected_k + projected_k.T)
+    projected_g = 0.5 * (projected_g + projected_g.T)
+    try:
+        ritz_values, ritz_vectors = dense_symmetric_generalized_eigh(projected_k, projected_g)
+    except (np.linalg.LinAlgError, ValueError) as exc:
+        raise FrameBucklingSolveError("屈曲特征簇 Ritz 重解失败，无法保证模态顺序") from exc
+
+    refined: List[Tuple[float, np.ndarray]] = []
+    for value, vector in zip(ritz_values, ritz_vectors.T):
+        real_value = float(value)
+        if not math.isfinite(real_value) or real_value <= 0:
+            raise FrameBucklingSolveError("屈曲特征簇 Ritz 重解产生无效特征值")
+        reduced_vector = np.asarray(reduced_basis @ vector, dtype=float)
+        residual = _buckling_residual(k_reduced, g_reduced, reduced_vector, real_value)
+        if residual > EIGEN_RESIDUAL_TOLERANCE:
+            raise FrameBucklingResidualError("屈曲特征簇 Ritz 模态残差超限")
+        refined.append((real_value, reduced_vector))
+    refined.sort(key=lambda item: item[0])
+
+    groups: List[List[Tuple[float, np.ndarray]]] = []
+    for candidate in refined:
+        if not groups or not _eigenvalues_share_degenerate_subspace(groups[-1][-1][0], candidate[0]):
+            groups.append([candidate])
+        else:
+            groups[-1].append(candidate)
+
+    canonical: List[Tuple[float, np.ndarray]] = []
+    for group in groups:
+        if len(group) == 1:
+            canonical.extend(group)
+        else:
+            canonical.extend(
+                _canonicalize_degenerate_subspace(
+                    group,
+                    k_reduced,
+                    g_reduced,
+                    free_basis,
+                    anchor_order,
+                )
+            )
+    return canonical
+
+
+def _canonicalize_degenerate_subspace(
+    group: Sequence[Tuple[float, np.ndarray]],
+    k_reduced: np.ndarray,
+    g_reduced: np.ndarray,
+    free_basis: np.ndarray,
+    anchor_order: Sequence[int],
+) -> List[Tuple[float, np.ndarray]]:
+    reduced_vectors = np.column_stack([np.asarray(vector, dtype=float) for _, vector in group])
+    full_vectors = np.asarray(free_basis @ reduced_vectors, dtype=float)
+    full_basis, upper = np.linalg.qr(full_vectors, mode="reduced")
+    diagonal = np.abs(np.diag(upper))
+    maximum_diagonal = float(np.max(diagonal)) if diagonal.size else 0.0
+    rank_tolerance = np.finfo(float).eps * max(full_vectors.shape) * max(maximum_diagonal, 1.0)
+    if int(np.count_nonzero(diagonal > rank_tolerance)) < len(group):
+        raise FrameBucklingSolveError("重复屈曲模态无法建立完整的确定性子空间")
+
+    canonical_full: List[np.ndarray] = []
+    for dof_index in anchor_order:
+        projected = full_basis @ full_basis[dof_index, :]
+        for selected in canonical_full:
+            projected = projected - float(selected @ projected) * selected
+        norm = float(np.linalg.norm(projected))
+        if norm <= 1e-10:
+            continue
+        canonical_full.append(np.asarray(projected / norm, dtype=float))
+        if len(canonical_full) == len(group):
+            break
+    if len(canonical_full) != len(group):
+        raise FrameBucklingSolveError("重复屈曲模态缺少可用的物理自由度锚点")
+
+    representative_value = float(sum(value for value, _ in group) / len(group))
+    canonical_cluster: List[Tuple[float, np.ndarray]] = []
+    for full_vector in canonical_full:
+        reduced_vector = np.asarray(free_basis.T @ full_vector, dtype=float)
+        residual = _buckling_residual(k_reduced, g_reduced, reduced_vector, representative_value)
+        if residual > EIGEN_RESIDUAL_TOLERANCE:
+            raise FrameBucklingResidualError("重复屈曲模态确定性规范化后的特征残差超限")
+        canonical_cluster.append((representative_value, reduced_vector))
+    return canonical_cluster
+
+
+def _physical_dof_anchor_order(structure: Mapping[str, Any]) -> List[int]:
+    nodes = list(structure.get("nodes", []))
+    original_indexes = [index for index, node in enumerate(nodes) if not node.get("isMeshNode") and not node.get("isPrivate")]
+    mesh_indexes = [index for index, node in enumerate(nodes) if node.get("isMeshNode") and not node.get("isPrivate")]
+    private_indexes = [index for index, node in enumerate(nodes) if node.get("isPrivate")]
+    order: List[int] = []
+    for indexes, local_dofs in (
+        (original_indexes, (0, 1)),
+        (original_indexes, (2,)),
+        (mesh_indexes, (0, 1)),
+        (mesh_indexes, (2,)),
+        (private_indexes, (0, 1, 2)),
+    ):
+        order.extend(index * 3 + local_dof for index in indexes for local_dof in local_dofs)
+    return order
+
+
+def _eigenvalues_share_cluster(left: float, right: float) -> bool:
+    tolerance = max(
+        EIGEN_CLUSTER_ABSOLUTE_TOLERANCE,
+        EIGEN_CLUSTER_RELATIVE_TOLERANCE * max(1.0, abs(float(left)), abs(float(right))),
+    )
+    return abs(float(right) - float(left)) <= tolerance
+
+
+def _eigenvalues_share_degenerate_subspace(left: float, right: float) -> bool:
+    tolerance = max(
+        EIGEN_DEGENERATE_ABSOLUTE_TOLERANCE,
+        EIGEN_DEGENERATE_RELATIVE_TOLERANCE * max(1.0, abs(float(left)), abs(float(right))),
+    )
+    return abs(float(right) - float(left)) <= tolerance
 
 
 def _normalize_mode(mode_vector: np.ndarray, structure: Mapping[str, Any], assembly: Mapping[str, Any]) -> np.ndarray:
@@ -598,8 +825,10 @@ def _mode_shape_at_ratio(d_local: np.ndarray, length: float, ratio: float) -> Tu
 
 
 def _buckling_residual(k_matrix: np.ndarray, g_matrix: np.ndarray, mode_vector: np.ndarray, critical_load_factor: float) -> float:
-    residual = k_matrix @ mode_vector - critical_load_factor * (g_matrix @ mode_vector)
-    denominator = max(float(np.linalg.norm(k_matrix @ mode_vector)), 1.0)
+    material_force = k_matrix @ mode_vector
+    geometric_force = critical_load_factor * (g_matrix @ mode_vector)
+    residual = material_force - geometric_force
+    denominator = max(float(np.linalg.norm(material_force)), float(np.linalg.norm(geometric_force)), 1.0)
     return float(np.linalg.norm(residual) / denominator)
 
 

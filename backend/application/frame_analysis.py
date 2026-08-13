@@ -104,23 +104,35 @@ def _apply_stability_layers(
 def _primary_structure(structure: Dict[str, Any]) -> Dict[str, Any]:
     combinations = structure.get("loadCombinations") or []
     load_cases = structure.get("loadCases") or []
-    if structure.get("loads") or not combinations or not load_cases:
+    if structure.get("loads"):
         return structure
-    combined_loads = _loads_for_combination(combinations[0], load_cases)
-    return {**structure, "loads": combined_loads}
+    if combinations and load_cases:
+        return {**structure, "loads": _loads_for_combination(combinations[0], load_cases)}
+    if load_cases:
+        return {**structure, "loads": deepcopy(load_cases[0].get("loads", []))}
+    return structure
 
 
 def _primary_reference(structure: Dict[str, Any]) -> Dict[str, str]:
     combinations = structure.get("loadCombinations") or []
     load_cases = structure.get("loadCases") or []
-    if structure.get("loads") or not combinations or not load_cases:
+    if structure.get("loads"):
         return {"source": "primary", "id": "__primary__", "title": "主结果"}
-    combination = combinations[0]
-    return {
-        "source": "combination",
-        "id": str(combination.get("id", "__primary__")),
-        "title": str(combination.get("title") or combination.get("id") or "主结果"),
-    }
+    if combinations and load_cases:
+        combination = combinations[0]
+        return {
+            "source": "combination",
+            "id": str(combination.get("id", "__primary__")),
+            "title": str(combination.get("title") or combination.get("id") or "主结果"),
+        }
+    if load_cases:
+        load_case = load_cases[0]
+        return {
+            "source": "case",
+            "id": str(load_case.get("id", "__primary__")),
+            "title": str(load_case.get("title") or load_case.get("id") or "主结果"),
+        }
+    return {"source": "primary", "id": "__primary__", "title": "主结果"}
 
 
 def _solve_load_cases(request: Dict[str, Any], structure: Dict[str, Any]) -> List[Dict[str, Any]]:

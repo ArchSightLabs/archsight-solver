@@ -263,6 +263,11 @@ def test_frame_second_order_amplifies_compression_cantilever(client):
     assert _summary(final_order)["maxDisplacementMm"] == pytest.approx(data["summary"]["maxDisplacementMm"], rel=1e-8)
     assert _collection_first(final_order, "nodeResults")["uyMm"] == pytest.approx(_collection_first(data, "nodeResults")["uyMm"], rel=1e-8)
     assert _collection_first(final_order, "memberResults")["shearStartKn"] == pytest.approx(_collection_first(data, "memberResults")["shearStartKn"], rel=1e-8)
+
+    history = second_order["iterationHistory"]
+    assert any(float(record["equilibriumResidual"]) > 1e-6 for record in history if record["status"] == "iterating")
+    assert float(history[-1]["equilibriumResidual"]) <= float(second_order["tolerance"])
+    assert float(history[-1]["relativeDisplacementIncrement"]) <= float(second_order["tolerance"])
     assert _collection_first(final_order, "memberDiagrams")["deflectionMm"] == _collection_first(data, "memberDiagrams")["deflectionMm"]
 
 
@@ -486,3 +491,41 @@ def test_frame_load_cases_and_combinations_solve_stability_independently(client)
     assert dl_buckling is not None
     assert combo_buckling is not None
     assert combo_buckling != pytest.approx(dl_buckling, rel=1e-3)
+
+
+def test_frame_load_case_only_model_uses_first_case_as_primary_stability_source(client):
+    payload = _frame_payload(
+        nodes=[
+            {"id": "N1", "x": 0.0, "y": 0.0, "supportType": "fixed"},
+            {"id": "N2", "x": 0.0, "y": 4.0, "supportType": "free"},
+        ],
+        members=[
+            {"id": "C1", "start": "N1", "end": "N2", "E_GPa": 210.0, "A_cm2": 220.0, "I_cm4": 1500.0, "kind": "column"},
+        ],
+        load_cases=[
+            {
+                "id": "LC1",
+                "title": "首个稳定工况",
+                "loads": [
+                    {"type": "nodal", "node": "N2", "fxKn": 8.0, "fyKn": -100.0, "mzKnM": 0.0},
+                ],
+            },
+        ],
+        analysis_options={
+            "pDelta": True,
+            "buckling": True,
+            "pDeltaOptions": {"loadSteps": 8, "maxIterations": 20, "tolerance": 1e-8},
+        },
+    )
+
+    response = client.post("/api/calculate", json=payload)
+
+    assert response.status_code == 200
+    data = response.get_json()
+    case = data["loadCaseResults"][0]
+    expected_source = {"source": "case", "id": "LC1", "title": "首个稳定工况"}
+    assert data["summary"]["maxDisplacementMm"] == pytest.approx(case["summary"]["maxDisplacementMm"], rel=1e-9)
+    assert data["secondOrder"]["referenceSource"] == expected_source
+    assert data["buckling"]["referenceSource"] == expected_source
+    assert data["secondOrder"]["maxDisplacementMm"] == pytest.approx(case["secondOrder"]["maxDisplacementMm"], rel=1e-9)
+    assert data["buckling"]["criticalLoadFactor"] == pytest.approx(case["buckling"]["criticalLoadFactor"], rel=1e-9)

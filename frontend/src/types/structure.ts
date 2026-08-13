@@ -349,6 +349,8 @@ export interface FrameBucklingControlMember {
   eulerCriticalLoadKn: number;
   criticalLoadFactor: number;
   utilizationRatio: number;
+  screeningMethod?: string;
+  screeningOnly?: boolean;
 }
 
 export interface FrameBucklingResult {
@@ -357,6 +359,8 @@ export interface FrameBucklingResult {
   statusLabel?: string;
   method: string;
   criticalLoadFactor: number | null;
+  memberEulerScreen?: FrameBucklingControlMember[];
+  /** @deprecated 兼容旧结果；语义为构件 Euler K=1 初筛，不是整体屈曲控制构件。 */
   controllingMembers?: FrameBucklingControlMember[];
   modes?: FrameBucklingMode[];
   modeCount?: number;

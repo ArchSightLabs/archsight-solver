@@ -527,6 +527,7 @@ FRAME_BUCKLING_RESULT_SCHEMA: Dict[str, Any] = {
         "method": {"type": "string"},
         "referenceSource": {"type": "object", "additionalProperties": True},
         "criticalLoadFactor": {"type": ["number", "null"]},
+        "memberEulerScreen": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
         "controllingMembers": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
         "modes": {"type": "array", "items": FRAME_BUCKLING_MODE_SCHEMA},
         "modeCount": {"type": "integer"},

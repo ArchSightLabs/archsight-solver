@@ -281,7 +281,12 @@ def _frame_stability_evidence(solution: Mapping[str, Any], report_options: Mappi
             ["P-Delta 控制来源", _source_summary_text(second_order.get("controlSource")), _source_note_text(second_order.get("controlSource"))],
             ["屈曲状态", buckling.get("status", "disabled"), "enabled" if buckling.get("enabled") else "disabled"],
             ["屈曲方法", buckling.get("method", "—"), f"modeCount={buckling.get('modeCount', '—')}"],
-            ["首阶临界系数", buckling.get("criticalLoadFactor", "—"), f"控制构件 {json.dumps(buckling.get('controllingMembers', []), ensure_ascii=False)}"],
+            [
+                "整体首阶临界系数",
+                buckling.get("criticalLoadFactor", "—"),
+                "来自约束空间广义特征值；构件 Euler K=1 初筛仅用于定位复核对象，不替代整体屈曲结论："
+                f"{json.dumps(buckling.get('memberEulerScreen', buckling.get('controllingMembers', [])), ensure_ascii=False)}",
+            ],
             ["屈曲失败原因", buckling.get("failureReason", "—") or "—", buckling.get("limitations", "—")],
             ["屈曲参考来源", _source_summary_text(buckling.get("referenceSource")), _source_note_text(buckling.get("referenceSource"))],
             ["屈曲控制来源", _source_summary_text(buckling.get("controlSource")), _source_note_text(buckling.get("controlSource"))],

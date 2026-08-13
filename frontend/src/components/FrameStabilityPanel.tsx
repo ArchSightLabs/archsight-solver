@@ -6,7 +6,6 @@ import type {
   FrameBucklingMode,
   FrameBucklingModeShape,
   FrameCalculationResults,
-  FrameNodeResult,
   FrameStructure,
 } from "../types/structure";
 
@@ -69,8 +68,8 @@ function toPolyline(points: Point[]) {
   return points.map((point) => `${point.x},${point.y}`).join(" ");
 }
 
-function structureNodeMap(structure: FrameStructure): Map<string, FrameNodeResult | { x: number; y: number }> {
-  const byId = new Map<string, FrameNodeResult | { x: number; y: number }>();
+function structureNodeMap(structure: FrameStructure): Map<string, { x: number; y: number }> {
+  const byId = new Map<string, { x: number; y: number }>();
   for (const node of structure.nodes) {
     byId.set(node.id, node);
   }
@@ -500,72 +499,26 @@ function StabilityBucklingPanel({
   );
 }
 
-function StabilityOverview({
-  results,
-  compact = false,
-  selectedMode,
-  onSelectMode,
-}: {
-  results: FrameCalculationResults;
-  compact?: boolean;
-  selectedMode: FrameBucklingMode | null;
-  onSelectMode: (modeNumber: number) => void;
-}) {
-  const secondOrder = results.secondOrder;
-  const buckling = results.buckling;
-  const modes = buckling?.modes ?? [];
-  const firstOrder = secondOrder?.firstOrder;
-  const secondStatus = normalizeStatus(secondOrder?.status);
-
-  return (
-    <GlassCard className={`${compact ? "p-3 sm:p-4" : "p-4 sm:p-5"}`}>
-      <div className="mb-3 flex items-center gap-2">
-        <ShieldCheck className="h-4 w-4 text-sky-500" />
-        <h3 className={`${compact ? "text-lg" : "text-xl"} font-black tracking-tight`}>稳定审查</h3>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {[
-          scalarSummary("P-Delta 状态", secondStatus, secondOrder?.method),
-          scalarSummary("P-Delta 放大", formatEngineeringValue(secondOrder?.amplificationFactor, ""), secondOrder?.limitations),
-          scalarSummary("首阶位移", formatEngineeringValue(firstOrder?.summary.maxDisplacementMm ?? results.summary.maxDisplacementMm, "mm"), "首阶对比"),
-          scalarSummary("二阶位移", formatEngineeringValue(secondOrder?.maxHorizontalDisplacementMm ?? results.summary.maxDisplacementMm, "mm"), "最终二阶快照"),
-        ].map((item) => (
-          <div key={item.label} className="rounded-lg border border-white/8 bg-white/[0.03] p-3">
-            <div className="text-[10px] font-black tracking-widest text-muted-foreground">{item.label}</div>
-            <div className={`mt-1 font-mono text-sm font-bold ${item.label === "P-Delta 状态" ? statusTone(secondStatus) : "text-primary"}`}>{item.value}</div>
-            {item.detail ? <div className="mt-1 text-[10px] leading-snug text-muted-foreground">{item.detail}</div> : null}
-          </div>
-        ))}
-      </div>
-      <div className="mt-3 space-y-2 rounded-lg border border-white/8 bg-white/[0.03] p-3">
-        <div className="text-[10px] font-black tracking-widest text-muted-foreground">模态选择器</div>
-        <ModeSelector modes={modes} selectedModeNumber={selectedMode?.modeNumber ?? null} onSelectMode={onSelectMode} />
-      </div>
-    </GlassCard>
-  );
-}
-
 export function FrameStabilityPanel({ results, compact = false }: FrameStabilityPanelProps) {
   const modes = useMemo(() => results.buckling?.modes ?? [], [results.buckling?.modes]);
-  const [selectedModeNumber, setSelectedModeNumber] = useState<number | null>(modes[0]?.modeNumber ?? null);
-  const selectedMode = useMemo(
-    () => (selectedModeNumber == null ? modes[0] ?? null : modes.find((mode) => mode.modeNumber === selectedModeNumber) ?? modes[0] ?? null),
-    [modes, selectedModeNumber],
-  );
+  const [selectedModeState, setSelectedModeState] = useState<FrameBucklingMode | null>(null);
+  const selectedMode = selectedModeState && modes.includes(selectedModeState) ? selectedModeState : modes[0] ?? null;
 
   return (
     <div className={`space-y-3 ${compact ? "" : "sm:space-y-4"}`}>
-      <StabilityOverview
-        results={results}
-        compact={compact}
-        selectedMode={selectedMode}
-        onSelectMode={setSelectedModeNumber}
-      />
       <div className="grid gap-3 xl:grid-cols-[1.2fr_0.8fr]">
         <GlassCard className={`${compact ? "p-3 sm:p-4" : "p-4 sm:p-5"}`}>
           <div className="mb-3 flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-sky-500" />
             <h3 className={`${compact ? "text-lg" : "text-xl"} font-black tracking-tight`}>全局振型图</h3>
+          </div>
+          <div className="mb-3 space-y-2 rounded-lg border border-white/8 bg-white/[0.03] p-3">
+            <div className="text-[10px] font-black tracking-widest text-muted-foreground">模态选择器</div>
+            <ModeSelector
+              modes={modes}
+              selectedModeNumber={selectedMode?.modeNumber ?? null}
+              onSelectMode={(modeNumber) => setSelectedModeState(modes.find((mode) => mode.modeNumber === modeNumber) ?? null)}
+            />
           </div>
           <StabilityModeCanvas results={results} mode={selectedMode} />
         </GlassCard>

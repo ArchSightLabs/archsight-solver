@@ -283,6 +283,7 @@ def test_frame_export_templates_split_stability_summary_and_detail():
         + [cell.text for table in standard_docx.tables for row in table.rows for cell in row.cells]
     )
     assert "稳定审查摘要" in standard_text
+    assert "构件 Euler K=1 初筛仅用于定位复核对象，不替代整体屈曲结论" in standard_text
     assert "首模态概览" in standard_text
     assert "P-Delta 收敛记录" not in standard_text
     assert "屈曲节点模态向量" not in standard_text
@@ -294,6 +295,7 @@ def test_frame_export_templates_split_stability_summary_and_detail():
         + [cell.text for table in complete_docx.tables for row in table.rows for cell in row.cells]
     )
     assert "稳定审查摘要" in complete_text
+    assert "构件 Euler K=1 初筛仅用于定位复核对象，不替代整体屈曲结论" in complete_text
     assert "稳定审查过程" in complete_text
     assert "P-Delta 收敛记录" in complete_text
     assert "屈曲节点模态向量" in complete_text

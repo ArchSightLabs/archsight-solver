@@ -383,7 +383,7 @@ def _buckling_result(
 ) -> Dict[str, Any]:
     enabled = bool(options.get("buckling"))
     buckling_options = options.get("bucklingOptions", {})
-    controlling_members = _controlling_members(solution)
+    member_euler_screen = _member_euler_screen(solution)
     if not enabled:
         return {
             "enabled": False,
@@ -394,7 +394,8 @@ def _buckling_result(
             "referenceSource": dict(reference_source),
             "controlSource": dict(reference_source),
             "criticalLoadFactor": None,
-            "controllingMembers": controlling_members,
+            "memberEulerScreen": member_euler_screen,
+            "controllingMembers": member_euler_screen,
             "modes": [],
             "modeCount": 0,
             "firstOrder": first_order,
@@ -412,7 +413,8 @@ def _buckling_result(
             "referenceSource": dict(reference_source),
             "controlSource": dict(reference_source),
             "criticalLoadFactor": None,
-            "controllingMembers": controlling_members,
+            "memberEulerScreen": member_euler_screen,
+            "controllingMembers": member_euler_screen,
             "modes": [],
             "modeCount": 0,
             "firstOrder": first_order,
@@ -451,7 +453,8 @@ def _buckling_result(
         "referenceSource": dict(reference_source),
         "controlSource": dict(reference_source),
         "criticalLoadFactor": round(float(critical_load_factor), 6) if critical_load_factor is not None else None,
-        "controllingMembers": controlling_members,
+        "memberEulerScreen": member_euler_screen,
+        "controllingMembers": member_euler_screen,
         "modes": modes,
         "modeCount": len(modes),
         "firstOrder": first_order,
@@ -463,7 +466,7 @@ def _buckling_result(
     }
 
 
-def _controlling_members(solution: Mapping[str, Any]) -> List[Dict[str, Any]]:
+def _member_euler_screen(solution: Mapping[str, Any]) -> List[Dict[str, Any]]:
     members = {member["id"]: member for member in solution.get("structure", {}).get("members", [])}
     controlling: List[Dict[str, Any]] = []
     for result in solution.get("memberResults", []):
@@ -484,6 +487,8 @@ def _controlling_members(solution: Mapping[str, Any]) -> List[Dict[str, Any]]:
                 "eulerCriticalLoadKn": round(pcr_kn, 6),
                 "criticalLoadFactor": round(pcr_kn / axial, 6),
                 "utilizationRatio": round(axial / pcr_kn, 8),
+                "screeningMethod": "构件 Euler K=1 初筛",
+                "screeningOnly": True,
             }
         )
     controlling.sort(key=lambda item: item["criticalLoadFactor"])
