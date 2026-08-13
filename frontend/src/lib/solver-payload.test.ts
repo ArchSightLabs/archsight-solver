@@ -155,6 +155,18 @@ test("buildTrussPayload preserves member self weight for equivalent nodal prepro
 test("buildFramePayload preserves advanced frame modeling fields", () => {
   const workspace = createDefaultFrameWorkspaceState();
   workspace.frameMode = "custom";
+  workspace.analysisOptions = {
+    pDelta: true,
+    buckling: true,
+    pDeltaOptions: {
+      loadSteps: 8,
+      maxIterations: 16,
+      tolerance: 1e-7,
+    },
+    bucklingOptions: {
+      modeCount: 4,
+    },
+  };
   workspace.customNodes[1] = {
     ...workspace.customNodes[1],
     supportType: "roller",
@@ -195,6 +207,7 @@ test("buildFramePayload preserves advanced frame modeling fields", () => {
 
   assert.ok(payload);
   assert.equal(payload.schemaVersion, ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION);
+  assert.deepEqual(payload.analysisOptions, workspace.analysisOptions);
   assert.equal(payload.structure.nodes[1]?.supportAngleDeg, 45);
   assert.equal(payload.structure.members[1]?.elementType, "frame");
   assert.deepEqual(payload.structure.nodes[1]?.springs, [{ dof: "uy", stiffnessKnPerM: 12000 }]);
@@ -208,6 +221,41 @@ test("buildFramePayload preserves advanced frame modeling fields", () => {
   assert.deepEqual(payload.structure.loadCases?.[2]?.loads[0], { type: "temperature", member: "B1", deltaTempC: 20, alphaPerC: 1.2e-5 });
   assert.deepEqual(payload.structure.loadCombinations?.[0]?.factors, { DL: 1.2, WL: 1.5, TL: 1.0 });
   assert.deepEqual(payload.structure.loadCombinations?.[0]?.tags, ["ULS", "包络"]);
+});
+
+test("normalizeFrameWorkspaceState backfills and clamps legacy analysis options", () => {
+  const workspace = normalizeFrameWorkspaceState({
+    ...createDefaultFrameWorkspaceState(),
+    analysisOptions: {
+      pDelta: true,
+      buckling: true,
+      pDeltaOptions: {
+        loadSteps: 99,
+        maxIterations: 0,
+        tolerance: 1e-12,
+      },
+      bucklingOptions: {
+        modeCount: 99,
+      },
+    },
+  } as Partial<FrameWorkspaceState>);
+  const cloned = cloneFrameWorkspaceState(workspace);
+
+  assert.deepEqual(workspace.analysisOptions, {
+    pDelta: true,
+    buckling: true,
+    pDeltaOptions: {
+      loadSteps: 20,
+      maxIterations: 12,
+      tolerance: 1e-10,
+    },
+    bucklingOptions: {
+      modeCount: 8,
+    },
+  });
+  assert.deepEqual(cloned.analysisOptions, workspace.analysisOptions);
+  cloned.analysisOptions.pDeltaOptions.loadSteps = 6;
+  assert.equal(workspace.analysisOptions.pDeltaOptions.loadSteps, 20);
 });
 
 test("validateCustomFrameWorkspace rejects invalid load combination factors", () => {

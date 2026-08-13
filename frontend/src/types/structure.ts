@@ -134,14 +134,33 @@ export interface FrameFormPayload {
   schemaVersion?: string;
   projectName: string;
   materialId: string;
+  analysisOptions?: FrameAnalysisOptions;
   structure: FrameStructure;
   format?: "xlsx" | "docx";
+}
+
+export interface FramePDeltaOptions {
+  loadSteps: number;
+  maxIterations: number;
+  tolerance: number;
+}
+
+export interface FrameBucklingOptions {
+  modeCount: number;
+}
+
+export interface FrameAnalysisOptions {
+  pDelta: boolean;
+  buckling: boolean;
+  pDeltaOptions: FramePDeltaOptions;
+  bucklingOptions: FrameBucklingOptions;
 }
 
 export interface FrameWorkspaceState {
   frameMode: FrameModelMode;
   projectName: string;
   materialId: string;
+  analysisOptions: FrameAnalysisOptions;
   span: number;
   height: number;
   leftSupport: SupportType;
@@ -213,6 +232,10 @@ export interface FrameLoadCaseResult {
   nodeResults: FrameNodeResult[];
   memberResults: FrameMemberResult[];
   memberDiagrams: FrameMemberDiagram[];
+  secondOrder?: FrameSecondOrderResult;
+  buckling?: FrameBucklingResult;
+  factors?: Record<string, number>;
+  tags?: string[];
 }
 
 export interface FramePreviewData {
@@ -249,6 +272,100 @@ export interface FrameSummary {
   method: string;
 }
 
+export interface FrameStabilityReferenceResults {
+  summary: FrameSummary;
+  nodeResults: FrameNodeResult[];
+  memberResults: FrameMemberResult[];
+  memberDiagrams: FrameMemberDiagram[];
+}
+
+export interface FrameStabilityIterationRecord {
+  step: number;
+  iteration: number;
+  loadFactor: number;
+  residualNorm?: number;
+  displacementMm?: number;
+  displacementIncrementMm?: number;
+  displacementIncrementNorm?: number;
+  displacementIncrementRelative?: number;
+  relativeDisplacementIncrement?: number;
+  equilibriumRmsRelativeError?: number;
+  equilibriumResidual?: number;
+  equilibriumMaxResidualN?: number;
+  maxDisplacementMm?: number;
+  status?: string;
+}
+
+export interface FrameBucklingModeNodeDisplacement {
+  nodeId: string;
+  ux: number;
+  uy: number;
+  rz: number;
+}
+
+export interface FrameBucklingModeShape {
+  memberId: string;
+  stationsM: number[];
+  ratios?: number[];
+  ux: number[];
+  uy: number[];
+  rz: number[];
+}
+
+export interface FrameBucklingMode {
+  modeNumber: number;
+  criticalLoadFactor: number;
+  residualNorm: number;
+  constraintResidual: number;
+  normalizedResidual?: number;
+  eigenResidualNorm?: number;
+  constraintResidualNorm?: number;
+  nodeDisplacements?: FrameBucklingModeNodeDisplacement[];
+  memberModeShapes?: FrameBucklingModeShape[];
+}
+
+export interface FrameSecondOrderResult {
+  enabled: boolean;
+  status: string;
+  statusLabel?: string;
+  method: string;
+  converged?: boolean;
+  loadSteps?: number;
+  totalIterations?: number;
+  tolerance?: number | null;
+  amplificationFactor: number;
+  maxHorizontalDisplacementMm?: number;
+  maxVerticalDisplacementMm?: number;
+  maxDisplacementMm?: number;
+  firstOrder?: FrameStabilityReferenceResults;
+  iterationHistory?: FrameStabilityIterationRecord[];
+  failureCode?: string | null;
+  limitations?: string;
+}
+
+export interface FrameBucklingControlMember {
+  memberId: string;
+  compressionKn: number;
+  eulerCriticalLoadKn: number;
+  criticalLoadFactor: number;
+  utilizationRatio: number;
+}
+
+export interface FrameBucklingResult {
+  enabled: boolean;
+  status: string;
+  statusLabel?: string;
+  method: string;
+  criticalLoadFactor: number | null;
+  controllingMembers?: FrameBucklingControlMember[];
+  modes?: FrameBucklingMode[];
+  modeCount?: number;
+  referenceSource?: { source: string; id: string; title: string };
+  controlSource?: { source: string; id: string; title: string };
+  meshDiagnostics?: Record<string, unknown>;
+  limitations?: string;
+}
+
 export interface FrameDiagnostics {
   equilibrium?: {
     rmsRelativeError: number;
@@ -272,6 +389,8 @@ export interface FrameCalculationResults {
   memberDiagrams: FrameMemberDiagram[];
   loadCaseResults?: FrameLoadCaseResult[];
   loadCombinationResults?: Array<FrameLoadCaseResult & { factors: Record<string, number>; tags?: string[] }>;
+  secondOrder?: FrameSecondOrderResult;
+  buckling?: FrameBucklingResult;
   nodeIds: string[];
   memberIds: string[];
   ux_data: number[];

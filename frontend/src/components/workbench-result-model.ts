@@ -1,4 +1,4 @@
-import { Activity, BarChart3, FileText, LineChart, Network } from "lucide-react";
+import { Activity, BarChart3, FileText, LineChart, Network, ShieldCheck } from "lucide-react";
 import { modelObjectMemberTerm, modelObjectVocabulary } from "../lib/model-object-vocabulary.ts";
 import type {
   BeamApiPayload,
@@ -60,6 +60,7 @@ const FRAME_TABS: ResultTab[] = [
   { id: "preview", label: "受力变形", description: resultPreviewDescription("frame"), icon: Network },
   { id: "diagrams", label: "工程图", description: "在结构坐标系中查看弯矩、剪力、轴力和局部 y 向挠度的模型叠加工程图", icon: BarChart3 },
   { id: "curves", label: "数据曲线", description: "按节点序列查看 X/Y 向位移数据曲线", icon: LineChart },
+  { id: "stability", label: "稳定审查", description: "查看首阶/二阶对比、收敛轨迹和屈曲模态", icon: ShieldCheck },
   { id: "summary", label: "结果摘要", description: "查看计算结论与状态", icon: FileText },
 ];
 
@@ -320,6 +321,8 @@ export function buildDisplayedFrameResults(results: FrameCalculationResults | nu
   return {
     ...results,
     summary: result.summary,
+    secondOrder: result.secondOrder ?? results.secondOrder,
+    buckling: result.buckling ?? results.buckling,
     frame: buildFramePreviewForDisplay(results.frame ?? results.preview, results.structure, result.summary, result.nodeResults, result.memberResults, result.memberDiagrams, loads),
     preview: buildFramePreviewForDisplay(results.preview ?? results.frame, results.structure, result.summary, result.nodeResults, result.memberResults, result.memberDiagrams, loads),
     nodeResults: result.nodeResults,

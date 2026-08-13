@@ -8,7 +8,11 @@ import pandas as pd
 from backend.common.result_metric_catalog import result_metric_label
 from backend.exporters.common.artifact import ExportArtifact
 from backend.exporters.common.docx_utils import HAS_DOCX, add_df_table, add_heading, add_png_figure, add_report_note, add_report_title, create_document, png_from_report_images
-from backend.exporters.common.evidence import build_evidence_tables, build_report_review_table
+from backend.exporters.common.evidence import (
+    FRAME_STABILITY_FULL_TABLES,
+    build_evidence_tables,
+    build_report_review_table,
+)
 from backend.exporters.common.filenames import export_filename
 from backend.exporters.common.load_tables import build_load_combination_rows
 from backend.exporters.common.report_figure_catalog import FRAME_REPORT_MEMBER_FIGURES, report_figures_for_scope
@@ -47,11 +51,12 @@ def export_docx(
     add_df_table(doc, build_report_review_table(solution, "frame", options))
     add_heading(doc, "2. 输入参数")
     add_df_table(doc, df_params)
+    stability_tables = build_evidence_tables(solution, "frame", material_name, options)
     if include_figures(options):
         add_heading(doc, "2.1 受力变形图")
         _add_preview_figure(doc, report_images)
     add_heading(doc, "2.2 可审查计算证据链")
-    _add_evidence_tables(doc, build_evidence_tables(solution, "frame", material_name))
+    _add_evidence_tables(doc, _frame_non_stability_tables(stability_tables))
     _add_load_combination_table(doc, solution, "2.3 荷载组合标签")
     add_heading(doc, "3. 节点结果")
     add_df_table(doc, df_nodes)
@@ -71,17 +76,19 @@ def export_docx(
             columns=["项目", "数值/说明"],
         )
     )
-    add_heading(doc, "5.1 稳定初筛")
-    add_df_table(
-        doc,
-        pd.DataFrame(
-            [
-                ["二阶效应/P-Delta", solution.get("secondOrder", {}).get("riskLevel", "未启用"), solution.get("secondOrder", {}).get("limitations", "")],
-                ["屈曲初步分析", solution.get("buckling", {}).get("riskLevel", "未启用"), solution.get("buckling", {}).get("limitations", "")],
-            ],
-            columns=["项目", "风险等级", "说明"],
-        ),
-    )
+    add_heading(doc, "5.1 稳定审查摘要")
+    add_df_table(doc, stability_tables["稳定审查摘要"])
+    if options.get("template") == "complete":
+        add_heading(doc, "5.2 稳定审查过程")
+        for table_name in FRAME_STABILITY_FULL_TABLES[1:]:
+            if table_name in stability_tables:
+                add_heading(doc, table_name)
+                add_df_table(doc, stability_tables[table_name])
+    else:
+        add_heading(doc, "5.2 首模态概览")
+        if "屈曲模态摘要" in stability_tables:
+            add_heading(doc, "屈曲模态摘要")
+            add_df_table(doc, stability_tables["屈曲模态摘要"])
     add_heading(doc, "6. 符号与单位约定")
     add_df_table(doc, df_conventions)
     if sensitivity_results:
@@ -163,6 +170,10 @@ def _add_evidence_tables(doc, tables: Dict[str, pd.DataFrame]) -> None:
     for title, frame in tables.items():
         add_heading(doc, title)
         add_df_table(doc, frame)
+
+
+def _frame_non_stability_tables(tables: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
+    return {title: frame for title, frame in tables.items() if title not in FRAME_STABILITY_FULL_TABLES}
 
 
 def _add_load_combination_table(doc, solution: Dict[str, Any], title: str) -> None:

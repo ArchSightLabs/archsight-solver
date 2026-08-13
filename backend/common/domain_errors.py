@@ -117,3 +117,81 @@ class StructureStabilityError(SolverDomainError):
             action_id="review_connectivity" if kind == "singular" else "review_supports",
             action_label="检查连接、刚度与约束" if kind == "singular" else "检查支座与约束",
         )
+
+
+class FrameStabilityError(SolverDomainError):
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str,
+        title: str,
+        detail: str,
+        suggestions: Sequence[str],
+    ) -> None:
+        super().__init__(
+            message,
+            code=code,
+            title=title,
+            detail=detail,
+            category="solver",
+            suggestions=suggestions,
+            action_id="review_stability_analysis",
+            action_label="检查稳定分析参数",
+        )
+
+
+class FramePDeltaConvergenceError(FrameStabilityError):
+    def __init__(self, message: str) -> None:
+        super().__init__(
+            message,
+            code="FRAME_PDELTA_NOT_CONVERGED",
+            title="P-Delta 未收敛",
+            detail="二阶迭代在给定荷载步与迭代上限内未达到收敛容差。",
+            suggestions=(
+                "增加 loadSteps 或 maxIterations。",
+                "检查初始刚度、支座约束和荷载规模是否导致强烈失稳。",
+            ),
+        )
+
+
+class FramePDeltaSingularError(FrameStabilityError):
+    def __init__(self, message: str) -> None:
+        super().__init__(
+            message,
+            code="FRAME_PDELTA_TANGENT_SINGULAR",
+            title="P-Delta 切线刚度奇异",
+            detail="几何刚度迭代引起的切线刚度矩阵秩不足，无法继续求解二阶状态。",
+            suggestions=(
+                "检查支座、侧向约束和构件连接关系。",
+                "检查构件轴压是否导致局部或整体机构。",
+            ),
+        )
+
+
+class FrameBucklingSolveError(FrameStabilityError):
+    def __init__(self, message: str) -> None:
+        super().__init__(
+            message,
+            code="FRAME_BUCKLING_EIGEN_FAILURE",
+            title="屈曲特征求解失败",
+            detail="约束投影后的线性屈曲特征值问题未能得到有效正特征值。",
+            suggestions=(
+                "检查初始受力状态与约束投影是否合理。",
+                "检查模型是否以拉力为主或不存在可识别的压屈模态。",
+            ),
+        )
+
+
+class FrameBucklingResidualError(FrameStabilityError):
+    def __init__(self, message: str) -> None:
+        super().__init__(
+            message,
+            code="FRAME_BUCKLING_RESIDUAL_FAILURE",
+            title="屈曲模态残差失败",
+            detail="屈曲模态的特征方程残差或约束残差超过容差，结果不满足公开稳定性门限。",
+            suggestions=(
+                "提高 bucklingOptions.modeCount 并复核正特征值排序。",
+                "检查支座位移、角支座约束和局部释放是否引入数值病态。",
+            ),
+        )

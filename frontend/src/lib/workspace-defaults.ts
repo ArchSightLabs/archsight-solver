@@ -13,6 +13,7 @@ import type {
   FrameLoad,
   FrameLoadCase,
   FrameLoadCombination,
+  FrameAnalysisOptions,
   FrameSpring,
   FrameSupportDisplacement,
   FrameWorkspaceState,
@@ -65,6 +66,19 @@ export interface PortalFrameConfig {
   columnI: number;
   beamI: number;
 }
+
+export const DEFAULT_FRAME_ANALYSIS_OPTIONS: FrameAnalysisOptions = {
+  pDelta: false,
+  buckling: false,
+  pDeltaOptions: {
+    loadSteps: 6,
+    maxIterations: 12,
+    tolerance: 1e-6,
+  },
+  bucklingOptions: {
+    modeCount: 3,
+  },
+};
 
 export interface FrameCollections {
   nodes: StructureNode[];
@@ -358,6 +372,7 @@ export function createDefaultFrameWorkspaceState(): FrameWorkspaceState {
     frameMode: DEFAULT_FRAME_MODE,
     projectName: "门式刚架研究",
     materialId: "q345",
+    analysisOptions: { ...DEFAULT_FRAME_ANALYSIS_OPTIONS, pDeltaOptions: { ...DEFAULT_FRAME_ANALYSIS_OPTIONS.pDeltaOptions }, bucklingOptions: { ...DEFAULT_FRAME_ANALYSIS_OPTIONS.bucklingOptions } },
     span: 6,
     height: 4,
     leftSupport: "fixed",
@@ -432,6 +447,11 @@ export function cloneBeamWorkspaceState(value: BeamWorkspaceState): BeamWorkspac
 export function cloneFrameWorkspaceState(value: FrameWorkspaceState): FrameWorkspaceState {
   return {
     ...value,
+    analysisOptions: {
+      ...value.analysisOptions,
+      pDeltaOptions: { ...value.analysisOptions.pDeltaOptions },
+      bucklingOptions: { ...value.analysisOptions.bucklingOptions },
+    },
     customNodes: cloneNodes(value.customNodes),
     customMembers: cloneMembers(value.customMembers),
     customLoads: cloneLoads(value.customLoads),

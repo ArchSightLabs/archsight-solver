@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   buildDisplayedBeamResults,
+  buildDisplayedFrameResults,
   buildDisplayedTrussResults,
   buildResultDisplayOptions,
   resultTabsForMode,
@@ -116,4 +117,115 @@ test("结果页受力变形说明沿用各分析对象的共享对象词表口�
     ["beam", "truss", "frame"].map((mode) => tabDescription(mode as Parameters<typeof resultTabsForMode>[0], "preview")).join("\n"),
     /节点、(?:杆件|构件)、支座、/u,
   );
+});
+
+test("框架结果页包含稳定审查标签并透传二阶与屈曲结果", () => {
+  assert.equal(tabLabel("frame", "stability"), "稳定审查");
+  assert.match(tabDescription("frame", "stability"), /首阶\/二阶对比/u);
+
+  const frame = {
+    analysisType: "frame",
+    summary: { allowableMm: 20, maxDisplacementMm: 2.4, maxVerticalMm: 1.8, maxRotationDeg: 0.2, maxMomentKnM: 32, maxDisplacementNodeId: "N4", status: "合格", statusCode: "PASS", method: "二维平面框架杆单元法" },
+    structure: {
+      template: "portal_frame",
+      nodes: [],
+      members: [],
+      loads: [],
+    },
+    frame: null,
+    preview: null,
+    diagram: null,
+    payload: { analysisType: "frame", projectName: "Portal", materialId: "q345", structure: { template: "portal_frame", nodes: [], members: [], loads: [] } },
+    nodeResults: [],
+    memberResults: [],
+    memberDiagrams: [],
+    loadCaseResults: [{
+      id: "DL",
+      title: "恒载",
+      summary: { status: "合格" },
+      nodeResults: [],
+      memberResults: [],
+      memberDiagrams: [],
+      secondOrder: {
+        enabled: true,
+        status: "converged",
+        method: "P-Delta",
+        amplificationFactor: 1.12,
+        firstOrder: {
+          summary: { allowableMm: 20, maxDisplacementMm: 2, maxVerticalMm: 1.4, maxRotationDeg: 0.18, maxMomentKnM: 30, maxDisplacementNodeId: "N4", status: "合格", statusCode: "PASS", method: "线性一阶" },
+          nodeResults: [],
+          memberResults: [],
+          memberDiagrams: [],
+        },
+      },
+      buckling: {
+        enabled: true,
+        status: "converged",
+        method: "特征屈曲",
+        criticalLoadFactor: 4.2,
+        modes: [{
+          modeNumber: 1,
+          criticalLoadFactor: 4.2,
+          residualNorm: 1e-7,
+          constraintResidual: 2e-8,
+          memberModeShapes: [{
+            memberId: "C1",
+            stationsM: [0, 2, 4],
+            ratios: [0, 0.5, 1],
+            ux: [0, 0.1, 0],
+            uy: [0, 1, 0],
+            rz: [0, 0.2, 0],
+          }],
+        }],
+      },
+    }],
+    loadCombinationResults: [],
+    secondOrder: {
+      enabled: true,
+      status: "converged",
+      method: "P-Delta",
+      amplificationFactor: 1.12,
+      firstOrder: {
+        summary: { allowableMm: 20, maxDisplacementMm: 2, maxVerticalMm: 1.4, maxRotationDeg: 0.18, maxMomentKnM: 30, maxDisplacementNodeId: "N4", status: "合格", statusCode: "PASS", method: "线性一阶" },
+        nodeResults: [],
+        memberResults: [],
+        memberDiagrams: [],
+      },
+      iterationHistory: [
+        { step: 1, iteration: 1, loadFactor: 0.5, residualNorm: 1e-4, displacementMm: 0.8, status: "converged" },
+      ],
+    },
+    buckling: {
+      enabled: true,
+      status: "converged",
+      method: "特征屈曲",
+      criticalLoadFactor: 4.2,
+      modes: [{
+        modeNumber: 1,
+        criticalLoadFactor: 4.2,
+        residualNorm: 1e-7,
+        constraintResidual: 2e-8,
+        memberModeShapes: [{
+          memberId: "C1",
+          stationsM: [0, 2, 4],
+          ratios: [0, 0.5, 1],
+          ux: [0, 0.1, 0],
+          uy: [0, 1, 0],
+          rz: [0, 0.2, 0],
+        }],
+      }],
+    },
+    nodeIds: [],
+    memberIds: [],
+    ux_data: [],
+    uy_data: [],
+    rz_data: [],
+    member_axial_data: [],
+    member_shear_data: [],
+    member_moment_data: [],
+  };
+
+  const displayed = buildDisplayedFrameResults(frame as never, { source: "case", id: "DL", label: "恒载", description: "工况 DL" });
+  assert.equal(displayed?.secondOrder?.status, "converged");
+  assert.equal(displayed?.buckling?.modes?.[0]?.memberModeShapes?.[0]?.memberId, "C1");
 });

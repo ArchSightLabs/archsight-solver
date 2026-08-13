@@ -323,7 +323,7 @@ def test_frame_temperature_load_restrained_member_generates_compression_and_reac
     assert member["axialEndKn"] == pytest.approx(expected_compression_kn, rel=1e-9)
     assert data["buckling"]["controllingMembers"][0]["memberId"] == "B1"
     assert data["buckling"]["controllingMembers"][0]["compressionKn"] == pytest.approx(expected_compression_kn, rel=1e-6)
-    assert data["secondOrder"]["amplificationFactor"] > 1.0
+    assert data["secondOrder"]["amplificationFactor"] == pytest.approx(1.0, abs=1e-8)
     assert data["diagnostics"]["equilibrium"]["rmsRelativeError"] < 1e-9
 
 

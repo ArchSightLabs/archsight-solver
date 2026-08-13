@@ -14,6 +14,7 @@ import {
   LoadingPanel,
   SummaryGrid,
 } from "./workbench-result-panels";
+import { FrameStabilityPanel } from "./FrameStabilityPanel";
 import {
   beamDataCurveOptions,
   beamSummaryRows,
@@ -191,6 +192,9 @@ export function WorkbenchResultContent({
   }
   if (activeTabId === "curves") {
     return <DataCurvePanel options={frameDataCurveOptions(displayedFrameResults)} compact={compact} />;
+  }
+  if (activeTabId === "stability") {
+    return <FrameStabilityPanel results={displayedFrameResults} compact={compact} />;
   }
   return (
     <div className="space-y-3">

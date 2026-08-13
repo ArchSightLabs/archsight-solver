@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import math
+from copy import deepcopy
 from typing import Any, Dict, List
 
+from backend.application.frame_stability import build_frame_stability_results
 from backend.normalizers.frame.request_normalizer import normalize_frame_request
 from backend.presenters.frame.assembler import build_frame_solution_response
 from backend.solver.frame.assembler import assemble_global_system
@@ -14,17 +15,26 @@ def build_frame_solution(data: Dict[str, Any], material_name: str) -> Dict[str, 
     request = normalize_frame_request(data)
     structure = request["structure"]
     primary_structure = _primary_structure(structure)
-    primary_request = {**request, "structure": primary_structure}
+    primary_reference = _primary_reference(structure)
+    primary_request = {**request, "structure": primary_structure, "stabilityReference": primary_reference}
+
     solution = _solve_frame_structure(primary_request, primary_structure)
     solution["structure"] = structure
     solution["payload"]["structure"] = structure
+    solution["payload"]["analysisOptions"] = request.get("analysisOptions", {})
+
     solution["loadCaseResults"] = _solve_load_cases(request, structure)
     solution["loadCombinationResults"] = _solve_load_combinations(request, structure)
-    stability = _frame_stability_summary(solution, request.get("analysisOptions", {}))
-    solution["secondOrder"] = stability["secondOrder"]
-    solution["buckling"] = stability["buckling"]
-    solution["summary"]["secondOrderAmplificationFactor"] = stability["secondOrder"]["amplificationFactor"]
+    solution = _apply_stability_layers(primary_request, primary_structure, structure, solution)
+    if isinstance(solution.get("secondOrder"), dict):
+        solution["secondOrder"]["referenceSource"] = primary_reference
+        solution["secondOrder"]["controlSource"] = primary_reference
+    if isinstance(solution.get("buckling"), dict):
+        solution["buckling"]["referenceSource"] = primary_reference
+        solution["buckling"]["controlSource"] = primary_reference
+    solution["structure"] = structure
     solution["payload"]["analysisOptions"] = request.get("analysisOptions", {})
+    solution["payload"]["structure"] = structure
     return solution
 
 
@@ -50,63 +60,45 @@ def _solve_frame_structure(request: Dict[str, Any], structure: Dict[str, Any]) -
     )
 
 
-def _frame_stability_summary(solution: Dict[str, Any], options: Dict[str, Any]) -> Dict[str, Any]:
-    members = {member["id"]: member for member in solution["structure"].get("members", [])}
-    compression_ratios: List[Dict[str, Any]] = []
-    for result in solution.get("memberResults", []):
-        # Frame member end-force recovery uses compression positive and tension negative.
-        axial_kn = max(float(result.get("axialStartKn", 0.0)), float(result.get("axialEndKn", 0.0)))
-        if axial_kn <= 0:
-            continue
-        member = members.get(result["memberId"], {})
-        length = max(float(result.get("lengthM", 0.0)), 1e-9)
-        e = float(member.get("E_GPa", 210.0)) * 1e9
-        i = float(member.get("I_cm4", 8000.0)) * 1e-8
-        pcr_kn = math.pi**2 * e * i / (length**2) / 1000.0
-        compression_kn = axial_kn
-        if pcr_kn <= 0 or compression_kn <= 0:
-            continue
-        compression_ratios.append(
-            {
-                "memberId": result["memberId"],
-                "compressionKn": round(compression_kn, 4),
-                "eulerCriticalLoadKn": round(pcr_kn, 4),
-                "criticalLoadFactor": round(pcr_kn / compression_kn, 4),
-                "utilizationRatio": round(compression_kn / pcr_kn, 6),
-            }
-        )
+def _apply_stability_layers(
+    request: Dict[str, Any],
+    stability_structure: Dict[str, Any],
+    full_structure: Dict[str, Any],
+    solution: Dict[str, Any],
+) -> Dict[str, Any]:
+    stability = build_frame_stability_results(
+        request,
+        stability_structure,
+        solution,
+        analysis_options=request.get("analysisOptions", {}),
+    )
+    second_order = stability["secondOrder"]
+    buckling = stability["buckling"]
 
-    max_utilization = max((item["utilizationRatio"] for item in compression_ratios), default=0.0)
-    min_factor = min((item["criticalLoadFactor"] for item in compression_ratios), default=None)
-    if max_utilization >= 1.0:
-        amplification = 10.0
-        risk = "高风险"
-    elif max_utilization > 0:
-        amplification = min(10.0, 1.0 / max(1e-9, 1.0 - max_utilization))
-        risk = "需复核" if amplification >= 1.2 else "低风险"
-    else:
-        amplification = 1.0
-        risk = "无轴压控制构件"
+    attached = deepcopy(solution)
+    attached["secondOrder"] = second_order
+    attached["buckling"] = buckling
+    attached["summary"]["secondOrderAmplificationFactor"] = second_order.get("amplificationFactor", 1.0)
 
-    enabled_pdelta = bool(options.get("pDelta", options.get("p_delta", False)))
-    enabled_buckling = bool(options.get("buckling", False))
-    second_order = {
-        "enabled": enabled_pdelta,
-        "method": "基于构件 Euler 临界力的 P-Delta 初步放大估算",
-        "amplificationFactor": round(amplification if enabled_pdelta else 1.0, 4),
-        "maxHorizontalDisplacementMm": round(max((abs(item.get("uxMm", 0.0)) for item in solution.get("nodeResults", [])), default=0.0), 4),
-        "riskLevel": risk if enabled_pdelta else "未启用",
-        "limitations": "该结果为方案阶段初步估算，不替代规范二阶分析或稳定验算。",
-    }
-    buckling = {
-        "enabled": enabled_buckling,
-        "method": "构件 Euler 临界力初步筛查",
-        "criticalLoadFactor": round(float(min_factor), 4) if min_factor is not None else None,
-        "controllingMembers": sorted(compression_ratios, key=lambda item: item["criticalLoadFactor"])[:3],
-        "riskLevel": risk if enabled_buckling else "未启用",
-        "limitations": "未考虑构件计算长度系数、节点侧移约束和整体屈曲模态，仅作初筛。",
-    }
-    return {"secondOrder": second_order, "buckling": buckling}
+    if "payload" in attached and isinstance(attached["payload"], dict):
+        attached["payload"]["analysisOptions"] = stability.get("analysisOptions", request.get("analysisOptions", {}))
+        attached["payload"]["structure"] = full_structure
+
+    if second_order.get("enabled") and second_order.get("converged") and isinstance(second_order.get("final"), dict):
+        final_solution = deepcopy(second_order["final"])
+        final_solution["secondOrder"] = second_order
+        final_solution["buckling"] = buckling
+        final_solution["loadCaseResults"] = attached.get("loadCaseResults", [])
+        final_solution["loadCombinationResults"] = attached.get("loadCombinationResults", [])
+        final_solution["structure"] = full_structure
+        if "payload" in final_solution and isinstance(final_solution["payload"], dict):
+            final_solution["payload"]["analysisOptions"] = stability.get("analysisOptions", request.get("analysisOptions", {}))
+            final_solution["payload"]["structure"] = full_structure
+        if "summary" in final_solution and isinstance(final_solution["summary"], dict):
+            final_solution["summary"]["secondOrderAmplificationFactor"] = second_order.get("amplificationFactor", 1.0)
+        return final_solution
+
+    return attached
 
 
 def _primary_structure(structure: Dict[str, Any]) -> Dict[str, Any]:
@@ -118,11 +110,33 @@ def _primary_structure(structure: Dict[str, Any]) -> Dict[str, Any]:
     return {**structure, "loads": combined_loads}
 
 
+def _primary_reference(structure: Dict[str, Any]) -> Dict[str, str]:
+    combinations = structure.get("loadCombinations") or []
+    load_cases = structure.get("loadCases") or []
+    if structure.get("loads") or not combinations or not load_cases:
+        return {"source": "primary", "id": "__primary__", "title": "主结果"}
+    combination = combinations[0]
+    return {
+        "source": "combination",
+        "id": str(combination.get("id", "__primary__")),
+        "title": str(combination.get("title") or combination.get("id") or "主结果"),
+    }
+
+
 def _solve_load_cases(request: Dict[str, Any], structure: Dict[str, Any]) -> List[Dict[str, Any]]:
     results: List[Dict[str, Any]] = []
     for load_case in structure.get("loadCases", []):
         case_structure = {**structure, "loads": load_case.get("loads", [])}
-        case_solution = _solve_frame_structure(request, case_structure)
+        case_reference = {"source": "case", "id": load_case["id"], "title": load_case.get("title", load_case["id"])}
+        case_request = {**request, "stabilityReference": case_reference}
+        case_solution = _solve_frame_structure(case_request, case_structure)
+        case_solution = _apply_stability_layers(case_request, case_structure, case_structure, case_solution)
+        if isinstance(case_solution.get("secondOrder"), dict):
+            case_solution["secondOrder"]["referenceSource"] = case_reference
+            case_solution["secondOrder"]["controlSource"] = case_reference
+        if isinstance(case_solution.get("buckling"), dict):
+            case_solution["buckling"]["referenceSource"] = case_reference
+            case_solution["buckling"]["controlSource"] = case_reference
         results.append(
             {
                 "id": load_case["id"],
@@ -132,6 +146,8 @@ def _solve_load_cases(request: Dict[str, Any], structure: Dict[str, Any]) -> Lis
                 "nodeResults": case_solution["nodeResults"],
                 "memberResults": case_solution["memberResults"],
                 "memberDiagrams": case_solution["memberDiagrams"],
+                "secondOrder": case_solution.get("secondOrder", {}),
+                "buckling": case_solution.get("buckling", {}),
             }
         )
     return results
@@ -142,7 +158,21 @@ def _solve_load_combinations(request: Dict[str, Any], structure: Dict[str, Any])
     results: List[Dict[str, Any]] = []
     for combination in structure.get("loadCombinations", []):
         combination_structure = {**structure, "loads": _loads_for_combination(combination, load_cases)}
-        combination_solution = _solve_frame_structure(request, combination_structure)
+        combination_reference = {"source": "combination", "id": combination["id"], "title": combination.get("title", combination["id"])}
+        combination_request = {**request, "stabilityReference": combination_reference}
+        combination_solution = _solve_frame_structure(combination_request, combination_structure)
+        combination_solution = _apply_stability_layers(
+            combination_request,
+            combination_structure,
+            combination_structure,
+            combination_solution,
+        )
+        if isinstance(combination_solution.get("secondOrder"), dict):
+            combination_solution["secondOrder"]["referenceSource"] = combination_reference
+            combination_solution["secondOrder"]["controlSource"] = combination_reference
+        if isinstance(combination_solution.get("buckling"), dict):
+            combination_solution["buckling"]["referenceSource"] = combination_reference
+            combination_solution["buckling"]["controlSource"] = combination_reference
         result = {
             "id": combination["id"],
             "title": combination.get("title", combination["id"]),
@@ -152,6 +182,8 @@ def _solve_load_combinations(request: Dict[str, Any], structure: Dict[str, Any])
             "nodeResults": combination_solution["nodeResults"],
             "memberResults": combination_solution["memberResults"],
             "memberDiagrams": combination_solution["memberDiagrams"],
+            "secondOrder": combination_solution.get("secondOrder", {}),
+            "buckling": combination_solution.get("buckling", {}),
         }
         if combination.get("tags"):
             result["tags"] = combination["tags"]

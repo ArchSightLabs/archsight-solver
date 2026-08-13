@@ -232,5 +232,44 @@ export function frameSummaryRows(results: FrameCalculationResults): SummaryRow[]
       value: results.summary.status,
       detail: "平面框架杆单元",
     },
+    {
+      label: "稳定状态",
+      value: frameStabilityStatus(results.secondOrder?.status, results.buckling?.status),
+      detail: frameStabilityDetail(results.secondOrder?.enabled, results.buckling?.enabled),
+    },
+    {
+      label: "P-Delta",
+      value: frameStatusLabel(results.secondOrder?.status),
+      detail: results.secondOrder ? `${formatEngineeringValue(results.secondOrder.amplificationFactor, "")} · ${results.secondOrder.method}` : "未提供",
+    },
+    {
+      label: "屈曲",
+      value: frameStatusLabel(results.buckling?.status),
+      detail: results.buckling?.criticalLoadFactor == null ? "未提供" : `临界因子 ${formatEngineeringValue(results.buckling.criticalLoadFactor, "")}`,
+    },
   ];
+}
+
+function frameStatusLabel(status: string | undefined | null): string {
+  if (!status) return "未提供";
+  if (status === "not_enabled" || status === "未启用") return "未启用";
+  if (status === "converged" || status === "已收敛") return "已收敛";
+  if (status === "not_converged" || status === "未收敛") return "未收敛";
+  if (status === "failed" || status === "失败") return "失败";
+  if (status === "no_compression" || status === "无轴压") return "无轴压";
+  return status;
+}
+
+function frameStabilityStatus(secondOrderStatus: string | undefined | null, bucklingStatus: string | undefined | null): string {
+  const statuses = [secondOrderStatus, bucklingStatus].filter(Boolean).map((status) => frameStatusLabel(status as string));
+  if (statuses.length === 0) return "未提供";
+  return statuses.join(" / ");
+}
+
+function frameStabilityDetail(secondOrderEnabled?: boolean, bucklingEnabled?: boolean): string {
+  const parts = [
+    secondOrderEnabled ? "P-Delta 已启用" : "P-Delta 未启用",
+    bucklingEnabled ? "屈曲已启用" : "屈曲未启用",
+  ];
+  return parts.join(" · ");
 }

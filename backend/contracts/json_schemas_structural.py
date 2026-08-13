@@ -375,6 +375,172 @@ LOAD_COMBINATION_SCHEMA: Dict[str, Any] = {
     "additionalProperties": True,
 }
 
+FRAME_PDELTA_OPTIONS_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("frame-pdelta-options"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "框架 P-Delta 选项",
+    "type": "object",
+    "properties": {
+        "loadSteps": {"type": "integer", "minimum": 1, "maximum": 20},
+        "maxIterations": {"type": "integer", "minimum": 1, "maximum": 50},
+        "tolerance": {"type": "number", "minimum": 1e-10, "maximum": 1e-3},
+    },
+    "additionalProperties": True,
+}
+
+FRAME_BUCKLING_OPTIONS_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("frame-buckling-options"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "框架线性屈曲选项",
+    "type": "object",
+    "properties": {
+        "modeCount": {"type": "integer", "minimum": 1, "maximum": 12},
+    },
+    "additionalProperties": True,
+}
+
+FRAME_ANALYSIS_OPTIONS_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("frame-analysis-options"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "框架稳定分析选项",
+    "type": "object",
+    "properties": {
+        "pDelta": {"type": "boolean"},
+        "buckling": {"type": "boolean"},
+        "pDeltaOptions": FRAME_PDELTA_OPTIONS_SCHEMA,
+        "bucklingOptions": FRAME_BUCKLING_OPTIONS_SCHEMA,
+    },
+    "additionalProperties": True,
+}
+
+FRAME_STABILITY_REFERENCE_RESULTS_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("frame-stability-reference-results"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "框架稳定分析参考快照",
+    "type": "object",
+    "properties": {
+        "summary": {"type": "object", "additionalProperties": True},
+        "diagnostics": {"type": "object", "additionalProperties": True},
+        "nodeResults": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+        "memberResults": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+        "memberDiagrams": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+    },
+    "additionalProperties": True,
+}
+
+FRAME_SECOND_ORDER_RESULT_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("frame-second-order-result"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "框架二阶分析结果",
+    "type": "object",
+    "required": ["enabled", "status", "method", "amplificationFactor", "firstOrder"],
+    "properties": {
+        "enabled": {"type": "boolean"},
+        "status": {"type": "string", "enum": ["not_enabled", "converged", "not_converged", "failed"]},
+        "statusLabel": {"type": "string"},
+        "converged": {"type": "boolean"},
+        "method": {"type": "string"},
+        "referenceSource": {"type": "object", "additionalProperties": True},
+        "loadSteps": {"type": "integer"},
+        "maxIterations": {"type": "integer"},
+        "tolerance": {"type": ["number", "null"]},
+        "totalIterations": {"type": "integer"},
+        "amplificationFactor": {"type": "number"},
+        "firstOrderMaxHorizontalDisplacementMm": {"type": "number"},
+        "firstOrderMaxDisplacementMm": {"type": "number"},
+        "maxHorizontalDisplacementMm": {"type": "number"},
+        "maxDisplacementMm": {"type": "number"},
+        "iterationHistory": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+        "firstOrder": FRAME_STABILITY_REFERENCE_RESULTS_SCHEMA,
+        "solution": {"type": "object", "additionalProperties": True},
+        "final": {"type": "object", "additionalProperties": True},
+        "controlSource": {"type": "object", "additionalProperties": True},
+        "failureReason": {"type": ["string", "null"]},
+        "message": {"type": ["string", "null"]},
+        "statusMessage": {"type": ["string", "null"]},
+        "limitations": {"type": "string"},
+        "summary": {"type": "object", "additionalProperties": True},
+    },
+    "additionalProperties": True,
+}
+
+FRAME_BUCKLING_MODE_NODE_DISPLACEMENT_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("frame-buckling-mode-node-displacement"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "框架屈曲模态节点位移",
+    "type": "object",
+    "required": ["nodeId", "ux", "uy", "rz"],
+    "properties": {
+        "nodeId": {"type": "string"},
+        "ux": {"type": "number"},
+        "uy": {"type": "number"},
+        "rz": {"type": "number"},
+    },
+    "additionalProperties": True,
+}
+
+FRAME_BUCKLING_MODE_SHAPE_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("frame-buckling-mode-shape"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "框架屈曲模态构件形状",
+    "type": "object",
+    "required": ["memberId", "stationsM", "ratios", "ux", "uy", "rz"],
+    "properties": {
+        "memberId": {"type": "string"},
+        "stationsM": {"type": "array", "items": {"type": "number"}},
+        "ratios": {"type": "array", "items": {"type": "number"}},
+        "ux": {"type": "array", "items": {"type": "number"}},
+        "uy": {"type": "array", "items": {"type": "number"}},
+        "rz": {"type": "array", "items": {"type": "number"}},
+    },
+    "additionalProperties": True,
+}
+
+FRAME_BUCKLING_MODE_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("frame-buckling-mode"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "框架屈曲模态",
+    "type": "object",
+    "required": ["modeNumber", "criticalLoadFactor", "nodeDisplacements", "memberModeShapes"],
+    "properties": {
+        "modeNumber": {"type": "integer", "minimum": 1},
+        "criticalLoadFactor": {"type": "number"},
+        "residualNorm": {"type": "number"},
+        "constraintResidual": {"type": "number"},
+        "nodeDisplacements": {"type": "array", "items": FRAME_BUCKLING_MODE_NODE_DISPLACEMENT_SCHEMA},
+        "memberModeShapes": {"type": "array", "items": FRAME_BUCKLING_MODE_SHAPE_SCHEMA},
+    },
+    "additionalProperties": True,
+}
+
+FRAME_BUCKLING_RESULT_SCHEMA: Dict[str, Any] = {
+    "$id": _schema_id("frame-buckling-result"),
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "框架线性屈曲结果",
+    "type": "object",
+    "required": ["enabled", "status", "method"],
+    "properties": {
+        "enabled": {"type": "boolean"},
+        "status": {"type": "string", "enum": ["not_enabled", "converged", "not_converged", "failed", "no_compression"]},
+        "statusLabel": {"type": "string"},
+        "converged": {"type": "boolean"},
+        "method": {"type": "string"},
+        "referenceSource": {"type": "object", "additionalProperties": True},
+        "criticalLoadFactor": {"type": ["number", "null"]},
+        "controllingMembers": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+        "modes": {"type": "array", "items": FRAME_BUCKLING_MODE_SCHEMA},
+        "modeCount": {"type": "integer"},
+        "firstOrder": FRAME_STABILITY_REFERENCE_RESULTS_SCHEMA,
+        "solution": {"type": ["object", "null"], "additionalProperties": True},
+        "controlSource": {"type": "object", "additionalProperties": True},
+        "failureReason": {"type": ["string", "null"]},
+        "message": {"type": ["string", "null"]},
+        "statusMessage": {"type": ["string", "null"]},
+        "limitations": {"type": "string"},
+    },
+    "additionalProperties": True,
+}
+
 ASMS_BEAM_MODEL_SCHEMA: Dict[str, Any] = {
     "$id": _schema_id("asms-beam-model"),
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -430,6 +596,7 @@ ASMS_FRAME_MODEL_SCHEMA: Dict[str, Any] = {
         "schemaVersion": ASMS_SCHEMA_VERSION_PROPERTY,
         "projectName": {"type": "string"},
         "materialId": {"type": "string"},
+        "analysisOptions": FRAME_ANALYSIS_OPTIONS_SCHEMA,
         "structure": {
             "type": "object",
             "required": ["nodes", "members"],
@@ -528,6 +695,7 @@ SOLVER_PAYLOAD_SCHEMA: Dict[str, Any] = {
         "schemaVersion": ASMS_SCHEMA_VERSION_PROPERTY,
         "projectName": {"type": "string"},
         "materialId": {"type": "string"},
+        "analysisOptions": FRAME_ANALYSIS_OPTIONS_SCHEMA,
         "beamType": {"type": "string"},
         "loadType": {"type": "string"},
         "spans": {"type": "array", "items": {"type": "number"}},

@@ -214,6 +214,48 @@ test("normalizeAnalysisResponse maps unified frame envelope back to frame result
       memberDiagrams: [{ memberId: "C1", stations: [0, 1], stationsM: [0, 4], axialKn: [0, 0], shearKn: [5, -5], momentKnM: [0, 0], deflectionMm: [0, -1] }],
       loadCaseResults: [{ id: "DL", title: "恒载", summary: { status: "合格" }, nodeResults: [], memberResults: [], memberDiagrams: [] }],
       loadCombinationResults: [{ id: "ULS1", title: "基本组合", factors: { DL: 1.2 }, summary: { status: "合格" }, nodeResults: [], memberResults: [], memberDiagrams: [] }],
+      secondOrder: {
+        enabled: true,
+        status: "converged",
+        method: "P-Delta",
+        amplificationFactor: 1.18,
+        firstOrder: {
+          summary: {
+            allowableMm: 20,
+            maxDisplacementMm: 2.1,
+            maxVerticalMm: 1.5,
+            maxRotationDeg: 0.2,
+            maxMomentKnM: 31,
+            maxDisplacementNodeId: "N4",
+            status: "合格",
+            statusCode: "PASS",
+            method: "线性一阶",
+          },
+          nodeResults: [{ nodeId: "N1" }],
+          memberResults: [{ memberId: "C1" }],
+          memberDiagrams: [{ memberId: "C1", stations: [0, 1], stationsM: [0, 4], axialKn: [0, 0], shearKn: [0, 0], momentKnM: [0, 0], deflectionMm: [0, 0] }],
+        },
+      },
+      buckling: {
+        enabled: true,
+        status: "converged",
+        method: "特征屈曲",
+        criticalLoadFactor: 4.8,
+        modes: [{
+          modeNumber: 1,
+          criticalLoadFactor: 4.8,
+          residualNorm: 1e-7,
+          constraintResidual: 1e-8,
+          memberModeShapes: [{
+            memberId: "C1",
+            stationsM: [0, 2, 4],
+            ratios: [0, 0.5, 1],
+            ux: [0, 0.2, 0],
+            uy: [0, 1, 0],
+            rz: [0, 0.1, 0],
+          }],
+        }],
+      },
       nodeIds: ["N1", "N4"],
       memberIds: ["C1"],
       series: {
@@ -241,6 +283,8 @@ test("normalizeAnalysisResponse maps unified frame envelope back to frame result
   assert.deepEqual(normalized.member_moment_data, [32]);
   assert.deepEqual(normalized.memberDiagrams[0]?.momentKnM, [0, 0]);
   assert.equal(normalized.loadCombinationResults?.[0]?.factors.DL, 1.2);
+  assert.equal(normalized.secondOrder?.status, "converged");
+  assert.equal(normalized.buckling?.modes?.[0]?.memberModeShapes?.[0]?.memberId, "C1");
   const drifted = {
     ...normalized,
     summary: { ...normalized.summary, statusCode: "REVIEW" as const },
@@ -251,6 +295,8 @@ test("normalizeAnalysisResponse maps unified frame envelope back to frame result
   assert.equal(view?.summary?.statusCode, "PASS");
   assert.deepEqual(view?.nodeIds, ["N1", "N4"]);
   assert.equal(view?.loadCombinationResults?.[0]?.factors.DL, 1.2);
+  assert.equal(view?.secondOrder?.amplificationFactor, 1.18);
+  assert.equal(view?.buckling?.criticalLoadFactor, 4.8);
 });
 
 test("apiErrorMessage prefers diagnostics issue messages", () => {

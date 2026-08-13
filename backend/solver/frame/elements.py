@@ -24,6 +24,33 @@ def member_stiffness_local(E: float, A: float, I: float, length: float) -> np.nd
     )
 
 
+def member_geometric_stiffness_local(axial_force: float, length: float) -> np.ndarray:
+    """Beam-column geometric stiffness in local coordinates.
+
+    The sign convention follows the frame solver: compression is positive and
+    therefore destabilizing. A positive axial force reduces the tangent
+    stiffness, while tension increases it.
+    """
+    p = float(axial_force)
+    L = float(length)
+    if abs(p) < 1e-12 or L <= 0:
+        return np.zeros((6, 6), dtype=float)
+    factor = p / (30.0 * L)
+    l = L
+    l2 = L * L
+    return factor * np.array(
+        [
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 36.0, 3.0 * l, 0.0, -36.0, 3.0 * l],
+            [0.0, 3.0 * l, 4.0 * l2, 0.0, -3.0 * l, -1.0 * l2],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, -36.0, -3.0 * l, 0.0, 36.0, -3.0 * l],
+            [0.0, 3.0 * l, -1.0 * l2, 0.0, -3.0 * l, 4.0 * l2],
+        ],
+        dtype=float,
+    )
+
+
 def member_transform(cosine: float, sine: float) -> np.ndarray:
     return np.array(
         [

@@ -238,6 +238,12 @@ export function createPortalFramePayload(value: FrameWorkspaceState, projectName
     schemaVersion: ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION,
     projectName,
     materialId: value.materialId,
+    analysisOptions: {
+      pDelta: value.analysisOptions.pDelta,
+      buckling: value.analysisOptions.buckling,
+      pDeltaOptions: { ...value.analysisOptions.pDeltaOptions },
+      bucklingOptions: { ...value.analysisOptions.bucklingOptions },
+    },
     structure: {
       template: "portal_frame",
       span: value.span,
@@ -668,6 +674,12 @@ export function buildFramePayload(value: FrameWorkspaceState, projectName = valu
     schemaVersion: ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION,
     projectName,
     materialId: value.materialId,
+    analysisOptions: {
+      pDelta: value.analysisOptions.pDelta,
+      buckling: value.analysisOptions.buckling,
+      pDeltaOptions: { ...value.analysisOptions.pDeltaOptions },
+      bucklingOptions: { ...value.analysisOptions.bucklingOptions },
+    },
     structure: {
       template: "explicit",
       nodes: custom.nodes,

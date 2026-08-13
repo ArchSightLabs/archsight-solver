@@ -85,6 +85,8 @@ export function FrameForm({
       }}
       materialId={value.materialId}
       materialLibrary={materialLibrary}
+      analysisOptions={value.analysisOptions}
+      onAnalysisOptionsChange={(nextAnalysisOptions) => onChange({ ...value, analysisOptions: nextAnalysisOptions })}
       onMaterialChange={(nextMaterialId) => onChange({ ...value, materialId: nextMaterialId })}
       onChange={commitCollections}
       onRunGeneratedModel={runGeneratedCollections}

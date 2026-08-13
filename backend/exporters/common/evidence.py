@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import math
 from typing import Any, Dict, Iterable, List, Mapping, Optional
 
@@ -17,6 +18,19 @@ REVIEW_STATUS_LABELS = {
     "ready_for_review": "可审阅",
 }
 
+FRAME_STABILITY_FULL_TABLES = (
+    "稳定审查摘要",
+    "P-Delta 收敛记录",
+    "屈曲模态摘要",
+    "屈曲节点模态向量",
+    "屈曲构件模态形状",
+)
+
+FRAME_STABILITY_STANDARD_TABLES = (
+    "稳定审查摘要",
+    "屈曲模态摘要",
+)
+
 DOF_LABELS = {
     "ux": "ux 水平位移",
     "uy": "uy 竖向位移",
@@ -25,9 +39,14 @@ DOF_LABELS = {
 }
 
 
-def build_evidence_tables(solution: Mapping[str, Any], analysis_type: str, material_name: str) -> Dict[str, pd.DataFrame]:
+def build_evidence_tables(
+    solution: Mapping[str, Any],
+    analysis_type: str,
+    material_name: str,
+    report_options: Mapping[str, Any] | None = None,
+) -> Dict[str, pd.DataFrame]:
     if analysis_type == "frame":
-        return _frame_evidence(solution, material_name)
+        return _frame_evidence(solution, material_name, report_options)
     if analysis_type == "truss":
         return _truss_evidence(solution, material_name)
     return _beam_evidence(solution, material_name)
@@ -183,11 +202,12 @@ def _beam_span_stiffness_table(request: Mapping[str, Any]) -> pd.DataFrame:
     return pd.DataFrame(rows or [{"跨段": "—", "长度": "—", "弹性模量 E": "—", "截面惯性矩 I": "—", "说明": "—"}])
 
 
-def _frame_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str, pd.DataFrame]:
+def _frame_evidence(solution: Mapping[str, Any], material_name: str, report_options: Mapping[str, Any] | None = None) -> Dict[str, pd.DataFrame]:
     structure = solution["structure"]
     equilibrium = _frame_equilibrium(solution)
     max_node = _max_by_abs(solution.get("nodeResults", []), "resultantMm")
     max_moment = _max_frame_moment(solution.get("memberResults", []))
+    stability_tables = _frame_stability_evidence(solution, report_options)
     return {
         "工程输入摘要": pd.DataFrame(
             [
@@ -216,6 +236,7 @@ def _frame_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str
                 ["3", "装配整体刚度矩阵 K 与荷载向量 F"],
                 ["4", "施加支座约束、弹性约束刚度、端部释放和内部铰"],
                 ["5", "求解节点位移，并恢复构件轴力、剪力、弯矩与支座反力"],
+                ["6", "若启用稳定分析，则先做几何刚度 P-Delta 迭代，再做广义特征值屈曲求解"],
             ],
             columns=["步骤", "说明"],
         ),
@@ -228,7 +249,7 @@ def _frame_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str
                 *_learning_review_rows(solution),
                 ["控制位移", _node_control_text(max_node), f"允许值 {round(solution.get('summary', {}).get('allowableMm', 0.0), 6)} mm"],
                 ["控制弯矩", _frame_moment_text(max_moment), "按所有杆端弯矩绝对值最大提取"],
-                ["稳定初筛", f"P-Delta: {solution.get('secondOrder', {}).get('riskLevel', '未启用')}；屈曲: {solution.get('buckling', {}).get('riskLevel', '未启用')}", "该项为初筛提示"],
+                ["稳定审查", f"P-Delta: {solution.get('secondOrder', {}).get('status', 'disabled')}；屈曲: {solution.get('buckling', {}).get('status', 'disabled')}", "该项为正式稳定审查证据"],
             ],
             columns=["校核项", "求解证据", "说明"],
         ),
@@ -236,11 +257,166 @@ def _frame_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str
             [
                 ["最大节点位移", max_node.get("nodeId", "—"), f"{round(float(max_node.get('resultantMm', max_node.get('displacementMm', 0.0))), 6)} mm", "节点合位移最大"],
                 ["最大杆端弯矩", max_moment.get("location", "—"), f"{round(float(max_moment.get('value', 0.0)), 6)} kN.m", "杆端弯矩绝对值最大"],
-                ["最大二阶放大系数", "结构整体", str(solution.get("secondOrder", {}).get("amplificationFactor", "—")), "P-Delta 初筛"],
+                ["最大二阶放大系数", "结构整体", str(solution.get("secondOrder", {}).get("amplificationFactor", "—")), "P-Delta 迭代结果"],
             ],
             columns=["控制项", "位置/对象", "数值", "判定依据"],
         ),
+        **stability_tables,
     }
+
+
+def _frame_stability_evidence(solution: Mapping[str, Any], report_options: Mapping[str, Any] | None = None) -> Dict[str, pd.DataFrame]:
+    second_order = solution.get("secondOrder") if isinstance(solution.get("secondOrder"), Mapping) else {}
+    buckling = solution.get("buckling") if isinstance(solution.get("buckling"), Mapping) else {}
+    template = _report_template(report_options)
+    tables: Dict[str, pd.DataFrame] = {}
+
+    tables["稳定审查摘要"] = pd.DataFrame(
+        [
+            ["P-Delta 状态", second_order.get("status", "disabled"), "enabled" if second_order.get("enabled") else "disabled"],
+            ["P-Delta 方法", second_order.get("method", "—"), f"loadSteps={second_order.get('loadSteps', '—')}，maxIterations={second_order.get('maxIterations', '—')}，tolerance={second_order.get('tolerance', '—')}"],
+            ["P-Delta 放大系数", second_order.get("amplificationFactor", "—"), f"first={second_order.get('firstOrderMaxDisplacementMm', '—')} mm，second={second_order.get('maxDisplacementMm', '—')} mm"],
+            ["P-Delta 失败原因", second_order.get("failureReason", "—") or "—", second_order.get("limitations", "—")],
+            ["P-Delta 参考来源", _source_summary_text(second_order.get("referenceSource")), _source_note_text(second_order.get("referenceSource"))],
+            ["P-Delta 控制来源", _source_summary_text(second_order.get("controlSource")), _source_note_text(second_order.get("controlSource"))],
+            ["屈曲状态", buckling.get("status", "disabled"), "enabled" if buckling.get("enabled") else "disabled"],
+            ["屈曲方法", buckling.get("method", "—"), f"modeCount={buckling.get('modeCount', '—')}"],
+            ["首阶临界系数", buckling.get("criticalLoadFactor", "—"), f"控制构件 {json.dumps(buckling.get('controllingMembers', []), ensure_ascii=False)}"],
+            ["屈曲失败原因", buckling.get("failureReason", "—") or "—", buckling.get("limitations", "—")],
+            ["屈曲参考来源", _source_summary_text(buckling.get("referenceSource")), _source_note_text(buckling.get("referenceSource"))],
+            ["屈曲控制来源", _source_summary_text(buckling.get("controlSource")), _source_note_text(buckling.get("controlSource"))],
+        ],
+        columns=["项目", "结果", "说明"],
+    )
+
+    history_rows: List[Dict[str, Any]] = []
+    for record in second_order.get("iterationHistory", []) if isinstance(second_order.get("iterationHistory"), list) else []:
+        if not isinstance(record, Mapping):
+            continue
+        history_rows.append(
+            {
+                "step": record.get("step", "—"),
+                "loadFactor": record.get("loadFactor", "—"),
+                "iteration": record.get("iteration", "—"),
+                "deltaRatio": record.get("deltaRatio", "—"),
+                "maxDelta": record.get("maxDelta", "—"),
+                "displacementIncrementNorm": record.get("displacementIncrementNorm", "—"),
+                "relativeDisplacementIncrement": record.get("relativeDisplacementIncrement", "—"),
+                "equilibriumResidual": record.get("equilibriumResidual", record.get("equilibriumRmsRelativeError", "—")),
+                "maxDisplacementMm": record.get("maxDisplacementMm", "—"),
+                "equilibriumRmsRelativeError": record.get("equilibriumRmsRelativeError", "—"),
+            }
+        )
+    if template != "standard":
+        tables["P-Delta 收敛记录"] = pd.DataFrame(
+            history_rows
+            or [{
+                "step": "—",
+                "loadFactor": "—",
+                "iteration": "—",
+                "deltaRatio": "—",
+                "maxDelta": "—",
+                "displacementIncrementNorm": "—",
+                "relativeDisplacementIncrement": "—",
+                "equilibriumResidual": "—",
+                "maxDisplacementMm": "—",
+                "equilibriumRmsRelativeError": "—",
+            }]
+        )
+
+    mode_summary_rows: List[Dict[str, Any]] = []
+    node_mode_rows: List[Dict[str, Any]] = []
+    member_shape_rows: List[Dict[str, Any]] = []
+    for mode in buckling.get("modes", []) if isinstance(buckling.get("modes"), list) else []:
+        if not isinstance(mode, Mapping):
+            continue
+        mode_number = mode.get("modeNumber", "—")
+        mode_summary_rows.append(
+            {
+                "modeNumber": mode_number,
+                "criticalLoadFactor": mode.get("criticalLoadFactor", "—"),
+                "eigenResidualNorm": mode.get("eigenResidualNorm", mode.get("residualNorm", "—")),
+                "constraintResidualNorm": mode.get("constraintResidualNorm", mode.get("constraintResidual", "—")),
+                "nodeCount": len(mode.get("nodeDisplacements", []) or []),
+                "memberShapeCount": len(mode.get("memberModeShapes", []) or []),
+            }
+        )
+        if template == "complete":
+            for node in mode.get("nodeDisplacements", []) if isinstance(mode.get("nodeDisplacements"), list) else []:
+                if not isinstance(node, Mapping):
+                    continue
+                node_mode_rows.append(
+                    {
+                        "modeNumber": mode_number,
+                        "nodeId": node.get("nodeId", "—"),
+                        "ux": node.get("ux", node.get("uxMm", "—")),
+                        "uy": node.get("uy", node.get("uyMm", "—")),
+                        "rz": node.get("rz", node.get("rotationDeg", "—")),
+                    }
+                )
+            for shape in mode.get("memberModeShapes", []) if isinstance(mode.get("memberModeShapes"), list) else []:
+                if not isinstance(shape, Mapping):
+                    continue
+                stations_m = list(shape.get("stationsM", [])) if isinstance(shape.get("stationsM"), list) else []
+                ratios = list(shape.get("ratios", [])) if isinstance(shape.get("ratios"), list) else []
+                ux_values = list(shape.get("ux", [])) if isinstance(shape.get("ux"), list) else []
+                uy_values = list(shape.get("uy", [])) if isinstance(shape.get("uy"), list) else []
+                rz_values = list(shape.get("rz", [])) if isinstance(shape.get("rz"), list) else []
+                station_count = max(len(stations_m), len(ratios), len(ux_values), len(uy_values), len(rz_values), 1)
+                for index in range(station_count):
+                    member_shape_rows.append(
+                        {
+                            "modeNumber": mode_number,
+                            "memberId": shape.get("memberId", "—"),
+                            "stationIndex": index + 1,
+                            "stationM": _list_value_at(stations_m, index, "—"),
+                            "ratio": _list_value_at(ratios, index, "—"),
+                            "ux": _list_value_at(ux_values, index, "—"),
+                            "uy": _list_value_at(uy_values, index, "—"),
+                            "rz": _list_value_at(rz_values, index, "—"),
+                        }
+                    )
+    mode_summary_frame = pd.DataFrame(mode_summary_rows or [{"modeNumber": "—", "criticalLoadFactor": "—", "eigenResidualNorm": "—", "constraintResidualNorm": "—", "nodeCount": "—", "memberShapeCount": "—"}])
+    if template == "standard":
+        mode_summary_frame = mode_summary_frame.head(1).reset_index(drop=True)
+    tables["屈曲模态摘要"] = mode_summary_frame
+    if template == "complete":
+        tables["屈曲节点模态向量"] = pd.DataFrame(node_mode_rows or [{"modeNumber": "—", "nodeId": "—", "ux": "—", "uy": "—", "rz": "—"}])
+        tables["屈曲构件模态形状"] = pd.DataFrame(member_shape_rows or [{"modeNumber": "—", "memberId": "—", "stationIndex": "—", "stationM": "—", "ratio": "—", "ux": "—", "uy": "—", "rz": "—"}])
+    return tables
+
+
+def _report_template(report_options: Mapping[str, Any] | None) -> str:
+    template = str((report_options or {}).get("template") or "complete").strip().lower()
+    return template if template in {"standard", "complete"} else "complete"
+
+
+def _list_value_at(values: List[Any], index: int, default: Any = "—") -> Any:
+    if 0 <= index < len(values):
+        value = values[index]
+        return value if value is not None else default
+    return default
+
+
+def _source_summary_text(source: Any) -> str:
+    if not isinstance(source, Mapping):
+        return "—"
+    source_type = str(source.get("source") or "primary")
+    source_id = str(source.get("id") or "__primary__")
+    title = str(source.get("title") or source.get("label") or source_id)
+    if source_type == "primary":
+        return f"主结果 / {title}"
+    source_label = {"case": "工况", "combination": "组合"}.get(source_type, source_type)
+    return f"{source_label} {title} [{source_id}]"
+
+
+def _source_note_text(source: Any) -> str:
+    if not isinstance(source, Mapping):
+        return "—"
+    source_type = str(source.get("source") or "primary")
+    if source_type == "primary":
+        return "主结果来源"
+    return "引用工况/组合"
 
 
 def _truss_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str, pd.DataFrame]:

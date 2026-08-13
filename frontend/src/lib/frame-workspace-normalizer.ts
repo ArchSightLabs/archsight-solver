@@ -1,4 +1,5 @@
 import type {
+  FrameAnalysisOptions,
   FrameLoad,
   FrameLoadCase,
   FrameLoadCombination,
@@ -306,6 +307,44 @@ function normalizeCombinationTags(rawTags: unknown): string[] {
   return tags;
 }
 
+function normalizeFrameAnalysisOptions(rawOptions: unknown, fallback: FrameAnalysisOptions): FrameAnalysisOptions {
+  const candidate: Partial<FrameAnalysisOptions> & {
+    pDeltaOptions?: Partial<FrameAnalysisOptions["pDeltaOptions"]>;
+    bucklingOptions?: Partial<FrameAnalysisOptions["bucklingOptions"]>;
+  } = rawOptions && typeof rawOptions === "object"
+    ? (rawOptions as Partial<FrameAnalysisOptions> & {
+        pDeltaOptions?: Partial<FrameAnalysisOptions["pDeltaOptions"]>;
+        bucklingOptions?: Partial<FrameAnalysisOptions["bucklingOptions"]>;
+      })
+    : {};
+  const pDeltaOptions: Partial<FrameAnalysisOptions["pDeltaOptions"]> = candidate.pDeltaOptions ?? {};
+  const bucklingOptions: Partial<FrameAnalysisOptions["bucklingOptions"]> = candidate.bucklingOptions ?? {};
+  return {
+    pDelta: candidate.pDelta ?? fallback.pDelta,
+    buckling: candidate.buckling ?? fallback.buckling,
+    pDeltaOptions: {
+      loadSteps:
+        Number.isFinite(pDeltaOptions.loadSteps) && Number(pDeltaOptions.loadSteps) > 0
+          ? Math.max(1, Math.min(20, Math.round(Number(pDeltaOptions.loadSteps))))
+          : fallback.pDeltaOptions.loadSteps,
+      maxIterations:
+        Number.isFinite(pDeltaOptions.maxIterations) && Number(pDeltaOptions.maxIterations) > 0
+          ? Math.max(1, Math.min(80, Math.round(Number(pDeltaOptions.maxIterations))))
+          : fallback.pDeltaOptions.maxIterations,
+      tolerance:
+        Number.isFinite(pDeltaOptions.tolerance) && Number(pDeltaOptions.tolerance) > 0
+          ? Math.min(1e-3, Math.max(1e-10, Number(pDeltaOptions.tolerance)))
+          : fallback.pDeltaOptions.tolerance,
+    },
+    bucklingOptions: {
+      modeCount:
+        Number.isFinite(bucklingOptions.modeCount) && Number(bucklingOptions.modeCount) > 0
+          ? Math.max(1, Math.min(8, Math.round(Number(bucklingOptions.modeCount))))
+          : fallback.bucklingOptions.modeCount,
+    },
+  };
+}
+
 export function normalizeFrameWorkspaceState(value: Partial<FrameWorkspaceState> | null | undefined): FrameWorkspaceState {
   const base = createDefaultFrameWorkspaceState();
   const collections = createPortalFrameCollections({
@@ -335,6 +374,7 @@ export function normalizeFrameWorkspaceState(value: Partial<FrameWorkspaceState>
   return {
     ...base,
     ...value,
+    analysisOptions: normalizeFrameAnalysisOptions(value?.analysisOptions, base.analysisOptions),
     frameMode: value?.frameMode === "custom" ? "custom" : DEFAULT_FRAME_MODE,
     span: Number.isFinite(value?.span) && (value?.span ?? 0) > 0 ? Number(value!.span) : base.span,
     height: Number.isFinite(value?.height) && (value?.height ?? 0) > 0 ? Number(value!.height) : base.height,

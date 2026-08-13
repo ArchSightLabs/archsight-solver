@@ -9,11 +9,17 @@ from backend.common.material_catalog import material_report_rows
 from backend.common.result_metric_catalog import result_metric_label
 from backend.common.support_catalog import support_label
 from backend.exporters.common.artifact import ExportArtifact
-from backend.exporters.common.evidence import build_evidence_tables, build_report_review_table
+from backend.exporters.common.evidence import (
+    FRAME_STABILITY_FULL_TABLES,
+    FRAME_STABILITY_STANDARD_TABLES,
+    build_evidence_tables,
+    build_report_review_table,
+)
 from backend.exporters.common.filenames import export_filename
 from backend.exporters.common.load_tables import build_load_combination_rows
 from backend.exporters.common.member_materials import member_elasticity_summary
 from backend.exporters.common.result_source import result_source_rows
+from backend.exporters.common.report_options import normalize_report_options
 from backend.exporters.common.xlsx_utils import HAS_OPENPYXL, apply_standard_worksheet_style, write_sectioned_sheet
 
 
@@ -152,8 +158,9 @@ def export_xlsx(solution: Dict[str, Any], material_name: str, report_options: Di
     if not HAS_OPENPYXL:
         raise RuntimeError("服务器缺少 openpyxl 库，请联系系统管理员")
 
+    options = normalize_report_options(report_options)
     df_summary, df_params, df_nodes, df_members, df_member_diagrams, df_conventions = build_summary_tables(solution, material_name)
-    evidence_tables = build_evidence_tables(solution, "frame", material_name)
+    evidence_tables = build_evidence_tables(solution, "frame", material_name, options)
     df_loads = pd.DataFrame(solution["structure"].get("loads", []))
     df_model_nodes = pd.DataFrame(solution["structure"].get("nodes", []))
     df_model_members = pd.DataFrame(solution["structure"].get("members", []))
@@ -166,8 +173,22 @@ def export_xlsx(solution: Dict[str, Any], material_name: str, report_options: Di
     df_load_combinations = pd.DataFrame(build_load_combination_rows(solution))
     df_stability = pd.DataFrame(
         [
-            {"类别": "二阶效应/P-Delta", **solution.get("secondOrder", {})},
-            {"类别": "屈曲初步分析", **solution.get("buckling", {})},
+            {
+                "类别": "二阶效应/P-Delta",
+                "状态": solution.get("secondOrder", {}).get("status", "disabled"),
+                "方法": solution.get("secondOrder", {}).get("method", "—"),
+                "放大系数": solution.get("secondOrder", {}).get("amplificationFactor", "—"),
+                "收敛": solution.get("secondOrder", {}).get("converged", False),
+                "失败原因": solution.get("secondOrder", {}).get("failureReason", "—") or "—",
+            },
+            {
+                "类别": "屈曲分析",
+                "状态": solution.get("buckling", {}).get("status", "disabled"),
+                "方法": solution.get("buckling", {}).get("method", "—"),
+                "临界系数": solution.get("buckling", {}).get("criticalLoadFactor", "—"),
+                "模态数": solution.get("buckling", {}).get("modeCount", 0),
+                "失败原因": solution.get("buckling", {}).get("failureReason", "—") or "—",
+            },
         ]
     )
     df_detail = pd.concat(
@@ -198,7 +219,7 @@ def export_xlsx(solution: Dict[str, Any], material_name: str, report_options: Di
                 ("项目结论", df_summary),
                 ("审阅状态与签发边界", build_report_review_table(solution, "frame", report_options)),
                 ("关键控制项", evidence_tables["关键控制项"]),
-                ("稳定初筛", df_stability),
+                ("稳定审查摘要", df_stability),
             ],
         )
         write_sectioned_sheet(
@@ -221,6 +242,7 @@ def export_xlsx(solution: Dict[str, Any], material_name: str, report_options: Di
                 ("模型假定与适用范围", evidence_tables["模型假定与适用范围"]),
                 ("计算方法说明", evidence_tables["计算方法说明"]),
                 ("校核证据", evidence_tables["校核证据"]),
+                *_frame_stability_sheet_items(evidence_tables, options["template"]),
                 ("符号约定", df_conventions),
             ],
         )
@@ -252,3 +274,15 @@ def export_xlsx(solution: Dict[str, Any], material_name: str, report_options: Di
         filename=export_filename(solution["projectName"], "frame", "xlsx"),
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
+
+
+def _frame_stability_sheet_items(evidence_tables: Dict[str, pd.DataFrame], template: str):
+    yield ("稳定审查摘要", evidence_tables["稳定审查摘要"])
+    if template == "standard":
+        for table_name in FRAME_STABILITY_STANDARD_TABLES[1:]:
+            if table_name in evidence_tables:
+                yield (table_name, evidence_tables[table_name])
+        return
+    for table_name in FRAME_STABILITY_FULL_TABLES[1:]:
+        if table_name in evidence_tables:
+            yield (table_name, evidence_tables[table_name])

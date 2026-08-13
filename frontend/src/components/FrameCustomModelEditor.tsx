@@ -45,6 +45,7 @@ import type {
   FrameLoad,
   FrameLoadCase,
   FrameLoadCombination,
+  FrameWorkspaceState,
   StructureMember,
   StructureNode,
 } from "../types/structure.ts";
@@ -56,9 +57,11 @@ interface FrameCustomModelEditorProps {
   value: FrameCollections;
   materialId: string;
   materialLibrary: Material[];
+  analysisOptions: FrameWorkspaceState["analysisOptions"];
   onChange: (next: FrameCollections) => void;
   onRunGeneratedModel?: (next: FrameCollections) => void;
   onMaterialChange: (nextMaterialId: string) => void;
+  onAnalysisOptionsChange: (nextAnalysisOptions: FrameWorkspaceState["analysisOptions"]) => void;
   activeSectionId?: string;
   selection?: FrameWorkbenchSelection | null;
   onSelectionChange?: (next: FrameWorkbenchSelection, options?: WorkbenchSelectionOptions) => void;
@@ -71,9 +74,11 @@ export function FrameCustomModelEditor({
   value,
   materialId,
   materialLibrary,
+  analysisOptions,
   onChange,
   onRunGeneratedModel,
   onMaterialChange,
+  onAnalysisOptionsChange,
   activeSectionId,
   selection,
   onSelectionChange,
@@ -517,7 +522,8 @@ export function FrameCustomModelEditor({
           />
         ),
         basic: (
-          <FrameBasicSection compact={compact}
+          <FrameBasicSection
+            compact={compact}
             materialId={materialId}
             materialLibrary={materialLibrary}
             memberElasticitySummary={memberElasticitySummary}
@@ -527,6 +533,8 @@ export function FrameCustomModelEditor({
             loadCount={value.loads.length}
             modelWarnings={modelWarnings}
             onMaterialChange={onMaterialChange}
+            analysisOptions={analysisOptions}
+            onAnalysisOptionsChange={onAnalysisOptionsChange}
           />
         ),
         object: (

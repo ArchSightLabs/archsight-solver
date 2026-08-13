@@ -130,3 +130,57 @@ def test_verification_package_replays_all_supported_two_dimensional_systems(payl
     assert package["analysis"]["analysisType"] in {"frame", "truss"}
     assert report["status"] == "pass"
     assert report["replayMatched"] is True
+
+
+def test_verification_package_replays_frame_stability_evidence_from_the_same_result_source():
+    payload = {
+        "analysisType": "frame",
+        "projectName": "Verification Frame Stability",
+        "materialId": "q345",
+        "analysisOptions": {
+            "pDelta": True,
+            "buckling": True,
+            "pDeltaOptions": {"loadSteps": 4, "maxIterations": 12, "tolerance": 1e-8},
+            "bucklingOptions": {"modeCount": 2},
+        },
+        "structure": {
+            "template": "explicit",
+            "nodes": [
+                {"id": "N1", "x": 0.0, "y": 0.0, "supportType": "fixed"},
+                {"id": "N2", "x": 0.0, "y": 4.0, "supportType": "free"},
+            ],
+            "members": [
+                {
+                    "id": "C1",
+                    "start": "N1",
+                    "end": "N2",
+                    "E_GPa": 210.0,
+                    "A_cm2": 220.0,
+                    "I_cm4": 1500.0,
+                    "kind": "column",
+                }
+            ],
+            "loads": [
+                {"type": "nodal", "node": "N2", "fxKn": 8.0, "fyKn": -80.0, "mzKnM": 0.0},
+            ],
+        },
+    }
+
+    package = create_verification_package(
+        payload,
+        solver_version="1.7.0",
+        created_at="2026-08-13T00:00:00+00:00",
+    )
+    recorded = package["analysis"]["recordedResult"]["solution"]
+
+    assert recorded["secondOrder"]["status"] == "converged"
+    assert recorded["buckling"]["status"] == "converged"
+    assert recorded["secondOrder"]["referenceSource"]["id"] == "__primary__"
+    assert recorded["buckling"]["referenceSource"]["id"] == "__primary__"
+    assert recorded["buckling"]["modes"][0]["eigenResidualNorm"] <= 1e-8
+
+    report = verify_verification_package(package, current_solver_version="1.7.0")
+
+    assert report["status"] == "pass"
+    assert report["integrityValid"] is True
+    assert report["replayMatched"] is True

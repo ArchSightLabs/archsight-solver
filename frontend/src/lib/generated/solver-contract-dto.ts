@@ -45,6 +45,18 @@ export type SolverJobRequestDto = {
     schemaVersion?: "2026-05-30";
     projectName?: string;
     materialId?: string;
+    analysisOptions?: {
+      pDelta?: boolean;
+      buckling?: boolean;
+      pDeltaOptions?: {
+        loadSteps?: number;
+        maxIterations?: number;
+        tolerance?: number;
+      };
+      bucklingOptions?: {
+        modeCount?: number;
+      };
+    };
     structure : {
       template?: string;
       nodes : Array<{

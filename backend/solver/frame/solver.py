@@ -10,9 +10,15 @@ from backend.common.support_catalog import support_dof_indexes
 from backend.solver.linear_system import solve_free_dofs
 
 
-def solve_frame_system(structure: Dict[str, Any], assembly: Dict[str, Any]) -> Dict[str, Any]:
-    stiffness = assembly["stiffness"]
-    load_vector = assembly["load_vector"]
+def solve_frame_system(
+    structure: Dict[str, Any],
+    assembly: Dict[str, Any],
+    *,
+    stiffness_override=None,
+    load_vector_override=None,
+) -> Dict[str, Any]:
+    stiffness = stiffness_override if stiffness_override is not None else assembly["stiffness"]
+    load_vector = load_vector_override if load_vector_override is not None else assembly["load_vector"]
     nodes = structure["nodes"]
     ndof = len(nodes) * 3
 
@@ -68,6 +74,7 @@ def solve_frame_system(structure: Dict[str, Any], assembly: Dict[str, Any]) -> D
         for dof, value in direct_constraint_values.items():
             prescribed_displacements[dof] = value
         if not free_dofs:
+            free_basis = np.zeros((ndof, 0), dtype=float)
             reactions = np.asarray(stiffness @ prescribed_displacements - load_vector, dtype=float).reshape(ndof)
             diagnostics = {
                 "equilibriumRmsRelativeError": 0.0,
@@ -85,6 +92,7 @@ def solve_frame_system(structure: Dict[str, Any], assembly: Dict[str, Any]) -> D
                 "constrained_dofs": constrained_dofs,
                 "free_dofs": free_dofs,
                 "constraint_matrix": constraint_matrix,
+                "free_basis": free_basis,
                 "displacements": prescribed_displacements,
                 "reactions": reactions,
                 "diagnostics": diagnostics,
@@ -99,6 +107,7 @@ def solve_frame_system(structure: Dict[str, Any], assembly: Dict[str, Any]) -> D
         )
         displacements = solved["displacements"]
         reactions = solved["reactions"]
+        free_basis = np.eye(ndof, dtype=float)[:, free_dofs]
         residual = (stiffness @ displacements - load_vector)[free_dofs]
         load_norm = max(float(np.linalg.norm(load_vector[free_dofs])), 1.0)
         diagnostics = {
@@ -113,6 +122,7 @@ def solve_frame_system(structure: Dict[str, Any], assembly: Dict[str, Any]) -> D
             "constrained_dofs": constrained_dofs,
             "free_dofs": free_dofs,
             "constraint_matrix": constraint_matrix,
+            "free_basis": free_basis,
             "displacements": displacements,
             "reactions": reactions,
             "diagnostics": diagnostics,
@@ -151,6 +161,7 @@ def solve_frame_system(structure: Dict[str, Any], assembly: Dict[str, Any]) -> D
         "constrained_dofs": constrained_dofs,
         "free_dofs": free_dofs,
         "constraint_matrix": constraint_matrix,
+        "free_basis": free_basis,
         "displacements": displacements,
         "reactions": reactions,
         "diagnostics": diagnostics,

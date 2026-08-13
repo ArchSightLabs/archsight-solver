@@ -224,3 +224,90 @@ def test_report_review_table_records_result_object_revision_and_model_signatures
     assert any(row[0] == "工程修订" and "计算时 12" in row[1] and "导出时 14" in row[1] for row in rows)
     assert any(row[0] == "模型签名" and "fnv1a64:1234567890abcdef" in row[1] and "backend-model-hash" in row[1] for row in rows)
     assert any(row[0] == "请求签名" and "backend-request-hash" in row[1] for row in rows)
+
+
+def test_frame_export_templates_split_stability_summary_and_detail():
+    payload = {
+        "analysisType": "frame",
+        "projectName": "稳定审查模板回归",
+        "materialId": "q345",
+        "structure": {
+            "template": "explicit",
+            "nodes": [
+                {"id": "N1", "x": 0.0, "y": 0.0, "supportType": "fixed"},
+                {"id": "N2", "x": 0.0, "y": 5.0, "supportType": "free"},
+            ],
+            "members": [
+                {"id": "C1", "start": "N1", "end": "N2", "E_GPa": 210.0, "A_cm2": 220.0, "I_cm4": 1200.0, "kind": "column"},
+            ],
+            "loads": [],
+            "loadCases": [
+                {
+                    "id": "DL",
+                    "title": "恒载",
+                    "loads": [{"type": "nodal", "node": "N2", "fxKn": 0.0, "fyKn": -40.0, "mzKnM": 0.0}],
+                },
+                {
+                    "id": "WL",
+                    "title": "风载",
+                    "loads": [{"type": "nodal", "node": "N2", "fxKn": 8.0, "fyKn": 0.0, "mzKnM": 0.0}],
+                },
+            ],
+            "loadCombinations": [
+                {"id": "ULS1", "title": "基本组合", "factors": {"DL": 1.2, "WL": 1.5}},
+            ],
+        },
+        "analysisOptions": {"pDelta": True, "buckling": True, "pDeltaOptions": {"loadSteps": 4, "maxIterations": 10, "tolerance": 1e-8}},
+    }
+
+    standard_report = build_report_model(
+        payload,
+        analysis_type="frame",
+        material_name="测试材料",
+        sensitivity_results=None,
+        report_images=None,
+        report_options={"template": "standard", "figureMode": "overlay", "figureScope": "all", "reviewStatus": "draft"},
+    )
+    complete_report = build_report_model(
+        payload,
+        analysis_type="frame",
+        material_name="测试材料",
+        sensitivity_results=None,
+        report_images=None,
+        report_options={"template": "complete", "figureMode": "both", "figureScope": "all", "reviewStatus": "draft"},
+    )
+
+    standard_docx = Document(export_report(standard_report, "docx").buffer)
+    standard_text = "\n".join(
+        [paragraph.text for paragraph in standard_docx.paragraphs]
+        + [cell.text for table in standard_docx.tables for row in table.rows for cell in row.cells]
+    )
+    assert "稳定审查摘要" in standard_text
+    assert "首模态概览" in standard_text
+    assert "P-Delta 收敛记录" not in standard_text
+    assert "屈曲节点模态向量" not in standard_text
+    assert "屈曲构件模态形状" not in standard_text
+
+    complete_docx = Document(export_report(complete_report, "docx").buffer)
+    complete_text = "\n".join(
+        [paragraph.text for paragraph in complete_docx.paragraphs]
+        + [cell.text for table in complete_docx.tables for row in table.rows for cell in row.cells]
+    )
+    assert "稳定审查摘要" in complete_text
+    assert "稳定审查过程" in complete_text
+    assert "P-Delta 收敛记录" in complete_text
+    assert "屈曲节点模态向量" in complete_text
+    assert "屈曲构件模态形状" in complete_text
+
+    standard_xlsx = pd.read_excel(export_report(standard_report, "xlsx").buffer, sheet_name=None, header=None)
+    standard_xlsx_text = "\n".join(frame.astype(str).to_string() for frame in standard_xlsx.values())
+    assert "稳定审查摘要" in standard_xlsx_text
+    assert "P-Delta 收敛记录" not in standard_xlsx_text
+    assert "屈曲节点模态向量" not in standard_xlsx_text
+
+    complete_xlsx = pd.read_excel(export_report(complete_report, "xlsx").buffer, sheet_name=None, header=None)
+    complete_xlsx_text = "\n".join(frame.astype(str).to_string() for frame in complete_xlsx.values())
+    assert "稳定审查摘要" in complete_xlsx_text
+    assert "P-Delta 收敛记录" in complete_xlsx_text
+    assert "屈曲节点模态向量" in complete_xlsx_text
+    assert "屈曲构件模态形状" in complete_xlsx_text

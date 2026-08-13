@@ -28,6 +28,8 @@ export type UnifiedAnalysisEnvelope = {
     nodeIds?: string[];
     memberIds?: string[];
     series?: Record<string, unknown>;
+    secondOrder?: unknown;
+    buckling?: unknown;
   };
   diagnostics?: unknown;
   meta?: {
@@ -37,6 +39,8 @@ export type UnifiedAnalysisEnvelope = {
     compat?: { legacyFields?: string[] };
     jobId?: string;
   };
+  secondOrder?: unknown;
+  buckling?: unknown;
 } & Record<string, unknown>;
 
 export type EnvelopeBackedAnalysisResults = LegacyAnalysisResults & {
@@ -75,6 +79,7 @@ export function normalizeAnalysisResponse(raw: unknown): EnvelopeBackedAnalysisR
 
   const analysisType = raw.analysisType ?? raw.model?.analysisType ?? "beam";
   const summary = raw.results?.summary ?? raw.summary;
+  const summaryRecord = summary && typeof summary === "object" ? (summary as Record<string, unknown>) : undefined;
   const preview = raw.results?.preview ?? raw.preview;
   const diagram = raw.results?.diagram ?? raw.diagram;
   const nodeResults = (raw.results?.nodeResults ?? raw.nodeResults ?? []) as unknown[];
@@ -102,6 +107,8 @@ export function normalizeAnalysisResponse(raw: unknown): EnvelopeBackedAnalysisR
       memberDiagrams: memberDiagrams as FrameCalculationResults["memberDiagrams"],
       loadCaseResults: loadCaseResults as FrameCalculationResults["loadCaseResults"],
       loadCombinationResults: loadCombinationResults as FrameCalculationResults["loadCombinationResults"],
+      secondOrder: (raw.results?.secondOrder ?? raw.secondOrder ?? summaryRecord?.secondOrder) as FrameCalculationResults["secondOrder"],
+      buckling: (raw.results?.buckling ?? raw.buckling) as FrameCalculationResults["buckling"],
       nodeIds,
       memberIds,
       ux_data: ((series.ux_data ?? raw.ux_data ?? []) as number[]),
@@ -216,6 +223,8 @@ export function frameResultForView(result: LegacyAnalysisResults | null): FrameC
     memberDiagrams: (envelopeResults?.memberDiagrams ?? legacy.memberDiagrams ?? []) as FrameCalculationResults["memberDiagrams"],
     loadCaseResults: (envelopeResults?.loadCaseResults ?? legacy.loadCaseResults) as FrameCalculationResults["loadCaseResults"],
     loadCombinationResults: (envelopeResults?.loadCombinationResults ?? legacy.loadCombinationResults) as FrameCalculationResults["loadCombinationResults"],
+    secondOrder: (envelopeResults?.secondOrder ?? envelope?.secondOrder ?? legacy.secondOrder) as FrameCalculationResults["secondOrder"],
+    buckling: (envelopeResults?.buckling ?? envelope?.buckling ?? legacy.buckling) as FrameCalculationResults["buckling"],
     nodeIds: (envelopeResults?.nodeIds ?? legacy.nodeIds ?? []) as string[],
     memberIds: (envelopeResults?.memberIds ?? legacy.memberIds ?? []) as string[],
     ux_data: (series.ux_data ?? legacy.ux_data ?? []) as number[],

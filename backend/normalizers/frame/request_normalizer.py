@@ -29,6 +29,83 @@ def parse_support_type(value: Any, default: str = "free") -> str:
     return parse_structural_support_type(value, SUPPORT_LABELS, default)
 
 
+def _coerce_bool(value: Any, default: bool = False) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return default
+    if isinstance(value, (int, float)):
+        return bool(value)
+    text = str(value).strip().lower()
+    if text in {"1", "true", "yes", "y", "on", "enabled"}:
+        return True
+    if text in {"0", "false", "no", "n", "off", "disabled"}:
+        return False
+    return default
+
+
+def _coerce_int(value: Any, default: int, minimum: int, maximum: int) -> int:
+    try:
+        numeric = int(float(value))
+    except (TypeError, ValueError):
+        numeric = default
+    return max(minimum, min(maximum, numeric))
+
+
+def _coerce_float(value: Any, default: float, minimum: float, maximum: float) -> float:
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        numeric = default
+    if not numeric == numeric:  # NaN guard without importing math for a tiny helper.
+        numeric = default
+    return max(minimum, min(maximum, numeric))
+
+
+def normalize_frame_analysis_options(raw: Any) -> Dict[str, Any]:
+    options = raw if isinstance(raw, dict) else {}
+    nested = options.get("options") if isinstance(options.get("options"), dict) else {}
+    pdelta_options = options.get("pDeltaOptions") or options.get("p_delta_options") or nested.get("pDeltaOptions") or {}
+    buckling_options = options.get("bucklingOptions") or nested.get("bucklingOptions") or {}
+    if not isinstance(pdelta_options, dict):
+        pdelta_options = {}
+    if not isinstance(buckling_options, dict):
+        buckling_options = {}
+
+    return {
+        "pDelta": _coerce_bool(options.get("pDelta", options.get("p_delta", nested.get("pDelta", nested.get("p_delta", False))))),
+        "buckling": _coerce_bool(options.get("buckling", nested.get("buckling", False))),
+        "pDeltaOptions": {
+            "loadSteps": _coerce_int(
+                pdelta_options.get("loadSteps", options.get("loadSteps", nested.get("loadSteps", 4))),
+                4,
+                1,
+                20,
+            ),
+            "maxIterations": _coerce_int(
+                pdelta_options.get("maxIterations", options.get("maxIterations", nested.get("maxIterations", 12))),
+                12,
+                1,
+                50,
+            ),
+            "tolerance": _coerce_float(
+                pdelta_options.get("tolerance", options.get("tolerance", nested.get("tolerance", 1e-6))),
+                1e-6,
+                1e-10,
+                1e-3,
+            ),
+        },
+        "bucklingOptions": {
+            "modeCount": _coerce_int(
+                buckling_options.get("modeCount", options.get("modeCount", nested.get("modeCount", 3))),
+                3,
+                1,
+                12,
+            ),
+        },
+    }
+
+
 def normalize_frame_request(data: Dict[str, Any]) -> Dict[str, Any]:
     structure_source = data.get("structure") or data.get("frame") or {}
     if not isinstance(structure_source, dict):
@@ -36,9 +113,7 @@ def normalize_frame_request(data: Dict[str, Any]) -> Dict[str, Any]:
 
     project_name = str(data.get("projectName") or structure_source.get("projectName") or DEFAULT_PROJECT_NAME)
     material_id = str(data.get("materialId") or structure_source.get("materialId") or "custom")
-    analysis_options = data.get("analysisOptions") or structure_source.get("analysisOptions") or {}
-    if not isinstance(analysis_options, dict):
-        analysis_options = {}
+    analysis_options = normalize_frame_analysis_options(data.get("analysisOptions") or structure_source.get("analysisOptions") or {})
 
     if structure_source.get("nodes") and structure_source.get("members"):
         max_nodes = get_max_frame_nodes()
