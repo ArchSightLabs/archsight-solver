@@ -121,12 +121,14 @@ archsight-solver-tool verification_package_verify --input verify-request.json --
       <pre><code class="language-bash">archsight-solver-mcp</code></pre>
       <p>The installed distribution includes runtime schemas, benchmark data, templates, materials, supports, sections, and MCP documentation. It does not depend on a repository checkout or current working directory.</p>
       <h2 id="3.-run-the-complete-web-api-image">3. Run the complete Web/API image</h2>
-      <pre><code class="language-bash">docker run --rm -p 127.0.0.1:6240:6240 ghcr.io/archsightlabs/archsight-solver:v1.8.0</code></pre>
-      <p>Open <code>http://127.0.0.1:6240</code>. The single image serves the frontend and <code>/api</code>. Use an immutable <code>v1.8.0</code> tag or recorded digest for reproducible deployment; do not use <code>latest</code> as release evidence.</p>
-      <p>If GHCR is unavailable, download <code>archsight-solver-v1.8.0.tar.gz</code> from the GitHub Release and load it:</p>
-      <pre><code class="language-bash">docker load --input archsight-solver-v1.8.0.tar.gz
+      <p>Download <code>archsight-solver-v1.8.0.tar.gz</code> and <code>SHA256SUMS</code> from the GitHub Release, verify the archive, and load it:</p>
+      <pre><code class="language-bash">sha256sum --check SHA256SUMS --ignore-missing
+docker load --input archsight-solver-v1.8.0.tar.gz
 docker run --rm -p 127.0.0.1:6240:6240 archsight-solver:release</code></pre>
-      <p>Verify downloaded assets against <code>SHA256SUMS</code> from the same Release before use.</p>
+      <p>Open <code>http://127.0.0.1:6240</code>. The single image serves the frontend and <code>/api</code>. The public Release archive is the direct container distribution path. Callers with GitHub Packages access may instead authenticate and use the immutable workflow image:</p>
+      <pre><code class="language-bash">docker login ghcr.io
+docker run --rm -p 127.0.0.1:6240:6240 ghcr.io/archsightlabs/archsight-solver:v1.8.0</code></pre>
+      <p>Do not use <code>latest</code> as release evidence. Official production deployment uses its independently managed Alibaba Cloud Container Registry target rather than GHCR.</p>
       <h2 id="4.-install-the-framework-free-host-client">4. Install the framework-free Host Client</h2>
       <p>Download <code>archsight-solver-host-client-1.8.0.tgz</code> from the GitHub Release:</p>
       <pre><code class="language-bash">npm install ./archsight-solver-host-client-1.8.0.tgz</code></pre>

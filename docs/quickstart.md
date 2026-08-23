@@ -73,7 +73,7 @@ python -c "import json; d=json.load(open('created.json',encoding='utf-8')); json
 archsight-solver-tool verification_package_verify --input verify-request.json --pretty
 ```
 
-成功输出应包含 `status: "pass"`、`integrityValid: true` 和 `replayMatched: true`。安装态 wheel 自带 CLI/MCP 所需的契约、Benchmark、模板、材料、支座、截面和文档资源，不依赖仓库 cwd。完整 Web/API 使用 GHCR 不可变版本镜像或同一 Release 的离线镜像归档。
+成功输出应包含 `status: "pass"`、`integrityValid: true` 和 `replayMatched: true`。安装态 wheel 自带 CLI/MCP 所需的契约、Benchmark、模板、材料、支座、截面和文档资源，不依赖仓库 cwd。完整 Web/API 的公开获取路径是同一 Release 的离线镜像归档；具有 GitHub Packages 权限时也可使用 GHCR 不可变版本镜像。
 
 ## 异步 API 与公开案例
 

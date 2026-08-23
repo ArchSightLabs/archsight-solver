@@ -119,7 +119,7 @@ python -m pip install .\archsight_solver-1.8.0-py3-none-any.whl</code></pre>
       <pre><code class="language-powershell">archsight-solver-tool verification_package_create --input create-request.json --pretty &gt; created.json
 python -c &quot;import json; d=json.load(open(&#39;created.json&#39;,encoding=&#39;utf-8&#39;)); json.dump({&#39;package&#39;:d[&#39;package&#39;]},open(&#39;verify-request.json&#39;,&#39;w&#39;,encoding=&#39;utf-8&#39;),ensure_ascii=False)&quot;
 archsight-solver-tool verification_package_verify --input verify-request.json --pretty</code></pre>
-      <p>成功输出应包含 <code>status: &quot;pass&quot;</code>、<code>integrityValid: true</code> 和 <code>replayMatched: true</code>。安装态 wheel 自带 CLI/MCP 所需的契约、Benchmark、模板、材料、支座、截面和文档资源，不依赖仓库 cwd。完整 Web/API 使用 GHCR 不可变版本镜像或同一 Release 的离线镜像归档。</p>
+      <p>成功输出应包含 <code>status: &quot;pass&quot;</code>、<code>integrityValid: true</code> 和 <code>replayMatched: true</code>。安装态 wheel 自带 CLI/MCP 所需的契约、Benchmark、模板、材料、支座、截面和文档资源，不依赖仓库 cwd。完整 Web/API 的公开获取路径是同一 Release 的离线镜像归档；具有 GitHub Packages 权限时也可使用 GHCR 不可变版本镜像。</p>
       <h2 id="异步-api-与公开案例">异步 API 与公开案例</h2>
       <p>提交异步计算作业：</p>
       <pre><code class="language-powershell">Invoke-RestMethod -Method Post -Uri &quot;http://127.0.0.1:6240/api/jobs&quot; -ContentType &quot;application/json&quot; -Body &#39;{&quot;operation&quot;:&quot;calculate&quot;,&quot;payload&quot;:{&quot;beamType&quot;:&quot;simply_supported&quot;,&quot;loadType&quot;:&quot;uniform&quot;,&quot;q&quot;:12,&quot;E&quot;:206,&quot;I&quot;:85000,&quot;spans&quot;:[6]}}&#39;</code></pre>

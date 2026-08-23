@@ -2,7 +2,7 @@
 
 本文说明 ArchSight Solver 的本地镜像构建、容器运行和 Docker Compose 入口。
 
-当前仓库稳定版本为 2026-08-23 发布的 v1.8.0。Tag 发布工作流生成 GitHub Release、不可变 GHCR 镜像和校验制品；推送到其他镜像仓库及更新线上服务器仍是独立操作。只有目标仓库中的 v1.8.0 不可变镜像实际存在并完成摘要核对后才能部署。
+当前仓库稳定版本为 2026-08-23 发布的 v1.8.0。Tag 发布工作流生成 GitHub Release、可能需要 GitHub Packages 授权的 GHCR 工作流镜像和公开校验制品；官方线上部署使用阿里云容器镜像服务，推送目标镜像及更新服务器仍是独立操作。只有阿里云目标仓库中的 v1.8.0 不可变镜像实际存在并完成摘要核对后才能部署。
 
 ## 单镜像模式
 
@@ -94,8 +94,8 @@ Compose 默认将容器内 `6240` 端口绑定到宿主机本地端口。如需�
 
 推送 `v1.8.0` 形式的 Git tag 后，GitHub Actions 发布工作流会复跑版本、后端、前端、Playwright 和 Docker 门禁，并生成以下可追踪制品：
 
-- `ghcr.io/<owner>/archsight-solver:v1.8.0` 不可变版本镜像。
-- Docker 镜像归档 `archsight-solver-v1.8.0.tar.gz`。
+- `ghcr.io/<owner>/archsight-solver:v1.8.0` 不可变工作流镜像；包可见性由 GitHub Packages 权限决定。
+- 公开 Docker 镜像归档 `archsight-solver-v1.8.0.tar.gz`，可从同一 GitHub Release 下载并离线加载。
 - SPDX JSON SBOM、Trivy 高危/严重漏洞扫描报告和 `SHA256SUMS`。
 - 从 `CHANGELOG.md` 当前版本段提取的 GitHub Release 说明。
 

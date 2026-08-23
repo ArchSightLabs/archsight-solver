@@ -138,7 +138,7 @@ python -c &quot;import json; d=json.load(open(&#39;created.json&#39;,encoding=&#
 archsight-solver-tool verification_package_verify --input verify-request.json --pretty</code></pre>
       <ol>
         <li>需要 Agent Host 时启动 <code>archsight-solver-mcp</code>，调用 <code>verification_package_create</code> / <code>verification_package_verify</code>。</li>
-        <li>需要 Web/API 时使用 GHCR 不可变 tag 或 Release 离线镜像；需要 iframe 宿主时安装同一 Release 的 Host Client tarball。</li>
+        <li>需要 Web/API 时优先使用 Release 公开离线镜像；具有 GitHub Packages 权限时也可使用 GHCR 不可变 tag。需要 iframe 宿主时安装同一 Release 的 Host Client tarball。</li>
       </ol>
       <p>成功证据：</p>
       <ul>

@@ -11,7 +11,7 @@ ArchSight Solver is an Apache-2.0, web-native structural mechanics workbench for
 - Beam systems: simply supported, continuous, and cantilever beams.
 - Two-dimensional plane trusses.
 - Two-dimensional plane frames.
-- Linear-elastic, small-displacement, deterministic static analysis only.
+- Linear-elastic, deterministic 2D static analysis: first-order by default, with optional geometric second-order P-Delta and linear eigenvalue buckling for frames.
 
 The workbench reports reactions, displacements, member forces, shear, bending moment, deflection, diagnostics, and result provenance as appropriate for each system. It also supports load cases and combinations, public benchmark projects, DOCX/XLSX reports, ASMS-JSON, REST, CLI, MCP, and Host Protocol 1.0.
 
@@ -67,7 +67,7 @@ The v1.8 GitHub Release includes:
 
 - Python wheel `archsight_solver-1.8.0-py3-none-any.whl` and source distribution for the CLI and MCP server.
 - `archsight-solver-host-client-1.8.0.tgz` with zero runtime dependencies.
-- Immutable `ghcr.io/archsightlabs/archsight-solver:v1.8.0` image and an offline Docker image archive.
+- A public offline Docker image archive, plus the immutable workflow image `ghcr.io/archsightlabs/archsight-solver:v1.8.0` for callers with GitHub Packages access.
 - SPDX SBOM, Trivy report, and `SHA256SUMS`.
 
 PyPI and npm registry publication are not required. The versioned assets attached to the GitHub Release are the direct distribution path.
@@ -77,7 +77,7 @@ PyPI and npm registry publication are not required. The versioned assets attache
 ArchSight Solver does not provide:
 
 - 3D frames or spatial structures.
-- Dynamic, buckling, nonlinear, or contact analysis.
+- Dynamic or response-spectrum analysis; material nonlinearity, plasticity, contact, post-buckling paths, or code stability design. Frame P-Delta is limited to geometric-stiffness iteration, and linear buckling is limited to a generalized eigenvalue analysis about a prestressed state.
 - Code-based member design, reinforcement design, construction safety approval, or engineering sign-off.
 - Accounts, organizations, subscriptions, cloud project storage, or a multi-tenant platform.
 - Digital signatures, certificates, third-party certification, or replacement of licensed engineering judgment.

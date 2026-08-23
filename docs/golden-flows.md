@@ -69,7 +69,7 @@ archsight-solver-tool verification_package_verify --input verify-request.json --
 ```
 
 4. 需要 Agent Host 时启动 `archsight-solver-mcp`，调用 `verification_package_create` / `verification_package_verify`。
-5. 需要 Web/API 时使用 GHCR 不可变 tag 或 Release 离线镜像；需要 iframe 宿主时安装同一 Release 的 Host Client tarball。
+5. 需要 Web/API 时优先使用 Release 公开离线镜像；具有 GitHub Packages 权限时也可使用 GHCR 不可变 tag。需要 iframe 宿主时安装同一 Release 的 Host Client tarball。
 
 成功证据：
 

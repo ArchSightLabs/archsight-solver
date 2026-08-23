@@ -62,20 +62,22 @@ The installed distribution includes runtime schemas, benchmark data, templates, 
 
 ## 3. Run the complete Web/API image
 
-```bash
-docker run --rm -p 127.0.0.1:6240:6240 ghcr.io/archsightlabs/archsight-solver:v1.8.0
-```
-
-Open `http://127.0.0.1:6240`. The single image serves the frontend and `/api`. Use an immutable `v1.8.0` tag or recorded digest for reproducible deployment; do not use `latest` as release evidence.
-
-If GHCR is unavailable, download `archsight-solver-v1.8.0.tar.gz` from the GitHub Release and load it:
+Download `archsight-solver-v1.8.0.tar.gz` and `SHA256SUMS` from the GitHub Release, verify the archive, and load it:
 
 ```bash
+sha256sum --check SHA256SUMS --ignore-missing
 docker load --input archsight-solver-v1.8.0.tar.gz
 docker run --rm -p 127.0.0.1:6240:6240 archsight-solver:release
 ```
 
-Verify downloaded assets against `SHA256SUMS` from the same Release before use.
+Open `http://127.0.0.1:6240`. The single image serves the frontend and `/api`. The public Release archive is the direct container distribution path. Callers with GitHub Packages access may instead authenticate and use the immutable workflow image:
+
+```bash
+docker login ghcr.io
+docker run --rm -p 127.0.0.1:6240:6240 ghcr.io/archsightlabs/archsight-solver:v1.8.0
+```
+
+Do not use `latest` as release evidence. Official production deployment uses its independently managed Alibaba Cloud Container Registry target rather than GHCR.
 
 ## 4. Install the framework-free Host Client
 
