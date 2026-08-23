@@ -1,19 +1,29 @@
-# v1.8.0 发布候选验收记录
+# v1.8.0 发布验收记录
 
-> 状态：正式发布候选。2026-08-23 的代码、数值、浏览器与制品前置门禁已通过，P0/P1 为 0；Tag、GitHub Release、GHCR 不可变镜像与回滚实测仍须由正式发布工作流生成并在发布后记录中确认。
+> 状态：GitHub Release 已发布，代码、数值、浏览器、正式制品与回滚门禁均已通过；当前唯一开放 P1 是 GHCR 包可见性仍为 Private，匿名拉取尚未闭环。线上部署继续保持独立决策。
 > 产品与架构依据：[v1.8.0 产品与架构计划](../v1.8.0-plan.md)
 
 本文下面的复选项保留为长期验收判据，不以逐项勾选替代可复核命令。当前状态以本节证据表为准。
 
-| 范围 | 2026-08-23 候选证据 | 状态 |
+| 范围 | 2026-08-23 发布证据 | 状态 |
 |---|---|---|
 | 版本、契约与发布脚本 | `check_versions.py --expected-version 1.8.0`、`check_release_gate.py`、契约生成/资源同步检查 | 通过 |
 | 后端回归 | 全量 `685 passed, 2 skipped`；66/66 公开 benchmark；独立刚度法 26/26；稳定分析专项 29/29 | 通过 |
 | 前端回归 | lint、440 个单测、生产构建；主包 gzip 约 114.22 kB | 通过 |
 | v1.8 工作台闭环 | Chromium 下计算过程、可访问性、稳定性关键点三组共 10/10 | 通过 |
 | 产品事件 | 假 tracker 精确覆盖 `workbench_ready → calculation_requested → calculation_completed → results_viewed → calculation_trace_viewed → report_export_requested → export_completed`，字段低敏感 | 通过 |
-| 独立审查 | aios-ceo / aios-arch 发布审计未发现 P0/P1 | 通过 |
-| 正式发布制品 | 三浏览器 DOCX、镜像扫描、SBOM、GHCR、Release 资产校验和与回滚启动 | 正式工作流待生成 |
+| 独立审查 | aios-ceo / aios-arch 发布前审计未发现 P0/P1；发布后实测新增 GHCR 公共可见性 P1 | 1 项开放 P1 |
+| 正式发布制品 | Release 工作流 `32615973081` 通过；7 项 Release 资产、SHA-256、SPDX SBOM、Trivy 0 个 HIGH/CRITICAL、v1.8 容器/Host 与 v1.7 回滚启动均已实测 | 通过 |
+| 公共镜像分发 | 工作流已推送 `ghcr.io/archsightlabs/archsight-solver:v1.8.0`，digest 为 `sha256:563eee375ef9241f37bafc985932844b8db13331675e102385028256816684e7`；未登录拉取仍返回 `unauthorized` | **P1：待改为 Public 后复验** |
+
+## 正式发布与回滚证据
+
+- Tag `v1.8.0` 固定提交 `97ec8fb5522d2ecd4a019ab77ebc7e59b21c19b5`；[GitHub Release](https://github.com/ArchSightLabs/archsight-solver/releases/tag/v1.8.0) 于 2026-08-23 发布，非 Draft、非 Prerelease。
+- [CI run 32615960533](https://github.com/ArchSightLabs/archsight-solver/actions/runs/32615960533) 与 [Release run 32615973081](https://github.com/ArchSightLabs/archsight-solver/actions/runs/32615973081) 均在同一提交通过。
+- Release 包含 wheel、sdist、Host Client、离线 Docker 镜像、SPDX SBOM、Trivy JSON 和 `SHA256SUMS` 共 7 项资产；六项被校验制品均已独立下载并逐项匹配 `SHA256SUMS`。
+- v1.8 离线镜像以非 root 用户 `app` 启动，健康状态为 `healthy`，根路径返回 HTTP 200，canonical Reference Host 用例通过。
+- v1.7.0 离线镜像归档 SHA-256 为 `fc7fdcc92d025c3dcd73744310e76c05e108a08f029eb89dbb8aa8c5af87ea0a`；回滚启动后健康状态为 `healthy`，根路径 HTTP 200，canonical Reference Host 用例通过。
+- GHCR 镜像已由正式工作流推送，但包级可见性尚未公开。该项完成前不得把“可匿名直接拉取 GHCR”写成已交付事实；Release 离线镜像仍是当前公开、可校验的容器获取路径。
 
 ## 发布定位
 
@@ -164,7 +174,7 @@ npm --prefix frontend run test:visual:export-docx
 git diff --check
 ```
 
-上述前置命令已经通过；正式发布仍必须等待 `.github/workflows/release.yml` 完成三浏览器、容器健康、Host 集成、安全扫描、SBOM、不可变镜像推送与 Release 资产创建，不能用本地通过替代远端制品证据。
+上述前置命令和 `.github/workflows/release.yml` 已经通过，正式 Release 资产、三浏览器、容器健康、Host 集成、安全扫描、SBOM 与不可变镜像推送均有远端证据。GHCR 包级可见性仍须改为 Public 并以未登录 `docker pull` 复验，不能用已登录推送成功替代公共分发证据。
 
 ## 发布后观察
 
