@@ -45,6 +45,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# 基础镜像固定 digest 保证可复现；显式升级 Debian 已发布安全修复的
+# util-linux 源包族，并由发布 Trivy 门验证不存在可修复的 HIGH/CRITICAL。
+RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources \
+    && apt-get -o Acquire::Retries=5 update \
+    && DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=5 install --yes --no-install-recommends --only-upgrade \
+      util-linux=2.41.5-0+deb13u1 \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN groupadd --system app \
     && useradd --system --gid app --create-home --home-dir /home/app app
 
