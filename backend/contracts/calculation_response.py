@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any, Dict, Mapping
 
+from backend.contracts.calculation_evidence import EVIDENCE_FIELDS
 from backend.contracts.response_envelope import attach_unified_envelope
 
 
@@ -176,6 +178,14 @@ def build_api_v1_response(result: Mapping[str, Any]) -> Dict[str, Any]:
     response["meta"]["generatedAt"] = result.get("generatedAt")
     response["meta"]["requestHash"] = result.get("requestHash")
     response["meta"]["modelHash"] = result.get("modelHash")
+    response["meta"]["resultHash"] = result.get("resultHash")
+    response["resultHash"] = result.get("resultHash")
+    response["results"]["resultHash"] = result.get("resultHash")
+    for field in EVIDENCE_FIELDS:
+        value = result.get(field, solution.get(field))
+        if value is not None:
+            response[field] = deepcopy(value)
+            response["results"][field] = deepcopy(value)
     return response
 
 

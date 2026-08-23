@@ -8,7 +8,7 @@ import pandas as pd
 from backend.common.result_metric_catalog import result_metric_label
 from backend.exporters.common.artifact import ExportArtifact
 from backend.exporters.common.docx_utils import HAS_DOCX, add_df_table, add_heading, add_png_figure, add_report_note, add_report_title, create_document, png_from_report_images
-from backend.exporters.common.evidence import build_evidence_tables, build_report_review_table
+from backend.exporters.common.evidence import build_evidence_tables, build_report_review_table, select_evidence_table_items
 from backend.exporters.common.filenames import export_filename
 from backend.exporters.common.load_tables import build_load_combination_rows
 from backend.exporters.common.report_figure_catalog import TRUSS_REPORT_OVERLAY_FIGURES, report_figures_for_scope
@@ -23,6 +23,24 @@ TRUSS_DATA_CURVE_FIGURES = (
     ("truss.curve.ux", "节点 X 向位移数据曲线", "mm"),
     ("truss.curve.uy", "节点 Y 向位移数据曲线", "mm"),
     ("truss.curve.axial", "杆件轴力数据曲线", "kN"),
+)
+
+
+TRUSS_STANDARD_EVIDENCE_TABLES = (
+    "工程输入摘要",
+    "模型假定与适用范围",
+    "单位换算表",
+    "边界条件表",
+    "计算方法说明",
+    "校核证据",
+    "关键点表",
+)
+
+TRUSS_COMPLETE_EVIDENCE_TABLES = (
+    "CalculationTrace",
+    "复核点表",
+    "包络来源",
+    "计算快照",
 )
 
 
@@ -52,7 +70,8 @@ def export_docx(
         add_heading(doc, "2.1 受力变形图")
         _add_preview_figure(doc, report_images)
     add_heading(doc, "2.2 可审查计算证据链")
-    _add_evidence_tables(doc, build_evidence_tables(solution, "truss", material_name))
+    evidence_tables = build_evidence_tables(solution, "truss", material_name, options)
+    _add_evidence_tables(doc, select_evidence_table_items(evidence_tables, TRUSS_STANDARD_EVIDENCE_TABLES))
     _add_load_combination_table(doc, solution, "2.3 荷载组合标签")
     add_heading(doc, "3. 节点结果")
     add_df_table(doc, df_nodes)
@@ -76,6 +95,9 @@ def export_docx(
     )
     add_heading(doc, "6. 符号与单位约定")
     add_df_table(doc, df_conventions)
+    if options.get("template") == "complete":
+        add_heading(doc, "7. 完整证据链")
+        _add_evidence_tables(doc, select_evidence_table_items(evidence_tables, TRUSS_COMPLETE_EVIDENCE_TABLES))
     if sensitivity_results:
         add_heading(doc, "6.1 参数敏感性分析")
         add_df_table(doc, _sensitivity_summary_table(sensitivity_results))

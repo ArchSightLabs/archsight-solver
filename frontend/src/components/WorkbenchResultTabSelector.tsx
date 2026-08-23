@@ -1,3 +1,4 @@
+import { useRef, type KeyboardEvent } from "react";
 import type { ResultTab } from "./workbench-result-model";
 
 interface WorkbenchResultTabSelectorProps {
@@ -13,17 +14,48 @@ export function WorkbenchResultTabSelector({
   compact,
   onSelectTab,
 }: WorkbenchResultTabSelectorProps) {
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const focusTab = (tabId: string) => {
+    onSelectTab(tabId);
+    window.requestAnimationFrame(() => {
+      tabRefs.current[tabId]?.focus();
+    });
+  };
+  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft" && event.key !== "Home" && event.key !== "End") {
+      return;
+    }
+    event.preventDefault();
+    const lastIndex = tabs.length - 1;
+    const nextIndex =
+      event.key === "Home" ? 0 :
+      event.key === "End" ? lastIndex :
+      event.key === "ArrowRight" ? (index + 1) % tabs.length :
+      (index - 1 + tabs.length) % tabs.length;
+    const nextTab = tabs[nextIndex];
+    if (nextTab) {
+      focusTab(nextTab.id);
+    }
+  };
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-7">
-      {tabs.map((tab) => {
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-8" role="tablist" aria-label="结果页签">
+      {tabs.map((tab, index) => {
         const Icon = tab.icon;
         const active = tab.id === activeTabId;
         return (
           <button
             key={tab.id}
             type="button"
-            onClick={() => onSelectTab(tab.id)}
-            aria-pressed={active}
+            id={`result-tab-${tab.id}`}
+            ref={(node) => {
+              tabRefs.current[tab.id] = node;
+            }}
+            onClick={() => focusTab(tab.id)}
+            onKeyDown={(event) => handleKeyDown(event, index)}
+            role="tab"
+            aria-selected={active}
+            aria-controls={`result-panel-${tab.id}`}
+            tabIndex={active ? 0 : -1}
             title={tab.description}
             className={`flex min-w-0 items-center gap-2 rounded-lg border text-left transition-all ${
               active

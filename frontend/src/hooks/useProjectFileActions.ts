@@ -70,6 +70,7 @@ export function useProjectFileActions({
   ) => {
     replaceProject(nextProject, fileName, handle, savedAt, message);
     onProjectOpened();
+    void trackSolverAnalyticsEvent("entry_selected", { entry_source: source });
     void trackSolverAnalyticsEvent("project_opened", { project_source: source });
   }, [onProjectOpened, replaceProject]);
 

@@ -8,11 +8,27 @@ import pandas as pd
 
 from backend.common.material_catalog import material_report_rows
 from backend.exporters.common.artifact import ExportArtifact
-from backend.exporters.common.evidence import build_evidence_tables, build_report_review_table
+from backend.exporters.common.evidence import build_evidence_tables, build_report_review_table, select_evidence_table_items
 from backend.exporters.common.filenames import export_filename
 from backend.exporters.common.load_tables import build_load_combination_rows
 from backend.exporters.common.result_source import result_source_rows
+from backend.exporters.common.report_options import normalize_report_options
 from backend.exporters.common.xlsx_utils import HAS_OPENPYXL, apply_standard_worksheet_style, write_sectioned_sheet
+
+
+BEAM_STANDARD_EVIDENCE_TABLES = (
+    "模型假定与适用范围",
+    "计算方法说明",
+    "校核证据",
+    "关键点表",
+)
+
+BEAM_COMPLETE_EVIDENCE_TABLES = (
+    "CalculationTrace",
+    "复核点表",
+    "包络来源",
+    "计算快照",
+)
 
 
 def build_summary_tables(solution: Dict[str, Any], material_name: str):
@@ -72,8 +88,9 @@ def export_xlsx(solution: Dict[str, Any], material_name: str, report_options: Di
         raise RuntimeError("服务器缺少 openpyxl 库，请联系系统管理员")
 
     request = solution["request"]
+    options = normalize_report_options(report_options)
     df_summary, df_params, df_loads, df_details = build_summary_tables(solution, material_name)
-    evidence_tables = build_evidence_tables(solution, "beam", material_name)
+    evidence_tables = build_evidence_tables(solution, "beam", material_name, options)
     df_check = pd.DataFrame(
         [
             ["最大挠度 (mm)", round(solution["max_deflection_mm"], 4)],
@@ -133,9 +150,7 @@ def export_xlsx(solution: Dict[str, Any], material_name: str, report_options: Di
             writer,
             "05_校核证据",
             [
-                ("模型假定与适用范围", evidence_tables["模型假定与适用范围"]),
-                ("计算方法说明", evidence_tables["计算方法说明"]),
-                ("校核证据", evidence_tables["校核证据"]),
+                *select_evidence_table_items(evidence_tables, BEAM_STANDARD_EVIDENCE_TABLES).items(),
                 ("教学校核", df_symbolic),
             ],
         )
@@ -158,6 +173,14 @@ def export_xlsx(solution: Dict[str, Any], material_name: str, report_options: Di
                 ("荷载组合", df_load_combinations),
             ],
         )
+        if options.get("template") == "complete":
+            write_sectioned_sheet(
+                writer,
+                "07_完整证据链",
+                [
+                    *select_evidence_table_items(evidence_tables, BEAM_COMPLETE_EVIDENCE_TABLES).items(),
+                ],
+            )
 
         apply_standard_worksheet_style(writer.book)
 

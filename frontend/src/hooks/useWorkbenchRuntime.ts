@@ -54,6 +54,8 @@ export function useWorkbenchRuntime({
   }, [setWorkbenchView]);
 
   const {
+    beginCalculationRequest,
+    trackCalculationTerminal,
     resultValidity,
     isSolving,
     isScanning,
@@ -64,6 +66,7 @@ export function useWorkbenchRuntime({
     handleRunPayload,
     handleSensitivity: runSensitivity,
     handleExport,
+    handleExportFailureReview,
   } = useWorkbenchActions({
     activeAnalysisObjectId: activeAnalysisObject.id,
     activeBenchmark: activeAnalysisObject.benchmark,
@@ -152,11 +155,16 @@ export function useWorkbenchRuntime({
   }, [blockedDiagnosticsMessage, setOperationNotice]);
 
   const handleRunCurrentModule = useCallback(() => {
+    const requestSequence = beginCalculationRequest(analysisMode);
     if (blockIfDiagnosticsFailed(modelDiagnostics)) {
+      trackCalculationTerminal(requestSequence, "calculation_blocked", {
+        analysis_mode: analysisMode,
+        failure_kind: "diagnostic",
+      });
       return Promise.resolve(null);
     }
-    return runCurrentModule();
-  }, [blockIfDiagnosticsFailed, modelDiagnostics, runCurrentModule]);
+    return runCurrentModule(requestSequence);
+  }, [analysisMode, beginCalculationRequest, blockIfDiagnosticsFailed, modelDiagnostics, runCurrentModule, trackCalculationTerminal]);
 
   const handleSensitivity = useCallback((config: Parameters<typeof runSensitivity>[0]) => {
     if (blockIfDiagnosticsFailed(modelDiagnostics)) {
@@ -172,10 +180,15 @@ export function useWorkbenchRuntime({
 
   const handleRunWorkspace = useCallback((nextWorkspace: WorkspaceState) => {
     const nextDiagnostics = buildModelDiagnostics(nextWorkspace);
+    const nextMode = nextWorkspace.analysisMode;
+    const requestSequence = beginCalculationRequest(nextMode);
     if (blockIfDiagnosticsFailed(nextDiagnostics)) {
+      trackCalculationTerminal(requestSequence, "calculation_blocked", {
+        analysis_mode: nextMode,
+        failure_kind: "diagnostic",
+      });
       return Promise.resolve(null);
     }
-    const nextMode = nextWorkspace.analysisMode;
     const payload =
       nextMode === "beam"
         ? buildBeamPayload(nextWorkspace.beam, projectName)
@@ -183,11 +196,15 @@ export function useWorkbenchRuntime({
           ? buildFramePayload(nextWorkspace.frame, projectName)
           : buildTrussPayload(nextWorkspace.truss, projectName);
     if (!payload) {
+      trackCalculationTerminal(requestSequence, "calculation_blocked", {
+        analysis_mode: nextMode,
+        failure_kind: "validation",
+      });
       return Promise.resolve(null);
     }
     setWorkbenchView("results");
-    return handleRunPayload(payload);
-  }, [blockIfDiagnosticsFailed, handleRunPayload, projectName, setWorkbenchView]);
+    return handleRunPayload(payload, requestSequence);
+  }, [beginCalculationRequest, blockIfDiagnosticsFailed, handleRunPayload, projectName, setWorkbenchView, trackCalculationTerminal]);
 
   return {
     analysisData,
@@ -197,6 +214,7 @@ export function useWorkbenchRuntime({
     exportingFormat,
     frameResults,
     handleExport,
+    handleExportFailureReview,
     handleAnalysisObjectChanged,
     handleRunAndReview,
     handleRunCurrentModule,

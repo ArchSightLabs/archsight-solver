@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Dict, Mapping
 
 from backend.application.calculation import build_calculation_result
+from backend.contracts.calculation_evidence import strip_legacy_evidence_fields
 
 
 VERIFICATION_PACKAGE_FORMAT = "archsight-solver-verification-package"
@@ -368,6 +369,8 @@ def verify_verification_package(
             _mismatch("$.analysis.input", f"当前求解器无法复算验证包: {exc}")
         ]
         return report
+
+    replay_result = strip_legacy_evidence_fields(replay_result, analysis["recordedResult"])
 
     replay_mismatches: list[Dict[str, Any]] = []
     _compare_values(

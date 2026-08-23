@@ -310,7 +310,7 @@ export function renderPublicGuideHtml(markdown, options) {
       <button class="theme-toggle" type="button" data-theme-toggle>${escapeHtml(themeButtonPrefix)}<span data-theme-label>${escapeHtml(lightThemeLabel)}</span></button>
     </div>
     <header class="page-header">
-      <p>ArchSight Solver v1.7.0</p>
+      <p>ArchSight Solver v1.8.0</p>
       <h1>${renderInlineMarkdown(title, sourcePath)}</h1>
     </header>${tableOfContents}
     <article>

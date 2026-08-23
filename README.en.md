@@ -15,11 +15,11 @@ ArchSight Solver is an Apache-2.0, web-native structural mechanics workbench for
 
 The workbench reports reactions, displacements, member forces, shear, bending moment, deflection, diagnostics, and result provenance as appropriate for each system. It also supports load cases and combinations, public benchmark projects, DOCX/XLSX reports, ASMS-JSON, REST, CLI, MCP, and Host Protocol 1.0.
 
-## Why v1.7 matters
+## Why v1.8 matters
 
-v1.7 combines portable verification and open distribution with guided learning and review paths for a beam, a plane truss, and a plane frame. Each path asks for three bounded predictions before calculation, then connects graphical checks, grade-A textbook analytical evidence, and exportable review records.
+v1.8 turns the portable evidence introduced in v1.7 into a reviewable static and stability workbench. A completed calculation exposes its trace, engineering critical points, review points, governing sources, and a bounded named snapshot for comparing one model iteration.
 
-DOCX, XLSX, and the portable verification package can carry stable answer identifiers and the resolved benchmark conclusions. The client cannot inject replacement labels into the report. Ordinary projects keep the existing workbench, and v1.7 does not add accounts, courses, classrooms, assignments, subscriptions, or cloud project storage.
+Screen results, standard or detailed DOCX, XLSX, and the portable verification package reuse the same canonical evidence. Failed validation, singular systems, and non-convergence can produce a failure review record without fabricating displacements or forces. Real frame P-Delta and linear buckling remain separate verified gates. v1.8 does not add accounts, cloud project storage, code design, or another analysis domain.
 
 The verification package introduced in v1.7 remains shared by the Web workbench, REST API, CLI, and MCP. It can be replayed with the current solver and returns one of three states:
 
@@ -63,11 +63,11 @@ See the [English quickstart](docs/en/quickstart.md) for GitHub Release installat
 
 ## Open distribution
 
-The v1.7 GitHub Release is designed to include:
+The v1.8 GitHub Release includes:
 
-- Python wheel `archsight_solver-1.7.0-py3-none-any.whl` and source distribution for the CLI and MCP server.
-- `archsight-solver-host-client-1.7.0.tgz` with zero runtime dependencies.
-- Immutable `ghcr.io/archsightlabs/archsight-solver:v1.7.0` image and an offline Docker image archive.
+- Python wheel `archsight_solver-1.8.0-py3-none-any.whl` and source distribution for the CLI and MCP server.
+- `archsight-solver-host-client-1.8.0.tgz` with zero runtime dependencies.
+- Immutable `ghcr.io/archsightlabs/archsight-solver:v1.8.0` image and an offline Docker image archive.
 - SPDX SBOM, Trivy report, and `SHA256SUMS`.
 
 PyPI and npm registry publication are not required. The versioned assets attached to the GitHub Release are the direct distribution path.

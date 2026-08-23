@@ -116,11 +116,30 @@
       </button>
     </div>
     <header>
-      <span class="tag">当前版本 v1.7.0</span>
+      <span class="tag">当前版本 v1.8.0</span>
       <h1>版本发布记录</h1>
     </header>
 
     <section class="release-list" aria-label="版本发布记录">
+      <article class="release">
+        <div class="release-head">
+          <h2>v1.8.0</h2>
+          <span class="date">发布时间：2026-08-23</span>
+        </div>
+          <p class="section-label">重点变化</p>
+          <ul>
+            <li>新增 <code>CalculationTrace@1</code> 计算过程，以及同源的工程关键点、用户复核点、控制包络和命名计算快照；请求、模型、结果哈希、单位、符号、精度、截断与控制来源可复核。</li>
+            <li>梁、框架和桁架图形及点表统一呈现端点、极值、零点、跳变侧别或适用控制对象的数值；屏幕、DOCX、XLSX 与可信计算包不再各自推导结果事实。</li>
+            <li>标准与详细计算书形成真实章节和证据深度差异；校验阻断、矩阵奇异或不收敛场景可导出不伪造成功结果的失败审查材料。</li>
+            <li>二维框架真实 P-Delta 与线性屈曲分别通过 Gate A / Gate B，保留独立工况/组合、迭代、模态、残差与接近临界失败证据。</li>
+            <li>匿名产品事件覆盖从计算请求到结果查看、过程/来源审查、快照比较和导出的唯一终态；CI、Nightly 与 Release 同步纳入 v1.8 浏览器闭环、三浏览器 DOCX、制品、安全和回滚门禁。</li>
+          </ul>
+          <p class="section-label">发布验证</p>
+          <ul>
+            <li>66 个公开 benchmark、独立刚度法、后端与前端全量测试、三浏览器导出、稳定分析、旧项目/旧可信计算包兼容、发行包隔离安装及 Docker 镜像均纳入发布门禁；证据见 [v1.8.0 发布验收](docs/verification/release-1-8-acceptance.md)。</li>
+          </ul>
+      </article>
+
       <article class="release">
         <div class="release-head">
           <h2>v1.7.0</h2>

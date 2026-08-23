@@ -172,6 +172,7 @@ function AppContent() {
     exportingFormat,
     frameResults,
     handleExport,
+    handleExportFailureReview,
     handleAnalysisObjectChanged,
     handleRunAndReview,
     handleRunCurrentModule,
@@ -184,6 +185,7 @@ function AppContent() {
     resetRuntimeForNewAnalysisObject,
     runLabel,
     sensitivityData,
+    resultProvenance,
     trussResults,
   } = useWorkbenchRuntime({
     activeAnalysisObject,
@@ -475,6 +477,7 @@ function AppContent() {
         exportingFormat={exportingFormat}
         frameResults={frameResults}
         handleExport={handleExport}
+        handleExportFailureReview={handleExportFailureReview}
         handleInspectorResizeStart={handleInspectorResizeStart}
         handleModuleNavResizeStart={handleModuleNavResizeStart}
         handleModelDiagnosticNavigate={handleModelDiagnosticNavigate}
@@ -496,6 +499,7 @@ function AppContent() {
         onOpenTemplateLibrary={() => setIsTemplateLibraryOpen(true)}
         operationNotice={operationNotice}
         project={project}
+        resultProvenance={resultProvenance}
         releaseNotesHref={RELEASE_NOTES_HREF}
         reportExportOptions={reportExportOptions}
         resultValidity={resultValidity}

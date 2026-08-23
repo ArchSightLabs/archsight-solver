@@ -101,6 +101,37 @@ test("关键行为事件只携带枚举字段和版本上下文", async () => {
   assert.doesNotMatch(JSON.stringify(calls), /project_name|file_name|model|result|error_message|user_id/u);
 });
 
+test("v1.8 漏斗事件只携带低基数字段", async () => {
+  const calls: Array<{ name: string; data?: Record<string, string | number | boolean> }> = [];
+  const fixture = createRuntime({
+    tracker: {
+      track: (name, data) => calls.push({ name, data }),
+    },
+  });
+
+  const scenarios: Array<readonly [Parameters<typeof trackSolverAnalyticsEvent>[0], Parameters<typeof trackSolverAnalyticsEvent>[1]]> = [
+    ["workbench_ready", { analysis_mode: "beam" }],
+    ["entry_selected", { entry_source: "public_example" }],
+    ["calculation_requested", { analysis_mode: "truss" }],
+    ["calculation_blocked", { analysis_mode: "truss", failure_kind: "validation" }],
+    ["calculation_failed", { analysis_mode: "truss", failure_kind: "api" }],
+    ["results_viewed", { analysis_mode: "frame" }],
+    ["calculation_trace_viewed", { analysis_mode: "frame" }],
+    ["critical_points_viewed", { analysis_mode: "frame" }],
+    ["governing_source_inspected", { analysis_mode: "frame" }],
+    ["report_export_requested", { analysis_mode: "beam", export_format: "xlsx" }],
+    ["export_completed", { analysis_mode: "beam", export_format: "docx" }],
+    ["export_failed", { analysis_mode: "beam", export_format: "docx", failure_kind: "client" }],
+  ];
+
+  for (const [name, data] of scenarios) {
+    assert.equal(await trackSolverAnalyticsEvent(name, data, enabledConfig, fixture.runtime), true);
+  }
+
+  assert.deepEqual(calls.map((call) => call.name), scenarios.map(([name]) => name));
+  assert.doesNotMatch(JSON.stringify(calls), /project_name|file_name|error_message|user_id|station|member_id|node_id|load_case|coordinate/u);
+});
+
 test("学习路径事件只携带分析类型和公共版本上下文", async () => {
   const calls: Array<{ name: string; data?: Record<string, string | number | boolean> }> = [];
   const fixture = createRuntime({

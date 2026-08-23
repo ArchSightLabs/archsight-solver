@@ -1,8 +1,11 @@
 import type { WorkbenchOperationNotice as WorkbenchOperationNoticeModel } from "../lib/workbench-operation-status";
+import type { FailureReviewFormat } from "../lib/failure-review";
 
 interface WorkbenchOperationNoticeProps {
   notice: WorkbenchOperationNoticeModel | null;
   compact?: boolean;
+  exportingFormat?: FailureReviewFormat | "verification-package" | null;
+  onExportFailureReview?: (format: FailureReviewFormat) => void;
 }
 
 const TONE_CLASSES: Record<WorkbenchOperationNoticeModel["tone"], string> = {
@@ -11,7 +14,7 @@ const TONE_CLASSES: Record<WorkbenchOperationNoticeModel["tone"], string> = {
   error: "border-rose-500/30 bg-rose-500/[0.08] text-rose-900 dark:border-rose-400/30 dark:bg-rose-400/[0.10] dark:text-rose-100",
 };
 
-export function WorkbenchOperationNotice({ notice, compact = false }: WorkbenchOperationNoticeProps) {
+export function WorkbenchOperationNotice({ notice, compact = false, exportingFormat = null, onExportFailureReview }: WorkbenchOperationNoticeProps) {
   if (!notice) {
     return null;
   }
@@ -36,6 +39,21 @@ export function WorkbenchOperationNotice({ notice, compact = false }: WorkbenchO
               {issue.objectRefs.length ? <div className="mt-0.5 opacity-75">定位：{issue.objectRefs.map((ref) => `${ref.kind} ${ref.id}`).join("、")}</div> : null}
               {issue.suggestions[0] ? <div className="mt-0.5 opacity-75">建议：{issue.suggestions[0]}</div> : null}
             </div>
+          ))}
+        </div>
+      ) : null}
+      {notice.phase === "error" && onExportFailureReview ? (
+        <div className="mt-2 flex flex-wrap gap-2" aria-label="失败审查材料导出">
+          {(["docx", "xlsx"] as const).map((format) => (
+            <button
+              key={format}
+              type="button"
+              disabled={exportingFormat !== null}
+              onClick={() => onExportFailureReview(format)}
+              className="rounded-md border border-current/25 bg-white/35 px-2.5 py-1.5 font-bold transition-colors hover:bg-white/60 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-black/10 dark:hover:bg-black/20"
+            >
+              {exportingFormat === format ? "正在生成…" : `下载失败审查 ${format.toUpperCase()}`}
+            </button>
           ))}
         </div>
       ) : null}

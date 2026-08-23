@@ -62,6 +62,8 @@ def build_openapi_document() -> Dict[str, Any]:
             "sensitivity-payload": _sensitivity_payload_schema(),
             "sensitivity-response": _sensitivity_response_schema(),
             "export-payload": _export_payload_schema(),
+            "failure-review-payload": _failure_review_payload_schema(),
+            "failure-review-export-payload": _failure_review_export_payload_schema(),
             "schema-registry-response": _schema_registry_response_schema(),
             "public-example-projects-response": _public_example_projects_response_schema(),
         }
@@ -181,10 +183,44 @@ def _paths() -> Dict[str, Any]:
             "post": {
                 "tags": ["export"],
                 "summary": "导出 WORD 或 XLSX 计算书",
-                "requestBody": _json_request("export-payload"),
+                "requestBody": {
+                    "required": True,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "oneOf": [
+                                    _ref("export-payload"),
+                                    _ref("failure-review-export-payload"),
+                                ]
+                            }
+                        }
+                    },
+                },
                 "responses": {
                     "200": {
                         "description": "计算书二进制文件",
+                        "content": {
+                            "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+                                "schema": {"type": "string", "format": "binary"}
+                            },
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                                "schema": {"type": "string", "format": "binary"}
+                            },
+                        },
+                    },
+                    **_error_response(),
+                    **_error_response("500", "导出失败"),
+                },
+            }
+        },
+        "/api/export/failure": {
+            "post": {
+                "tags": ["export"],
+                "summary": "导出失败审查材料",
+                "requestBody": _json_request("failure-review-payload"),
+                "responses": {
+                    "200": {
+                        "description": "失败审查材料二进制文件",
                         "content": {
                             "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
                                 "schema": {"type": "string", "format": "binary"}
@@ -414,6 +450,11 @@ def _export_payload_schema() -> Dict[str, Any]:
     return {
         "allOf": [_ref("calculate-payload")],
         "properties": {
+            "materialType": {
+                "type": "string",
+                "enum": ["failure-review"],
+                "description": "兼容字段；当取值为 failure-review 时，导出服务按失败审查材料处理。",
+            },
             "jobId": {
                 "type": "string",
                 "description": "已完成计算的作业 ID。提供此 ID 后，导出服务将跳过重复计算，直接使用缓存结果。",
@@ -517,6 +558,111 @@ def _export_payload_schema() -> Dict[str, Any]:
             },
         },
         "additionalProperties": True,
+    }
+
+
+def _failure_review_payload_schema() -> Dict[str, Any]:
+    manual_schema = {
+        "type": "object",
+        "required": ["inputId", "completedStages", "stableErrorCode"],
+        "properties": {
+            "format": {
+                "type": "string",
+                "enum": ["docx", "xlsx"],
+                "default": "docx",
+                "description": "失败审查材料导出格式。",
+            },
+            "inputId": {"type": "string", "description": "失败审查材料的输入标识。"},
+            "completedStages": {
+                "type": "array",
+                "items": {"type": "string"},
+                "minItems": 1,
+                "description": "已完成的处理阶段，用于说明失败发生前系统已经完成到哪里。",
+            },
+            "stableErrorCode": {
+                "type": "string",
+                "description": "稳定错误码，必须来自后端失败诊断或等价的稳定契约。",
+            },
+            "objectRefs": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "required": ["kind", "id"],
+                    "properties": {
+                        "kind": {"type": "string"},
+                        "id": {"type": "string"},
+                    },
+                    "additionalProperties": False,
+                },
+                "description": "对象定位信息。",
+            },
+            "diagnostics": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "required": ["code", "title", "detail", "severity"],
+                    "properties": {
+                        "code": {"type": "string"},
+                        "title": {"type": "string"},
+                        "detail": {"type": "string"},
+                        "severity": {"type": "string"},
+                    },
+                    "additionalProperties": False,
+                },
+                "description": "失败诊断条目。",
+            },
+            "hashes": {
+                "type": "object",
+                "additionalProperties": {"type": "string"},
+                "description": "失败审查材料相关哈希。",
+            },
+            "suggestedActions": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "建议动作。",
+            },
+        },
+        "additionalProperties": False,
+    }
+    job_schema = {
+        "type": "object",
+        "required": ["jobId"],
+        "properties": {
+            "jobId": {
+                "type": "string",
+                "description": "已失败作业 ID。导出服务会从 job_store 读取失败态、稳定错误码和诊断，拒绝伪造结果。",
+            },
+            "format": {
+                "type": "string",
+                "enum": ["docx", "xlsx"],
+                "default": "docx",
+                "description": "失败审查材料导出格式。",
+            },
+        },
+        "additionalProperties": False,
+    }
+    return {
+        "description": "失败审查材料。可手工提供失败阶段，或仅提供 jobId 由后端从 job_store 读取失败态。",
+        "oneOf": [manual_schema, job_schema],
+    }
+
+
+def _failure_review_export_payload_schema() -> Dict[str, Any]:
+    manual_schema = deepcopy(_failure_review_payload_schema()["oneOf"][0])
+    manual_schema["required"] = ["materialType", *manual_schema["required"]]
+    manual_schema["properties"]["materialType"] = {
+        "type": "string",
+        "const": "failure-review",
+    }
+    job_schema = deepcopy(_failure_review_payload_schema()["oneOf"][1])
+    job_schema["required"] = ["materialType", *job_schema["required"]]
+    job_schema["properties"]["materialType"] = {
+        "type": "string",
+        "const": "failure-review",
+    }
+    return {
+        "description": "导出入口的失败审查材料。与 /api/export/failure 相同，但要求 materialType 作为分流标识。",
+        "oneOf": [manual_schema, job_schema],
     }
 
 

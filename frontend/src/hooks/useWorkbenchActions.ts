@@ -38,6 +38,7 @@ import {
   serializeVerificationPackage,
   verificationPackageFilename,
 } from "../lib/verification-package";
+import { buildFailureReviewExportPayload, type FailureReviewFormat } from "../lib/failure-review";
 
 export type AnalysisResults = BeamCalculationResults | FrameCalculationResults | TrussCalculationResults | null;
 export type ExportFormat = "docx" | "xlsx" | "verification-package";
@@ -110,6 +111,9 @@ export function useWorkbenchActions({
   const [operationNotice, setOperationNotice] = useState<WorkbenchOperationNotice | null>(null);
   const activeAnalysisObjectIdRef = useRef(activeAnalysisObjectId);
   const solveRequestSequenceRef = useRef(0);
+  const reportExportRequestSequenceRef = useRef(0);
+  const finishedCalculationRequestsRef = useRef<Set<number>>(new Set());
+  const finishedReportExportRequestsRef = useRef<Set<number>>(new Set());
   const sensitivityRequestSequenceRef = useRef(0);
   const { analysisMode, beam, frame, truss } = workspace;
 
@@ -143,6 +147,42 @@ export function useWorkbenchActions({
     return buildBeamPayload(beam, projectName);
   }, [analysisMode, beam, frame, projectName, truss]);
 
+  const beginCalculationRequest = useCallback((analysisType: AnalysisMode) => {
+    const requestSequence = solveRequestSequenceRef.current + 1;
+    solveRequestSequenceRef.current = requestSequence;
+    void trackSolverAnalyticsEvent("calculation_requested", { analysis_mode: analysisType });
+    return requestSequence;
+  }, []);
+
+  const trackCalculationTerminal = useCallback((
+    requestSequence: number,
+    name: "calculation_blocked" | "calculation_completed" | "calculation_failed" | "calculation_cancelled" | "calculation_stale",
+    data: { analysis_mode: AnalysisMode; failure_kind?: "validation" | "diagnostic" | "superseded" | "active_object_changed" | "api" | "client" },
+  ) => {
+    if (finishedCalculationRequestsRef.current.has(requestSequence)) return false;
+    finishedCalculationRequestsRef.current.add(requestSequence);
+    void trackSolverAnalyticsEvent(name, data);
+    return true;
+  }, []);
+
+  const beginReportExportRequest = useCallback((analysisType: AnalysisMode, exportFormat: ExportFormat) => {
+    const requestSequence = reportExportRequestSequenceRef.current + 1;
+    reportExportRequestSequenceRef.current = requestSequence;
+    void trackSolverAnalyticsEvent("report_export_requested", { analysis_mode: analysisType, export_format: exportFormat });
+    return requestSequence;
+  }, []);
+
+  const trackReportExportTerminal = useCallback((
+    requestSequence: number,
+    name: "export_completed" | "export_failed",
+    data: { analysis_mode: AnalysisMode; export_format?: ExportFormat; failure_kind?: "api" | "client" },
+  ) => {
+    if (finishedReportExportRequestsRef.current.has(requestSequence)) return false;
+    finishedReportExportRequestsRef.current.add(requestSequence);
+    void trackSolverAnalyticsEvent(name, data);
+    return true;
+  }, []);
+
   const currentPayload = buildCurrentPayload();
   const hasResultData = analysisData !== null || sensitivityData !== null;
   const resultValidity = evaluateResultValidity({
@@ -153,12 +193,10 @@ export function useWorkbenchActions({
     provenance: resultProvenance,
   });
 
-  const handleSolve = async (data: CalculationPayload): Promise<AnalysisResults> => {
+  const handleSolve = async (data: CalculationPayload, requestSequence: number): Promise<AnalysisResults> => {
     const analysisType: AnalysisMode = data.analysisType === "frame" ? "frame" : data.analysisType === "truss" ? "truss" : "beam";
     const requestObjectId = activeAnalysisObjectId;
     const requestProjectRevision = getProjectRevision();
-    const requestSequence = solveRequestSequenceRef.current + 1;
-    solveRequestSequenceRef.current = requestSequence;
     setWorkspace((current) => ({ ...current, analysisMode: analysisType }));
     setIsSolving(true);
     setOperationNotice(operationRunningNotice("solve", analysisType));
@@ -178,6 +216,14 @@ export function useWorkbenchActions({
       }
       const result = normalizeAnalysisResponse(await response.json());
       if (solveRequestSequenceRef.current !== requestSequence) {
+        trackCalculationTerminal(
+          requestSequence,
+          activeAnalysisObjectIdRef.current !== requestObjectId ? "calculation_cancelled" : "calculation_stale",
+          {
+            analysis_mode: analysisType,
+            failure_kind: activeAnalysisObjectIdRef.current !== requestObjectId ? "active_object_changed" : "superseded",
+          },
+        );
         return null;
       }
       const provenance = createResultProvenance({
@@ -192,11 +238,21 @@ export function useWorkbenchActions({
         setCompactWorkbenchView("results");
         setOperationNotice(operationCompletedNotice("solve", analysisType));
       }
-      void trackSolverAnalyticsEvent("calculation_completed", { analysis_mode: analysisType });
+      trackCalculationTerminal(requestSequence, "calculation_completed", {
+        analysis_mode: analysisType,
+      });
       return result;
     } catch (error) {
       console.error("求解失败：", error);
       if (solveRequestSequenceRef.current !== requestSequence || activeAnalysisObjectIdRef.current !== requestObjectId) {
+        trackCalculationTerminal(
+          requestSequence,
+          activeAnalysisObjectIdRef.current !== requestObjectId ? "calculation_cancelled" : "calculation_stale",
+          {
+            analysis_mode: analysisType,
+            failure_kind: activeAnalysisObjectIdRef.current !== requestObjectId ? "active_object_changed" : "superseded",
+          },
+        );
         return null;
       }
       setOperationNotice(operationFailedNotice(
@@ -204,7 +260,7 @@ export function useWorkbenchActions({
         error instanceof Error ? error.message : "未知错误",
         error instanceof WorkbenchApiError ? error.diagnostics : [],
       ));
-      void trackSolverAnalyticsEvent("calculation_failed", {
+      trackCalculationTerminal(requestSequence, "calculation_failed", {
         analysis_mode: analysisType,
         failure_kind: error instanceof WorkbenchApiError ? "api" : "client",
       });
@@ -214,15 +270,23 @@ export function useWorkbenchActions({
     }
   };
 
-  const handleRunCurrentModule = () => {
+  const handleRunCurrentModule = (requestSequenceOverride?: number) => {
+    const requestSequence = requestSequenceOverride ?? beginCalculationRequest(analysisMode);
     const payload = buildCurrentPayload({ notifyOnValidationError: true });
     if (payload) {
-      return handleSolve(payload);
+      return handleSolve(payload, requestSequence);
     }
+    trackCalculationTerminal(requestSequence, "calculation_blocked", {
+      analysis_mode: analysisMode,
+      failure_kind: "validation",
+    });
     return Promise.resolve(null);
   };
 
-  const handleRunPayload = (payload: CalculationPayload) => handleSolve(payload);
+  const handleRunPayload = (payload: CalculationPayload, requestSequence?: number) => {
+    const nextSequence = requestSequence ?? beginCalculationRequest(payload.analysisType === "frame" ? "frame" : payload.analysisType === "truss" ? "truss" : "beam");
+    return handleSolve(payload, nextSequence);
+  };
 
   const handleSensitivity = async (config: { range: number; steps: number; targetSpanIndex: number; responseMetric: string }) => {
     const currentPayload = buildCurrentPayload({ notifyOnValidationError: true });
@@ -301,13 +365,24 @@ export function useWorkbenchActions({
     resultSource?: ResultDisplayOption,
     learningReview?: LearningReview,
   ) => {
+    const exportRequestSequence = beginReportExportRequest(workspace.analysisMode, format);
     if (resultValidity.status !== "current" || !resultProvenance) {
       setOperationNotice(validationNotice(resultValidity.message));
+      trackReportExportTerminal(exportRequestSequence, "export_failed", {
+        analysis_mode: workspace.analysisMode,
+        export_format: format,
+        failure_kind: "client",
+      });
       return;
     }
     const payload = { ...resultProvenance.payload, projectName } as unknown as CalculationPayload;
     if (!analysisRequestFromResult(analysisData) && !sensitivityData) {
       setOperationNotice(validationNotice("请先完成当前分析对象的结构计算或敏感性分析，再导出计算书。"));
+      trackReportExportTerminal(exportRequestSequence, "export_failed", {
+        analysis_mode: workspace.analysisMode,
+        export_format: format,
+        failure_kind: "client",
+      });
       return;
     }
     const exportOperation = exportOperationForFormat(format);
@@ -328,6 +403,11 @@ export function useWorkbenchActions({
       }
       if (!availableResultSources.some((source) => source.source === exportResultSource.source && source.id === exportResultSource.id)) {
         setOperationNotice(validationNotice("所选工况或组合不属于当前计算结果，请重新选择结果来源。"));
+        trackReportExportTerminal(exportRequestSequence, "export_failed", {
+          analysis_mode: workspace.analysisMode,
+          export_format: format,
+          failure_kind: "client",
+        });
         return;
       }
       void trackSolverAnalyticsEvent("export_started", {
@@ -364,7 +444,7 @@ export function useWorkbenchActions({
           : exportPayload;
       if (getProjectRevision() !== exportStartRevision || activeAnalysisObjectIdRef.current !== resultProvenance.analysisObjectId) {
         setOperationNotice(validationNotice("导出准备期间工程或分析对象已变化，本次导出已取消，请确认当前结果后重试。"));
-        void trackSolverAnalyticsEvent("export_failed", {
+        trackReportExportTerminal(exportRequestSequence, "export_failed", {
           analysis_mode: workspace.analysisMode,
           export_format: format,
           failure_kind: "client",
@@ -399,7 +479,7 @@ export function useWorkbenchActions({
         : null;
       if (getProjectRevision() !== exportStartRevision || activeAnalysisObjectIdRef.current !== resultProvenance.analysisObjectId) {
         setOperationNotice(validationNotice("导出期间工程或分析对象已变化，返回文件已丢弃，请确认当前结果后重试。"));
-        void trackSolverAnalyticsEvent("export_failed", {
+        trackReportExportTerminal(exportRequestSequence, "export_failed", {
           analysis_mode: workspace.analysisMode,
           export_format: format,
           failure_kind: "client",
@@ -421,7 +501,7 @@ export function useWorkbenchActions({
       anchor.remove();
       window.URL.revokeObjectURL(url);
       setOperationNotice(operationCompletedNotice(exportOperation, workspace.analysisMode));
-      void trackSolverAnalyticsEvent("export_completed", {
+      trackReportExportTerminal(exportRequestSequence, "export_completed", {
         analysis_mode: workspace.analysisMode,
         export_format: format,
       });
@@ -431,7 +511,80 @@ export function useWorkbenchActions({
         error instanceof Error ? error.message : "未知错误",
         error instanceof WorkbenchApiError ? error.diagnostics : [],
       ));
-      void trackSolverAnalyticsEvent("export_failed", {
+      trackReportExportTerminal(exportRequestSequence, "export_failed", {
+        analysis_mode: workspace.analysisMode,
+        export_format: format,
+        failure_kind: error instanceof WorkbenchApiError ? "api" : "client",
+      });
+    } finally {
+      setExportingFormat(null);
+    }
+  };
+
+  const handleExportFailureReview = async (format: FailureReviewFormat) => {
+    const payload = operationNotice
+      ? buildFailureReviewExportPayload({
+          analysisMode: workspace.analysisMode,
+          analysisObjectId: activeAnalysisObjectId,
+          format,
+          notice: operationNotice,
+        })
+      : null;
+    if (!payload) return;
+
+    const exportRequestSequence = beginReportExportRequest(workspace.analysisMode, format);
+    setExportingFormat(format);
+    setOperationNotice({
+      phase: "running",
+      tone: "info",
+      title: "正在生成失败审查材料",
+      message: "正在整理已完成阶段、稳定错误码、对象定位和修复建议；不会写入未求得的结果。",
+    });
+    void trackSolverAnalyticsEvent("export_started", {
+      analysis_mode: workspace.analysisMode,
+      export_format: format,
+    });
+    try {
+      const response = await fetch(apiUrl("/api/export/failure"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Client-ID": clientId,
+        },
+        mode: "cors",
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        throw new WorkbenchApiError(await readApiError(response, "失败审查材料导出失败"));
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `${analysisVocabulary(workspace.analysisMode).systemLabel}-失败审查材料.${format}`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.URL.revokeObjectURL(url);
+      setOperationNotice({
+        phase: "complete",
+        tone: "success",
+        title: "失败审查材料已生成",
+        message: "文件只包含实际完成的阶段与失败诊断，已交给浏览器下载。",
+      });
+      trackReportExportTerminal(exportRequestSequence, "export_completed", {
+        analysis_mode: workspace.analysisMode,
+        export_format: format,
+      });
+    } catch (error) {
+      setOperationNotice({
+        phase: "error",
+        tone: "error",
+        title: "失败审查材料导出失败",
+        message: error instanceof Error ? error.message : "未知错误",
+        ...(error instanceof WorkbenchApiError && error.diagnostics.length ? { diagnostics: error.diagnostics } : {}),
+      });
+      trackReportExportTerminal(exportRequestSequence, "export_failed", {
         analysis_mode: workspace.analysisMode,
         export_format: format,
         failure_kind: error instanceof WorkbenchApiError ? "api" : "client",
@@ -442,6 +595,8 @@ export function useWorkbenchActions({
   };
 
   return {
+    beginCalculationRequest,
+    trackCalculationTerminal,
     resultValidity,
     isSolving,
     isScanning,
@@ -452,5 +607,6 @@ export function useWorkbenchActions({
     handleRunPayload,
     handleSensitivity,
     handleExport,
+    handleExportFailureReview,
   };
 }

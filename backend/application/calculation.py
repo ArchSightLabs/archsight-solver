@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any, Dict, Mapping
 
 from backend.common.analysis_types import get_analysis_type, get_material_name
+from backend.contracts.calculation_evidence import build_calculation_evidence
 from backend.contracts.calculation_response import CALCULATION_RESULT_SCHEMA
 from backend.contracts.response_envelope import _stable_hash
 from backend.services.beam_workbench import build_solution as build_beam_solution
@@ -64,18 +66,27 @@ def _beam_summary(solution: Mapping[str, Any]) -> Dict[str, Any]:
 
 
 def build_calculation_result(data: Mapping[str, Any], operation: str = "calculate") -> Dict[str, Any]:
+    if "reviewPoints" in data:
+        review_points = data.get("reviewPoints")
+        if not isinstance(review_points, list):
+            raise ValueError("reviewPoints 必须是对象数组")
+        if len(review_points) > 32:
+            raise ValueError("reviewPoints 数量超出系统限制 (最大 32 个)")
+        if any(not isinstance(point, Mapping) for point in review_points):
+            raise ValueError("reviewPoints 必须是对象数组")
+
     analysis_type = get_analysis_type(data)
     material_name = get_material_name(data.get("materialId"))
 
     if analysis_type == "frame":
         solution = build_frame_solution(dict(data), material_name)
-        request_echo = solution["payload"]
+        request_echo = deepcopy(solution["payload"])
         structure = solution["structure"]
         normalized_request = None
         summary = solution["summary"]
     elif analysis_type == "truss":
         solution = build_truss_solution(dict(data), material_name)
-        request_echo = solution["payload"]
+        request_echo = deepcopy(solution["payload"])
         structure = solution["structure"]
         normalized_request = solution.get("request")
         summary = solution["summary"]
@@ -85,6 +96,13 @@ def build_calculation_result(data: Mapping[str, Any], operation: str = "calculat
         structure = solution["beam"]
         normalized_request = solution["request"]
         summary = _beam_summary(solution)
+
+    # Review points are evidence requests rather than solver inputs, so the
+    # individual normalizers intentionally leave them untouched. Preserve the
+    # validated caller intent in the canonical request echo for the evidence
+    # projection stage instead of silently dropping it.
+    if "reviewPoints" in data:
+        request_echo["reviewPoints"] = deepcopy(data["reviewPoints"])
 
     generated_at = datetime.now(timezone.utc).isoformat()
     result: Dict[str, Any] = {
@@ -102,4 +120,11 @@ def build_calculation_result(data: Mapping[str, Any], operation: str = "calculat
     }
     if normalized_request is not None:
         result["normalizedRequest"] = normalized_request
+
+    evidence = build_calculation_evidence(result)
+    result.update(evidence)
+    result["resultHash"] = evidence["resultHash"]
+    solution = result.get("solution")
+    if isinstance(solution, dict):
+        solution["resultHash"] = evidence["resultHash"]
     return result

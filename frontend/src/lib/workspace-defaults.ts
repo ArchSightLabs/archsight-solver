@@ -357,10 +357,12 @@ export function createDefaultBeamWorkspaceState(): BeamWorkspaceState {
     scenarios: [...DEFAULT_SCENARIOS],
     customLoadCases: [],
     customLoadCombinations: [],
+    reviewPoints: [],
+    calculationSnapshots: [],
     viewSettings: {
       showLoads: true,
       showDisplacement: true,
-      showExtremeLabel: false,
+      showExtremeLabel: true,
       displacementScale: null,
     },
   };
@@ -391,10 +393,12 @@ export function createDefaultFrameWorkspaceState(): FrameWorkspaceState {
     customLoads: cloneLoads(collections.loads),
     customLoadCases: [],
     customLoadCombinations: [],
+    reviewPoints: [],
+    calculationSnapshots: [],
     viewSettings: {
       showLoads: true,
       showDisplacement: true,
-      showExtremeLabel: false,
+      showExtremeLabel: true,
       displacementScale: null,
     },
   };
@@ -410,10 +414,12 @@ export function createDefaultTrussWorkspaceState(): TrussWorkspaceState {
     customLoads: cloneTrussLoads(collections.loads),
     customLoadCases: [],
     customLoadCombinations: [],
+    reviewPoints: [],
+    calculationSnapshots: [],
     viewSettings: {
       showLoads: true,
       showDisplacement: true,
-      showExtremeLabel: false,
+      showExtremeLabel: true,
       displacementScale: null,
     },
   };
@@ -439,6 +445,15 @@ export function cloneBeamWorkspaceState(value: BeamWorkspaceState): BeamWorkspac
     scenarios: value.scenarios.map((scenario) => ({ ...scenario })),
     customLoadCases: cloneBeamLoadCases(value.customLoadCases ?? []),
     customLoadCombinations: cloneBeamLoadCombinations(value.customLoadCombinations ?? []),
+    reviewPoints: value.reviewPoints.map((point) => ({ ...point })),
+    calculationSnapshots: value.calculationSnapshots.map((snapshot) => ({
+      ...snapshot,
+      summary: { ...snapshot.summary },
+      trace: snapshot.trace.map((entry) => ({ ...entry })),
+      criticalPoints: snapshot.criticalPoints.map((point) => ({ ...point })),
+      reviewPoints: snapshot.reviewPoints.map((point) => ({ ...point })),
+      governingEnvelope: snapshot.governingEnvelope.map((item) => ({ ...item })),
+    })),
     modelLabelOffsets: cloneModelLabelOffsets(value.modelLabelOffsets),
     viewSettings: value.viewSettings ? { ...value.viewSettings } : undefined,
   };
@@ -457,6 +472,15 @@ export function cloneFrameWorkspaceState(value: FrameWorkspaceState): FrameWorks
     customLoads: cloneLoads(value.customLoads),
     customLoadCases: cloneFrameLoadCases(value.customLoadCases ?? []),
     customLoadCombinations: cloneFrameLoadCombinations(value.customLoadCombinations ?? []),
+    reviewPoints: value.reviewPoints.map((point) => ({ ...point })),
+    calculationSnapshots: value.calculationSnapshots.map((snapshot) => ({
+      ...snapshot,
+      summary: { ...snapshot.summary },
+      trace: snapshot.trace.map((entry) => ({ ...entry })),
+      criticalPoints: snapshot.criticalPoints.map((point) => ({ ...point })),
+      reviewPoints: snapshot.reviewPoints.map((point) => ({ ...point })),
+      governingEnvelope: snapshot.governingEnvelope.map((item) => ({ ...item })),
+    })),
     modelLabelOffsets: cloneModelLabelOffsets(value.modelLabelOffsets),
     viewSettings: value.viewSettings ? { ...value.viewSettings } : undefined,
   };
@@ -470,6 +494,15 @@ export function cloneTrussWorkspaceState(value: TrussWorkspaceState): TrussWorks
     customLoads: cloneTrussLoads(value.customLoads),
     customLoadCases: cloneTrussLoadCases(value.customLoadCases ?? []),
     customLoadCombinations: cloneTrussLoadCombinations(value.customLoadCombinations ?? []),
+    reviewPoints: value.reviewPoints.map((point) => ({ ...point })),
+    calculationSnapshots: value.calculationSnapshots.map((snapshot) => ({
+      ...snapshot,
+      summary: { ...snapshot.summary },
+      trace: snapshot.trace.map((entry) => ({ ...entry })),
+      criticalPoints: snapshot.criticalPoints.map((point) => ({ ...point })),
+      reviewPoints: snapshot.reviewPoints.map((point) => ({ ...point })),
+      governingEnvelope: snapshot.governingEnvelope.map((item) => ({ ...item })),
+    })),
     modelLabelOffsets: cloneModelLabelOffsets(value.modelLabelOffsets),
     viewSettings: value.viewSettings ? { ...value.viewSettings } : undefined,
   };

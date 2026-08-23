@@ -12,6 +12,7 @@ from backend.exporters.common.evidence import (
     FRAME_STABILITY_FULL_TABLES,
     build_evidence_tables,
     build_report_review_table,
+    select_evidence_table_items,
 )
 from backend.exporters.common.filenames import export_filename
 from backend.exporters.common.load_tables import build_load_combination_rows
@@ -26,6 +27,23 @@ from backend.exporters.frame.xlsx_exporter import build_summary_tables
 FRAME_DATA_CURVE_FIGURES = (
     ("frame.curve.ux", "节点 X 向位移数据曲线", "mm"),
     ("frame.curve.uy", "节点 Y 向位移数据曲线", "mm"),
+)
+
+FRAME_STANDARD_EVIDENCE_TABLES = (
+    "工程输入摘要",
+    "模型假定与适用范围",
+    "单位换算表",
+    "边界条件表",
+    "计算方法说明",
+    "校核证据",
+    "关键点表",
+)
+
+FRAME_COMPLETE_EVIDENCE_TABLES = (
+    "CalculationTrace",
+    "复核点表",
+    "包络来源",
+    "计算快照",
 )
 
 
@@ -56,7 +74,7 @@ def export_docx(
         add_heading(doc, "2.1 受力变形图")
         _add_preview_figure(doc, report_images)
     add_heading(doc, "2.2 可审查计算证据链")
-    _add_evidence_tables(doc, _frame_non_stability_tables(stability_tables))
+    _add_evidence_tables(doc, select_evidence_table_items(stability_tables, FRAME_STANDARD_EVIDENCE_TABLES))
     _add_load_combination_table(doc, solution, "2.3 荷载组合标签")
     add_heading(doc, "3. 节点结果")
     add_df_table(doc, df_nodes)
@@ -99,6 +117,9 @@ def export_docx(
     if not df_member_diagrams.empty:
         add_df_table(doc, df_member_diagrams)
     add_df_table(doc, pd.DataFrame(solution["memberResults"]))
+    if options.get("template") == "complete":
+        add_heading(doc, "8. 完整证据链")
+        _add_evidence_tables(doc, select_evidence_table_items(stability_tables, FRAME_COMPLETE_EVIDENCE_TABLES))
 
     output = io.BytesIO()
     doc.save(output)

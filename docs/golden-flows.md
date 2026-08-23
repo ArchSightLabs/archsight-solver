@@ -1,6 +1,6 @@
-# v1.7 三条黄金流程
+# 三条黄金流程
 
-本文件把 v1.7 的“有人能访问”进一步约束为三条仓库内可复跑的成功路径。它们是产品验收入口，不要求招募外部试用者、不要求第三方系统完成接入，也不把流量、订单或人工反馈作为 GO 条件。
+本文件把“有人能访问”进一步约束为三条仓库内可复跑的成功路径。它们是产品验收入口，不要求招募外部试用者、不要求第三方系统完成接入，也不把流量、订单或人工反馈作为 GO 条件。
 
 ## 流程 A：结构工程师携带并复核一次计算
 
@@ -56,7 +56,7 @@ archsight-solver-tool verification_package_verify --input verify-request.json --
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install .\archsight_solver-1.7.0-py3-none-any.whl
+python -m pip install .\archsight_solver-1.8.0-py3-none-any.whl
 ```
 
 2. 按[五分钟英文 Quickstart](en/quickstart.md)创建 `create-request.json`。

@@ -9,12 +9,28 @@ from backend.common.material_catalog import material_report_rows
 from backend.common.result_metric_catalog import result_metric_label
 from backend.common.support_catalog import support_constraint_dofs, support_dof_indexes, support_label, support_system_note
 from backend.exporters.common.artifact import ExportArtifact
-from backend.exporters.common.evidence import build_evidence_tables, build_report_review_table
+from backend.exporters.common.evidence import build_evidence_tables, build_report_review_table, select_evidence_table_items
 from backend.exporters.common.filenames import export_filename
 from backend.exporters.common.load_tables import build_load_combination_rows
 from backend.exporters.common.member_materials import member_elasticity_summary
 from backend.exporters.common.result_source import result_source_rows
+from backend.exporters.common.report_options import normalize_report_options
 from backend.exporters.common.xlsx_utils import HAS_OPENPYXL, apply_standard_worksheet_style, write_sectioned_sheet
+
+
+TRUSS_STANDARD_EVIDENCE_TABLES = (
+    "模型假定与适用范围",
+    "计算方法说明",
+    "校核证据",
+    "关键点表",
+)
+
+TRUSS_COMPLETE_EVIDENCE_TABLES = (
+    "CalculationTrace",
+    "复核点表",
+    "包络来源",
+    "计算快照",
+)
 
 
 def build_summary_tables(solution: Dict[str, Any], material_name: str):
@@ -118,8 +134,9 @@ def export_xlsx(solution: Dict[str, Any], material_name: str, report_options: Di
     if not HAS_OPENPYXL:
         raise RuntimeError("服务器缺少 openpyxl 库，请联系系统管理员")
 
+    options = normalize_report_options(report_options)
     df_summary, df_params, df_nodes, df_members, df_conventions = build_summary_tables(solution, material_name)
-    evidence_tables = build_evidence_tables(solution, "truss", material_name)
+    evidence_tables = build_evidence_tables(solution, "truss", material_name, options)
     df_loads = pd.DataFrame(solution["structure"].get("loads", []))
     df_model_nodes = pd.DataFrame(solution["structure"].get("nodes", []))
     df_model_members = pd.DataFrame(solution["structure"].get("members", []))
@@ -179,9 +196,7 @@ def export_xlsx(solution: Dict[str, Any], material_name: str, report_options: Di
             writer,
             "05_校核证据",
             [
-                ("模型假定与适用范围", evidence_tables["模型假定与适用范围"]),
-                ("计算方法说明", evidence_tables["计算方法说明"]),
-                ("校核证据", evidence_tables["校核证据"]),
+                *select_evidence_table_items(evidence_tables, TRUSS_STANDARD_EVIDENCE_TABLES).items(),
                 ("符号约定", df_conventions),
             ],
         )
@@ -203,6 +218,14 @@ def export_xlsx(solution: Dict[str, Any], material_name: str, report_options: Di
                 ("详细数据", df_detail),
             ],
         )
+        if options.get("template") == "complete":
+            write_sectioned_sheet(
+                writer,
+                "07_完整证据链",
+                [
+                    *select_evidence_table_items(evidence_tables, TRUSS_COMPLETE_EVIDENCE_TABLES).items(),
+                ],
+            )
 
         apply_standard_worksheet_style(writer.book)
 

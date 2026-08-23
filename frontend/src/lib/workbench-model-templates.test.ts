@@ -11,6 +11,7 @@ import {
   applyTrussModelTemplate,
 } from "./workbench-model-templates.ts";
 import { createDefaultBeamWorkspaceState, createDefaultFrameWorkspaceState, createDefaultTrussWorkspaceState } from "./workspace-state.ts";
+import type { CalculationReviewPoint, CalculationSnapshot } from "../types/structure.ts";
 
 interface TemplateBenchmarkMap {
   templates: {
@@ -110,6 +111,36 @@ test("默认连续梁工作区包含中间支座", () => {
   assert.equal(workspace.spans.length, 2);
   assert.equal(workspace.supports.length, 3);
   assert.equal(workspace.supports[1].x, workspace.spans[0].length);
+});
+
+test("梁系模板应用保留工作区复核点和快照历史", () => {
+  const workspace = createDefaultBeamWorkspaceState();
+  const reviewPoint: CalculationReviewPoint = {
+    id: "review-1",
+    kind: "node-check",
+    targetType: "node",
+    label: "复核点 1",
+  };
+  const snapshot: CalculationSnapshot = {
+    id: "snapshot-1",
+    name: "历史快照",
+    analysisMode: "beam",
+    createdAt: "2026-08-23T00:00:00.000Z",
+    summary: {},
+    trace: [],
+    criticalPoints: [],
+    reviewPoints: [],
+    governingEnvelope: [],
+    byteSize: 0,
+  };
+  workspace.reviewPoints = [reviewPoint];
+  workspace.calculationSnapshots = [snapshot];
+
+  const next = applyBeamModelTemplate(workspace, BEAM_MODEL_TEMPLATES[0]);
+
+  assert.equal(next.reviewPoints[0], reviewPoint);
+  assert.equal(next.calculationSnapshots[0], snapshot);
+  assert.equal(next.compareEnabled, false);
 });
 
 test("内置框架典型案例提供可计算的显式模型", () => {

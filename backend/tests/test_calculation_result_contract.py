@@ -4,6 +4,7 @@ import json
 
 from backend.api.calculation_response import build_calculation_response
 from backend.application.calculation import build_calculation_result
+from backend.contracts.calculation_evidence import EVIDENCE_FIELDS
 from backend.contracts.calculation_response import (
     CALCULATION_RESULT_SCHEMA,
     api_v1_response_from_stored_result,
@@ -31,6 +32,13 @@ def test_canonical_result_round_trips_to_unchanged_api_v1_response():
     compatibility_entrypoint = build_calculation_response(_beam_payload())
 
     assert canonical["storageSchema"] == CALCULATION_RESULT_SCHEMA
+    assert canonical["resultHash"] == canonical["solution"]["resultHash"]
+    for field in EVIDENCE_FIELDS:
+        assert field in canonical
+        if field != "resultHash":
+            assert field not in canonical["solution"]
+        assert field in adapted
+        assert field in adapted["results"]
     assert adapted["analysisType"] == compatibility_entrypoint["analysisType"]
     assert adapted["summary"] == compatibility_entrypoint["summary"]
     assert adapted["results"] == compatibility_entrypoint["results"]

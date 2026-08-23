@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>v1.7 三条黄金流程 · ArchSight Solver</title>
+  <title>三条黄金流程 · ArchSight Solver</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <script>
     (() => {
@@ -77,15 +77,15 @@
       <button class="theme-toggle" type="button" data-theme-toggle>切换为<span data-theme-label>浅色阅读</span></button>
     </div>
     <header class="page-header">
-      <p>ArchSight Solver v1.7.0</p>
-      <h1>v1.7 三条黄金流程</h1>
+      <p>ArchSight Solver v1.8.0</p>
+      <h1>三条黄金流程</h1>
     </header>
       <nav class="toc" aria-label="三条流程">
         <strong>三条流程</strong>
         <div><a href="#流程-a结构工程师携带并复核一次计算">流程 A：结构工程师携带并复核一次计算</a><a href="#流程-b教师或学习者解释公开-benchmark">流程 B：教师或学习者解释公开 Benchmark</a><a href="#流程-c开发者五分钟创建并验证计算包">流程 C：开发者五分钟创建并验证计算包</a><a href="#自动化映射">自动化映射</a></div>
       </nav>
     <article>
-      <p>本文件把 v1.7 的“有人能访问”进一步约束为三条仓库内可复跑的成功路径。它们是产品验收入口，不要求招募外部试用者、不要求第三方系统完成接入，也不把流量、订单或人工反馈作为 GO 条件。</p>
+      <p>本文件把“有人能访问”进一步约束为三条仓库内可复跑的成功路径。它们是产品验收入口，不要求招募外部试用者、不要求第三方系统完成接入，也不把流量、订单或人工反馈作为 GO 条件。</p>
       <h2 id="流程-a结构工程师携带并复核一次计算">流程 A：结构工程师携带并复核一次计算</h2>
       <p>目标：从当前工程结果得到计算书和可独立复算的证据包。</p>
       <ol>
@@ -128,7 +128,7 @@ archsight-solver-tool verification_package_verify --input verify-request.json --
       </ol>
       <pre><code class="language-powershell">python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install .\archsight_solver-1.7.0-py3-none-any.whl</code></pre>
+python -m pip install .\archsight_solver-1.8.0-py3-none-any.whl</code></pre>
       <ol>
         <li>按<a href="/docs/quickstart.en.html">五分钟英文 Quickstart</a>创建 <code>create-request.json</code>。</li>
         <li>创建并验证计算包：</li>

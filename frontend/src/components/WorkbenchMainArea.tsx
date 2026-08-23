@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect, useRef } from "react";
 import type { CSSProperties, Dispatch, PointerEventHandler, ReactNode, SetStateAction } from "react";
 import {
   GripVertical,
@@ -22,13 +22,15 @@ import type { WorkbenchModelCanvasController } from "./WorkbenchModelCanvas";
 import type { BeamCalculationResults, SensitivityResults } from "../types/beam";
 import type { AnalysisMode, FrameCalculationResults, TrussCalculationResults } from "../types/structure";
 import type { ExportFormat } from "../hooks/useWorkbenchActions";
+import type { FailureReviewFormat } from "../lib/failure-review";
 import type { ModelDiagnosticIssue, ModelDiagnostics } from "../lib/model-diagnostics";
 import type { ReportExportOptions } from "../lib/report-options";
-import type { ResultValidity } from "../lib/result-provenance";
+import type { ResultProvenance, ResultValidity } from "../lib/result-provenance";
 import type { WorkbenchOperationNotice as WorkbenchOperationNoticeModel } from "../lib/workbench-operation-status";
 import type { WorkbenchView } from "../lib/solver-project";
 import type { ResultDisplayOption } from "./workbench-result-model";
 import { VerificationLearningPanel } from "./VerificationLearningPanel";
+import { trackSolverAnalyticsEvent } from "../analytics/umami-analytics";
 
 const LazyWorkbenchModelCanvas = lazy(() => import("./WorkbenchModelCanvas").then((module) => ({ default: module.WorkbenchModelCanvas })));
 const LazyWorkbenchSensitivityPanel = lazy(() => import("./WorkbenchSensitivityPanel").then((module) => ({ default: module.WorkbenchSensitivityPanel })));
@@ -46,6 +48,7 @@ interface WorkbenchMainAreaProps {
   exportingFormat: ExportFormat | null;
   frameResults: FrameCalculationResults | null;
   handleExport: (format: ExportFormat, resultSource?: ResultDisplayOption, learningReview?: LearningReview) => void;
+  handleExportFailureReview: (format: FailureReviewFormat) => void;
   handleInspectorResizeStart: PointerEventHandler<HTMLButtonElement>;
   handleModuleNavResizeStart: PointerEventHandler<HTMLButtonElement>;
   handleModelDiagnosticNavigate: (diagnostic: ModelDiagnosticIssue) => void;
@@ -65,6 +68,7 @@ interface WorkbenchMainAreaProps {
   moduleSections: Array<{ id: string; label: string }>;
   operationNotice: WorkbenchOperationNoticeModel | null;
   project: SolverProject;
+  resultProvenance: ResultProvenance | null;
   reportExportOptions: ReportExportOptions;
   resultValidity: ResultValidity;
   runLabel: string;
@@ -98,6 +102,7 @@ export function WorkbenchMainArea({
   exportingFormat,
   frameResults,
   handleExport,
+  handleExportFailureReview,
   handleInspectorResizeStart,
   handleModuleNavResizeStart,
   handleModelDiagnosticNavigate,
@@ -117,6 +122,7 @@ export function WorkbenchMainArea({
   moduleSections,
   operationNotice,
   project,
+  resultProvenance,
   reportExportOptions,
   resultValidity,
   runLabel,
@@ -142,6 +148,13 @@ export function WorkbenchMainArea({
   updateWorkspace,
 }: WorkbenchMainAreaProps) {
   const activeAnalysisObject = getActiveAnalysisObject(project);
+  const workbenchReadyKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    const nextKey = `${activeAnalysisObject.id}:${analysisMode}`;
+    if (workbenchReadyKeyRef.current === nextKey) return;
+    workbenchReadyKeyRef.current = nextKey;
+    void trackSolverAnalyticsEvent("workbench_ready", { analysis_mode: analysisMode });
+  }, [activeAnalysisObject.id, analysisMode]);
   return (
     <main className={`relative z-10 mx-auto max-w-[118rem] px-4 pt-4 ${isEmbeddedWorkbench ? "pb-4 sm:px-4 sm:pb-4 sm:pt-4" : "pb-12 sm:px-6 sm:pb-16 sm:pt-6 xl:pb-0"}`}>
       <div
@@ -250,10 +263,12 @@ export function WorkbenchMainArea({
                   frameResults={frameResults}
                   trussResults={trussResults}
                   exportingFormat={exportingFormat}
+                  resultProvenance={resultProvenance}
                   reportExportOptions={reportExportOptions}
                   compact={isCompactWorkbench}
                   onReportExportOptionsChange={setReportExportOptions}
                   onExport={handleExport}
+                  onExportFailureReview={handleExportFailureReview}
                   onRunCalculation={handleRunAndReview}
                   isSolving={isSolving}
                   runLabel={runLabel}

@@ -59,6 +59,14 @@ function normalizeComparisonScenarios(scenarios: TemplateSnapshot["scenarios"]) 
 
 type BeamSnapshotLike = NonNullable<TemplateSnapshot["beam"]>;
 
+function stripWorkspaceResultHistory<T extends { reviewPoints?: unknown[]; calculationSnapshots?: unknown[] }>(workspace: T): T {
+  return {
+    ...workspace,
+    reviewPoints: [],
+    calculationSnapshots: [],
+  };
+}
+
 interface LegacyBeamSnapshotForm {
   q?: number;
   E?: number;
@@ -83,7 +91,7 @@ interface LegacyBeamSnapshotForm {
 
 function normalizeBeamSnapshot(raw: Partial<TemplateSnapshot> & Record<string, unknown>): TemplateSnapshot {
   if (raw.beam) {
-    const normalizedBeam = normalizeBeamWorkspaceState(raw.beam);
+    const normalizedBeam = stripWorkspaceResultHistory(normalizeBeamWorkspaceState(raw.beam));
     return {
       analysisMode: "beam",
       beam: normalizedBeam,
@@ -101,7 +109,7 @@ function normalizeBeamSnapshot(raw: Partial<TemplateSnapshot> & Record<string, u
       }))
     : [];
 
-  const beam = normalizeBeamWorkspaceState(
+  const beam = stripWorkspaceResultHistory(normalizeBeamWorkspaceState(
     legacyForm
       ? {
           projectName: String(legacyForm.projectName ?? "新建梁系项目"),
@@ -122,7 +130,7 @@ function normalizeBeamSnapshot(raw: Partial<TemplateSnapshot> & Record<string, u
           scenarios: Array.isArray(raw.scenarios) ? raw.scenarios : [],
         }
       : undefined
-  );
+  ));
 
   return {
     analysisMode: "beam",
@@ -133,7 +141,7 @@ function normalizeBeamSnapshot(raw: Partial<TemplateSnapshot> & Record<string, u
 }
 
 function normalizeFrameSnapshot(raw: Partial<TemplateSnapshot> & Record<string, unknown>): TemplateSnapshot {
-  const frame = normalizeFrameWorkspaceState(raw.frame);
+  const frame = stripWorkspaceResultHistory(normalizeFrameWorkspaceState(raw.frame));
   return {
     analysisMode: "frame",
     frame,
@@ -143,7 +151,7 @@ function normalizeFrameSnapshot(raw: Partial<TemplateSnapshot> & Record<string, 
 }
 
 function normalizeTrussSnapshot(raw: Partial<TemplateSnapshot> & Record<string, unknown>): TemplateSnapshot {
-  const truss = normalizeTrussWorkspaceState(raw.truss);
+  const truss = stripWorkspaceResultHistory(normalizeTrussWorkspaceState(raw.truss));
   return {
     analysisMode: "truss",
     truss,
@@ -223,7 +231,7 @@ export function createWorkspaceSnapshot(workspace: WorkspaceState): TemplateSnap
   if (workspace.analysisMode === "frame") {
     return {
       analysisMode: "frame",
-      frame: normalizeFrameWorkspaceState(workspace.frame),
+      frame: stripWorkspaceResultHistory(normalizeFrameWorkspaceState(workspace.frame)),
       compareEnabled: false,
       scenarios: [],
     };
@@ -232,13 +240,13 @@ export function createWorkspaceSnapshot(workspace: WorkspaceState): TemplateSnap
   if (workspace.analysisMode === "truss") {
     return {
       analysisMode: "truss",
-      truss: normalizeTrussWorkspaceState(workspace.truss),
+      truss: stripWorkspaceResultHistory(normalizeTrussWorkspaceState(workspace.truss)),
       compareEnabled: false,
       scenarios: [],
     };
   }
 
-  const beam = normalizeBeamWorkspaceState(workspace.beam);
+  const beam = stripWorkspaceResultHistory(normalizeBeamWorkspaceState(workspace.beam));
   return {
     analysisMode: "beam",
     beam,

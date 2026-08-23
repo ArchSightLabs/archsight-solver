@@ -6,6 +6,107 @@ export type AnalysisType = "beam" | "frame" | "truss";
 export type AnalysisMode = "beam" | "frame" | "truss";
 export type FrameModelMode = "portal_frame" | "custom";
 
+export interface CalculationTraceEntry {
+  stage: string;
+  title: string;
+  detail?: string;
+  status?: string;
+  step?: number | null;
+  iteration?: number | null;
+  residual?: number | null;
+  value?: number | null;
+  unit?: string;
+  sourceId?: string;
+}
+
+export interface CalculationCriticalPoint {
+  id: string;
+  kind: string;
+  label: string;
+  metricKey?: string;
+  value?: number | null;
+  unit?: string;
+  station?: number | null;
+  sourceType?: string;
+  sourceId?: string;
+  objectId?: string;
+  side?: string;
+}
+
+export interface CalculationReviewPoint {
+  id: string;
+  kind: string;
+  targetType: "node" | "member" | "station";
+  label: string;
+  targetId?: string;
+  metricKey?: string;
+  station?: number | null;
+  side?: string;
+  note?: string;
+}
+
+export interface CalculationGoverningEnvelopeItem {
+  id: string;
+  metricKey: string;
+  label: string;
+  value?: number | null;
+  absoluteValue?: number | null;
+  relativeValue?: number | null;
+  unit?: string;
+  sourceType?: string;
+  sourceId?: string;
+  sourceLabel?: string;
+  side?: string;
+  sourceHash?: string;
+  objectId?: string;
+  station?: number | null;
+  scope?: string;
+  kind?: string;
+}
+
+export interface CalculationSnapshot {
+  id: string;
+  name: string;
+  analysisMode: AnalysisMode;
+  createdAt: string;
+  schemaVersion?: string;
+  canonicalHash?: string;
+  requestHash?: string;
+  modelHash?: string;
+  resultHash?: string;
+  summary: Record<string, number | string | boolean | null>;
+  trace: CalculationTraceEntry[];
+  criticalPoints: CalculationCriticalPoint[];
+  reviewPoints: CalculationReviewPoint[];
+  governingEnvelope: CalculationGoverningEnvelopeItem[];
+  byteSize: number;
+  meta?: Record<string, unknown>;
+  sourceMeta?: Record<string, unknown>;
+  note?: string;
+}
+
+export interface CalculationSnapshotComparisonRow {
+  key: string;
+  label: string;
+  left: number | null;
+  right: number | null;
+  absDiff: number | null;
+  relDiff: number | null;
+  unit?: string;
+  reason?: string;
+  leftText?: string;
+  rightText?: string;
+  kind?: "number" | "text";
+}
+
+export interface CalculationSnapshotComparison {
+  left: CalculationSnapshot;
+  right: CalculationSnapshot;
+  rows: CalculationSnapshotComparisonRow[];
+  notes: string[];
+  comparable: boolean;
+}
+
 export interface ResultViewSettings {
   showLoads: boolean;
   showDisplacement: boolean;
@@ -135,6 +236,7 @@ export interface FrameFormPayload {
   projectName: string;
   materialId: string;
   analysisOptions?: FrameAnalysisOptions;
+  reviewPoints?: CalculationReviewPoint[];
   structure: FrameStructure;
   format?: "xlsx" | "docx";
 }
@@ -179,6 +281,8 @@ export interface FrameWorkspaceState {
   customLoads: FrameLoad[];
   customLoadCases: FrameLoadCase[];
   customLoadCombinations: FrameLoadCombination[];
+  reviewPoints: CalculationReviewPoint[];
+  calculationSnapshots: CalculationSnapshot[];
   modelLabelOffsets?: ModelLabelOffsets;
   viewSettings?: ResultViewSettings;
 }
@@ -391,6 +495,11 @@ export interface FrameCalculationResults {
   nodeResults: FrameNodeResult[];
   memberResults: FrameMemberResult[];
   memberDiagrams: FrameMemberDiagram[];
+  calculationTrace?: CalculationTraceEntry[];
+  criticalPoints?: CalculationCriticalPoint[];
+  reviewPoints?: CalculationReviewPoint[];
+  governingEnvelope?: CalculationGoverningEnvelopeItem[];
+  calculationSnapshot?: CalculationSnapshot;
   loadCaseResults?: FrameLoadCaseResult[];
   loadCombinationResults?: Array<FrameLoadCaseResult & { factors: Record<string, number>; tags?: string[] }>;
   secondOrder?: FrameSecondOrderResult;
@@ -487,6 +596,7 @@ export interface TrussFormPayload {
   schemaVersion?: string;
   projectName: string;
   materialId: string;
+  reviewPoints?: CalculationReviewPoint[];
   structure: TrussStructure;
   format?: "xlsx" | "docx";
 }
@@ -499,6 +609,8 @@ export interface TrussWorkspaceState {
   customLoads: TrussLoad[];
   customLoadCases: TrussLoadCase[];
   customLoadCombinations: TrussLoadCombination[];
+  reviewPoints: CalculationReviewPoint[];
+  calculationSnapshots: CalculationSnapshot[];
   modelLabelOffsets?: ModelLabelOffsets;
   viewSettings?: ResultViewSettings;
 }
@@ -574,6 +686,11 @@ export interface TrussCalculationResults {
   structure: TrussStructure;
   nodeResults: TrussNodeResult[];
   memberResults: TrussMemberResult[];
+  calculationTrace?: CalculationTraceEntry[];
+  criticalPoints?: CalculationCriticalPoint[];
+  reviewPoints?: CalculationReviewPoint[];
+  governingEnvelope?: CalculationGoverningEnvelopeItem[];
+  calculationSnapshot?: CalculationSnapshot;
   loadCaseResults?: TrussLoadCaseResult[];
   loadCombinationResults?: Array<TrussLoadCaseResult & { factors: Record<string, number>; tags?: string[] }>;
   nodeIds: string[];

@@ -119,3 +119,17 @@ test("资源与模板提供线上快速开始和黄金流程入口", () => {
   assert.match(systemSettings, /\/docs\/golden-flows\.html/u);
   assert.match(systemSettings, /黄金流程/u);
 });
+
+test("访问统计由根组件全局采集并只在系统设置关于中展示", () => {
+  const app = readFileSync(new URL("../App.tsx", import.meta.url), "utf-8");
+  const systemSettings = readFileSync(
+    new URL("../components/SystemSettingsPanel.tsx", import.meta.url),
+    "utf-8",
+  );
+
+  assert.match(app, /const visitStats = useVisitStats\(\);/u);
+  assert.match(app, /busuanzi_value_site_pv/u);
+  assert.match(app, /busuanzi_value_site_uv/u);
+  assert.match(systemSettings, /title="关于"/u);
+  assert.match(systemSettings, /<VisitStatsBlock stats=\{visitStats\}/u);
+});

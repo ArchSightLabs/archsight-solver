@@ -1,5 +1,12 @@
 import type { Material } from "./material.ts";
 import type { BeamSupportDof, BeamSupportType } from "./supports.ts";
+import type {
+  CalculationCriticalPoint,
+  CalculationGoverningEnvelopeItem,
+  CalculationReviewPoint,
+  CalculationSnapshot,
+  CalculationTraceEntry,
+} from "./structure.ts";
 
 export type { Material } from "./material.ts";
 export { PREDEFINED_MATERIALS } from "./material.ts";
@@ -105,6 +112,8 @@ export interface BeamWorkspaceState {
   scenarios: ComparisonScenario[];
   customLoadCases: BeamLoadCase[];
   customLoadCombinations: BeamLoadCombination[];
+  reviewPoints: CalculationReviewPoint[];
+  calculationSnapshots: CalculationSnapshot[];
   modelLabelOffsets?: import("./structure.ts").ModelLabelOffsets;
   viewSettings?: import("./structure.ts").ResultViewSettings;
 }
@@ -114,6 +123,7 @@ export interface BeamApiPayload extends BeamForm {
   loads?: BeamLoadInput[];
   loadCases?: BeamLoadCase[];
   loadCombinations?: BeamLoadCombination[];
+  reviewPoints?: import("./structure.ts").CalculationReviewPoint[];
   pointLoad?: number;
   pointLoadKn?: number;
   pointLoadPositionRatio?: number;
@@ -142,6 +152,11 @@ export interface BeamCalculationResults {
   shear_data: number[];
   t_data: number[];
   q_t_data: number[];
+  calculationTrace?: CalculationTraceEntry[];
+  criticalPoints?: CalculationCriticalPoint[];
+  reviewPoints?: CalculationReviewPoint[];
+  governingEnvelope?: CalculationGoverningEnvelopeItem[];
+  calculationSnapshot?: CalculationSnapshot;
   beam?: BeamPreviewData;
   summary?: BeamSummary;
   payload?: BeamApiPayload;

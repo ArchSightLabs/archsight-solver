@@ -70,6 +70,36 @@ test("normalizeAnalysisResponse maps unified beam envelope back to beam result s
   assert.equal(beamResultForView({ ...normalized, summary: { ...normalized.summary, statusCode: "REVIEW" as const } })?.summary?.statusCode, "PASS");
 });
 
+test("evidence objects stay normalized when the result view reads its raw apiEnvelope", () => {
+  const normalized = normalizeAnalysisResponse({
+    analysisType: "beam",
+    version: "v1",
+    resultHash: "result-1",
+    request: { analysisType: "beam", spans: [4], beamType: "simply_supported", loadType: "uniform" },
+    model: { analysisType: "beam", structure: { spans: [4] } },
+    results: {
+      resultHash: "result-1",
+      summary: { status: "合格", statusCode: "PASS" },
+      preview: { spans: [4] },
+      series: {},
+      calculationTrace: { stages: [{ stage: "input_normalized", summary: { availability: "available" } }] },
+      criticalPoints: { points: [{ id: "cp-1", object: "beam", objectId: "beam", metric: "moment", value: 1 }] },
+      reviewPoints: { points: [{ id: "rp-1", targetType: "station", targetId: "beam", metric: "deflection", station: 2 }] },
+      governingEnvelope: { entries: [{ id: "env-1", metric: "moment", value: 1, sourceId: "LC1" }] },
+      calculationSnapshot: { schema: "CalculationSnapshot@1", resultHash: "result-1", summary: { maxMomentKnM: 1 } },
+    },
+    diagnostics: {},
+    meta: { requestHash: "request-1", modelHash: "model-1", generatedAt: "2026-08-23T08:00:00Z" },
+  });
+  const viewed = beamResultForView(normalized);
+
+  assert.equal(viewed?.calculationTrace?.[0]?.stage, "input_normalized");
+  assert.equal(viewed?.criticalPoints?.[0]?.metricKey, "moment");
+  assert.equal(viewed?.reviewPoints?.[0]?.targetId, "beam");
+  assert.equal(viewed?.governingEnvelope?.[0]?.sourceId, "LC1");
+  assert.equal(viewed?.calculationSnapshot?.canonicalHash, "result-1");
+});
+
 
 test("normalizeAnalysisResponse maps unified truss envelope back to truss result shape", () => {
   const normalized = normalizeAnalysisResponse({

@@ -1,6 +1,13 @@
 import type { BeamCalculationResults } from "../types/beam";
 import type { FrameCalculationResults, TrussCalculationResults } from "../types/structure";
 import {
+  normalizeCalculationSnapshot,
+  normalizeCalculationTrace,
+  normalizeCriticalPoints,
+  normalizeGoverningEnvelope,
+  normalizeReviewPoints,
+} from "./calculation-artifacts.ts";
+import {
   normalizeSolverDiagnosticIssues,
   solverDiagnosticIssueMessage,
   type SolverDiagnosticIssue,
@@ -17,6 +24,7 @@ export type UnifiedAnalysisEnvelope = {
     structure?: unknown;
   };
   results?: {
+    resultHash?: string;
     summary?: unknown;
     preview?: unknown;
     diagram?: unknown;
@@ -30,12 +38,18 @@ export type UnifiedAnalysisEnvelope = {
     series?: Record<string, unknown>;
     secondOrder?: unknown;
     buckling?: unknown;
+    calculationTrace?: unknown;
+    criticalPoints?: unknown;
+    reviewPoints?: unknown;
+    governingEnvelope?: unknown;
+    calculationSnapshot?: unknown;
   };
   diagnostics?: unknown;
   meta?: {
     generatedAt?: string;
     modelHash?: string;
     requestHash?: string;
+    resultHash?: string;
     compat?: { legacyFields?: string[] };
     jobId?: string;
   };
@@ -90,6 +104,22 @@ export function normalizeAnalysisResponse(raw: unknown): EnvelopeBackedAnalysisR
   const nodeIds = (raw.results?.nodeIds ?? raw.nodeIds ?? []) as string[];
   const memberIds = (raw.results?.memberIds ?? raw.memberIds ?? []) as string[];
   const series = raw.results?.series ?? {};
+  const calculationTrace = normalizeCalculationTrace(raw.results?.calculationTrace ?? raw.calculationTrace);
+  const criticalPoints = normalizeCriticalPoints(raw.results?.criticalPoints ?? raw.criticalPoints);
+  const reviewPoints = normalizeReviewPoints(raw.results?.reviewPoints ?? raw.reviewPoints);
+  const governingEnvelope = normalizeGoverningEnvelope(raw.results?.governingEnvelope ?? raw.governingEnvelope);
+  const rawCalculationSnapshot = raw.results?.calculationSnapshot ?? raw.calculationSnapshot;
+  const calculationSnapshotRecord = rawCalculationSnapshot && typeof rawCalculationSnapshot === "object" && !Array.isArray(rawCalculationSnapshot)
+    ? rawCalculationSnapshot as Record<string, unknown>
+    : {};
+  const calculationSnapshot = normalizeCalculationSnapshot({
+    ...calculationSnapshotRecord,
+    createdAt: calculationSnapshotRecord.createdAt ?? raw.meta?.generatedAt,
+    requestHash: calculationSnapshotRecord.requestHash ?? raw.meta?.requestHash,
+    modelHash: calculationSnapshotRecord.modelHash ?? raw.meta?.modelHash,
+    resultHash: calculationSnapshotRecord.resultHash ?? raw.results?.resultHash ?? raw.resultHash ?? raw.meta?.resultHash,
+    sourceMeta: raw.meta,
+  }, analysisType, raw.meta?.generatedAt ? "结果快照" : "最新结果");
 
   if (analysisType === "frame") {
     return {
@@ -109,6 +139,11 @@ export function normalizeAnalysisResponse(raw: unknown): EnvelopeBackedAnalysisR
       loadCombinationResults: loadCombinationResults as FrameCalculationResults["loadCombinationResults"],
       secondOrder: (raw.results?.secondOrder ?? raw.secondOrder ?? summaryRecord?.secondOrder) as FrameCalculationResults["secondOrder"],
       buckling: (raw.results?.buckling ?? raw.buckling) as FrameCalculationResults["buckling"],
+      calculationTrace,
+      criticalPoints,
+      reviewPoints,
+      governingEnvelope,
+      calculationSnapshot,
       nodeIds,
       memberIds,
       ux_data: ((series.ux_data ?? raw.ux_data ?? []) as number[]),
@@ -135,6 +170,11 @@ export function normalizeAnalysisResponse(raw: unknown): EnvelopeBackedAnalysisR
       memberResults: memberResults as TrussCalculationResults["memberResults"],
       loadCaseResults: loadCaseResults as TrussCalculationResults["loadCaseResults"],
       loadCombinationResults: loadCombinationResults as TrussCalculationResults["loadCombinationResults"],
+      calculationTrace,
+      criticalPoints,
+      reviewPoints,
+      governingEnvelope,
+      calculationSnapshot,
       nodeIds,
       memberIds,
       ux_data: ((series.ux_data ?? raw.ux_data ?? []) as number[]),
@@ -152,6 +192,11 @@ export function normalizeAnalysisResponse(raw: unknown): EnvelopeBackedAnalysisR
     payload: (raw.request ?? raw.payload) as BeamCalculationResults["payload"],
     loadCaseResults: loadCaseResults as BeamCalculationResults["loadCaseResults"],
     loadCombinationResults: loadCombinationResults as BeamCalculationResults["loadCombinationResults"],
+    calculationTrace,
+    criticalPoints,
+    reviewPoints,
+    governingEnvelope,
+    calculationSnapshot,
     x_data: ((series.x_data ?? raw.x_data ?? []) as number[]),
     v_data: ((series.v_data ?? raw.v_data ?? []) as number[]),
     moment_data: ((series.moment_data ?? raw.moment_data ?? []) as number[]),
@@ -191,6 +236,11 @@ export function beamResultForView(result: LegacyAnalysisResults | null): BeamCal
     payload: (envelope?.request ?? legacy.payload) as BeamCalculationResults["payload"],
     loadCaseResults: (envelopeResults?.loadCaseResults ?? legacy.loadCaseResults) as BeamCalculationResults["loadCaseResults"],
     loadCombinationResults: (envelopeResults?.loadCombinationResults ?? legacy.loadCombinationResults) as BeamCalculationResults["loadCombinationResults"],
+    calculationTrace: legacy.calculationTrace,
+    criticalPoints: legacy.criticalPoints,
+    reviewPoints: legacy.reviewPoints,
+    governingEnvelope: legacy.governingEnvelope,
+    calculationSnapshot: legacy.calculationSnapshot,
     x_data: (series.x_data ?? legacy.x_data ?? []) as number[],
     v_data: (series.v_data ?? legacy.v_data ?? []) as number[],
     moment_data: (series.moment_data ?? legacy.moment_data ?? []) as number[],
@@ -223,6 +273,11 @@ export function frameResultForView(result: LegacyAnalysisResults | null): FrameC
     memberDiagrams: (envelopeResults?.memberDiagrams ?? legacy.memberDiagrams ?? []) as FrameCalculationResults["memberDiagrams"],
     loadCaseResults: (envelopeResults?.loadCaseResults ?? legacy.loadCaseResults) as FrameCalculationResults["loadCaseResults"],
     loadCombinationResults: (envelopeResults?.loadCombinationResults ?? legacy.loadCombinationResults) as FrameCalculationResults["loadCombinationResults"],
+    calculationTrace: legacy.calculationTrace,
+    criticalPoints: legacy.criticalPoints,
+    reviewPoints: legacy.reviewPoints,
+    governingEnvelope: legacy.governingEnvelope,
+    calculationSnapshot: legacy.calculationSnapshot,
     secondOrder: (envelopeResults?.secondOrder ?? envelope?.secondOrder ?? legacy.secondOrder) as FrameCalculationResults["secondOrder"],
     buckling: (envelopeResults?.buckling ?? envelope?.buckling ?? legacy.buckling) as FrameCalculationResults["buckling"],
     nodeIds: (envelopeResults?.nodeIds ?? legacy.nodeIds ?? []) as string[],
@@ -258,6 +313,11 @@ export function trussResultForView(result: LegacyAnalysisResults | null): TrussC
     memberResults: (envelopeResults?.memberResults ?? legacy.memberResults ?? []) as TrussCalculationResults["memberResults"],
     loadCaseResults: (envelopeResults?.loadCaseResults ?? legacy.loadCaseResults) as TrussCalculationResults["loadCaseResults"],
     loadCombinationResults: (envelopeResults?.loadCombinationResults ?? legacy.loadCombinationResults) as TrussCalculationResults["loadCombinationResults"],
+    calculationTrace: legacy.calculationTrace,
+    criticalPoints: legacy.criticalPoints,
+    reviewPoints: legacy.reviewPoints,
+    governingEnvelope: legacy.governingEnvelope,
+    calculationSnapshot: legacy.calculationSnapshot,
     nodeIds: (envelopeResults?.nodeIds ?? legacy.nodeIds ?? []) as string[],
     memberIds: (envelopeResults?.memberIds ?? legacy.memberIds ?? []) as string[],
     ux_data: (series.ux_data ?? legacy.ux_data ?? []) as number[],

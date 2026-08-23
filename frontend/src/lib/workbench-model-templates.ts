@@ -16,7 +16,10 @@ export interface BeamModelTemplate {
   description: string;
   tags: string[];
   validationRefs: TemplateValidationRef[];
-  state: Omit<BeamWorkspaceState, "compareEnabled" | "scenarios" | "materials" | "customLoadCases" | "customLoadCombinations">;
+  state: Omit<
+    BeamWorkspaceState,
+    "compareEnabled" | "scenarios" | "materials" | "customLoadCases" | "customLoadCombinations" | "reviewPoints" | "calculationSnapshots"
+  >;
 }
 
 export interface FrameModelTemplate {
@@ -843,7 +846,7 @@ export function cloneFrameModelTemplate(template: FrameModelTemplate) {
   };
 }
 
-export function cloneBeamModelTemplate(template: BeamModelTemplate): BeamWorkspaceState {
+export function cloneBeamModelTemplate(template: BeamModelTemplate): Omit<BeamWorkspaceState, "reviewPoints" | "calculationSnapshots"> {
   return {
     ...template.state,
     materials: PREDEFINED_MATERIALS.map((material) => ({ ...material })),

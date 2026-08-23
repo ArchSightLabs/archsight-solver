@@ -109,6 +109,7 @@ function beamCalculationEnvelope(payload: BeamPayload) {
     success: true,
     operation: "calculate",
     version: "v1",
+    resultHash: "release-1-8-beam-result",
     analysisType: "beam" as const,
     request: payload,
     model: { analysisType: "beam" as const, structure: { spans: beam.spans, supports: beam.supports } },
@@ -244,6 +245,7 @@ function frameCalculationEnvelope(payload: FramePayload) {
     success: true,
     operation: "calculate",
     version: "v1",
+    resultHash: "release-1-8-frame-result",
     analysisType: "frame" as const,
     request: payload,
     model: { analysisType: "frame" as const, structure: payload.structure },
@@ -415,6 +417,7 @@ function trussCalculationEnvelope(payload: TrussPayload) {
     success: true,
     operation: "calculate",
     version: "v1",
+    resultHash: "release-1-8-truss-result",
     analysisType: "truss" as const,
     request: payload,
     model: { analysisType: "truss" as const, structure: payload.structure },
@@ -515,7 +518,7 @@ async function runCalculation(page: Page, runLabel: string, completeText: string
 }
 
 async function openDiagramTab(page: Page) {
-  await page.getByRole("button", { name: "工程图", exact: true }).click();
+  await page.getByRole("tab", { name: "工程图", exact: true }).click();
 }
 
 async function selectMetric(page: Page, tablistName: string, metricName: string) {
@@ -591,7 +594,7 @@ test("框架稳定审查面板暴露 P-Delta 轨迹、模态选择器与屈曲�
   await openWorkbench(page);
   await page.locator("aside").filter({ hasText: "分析对象" }).getByRole("button", { name: /平面框架-1\s+(平面框架|框架)/ }).click();
   await runCalculation(page, "运行平面框架计算", "平面框架计算完成");
-  await page.getByRole("button", { name: "稳定审查", exact: true }).click();
+  await page.getByRole("tab", { name: "稳定审查", exact: true }).click();
 
   await expect(page.getByText("P-Delta 状态", { exact: true })).toBeVisible();
   await expect(page.getByText("收敛轨迹", { exact: true })).toBeVisible();

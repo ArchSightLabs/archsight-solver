@@ -78,13 +78,16 @@ jobs:
         run: |
           uv sync --frozen
           npm --prefix frontend ci --include=optional
-          npm --prefix frontend exec playwright install --with-deps ${{ matrix.browser }}
+          npm --prefix frontend exec -- playwright install --with-deps ${{ matrix.browser }}
 
       - name: Run export evidence matrix
         run: |
           npm --prefix frontend run test:visual -- workbench-export-docx.spec.ts --project=${{ matrix.browser }} --workers=1 --reporter=list
           npm --prefix frontend run test:visual -- release-1-7-verification-package.spec.ts --project=${{ matrix.browser }} --workers=1 --reporter=list
           npm --prefix frontend run test:visual -- release-1-7-learning-paths.spec.ts --project=${{ matrix.browser }} --workers=1 --reporter=list
+          npm --prefix frontend run test:visual -- release-1-8-stability-keypoints.spec.ts --project=${{ matrix.browser }} --workers=1 --reporter=list
+          npm --prefix frontend run test:visual -- release-1-8-calculation-trace.spec.ts --project=${{ matrix.browser }} --workers=1 --reporter=list
+          npm --prefix frontend run test:visual -- release-1-8-workbench-accessibility.spec.ts --project=${{ matrix.browser }} --workers=1 --reporter=list
 
       - name: Upload browser evidence on failure
         if: failure()

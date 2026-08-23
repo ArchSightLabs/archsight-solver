@@ -35,12 +35,26 @@ export interface UmamiAnalyticsRuntime {
 }
 
 export type SolverAnalyticsEventName =
+  | "workbench_ready"
+  | "entry_selected"
+  | "calculation_requested"
+  | "calculation_blocked"
   | "calculation_started"
   | "calculation_completed"
   | "calculation_failed"
+  | "calculation_cancelled"
+  | "calculation_stale"
   | "sensitivity_started"
   | "sensitivity_completed"
   | "sensitivity_failed"
+  | "results_viewed"
+  | "calculation_trace_viewed"
+  | "review_point_added"
+  | "snapshot_saved"
+  | "snapshot_compared"
+  | "critical_points_viewed"
+  | "governing_source_inspected"
+  | "report_export_requested"
   | "export_started"
   | "export_completed"
   | "export_failed"
@@ -53,8 +67,9 @@ export type SolverAnalyticsEventName =
 
 export interface SolverAnalyticsEventData {
   readonly analysis_mode?: AnalysisMode;
+  readonly entry_source?: "native_file" | "file_input" | "public_example" | "host" | "template";
   readonly export_format?: "docx" | "xlsx" | "verification-package";
-  readonly failure_kind?: "api" | "client";
+  readonly failure_kind?: "api" | "client" | "validation" | "diagnostic" | "superseded" | "active_object_changed";
   readonly project_source?: "native_file" | "file_input" | "public_example";
   readonly save_method?: "native" | "download";
 }

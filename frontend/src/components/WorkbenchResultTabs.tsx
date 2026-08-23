@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { GlassCard } from "./ui/GlassCard";
 import type { BeamCalculationResults } from "../types/beam";
 import type {
@@ -7,13 +7,15 @@ import type {
   TrussCalculationResults,
 } from "../types/structure";
 import type { ExportFormat } from "../hooks/useWorkbenchActions";
+import type { FailureReviewFormat } from "../lib/failure-review";
 import type { ReportExportOptions } from "../lib/report-options";
+import type { ResultProvenance, ResultValidity } from "../lib/result-provenance";
 import type { WorkbenchOperationNotice as WorkbenchOperationNoticeModel } from "../lib/workbench-operation-status";
-import type { ResultValidity } from "../lib/result-provenance";
 import { WorkbenchOperationNotice } from "./WorkbenchOperationNotice";
 import { WorkbenchResultContent } from "./WorkbenchResultContent";
 import { WorkbenchResultTabSelector } from "./WorkbenchResultTabSelector";
 import { WorkbenchResultToolbar } from "./WorkbenchResultToolbar";
+import { trackSolverAnalyticsEvent } from "../analytics/umami-analytics";
 import {
   buildDisplayedBeamResults,
   buildDisplayedFrameResults,
@@ -29,10 +31,12 @@ interface WorkbenchResultTabsProps {
   frameResults: FrameCalculationResults | null;
   trussResults: TrussCalculationResults | null;
   exportingFormat: ExportFormat | null;
+  resultProvenance: ResultProvenance | null;
   reportExportOptions: ReportExportOptions;
   compact?: boolean;
   onReportExportOptionsChange: (options: ReportExportOptions) => void;
   onExport: (format: ExportFormat, resultSource?: ResultDisplayOption) => void;
+  onExportFailureReview: (format: FailureReviewFormat) => void;
   onRunCalculation: () => void;
   isSolving: boolean;
   runLabel: string;
@@ -50,10 +54,12 @@ export function WorkbenchResultTabs({
   frameResults,
   trussResults,
   exportingFormat,
+  resultProvenance,
   reportExportOptions,
   compact = false,
   onReportExportOptionsChange,
   onExport,
+  onExportFailureReview,
   onRunCalculation,
   isSolving,
   runLabel,
@@ -84,10 +90,49 @@ export function WorkbenchResultTabs({
   const displayedFrameResults = useMemo(() => buildDisplayedFrameResults(frameResults, activeDisplayOption), [activeDisplayOption, frameResults]);
   const displayedTrussResults = useMemo(() => buildDisplayedTrussResults(trussResults, activeDisplayOption), [activeDisplayOption, trussResults]);
   const modelHash = analysisMode === "frame" ? frameResults?.meta?.modelHash : analysisMode === "truss" ? trussResults?.meta?.modelHash : beamResults?.meta?.modelHash;
+  const resultViewedKeyRef = useRef<string | null>(null);
+  const traceViewedKeyRef = useRef<string | null>(null);
+  const criticalPointsViewedKeyRef = useRef<string | null>(null);
   const handleSelectTab = (tabId: string) => {
     setActiveTabState({ mode: analysisMode, tabId });
     onActiveTabChange?.(tabId);
   };
+
+  const resultAnalyticsKey = `${analysisMode}:${resultProvenance?.requestHash ?? resultProvenance?.modelSignature ?? resultProvenance?.solvedAt ?? modelHash ?? "unknown"}`;
+  useEffect(() => {
+    if (!hasResults) return;
+    if (resultViewedKeyRef.current === resultAnalyticsKey) return;
+    const frame = window.requestAnimationFrame(() => {
+      if (resultViewedKeyRef.current === resultAnalyticsKey) return;
+      resultViewedKeyRef.current = resultAnalyticsKey;
+      void trackSolverAnalyticsEvent("results_viewed", { analysis_mode: analysisMode });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [analysisMode, hasResults, resultAnalyticsKey]);
+
+  useEffect(() => {
+    if (!hasResults || activeTabId !== "calculation") return;
+    const traceAnalyticsKey = `${resultAnalyticsKey}:calculation`;
+    if (traceViewedKeyRef.current === traceAnalyticsKey) return;
+    const frame = window.requestAnimationFrame(() => {
+      if (traceViewedKeyRef.current === traceAnalyticsKey) return;
+      traceViewedKeyRef.current = traceAnalyticsKey;
+      void trackSolverAnalyticsEvent("calculation_trace_viewed", { analysis_mode: analysisMode });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeTabId, analysisMode, hasResults, resultAnalyticsKey]);
+
+  useEffect(() => {
+    if (!hasResults || activeTabId !== "critical") return;
+    const criticalAnalyticsKey = `${resultAnalyticsKey}:critical`;
+    if (criticalPointsViewedKeyRef.current === criticalAnalyticsKey) return;
+    const frame = window.requestAnimationFrame(() => {
+      if (criticalPointsViewedKeyRef.current === criticalAnalyticsKey) return;
+      criticalPointsViewedKeyRef.current = criticalAnalyticsKey;
+      void trackSolverAnalyticsEvent("critical_points_viewed", { analysis_mode: analysisMode });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeTabId, analysisMode, hasResults, resultAnalyticsKey]);
 
   const content = (
     <WorkbenchResultContent
@@ -173,7 +218,12 @@ export function WorkbenchResultTabs({
           />
         </div>
 
-        <WorkbenchOperationNotice notice={operationNotice} compact={compact} />
+        <WorkbenchOperationNotice
+          notice={operationNotice}
+          compact={compact}
+          exportingFormat={exportingFormat}
+          onExportFailureReview={onExportFailureReview}
+        />
 
         <WorkbenchResultTabSelector
           tabs={tabs}
@@ -182,7 +232,14 @@ export function WorkbenchResultTabs({
           onSelectTab={handleSelectTab}
         />
       </GlassCard>
-      <div className={`relative z-0 ${compact ? "min-h-[260px] sm:min-h-[360px]" : "min-h-[320px] sm:min-h-[460px]"}`}>{content}</div>
+      <div
+        className={`relative z-0 ${compact ? "min-h-[260px] sm:min-h-[360px]" : "min-h-[320px] sm:min-h-[460px]"}`}
+        role="tabpanel"
+        id={`result-panel-${activeTabId}`}
+        aria-labelledby={`result-tab-${activeTabId}`}
+      >
+        {content}
+      </div>
     </section>
   );
 }

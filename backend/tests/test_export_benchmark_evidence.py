@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import io
+
 import pandas as pd
 from docx import Document
 
@@ -8,10 +10,29 @@ from backend.examples.public_validation_projects import build_public_validation_
 from backend.contracts.json_schemas import API_SCHEMA_VERSION
 from backend.exporters.common.evidence import build_evidence_tables, build_report_review_table
 from backend.services.export_service import build_report_model, export_report
+from backend.tests.test_beam_workbench import beam_payload
+from backend.tests.test_frame_workbench import frame_payload
+from backend.tests.test_truss_workbench import _base_payload as truss_payload
 
 
 def _table_text(table) -> str:
     return "\n".join(" | ".join(row) for row in table.astype(str).values.tolist())
+
+
+def _docx_text(artifact) -> str:
+    docx = Document(io.BytesIO(artifact.buffer.getvalue()))
+    return "\n".join(
+        [paragraph.text for paragraph in docx.paragraphs]
+        + [cell.text for table in docx.tables for row in table.rows for cell in row.cells]
+    )
+
+
+def _xlsx_text(artifact) -> str:
+    with pd.ExcelFile(io.BytesIO(artifact.buffer.getvalue())) as xls:
+        return "\n".join(
+            pd.read_excel(xls, sheet_name=sheet_name, header=None).astype(str).to_string()
+            for sheet_name in xls.sheet_names
+        )
 
 
 def test_export_evidence_tables_include_public_benchmark_source_and_expected_values():
@@ -313,3 +334,74 @@ def test_frame_export_templates_split_stability_summary_and_detail():
     assert "P-Delta 收敛记录" in complete_xlsx_text
     assert "屈曲节点模态向量" in complete_xlsx_text
     assert "屈曲构件模态形状" in complete_xlsx_text
+
+
+def test_standard_and_complete_exports_diverge_by_analysis_type_for_docx_and_xlsx():
+    cases = [
+        ("beam", beam_payload()),
+        ("frame", frame_payload()),
+        ("truss", truss_payload()),
+    ]
+    for analysis_type, payload in cases:
+        standard_report = build_report_model(
+            payload,
+            analysis_type=analysis_type,
+            material_name="测试材料",
+            sensitivity_results=None,
+            report_images=None,
+            report_options={"template": "standard", "figureMode": "overlay", "figureScope": "all", "reviewStatus": "draft"},
+        )
+        complete_report = build_report_model(
+            payload,
+            analysis_type=analysis_type,
+            material_name="测试材料",
+            sensitivity_results=None,
+            report_images=None,
+            report_options={"template": "complete", "figureMode": "both", "figureScope": "all", "reviewStatus": "draft"},
+        )
+
+        standard_docx_text = _docx_text(export_report(standard_report, "docx"))
+        complete_docx_text = _docx_text(export_report(complete_report, "docx"))
+        standard_report_xlsx = build_report_model(
+            payload,
+            analysis_type=analysis_type,
+            material_name="测试材料",
+            sensitivity_results=None,
+            report_images=None,
+            report_options={"template": "standard", "figureMode": "overlay", "figureScope": "all", "reviewStatus": "draft"},
+        )
+        complete_report_xlsx = build_report_model(
+            payload,
+            analysis_type=analysis_type,
+            material_name="测试材料",
+            sensitivity_results=None,
+            report_images=None,
+            report_options={"template": "complete", "figureMode": "both", "figureScope": "all", "reviewStatus": "draft"},
+        )
+        standard_xlsx = pd.ExcelFile(io.BytesIO(export_report(standard_report_xlsx, "xlsx").buffer.getvalue()))
+        complete_xlsx = pd.ExcelFile(io.BytesIO(export_report(complete_report_xlsx, "xlsx").buffer.getvalue()))
+
+        assert "工程输入摘要" in standard_docx_text
+        assert "关键点表" in standard_docx_text
+        assert "CalculationTrace" not in standard_docx_text
+        assert "复核点表" not in standard_docx_text
+        assert "包络来源" not in standard_docx_text
+        assert "计算快照" not in standard_docx_text
+
+        assert "工程输入摘要" in complete_docx_text
+        assert "关键点表" in complete_docx_text
+        assert "CalculationTrace" in complete_docx_text
+        assert "复核点表" in complete_docx_text
+        assert "包络来源" in complete_docx_text
+        assert "计算快照" in complete_docx_text
+
+        if analysis_type == "frame":
+            standard_xlsx_text = _xlsx_text(export_report(standard_report_xlsx, "xlsx"))
+            complete_xlsx_text = _xlsx_text(export_report(complete_report_xlsx, "xlsx"))
+            assert "P-Delta 收敛记录" not in standard_xlsx_text
+            assert "P-Delta 收敛记录" in complete_xlsx_text
+            assert "屈曲节点模态向量" in complete_xlsx_text
+            assert "屈曲构件模态形状" in complete_xlsx_text
+        else:
+            assert len(complete_xlsx.sheet_names) == len(standard_xlsx.sheet_names) + 1
+            assert set(complete_xlsx.sheet_names) - set(standard_xlsx.sheet_names)

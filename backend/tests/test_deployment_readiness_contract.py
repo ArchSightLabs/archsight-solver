@@ -73,6 +73,7 @@ def _path_for_bash(bash: str, path: Path) -> str:
         capture_output=True,
         text=True,
         encoding="utf-8",
+        errors="replace",
         timeout=5,
         check=True,
     )
@@ -115,6 +116,7 @@ def _run_deploy_with_fake_docker(tmp_path: Path, *, health_mode: str) -> subproc
         capture_output=True,
         text=True,
         encoding="utf-8",
+        errors="replace",
         timeout=15,
         check=False,
     )

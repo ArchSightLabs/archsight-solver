@@ -652,21 +652,34 @@ def test_openapi_document_reuses_schema_registry():
         "$ref": "#/components/schemas/sensitivity-payload"
     }
     assert document["components"]["schemas"]["sensitivity-payload"]["properties"]["config"]["properties"]["steps"]["maximum"] == 50
-    assert document["paths"]["/api/export"]["post"]["requestBody"]["content"]["application/json"]["schema"] == {
-        "$ref": "#/components/schemas/export-payload"
-    }
     assert document["paths"]["/api/verification-packages"]["post"]["requestBody"]["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/verification-package-create-input"
     }
     assert document["paths"]["/api/verification-packages/verify"]["post"]["responses"]["200"]["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/verification-package-verify-response"
     }
+    export_request_schema = document["paths"]["/api/export"]["post"]["requestBody"]["content"]["application/json"]["schema"]
+    assert export_request_schema["oneOf"] == [
+        {"$ref": "#/components/schemas/export-payload"},
+        {"$ref": "#/components/schemas/failure-review-export-payload"},
+    ]
+    assert document["paths"]["/api/export/failure"]["post"]["requestBody"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/failure-review-payload"
+    }
     assert document["components"]["schemas"]["export-payload"]["properties"]["format"]["enum"] == ["xlsx", "docx"]
+    assert document["components"]["schemas"]["export-payload"]["properties"]["materialType"]["enum"] == ["failure-review"]
+    failure_review_schema = document["components"]["schemas"]["failure-review-payload"]
+    assert failure_review_schema["oneOf"][0]["required"] == ["inputId", "completedStages", "stableErrorCode"]
+    assert failure_review_schema["oneOf"][1]["required"] == ["jobId"]
+    failure_review_export_schema = document["components"]["schemas"]["failure-review-export-payload"]
+    assert failure_review_export_schema["oneOf"][0]["required"] == ["materialType", "inputId", "completedStages", "stableErrorCode"]
+    assert failure_review_export_schema["oneOf"][1]["required"] == ["materialType", "jobId"]
     learning_review = document["components"]["schemas"]["export-payload"]["properties"]["learningReview"]
     assert learning_review["properties"]["schemaVersion"] == {"type": "integer", "const": 1}
     assert learning_review["properties"]["answers"]["items"]["additionalProperties"] is False
     assert learning_review["additionalProperties"] is False
     assert "500" in document["paths"]["/api/export"]["post"]["responses"]
+    assert "500" in document["paths"]["/api/export/failure"]["post"]["responses"]
     tenant_header = next(
         parameter
         for parameter in document["paths"]["/api/jobs"]["post"]["parameters"]
@@ -696,6 +709,7 @@ def test_openapi_endpoint_exposes_document(client):
     assert payload["openapi"] == "3.1.0"
     assert "/api/sensitivity" in payload["paths"]
     assert "/api/benchmark-submissions" in payload["paths"]
+    assert "/api/export/failure" in payload["paths"]
 
 
 def test_schema_endpoint_returns_single_schema(client):

@@ -1,4 +1,5 @@
 import { createPortalFrameModelFromState } from "./lib/workspace-state.ts";
+import { normalizeReviewPoints } from "./lib/calculation-artifacts.ts";
 import { ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION } from "./lib/project-file.ts";
 import { MAX_FRAME_MEMBERS, MAX_FRAME_NODES, MAX_TRUSS_MEMBERS, MAX_TRUSS_NODES } from "./lib/solver-limits.ts";
 import { materialIdForYoungModulus } from "./lib/material-presets.ts";
@@ -197,6 +198,7 @@ export function buildBeamPayload(value: BeamWorkspaceState, projectName = value.
     beamType: value.beamType,
     loadType,
     loads,
+    reviewPoints: normalizeReviewPoints(value.reviewPoints),
     loadValue: value.q,
     loadPosition: primaryPointLoad?.positionRatio ?? value.pointLoadPositionRatio,
     loadEnd: value.distributedLoadEndRatio,
@@ -244,6 +246,7 @@ export function createPortalFramePayload(value: FrameWorkspaceState, projectName
       pDeltaOptions: { ...value.analysisOptions.pDeltaOptions },
       bucklingOptions: { ...value.analysisOptions.bucklingOptions },
     },
+    reviewPoints: normalizeReviewPoints(value.reviewPoints),
     structure: {
       template: "portal_frame",
       span: value.span,
@@ -427,6 +430,7 @@ function normalizeCustomTrussCollections(value: TrussWorkspaceState) {
       y: Number.isFinite(node.y) ? Number(node.y) : 0,
       supportType: normalizeTrussSupportType(node.supportType),
     })),
+    reviewPoints: normalizeReviewPoints(value.reviewPoints),
     members,
     loads,
     loadCases,

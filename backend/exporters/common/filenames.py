@@ -7,6 +7,7 @@ ANALYSIS_FILENAME_LABELS = {
     "beam": "梁系",
     "frame": "平面框架",
     "truss": "平面桁架",
+    "failure-review": "失败审查",
 }
 
 EXPORT_KIND_LABELS = {
@@ -20,8 +21,8 @@ def safe_filename_segment(value: object, fallback: str = "未命名项目") -> s
     return sanitized or fallback
 
 
-def export_filename(project_name: object, analysis_type: str, extension: str) -> str:
+def export_filename(project_name: object, analysis_type: str, extension: str, *, artifact_label: str | None = None) -> str:
     normalized_extension = extension.lstrip(".").lower()
     analysis_label = ANALYSIS_FILENAME_LABELS.get(analysis_type, "结构分析")
-    kind_label = EXPORT_KIND_LABELS.get(normalized_extension, "导出文件")
+    kind_label = artifact_label or EXPORT_KIND_LABELS.get(normalized_extension, "导出文件")
     return f"{safe_filename_segment(project_name)}_{analysis_label}_{kind_label}.{normalized_extension}"

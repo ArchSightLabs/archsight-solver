@@ -39,6 +39,54 @@ DOF_LABELS = {
 }
 
 
+def _mapping(value: Any) -> Mapping[str, Any]:
+    return value if isinstance(value, Mapping) else {}
+
+
+def _list(value: Any) -> list[Any]:
+    return value if isinstance(value, list) else []
+
+
+def _float(value: Any, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _solution(result: Mapping[str, Any]) -> Mapping[str, Any]:
+    solution = result.get("solution")
+    return solution if isinstance(solution, Mapping) else result
+
+
+def _evidence_payload(result: Mapping[str, Any]) -> Mapping[str, Any]:
+    payload = _solution(result)
+    return payload if isinstance(payload, Mapping) else {}
+
+
+def _evidence_value(result: Mapping[str, Any], key: str, default: Any = None) -> Any:
+    if isinstance(result, Mapping):
+        value = result.get(key, default)
+        if value is not None:
+            return value
+    payload = _evidence_payload(result)
+    if key in payload:
+        value = payload.get(key)
+        if value is not None:
+            return value
+    return default
+
+
+def _format_scalar(value: Any, default: str = "—") -> str:
+    if value is None:
+        return default
+    if isinstance(value, float):
+        if math.isnan(value) or math.isinf(value):
+            return default
+        return f"{round(value, 6)}"
+    return str(value)
+
+
 def build_evidence_tables(
     solution: Mapping[str, Any],
     analysis_type: str,
@@ -46,10 +94,19 @@ def build_evidence_tables(
     report_options: Mapping[str, Any] | None = None,
 ) -> Dict[str, pd.DataFrame]:
     if analysis_type == "frame":
-        return _frame_evidence(solution, material_name, report_options)
+        tables = _frame_evidence(solution, material_name, report_options)
     if analysis_type == "truss":
-        return _truss_evidence(solution, material_name)
-    return _beam_evidence(solution, material_name)
+        tables = _truss_evidence(solution, material_name)
+    if analysis_type not in {"frame", "truss"}:
+        tables = _beam_evidence(solution, material_name)
+
+    tables["关键点表"] = _critical_point_table(solution, analysis_type)
+    if _report_template(report_options) == "complete":
+        tables["CalculationTrace"] = _calculation_trace_table(solution, analysis_type)
+        tables["复核点表"] = _review_point_table(solution, analysis_type)
+        tables["包络来源"] = _governing_envelope_table(solution, analysis_type)
+        tables["计算快照"] = _calculation_snapshot_table(solution, analysis_type)
+    return tables
 
 
 def build_report_review_table(solution: Mapping[str, Any], analysis_type: str, report_options: Mapping[str, Any] | None = None) -> pd.DataFrame:
@@ -73,6 +130,10 @@ def build_report_review_table(solution: Mapping[str, Any], analysis_type: str, r
         ],
         columns=["项目", "状态/证据", "说明"],
     )
+
+
+def select_evidence_table_items(tables: Mapping[str, pd.DataFrame], names: Iterable[str]) -> Dict[str, pd.DataFrame]:
+    return {name: tables[name] for name in names if name in tables}
 
 
 def _result_provenance_rows(solution: Mapping[str, Any]) -> List[List[str]]:
@@ -394,6 +455,256 @@ def _frame_stability_evidence(solution: Mapping[str, Any], report_options: Mappi
 def _report_template(report_options: Mapping[str, Any] | None) -> str:
     template = str((report_options or {}).get("template") or "complete").strip().lower()
     return template if template in {"standard", "complete"} else "complete"
+
+
+def _control_entry_source_text(entry: Mapping[str, Any]) -> str:
+    source_type = str(entry.get("sourceType") or "legacy")
+    source_id = str(entry.get("sourceId") or entry.get("id") or "—")
+    labels = {
+        "main": "主结果",
+        "system": "系统点",
+        "request": "复核点",
+        "legacy": "旧结果",
+    }
+    return f"{labels.get(source_type, source_type)} [{source_id}]"
+
+
+def _control_entry_station_text(entry: Mapping[str, Any]) -> str:
+    if entry.get("station") is not None:
+        return f"x={round(_float(entry.get('station'), 0.0), 6)} m"
+    if entry.get("stationRatio") is not None:
+        return f"{round(_float(entry.get('stationRatio'), 0.0) * 100.0, 2)}%"
+    return "—"
+
+
+def _control_entry_object_text(entry: Mapping[str, Any]) -> str:
+    object_type = str(entry.get("object") or entry.get("objectType") or "—")
+    object_id = str(entry.get("objectId") or entry.get("id") or "—")
+    if object_type == "node":
+        return f"节点 {object_id}"
+    if object_type == "member":
+        return f"构件 {object_id}"
+    if object_type == "beam":
+        return f"梁系 {object_id}"
+    if object_type == "truss":
+        return f"桁架 {object_id}"
+    return f"{object_type} {object_id}".strip()
+
+
+def _control_entry_metric_text(entry: Mapping[str, Any]) -> str:
+    metric = str(entry.get("metric") or "—")
+    kind = str(entry.get("kind") or "—")
+    if kind == "legacy":
+        return metric
+    if metric == "—":
+        return kind
+    return f"{metric} / {kind}"
+
+
+def _control_entry_rows(
+    result: Mapping[str, Any],
+    analysis_type: str,
+    *,
+    source_key: str,
+    fallback_source: str,
+) -> List[Dict[str, Any]]:
+    source = _mapping(_evidence_value(result, source_key, {}))
+    if source_key == "reviewPoints":
+        points = _list(source.get("requestedPoints")) or _list(source.get("points"))
+    else:
+        points = _list(source.get("points"))
+    if points:
+        rows: List[Dict[str, Any]] = []
+        for point in points:
+            if not isinstance(point, Mapping):
+                continue
+            rows.append(
+                {
+                    "key": str(point.get("id") or point.get("sourceId") or point.get("objectId") or "—"),
+                    "sourceType": point.get("sourceType", fallback_source),
+                    "sourceId": point.get("sourceId", point.get("id", "—")),
+                    "object": point.get("object", "—"),
+                    "objectId": point.get("objectId", "—"),
+                    "metric": point.get("metric", "—"),
+                    "kind": point.get("kind", "—"),
+                    "station": point.get("station"),
+                    "stationRatio": point.get("stationRatio"),
+                    "value": point.get("value", "—"),
+                    "unit": point.get("unit", "—"),
+                    "note": "readOnly=" + str(bool(point.get("readOnly"))),
+                    "selector": json.dumps(point.get("selector", {}), ensure_ascii=False) if point.get("selector") else "—",
+                }
+            )
+        return rows
+    return []
+
+
+def _critical_point_table(result: Mapping[str, Any], analysis_type: str) -> pd.DataFrame:
+    rows = _control_entry_rows(result, analysis_type, source_key="criticalPoints", fallback_source="canonical")
+    if not rows:
+        return pd.DataFrame(
+            [[
+                "关键点摘要",
+                "unavailable",
+                "—",
+                "—",
+                "—",
+                "—",
+                "—",
+                "当前结果未提供 criticalPoints；仅展示摘要，不重算。",
+            ]],
+            columns=["关键点", "来源", "对象", "指标", "测站", "数值", "单位", "说明"],
+        )
+    return pd.DataFrame(
+        [
+            [
+                row["key"],
+                _control_entry_source_text(row),
+                _control_entry_object_text(row),
+                _control_entry_metric_text(row),
+                _control_entry_station_text(row),
+                _format_scalar(row["value"]),
+                _format_scalar(row["unit"]),
+                row["note"],
+            ]
+            for row in rows
+        ],
+        columns=["关键点", "来源", "对象", "指标", "测站", "数值", "单位", "说明"],
+    )
+
+
+def _review_point_table(result: Mapping[str, Any], analysis_type: str) -> pd.DataFrame:
+    rows = _control_entry_rows(result, analysis_type, source_key="reviewPoints", fallback_source="canonical")
+    if not rows:
+        return pd.DataFrame(
+            [[
+                "复核点摘要",
+                "unavailable",
+                "—",
+                "—",
+                "—",
+                "—",
+                "—",
+                "当前结果未提供 reviewPoints；仅展示摘要，不重算。",
+            ]],
+            columns=["复核点", "来源", "对象", "指标", "测站", "数值", "单位", "选择器"],
+        )
+    return pd.DataFrame(
+        [
+            [
+                row["key"],
+                _control_entry_source_text(row),
+                _control_entry_object_text(row),
+                _control_entry_metric_text(row),
+                _control_entry_station_text(row),
+                _format_scalar(row["value"]),
+                _format_scalar(row["unit"]),
+                row["selector"],
+            ]
+            for row in rows
+        ],
+        columns=["复核点", "来源", "对象", "指标", "测站", "数值", "单位", "选择器"],
+    )
+
+
+def _governing_envelope_table(result: Mapping[str, Any], analysis_type: str) -> pd.DataFrame:
+    envelope = _mapping(_evidence_value(result, "governingEnvelope", {}))
+    entries = _list(envelope.get("entries"))
+    if entries:
+        rows = []
+        for entry in entries:
+            if not isinstance(entry, Mapping):
+                continue
+            rows.append(
+                [
+                    str(entry.get("id") or entry.get("sourcePointId") or "—"),
+                    _control_entry_source_text(entry),
+                    _control_entry_object_text(entry),
+                    _control_entry_metric_text(entry),
+                    str(entry.get("kind") or "—"),
+                    _control_entry_station_text(entry),
+                    _format_scalar(entry.get("value")),
+                    _format_scalar(entry.get("unit")),
+                    str(entry.get("sourcePointId") or "—"),
+                ]
+            )
+        if rows:
+            return pd.DataFrame(rows, columns=["包络项", "来源", "对象", "指标", "类型", "测站", "数值", "单位", "来源点"])
+
+    return pd.DataFrame(
+        [[
+            "包络摘要",
+            "unavailable",
+            "—",
+            "—",
+            "—",
+            "—",
+            "—",
+            "当前结果未提供 governingEnvelope；仅展示摘要，不重算。",
+            "—",
+        ]],
+        columns=["包络项", "来源", "对象", "指标", "类型", "测站", "数值", "单位", "来源点"],
+    )
+
+
+def _calculation_trace_table(result: Mapping[str, Any], analysis_type: str) -> pd.DataFrame:
+    trace = _mapping(_evidence_value(result, "calculationTrace", {}))
+    rows: List[List[str]] = [
+        ["分析类型", analysis_type, "—"],
+        ["请求签名", _format_scalar(trace.get("requestHash", result.get("requestHash", "—"))), "—"],
+        ["模型签名", _format_scalar(trace.get("modelHash", result.get("modelHash", "—"))), "—"],
+        ["结果签名", _format_scalar(trace.get("resultHash", result.get("resultHash", "—"))), "—"],
+    ]
+    stages = _list(trace.get("stages"))
+    if stages:
+        rows.append(["阶段数", _format_scalar(trace.get("stageCount", len(stages))), "—"])
+        for stage in stages:
+            if not isinstance(stage, Mapping):
+                continue
+            rows.append(
+                [
+                    str(stage.get("stage") or "—"),
+                    _format_mapping_summary(stage.get("summary")),
+                    f"bounded={stage.get('bounded', '—')}；truncated={stage.get('truncated', '—')}",
+                ]
+            )
+    else:
+        rows.append(["证据状态", "unavailable", "当前结果未提供 calculationTrace；仅展示摘要，不重算。"])
+    return pd.DataFrame(rows, columns=["阶段", "摘要", "边界/计数"])
+
+
+def _calculation_snapshot_table(result: Mapping[str, Any], analysis_type: str) -> pd.DataFrame:
+    snapshot = _mapping(_evidence_value(result, "calculationSnapshot", {}))
+    summary = _mapping(snapshot.get("summary"))
+    diagnostics = _mapping(snapshot.get("diagnostics"))
+    evidence_hashes = _mapping(snapshot.get("evidenceHashes"))
+    counts = _mapping(snapshot.get("counts"))
+    rows = [
+        ["分析类型", _format_scalar(snapshot.get("analysisType", analysis_type)), "—"],
+        ["阶段", _format_scalar(snapshot.get("stage", "completed")), "—"],
+        ["操作", _format_scalar(snapshot.get("operation", result.get("operation", "calculate"))), "—"],
+        ["结果状态", _format_scalar(summary.get("status", "—")), _format_scalar(summary.get("method", "—"))],
+        ["结果码", _format_scalar(summary.get("statusCode", "—")), "—"],
+        ["诊断状态", _format_scalar(diagnostics.get("status", "—")), _format_scalar(diagnostics.get("statusCode", "—"))],
+        ["requestHash", _format_scalar(snapshot.get("requestHash", result.get("requestHash", "—"))), "—"],
+        ["modelHash", _format_scalar(snapshot.get("modelHash", result.get("modelHash", "—"))), "—"],
+        ["resultHash", _format_scalar(snapshot.get("resultHash", result.get("resultHash", "—"))), "—"],
+        ["criticalPoints", _format_scalar(counts.get("criticalPoints", "—")), "—"],
+        ["reviewPoints", _format_scalar(counts.get("reviewPoints", "—")), "—"],
+        ["governingEnvelope", _format_scalar(counts.get("governingEnvelope", "—")), "—"],
+        ["calculationTrace", _format_scalar(evidence_hashes.get("calculationTrace", "—")), "—"],
+        ["criticalPointsHash", _format_scalar(evidence_hashes.get("criticalPoints", "—")), "—"],
+        ["reviewPointsHash", _format_scalar(evidence_hashes.get("reviewPoints", "—")), "—"],
+        ["governingEnvelopeHash", _format_scalar(evidence_hashes.get("governingEnvelope", "—")), "—"],
+    ]
+    if analysis_type == "frame":
+        rows.append(["secondOrderAmplificationFactor", _format_scalar(summary.get("secondOrderAmplificationFactor", "—")), "—"])
+    if isinstance(diagnostics.get("equilibrium"), Mapping):
+        eq = diagnostics.get("equilibrium")
+        rows.append(["equilibrium.rmsRelativeError", _format_scalar(eq.get("rmsRelativeError", "—")), "—"])
+    if not snapshot:
+        rows.insert(0, ["证据状态", "unavailable", "当前结果未提供 calculationSnapshot；仅展示摘要，不重算。"])
+    return pd.DataFrame(rows, columns=["项目", "值", "说明"])
 
 
 def _list_value_at(values: List[Any], index: int, default: Any = "—") -> Any:

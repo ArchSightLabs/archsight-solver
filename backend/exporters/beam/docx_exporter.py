@@ -8,7 +8,7 @@ import pandas as pd
 from backend.common.material_catalog import material_report_rows
 from backend.exporters.common.artifact import ExportArtifact
 from backend.exporters.common.docx_utils import HAS_DOCX, add_df_table, add_heading, add_png_figure, add_report_title, create_document, png_from_report_images, style_table_header_row
-from backend.exporters.common.evidence import build_evidence_tables, build_report_review_table
+from backend.exporters.common.evidence import build_evidence_tables, build_report_review_table, select_evidence_table_items
 from backend.exporters.common.filenames import export_filename
 from backend.exporters.common.load_tables import build_load_combination_rows
 from backend.exporters.common.result_source import result_source_text
@@ -22,6 +22,25 @@ from backend.exporters.common.report_figures import (
     beam_preview_png,
     line_chart_png,
     sensitivity_chart_png,
+)
+
+
+BEAM_STANDARD_EVIDENCE_TABLES = (
+    "工程输入摘要",
+    "模型假定与适用范围",
+    "单位换算表",
+    "跨段刚度输入",
+    "边界条件表",
+    "计算方法说明",
+    "校核证据",
+    "关键点表",
+)
+
+BEAM_COMPLETE_EVIDENCE_TABLES = (
+    "CalculationTrace",
+    "复核点表",
+    "包络来源",
+    "计算快照",
 )
 
 
@@ -120,7 +139,8 @@ def export_docx(
         doc.add_paragraph(symbolic.get("limitations", "该内容用于教学解释和量级复核。"))
 
     add_heading(doc, "2.4 可审查计算证据链")
-    _add_evidence_tables(doc, build_evidence_tables(solution, "beam", material_name))
+    evidence_tables = build_evidence_tables(solution, "beam", material_name, options)
+    _add_evidence_tables(doc, select_evidence_table_items(evidence_tables, BEAM_STANDARD_EVIDENCE_TABLES))
 
     add_heading(doc, "3. 计算摘要")
     summary = doc.add_paragraph()
@@ -192,6 +212,10 @@ def export_docx(
         row[0].text = str(round(float(solution["x_data"][index]), 4))
         row[1].text = str(round(float(solution["v_data"][index]), 4))
         row[2].text = str(round(float(solution["element_end_moments"][index]), 4))
+
+    if options.get("template") == "complete":
+        add_heading(doc, "7. 完整证据链")
+        _add_evidence_tables(doc, select_evidence_table_items(evidence_tables, BEAM_COMPLETE_EVIDENCE_TABLES))
 
     output = io.BytesIO()
     doc.save(output)

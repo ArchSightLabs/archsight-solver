@@ -98,6 +98,9 @@ jobs:
           npm run test:visual -- release-1-6-2-result-validity.spec.ts --project=chromium --workers=1
           npm run test:visual -- release-1-7-verification-package.spec.ts --project=chromium --workers=1
           npm run test:visual -- release-1-7-learning-paths.spec.ts --project=chromium --workers=1
+          npm run test:visual -- release-1-8-stability-keypoints.spec.ts --project=chromium --workers=1
+          npm run test:visual -- release-1-8-calculation-trace.spec.ts --project=chromium --workers=1
+          npm run test:visual -- release-1-8-workbench-accessibility.spec.ts --project=chromium --workers=1
           npm run test:visual -- release-1-6-1-host-reference.spec.ts --project=chromium --workers=1
           npm run test:visual -- release-1-6-host-integration.spec.ts --project=chromium --workers=1
           npm run test:visual -- release-1-5-quick-modeling.spec.ts --project=chromium --workers=1
@@ -153,7 +156,7 @@ jobs:
       - name: Install container Host E2E dependencies
         run: |
           npm --prefix frontend ci --include=optional
-          npm --prefix frontend exec playwright install --with-deps chromium
+          npm --prefix frontend exec -- playwright install --with-deps chromium
 
       - name: Build release image
         run: docker build --tag archsight-solver:release-gate .

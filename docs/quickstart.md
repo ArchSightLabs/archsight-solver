@@ -57,12 +57,12 @@ npm --prefix frontend run build
 
 ## GitHub Release 五分钟路径
 
-如果只需要 CLI / MCP，不必克隆仓库。下载 v1.7.0 Release 的 `archsight_solver-1.7.0-py3-none-any.whl` 与 `SHA256SUMS`，校验后安装：
+如果只需要 CLI / MCP，不必克隆仓库。下载 v1.8.0 Release 的 `archsight_solver-1.8.0-py3-none-any.whl` 与 `SHA256SUMS`，校验后安装：
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install .\archsight_solver-1.7.0-py3-none-any.whl
+python -m pip install .\archsight_solver-1.8.0-py3-none-any.whl
 ```
 
 按[可信计算包指南](verification-package.md)准备 `create-request.json`；源码仓库可直接复制 `examples/verification-package/create-request.json`。然后生成并复算：
@@ -174,7 +174,7 @@ uv run python -m backend.capabilities.mcp_server
 
 资源路径、更新责任和验收检查见 [MCP Resources 清单与生成口径](mcp-resources.md)。
 
-可信计算包的字段、状态、容差与责任边界见[可信计算包 1.0](verification-package.md)，按角色复跑的完整路径见[v1.7 三条黄金流程](golden-flows.md)。
+可信计算包的字段、状态、容差与责任边界见[可信计算包 1.0](verification-package.md)，按角色复跑的完整路径见[三条黄金流程](golden-flows.md)。
 
 ## 二维框架快速验证
 

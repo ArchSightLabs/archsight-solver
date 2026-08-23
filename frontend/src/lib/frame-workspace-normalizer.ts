@@ -17,6 +17,10 @@ import {
   createPortalFrameCollections,
 } from "./workspace-defaults.ts";
 import type { FrameCollections } from "./workspace-defaults.ts";
+import {
+  normalizeCalculationSnapshotCollection,
+  normalizeReviewPoints,
+} from "./calculation-artifacts.ts";
 import { MAX_FRAME_MEMBERS, MAX_FRAME_NODES } from "./solver-limits.ts";
 import { normalizeModelLabelOffsets } from "./model-label-overrides.ts";
 import { normalizeTextId, pickExistingId } from "./workspace-normalizer-utils.ts";
@@ -396,6 +400,8 @@ export function normalizeFrameWorkspaceState(value: Partial<FrameWorkspaceState>
     customLoads,
     customLoadCases,
     customLoadCombinations,
+    reviewPoints: normalizeReviewPoints(value?.reviewPoints ?? base.reviewPoints),
+    calculationSnapshots: normalizeCalculationSnapshotCollection(value?.calculationSnapshots ?? base.calculationSnapshots, "frame"),
     modelLabelOffsets: normalizeModelLabelOffsets(value?.modelLabelOffsets),
     viewSettings: value?.viewSettings ? { ...value.viewSettings } : base.viewSettings,
   };

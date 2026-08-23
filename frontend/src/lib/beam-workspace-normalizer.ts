@@ -18,6 +18,10 @@ import {
   createDefaultBeamWorkspaceState,
   defaultBeamSupports,
 } from "./workspace-defaults.ts";
+import {
+  normalizeCalculationSnapshotCollection,
+  normalizeReviewPoints,
+} from "./calculation-artifacts.ts";
 import { MAX_BEAM_SPANS } from "./solver-limits.ts";
 import { normalizeModelLabelOffsets } from "./model-label-overrides.ts";
 import { normalizeTextId } from "./workspace-normalizer-utils.ts";
@@ -370,6 +374,8 @@ export function normalizeBeamWorkspaceState(value: Partial<BeamWorkspaceState> |
     ...value,
     customLoadCases,
     customLoadCombinations,
+    reviewPoints: normalizeReviewPoints(value?.reviewPoints ?? base.reviewPoints),
+    calculationSnapshots: normalizeCalculationSnapshotCollection(value?.calculationSnapshots ?? base.calculationSnapshots, "beam"),
     materials,
     materialId,
     beamType,

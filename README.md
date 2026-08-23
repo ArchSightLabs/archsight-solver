@@ -67,18 +67,18 @@ npm --prefix frontend run test:unit
 
 详细功能边界见 [功能与适用边界](docs/capabilities.md)。
 
-## v1.7.0 版本主题
+## v1.8.0 版本主题
 
-v1.7.0 的重点是“可携带、可复核、可解释”：可信计算包与开放分发解决计算证据的携带和复算，三条五分钟学习路径把公开案例、图形、计算书与解析证据连成一条可复核路径。
+v1.8.0 的重点是“可审查静力与稳定工作台”：在 v1.7 可携带、可复算的证据基础上，让用户继续检查计算过程、工程关键点、控制来源与一次修改的影响。
 
-- 梁、平面桁架、平面框架各提供一条五分钟路径：先预判，再计算、看图、核对 A 级教材解析证据。
-- DOCX、XLSX 和可信计算包可携带学习复核结论，便于学生自查、教师讲解和工程师复核。
-- 普通工程与既有 API/CLI/MCP 保持原有使用方式，不引入账号、课程、班级、作业或订阅。
-- 匿名统计仍只记录受限里程碑，不采集模型、参数、项目、文件、结果、自由文本或身份。
+- `CalculationTrace@1`、关键点/复核点、控制包络和命名快照使用同一次 canonical result，不由前端或导出器二次求解。
+- 梁、平面桁架、平面框架的图形、点表、标准/详细计算书、XLSX 与可信计算包共享对象、测站、数值、单位和来源。
+- 二维框架真实 P-Delta 与线性屈曲分别保留迭代、模态、残差和接近临界失败证据。
+- 失败计算可形成只包含已完成阶段与诊断证据的审查材料；不引入账号、云项目、规范设计或第四类分析域。
 
 直接开始：[公开案例与五分钟学习路径](https://solver.archsight.cn/) · [五分钟安装路径](docs/quickstart.md) · [可信计算包指南](docs/verification-package.md) · [English entry](README.en.md)
 
-完整验证证据、Tag Release 门禁与回滚边界见 [v1.7.0 发布验收](docs/verification/release-1-7-acceptance.md)。
+完整验证证据、Tag Release 门禁与回滚边界见 [v1.8.0 发布验收](docs/verification/release-1-8-acceptance.md)。
 
 ## v1.3.0 发布重点
 
@@ -174,9 +174,9 @@ uv run python -m backend.benchmarks.catalog_summary --output docs/verification/b
 |---|---|---|
 | [快速开始与本地工具](docs/quickstart.md) | 本地启动、测试、CLI、MCP 与公开案例接口 | 当前快速开始 |
 | [功能与适用边界](docs/capabilities.md) | 功能范围、适用人群、身份边界与非目标 | 当前能力说明 |
-| [可信计算包指南](docs/verification-package.md) | 工作台、REST、CLI、MCP 的生成、完整性校验与复算 | v1.7 当前契约 |
-| [三条黄金流程](docs/golden-flows.md) | 工程师、教师/学习者、开发者的可复跑成功路径 | v1.7 验收入口 |
-| [English README](README.en.md) | English quickstart, capabilities, verification, and boundaries | v1.7 English entry |
+| [可信计算包指南](docs/verification-package.md) | 工作台、REST、CLI、MCP 的生成、完整性校验与复算 | 当前证据契约 |
+| [三条黄金流程](docs/golden-flows.md) | 工程师、教师/学习者、开发者的可复跑成功路径 | 当前验收入口 |
+| [English README](README.en.md) | English quickstart, capabilities, verification, and boundaries | Current English entry |
 | [结构力学入门](docs/learning/README.md) | 梁系、平面桁架、平面框架的概念、术语和图形入门 | 当前学习入口 |
 | [源码目录说明](docs/source-layout.md) | 后端、前端、数据、测试和本地忽略目录说明 | 当前源码导航 |
 | [版本发布记录](CHANGELOG.md) | 仓库级发布记录；前端发布记录页面由该文件同步生成 | 当前发布记录 |
@@ -194,7 +194,8 @@ uv run python -m backend.benchmarks.catalog_summary --output docs/verification/b
 | [Benchmark 算例目录摘要](docs/verification/benchmark-catalog-summary.md) | 按结构体系列出算例目的、来源、标准值、容差和模板映射 | 当前验证摘要 |
 | [跨浏览器视觉回归](docs/verification/visual-regression.md) | 前端工作台视觉回归说明 | 当前验证说明 |
 | [发布治理](docs/release-governance.md) | `x.y.0` 用户价值门槛、观察窗口、确认和不可变发布规则 | 当前发布规则 |
-| [v1.7.0 发布验收](docs/verification/release-1-7-acceptance.md) | 可信计算包、开放分发、学习复核路径、三浏览器与正式制品证据 | v1.7.0 发布基线 |
+| [v1.8.0 发布验收](docs/verification/release-1-8-acceptance.md) | 计算过程、关键点/复核点、快照、分层/失败材料、稳定分析与正式制品证据 | v1.8.0 发布基线 |
+| [v1.7.0 发布验收](docs/verification/release-1-7-acceptance.md) | 可信计算包、开放分发、学习复核路径、三浏览器与正式制品证据 | v1.7.0 历史基线 |
 | [v1.6.3 发布验收](docs/verification/release-1-6-3-acceptance.md) | 可靠性补丁、验证证据、镜像与发布授权边界 | v1.6.3 发布基线 |
 | [v1.6.2 发布验收](docs/verification/release-1-6-2-acceptance.md) | 工作台与宿主接入统一验收、镜像门禁、升级与回滚 | v1.6.2 发布基线 |
 | [v1.6.1 发布验收清单](docs/verification/release-1-6-1-acceptance.md) | 真实双 origin Reference Host、项目契约、版本与发布门禁 | v1.6.1 发布基线 |

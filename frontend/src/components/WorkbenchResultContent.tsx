@@ -14,6 +14,11 @@ import {
   LoadingPanel,
   SummaryGrid,
 } from "./workbench-result-panels";
+import {
+  CalculationTracePanel,
+  CriticalPointsPanel,
+  SnapshotComparisonPanel,
+} from "./WorkbenchCalculationArtifactPanels";
 import { FrameStabilityPanel } from "./FrameStabilityPanel";
 import {
   beamDataCurveOptions,
@@ -34,7 +39,7 @@ const TrussResultDiagrams = lazy(() => import("./TrussResultDiagrams").then((mod
 const DEFAULT_RESULT_VIEW_SETTINGS: ResultViewSettings = {
   showLoads: true,
   showDisplacement: true,
-  showExtremeLabel: false,
+  showExtremeLabel: true,
   displacementScale: null,
 };
 
@@ -66,6 +71,7 @@ export function WorkbenchResultContent({
   }
 
   if (analysisMode === "beam" && beamResults) {
+    const currentResults = beamResults;
     if (activeTabId === "overview") {
       return (
         <div className={`space-y-3 ${compact ? "" : "sm:space-y-4"}`}>
@@ -103,6 +109,15 @@ export function WorkbenchResultContent({
     if (activeTabId === "curves") {
       return <DataCurvePanel options={beamDataCurveOptions(beamResults)} compact={compact} />;
     }
+    if (activeTabId === "calculation") {
+      return <CalculationTracePanel analysisMode="beam" results={currentResults} workspace={workspace} updateWorkspace={updateWorkspace} compact={compact} />;
+    }
+    if (activeTabId === "critical") {
+      return <CriticalPointsPanel analysisMode="beam" results={currentResults} compact={compact} />;
+    }
+    if (activeTabId === "snapshots") {
+      return <SnapshotComparisonPanel analysisMode="beam" results={currentResults} workspace={workspace} updateWorkspace={updateWorkspace} compact={compact} />;
+    }
     return (
       <div className="space-y-3">
         <SummaryGrid compact={compact} rows={beamSummaryRows(beamResults)} />
@@ -116,6 +131,7 @@ export function WorkbenchResultContent({
     if (!trussResults) {
       return <EmptyResult mode="truss" compact={compact} />;
     }
+    const currentResults = trussResults;
 
     if (activeTabId === "overview") {
       return (
@@ -149,6 +165,15 @@ export function WorkbenchResultContent({
     if (activeTabId === "curves") {
       return <DataCurvePanel options={trussDataCurveOptions(trussResults)} compact={compact} />;
     }
+    if (activeTabId === "calculation") {
+      return <CalculationTracePanel analysisMode="truss" results={currentResults} workspace={workspace} updateWorkspace={updateWorkspace} compact={compact} />;
+    }
+    if (activeTabId === "critical") {
+      return <CriticalPointsPanel analysisMode="truss" results={currentResults} compact={compact} />;
+    }
+    if (activeTabId === "snapshots") {
+      return <SnapshotComparisonPanel analysisMode="truss" results={currentResults} workspace={workspace} updateWorkspace={updateWorkspace} compact={compact} />;
+    }
     return (
       <div className="space-y-3">
         <SummaryGrid compact={compact} rows={trussSummaryRows(trussResults)} />
@@ -160,6 +185,7 @@ export function WorkbenchResultContent({
   if (!displayedFrameResults) {
     return <EmptyResult mode="frame" compact={compact} />;
   }
+  const currentResults = displayedFrameResults;
 
   if (activeTabId === "overview") {
     return (
@@ -192,6 +218,15 @@ export function WorkbenchResultContent({
   }
   if (activeTabId === "curves") {
     return <DataCurvePanel options={frameDataCurveOptions(displayedFrameResults)} compact={compact} />;
+  }
+  if (activeTabId === "calculation") {
+    return <CalculationTracePanel analysisMode="frame" results={currentResults} workspace={workspace} updateWorkspace={updateWorkspace} compact={compact} />;
+  }
+  if (activeTabId === "critical") {
+    return <CriticalPointsPanel analysisMode="frame" results={currentResults} compact={compact} />;
+  }
+  if (activeTabId === "snapshots") {
+    return <SnapshotComparisonPanel analysisMode="frame" results={currentResults} workspace={workspace} updateWorkspace={updateWorkspace} compact={compact} />;
   }
   if (activeTabId === "stability") {
     return <FrameStabilityPanel results={displayedFrameResults} compact={compact} />;

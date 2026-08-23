@@ -25,6 +25,10 @@ const solverWebServer = {
   url: solverE2EUrl,
   env: {
     ...process.env,
+    VITE_UMAMI_ENABLED: "true",
+    VITE_UMAMI_SCRIPT_URL: "https://analytics.archsight.cn/script.js",
+    VITE_UMAMI_WEBSITE_ID: "21791f13-6214-44db-8724-0e1dcd656bfb",
+    VITE_UMAMI_DOMAINS: "127.0.0.1,localhost",
     VITE_SOLVER_HOST_ALLOWED_ORIGINS: "http://127.0.0.1:6241,http://127.0.0.1:6250",
   },
   // Release evidence must own the server lifecycle. Reusing a server started by
