@@ -398,7 +398,7 @@ test("v1.4.0 平面框架多工况可切换普通荷载和均匀温度荷载结�
   await runFrameCalculation(page);
 
   await page.getByRole("button", { name: /恒载\s+工况 DL/ }).click();
-  await page.getByRole("button", { name: "受力变形", exact: true }).click();
+  await page.getByRole("tab", { name: "受力变形", exact: true }).click();
   await expect(page.locator('[data-result-mode="frame"][data-result-surface="preview"][data-result-label-id="load:0:distributed"]')).toBeVisible();
   await expect(page.locator('[data-result-mode="frame"][data-result-surface="preview"][data-result-label-id="load:0:temperature"]')).toHaveCount(0);
 
@@ -406,7 +406,7 @@ test("v1.4.0 平面框架多工况可切换普通荷载和均匀温度荷载结�
   await expect(page.locator('[data-result-mode="frame"][data-result-surface="preview"][data-result-label-id="load:0:temperature"]')).toBeVisible();
   await expect(page.locator('[data-result-mode="frame"][data-result-surface="preview"][data-result-label-id="load:0:distributed"]')).toHaveCount(0);
 
-  await page.getByRole("button", { name: "工程图", exact: true }).click();
+  await page.getByRole("tab", { name: "工程图", exact: true }).click();
   await expect(page.locator('[data-result-mode="frame"][data-result-surface="diagram"]').first()).toBeVisible();
   expect(capturedPayload).not.toBeNull();
 });

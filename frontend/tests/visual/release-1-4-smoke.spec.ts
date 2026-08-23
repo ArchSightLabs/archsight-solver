@@ -120,10 +120,10 @@ async function solveAndInspectResultTabs(page: Page, mode: AnalysisMode) {
   await page.getByRole("button", { name: MODE_CASES[mode].runLabel }).click();
   await expect(page.getByText(MODE_CASES[mode].completeText)).toBeVisible();
 
-  await page.getByRole("button", { name: /受力变形/ }).click();
+  await page.getByRole("tab", { name: /受力变形/ }).click();
   await expect(page.locator(`[data-result-mode="${mode}"][data-result-surface="preview"]`).first()).toBeVisible();
 
-  await page.getByRole("button", { name: /工程图/ }).click();
+  await page.getByRole("tab", { name: /工程图/ }).click();
   await expect(page.locator(`[data-result-mode="${mode}"][data-result-surface="diagram"]`).first()).toBeVisible();
 }
 
