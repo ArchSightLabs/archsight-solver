@@ -342,7 +342,7 @@ test("v1.5.0 梁系工况和组合可进入结果来源切换并随 XLSX 导出�
   await expect(combinationButton).toBeVisible();
   await combinationButton.click();
   await expect(combinationButton).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", { name: "受力变形", exact: true }).click();
+  await page.getByRole("tab", { name: "受力变形", exact: true }).click();
   await expect(page.locator('[data-result-mode="beam"][data-result-surface="preview"]').first()).toBeVisible();
 
   await exportXlsx(page);
@@ -395,7 +395,7 @@ test("v1.5.0 平面桁架工况和组合可进入结果来源切换并随 XLSX �
   await expect(combinationButton).toBeVisible();
   await combinationButton.click();
   await expect(combinationButton).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", { name: "受力变形", exact: true }).click();
+  await page.getByRole("tab", { name: "受力变形", exact: true }).click();
   await expect(page.locator('[data-result-mode="truss"][data-result-surface="preview"]').first()).toBeVisible();
 
   await exportXlsx(page);
