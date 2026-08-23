@@ -1,7 +1,19 @@
-# v1.8.0 发布验收草案
+# v1.8.0 发布候选验收记录
 
-> 状态：候选规划。本文定义验收证据，不代表功能已完成、版本已发布或线上已部署。
+> 状态：正式发布候选。2026-08-23 的代码、数值、浏览器与制品前置门禁已通过，P0/P1 为 0；Tag、GitHub Release、GHCR 不可变镜像与回滚实测仍须由正式发布工作流生成并在发布后记录中确认。
 > 产品与架构依据：[v1.8.0 产品与架构计划](../v1.8.0-plan.md)
+
+本文下面的复选项保留为长期验收判据，不以逐项勾选替代可复核命令。当前状态以本节证据表为准。
+
+| 范围 | 2026-08-23 候选证据 | 状态 |
+|---|---|---|
+| 版本、契约与发布脚本 | `check_versions.py --expected-version 1.8.0`、`check_release_gate.py`、契约生成/资源同步检查 | 通过 |
+| 后端回归 | 全量 `685 passed, 2 skipped`；66/66 公开 benchmark；独立刚度法 26/26；稳定分析专项 29/29 | 通过 |
+| 前端回归 | lint、440 个单测、生产构建；主包 gzip 约 114.22 kB | 通过 |
+| v1.8 工作台闭环 | Chromium 下计算过程、可访问性、稳定性关键点三组共 10/10 | 通过 |
+| 产品事件 | 假 tracker 精确覆盖 `workbench_ready → calculation_requested → calculation_completed → results_viewed → calculation_trace_viewed → report_export_requested → export_completed`，字段低敏感 | 通过 |
+| 独立审查 | aios-ceo / aios-arch 发布审计未发现 P0/P1 | 通过 |
+| 正式发布制品 | 三浏览器 DOCX、镜像扫描、SBOM、GHCR、Release 资产校验和与回滚启动 | 正式工作流待生成 |
 
 ## 发布定位
 
@@ -15,7 +27,7 @@ v1.8.0 的完整用户闭环是：完成求解后审查计算过程，在系统�
 
 - [ ] 候选实现只有五条用户价值主线：计算过程、控制结果定位、计算快照对比、审查材料、稳定分析求解层；未把内部重构、benchmark 数量或埋点包装为次版本价值。
 - [ ] 原同日 v1.8.0 已并入 v1.7.0 的可信计算包、开放分发和学习路径没有重复立项。
-- [ ] 当前版本在正式发版决策前仍为 `1.7.0`；仅当维护者明确授权 v1.8.0 发布时才统一升级版本号。
+- [ ] 维护者已明确授权 v1.8.0 正式发布，所有版本事实源统一为 `1.8.0`；线上部署仍保持独立决策。
 - [ ] 功能完成、候选验证、Tag/Release、镜像推送和线上部署仍是独立状态。
 
 ## Gate 1：计算过程契约
@@ -57,7 +69,7 @@ v1.8.0 的完整用户闭环是：完成求解后审查计算过程，在系统�
 - `backend/tests/test_result_critical_points.py`
 - `frontend/src/lib/result-critical-points.test.ts`
 - 既有梁、框架、桁架图形与标签布局单测
-- `frontend/tests/visual/release-1-8-critical-point-annotations.spec.ts`
+- `frontend/tests/visual/release-1-8-stability-keypoints.spec.ts`
 
 ## Gate 4：工作台与可访问性
 
@@ -125,8 +137,8 @@ v1.8.0 的完整用户闭环是：完成求解后审查计算过程，在系统�
 - [ ] 每次请求只有一个终态；`calculation_requested` 早于本地校验，`results_viewed` 只在结果实际渲染后产生。
 - [ ] 事件只包含固定枚举、`schema_version`、`app_version` 和 `workspace_mode`，不发送模型/结果数值、文件名、错误正文或身份信息。
 - [ ] Playwright 假 tracker 覆盖默认模型、公开案例、校验阻断、成功求解、过程查看和 DOCX 导出的精确事件顺序。
-- [ ] staging Umami property 完成真实网络冒烟；生产 property 不注入自动化测试流量。
-- [ ] Umami Funnel 能显示 `visit → calculation_requested → calculation_completed → results_viewed → calculation_trace_viewed → export_completed`。
+- [ ] 官方 Umami 脚本和生产站点完成只读网络冒烟；自动化只使用假 tracker，不向生产 property 注入测试流量。
+- [ ] Umami 可按低敏感事件配置 `visit → calculation_requested → calculation_completed → results_viewed → calculation_trace_viewed → export_completed` 漏斗；样本量不足时不把转化率当成发布门禁。
 
 ## Gate 10：回归、制品与独立复核
 
@@ -147,12 +159,12 @@ uv run python -m pytest backend/tests -q
 npm --prefix frontend run lint
 npm --prefix frontend run test:unit
 npm --prefix frontend run build
-npm --prefix frontend run test:visual -- release-1-8-calculation-trace.spec.ts release-1-8-critical-point-annotations.spec.ts --project=chromium --workers=1 --reporter=list
+npm --prefix frontend run test:visual -- release-1-8-calculation-trace.spec.ts release-1-8-workbench-accessibility.spec.ts release-1-8-stability-keypoints.spec.ts --project=chromium --workers=1 --reporter=list
 npm --prefix frontend run test:visual:export-docx
 git diff --check
 ```
 
-上述命令现在只是目标门禁；测试文件、脚本标记和版本升级完成前，不能把它们描述为已通过。
+上述前置命令已经通过；正式发布仍必须等待 `.github/workflows/release.yml` 完成三浏览器、容器健康、Host 集成、安全扫描、SBOM、不可变镜像推送与 Release 资产创建，不能用本地通过替代远端制品证据。
 
 ## 发布后观察
 
