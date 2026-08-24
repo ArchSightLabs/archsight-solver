@@ -1,6 +1,6 @@
 # ArchSight Solver v1.8.1 发布验收记录
 
-> 状态：发布候选就绪
+> 状态：已发布
 > 目标版本：`v1.8.1`
 > 验收原则：复选框只记录已有可追溯证据的事实；任何未完成项保持未勾选。
 
@@ -71,8 +71,13 @@
 - 2026-08-24：后端全量 `736 passed, 2 skipped`；前端单元测试 `444/444`，lint、TypeScript、生产构建和生产依赖审计通过。
 - 2026-08-24：公开 benchmark `71/71` 通过，其中新增 `GNA-001` 至 `GNA-005`；四个公开学习工程覆盖梁、桁架、线性框架和 GNA/GNIA。
 - 2026-08-24：本地正确运行环境下 Chromium 发布回归 `51/51`；Chromium、Firefox、WebKit DOCX 同源图形与数据曲线导出矩阵 `12/12`；稳定与关键点三浏览器矩阵 `15/15`。
-- 2026-08-24：候选镜像 `archsight-solver:v1.8.1-candidate`（`sha256:7ba6b3527b74aa4d0e2c9caa555e1d4071b22097febf909a8b2914e43bff73f6`）健康运行，根页面返回 HTTP 200；真实 GNA 教学链路 `2/2`、镜像 Host 集成 `1/1` 通过。
+- 2026-08-24：历史候选镜像 `archsight-solver:v1.8.1-candidate`（`sha256:7ba6b3527b74aa4d0e2c9caa555e1d4071b22097febf909a8b2914e43bff73f6`）健康运行，根页面返回 HTTP 200；真实 GNA 教学链路 `2/2`、镜像 Host 集成 `1/1` 通过。
 - 2026-08-24：wheel、源码包和 Host Client 候选制品完成隔离安装与契约验证；SPDX SBOM 记录 109 个包、2959 个文件。
 - 2026-08-24：Trivy 原始扫描包含 14 个 HIGH、3 个 CRITICAL，均未提供 `FixedVersion`；发布门禁要求的“已有修复版本但未升级”的 HIGH/CRITICAL 为 0，继续作为上游待修风险跟踪，不将原始发现误写为零漏洞。
 - 2026-08-24：`aios-structural`、`aios-arch`、`aios-ceo` 独立复核均为 P0=0、P1=0；P2 不扩张为本版发布阻断。
-- 2026-08-24：本记录只证明源码与本地制品达到发布候选状态；尚未创建 `v1.8.1` tag，未推送镜像仓库，未更新线上。线上仍保持 `v1.8.0`。
+- 2026-08-24：`main` CI [32706385458](https://github.com/ArchSightLabs/archsight-solver/actions/runs/32706385458) 与 `v1.8.1` 发布工作流 [32707023176](https://github.com/ArchSightLabs/archsight-solver/actions/runs/32707023176) 全部通过；GitHub Release 已发布，tag 固定在 `007e745`。
+- 2026-08-24：GitHub Release 的 7 份制品已下载核对，`SHA256SUMS` 中 6 个受校验制品全部匹配；正式镜像 ID 为 `sha256:4369020584cb1cfb90e78fa937eeae346462ee700907ec2426d1444770d39306`，GHCR 与阿里云镜像摘要均为 `sha256:eee50390530b21e40226f330f04e995da14e5eda734d1dd79593273acbbff38f`。
+- 2026-08-24：阿里云精确标签 `v1.8.1-007e745` 与版本标签 `v1.8.1` 摘要一致；正式切换前，同一镜像在隔离临时端口 `28082` 完成健康检查与 HTTP 200 预检，临时容器随后自动删除。
+- 2026-08-24：正式站 `https://solver.archsight.cn/` 已切换到 `v1.8.1-007e745`，容器 `healthy`、重启计数为 0；Solver 端口保持 `18082 -> 6240` 不变，`18083` 为 Graphics 既有端口，未被占用或调整。
+- 2026-08-24：线上真实 GNA 教学链路 `2/2` 通过；梁系真实计算及 XLSX（33355 字节）、DOCX（304872 字节）、可信计算包（2264615 字节）导出通过。
+- 2026-08-24：上线前保留 v1.8.0 精确镜像 `v1.8.0-2f839f3`，并生成离线回滚归档 `/root/archsight-solver/backups/pre-v1.8.1-20260824T083534Z`；归档 SHA-256 为 `09f1fb39a824cbd1f233109b29848167e01ca70a83c3660beca6d38c2036006c`。

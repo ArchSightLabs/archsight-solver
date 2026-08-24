@@ -2,7 +2,7 @@
 
 本目录用于服务器生产部署，部署方式为：拉取已构建好的应用镜像，将应用容器绑定到宿主机本地端口，再由公共 Nginx 反向代理。
 
-当前仓库正在准备 v1.8.1 发布候选；官方演示站仍运行阿里云精确镜像标签 `v1.8.0-2f839f3`，通用标签 `v1.8.0` 与该精确标签的 manifest digest 一致。GitHub Tag Release、目标镜像仓库推送和线上更新仍是三个独立状态；在 v1.8.1 正式发布、推送到阿里云并核对摘要前，不得把候选状态写成已上线。
+v1.8.1 已完成 GitHub Tag Release、阿里云镜像推送和官方演示站更新。线上使用阿里云精确标签 `v1.8.1-007e745`；通用标签 `v1.8.1` 与精确标签的 manifest digest 均为 `sha256:eee50390530b21e40226f330f04e995da14e5eda734d1dd79593273acbbff38f`。上一正式镜像 `v1.8.0-2f839f3` 继续保留为直接回滚点。
 
 ## 目录结构
 
@@ -32,7 +32,7 @@ cp docker-compose.yml.example docker-compose.yml
 主要变量：
 
 - `IMAGE_REPOSITORY`：应用镜像仓库地址，不包含 TAG。
-- `IMAGE_TAG`：应用镜像 TAG，发布候选默认 `v1.8.1`；正式环境只能使用已经发布且完成摘要核对的不可变版本标签，不使用 `latest`。
+- `IMAGE_TAG`：应用镜像 TAG，示例默认 `v1.8.1`；正式环境使用已经发布且完成摘要核对的不可变精确标签，不使用 `latest`。
 - `NODE_IMAGE`：前端构建基础镜像；示例使用带 digest 的官方 Public ECR Docker Library 镜像，避免依赖不稳定的 Docker Hub 代理。
 - `PYTHON_IMAGE`：运行时基础镜像；与 `NODE_IMAGE` 一样固定 digest，可按网络环境切换 registry，但不得省略 digest。
 - `APP_HOST_BIND`：宿主机监听地址，默认 `127.0.0.1`，避免直接暴露容器端口。
@@ -103,7 +103,7 @@ docker compose down
 
 ## 发布后检查与回滚
 
-正式更新前记录当前镜像标签，并确保该标签仍可从镜像仓库拉取。仅在 v1.8.1 已正式发布、阿里云目标镜像摘要核对完成且 v1.8.0 回滚镜像仍可拉取后执行 `./deploy.sh v1.8.1`；脚本只有在 Compose 容器通过 Docker 健康检查后才会返回成功。若容器进入 `unhealthy` / `exited` / `dead` 状态或等待超时，脚本会打印最近 100 行日志并以非零状态退出。脚本成功后，仍应人工检查首页、公开学习复核路径以及 DOCX / XLSX / 可信计算包导出入口。
+正式更新前记录当前镜像标签，并确保该标签仍可从镜像仓库拉取。应先用即将上线的同一镜像启动隔离临时容器，完成 Docker 健康检查和 HTTP/API 预检，验证后删除临时容器，再用精确标签执行正式切换；预检端口不得占用任何已分配的业务端口。部署脚本只有在 Compose 容器通过 Docker 健康检查后才会返回成功。若容器进入 `unhealthy` / `exited` / `dead` 状态或等待超时，脚本会打印最近 100 行日志并以非零状态退出。脚本成功后，仍应人工检查首页、公开学习复核路径以及 DOCX / XLSX / 可信计算包导出入口。
 
 ```bash
 docker inspect --format '{{.Config.Image}} {{if .State.Health}}{{.State.Health.Status}}{{end}}' archsight-solver-app
@@ -113,7 +113,7 @@ docker compose logs --tail=200 app
 若健康检查失败、核心求解不可用或导出链路异常，使用更新前记录的不可变标签重新执行部署。以下示例回退到上一正式版本；实际标签以发布记录为准：
 
 ```bash
-./deploy.sh v1.6.3
+./deploy.sh v1.8.0-2f839f3
 docker inspect --format '{{.Config.Image}} {{if .State.Health}}{{.State.Health.Status}}{{end}}' archsight-solver-app
 ```
 
@@ -126,6 +126,8 @@ docker inspect --format '{{.Config.Image}} {{if .State.Health}}{{.State.Health.S
 ```text
 127.0.0.1:6280 -> app:6240
 ```
+
+仓库中的 `6280` 只是通用示例。官方服务器的 Solver 固定使用 `127.0.0.1:18082 -> app:6240`，公共 Nginx 的 HTTP/HTTPS upstream 均指向 `18082`；`18083` 已分配给 Graphics，不得作为 Solver 的预检或正式端口，也不得为发布 Solver 而调整。
 
 公共 Nginx 可配置为：
 

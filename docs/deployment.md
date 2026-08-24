@@ -2,7 +2,7 @@
 
 本文说明 ArchSight Solver 的本地镜像构建、容器运行和 Docker Compose 入口。
 
-当前仓库版本事实源为 v1.8.1。Tag 发布工作流生成 GitHub Release、可能需要 GitHub Packages 授权的 GHCR 工作流镜像和公开校验制品；官方演示站使用阿里云容器镜像服务，线上镜像和回滚点仍应按独立运维动作单独记录。镜像推送和服务器更新仍是独立于 GitHub Release 的运维动作，每次部署前都必须确认目标仓库中的不可变镜像真实存在并核对摘要。
+当前仓库版本事实源为 v1.8.1。Tag 发布工作流已生成 GitHub Release、GHCR 工作流镜像和公开校验制品；官方演示站已部署阿里云精确镜像 `v1.8.1-007e745`，其 manifest digest 为 `sha256:eee50390530b21e40226f330f04e995da14e5eda734d1dd79593273acbbff38f`。GitHub Release、目标镜像仓库与线上容器仍是三个独立状态，每次部署都必须分别核对。
 
 ## 单镜像模式
 
@@ -86,7 +86,7 @@ docker push registry.example.com/example-namespace/archsight-solver:v1.8.1
 docker compose up -d --build
 ```
 
-Compose 默认将容器内 `6240` 端口绑定到宿主机本地端口。如需调整宿主机端口，可设置 `APP_HOST_PORT`；外部宿主接入使用 `ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS` 配置运行时白名单。
+Compose 默认将容器内 `6240` 端口绑定到宿主机本地端口。如需调整宿主机端口，可设置 `APP_HOST_PORT`；外部宿主接入使用 `ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS` 配置运行时白名单。官方服务器的 Solver 已固定使用 `18082 -> 6240`，`18083` 已分配给 Graphics；正式发布和临时预检均不得改变或占用这两个服务的既有分配。
 
 公网部署时建议只通过外层 Nginx、Caddy 或同类网关暴露 `80/443`，并由网关负责 TLS、访问控制、请求体限制和审计策略。应用会把 `ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS` 同时投影为 Host Protocol 白名单和 HTML `Content-Security-Policy: frame-ancestors ...`；若网关覆盖 CSP，必须保留同等或更严格的 `frame-ancestors`，否则会重新放开未授权的视觉嵌入。
 
@@ -103,10 +103,10 @@ Compose 默认将容器内 `6240` 端口绑定到宿主机本地端口。如需�
 
 ## 回滚
 
-升级前记录当前容器镜像标签与健康状态。`deploy/deploy.sh` 会有界等待 Docker `HEALTHCHECK` 变为 `healthy`，失败时输出最近的容器日志并返回非零状态；脚本成功后仍需复核首页、典型求解和导出入口。若失败，重新以先前不可变标签执行部署；当前版本的直接回滚基线是 v1.7.0：
+升级前记录当前容器镜像标签与健康状态。先以即将上线的同一镜像启动隔离临时容器，完成健康检查和 HTTP/API 预检后删除，再切换正式容器。`deploy/deploy.sh` 会有界等待 Docker `HEALTHCHECK` 变为 `healthy`，失败时输出最近的容器日志并返回非零状态；脚本成功后仍需复核首页、典型求解和导出入口。若失败，重新以先前不可变标签执行部署；当前版本的直接回滚基线是 v1.8.0：
 
 ```bash
-./deploy/deploy.sh v1.7.0
+./deploy/deploy.sh v1.8.0-2f839f3
 docker inspect --format '{{.Config.Image}} {{if .State.Health}}{{.State.Health.Status}}{{end}}' archsight-solver-app
 ```
 
