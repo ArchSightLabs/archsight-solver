@@ -141,9 +141,9 @@
 | frame | `inclined-member-local-load` / 斜梁门式刚架局部荷载 | `frame-inclined-member-load` | 对应 | 同为斜构件局部坐标分布荷载，主要复核 local_y 荷载转换和斜构件杆端力。 |
 | frame | `frame-member-point-load` / 框架梁构件内集中荷载 | `frame-member-point-load` | 对应 | 同为框架梁构件内集中荷载，主要复核构件内集中力转换与杆端内力。 |
 | truss | `simple-roof-truss` / 简支三角屋架 | `truss-simple-roof` | 对应 | 同为简支屋架节点荷载，主要复核节点位移与杆件轴力。 |
-| truss | `pratt-truss` / Pratt 桁架 | `truss-pratt-bridge` | 对应 | 同为 Pratt 桁架，主要复核节点位移、杆件轴力和控制杆件。 |
-| truss | `warren-truss` / Warren 桁架 | `truss-warren-roof` | 对应 | 同为 Warren 桁架，主要复核节点位移与杆件轴力。 |
-| truss | `howe-roof-truss` / Howe 型屋架 | `truss-howe-roof` | 对应 | 同为 Howe 型屋架，主要复核反向斜腹杆布置下的节点位移与杆件轴力。 |
+| truss | `pratt-truss` / 普拉特（Pratt）桁架 | `truss-pratt-bridge` | 对应 | 同为普拉特（Pratt）桁架，主要复核节点位移、杆件轴力和控制杆件。 |
+| truss | `warren-truss` / 沃伦（Warren）桁架 | `truss-warren-roof` | 对应 | 同为沃伦（Warren）桁架，主要复核节点位移与杆件轴力。 |
+| truss | `howe-roof-truss` / 豪式（Howe）屋架 | `truss-howe-roof` | 对应 | 同为豪式（Howe）屋架，主要复核反向斜腹杆布置下的节点位移与杆件轴力。 |
 | truss | `cantilever-truss` / 悬臂桁架 | `truss-cantilever-panel` | 对应 | 同为悬挑桁架体系，主要复核自由端节点位移与杆件轴力。 |
 | beam | `fixed-fixed-uniform` / 两端固结均布荷载 | `beam-template-fixed-fixed-uniform` | 对应 | 同为两端固结单跨梁全跨均布荷载，直接复核固定端边界和跨中挠度。 |
 | beam | `propped-cantilever-point` / 一端固结一端简支 | `beam-template-propped-cantilever-point` | 对应 | 同为左端固结、右端滚动支座并承受跨中集中荷载，直接复核超静定边界。 |

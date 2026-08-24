@@ -38,7 +38,12 @@ export function WorkbenchResultTabSelector({
     }
   };
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-8" role="tablist" aria-label="结果页签">
+    <div
+      className="grid gap-2"
+      style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr))" }}
+      role="tablist"
+      aria-label="结果页签"
+    >
       {tabs.map((tab, index) => {
         const Icon = tab.icon;
         const active = tab.id === activeTabId;

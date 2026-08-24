@@ -116,6 +116,6 @@ test("梁系和桁架结果摘要不把 L/250 限值显示成当前控制比", (
     member_axial_data: [],
   } satisfies TrussCalculationResults);
 
-  assert.equal(beamRows.find((row) => row.label === "允许挠度")?.detail, "L/250 · 25% · PASS");
-  assert.equal(trussRows.find((row) => row.label === "允许位移")?.detail, "L/250 · 36.75% · PASS");
+  assert.equal(beamRows.find((row) => row.label === "允许挠度")?.detail, "L/250 · 25% · 通过");
+  assert.equal(trussRows.find((row) => row.label === "允许位移")?.detail, "L/250 · 36.75% · 通过");
 });

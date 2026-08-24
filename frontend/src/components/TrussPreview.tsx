@@ -9,6 +9,7 @@ import { RESULT_PREVIEW_BASE_SIZE, resultPreviewCanvasSize, resultPreviewSvgStyl
 import { autoTrussDisplacementDisplayScale } from "../lib/truss-result-diagrams";
 import { STRUCTURE_NODE_RADII, STRUCTURE_STATE_COLORS, STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
 import { modelLabelTransformFromOffsets, type ModelLabelOffsets } from "../lib/model-label-overrides";
+import { calculationStatusTitle } from "../lib/calculation-artifacts";
 
 interface TrussPreviewProps {
   truss: TrussPreviewData | null;
@@ -279,7 +280,7 @@ export function TrussPreview({ truss, compact = false, viewSettings, modelLabelO
               允许位移 {formatEngineeringValue(truss.summary.allowableMm, "mm")}
             </span>
             <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${statusToneClass}`}>
-              校核 {truss.summary.status}
+              校核 {calculationStatusTitle(truss.summary.statusCode ?? truss.summary.status) || "状态待确认"}
             </span>
           </div>
         </div>
@@ -505,7 +506,7 @@ export function TrussPreview({ truss, compact = false, viewSettings, modelLabelO
           {
             label: "轴力控制",
             main: formatEngineeringValue(truss.summary.maxAxialForceKn, "kN"),
-            sub: `${memberTerm} ${truss.summary.maxAxialForceMemberId ?? "—"} · 状态：${truss.summary.status}`,
+            sub: `${memberTerm} ${truss.summary.maxAxialForceMemberId ?? "—"} · 状态：${calculationStatusTitle(truss.summary.statusCode ?? truss.summary.status) || "状态待确认"}`,
             highlight: true,
           },
         ].map((item, index) => (

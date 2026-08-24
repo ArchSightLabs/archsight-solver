@@ -33,6 +33,7 @@ FRAME_STABILITY_FULL_TABLES = FRAME_STABILITY_STANDARD_TABLES + (
     "共回转计算原理",
     "共回转代表单元",
     "P-Delta 收敛记录",
+    "方法比较技术审计",
     "屈曲节点模态向量",
     "屈曲构件模态形状",
 )
@@ -43,6 +44,207 @@ DOF_LABELS = {
     "rz": "rz 平面转角",
     "v": "v 竖向挠度",
 }
+
+STATUS_LABELS = {
+    "available": "已提供",
+    "diagnostic_summary": "已提供诊断摘要",
+    "count_summary": "已提供数量摘要",
+    "unavailable": "暂未提供",
+    "completed": "已完成",
+    "done": "已完成",
+    "converged": "已收敛",
+    "not_converged": "未收敛",
+    "failed": "失败",
+    "pass": "通过",
+    "review": "需复核",
+    "pending": "待计算",
+    "enabled": "已启用",
+    "disabled": "未启用",
+    "not_enabled": "未启用",
+    "not_evaluated": "未评估",
+    "not_applicable": "不适用",
+    "stable": "切线稳定",
+    "near_critical": "接近临界",
+    "unstable": "切线不稳定",
+    "no_compression": "无受压控制构件",
+    "accepted": "已接受",
+    "rejected": "已拒绝",
+    "iterating": "迭代中",
+    "cutback": "已切步重试",
+    "terminated": "已终止",
+    "target_reached": "达到目标荷载",
+    "minimum_step_exhausted": "最小步长耗尽",
+    "maximum_cutbacks_exhausted": "切步次数耗尽",
+    "maximum_accepted_steps_exhausted": "最大成功步数耗尽",
+    "maximum_iterations_exhausted": "最大迭代次数耗尽",
+    "line_search_failed": "线搜索失败",
+    "singular_tangent": "切线刚度矩阵奇异",
+    "non_finite_increment": "位移增量出现非有限值",
+}
+
+PATH_PHASE_LABELS = {
+    "fixed_preload": "固定预载阶段",
+    "variable": "变量荷载阶段",
+}
+
+ALGORITHM_LABELS = {
+    "p-delta": "二阶效应分析（P-Delta）",
+    "linear_first_order_v1": "首阶线性分析",
+    "initial_stress_v1": "初始应力迭代法",
+    "corotational_newton_v1": "共回转 Newton 法",
+    "linear_buckling_v1": "线性屈曲特征值法",
+}
+
+METRIC_LABELS = {
+    "max_displacement_mm": "最大位移",
+    "maxdisplacementmm": "最大位移",
+    "critical_load_factor": "临界荷载因子",
+    "criticalloadfactor": "临界荷载因子",
+    "deflection": "挠度",
+    "moment": "弯矩",
+    "shear": "剪力",
+    "axial": "轴力",
+    "displacement": "位移",
+    "ux": "X 向位移",
+    "uy": "Y 向位移",
+    "resultant": "合位移",
+    "reactionfx": "X 向反力",
+    "reactionfy": "Y 向反力",
+    "reactionmz": "约束弯矩",
+    "maxdeflectionmm": "最大挠度",
+    "maxmomentknm": "最大弯矩",
+    "maxshearkn": "最大剪力",
+    "maxaxialkn": "最大轴力",
+    "maxaxialforcekn": "最大轴力",
+}
+
+IMPERFECTION_LABELS = {
+    "none": "无初始缺陷",
+    "buckling_mode": "屈曲模态初始缺陷",
+    "explicit": "显式节点初始缺陷",
+}
+
+KEY_POINT_KIND_LABELS = {
+    "start": "起始点",
+    "preload_end": "固定预载终点",
+    "response_turning": "响应拐点",
+    "minimum_stability": "最小稳定指标点",
+    "stability_change": "稳定状态变化点",
+    "residual_peak": "残差峰值点",
+    "cutback": "切步点",
+    "failure": "终止点",
+    "last_converged": "最后收敛点",
+    "endpoint": "端点",
+    "support": "支座点",
+    "jump": "跳变点",
+    "zero": "零点",
+    "local_max": "局部最大值",
+    "local_min": "局部最小值",
+    "local_extreme": "局部极值",
+    "global_extreme": "全局极值",
+    "absolute": "绝对控制值",
+    "control": "控制值",
+    "node": "节点值",
+    "review": "用户复核点",
+}
+
+TRACE_STAGE_LABELS = {
+    "input_normalized": "输入规范化",
+    "dof_mapping": "自由度映射",
+    "element_process": "单元过程",
+    "global_assembly": "整体装配",
+    "boundary_reduction": "边界约化",
+    "solver_diagnostics": "求解诊断",
+    "result_recovery": "结果恢复",
+    "equilibrium_check": "平衡校核",
+    "evidence_projection": "审查证据投影",
+}
+
+TRACE_SUMMARY_LABELS = {
+    "availability": "可用状态",
+    "analysisType": "分析类型",
+    "nodeCount": "节点数",
+    "globalDofCount": "总自由度数",
+    "freeDofCount": "未约束自由度数",
+    "fixedDofCount": "约束自由度数",
+    "constraintRank": "约束矩阵秩",
+    "elementCount": "单元数",
+    "memberResultCount": "构件结果数",
+    "diagramCount": "工程图数",
+    "nodeResultCount": "节点结果数",
+    "solverBackend": "求解方法",
+    "criticalPointCount": "关键点数",
+    "reviewPointCount": "复核点数",
+    "envelopeEntryCount": "控制来源数",
+    "maxResidualN": "最大平衡残差（N）",
+    "rmsRelativeError": "均方根相对误差",
+    "status": "状态",
+    "statusCode": "状态码",
+}
+
+
+def _contains_chinese(value: str) -> bool:
+    return any("\u3400" <= char <= "\u9fff" for char in value)
+
+
+def _localized_value(value: Any, labels: Mapping[str, str], fallback: str) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return "—"
+    localized = labels.get(text.lower())
+    if localized:
+        return localized
+    return text if _contains_chinese(text) else fallback
+
+
+def _status_text(value: Any) -> str:
+    return _localized_value(value, STATUS_LABELS, "状态待确认")
+
+
+def _enabled_text(value: Any) -> str:
+    if isinstance(value, bool):
+        return "已启用" if value else "未启用"
+    text = str(value or "").strip().lower()
+    if text in {"true", "yes", "on", "enabled"}:
+        return "已启用"
+    if text in {"false", "no", "off", "disabled"}:
+        return "未启用"
+    return _status_text(value)
+
+
+def _path_phase_text(value: Any) -> str:
+    return _localized_value(value, PATH_PHASE_LABELS, "其他加载阶段")
+
+
+def _algorithm_label(value: Any) -> str:
+    return _localized_value(value, ALGORITHM_LABELS, "其他求解方法")
+
+
+def _metric_label(value: Any) -> str:
+    return _localized_value(value, METRIC_LABELS, "其他工程指标")
+
+
+def _human_explanation(value: Any, fallback: str) -> str:
+    text = str(value or "").strip()
+    if not text or text == "—":
+        return fallback
+    return text if _contains_chinese(text) else fallback
+
+
+def _member_euler_screen_text(value: Any) -> str:
+    items = _list(value)
+    rows: List[str] = []
+    for item in items:
+        if not isinstance(item, Mapping):
+            continue
+        member_id = item.get("memberId", "—")
+        critical_factor = item.get("criticalLoadFactor", "—")
+        rows.append(f"构件 {member_id}：临界荷载因子 {critical_factor}")
+    return "；".join(rows) if rows else "未形成构件 Euler 初筛控制项"
+
+
+def _imperfection_label(value: Any) -> str:
+    return _localized_value(value, IMPERFECTION_LABELS, "其他初始缺陷")
 
 
 def _mapping(value: Any) -> Mapping[str, Any]:
@@ -108,7 +310,7 @@ def build_evidence_tables(
 
     tables["关键点表"] = _critical_point_table(solution, analysis_type)
     if _report_template(report_options) == "complete":
-        tables["CalculationTrace"] = _calculation_trace_table(solution, analysis_type)
+        tables["计算过程技术审计（CalculationTrace）"] = _calculation_trace_table(solution, analysis_type)
         tables["复核点表"] = _review_point_table(solution, analysis_type)
         tables["包络来源"] = _governing_envelope_table(solution, analysis_type)
         tables["计算快照"] = _calculation_snapshot_table(solution, analysis_type)
@@ -129,7 +331,7 @@ def build_report_review_table(solution: Mapping[str, Any], analysis_type: str, r
             ["审阅状态", REVIEW_STATUS_LABELS.get(review_status, "草稿"), "草稿表示尚未进入工程复核；可审阅表示模型、结果来源和导出证据已准备提交复核。"],
             ["ASMS-JSON 契约版本", API_SCHEMA_VERSION, "字段语义以 JSON Schema Registry、OpenAPI 和 ASMS-JSON 文档为准。"],
             ["分析对象", {"beam": "梁系", "frame": "二维平面框架", "truss": "二维平面桁架"}.get(analysis_type, analysis_type), "不代表规范设计、承载力验算或工程签审。"],
-            *_result_provenance_rows(solution),
+            *_result_provenance_rows(solution, include_technical=_report_template(options) == "complete"),
             ["结果来源", result_source_text(solution), "主结果、指定荷载工况或指定荷载组合必须与图表和数据一致。"],
             ["公开验证参考", benchmark_text, "benchmark 仅证明其覆盖边界内的回归一致性。"],
             ["诊断警告", issue_text, "导出计算书保留诊断摘要；最终结论仍需具备资质的专业人员复核。"],
@@ -142,7 +344,7 @@ def select_evidence_table_items(tables: Mapping[str, pd.DataFrame], names: Itera
     return {name: tables[name] for name in names if name in tables}
 
 
-def _result_provenance_rows(solution: Mapping[str, Any]) -> List[List[str]]:
+def _result_provenance_rows(solution: Mapping[str, Any], *, include_technical: bool = False) -> List[List[str]]:
     provenance = solution.get("resultProvenance")
     if not isinstance(provenance, Mapping):
         return [["结果追溯", "未记录", "旧结果缺少对象、工程修订和模型签名，重新计算后方可形成完整追溯证据。"]]
@@ -151,12 +353,17 @@ def _result_provenance_rows(solution: Mapping[str, Any]) -> List[List[str]]:
     model_signature = str(provenance.get("modelSignature") or "—")
     model_hash = str(provenance.get("modelHash") or "—")
     request_hash = str(provenance.get("requestHash") or "—")
-    return [
-        ["分析对象 ID", str(provenance.get("analysisObjectId") or "—"), "计算结果必须归属于当前分析对象。"],
+    rows = [
+        ["分析对象编号", str(provenance.get("analysisObjectId") or "—"), "计算结果必须归属于当前分析对象。"],
         ["工程修订", f"计算时 {project_revision}；导出时 {current_revision}", f"计算时间 {provenance.get('solvedAt') or '—'}；模型签名一致时允许非计算性工程修订后导出。"],
-        ["模型签名", f"前端 {model_signature}；后端 {model_hash}", "前端签名用于判断当前工作台模型是否仍与计算输入一致。"],
-        ["请求签名", request_hash, "后端 requestHash 用于关联求解请求与结果包络。"],
+        ["结果追溯", "模型签名与请求签名均已记录" if model_signature != "—" and request_hash != "—" else "追溯信息不完整", "签名原值仅在完整计算书的技术审计内容中展示。"],
     ]
+    if include_technical:
+        rows.extend([
+            ["模型签名（技术审计）", f"前端 {model_signature}；后端 {model_hash}", "用于判断当前工作台模型是否仍与计算输入一致。"],
+            ["请求签名（技术审计）", request_hash, "用于关联求解请求与结果包络。"],
+        ])
+    return rows
 
 
 def _diagnostic_issue_text(diagnostics: Mapping[str, Any]) -> str:
@@ -197,7 +404,7 @@ def _beam_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str,
                 ["结构类型", request.get("beam_type_label", "梁系")],
                 ["荷载类型", request.get("load_type_label", "—")],
                 ["材料名称", material_name],
-                ["材料适用范围", "材料名称为项目默认材料说明；梁系整体刚度按各跨段 E_GPa / I_cm4 输入装配。"],
+                ["材料适用范围", "材料名称为项目默认材料说明；梁系整体刚度按各跨段弹性模量 E 和截面惯性矩 I 输入装配。"],
                 ["跨段布置", " + ".join(str(span) for span in request.get("spans", [])) + " m"],
                 ["节点/支座数量", f"{len(solution.get('span_boundaries', []))} 个计算节点，{len(support_positions)} 个支座"],
                 ["支座体系说明", support_system_note("beam")],
@@ -285,7 +492,7 @@ def _frame_evidence(solution: Mapping[str, Any], material_name: str, report_opti
             [
                 ["结构类型", "二维平面框架"],
                 ["材料名称", material_name],
-                ["材料适用范围", "材料名称为项目默认材料说明；框架整体刚度按各构件 E_GPa / A_cm2 / I_cm4 输入装配。"],
+                ["材料适用范围", "材料名称为项目默认材料说明；框架整体刚度按各构件弹性模量 E、截面面积 A 和截面惯性矩 I 输入装配。"],
                 ["构件弹性模量分布", member_elasticity_summary(structure.get("members", []), "构件")],
                 ["节点数量", len(structure.get("nodes", []))],
                 ["构件数量", len(structure.get("members", []))],
@@ -321,7 +528,7 @@ def _frame_evidence(solution: Mapping[str, Any], material_name: str, report_opti
                 *_learning_review_rows(solution),
                 ["控制位移", _node_control_text(max_node), f"允许值 {round(solution.get('summary', {}).get('allowableMm', 0.0), 6)} mm"],
                 ["控制弯矩", _frame_moment_text(max_moment), "按所有杆端弯矩绝对值最大提取"],
-                ["稳定审查", f"P-Delta: {solution.get('secondOrder', {}).get('status', 'disabled')}；屈曲: {solution.get('buckling', {}).get('status', 'disabled')}", "该项为正式稳定审查证据"],
+                ["稳定审查", f"二阶效应：{_status_text(solution.get('secondOrder', {}).get('status', 'disabled'))}；屈曲：{_status_text(solution.get('buckling', {}).get('status', 'disabled'))}", "该项为正式稳定审查证据"],
             ],
             columns=["校核项", "求解证据", "说明"],
         ),
@@ -351,35 +558,35 @@ def _frame_stability_evidence(solution: Mapping[str, Any], report_options: Mappi
                 "最后收敛状态（部分结果）" if solution.get("partialResultSource") else "目标荷载状态",
                 "部分结果不表示目标荷载点已收敛" if solution.get("partialResultSource") else "节点与构件表对应当前结果来源",
             ],
-            ["P-Delta 状态", second_order.get("status", "disabled"), "enabled" if second_order.get("enabled") else "disabled"],
-            ["P-Delta 方法", second_order.get("method", "—"), f"algorithm={_control_algorithm_text(trace, second_order)}"],
+            ["P-Delta 状态", _status_text(second_order.get("status", "disabled")), "已启用" if second_order.get("enabled") else "未启用"],
+            ["P-Delta 方法", _algorithm_label(second_order.get("method", "—")), f"求解方法：{_control_algorithm_text(trace, second_order)}"],
             [
                 "P-Delta 路径控制",
                 _control_summary_text(trace),
-                f"initialStep={_control_text(trace, 'initialStep')}；minimumStep={_control_text(trace, 'minimumStep')}；maximumStep={_control_text(trace, 'maximumStep')}；lineSearch={_control_text(trace, 'lineSearch')}",
+                f"初始步长={_control_text(trace, 'initialStep')}；最小步长={_control_text(trace, 'minimumStep')}；最大步长={_control_text(trace, 'maximumStep')}；线搜索={_enabled_text(trace.get('lineSearch'))}",
             ],
             [
                 "P-Delta 收敛判据",
                 _convergence_summary_text(trace),
                 "按残差、位移增量与能量增量同时判定是否收敛",
             ],
-            ["P-Delta 放大系数", _format_scalar(second_order.get("amplificationFactor")), _format_scalar(second_order.get("amplificationUnavailableReason"), f"first={second_order.get('firstOrderMaxDisplacementMm', '—')} mm，second={second_order.get('maxDisplacementMm', '—')} mm")],
-            ["P-Delta 失败原因", second_order.get("failureReason", "—") or "—", second_order.get("limitations", "—")],
+            ["P-Delta 放大系数", _format_scalar(second_order.get("amplificationFactor")), _human_explanation(second_order.get("amplificationUnavailableReason"), f"首阶={second_order.get('firstOrderMaxDisplacementMm', '—')} mm；二阶={second_order.get('maxDisplacementMm', '—')} mm")],
+            ["P-Delta 失败原因", _human_explanation(second_order.get("failureReason"), "—"), _human_explanation(second_order.get("limitations"), "—")],
             ["P-Delta 最后收敛点", _last_converged_summary_text(trace), _last_converged_note_text(trace)],
             ["P-Delta 失败尝试", _failed_attempt_count_text(trace), _failed_attempt_note_text(trace)],
             ["初始缺陷", _initial_imperfection_summary_text(second_order), _initial_imperfection_note_text(second_order)],
             ["方法比较", _method_comparison_summary_text(second_order), _method_comparison_note_text(second_order)],
             ["P-Delta 参考来源", _source_summary_text(second_order.get("referenceSource")), _source_note_text(second_order.get("referenceSource"))],
             ["P-Delta 控制来源", _source_summary_text(second_order.get("controlSource")), _source_note_text(second_order.get("controlSource"))],
-            ["屈曲状态", buckling.get("status", "disabled"), "enabled" if buckling.get("enabled") else "disabled"],
-            ["屈曲方法", buckling.get("method", "—"), f"modeCount={buckling.get('modeCount', '—')}"],
+            ["屈曲状态", _status_text(buckling.get("status", "disabled")), "已启用" if buckling.get("enabled") else "未启用"],
+            ["屈曲方法", _algorithm_label(buckling.get("method", "—")), f"提取模态数={buckling.get('modeCount', '—')}"],
             [
                 "整体首阶临界系数",
                 buckling.get("criticalLoadFactor", "—"),
                 "来自约束空间广义特征值；构件 Euler K=1 初筛仅用于定位复核对象，不替代整体屈曲结论："
-                f"{json.dumps(buckling.get('memberEulerScreen', buckling.get('controllingMembers', [])), ensure_ascii=False)}",
+                f"{_member_euler_screen_text(buckling.get('memberEulerScreen', buckling.get('controllingMembers', [])))}",
             ],
-            ["屈曲失败原因", buckling.get("failureReason", "—") or "—", buckling.get("limitations", "—")],
+            ["屈曲失败原因", _human_explanation(buckling.get("failureReason"), "—"), _human_explanation(buckling.get("limitations"), "—")],
             ["屈曲参考来源", _source_summary_text(buckling.get("referenceSource")), _source_note_text(buckling.get("referenceSource"))],
             ["屈曲控制来源", _source_summary_text(buckling.get("controlSource")), _source_note_text(buckling.get("controlSource"))],
         ],
@@ -393,6 +600,7 @@ def _frame_stability_evidence(solution: Mapping[str, Any], report_options: Mappi
     tables["初始缺陷说明"] = _frame_initial_imperfection_table(second_order)
     tables["方法比较"] = _frame_method_comparison_table(second_order)
     if template == "complete":
+        tables["方法比较技术审计"] = _frame_method_comparison_audit_table(second_order)
         tables["共回转计算原理"] = _frame_corotational_equations_table(second_order, trace)
         tables["共回转代表单元"] = _frame_representative_element_table(trace)
 
@@ -402,52 +610,52 @@ def _frame_stability_evidence(solution: Mapping[str, Any], report_options: Mappi
             continue
         history_rows.append(
             {
-                "step": record.get("step", "—"),
-                "loadFactor": record.get("loadFactor", "—"),
-                "fixedLoadFactor": record.get("fixedLoadFactor", "—"),
-                "pathPhase": record.get("pathPhase", "—"),
-                "stepSize": record.get("stepSize", "—"),
-                "iteration": record.get("iteration", "—"),
-                "deltaRatio": record.get("deltaRatio", "—"),
-                "maxDelta": record.get("maxDelta", "—"),
-                "displacementIncrementNorm": record.get("displacementIncrementNorm", "—"),
-                "relativeDisplacementIncrement": record.get("relativeDisplacementIncrement", "—"),
-                "equilibriumResidual": record.get("equilibriumResidual", record.get("equilibriumRmsRelativeError", "—")),
-                "energyIncrementJ": record.get("energyIncrementJ", "—"),
-                "energyIncrementRelative": record.get("energyIncrementRelative", "—"),
-                "lineSearchScale": record.get("lineSearchScale", "—"),
-                "lineSearchTrials": record.get("lineSearchTrials", "—"),
-                "maxDisplacementMm": record.get("maxDisplacementMm", "—"),
-                "minimumTangentEigenvalue": record.get("minimumTangentEigenvalue", "—"),
-                "stabilityStatus": record.get("stabilityStatus", "—"),
-                "status": record.get("status", "—"),
-                "equilibriumRmsRelativeError": record.get("equilibriumRmsRelativeError", "—"),
+                "荷载步": record.get("step", "—"),
+                "荷载因子": record.get("loadFactor", "—"),
+                "固定荷载因子": record.get("fixedLoadFactor", "—"),
+                "路径阶段": _path_phase_text(record.get("pathPhase", "—")),
+                "步长": record.get("stepSize", "—"),
+                "迭代次数": record.get("iteration", "—"),
+                "增量比": record.get("deltaRatio", "—"),
+                "最大增量": record.get("maxDelta", "—"),
+                "位移增量范数": record.get("displacementIncrementNorm", "—"),
+                "相对位移增量": record.get("relativeDisplacementIncrement", "—"),
+                "平衡残差": record.get("equilibriumResidual", record.get("equilibriumRmsRelativeError", "—")),
+                "能量增量（J）": record.get("energyIncrementJ", "—"),
+                "相对能量增量": record.get("energyIncrementRelative", "—"),
+                "线搜索尺度": record.get("lineSearchScale", "—"),
+                "线搜索次数": record.get("lineSearchTrials", "—"),
+                "最大位移（mm）": record.get("maxDisplacementMm", "—"),
+                "最小切线特征值": record.get("minimumTangentEigenvalue", "—"),
+                "稳定状态": _status_text(record.get("stabilityStatus", "—")),
+                "收敛状态": _status_text(record.get("status", "—")),
+                "平衡均方根相对误差": record.get("equilibriumRmsRelativeError", "—"),
             }
         )
     if template != "standard":
         tables["P-Delta 收敛记录"] = pd.DataFrame(
             history_rows
             or [{
-                "step": "—",
-                "loadFactor": "—",
-                "fixedLoadFactor": "—",
-                "pathPhase": "—",
-                "stepSize": "—",
-                "iteration": "—",
-                "deltaRatio": "—",
-                "maxDelta": "—",
-                "displacementIncrementNorm": "—",
-                "relativeDisplacementIncrement": "—",
-                "equilibriumResidual": "—",
-                "energyIncrementJ": "—",
-                "energyIncrementRelative": "—",
-                "lineSearchScale": "—",
-                "lineSearchTrials": "—",
-                "maxDisplacementMm": "—",
-                "minimumTangentEigenvalue": "—",
-                "stabilityStatus": "—",
-                "status": "—",
-                "equilibriumRmsRelativeError": "—",
+                "荷载步": "—",
+                "荷载因子": "—",
+                "固定荷载因子": "—",
+                "路径阶段": "—",
+                "步长": "—",
+                "迭代次数": "—",
+                "增量比": "—",
+                "最大增量": "—",
+                "位移增量范数": "—",
+                "相对位移增量": "—",
+                "平衡残差": "—",
+                "能量增量（J）": "—",
+                "相对能量增量": "—",
+                "线搜索尺度": "—",
+                "线搜索次数": "—",
+                "最大位移（mm）": "—",
+                "最小切线特征值": "—",
+                "稳定状态": "—",
+                "收敛状态": "—",
+                "平衡均方根相对误差": "—",
             }]
         )
 
@@ -460,12 +668,12 @@ def _frame_stability_evidence(solution: Mapping[str, Any], report_options: Mappi
         mode_number = mode.get("modeNumber", "—")
         mode_summary_rows.append(
             {
-                "modeNumber": mode_number,
-                "criticalLoadFactor": mode.get("criticalLoadFactor", "—"),
-                "eigenResidualNorm": mode.get("eigenResidualNorm", mode.get("residualNorm", "—")),
-                "constraintResidualNorm": mode.get("constraintResidualNorm", mode.get("constraintResidual", "—")),
-                "nodeCount": len(mode.get("nodeDisplacements", []) or []),
-                "memberShapeCount": len(mode.get("memberModeShapes", []) or []),
+                "模态阶次": mode_number,
+                "临界荷载因子": mode.get("criticalLoadFactor", "—"),
+                "特征方程残差范数": mode.get("eigenResidualNorm", mode.get("residualNorm", "—")),
+                "约束残差范数": mode.get("constraintResidualNorm", mode.get("constraintResidual", "—")),
+                "节点数": len(mode.get("nodeDisplacements", []) or []),
+                "构件形状数": len(mode.get("memberModeShapes", []) or []),
             }
         )
         if template == "complete":
@@ -474,11 +682,11 @@ def _frame_stability_evidence(solution: Mapping[str, Any], report_options: Mappi
                     continue
                 node_mode_rows.append(
                     {
-                        "modeNumber": mode_number,
-                        "nodeId": node.get("nodeId", "—"),
-                        "ux": node.get("ux", node.get("uxMm", "—")),
-                        "uy": node.get("uy", node.get("uyMm", "—")),
-                        "rz": node.get("rz", node.get("rotationDeg", "—")),
+                        "模态阶次": mode_number,
+                        "节点编号": node.get("nodeId", "—"),
+                        "X 向分量": node.get("ux", node.get("uxMm", "—")),
+                        "Y 向分量": node.get("uy", node.get("uyMm", "—")),
+                        "转角分量": node.get("rz", node.get("rotationDeg", "—")),
                     }
                 )
             for shape in mode.get("memberModeShapes", []) if isinstance(mode.get("memberModeShapes"), list) else []:
@@ -493,23 +701,23 @@ def _frame_stability_evidence(solution: Mapping[str, Any], report_options: Mappi
                 for index in range(station_count):
                     member_shape_rows.append(
                         {
-                            "modeNumber": mode_number,
-                            "memberId": shape.get("memberId", "—"),
-                            "stationIndex": index + 1,
-                            "stationM": _list_value_at(stations_m, index, "—"),
-                            "ratio": _list_value_at(ratios, index, "—"),
-                            "ux": _list_value_at(ux_values, index, "—"),
-                            "uy": _list_value_at(uy_values, index, "—"),
-                            "rz": _list_value_at(rz_values, index, "—"),
+                            "模态阶次": mode_number,
+                            "构件编号": shape.get("memberId", "—"),
+                            "截面序号": index + 1,
+                            "截面位置（m）": _list_value_at(stations_m, index, "—"),
+                            "相对位置": _list_value_at(ratios, index, "—"),
+                            "X 向分量": _list_value_at(ux_values, index, "—"),
+                            "Y 向分量": _list_value_at(uy_values, index, "—"),
+                            "转角分量": _list_value_at(rz_values, index, "—"),
                         }
                     )
-    mode_summary_frame = pd.DataFrame(mode_summary_rows or [{"modeNumber": "—", "criticalLoadFactor": "—", "eigenResidualNorm": "—", "constraintResidualNorm": "—", "nodeCount": "—", "memberShapeCount": "—"}])
+    mode_summary_frame = pd.DataFrame(mode_summary_rows or [{"模态阶次": "—", "临界荷载因子": "—", "特征方程残差范数": "—", "约束残差范数": "—", "节点数": "—", "构件形状数": "—"}])
     if template == "standard":
         mode_summary_frame = mode_summary_frame.head(1).reset_index(drop=True)
     tables["屈曲模态摘要"] = mode_summary_frame
     if template == "complete":
-        tables["屈曲节点模态向量"] = pd.DataFrame(node_mode_rows or [{"modeNumber": "—", "nodeId": "—", "ux": "—", "uy": "—", "rz": "—"}])
-        tables["屈曲构件模态形状"] = pd.DataFrame(member_shape_rows or [{"modeNumber": "—", "memberId": "—", "stationIndex": "—", "stationM": "—", "ratio": "—", "ux": "—", "uy": "—", "rz": "—"}])
+        tables["屈曲节点模态向量"] = pd.DataFrame(node_mode_rows or [{"模态阶次": "—", "节点编号": "—", "X 向分量": "—", "Y 向分量": "—", "转角分量": "—"}])
+        tables["屈曲构件模态形状"] = pd.DataFrame(member_shape_rows or [{"模态阶次": "—", "构件编号": "—", "截面序号": "—", "截面位置（m）": "—", "相对位置": "—", "X 向分量": "—", "Y 向分量": "—", "转角分量": "—"}])
     return tables
 
 
@@ -530,7 +738,7 @@ def _frame_corotational_equations_table(
             ["单元恢复", "q_f = k_b q；f_int,e = B(q)^T q_f", "端释放在基本刚度中静力凝聚后再恢复内力"],
             ["平衡残差", "g(u, λ) = f_ext(λ) - f_int(u) = 0", "平衡状态与切线稳定状态分别判定"],
             ["切线增量", "K_T(u_k) Δu_k = g(u_k, λ)；u_(k+1)=u_k+αΔu_k", "K_T 为解析一致切线；α 由残差缩减线搜索确定"],
-            ["路径恢复", "失败步 → cutback；成功步 → 自适应增长", "始终保留 lastConverged、finalAttempt、canonical keyPoints 和失败码"],
+            ["路径恢复", "失败步 → 缩小步长；成功步 → 自适应增长", "始终保留最后收敛点、最终尝试、规范化关键点和失败码"],
             ["收敛判据", _convergence_summary_text(trace), "残差、位移增量与能量增量必须同时满足"],
         ],
         columns=["项目", "公式/口径", "说明"],
@@ -573,17 +781,16 @@ def _control_text(trace: Mapping[str, Any], key: str) -> str:
 def _control_algorithm_text(trace: Mapping[str, Any], second_order: Mapping[str, Any]) -> str:
     algorithm = _mapping(trace.get("algorithm", {}))
     algorithm_id = str(algorithm.get("id") or second_order.get("algorithm", {}).get("id") or "—")
-    algorithm_version = str(algorithm.get("version") or second_order.get("algorithm", {}).get("version") or "—")
     if algorithm_id == "—":
         return "—"
-    return f"{algorithm_id} v{algorithm_version}"
+    return _algorithm_label(algorithm_id)
 
 
 def _control_summary_text(trace: Mapping[str, Any]) -> str:
     control = _mapping(trace.get("control", {}))
     if not control:
         return "—"
-    return f"{control.get('type', '—')}；{control.get('lineSearch', '—')}"
+    return f"{_path_mode_text(control.get('type'))}；线搜索{_enabled_text(control.get('lineSearch'))}"
 
 
 def _convergence_summary_text(trace: Mapping[str, Any]) -> str:
@@ -591,9 +798,9 @@ def _convergence_summary_text(trace: Mapping[str, Any]) -> str:
     if not convergence:
         return "—"
     return (
-        f"residual={_format_threshold(convergence.get('relativeResidualTolerance'))} / {_format_threshold(convergence.get('absoluteResidualToleranceN'))} N；"
-        f"displacement={_format_threshold(convergence.get('relativeDisplacementTolerance'))} / {_format_threshold(convergence.get('absoluteDisplacementToleranceM'))} m；"
-        f"energy={_format_threshold(convergence.get('relativeEnergyTolerance'))} / {_format_threshold(convergence.get('absoluteEnergyToleranceJ'))} J"
+        f"残差={_format_threshold(convergence.get('relativeResidualTolerance'))} / {_format_threshold(convergence.get('absoluteResidualToleranceN'))} N；"
+        f"位移增量={_format_threshold(convergence.get('relativeDisplacementTolerance'))} / {_format_threshold(convergence.get('absoluteDisplacementToleranceM'))} m；"
+        f"能量增量={_format_threshold(convergence.get('relativeEnergyTolerance'))} / {_format_threshold(convergence.get('absoluteEnergyToleranceJ'))} J"
     )
 
 
@@ -604,13 +811,13 @@ def _frame_path_control_table(second_order: Mapping[str, Any], trace: Mapping[st
     return pd.DataFrame(
         [
             ["算法", _control_algorithm_text(trace, second_order), second_order.get("method", "—")],
-            ["路径控制类型", control.get("type", "—"), "固定预载 + 变量荷载或单一自适应荷载路径"],
-            ["步长设置", f"initial={control.get('initialStep', '—')}；minimum={control.get('minimumStep', '—')}；maximum={control.get('maximumStep', '—')}", "路径步长在 cutback 与增长之间自适应调整"],
-            ["线搜索", control.get("lineSearch", "—"), "采用残差缩减准则选择增量尺度"],
+            ["路径控制类型", _path_mode_text(control.get("type")), "固定预载 + 变量荷载或单一自适应荷载路径"],
+            ["步长设置", f"初始={control.get('initialStep', '—')}；最小={control.get('minimumStep', '—')}；最大={control.get('maximumStep', '—')}", "路径步长在失败切步与成功增长之间自适应调整"],
+            ["线搜索", _enabled_text(control.get("lineSearch")), "采用残差缩减准则选择增量尺度"],
             ["收敛判据", _convergence_summary_text(trace), "残差、位移与能量必须同时满足容差"],
-            ["平衡状态", second_order.get("equilibriumStatus", "—"), f"稳定状态={second_order.get('stabilityStatus', '—')}"],
+            ["平衡状态", _status_text(second_order.get("equilibriumStatus", "—")), f"稳定状态={_status_text(second_order.get('stabilityStatus', '—'))}"],
             ["失败码", second_order.get("failureCode", "—") or "—", second_order.get("failureReason", "—") or "—"],
-            ["路径统计", f"accepted={summary.get('acceptedSteps', '—')}；failed={summary.get('failedAttempts', '—')}；iterations={summary.get('totalIterations', '—')}", f"终止原因={summary.get('terminationReason', '—')}"],
+            ["路径统计", f"成功步={summary.get('acceptedSteps', '—')}；失败尝试={summary.get('failedAttempts', '—')}；总迭代={summary.get('totalIterations', '—')}", f"终止原因={_status_text(summary.get('terminationReason', '—'))}"],
             ["加载路径", _path_mode_text(control.get("type")), "单步或分段路径控制决定固定荷载与变量荷载的推进方式"],
             ["初始缺陷", _initial_imperfection_summary_text(second_order), _initial_imperfection_note_text(second_order)],
             ["方法比较", _method_comparison_summary_text(second_order), _method_comparison_note_text(second_order)],
@@ -626,7 +833,7 @@ def _frame_last_converged_table(trace: Mapping[str, Any]) -> pd.DataFrame:
     return pd.DataFrame(
         [
             ["步号", last_converged.get("step", "—"), "最后一个成功收敛的荷载步", "—"],
-            ["路径阶段", last_converged.get("pathPhase", "—"), "固定预载或变量荷载阶段", "—"],
+            ["路径阶段", _path_phase_text(last_converged.get("pathPhase", "—")), "固定预载或变量荷载阶段", "—"],
             ["荷载系数", last_converged.get("loadFactor", "—"), "当前变量荷载系数", "—"],
             ["固定荷载系数", last_converged.get("fixedLoadFactor", "—"), "当前固定预载系数", "—"],
             ["最大位移", f"{last_converged.get('maxDisplacementMm', '—')} mm", "最后收敛状态的结构整体最大位移", "—"],
@@ -643,15 +850,15 @@ def _frame_failed_attempts_table(trace: Mapping[str, Any]) -> pd.DataFrame:
             continue
         rows.append(
             {
-                "attempt": index,
-                "step": attempt.get("step", "—"),
-                "pathPhase": attempt.get("pathPhase", "—"),
-                "loadFactor": attempt.get("loadFactor", "—"),
-                "stepSize": attempt.get("stepSize", "—"),
-                "iterations": attempt.get("iterations", "—"),
-                "status": attempt.get("status", "—"),
-                "reason": attempt.get("reason", "—"),
-                "lastResidualRelative": attempt.get("lastResidualRelative", "—"),
+                "尝试序号": index,
+                "荷载步": attempt.get("step", "—"),
+                "路径阶段": _path_phase_text(attempt.get("pathPhase", "—")),
+                "荷载因子": attempt.get("loadFactor", "—"),
+                "步长": attempt.get("stepSize", "—"),
+                "迭代次数": attempt.get("iterations", "—"),
+                "状态": _status_text(attempt.get("status", "—")),
+                "原因": _status_text(attempt.get("reason", "—")),
+                "末次相对残差": attempt.get("lastResidualRelative", "—"),
             }
         )
     if not rows:
@@ -659,29 +866,29 @@ def _frame_failed_attempts_table(trace: Mapping[str, Any]) -> pd.DataFrame:
         if final_attempt:
             rows.append(
                 {
-                    "attempt": 1,
-                    "step": final_attempt.get("step", "—"),
-                    "pathPhase": final_attempt.get("pathPhase", "—"),
-                    "loadFactor": final_attempt.get("loadFactor", "—"),
-                    "stepSize": final_attempt.get("stepSize", "—"),
-                    "iterations": final_attempt.get("iterations", "—"),
-                    "status": final_attempt.get("status", "—"),
-                    "reason": final_attempt.get("reason", "—"),
-                    "lastResidualRelative": final_attempt.get("lastResidualRelative", "—"),
+                    "尝试序号": 1,
+                    "荷载步": final_attempt.get("step", "—"),
+                    "路径阶段": _path_phase_text(final_attempt.get("pathPhase", "—")),
+                    "荷载因子": final_attempt.get("loadFactor", "—"),
+                    "步长": final_attempt.get("stepSize", "—"),
+                    "迭代次数": final_attempt.get("iterations", "—"),
+                    "状态": _status_text(final_attempt.get("status", "—")),
+                    "原因": _status_text(final_attempt.get("reason", "—")),
+                    "末次相对残差": final_attempt.get("lastResidualRelative", "—"),
                 }
             )
     return pd.DataFrame(
         rows
         or [{
-            "attempt": "—",
-            "step": "—",
-            "pathPhase": "—",
-            "loadFactor": "—",
-            "stepSize": "—",
-            "iterations": "—",
-            "status": "—",
-            "reason": "—",
-            "lastResidualRelative": "—",
+            "尝试序号": "—",
+            "荷载步": "—",
+            "路径阶段": "—",
+            "荷载因子": "—",
+            "步长": "—",
+            "迭代次数": "—",
+            "状态": "—",
+            "原因": "—",
+            "末次相对残差": "—",
         }]
     )
 
@@ -694,39 +901,39 @@ def _frame_path_keypoints_table(trace: Mapping[str, Any]) -> pd.DataFrame:
             continue
         rows.append(
             {
-                "keyPointId": point.get("id", "—"),
-                "kind": point.get("kind", "—"),
-                "source": point.get("source", "—"),
-                "sourceIndex": point.get("sourceIndex", "—"),
-                "step": point.get("step", "—"),
-                "pathPhase": point.get("pathPhase", "—"),
-                "pathProgress": point.get("pathProgress", "—"),
-                "loadFactor": point.get("loadFactor", "—"),
-                "fixedLoadFactor": point.get("fixedLoadFactor", "—"),
-                "maxDisplacementMm": point.get("maxDisplacementMm", "—"),
-                "minimumTangentEigenvalue": point.get("minimumTangentEigenvalue", "—"),
-                "equilibriumResidualRelative": point.get("equilibriumResidualRelative", "—"),
-                "status": point.get("status", "—"),
-                "stabilityStatus": point.get("stabilityStatus", "—"),
+                "关键点编号": point.get("id", "—"),
+                "类型": _localized_value(point.get("kind", "—"), KEY_POINT_KIND_LABELS, "其他关键点"),
+                "来源": "计算路径" if point.get("source") else "—",
+                "来源序号": point.get("sourceIndex", "—"),
+                "荷载步": point.get("step", "—"),
+                "路径阶段": _path_phase_text(point.get("pathPhase", "—")),
+                "路径进度": point.get("pathProgress", "—"),
+                "荷载因子": point.get("loadFactor", "—"),
+                "固定荷载因子": point.get("fixedLoadFactor", "—"),
+                "最大位移（mm）": point.get("maxDisplacementMm", "—"),
+                "最小切线特征值": point.get("minimumTangentEigenvalue", "—"),
+                "相对平衡残差": point.get("equilibriumResidualRelative", "—"),
+                "收敛状态": _status_text(point.get("status", "—")),
+                "稳定状态": _status_text(point.get("stabilityStatus", "—")),
             }
         )
     return pd.DataFrame(
         rows
         or [{
-            "keyPointId": "—",
-            "kind": "—",
-            "source": "—",
-            "sourceIndex": "—",
-            "step": "—",
-            "pathPhase": "—",
-            "pathProgress": "—",
-            "loadFactor": "—",
-            "fixedLoadFactor": "—",
-            "maxDisplacementMm": "—",
-            "minimumTangentEigenvalue": "—",
-            "equilibriumResidualRelative": "—",
-            "status": "—",
-            "stabilityStatus": "—",
+            "关键点编号": "—",
+            "类型": "—",
+            "来源": "—",
+            "来源序号": "—",
+            "荷载步": "—",
+            "路径阶段": "—",
+            "路径进度": "—",
+            "荷载因子": "—",
+            "固定荷载因子": "—",
+            "最大位移（mm）": "—",
+            "最小切线特征值": "—",
+            "相对平衡残差": "—",
+            "收敛状态": "—",
+            "稳定状态": "—",
         }]
     )
 
@@ -735,7 +942,7 @@ def _frame_initial_imperfection_table(second_order: Mapping[str, Any]) -> pd.Dat
     imperfection = _mapping(second_order.get("initialImperfection", {}))
     return pd.DataFrame(
         [
-            ["类型", imperfection.get("type", "—")],
+            ["类型", _imperfection_label(imperfection.get("type", "—"))],
             ["来源", _initial_imperfection_source_text(imperfection)],
             ["最大幅值", f"{imperfection.get('maximumAmplitudeMm', '—')} mm"],
             ["节点偏移数", len(_list(imperfection.get("nodeOffsets", [])))],
@@ -765,43 +972,60 @@ def _frame_method_comparison_table(second_order: Mapping[str, Any]) -> pd.DataFr
             )
             if not belongs_to_metric:
                 continue
+            method_label = str(method.get("label") or _algorithm_label(method_id))
+            if not _contains_chinese(method_label):
+                method_label = _algorithm_label(method_id)
             rows.append(
                 {
-                    "methodId": method_id,
-                    "label": method.get("label", method_id),
-                    "equilibriumStatus": method.get("equilibriumStatus", "—"),
-                    "stabilityStatus": method.get("stabilityStatus", "—"),
-                    "metric": metric_values.get(method_id, "—"),
-                    "metricId": metric_label,
-                    "metricUnit": metric_unit,
-                    "comparable": metric.get("comparable", False),
-                    "unavailableReason": metric.get("unavailableReason", "—") or "—",
-                    "failureReason": method.get("failureReason", "—") or "—",
-                    "sourceHash": method.get("sourceHash", "—") or "—",
-                    "requestHash": method.get("requestHash", "—") or "—",
-                    "modelHash": method.get("modelHash", "—") or "—",
-                    "referenceSource": _source_summary_text(method.get("referenceSource")),
+                    "方法": method_label,
+                    "平衡状态": _status_text(method.get("equilibriumStatus", "—")),
+                    "稳定状态": _status_text(method.get("stabilityStatus", "—")),
+                    "指标": _metric_label(metric_label),
+                    "数值": metric_values.get(method_id, "—"),
+                    "单位": metric_unit,
+                    "可比性": "可直接比较" if metric.get("comparable", False) else "仅作参考",
+                    "说明": metric.get("unavailableReason") or method.get("failureReason") or "—",
+                    "参考来源": _source_summary_text(method.get("referenceSource")),
                 }
             )
     return pd.DataFrame(
         rows
         or [{
-            "methodId": "—",
-            "label": "—",
-            "equilibriumStatus": "—",
-            "stabilityStatus": "—",
-            "metric": "—",
-            "metricId": "—",
-            "metricUnit": "—",
-            "comparable": "—",
-            "unavailableReason": "—",
-            "failureReason": "—",
-            "sourceHash": "—",
-            "requestHash": "—",
-            "modelHash": "—",
-            "referenceSource": "—",
+            "方法": "—",
+            "平衡状态": "—",
+            "稳定状态": "—",
+            "指标": "—",
+            "数值": "—",
+            "单位": "—",
+            "可比性": "—",
+            "说明": "—",
+            "参考来源": "—",
         }]
     )
+
+
+def _frame_method_comparison_audit_table(second_order: Mapping[str, Any]) -> pd.DataFrame:
+    comparison = _mapping(second_order.get("methodComparison", {}))
+    rows = []
+    for method in _list(comparison.get("methods", [])):
+        if not isinstance(method, Mapping):
+            continue
+        rows.append(
+            {
+                "算法技术标识": method.get("id", "—"),
+                "结果签名": method.get("sourceHash", "—") or "—",
+                "请求签名": method.get("requestHash", "—") or "—",
+                "模型签名": method.get("modelHash", "—") or "—",
+                "失败原因原值": method.get("failureReason", "—") or "—",
+            }
+        )
+    return pd.DataFrame(rows or [{
+        "算法技术标识": "—",
+        "结果签名": "—",
+        "请求签名": "—",
+        "模型签名": "—",
+        "失败原因原值": "—",
+    }])
 
 
 def _path_mode_text(control_type: Any) -> str:
@@ -811,7 +1035,7 @@ def _path_mode_text(control_type: Any) -> str:
         "adaptive_fixed_load_control": "仅固定预载路径",
         "adaptive_load_control": "仅变量荷载路径",
     }
-    return mapping.get(value, value)
+    return mapping.get(value, value if _contains_chinese(value) else "其他加载路径")
 
 
 def _initial_imperfection_summary_text(second_order: Mapping[str, Any]) -> str:
@@ -819,7 +1043,7 @@ def _initial_imperfection_summary_text(second_order: Mapping[str, Any]) -> str:
     if not imperfection:
         return "—"
     source = _initial_imperfection_source_text(imperfection)
-    return f"{imperfection.get('type', '—')}；{source}"
+    return f"{_imperfection_label(imperfection.get('type', '—'))}；{source}"
 
 
 def _initial_imperfection_note_text(second_order: Mapping[str, Any]) -> str:
@@ -828,7 +1052,7 @@ def _initial_imperfection_note_text(second_order: Mapping[str, Any]) -> str:
         return "—"
     maximum = imperfection.get("maximumAmplitudeMm", "—")
     count = len(_list(imperfection.get("nodeOffsets", [])))
-    return f"最大幅值={maximum} mm；节点偏移={count} 个"
+    return f"最大幅值={maximum} mm；偏移节点数={count} 个"
 
 
 def _initial_imperfection_source_text(imperfection: Mapping[str, Any]) -> str:
@@ -840,7 +1064,7 @@ def _initial_imperfection_source_text(imperfection: Mapping[str, Any]) -> str:
         return f"线性屈曲模态 {source.get('modeNumber', '—')}；幅值 {source.get('amplitudeMm', '—')} mm"
     if source_type == "explicit":
         return "显式节点偏移"
-    return source_type
+    return _localized_value(source_type, {"none": "无来源"}, "其他缺陷来源")
 
 
 def _method_comparison_summary_text(second_order: Mapping[str, Any]) -> str:
@@ -849,9 +1073,9 @@ def _method_comparison_summary_text(second_order: Mapping[str, Any]) -> str:
         return "—"
     metrics = _list(comparison.get("metrics", []))
     if not metrics:
-        return f"{comparison.get('schema', '—')}；0 个可比指标"
+        return "未提供可比指标"
     metric = _mapping(metrics[0])
-    return f"{comparison.get('schema', '—')}；{len(_list(comparison.get('methods', [])))} 种方法；指标={metric.get('id', '—')}"
+    return f"{len(_list(comparison.get('methods', [])))} 种方法；比较指标：{_metric_label(metric.get('id', '—'))}"
 
 
 def _method_comparison_note_text(second_order: Mapping[str, Any]) -> str:
@@ -869,9 +1093,9 @@ def _last_converged_summary_text(trace: Mapping[str, Any]) -> str:
     if not last_converged:
         return "—"
     return (
-        f"step={last_converged.get('step', '—')}；"
-        f"loadFactor={last_converged.get('loadFactor', '—')}；"
-        f"maxDisplacementMm={last_converged.get('maxDisplacementMm', '—')}"
+        f"荷载步={last_converged.get('step', '—')}；"
+        f"荷载因子={last_converged.get('loadFactor', '—')}；"
+        f"最大位移={last_converged.get('maxDisplacementMm', '—')} mm"
     )
 
 
@@ -879,7 +1103,7 @@ def _last_converged_note_text(trace: Mapping[str, Any]) -> str:
     last_converged = _mapping(trace.get("lastConverged", {}))
     if not last_converged:
         return "—"
-    return f"fixedLoadFactor={last_converged.get('fixedLoadFactor', '—')}；pathPhase={last_converged.get('pathPhase', '—')}"
+    return f"固定荷载因子={last_converged.get('fixedLoadFactor', '—')}；路径阶段={_path_phase_text(last_converged.get('pathPhase', '—'))}"
 
 
 def _failed_attempt_count_text(trace: Mapping[str, Any]) -> str:
@@ -891,7 +1115,7 @@ def _failed_attempt_note_text(trace: Mapping[str, Any]) -> str:
     summary = _mapping(trace.get("summary", {}))
     if not summary:
         return "—"
-    return f"总迭代={summary.get('totalIterations', '—')}；终止={summary.get('terminationReason', '—')}"
+    return f"总迭代={summary.get('totalIterations', '—')}；终止原因={_status_text(summary.get('terminationReason', '—'))}"
 
 
 def _format_threshold(value: Any) -> str:
@@ -923,7 +1147,9 @@ def _control_entry_source_text(entry: Mapping[str, Any]) -> str:
         "request": "复核点",
         "legacy": "旧结果",
     }
-    return f"{labels.get(source_type, source_type)} [{source_id}]"
+    if source_type == "main" and source_id == "__primary__":
+        return "主结果"
+    return f"{labels.get(source_type, '其他来源')} [{source_id}]"
 
 
 def _control_entry_station_text(entry: Mapping[str, Any]) -> str:
@@ -952,10 +1178,10 @@ def _control_entry_metric_text(entry: Mapping[str, Any]) -> str:
     metric = str(entry.get("metric") or "—")
     kind = str(entry.get("kind") or "—")
     if kind == "legacy":
-        return metric
+        return _metric_label(metric)
     if metric == "—":
-        return kind
-    return f"{metric} / {kind}"
+        return _localized_value(kind, KEY_POINT_KIND_LABELS, "其他关键点")
+    return f"{_metric_label(metric)} / {_localized_value(kind, KEY_POINT_KIND_LABELS, '其他关键点')}"
 
 
 def _control_entry_rows(
@@ -988,7 +1214,7 @@ def _control_entry_rows(
                     "stationRatio": point.get("stationRatio"),
                     "value": point.get("value", "—"),
                     "unit": point.get("unit", "—"),
-                    "note": "readOnly=" + str(bool(point.get("readOnly"))),
+                    "note": "只读" if bool(point.get("readOnly")) else "可复核",
                     "selector": json.dumps(point.get("selector", {}), ensure_ascii=False) if point.get("selector") else "—",
                 }
             )
@@ -1002,13 +1228,13 @@ def _critical_point_table(result: Mapping[str, Any], analysis_type: str) -> pd.D
         return pd.DataFrame(
             [[
                 "关键点摘要",
-                "unavailable",
+                "暂未提供",
                 "—",
                 "—",
                 "—",
                 "—",
                 "—",
-                "当前结果未提供 criticalPoints；仅展示摘要，不重算。",
+                "当前结果未提供关键点集合；仅展示摘要，不重新计算。",
             ]],
             columns=["关键点", "来源", "对象", "指标", "测站", "数值", "单位", "说明"],
         )
@@ -1036,13 +1262,13 @@ def _review_point_table(result: Mapping[str, Any], analysis_type: str) -> pd.Dat
         return pd.DataFrame(
             [[
                 "复核点摘要",
-                "unavailable",
+                "暂未提供",
                 "—",
                 "—",
                 "—",
                 "—",
                 "—",
-                "当前结果未提供 reviewPoints；仅展示摘要，不重算。",
+                "当前结果未提供复核点集合；仅展示摘要，不重新计算。",
             ]],
             columns=["复核点", "来源", "对象", "指标", "测站", "数值", "单位", "选择器"],
         )
@@ -1078,7 +1304,7 @@ def _governing_envelope_table(result: Mapping[str, Any], analysis_type: str) -> 
                     _control_entry_source_text(entry),
                     _control_entry_object_text(entry),
                     _control_entry_metric_text(entry),
-                    str(entry.get("kind") or "—"),
+                    _localized_value(entry.get("kind", "—"), KEY_POINT_KIND_LABELS, "其他控制类型"),
                     _control_entry_station_text(entry),
                     _format_scalar(entry.get("value")),
                     _format_scalar(entry.get("unit")),
@@ -1091,13 +1317,13 @@ def _governing_envelope_table(result: Mapping[str, Any], analysis_type: str) -> 
     return pd.DataFrame(
         [[
             "包络摘要",
-            "unavailable",
+            "暂未提供",
             "—",
             "—",
             "—",
             "—",
             "—",
-            "当前结果未提供 governingEnvelope；仅展示摘要，不重算。",
+            "当前结果未提供控制包络；仅展示摘要，不重新计算。",
             "—",
         ]],
         columns=["包络项", "来源", "对象", "指标", "类型", "测站", "数值", "单位", "来源点"],
@@ -1107,10 +1333,10 @@ def _governing_envelope_table(result: Mapping[str, Any], analysis_type: str) -> 
 def _calculation_trace_table(result: Mapping[str, Any], analysis_type: str) -> pd.DataFrame:
     trace = _mapping(_evidence_value(result, "calculationTrace", {}))
     rows: List[List[str]] = [
-        ["分析类型", analysis_type, "—"],
-        ["请求签名", _format_scalar(trace.get("requestHash", result.get("requestHash", "—"))), "—"],
-        ["模型签名", _format_scalar(trace.get("modelHash", result.get("modelHash", "—"))), "—"],
-        ["结果签名", _format_scalar(trace.get("resultHash", result.get("resultHash", "—"))), "—"],
+        ["分析类型", _analysis_type_text(analysis_type), "—"],
+        ["请求签名（技术审计）", _format_scalar(trace.get("requestHash", result.get("requestHash", "—"))), "—"],
+        ["模型签名（技术审计）", _format_scalar(trace.get("modelHash", result.get("modelHash", "—"))), "—"],
+        ["结果签名（技术审计）", _format_scalar(trace.get("resultHash", result.get("resultHash", "—"))), "—"],
     ]
     stages = _list(trace.get("stages"))
     if stages:
@@ -1120,13 +1346,13 @@ def _calculation_trace_table(result: Mapping[str, Any], analysis_type: str) -> p
                 continue
             rows.append(
                 [
-                    str(stage.get("stage") or "—"),
-                    _format_mapping_summary(stage.get("summary")),
-                    f"bounded={stage.get('bounded', '—')}；truncated={stage.get('truncated', '—')}",
+                    _localized_value(stage.get("stage", "—"), TRACE_STAGE_LABELS, "其他计算阶段"),
+                    _format_mapping_summary(stage.get("summary"), localize_keys=True),
+                    f"有界记录={_yes_no_text(stage.get('bounded'))}；已截断={_yes_no_text(stage.get('truncated'))}",
                 ]
             )
     else:
-        rows.append(["证据状态", "unavailable", "当前结果未提供 calculationTrace；仅展示摘要，不重算。"])
+        rows.append(["证据状态", "暂未提供", "当前结果未提供计算过程记录；仅展示摘要，不重新计算。"])
     return pd.DataFrame(rows, columns=["阶段", "摘要", "边界/计数"])
 
 
@@ -1137,30 +1363,30 @@ def _calculation_snapshot_table(result: Mapping[str, Any], analysis_type: str) -
     evidence_hashes = _mapping(snapshot.get("evidenceHashes"))
     counts = _mapping(snapshot.get("counts"))
     rows = [
-        ["分析类型", _format_scalar(snapshot.get("analysisType", analysis_type)), "—"],
-        ["阶段", _format_scalar(snapshot.get("stage", "completed")), "—"],
-        ["操作", _format_scalar(snapshot.get("operation", result.get("operation", "calculate"))), "—"],
-        ["结果状态", _format_scalar(summary.get("status", "—")), _format_scalar(summary.get("method", "—"))],
-        ["结果码", _format_scalar(summary.get("statusCode", "—")), "—"],
-        ["诊断状态", _format_scalar(diagnostics.get("status", "—")), _format_scalar(diagnostics.get("statusCode", "—"))],
-        ["requestHash", _format_scalar(snapshot.get("requestHash", result.get("requestHash", "—"))), "—"],
-        ["modelHash", _format_scalar(snapshot.get("modelHash", result.get("modelHash", "—"))), "—"],
-        ["resultHash", _format_scalar(snapshot.get("resultHash", result.get("resultHash", "—"))), "—"],
-        ["criticalPoints", _format_scalar(counts.get("criticalPoints", "—")), "—"],
-        ["reviewPoints", _format_scalar(counts.get("reviewPoints", "—")), "—"],
-        ["governingEnvelope", _format_scalar(counts.get("governingEnvelope", "—")), "—"],
-        ["calculationTrace", _format_scalar(evidence_hashes.get("calculationTrace", "—")), "—"],
-        ["criticalPointsHash", _format_scalar(evidence_hashes.get("criticalPoints", "—")), "—"],
-        ["reviewPointsHash", _format_scalar(evidence_hashes.get("reviewPoints", "—")), "—"],
-        ["governingEnvelopeHash", _format_scalar(evidence_hashes.get("governingEnvelope", "—")), "—"],
+        ["分析类型", _analysis_type_text(snapshot.get("analysisType", analysis_type)), "—"],
+        ["阶段", _status_text(snapshot.get("stage", "completed")), "—"],
+        ["操作", "执行计算" if str(snapshot.get("operation", result.get("operation", "calculate"))).lower() == "calculate" else "其他操作", "—"],
+        ["结果状态", _status_text(summary.get("status", "—")), _algorithm_label(summary.get("method", "—"))],
+        ["结果状态码", _status_text(summary.get("statusCode", "—")), "—"],
+        ["诊断状态", _status_text(diagnostics.get("status", "—")), _status_text(diagnostics.get("statusCode", "—"))],
+        ["请求签名（技术审计）", _format_scalar(snapshot.get("requestHash", result.get("requestHash", "—"))), "—"],
+        ["模型签名（技术审计）", _format_scalar(snapshot.get("modelHash", result.get("modelHash", "—"))), "—"],
+        ["结果签名（技术审计）", _format_scalar(snapshot.get("resultHash", result.get("resultHash", "—"))), "—"],
+        ["关键点数量", _format_scalar(counts.get("criticalPoints", "—")), "—"],
+        ["复核点数量", _format_scalar(counts.get("reviewPoints", "—")), "—"],
+        ["控制来源数量", _format_scalar(counts.get("governingEnvelope", "—")), "—"],
+        ["计算过程证据签名", _format_scalar(evidence_hashes.get("calculationTrace", "—")), "—"],
+        ["关键点证据签名", _format_scalar(evidence_hashes.get("criticalPoints", "—")), "—"],
+        ["复核点证据签名", _format_scalar(evidence_hashes.get("reviewPoints", "—")), "—"],
+        ["控制来源证据签名", _format_scalar(evidence_hashes.get("governingEnvelope", "—")), "—"],
     ]
     if analysis_type == "frame":
-        rows.append(["secondOrderAmplificationFactor", _format_scalar(summary.get("secondOrderAmplificationFactor", "—")), "—"])
+        rows.append(["二阶放大系数", _format_scalar(summary.get("secondOrderAmplificationFactor", "—")), "—"])
     if isinstance(diagnostics.get("equilibrium"), Mapping):
         eq = diagnostics.get("equilibrium")
-        rows.append(["equilibrium.rmsRelativeError", _format_scalar(eq.get("rmsRelativeError", "—")), "—"])
+        rows.append(["平衡均方根相对误差", _format_scalar(eq.get("rmsRelativeError", "—")), "—"])
     if not snapshot:
-        rows.insert(0, ["证据状态", "unavailable", "当前结果未提供 calculationSnapshot；仅展示摘要，不重算。"])
+        rows.insert(0, ["证据状态", "暂未提供", "当前结果未提供计算快照；仅展示摘要，不重新计算。"])
     return pd.DataFrame(rows, columns=["项目", "值", "说明"])
 
 
@@ -1178,8 +1404,8 @@ def _source_summary_text(source: Any) -> str:
     source_id = str(source.get("id") or "__primary__")
     title = str(source.get("title") or source.get("label") or source_id)
     if source_type == "primary":
-        return f"主结果 / {title}"
-    source_label = {"case": "工况", "combination": "组合"}.get(source_type, source_type)
+        return "主结果 / 基本结果" if title in {"__primary__", "main", "primary"} else f"主结果 / {title}"
+    source_label = {"case": "工况", "combination": "组合"}.get(source_type, "其他来源")
     return f"{source_label} {title} [{source_id}]"
 
 
@@ -1202,7 +1428,7 @@ def _truss_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str
             [
                 ["结构类型", "二维平面桁架"],
                 ["材料名称", material_name],
-                ["材料适用范围", "材料名称为项目默认材料说明；桁架整体刚度按各杆件 E_GPa / A_cm2 输入装配。"],
+                ["材料适用范围", "材料名称为项目默认材料说明；桁架整体刚度按各杆件弹性模量 E 和截面面积 A 输入装配。"],
                 ["杆件弹性模量分布", member_elasticity_summary(structure.get("members", []), "杆件")],
                 ["节点数量", len(structure.get("nodes", []))],
                 ["杆件数量", len(structure.get("members", []))],
@@ -1343,8 +1569,24 @@ def _benchmark_summary_text(analysis_type: str) -> str:
             if case.get("verification", {}).get("sourceType")
         }
     )
-    category_text = "/".join(sorted(categories))
-    return f"当前分析类型 {category_text} 覆盖 {len(relevant_cases)} 个算例；全量公开验证集 {len(cases)} 个；来源类型：{', '.join(source_types)}"
+    category_labels = {
+        "beam": "梁系",
+        "frame": "平面框架",
+        "frame-beam-verify": "框架梁基准",
+        "frame-nonlinear-verify": "框架非线性基准",
+        "truss": "平面桁架",
+        "truss-verify": "桁架基准",
+    }
+    source_labels = {
+        "textbook-analytical": "教材解析解",
+        "independent-stiffness-baseline": "独立刚度法基线",
+        "internal-regression": "内部回归",
+        "published-benchmark": "公开发表基准",
+        "engineering-software": "工程软件对标",
+    }
+    category_text = "、".join(category_labels.get(item, "其他验证类别") for item in sorted(categories))
+    source_text = "、".join(source_labels.get(item, "其他验证来源") for item in source_types)
+    return f"当前分析类型（{category_text}）覆盖 {len(relevant_cases)} 个算例；全量公开验证集 {len(cases)} 个；来源类型：{source_text}"
 
 
 def _active_benchmark_rows(solution: Mapping[str, Any]) -> List[List[str]]:
@@ -1354,7 +1596,15 @@ def _active_benchmark_rows(solution: Mapping[str, Any]) -> List[List[str]]:
     case_id = str(benchmark.get("caseId", "")).strip()
     if not case_id:
         return []
-    source = str(benchmark.get("sourceLabel") or benchmark.get("sourceType") or "验证来源")
+    source = str(benchmark.get("sourceLabel") or "").strip()
+    if not source:
+        source = {
+            "textbook-analytical": "教材解析解",
+            "independent-stiffness-baseline": "独立刚度法基线",
+            "internal-regression": "内部回归",
+            "published-benchmark": "公开发表基准",
+            "engineering-software": "工程软件对标",
+        }.get(str(benchmark.get("sourceType") or ""), "验证来源")
     level = str(benchmark.get("verificationLevelLabel") or benchmark.get("verificationLevel") or "未标注")
     reference = str(benchmark.get("reference") or benchmark.get("method") or "当前计算书导出时随分析对象传入")
     expected = str(benchmark.get("expectedSummary") or _format_mapping_summary(benchmark.get("expected", {})))
@@ -1419,20 +1669,50 @@ def _learning_review_rows(solution: Mapping[str, Any]) -> List[List[str]]:
     return rows
 
 
-def _format_mapping_summary(values: Any) -> str:
+def _format_mapping_summary(values: Any, *, localize_keys: bool = False) -> str:
     if not isinstance(values, Mapping) or not values:
         return ""
     parts = []
     for key, value in values.items():
+        label = TRACE_SUMMARY_LABELS.get(str(key), "其他摘要项") if localize_keys else key
         if isinstance(value, list):
-            parts.append(f"{key}={len(value)} 项")
+            parts.append(f"{label}={len(value)} 项")
         elif isinstance(value, Mapping):
-            parts.append(f"{key}={len(value)} 项")
+            parts.append(f"{label}={len(value)} 项")
         else:
-            parts.append(f"{key}={value}")
+            display_value = _trace_summary_value(str(key), value)
+            parts.append(f"{label}={display_value}")
     if len(parts) > 6:
         parts = [*parts[:6], f"另 {len(parts) - 6} 项"]
     return "；".join(parts)
+
+
+def _analysis_type_text(value: Any) -> str:
+    return {"beam": "梁系", "frame": "平面框架", "truss": "平面桁架"}.get(str(value).lower(), "其他分析类型")
+
+
+def _yes_no_text(value: Any) -> str:
+    if isinstance(value, bool):
+        return "是" if value else "否"
+    return "未记录"
+
+
+def _trace_summary_value(key: str, value: Any) -> Any:
+    if key in {"availability", "status", "statusCode"}:
+        return _status_text(value)
+    if key == "analysisType":
+        return _analysis_type_text(value)
+    if key == "solverBackend":
+        labels = {
+            "dense-corotational-newton": "稠密矩阵共回转 Newton 法",
+            "dense": "稠密矩阵求解",
+            "sparse": "稀疏矩阵求解",
+        }
+        text = str(value or "")
+        return labels.get(text.lower(), text if _contains_chinese(text) else "其他求解方法")
+    if isinstance(value, bool):
+        return _yes_no_text(value)
+    return value
 
 
 def _beam_vertical_load_kn(request: Mapping[str, Any]) -> float:

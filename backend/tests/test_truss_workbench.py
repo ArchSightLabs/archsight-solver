@@ -361,7 +361,7 @@ def test_truss_exports_describe_support_nodes_and_constraints(client):
     assert "N1：铰支座（约束 ux、uy）" in model_text
     assert "N2：滚动支座（约束 uy）" in model_text
     assert "材料适用范围" in model_text
-    assert "桁架整体刚度按各杆件 E_GPa / A_cm2 输入装配" in model_text
+    assert "桁架整体刚度按各杆件弹性模量 E 和截面面积 A 输入装配" in model_text
     assert "E=30 GPa：1 个杆件" in model_text
     assert "平面桁架节点仅含 ux、uy 平动自由度" in model_text
     assert "弯矩主指标" in model_text

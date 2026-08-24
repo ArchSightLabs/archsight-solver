@@ -13,6 +13,10 @@ export const TRUSS_MEMBER_KIND_OPTIONS = [
   { value: "generic", label: "通用" },
 ];
 
+export function trussMemberKindLabel(kind: string | undefined): string {
+  return TRUSS_MEMBER_KIND_OPTIONS.find((option) => option.value === kind)?.label ?? "通用";
+}
+
 export const TRUSS_LOAD_TYPE_OPTIONS = [
   { value: "nodal", label: modelObjectLoadLabel("truss", "node") },
   { value: "distributed", label: modelObjectLoadLabel("truss", "member") },

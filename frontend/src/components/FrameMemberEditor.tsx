@@ -1,5 +1,5 @@
 import { Trash2 } from "lucide-react";
-import { FRAME_MEMBER_KIND_OPTIONS } from "../lib/frame-editor-model.ts";
+import { FRAME_MEMBER_KIND_OPTIONS, frameMemberKindLabel } from "../lib/frame-editor-model.ts";
 import { materialIdForYoungModulus } from "../lib/material-presets.ts";
 import { memberPropertyAriaLabel, memberPropertyLabels } from "../lib/member-property-vocabulary.ts";
 import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
@@ -46,7 +46,7 @@ export function FrameMemberEditor({
           <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
             <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 text-foreground">{memberTerm} {member.id}</span>
             <span>{member.start}-{member.end}</span>
-            <span>{member.kind ?? "generic"}</span>
+            <span>{frameMemberKindLabel(member.kind)}</span>
           </div>
           <Button variant="ghost" size="icon" className="w-9" onClick={onRemove} aria-label={`删除当前${memberTerm}`}>
             <Trash2 className="h-4 w-4 text-rose-300" />

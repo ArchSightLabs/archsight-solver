@@ -401,7 +401,7 @@ def test_frame_exports_describe_support_nodes_instead_of_left_right(client):
     assert "释放切向位移 t" in boundary_text
     assert "释放 rz 平面转角" in boundary_text
     assert "材料适用范围" in model_text
-    assert "框架整体刚度按各构件 E_GPa / A_cm2 / I_cm4 输入装配" in model_text
+    assert "框架整体刚度按各构件弹性模量 E、截面面积 A 和截面惯性矩 I 输入装配" in model_text
     assert "E=30 GPa：1 个构件" in model_text
     assert "框架支座按节点 ux / uy / rz 自由度参与整体刚度矩阵" in model_text
     assert "左支座" not in model_text

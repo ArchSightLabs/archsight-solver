@@ -16,7 +16,7 @@ from backend.exporters.common.report_options import include_all_result_figures, 
 from backend.exporters.common.report_figures import (
     sensitivity_chart_png,
 )
-from backend.exporters.truss.xlsx_exporter import build_summary_tables
+from backend.exporters.truss.xlsx_exporter import _result_status_label, build_summary_tables
 
 
 TRUSS_DATA_CURVE_FIGURES = (
@@ -37,7 +37,7 @@ TRUSS_STANDARD_EVIDENCE_TABLES = (
 )
 
 TRUSS_COMPLETE_EVIDENCE_TABLES = (
-    "CalculationTrace",
+    "计算过程技术审计（CalculationTrace）",
     "复核点表",
     "包络来源",
     "计算快照",
@@ -88,23 +88,25 @@ def export_docx(
                 [f"{max_node_displacement_label} (mm)", round(solution["summary"]["maxDisplacementMm"], 4)],
                 ["允许位移 (mm)", round(solution["summary"]["allowableMm"], 4)],
                 [f"{max_member_axial_label} (kN)", round(solution["summary"]["maxAxialForceKn"], 4)],
-                ["结果", solution["summary"]["status"]],
+                ["结果", _result_status_label(solution["summary"]["status"])],
             ],
             columns=["项目", "数值/说明"],
         ),
     )
     add_heading(doc, "6. 符号与单位约定")
     add_df_table(doc, df_conventions)
-    if options.get("template") == "complete":
-        add_heading(doc, "7. 完整证据链")
-        _add_evidence_tables(doc, select_evidence_table_items(evidence_tables, TRUSS_COMPLETE_EVIDENCE_TABLES))
     if sensitivity_results:
         add_heading(doc, "6.1 参数敏感性分析")
         add_df_table(doc, _sensitivity_summary_table(sensitivity_results))
         add_png_figure(doc, _report_or_fallback(report_images, "sensitivity.response", sensitivity_chart_png(sensitivity_results)), "图 6-1 参数扰动响应曲线")
-    add_heading(doc, "7. 附录数据")
-    add_df_table(doc, pd.DataFrame(solution["memberResults"]))
-
+    if options.get("template") == "complete":
+        add_heading(doc, "7. 完整证据链")
+        _add_evidence_tables(doc, select_evidence_table_items(evidence_tables, TRUSS_COMPLETE_EVIDENCE_TABLES))
+        appendix_number = 8
+    else:
+        appendix_number = 7
+    add_heading(doc, f"{appendix_number}. 附录数据")
+    doc.add_paragraph("完整节点结果和杆件结果已分别列于第 3 节和第 4 节，本附录不再重复原始协议字段表。")
     output = io.BytesIO()
     doc.save(output)
     output.seek(0)

@@ -106,7 +106,7 @@ export function FrameBasicSection({
                   onChange={(event) => updateAnalysisOptions({ pDelta: event.target.checked })}
                   className="h-4 w-4 rounded border-slate-300 text-sky-500 focus:ring-sky-400"
                 />
-                二阶 / GNA
+                二阶分析（GNA）
               </label>
               <label className="flex items-center gap-2 rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2 text-[11px] font-semibold text-foreground">
                 <input
@@ -129,8 +129,8 @@ export function FrameBasicSection({
                   },
                 })}
                 options={[
-                  { value: "initial_stress_v1", label: "兼容模式 · 初始应力 P-Delta v1" },
-                  { value: "corotational_newton_v1", label: "专业模式 · 共回转全 Newton v1" },
+                  { value: "initial_stress_v1", label: "兼容模式 · 初始应力迭代法" },
+                  { value: "corotational_newton_v1", label: "专业模式 · 共回转 Newton 法" },
                 ]}
                 ariaLabel="选择二维框架二阶分析方法"
                 compact={compact}
@@ -139,7 +139,7 @@ export function FrameBasicSection({
               <div className="text-[10px] leading-relaxed text-muted-foreground">
                 {isCorotational
                   ? "更新后几何、全残差、一致切线、线搜索和自适应切步；平衡状态与稳定状态分别报告。"
-                  : "保持 v1.8.1 结果可复算；采用固定初始几何的初始应力迭代。"}
+                  : "保持既有结果可复算；采用固定初始几何的初始应力迭代。"}
               </div>
             </label>
             <div className="grid grid-cols-2 gap-3">
@@ -237,8 +237,8 @@ export function FrameBasicSection({
                       },
                     })}
                     options={[
-                      { value: "none", label: "无初始缺陷 · GNA" },
-                      { value: "buckling_mode", label: "屈曲模态缺陷 · GNIA" },
+                      { value: "none", label: "无初始缺陷（GNA）" },
+                      { value: "buckling_mode", label: "屈曲模态缺陷（GNIA）" },
                     ]}
                     ariaLabel="选择几何非线性初始缺陷"
                     compact={compact}

@@ -340,7 +340,7 @@ test("buildReportImagePlan normalizes legacy control scope to all core figure ke
   );
 });
 
-test("计算书工程图计划即使工作台隐藏极值也强制导出控制点标注", () => {
+test("计算书工程图保留控制值并同步工作台的关键点分类显示设置", () => {
   const reportOptions = { template: "standard" as const, figureMode: "overlay" as const, figureScope: "control" as const };
   const viewSettings = {
     showLoads: false,

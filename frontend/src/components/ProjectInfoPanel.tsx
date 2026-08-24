@@ -16,7 +16,7 @@ const PROJECT_INFO_FIELDS: Array<{ key: keyof ProjectInfo; label: string; placeh
   { key: "name", label: "项目名称", placeholder: "例如：某教学楼结构复核" },
   { key: "address", label: "项目地址", placeholder: "例如：上海市浦东新区" },
   { key: "projectType", label: "项目类型", placeholder: "例如：公共建筑 / 工业厂房" },
-  { key: "scale", label: "项目规模", placeholder: "例如：地上 5 层，建筑面积 12000 m2" },
+  { key: "scale", label: "项目规模", placeholder: "例如：地上 5 层，建筑面积 12000 m²" },
   { key: "projectManager", label: "项目经理", placeholder: "项目负责人姓名" },
   { key: "constructionUnit", label: "施工单位", placeholder: "施工总承包单位" },
   { key: "developerUnit", label: "建设单位", placeholder: "建设单位名称" },

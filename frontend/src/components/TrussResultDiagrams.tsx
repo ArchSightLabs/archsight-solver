@@ -314,7 +314,7 @@ export function TrussResultDiagrams({
           occupiedWeight: keyPoint.kind === "control" ? 13 : 11,
           paddingX: 0,
           paddingY: 0,
-          lineGap: 0,
+          lineGap: compact ? 2 : 3,
         });
       });
     }

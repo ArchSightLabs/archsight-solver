@@ -72,7 +72,7 @@ class TestFeatureSpecificationCalculationReportGenerationV2:
         assert "计算方法说明" in full_text
         assert "校核证据" in full_text
         assert "公开验证集" in full_text
-        assert "当前分析类型 beam 覆盖" in full_text
+        assert "当前分析类型（梁系）覆盖" in full_text
         assert "仅证明当前分析类型验证集覆盖范围内的回归一致性" in full_text
         assert len(doc.inline_shapes) >= 2
 

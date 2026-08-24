@@ -37,6 +37,13 @@ function objectTypeLabel(key: string) {
   return "未知对象";
 }
 
+function projectFileKindLabel(kind: string) {
+  if (kind === "single-json") return "单文件 JSON";
+  if (kind === "zip-container") return "ZIP 项目包";
+  if (kind === "project-folder") return "项目目录";
+  return /[\u3400-\u9fff]/u.test(kind) ? kind : "其他项目格式";
+}
+
 export function ProjectContractPanel({ value }: ProjectContractPanelProps) {
   const objectTypeSummary = Object.entries(value.objectTypeCounts)
     .map(([key, count]) => `${objectTypeLabel(key)} ${count}`)
@@ -60,9 +67,9 @@ export function ProjectContractPanel({ value }: ProjectContractPanelProps) {
       </div>
 
       <div className="grid gap-3 md:grid-cols-3">
-        <SummaryCell label="项目文件" value={`${value.schemaVersion} / ${value.projectFileKind}`} />
+        <SummaryCell label="项目文件" value={`${value.schemaVersion} / ${projectFileKindLabel(value.projectFileKind)}`} />
         <SummaryCell label="ASMS-JSON" value={value.asmsJsonSchemaVersion} />
-        <SummaryCell label="Manifest" value={`${value.manifestVersion} / ${value.containerVersion}`} />
+        <SummaryCell label="项目清单" value={`${value.manifestVersion} / ${value.containerVersion}`} />
         <SummaryCell label="分析对象" value={`${value.objectCount} 个`} />
         <SummaryCell label="对象分布" value={objectTypeSummary} />
         <SummaryCell label="活动对象" value={value.activeObject ? `${value.activeObject.name} / ${objectTypeLabel(value.activeObject.type)}` : "未选择"} />

@@ -76,7 +76,7 @@ export function FrameLoadCombinationSection({
                     })
                   }
                   className="h-10 min-w-0 text-xs"
-                  placeholder="ULS, 包络"
+                  placeholder="例如：承载能力极限状态、包络"
                 />
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">

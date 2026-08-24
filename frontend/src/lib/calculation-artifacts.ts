@@ -22,6 +22,10 @@ type RecordLike = Record<string, unknown>;
 type SnapshotLike = Partial<CalculationSnapshot> & RecordLike;
 const COLLECTION_KEYS = ["entries", "items", "trace", "stages", "steps", "timeline", "records", "events", "points"] as const;
 
+function readableChineseValue(value: string, fallback: string): string {
+  return /[\u3400-\u9fff]/u.test(value) ? value : fallback;
+}
+
 const TRACE_STAGE_TITLES: Record<string, string> = {
   input_normalized: "输入规范化",
   dof_mapping: "自由度映射",
@@ -150,6 +154,14 @@ const SOURCE_TYPE_TITLES: Record<string, string> = {
   legacy: "历史结果",
 };
 
+const SOURCE_LABEL_TITLES: Record<string, string> = {
+  main: "基本结果",
+  primary: "基本结果",
+  __primary__: "基本结果",
+  envelope: "包络结果",
+  comparison: "对比结果",
+};
+
 const SIDE_TITLES: Record<string, string> = {
   exact: "精确位置",
   absolute: "绝对控制位置",
@@ -197,20 +209,36 @@ const STATUS_TITLES: Record<string, string> = {
   not_converged: "未收敛",
   pass: "通过",
   fail: "未通过",
+  failed: "未通过",
+  iterating: "迭代中",
+  cutback: "已切步重试",
+  accepted: "已接受",
+  rejected: "已拒绝",
+  stable: "稳定",
+  near_critical: "接近临界",
+  unstable: "不稳定",
+  terminated: "已终止",
+  maximum_iterations_exhausted: "达到最大迭代次数",
+  no_compression: "无受压构件",
+  not_enabled: "未启用",
+  review: "需复核",
+  pending: "待计算",
+  disabled: "未启用",
+  enabled: "已启用",
 };
 
 export function calculationMetricTitle(metricKey: string | undefined) {
   if (!metricKey) return "—";
-  return METRIC_TITLES[metricKey] ?? metricKey;
+  return METRIC_TITLES[metricKey] ?? readableChineseValue(metricKey, "其他工程指标");
 }
 
 export function calculationCriticalPointKindTitle(kind: string) {
-  return CRITICAL_POINT_KIND_TITLES[kind] ?? kind;
+  return CRITICAL_POINT_KIND_TITLES[kind] ?? readableChineseValue(kind, "其他关键点");
 }
 
 export function calculationSourceTypeTitle(sourceType: string | undefined) {
   if (!sourceType) return "";
-  return SOURCE_TYPE_TITLES[sourceType] ?? sourceType;
+  return SOURCE_TYPE_TITLES[sourceType] ?? readableChineseValue(sourceType, "其他来源");
 }
 
 export function calculationSourceIdTitle(sourceId: string | undefined) {
@@ -218,14 +246,19 @@ export function calculationSourceIdTitle(sourceId: string | undefined) {
   return sourceId === "__primary__" ? "基本结果" : sourceId;
 }
 
+export function calculationSourceLabelTitle(sourceLabel: string | undefined) {
+  if (!sourceLabel) return "";
+  return SOURCE_LABEL_TITLES[sourceLabel.toLowerCase()] ?? readableChineseValue(sourceLabel, "其他结果来源");
+}
+
 export function calculationSideTitle(side: string | undefined) {
   if (!side) return "";
-  return SIDE_TITLES[side] ?? side;
+  return SIDE_TITLES[side] ?? readableChineseValue(side, "其他位置");
 }
 
 export function calculationStatusTitle(status: string | undefined) {
   if (!status) return "";
-  return STATUS_TITLES[status.toLowerCase()] ?? status;
+  return STATUS_TITLES[status.toLowerCase()] ?? readableChineseValue(status, "状态待确认");
 }
 
 export function calculationObjectTitle(kind: string, objectId: string | undefined) {
@@ -322,7 +355,8 @@ function summarizeTracePayload(value: unknown): string | undefined {
       return;
     }
     if (key === "reason" && String(item).trim()) {
-      entries.push(String(item));
+      const reason = String(item).trim();
+      entries.push(/[\u3400-\u9fff]/u.test(reason) ? reason : calculationStatusTitle(reason));
       return;
     }
     if (key === "warnings" || key === "infos") {
@@ -344,9 +378,13 @@ function summarizeTracePayload(value: unknown): string | undefined {
 }
 
 function traceSummaryValue(key: string, value: unknown) {
-  if (key === "solverBackend") {
+  if (key === "solverBackend" || key === "method") {
     if (value === "dense-corotational-newton") return "稠密矩阵共回转 Newton 法";
     if (value === "dense") return "稠密矩阵求解";
+    if (value === "corotational_newton_v1") return "共回转 Newton 法";
+    if (value === "initial_stress_v1") return "初始应力迭代法";
+    if (value === "linear_buckling_v1") return "线性屈曲特征值法";
+    return readableChineseValue(String(value), "其他求解方法");
   }
   if (typeof value === "number") return Number.isInteger(value) ? String(value) : formatTraceNumber(value);
   return String(value);
@@ -389,11 +427,20 @@ function normalizeTraceEntries(rawTrace: unknown): CalculationTraceEntry[] {
     if (!isRecord(item)) return [];
     const stage = normalizeText(item.stage ?? item.phase ?? item.kind, "步骤");
     const summary = isRecord(item.summary) ? item.summary : undefined;
+    const fallbackTitle = TRACE_STAGE_TITLES[stage] ?? `步骤 ${index + 1}`;
+    const rawTitle = normalizeText(item.title ?? item.label, fallbackTitle);
+    const rawDetail = String(item.detail ?? item.message ?? item.note ?? "").trim();
+    const fallbackDetail = summarizeTracePayload(summary) ?? "已记录本阶段的可审查摘要。";
+    const technicalDetail = [
+      summarizeTechnicalTracePayload(summary),
+      rawTitle !== fallbackTitle && !/[\u3400-\u9fff]/u.test(rawTitle) ? `title=${rawTitle}` : "",
+      rawDetail && !/[\u3400-\u9fff]/u.test(rawDetail) ? `detail=${rawDetail}` : "",
+    ].filter(Boolean).join(" · ");
     return [{
       stage,
-      title: normalizeText(item.title ?? item.label, TRACE_STAGE_TITLES[stage] ?? `步骤 ${index + 1}`),
-      detail: String(item.detail ?? item.message ?? item.note ?? "").trim() || summarizeTracePayload(summary),
-      technicalDetail: summarizeTechnicalTracePayload(summary),
+      title: readableChineseValue(rawTitle, fallbackTitle),
+      detail: rawDetail ? readableChineseValue(rawDetail, fallbackDetail) : fallbackDetail,
+      technicalDetail,
       status: String(item.status ?? summary?.status ?? summary?.availability ?? "").trim() || undefined,
       step: safeNumber(item.step),
       iteration: safeNumber(item.iteration),
@@ -410,10 +457,12 @@ function normalizeCriticalPointEntries(rawPoints: unknown): CalculationCriticalP
     if (!isRecord(item)) return [];
     const kind = normalizeText(item.kind ?? item.type, "critical");
     const metricKey = String(item.metricKey ?? item.metric ?? "").trim() || undefined;
+    const fallbackLabel = CRITICAL_POINT_TITLES[kind] ?? `关键点 ${index + 1}`;
+    const rawLabel = normalizeText(item.label ?? item.title, fallbackLabel);
     return [{
       id: normalizeId(item.id ?? item.key ?? item.sourceId, `critical-${index + 1}`),
       kind,
-      label: normalizeText(item.label ?? item.title, CRITICAL_POINT_TITLES[kind] ?? `关键点 ${index + 1}`),
+      label: readableChineseValue(rawLabel, fallbackLabel),
       metricKey,
       value: safeNumber(item.value ?? item.magnitude ?? item.extremeValue),
       unit: String(item.unit ?? "").trim() || undefined,
@@ -449,10 +498,12 @@ function normalizeEnvelopeEntries(rawEnvelope: unknown): CalculationGoverningEnv
     if (!isRecord(item)) return [];
     const metricKey = normalizeText(item.metricKey ?? item.metric ?? item.name, `metric-${index + 1}`);
     const kind = String(item.kind ?? "").trim() || undefined;
+    const fallbackLabel = `${METRIC_TITLES[metricKey] ?? "工程指标"}控制值`;
+    const rawLabel = normalizeText(item.label ?? item.title, fallbackLabel);
     return [{
       id: normalizeId(item.id ?? item.key ?? item.metricKey, `envelope-${index + 1}`),
       metricKey,
-      label: normalizeText(item.label ?? item.title, `${METRIC_TITLES[metricKey] ?? metricKey} ${kind ?? "控制值"}`),
+      label: readableChineseValue(rawLabel, fallbackLabel),
       value: safeNumber(item.value ?? item.governingValue ?? item.controlValue),
       absoluteValue: safeNumber(item.absoluteValue ?? item.absValue ?? item.absolute),
       relativeValue: safeNumber(item.relativeValue ?? item.relValue ?? item.ratio),

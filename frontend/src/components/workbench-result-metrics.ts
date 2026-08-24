@@ -1,6 +1,7 @@
 import type { BeamCalculationResults } from "../types/beam";
 import type { FrameCalculationResults, TrussCalculationResults } from "../types/structure";
 import { formatEngineeringValue, formatLimitRatio, formatUtilizationPercent } from "../lib/engineering-format.ts";
+import { calculationStatusTitle } from "../lib/calculation-artifacts.ts";
 import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import { summaryMetricLabel } from "../lib/result-metrics.ts";
 
@@ -23,6 +24,18 @@ export type DataCurveOption = {
   tooltipXLabel?: string;
   valueScale?: number;
 };
+
+const FRAME_METHOD_TITLES: Record<string, string> = {
+  linear_first_order_v1: "首阶线性分析",
+  initial_stress_v1: "初始应力迭代法",
+  corotational_newton_v1: "共回转 Newton 法",
+  linear_buckling_v1: "线性屈曲特征值法",
+};
+
+function frameMethodTitle(value: string | undefined | null): string {
+  if (!value) return "未提供方法";
+  return FRAME_METHOD_TITLES[value] ?? (/[㐀-鿿]/u.test(value) ? value : "其他求解方法");
+}
 
 export function beamDataCurveOptions(results: BeamCalculationResults): DataCurveOption[] {
   return [
@@ -162,7 +175,7 @@ export function beamSummaryRows(results: BeamCalculationResults): SummaryRow[] {
     {
       label: summaryMetricLabel("beam", "allowable_deflection", "允许挠度"),
       value: formatEngineeringValue(results.summary?.allowableMm, "mm"),
-      detail: `${formatCompactLimitRatio(results.summary?.allowableRatio)} · ${formatUtilizationPercent(results.summary?.maxDeflectionMm, results.summary?.allowableMm)} · ${results.summary?.statusCode ?? "PENDING"}`,
+      detail: `${formatCompactLimitRatio(results.summary?.allowableRatio)} · ${formatUtilizationPercent(results.summary?.maxDeflectionMm, results.summary?.allowableMm)} · ${calculationStatusTitle(results.summary?.statusCode ?? "pending")}`,
     },
     {
       label: summaryMetricLabel("beam", "max_deflection", "最大挠度"),
@@ -188,7 +201,7 @@ export function trussSummaryRows(results: TrussCalculationResults): SummaryRow[]
     {
       label: summaryMetricLabel("truss", "allowable_displacement", "允许位移"),
       value: formatEngineeringValue(results.summary.allowableMm, "mm"),
-      detail: `${formatCompactLimitRatio(results.summary.allowableRatio)} · ${formatUtilizationPercent(results.summary.maxDisplacementMm, results.summary.allowableMm)} · ${results.summary.statusCode}`,
+      detail: `${formatCompactLimitRatio(results.summary.allowableRatio)} · ${formatUtilizationPercent(results.summary.maxDisplacementMm, results.summary.allowableMm)} · ${calculationStatusTitle(results.summary.statusCode)}`,
     },
     {
       label: summaryMetricLabel("truss", "max_node_displacement", "最大节点位移"),
@@ -215,7 +228,7 @@ export function frameSummaryRows(results: FrameCalculationResults): SummaryRow[]
     {
       label: summaryMetricLabel("frame", "allowable_displacement", "允许位移"),
       value: formatEngineeringValue(results.summary.allowableMm, "mm"),
-      detail: `节点 ${results.summary.maxDisplacementNodeId ?? "—"} · ${results.summary.statusCode}`,
+      detail: `节点 ${results.summary.maxDisplacementNodeId ?? "—"} · ${calculationStatusTitle(results.summary.statusCode)}`,
     },
     {
       label: summaryMetricLabel("frame", "max_node_displacement", "最大节点位移"),
@@ -238,9 +251,9 @@ export function frameSummaryRows(results: FrameCalculationResults): SummaryRow[]
       detail: frameStabilityDetail(results.secondOrder?.enabled, results.buckling?.enabled),
     },
     {
-      label: "P-Delta",
+      label: "二阶效应（P-Delta）",
       value: frameStatusLabel(results.secondOrder?.status),
-      detail: results.secondOrder ? `${formatEngineeringValue(results.secondOrder.amplificationFactor, "")} · ${results.secondOrder.method}` : "未提供",
+      detail: results.secondOrder ? `${formatEngineeringValue(results.secondOrder.amplificationFactor, "")} · ${frameMethodTitle(results.secondOrder.method)}` : "未提供",
     },
     {
       label: "屈曲",
@@ -257,7 +270,7 @@ function frameStatusLabel(status: string | undefined | null): string {
   if (status === "not_converged" || status === "未收敛") return "未收敛";
   if (status === "failed" || status === "失败") return "失败";
   if (status === "no_compression" || status === "无轴压") return "无轴压";
-  return status;
+  return calculationStatusTitle(status);
 }
 
 function frameStabilityStatus(secondOrderStatus: string | undefined | null, bucklingStatus: string | undefined | null): string {
@@ -268,7 +281,7 @@ function frameStabilityStatus(secondOrderStatus: string | undefined | null, buck
 
 function frameStabilityDetail(secondOrderEnabled?: boolean, bucklingEnabled?: boolean): string {
   const parts = [
-    secondOrderEnabled ? "P-Delta 已启用" : "P-Delta 未启用",
+    secondOrderEnabled ? "二阶效应已启用" : "二阶效应未启用",
     bucklingEnabled ? "屈曲已启用" : "屈曲未启用",
   ];
   return parts.join(" · ");

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 test.describe.configure({ mode: "serial" });
 test.setTimeout(90_000);
@@ -803,6 +803,14 @@ async function readMockUmamiEvents(page: Page) {
   return page.evaluate(() => (window as Window & { __archsightUmamiEvents?: UmamiEventRecord[] }).__archsightUmamiEvents ?? []);
 }
 
+async function productTextWithoutTechnicalAudit(panel: Locator) {
+  return panel.evaluate((element) => {
+    const clone = element.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll("details").forEach((details) => details.remove());
+    return clone.innerText;
+  });
+}
+
 test("梁系、框架与桁架的计算过程都暴露 8 个阶段和关键点表", async ({ page }) => {
   await openWorkbench(page);
 
@@ -830,7 +838,10 @@ test("梁系、框架与桁架的计算过程都暴露 8 个阶段和关键点�
     await expect(page.getByText(/8 步 · \d+ 个复核点/u)).toBeVisible();
     await expect(page.getByText("input_normalized", { exact: true })).toHaveCount(0);
 
-    const firstAuditDetails = page.getByRole("tabpanel", { name: "计算过程" }).locator("details").first();
+    const tracePanel = page.getByRole("tabpanel", { name: "计算过程" });
+    expect(await productTextWithoutTechnicalAudit(tracePanel)).not.toMatch(/input_normalized|dof_mapping|availability=|analysisType=|modelHash|requestHash/iu);
+
+    const firstAuditDetails = tracePanel.locator("details").first();
     await firstAuditDetails.locator("summary").click();
     await expect(firstAuditDetails.getByText(/阶段代码：input_normalized/u)).toBeVisible();
 
@@ -844,6 +855,11 @@ test("梁系、框架与桁架的计算过程都暴露 8 个阶段和关键点�
     await expect(criticalPanel.getByText("axialForceKn", { exact: true })).toHaveCount(0);
     await expect(page.getByText("控制来源 1", { exact: true })).toBeVisible();
     await expect(page.getByText("控制来源与包络", { exact: true })).toBeVisible();
+    expect(await productTextWithoutTechnicalAudit(criticalPanel)).not.toMatch(/__primary__|\bexact\b|\bnode\b|\bmember\b|sourceHash/iu);
+
+    await openSnapshots(page);
+    const snapshotPanel = page.getByRole("tabpanel", { name: "快照对比" });
+    expect(await productTextWithoutTechnicalAudit(snapshotPanel)).not.toMatch(/allowableMm|maxDisplacementMm|maxMomentKnM|secondOrderAmplificationFactor|__primary__|sourceHash|requestHash|modelHash/iu);
   }
 });
 
@@ -866,14 +882,15 @@ test("梁系添加合法复核点后会随下一次求解发送并回显到工�
 
   await page.getByRole("button", { name: "截面复核点" }).click();
   await page.getByLabel("名称").fill("梁系截面复核点");
-  await page.getByLabel("目标 ID").fill("B1");
+  await page.getByLabel("目标编号").fill("B1");
   await page.getByLabel("截面位置 / m").fill("3");
   await page.getByLabel("侧别").selectOption("left");
   await page.getByLabel("备注").fill("主控截面");
   await page.getByRole("button", { name: "添加复核点" }).click();
 
-  await expect(page.getByText("梁系截面复核点", { exact: false })).toBeVisible();
-  await expect(page.getByText("deflection", { exact: false })).toBeVisible();
+  const addedReviewPoint = page.getByText("梁系截面复核点", { exact: false }).first();
+  await expect(addedReviewPoint).toBeVisible();
+  await expect(addedReviewPoint).toContainText("截面 · B1 · 挠度");
   await expect(page.getByText("主控截面", { exact: true })).toBeVisible();
 
   await page.getByRole("tab", { name: "结构计算", exact: true }).click();

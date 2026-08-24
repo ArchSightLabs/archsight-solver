@@ -18,6 +18,7 @@ import {
   calculationObjectTitle,
   calculationSideTitle,
   calculationSourceIdTitle,
+  calculationSourceLabelTitle,
   calculationSourceTypeTitle,
   calculationStatusTitle,
   compareCalculationSnapshots,
@@ -120,12 +121,14 @@ function createDefaultReviewDraft(mode: AnalysisMode): ReviewDraft {
 }
 
 function reviewPointLabel(point: CalculationReviewPoint): string {
+  const targetTypeTitle = point.targetType === "node" ? "节点" : point.targetType === "member" ? "构件" : "截面";
+  const targetIdTitle = point.targetId === "beam" ? "梁系" : point.targetId;
   const suffix = [
-    point.targetType,
-    point.targetId,
-    point.metricKey,
+    targetTypeTitle,
+    targetIdTitle,
+    calculationMetricTitle(point.metricKey),
     point.station == null ? "" : formatEngineeringValue(point.station, "m"),
-    point.side,
+    calculationSideTitle(point.side),
   ].filter(Boolean).join(" · ");
   return suffix ? `${point.label} · ${suffix}` : point.label;
 }
@@ -179,16 +182,16 @@ export function CalculationTracePanel({ analysisMode, results, workspace, update
   const reviewDraftError = useMemo(() => {
     if (reviewPoints.length >= 32) return "每个分析对象最多保存 32 个复核点";
     if ((draft.targetType === "node" || draft.targetType === "member") && !draft.targetId.trim()) {
-      return "节点或构件复核点必须选择目标 ID";
+      return "节点或构件复核点必须选择目标编号";
     }
     if (draft.targetType === "station") {
       const station = Number(draft.station);
       if (!draft.station.trim() || !Number.isFinite(station) || station < 0) return "截面位置必须是大于或等于 0 的有限数值";
-      if (analysisMode !== "beam" && !draft.targetId.trim()) return "框架或桁架截面复核点必须选择构件 ID";
+      if (analysisMode !== "beam" && !draft.targetId.trim()) return "框架或桁架截面复核点必须选择构件编号";
     }
     if (!metricOptions.some((option) => option.value === draft.metricKey)) return "请选择适用于当前对象的复核指标";
     if (draft.side && !["exact", "left", "right", "jump_left", "jump_right"].includes(draft.side)) {
-      return "侧别只支持 exact、left、right、jump_left 或 jump_right";
+      return "侧别只支持精确位置、左侧、右侧、跳变左侧或跳变右侧";
     }
     return "";
   }, [analysisMode, draft.metricKey, draft.side, draft.station, draft.targetId, draft.targetType, metricOptions, reviewPoints.length]);
@@ -283,7 +286,7 @@ export function CalculationTracePanel({ analysisMode, results, workspace, update
       <GlassCard className={`${compact ? "p-3 sm:p-4" : "p-4 sm:p-5"}`}>
         <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
           <h3 className={`${compact ? "text-lg" : "text-xl"} font-black tracking-tight`}>复核点编辑</h3>
-          <span className="text-[11px] font-semibold text-muted-foreground">修改后请重新求解，payload.reviewPoints 会随请求发送</span>
+          <span className="text-[11px] font-semibold text-muted-foreground">修改后请重新求解，复核点配置会随计算请求一并提交</span>
         </div>
 
         <div className="grid gap-2 sm:grid-cols-3">
@@ -354,7 +357,7 @@ export function CalculationTracePanel({ analysisMode, results, workspace, update
             </select>
           </label>
           <label className="block">
-            <span className="mb-1 block text-[10px] font-bold text-slate-500 dark:text-slate-400">目标 ID</span>
+            <span className="mb-1 block text-[10px] font-bold text-slate-500 dark:text-slate-400">目标编号</span>
             <input
               value={draft.targetId}
               onChange={(event) => setDraft((current) => ({ ...current, targetId: event.target.value }))}
@@ -429,7 +432,7 @@ export function CalculationTracePanel({ analysisMode, results, workspace, update
                 <div className="min-w-0">
                   <div className="font-bold text-foreground">{reviewPointLabel(point)}</div>
                   <div className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-                    <span>{point.kind}</span>
+                    <span>{calculationCriticalPointKindTitle(point.kind)}</span>
                     {point.note ? <span className="ml-2">{point.note}</span> : null}
                   </div>
                 </div>
@@ -535,7 +538,7 @@ export function CriticalPointsPanel({ analysisMode, results, compact = false }: 
                   {item.absoluteValue != null ? <span>绝对值 {formatEngineeringValue(item.absoluteValue, item.unit ?? "")}</span> : null}
                   {item.relativeValue != null ? <span>相对值 {formatEngineeringValue(item.relativeValue, "")}</span> : null}
                   {item.sourceType ? <span>来源 {calculationSourceTypeTitle(item.sourceType)}</span> : null}
-                  {item.sourceLabel ? <span>{item.sourceLabel}</span> : null}
+                  {item.sourceLabel ? <span>{calculationSourceLabelTitle(item.sourceLabel)}</span> : null}
                   {item.sourceId ? <span>{calculationSourceIdTitle(item.sourceId)}</span> : null}
                   {item.objectId ? <span>对象 {item.objectId}</span> : null}
                   {item.station != null ? <span>位置 {formatEngineeringValue(item.station, "m")}</span> : null}
@@ -651,7 +654,7 @@ export function SnapshotComparisonPanel({ analysisMode, results, workspace, upda
         ) : null}
         {currentSnapshot && !currentSnapshot.canonicalHash ? (
           <p className="mt-2 text-[11px] text-amber-600 dark:text-amber-300">
-            当前结果缺少 canonical resultHash，不能保存为可复核快照。
+            当前结果缺少规范结果签名，不能保存为可复核快照。
           </p>
         ) : null}
       </GlassCard>

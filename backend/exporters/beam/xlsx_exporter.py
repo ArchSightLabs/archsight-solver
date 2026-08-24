@@ -16,6 +16,23 @@ from backend.exporters.common.report_options import normalize_report_options
 from backend.exporters.common.xlsx_utils import HAS_OPENPYXL, apply_standard_worksheet_style, write_sectioned_sheet
 
 
+def _result_status_label(value: Any) -> str:
+    text = str(value or "").strip()
+    return {"pass": "通过", "review": "需复核", "failed": "未通过"}.get(text.lower(), text if any("\u3400" <= char <= "\u9fff" for char in text) else "状态待确认")
+
+
+def _solver_label(value: Any) -> str:
+    text = str(value or "").strip()
+    labels = {
+        "analytical": "解析法",
+        "matrix-stiffness": "矩阵位移法",
+        "fem": "有限元法",
+        "sparse": "稀疏矩阵求解",
+        "dense": "稠密矩阵求解",
+    }
+    return labels.get(text.lower(), text if any("\u3400" <= char <= "\u9fff" for char in text) else "结构力学求解器")
+
+
 BEAM_STANDARD_EVIDENCE_TABLES = (
     "模型假定与适用范围",
     "计算方法说明",
@@ -24,7 +41,7 @@ BEAM_STANDARD_EVIDENCE_TABLES = (
 )
 
 BEAM_COMPLETE_EVIDENCE_TABLES = (
-    "CalculationTrace",
+    "计算过程技术审计（CalculationTrace）",
     "复核点表",
     "包络来源",
     "计算快照",
@@ -45,7 +62,7 @@ def build_summary_tables(solution: Dict[str, Any], material_name: str):
             ["最大挠度 (mm)", round(solution["max_deflection_mm"], 3)],
             ["最大挠度位置 (m)", round(solution["max_deflection_position_m"], 3)],
             ["允许挠度限值 (mm)", round(solution["allowable_mm"], 3)],
-            ["结论", solution["status"]],
+            ["结论", _result_status_label(solution["status"])],
         ],
         columns=["项目", "数值/说明"],
     )
@@ -87,7 +104,7 @@ def build_summary_tables(solution: Dict[str, Any], material_name: str):
         )
     df_params = pd.DataFrame(param_rows, columns=["参数", "值"])
     df_loads = pd.DataFrame(
-        [["梁型", request["beam_type_label"]], ["荷载类型", request["load_type_label"]], ["求解器", solution["solver"]]],
+        [["梁型", request["beam_type_label"]], ["荷载类型", request["load_type_label"]], ["求解器", _solver_label(solution["solver"])]],
         columns=["项目", "说明"],
     )
     df_details = pd.DataFrame({"位置 x (m)": np.round(solution["x_data"], 4), "挠度 v (mm)": np.round(solution["v_data"], 4)})
@@ -106,7 +123,7 @@ def export_xlsx(solution: Dict[str, Any], material_name: str, report_options: Di
         [
             ["最大挠度 (mm)", round(solution["max_deflection_mm"], 4)],
             ["允许挠度 (mm)", round(solution["allowable_mm"], 4)],
-            ["结果", solution["status"]],
+            ["结果", _result_status_label(solution["status"])],
         ],
         columns=["项目", "数值/说明"],
     )

@@ -7,7 +7,9 @@ import {
   calculationMetricTitle,
   calculationSideTitle,
   calculationSourceIdTitle,
+  calculationSourceLabelTitle,
   calculationSourceTypeTitle,
+  calculationStatusTitle,
   compareCalculationSnapshots,
   createCalculationSnapshotFromResult,
   MAX_SNAPSHOT_BYTES,
@@ -58,7 +60,29 @@ test("计算过程与关键点使用工程中文展示并保留折叠审计原�
   assert.equal(calculationSourceTypeTitle("main"), "主结果");
   assert.equal(calculationSourceTypeTitle("member"), "构件");
   assert.equal(calculationSourceIdTitle("__primary__"), "基本结果");
+  assert.equal(calculationSourceLabelTitle("main"), "基本结果");
+  assert.equal(calculationSourceLabelTitle("future_source_contract"), "其他结果来源");
   assert.equal(calculationSideTitle("exact"), "精确位置");
+  assert.equal(calculationStatusTitle("PASS"), "通过");
+  assert.equal(calculationStatusTitle("PENDING"), "待计算");
+  assert.equal(calculationStatusTitle("maximum_iterations_exhausted"), "达到最大迭代次数");
+  assert.equal(calculationMetricTitle("future_internal_metric"), "其他工程指标");
+  assert.equal(calculationCriticalPointKindTitle("future_internal_kind"), "其他关键点");
+  assert.equal(calculationSourceTypeTitle("future_internal_source"), "其他来源");
+  assert.equal(calculationSideTitle("future_internal_side"), "其他位置");
+  assert.equal(calculationStatusTitle("FUTURE_INTERNAL_STATUS"), "状态待确认");
+
+  const unknownProtocolTrace = normalizeCalculationTrace({
+    stages: [{
+      stage: "future_stage",
+      title: "INTERNAL_STAGE_TITLE",
+      detail: "availability=diagnostic_summary",
+      summary: { method: "future_solver_backend" },
+    }],
+  });
+  assert.equal(unknownProtocolTrace[0]?.title, "步骤 1");
+  assert.equal(unknownProtocolTrace[0]?.detail, "计算方法：其他求解方法");
+  assert.match(unknownProtocolTrace[0]?.technicalDetail ?? "", /INTERNAL_STAGE_TITLE/u);
 });
 
 test("canonical result snapshot keeps hashes and the same evidence collections", () => {

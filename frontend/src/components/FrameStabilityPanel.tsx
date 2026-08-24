@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { BarChart3, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react";
 import { GlassCard } from "./ui/GlassCard";
 import { formatEngineeringValue } from "../lib/engineering-format";
-import { calculationMetricTitle } from "../lib/calculation-artifacts";
+import { calculationMetricTitle, calculationStatusTitle } from "../lib/calculation-artifacts";
 import { buildNonlinearPathKeyPoints, layoutNonlinearPathLabels, nonlinearPathPlotPoints } from "../lib/frame-nonlinear-path";
 import type {
   FrameBucklingMode,
@@ -39,7 +39,12 @@ const STABILITY_METHOD_TITLES: Record<string, string> = {
 
 function stabilityMethodTitle(value: string | undefined | null) {
   if (!value) return "未提供方法";
-  return STABILITY_METHOD_TITLES[value] ?? value;
+  return STABILITY_METHOD_TITLES[value] ?? (/[\u3400-\u9fff]/u.test(value) ? value : "其他求解方法");
+}
+
+function engineeringExplanation(value: string | undefined | null, fallback: string) {
+  if (!value) return fallback;
+  return /[㐀-鿿]/u.test(value) ? value : fallback;
 }
 
 function normalizeStatus(value: string | undefined | null): StabilityStatus {
@@ -290,7 +295,10 @@ function NonlinearPathPanel({ result, compact }: { result: FrameCalculationResul
         </div>
       </div>
       <div className="mt-3 rounded-lg border border-white/8 bg-white/[0.03] p-3 text-xs leading-relaxed text-muted-foreground">{explanations[explanationLevel]}</div>
-      <div className="mt-4 grid gap-4 xl:grid-cols-[1.1fr_.9fr]">
+      <div
+        className="mt-4 grid gap-4"
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 30rem), 1fr))" }}
+      >
         <NonlinearPathChart trace={trace} selectedStep={selectedStep} onSelectStep={setSelectedStep} />
         <NonlinearPlaybackCanvas trace={trace} selectedStep={selectedStep} />
       </div>
@@ -309,7 +317,7 @@ function NonlinearPathPanel({ result, compact }: { result: FrameCalculationResul
               <div key={`${metric.id}-${method}`} className={`rounded-lg border p-2 ${metric.comparable ? "border-white/8 bg-white/[0.02]" : "border-amber-400/20 bg-amber-400/[0.04]"}`}>
                 <div className="text-[10px] text-muted-foreground">{stabilityMethodTitle(methodLabels[method] ?? method)} · {calculationMetricTitle(metric.id)}</div>
                 <div className="font-mono text-sm font-bold text-primary">{formatEngineeringValue(value, metric.unit)}</div>
-                {!metric.comparable ? <div className="mt-1 text-[9px] leading-relaxed text-amber-300">参考项/不可直接比较：{metric.unavailableReason ?? "比较条件不一致"}</div> : null}
+                {!metric.comparable ? <div className="mt-1 text-[9px] leading-relaxed text-amber-300">参考项/不可直接比较：{engineeringExplanation(metric.unavailableReason, "比较条件不一致")}</div> : null}
               </div>
             )))}
           </div>
@@ -619,6 +627,11 @@ function StabilityTracePanel({ result, compact = false }: { result: FrameCalcula
   const history = secondOrder?.iterationHistory ?? [];
   const firstOrder = secondOrder?.firstOrder;
   const secondStatus = normalizeStatus(secondOrder?.status);
+  const equilibriumMethod = [secondOrder?.algorithm?.id, secondOrder?.method]
+    .map(stabilityMethodTitle)
+    .filter((value) => value !== "未提供方法" && value !== "其他求解方法")
+    .filter((value, index, values) => values.indexOf(value) === index)
+    .join(" · ") || "求解方法未说明";
   return (
     <GlassCard className={`${compact ? "p-3 sm:p-4" : "p-4 sm:p-5"}`}>
       <div className="mb-3 flex items-center gap-2">
@@ -627,9 +640,9 @@ function StabilityTracePanel({ result, compact = false }: { result: FrameCalcula
       </div>
       <div data-testid="stability-summary-grid" className="grid gap-3 sm:grid-cols-2">
         {[
-          scalarSummary("平衡状态", secondStatus, [secondOrder?.method, stabilityMethodTitle(secondOrder?.algorithm?.id)].filter(Boolean).join(" · ")),
+          scalarSummary("平衡状态", secondStatus, equilibriumMethod),
           scalarSummary("稳定状态", nonlinearStabilityLabel(secondOrder?.stabilityStatus), "平衡收敛不等于稳定或安全"),
-          scalarSummary("二阶放大", formatEngineeringValue(secondOrder?.amplificationFactor, ""), secondOrder?.amplificationUnavailableReason ?? secondOrder?.limitations),
+          scalarSummary("二阶放大", formatEngineeringValue(secondOrder?.amplificationFactor, ""), engineeringExplanation(secondOrder?.amplificationUnavailableReason ?? secondOrder?.limitations, "二阶放大结果")),
           scalarSummary("首阶位移", formatEngineeringValue(firstOrder?.summary.maxDisplacementMm ?? result.summary.maxDisplacementMm, "mm"), "首阶对比"),
           scalarSummary("二阶位移", formatEngineeringValue(secondOrder?.maxDisplacementMm ?? result.summary.maxDisplacementMm, "mm"), "最终二阶快照"),
         ].map((item) => (
@@ -680,7 +693,7 @@ function StabilityTracePanel({ result, compact = false }: { result: FrameCalcula
                   <td className="py-1.5 pr-3 font-mono">{formatEngineeringValue(item.loadFactor, "")}</td>
                   <td className="py-1.5 pr-3 font-mono">{formatEngineeringValue(item.equilibriumResidualRelative ?? item.equilibriumResidual ?? item.equilibriumRmsRelativeError ?? item.residualNorm, "")}</td>
                   <td className="py-1.5 pr-3 font-mono">{formatEngineeringValue(item.displacementIncrementMm ?? (item.displacementIncrementMaxM == null ? item.displacementMm : item.displacementIncrementMaxM * 1000), "mm")}</td>
-                  <td className="py-1.5 pr-3 font-semibold">{item.status === "converged" ? "已收敛" : item.status === "iterating" ? "迭代中" : (item.status ?? secondStatus)}</td>
+                  <td className="py-1.5 pr-3 font-semibold">{calculationStatusTitle(item.status) || secondStatus}</td>
                 </tr>
               )) : (
                 <tr>
@@ -725,14 +738,14 @@ function StabilityBucklingPanel({
         <div className="rounded-lg border border-white/8 bg-white/[0.03] p-3">
           <div className="text-[10px] font-black tracking-widest text-muted-foreground">状态</div>
           <div className={`mt-1 font-mono text-sm font-bold ${statusTone(normalizeStatus(buckling.status))}`}>{normalizeStatus(buckling.status)}</div>
-          <div className="mt-1 text-[10px] text-muted-foreground">{buckling.method}</div>
+          <div className="mt-1 text-[10px] text-muted-foreground">{stabilityMethodTitle(buckling.method)}</div>
         </div>
         <div className="rounded-lg border border-white/8 bg-white/[0.03] p-3">
           <div className="text-[10px] font-black tracking-widest text-muted-foreground">临界因子</div>
           <div className="mt-1 font-mono text-sm font-bold text-primary">
             {buckling.criticalLoadFactor == null ? "—" : formatEngineeringValue(buckling.criticalLoadFactor, "")}
           </div>
-          <div className="mt-1 text-[10px] text-muted-foreground">{buckling.limitations ?? "特征屈曲结果"}</div>
+          <div className="mt-1 text-[10px] text-muted-foreground">{engineeringExplanation(buckling.limitations, "特征屈曲结果")}</div>
         </div>
       </div>
       <div className="mt-3 rounded-lg border border-white/8 bg-white/[0.03] p-3">

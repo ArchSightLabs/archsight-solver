@@ -68,7 +68,7 @@ export function FrameSupportDisplacementField({
         <div>
           <div className={fieldLabelClass}>支座位移</div>
           <div className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-            仅对已约束自由度生效；平动单位 mm，转角单位 deg。
+            仅对已约束自由度生效；平动单位为 mm，转角单位为 °。
           </div>
         </div>
         <Button variant="outline" size="sm" onClick={addDisplacement} disabled={!canAdd} className="h-7 rounded-lg px-2 text-[10px]">
@@ -77,7 +77,7 @@ export function FrameSupportDisplacementField({
         </Button>
       </div>
       {displacements.length === 0 ? (
-        <div className="text-xs text-muted-foreground">{options.length ? "未设置" : "需先选择 fixed、pinned 或 roller 支座"}</div>
+        <div className="text-xs text-muted-foreground">{options.length ? "未设置" : "需先选择固结、铰接或滚动支座"}</div>
       ) : (
         <div className="space-y-2">
           {displacements.map((displacement, index) => {
@@ -104,7 +104,7 @@ export function FrameSupportDisplacementField({
                     updateDisplacement(index, displacement.dof === "rz" ? { rotationDeg: value } : { displacementMm: value });
                   }}
                   className="min-w-0 font-mono text-xs"
-                  placeholder={unit}
+                  placeholder={unit === "deg" ? "°" : unit}
                 />
                 <Button
                   variant="ghost"

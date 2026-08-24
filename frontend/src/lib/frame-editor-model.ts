@@ -24,6 +24,10 @@ export const FRAME_MEMBER_KIND_OPTIONS = [
   { value: "generic", label: "通用" },
 ];
 
+export function frameMemberKindLabel(kind: string | undefined): string {
+  return FRAME_MEMBER_KIND_OPTIONS.find((option) => option.value === kind)?.label ?? "通用";
+}
+
 export const FRAME_LOAD_TYPE_OPTIONS = [
   { value: "nodal", label: "节点荷载" },
   { value: "distributed", label: "分布荷载" },

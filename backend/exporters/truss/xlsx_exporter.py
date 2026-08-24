@@ -18,6 +18,74 @@ from backend.exporters.common.report_options import normalize_report_options
 from backend.exporters.common.xlsx_utils import HAS_OPENPYXL, apply_standard_worksheet_style, write_sectioned_sheet
 
 
+TRUSS_MEMBER_KIND_LABELS = {
+    "top_chord": "上弦杆",
+    "bottom_chord": "下弦杆",
+    "web": "腹杆",
+    "vertical": "竖杆",
+    "diagonal": "斜杆",
+    "generic": "通用杆件",
+}
+
+TRUSS_FORCE_STATE_LABELS = {
+    "tension": "受拉",
+    "compression": "受压",
+    "near_zero": "接近零轴力",
+    "zero": "零轴力",
+}
+
+
+def _localized_enum(value: Any, labels: Dict[str, str], fallback: str) -> str:
+    text = str(value or "").strip()
+    return labels.get(text.lower(), text if any("\u3400" <= char <= "\u9fff" for char in text) else fallback)
+
+
+def _result_status_label(value: Any) -> str:
+    return _localized_enum(value, {"pass": "通过", "review": "需复核", "failed": "未通过"}, "状态待确认")
+
+
+def _truss_model_tables(structure: Dict[str, Any]) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    nodes = pd.DataFrame(structure.get("nodes", [])).rename(
+        columns={
+            "id": "节点编号",
+            "x": "X 坐标（m）",
+            "y": "Y 坐标（m）",
+            "supportType": "支座类型",
+            "uxConstraint": "X 向约束",
+            "uyConstraint": "Y 向约束",
+        }
+    )
+    if "支座类型" in nodes:
+        nodes["支座类型"] = nodes["支座类型"].map(lambda value: support_label("truss", str(value)))
+    members = pd.DataFrame(structure.get("members", [])).rename(
+        columns={
+            "id": "杆件编号",
+            "start": "起点",
+            "end": "终点",
+            "kind": "类型",
+            "E_GPa": "弹性模量（GPa）",
+            "A_cm2": "截面面积（cm²）",
+        }
+    )
+    if "类型" in members:
+        members["类型"] = members["类型"].map(lambda value: _localized_enum(value, TRUSS_MEMBER_KIND_LABELS, "其他杆件"))
+    loads = pd.DataFrame(structure.get("loads", [])).rename(
+        columns={
+            "type": "荷载类型",
+            "node": "节点编号",
+            "member": "杆件编号",
+            "fxKn": "X 向荷载（kN）",
+            "fyKn": "Y 向荷载（kN）",
+            "forceKn": "集中力（kN）",
+            "positionRatio": "相对位置",
+        }
+    )
+    if "荷载类型" in loads:
+        labels = {"nodal": "节点荷载", "member_point": "杆件集中荷载", "temperature": "温度荷载"}
+        loads["荷载类型"] = loads["荷载类型"].map(lambda value: labels.get(str(value).lower(), "其他荷载"))
+    return nodes, members, loads
+
+
 TRUSS_STANDARD_EVIDENCE_TABLES = (
     "模型假定与适用范围",
     "计算方法说明",
@@ -26,7 +94,7 @@ TRUSS_STANDARD_EVIDENCE_TABLES = (
 )
 
 TRUSS_COMPLETE_EVIDENCE_TABLES = (
-    "CalculationTrace",
+    "计算过程技术审计（CalculationTrace）",
     "复核点表",
     "包络来源",
     "计算快照",
@@ -49,7 +117,7 @@ def build_summary_tables(solution: Dict[str, Any], material_name: str):
             [f"{max_node_displacement_label} (mm)", round(solution["summary"]["maxDisplacementMm"], 3)],
             ["控制节点", solution["summary"]["maxDisplacementNodeId"] or "—"],
             [f"{max_member_axial_label} (kN)", round(solution["summary"]["maxAxialForceKn"], 3)],
-            ["结论", solution["summary"]["status"]],
+            ["结论", _result_status_label(solution["summary"]["status"])],
         ],
         columns=["项目", "数值/说明"],
     )
@@ -60,7 +128,7 @@ def build_summary_tables(solution: Dict[str, Any], material_name: str):
             ["项目名称", solution["projectName"]],
             ["材料名称", material_name],
             *material_report_rows(solution.get("materialId")),
-            ["材料适用范围", "材料名称为项目默认材料说明；桁架整体刚度按各杆件 E_GPa / A_cm2 输入装配。"],
+            ["材料适用范围", "材料名称为项目默认材料说明；桁架整体刚度按各杆件弹性模量 E 和截面面积 A 输入装配。"],
             ["杆件弹性模量分布", member_elasticity_summary(structure.get("members", []), "杆件")],
             ["节点数量", len(structure.get("nodes", []))],
             ["杆件数量", len(structure.get("members", []))],
@@ -76,13 +144,13 @@ def build_summary_tables(solution: Dict[str, Any], material_name: str):
         [
             {
                 "节点": item["nodeId"],
-                "X (m)": round(item["x"], 4),
-                "Y (m)": round(item["y"], 4),
-                "UX (mm)": round(item["uxMm"], 4),
-                "UY (mm)": round(item["uyMm"], 4),
-                "位移 (mm)": round(item["displacementMm"], 4),
-                "RX (kN)": round(item["rxKn"], 4),
-                "RY (kN)": round(item["ryKn"], 4),
+                "X 坐标（m）": round(item["x"], 4),
+                "Y 坐标（m）": round(item["y"], 4),
+                "X 向位移（mm）": round(item["uxMm"], 4),
+                "Y 向位移（mm）": round(item["uyMm"], 4),
+                "合位移（mm）": round(item["displacementMm"], 4),
+                "X 向反力（kN）": round(item["rxKn"], 4),
+                "Y 向反力（kN）": round(item["ryKn"], 4),
             }
             for item in solution["nodeResults"]
         ]
@@ -92,13 +160,13 @@ def build_summary_tables(solution: Dict[str, Any], material_name: str):
         [
             {
                 "杆件": item["memberId"],
-                "类型": item["kind"],
+                "类型": _localized_enum(item["kind"], TRUSS_MEMBER_KIND_LABELS, "其他杆件"),
                 "起点": item["startNode"],
                 "终点": item["endNode"],
                 "长度 (m)": round(item["lengthM"], 4),
                 "轴力 (kN)": round(item["axialForceKn"], 4),
                 "轴应力 (MPa)": round(item["axialStressMpa"], 4),
-                "状态": item["forceState"],
+                "状态": _localized_enum(item["forceState"], TRUSS_FORCE_STATE_LABELS, "受力状态待确认"),
             }
             for item in solution["memberResults"]
         ]
@@ -137,9 +205,7 @@ def export_xlsx(solution: Dict[str, Any], material_name: str, report_options: Di
     options = normalize_report_options(report_options)
     df_summary, df_params, df_nodes, df_members, df_conventions = build_summary_tables(solution, material_name)
     evidence_tables = build_evidence_tables(solution, "truss", material_name, options)
-    df_loads = pd.DataFrame(solution["structure"].get("loads", []))
-    df_model_nodes = pd.DataFrame(solution["structure"].get("nodes", []))
-    df_model_members = pd.DataFrame(solution["structure"].get("members", []))
+    df_model_nodes, df_model_members, df_loads = _truss_model_tables(solution["structure"])
     df_load_cases = pd.DataFrame(
         [
             {"id": item["id"], "title": item["title"], **item.get("summary", {})}
@@ -166,7 +232,7 @@ def export_xlsx(solution: Dict[str, Any], material_name: str, report_options: Di
                 [f"{max_node_displacement_label} (mm)", round(solution["summary"]["maxDisplacementMm"], 4)],
                 ["允许位移 (mm)", round(solution["summary"]["allowableMm"], 4)],
                 [f"{max_member_axial_label} (kN)", round(solution["summary"]["maxAxialForceKn"], 4)],
-                ["结果", solution["summary"]["status"]],
+                ["结果", _result_status_label(solution["summary"]["status"])],
             ],
             columns=["项目", "数值/说明"],
         )

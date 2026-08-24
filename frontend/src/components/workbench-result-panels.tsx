@@ -201,25 +201,25 @@ const ASSUMPTION_SUMMARIES: Record<AnalysisMode, AssumptionSummary> = {
   beam: {
     lead: "梁弯曲线弹性静力分析",
     items: [
-      { label: "模型", value: "梁单元 · v / θz" },
-      { label: "支座", value: "铰/滚约束 v，固结约束 v+θz" },
-      { label: "单位", value: "E:GPa · I:cm4 · mm/kN" },
+      { label: "模型", value: "梁单元 · 竖向位移 v / 转角 θz" },
+      { label: "支座", value: "铰接/滚动约束竖向位移，固结同时约束转角" },
+      { label: "单位", value: "弹性模量 E：GPa · 惯性矩 I：cm⁴ · 位移：mm · 内力：kN" },
     ],
   },
   frame: {
     lead: "二维平面框架线弹性静力分析",
     items: [
-      { label: "模型", value: "框架杆单元 · ux/uy/rz" },
+      { label: "模型", value: "框架杆单元 · 水平位移 ux / 竖向位移 uy / 转角 rz" },
       { label: "内力", value: "弯矩 / 剪力 / 轴力" },
-      { label: "单位", value: "E:GPa · A:cm2 · I:cm4" },
+      { label: "单位", value: "弹性模量 E：GPa · 截面面积 A：cm² · 惯性矩 I：cm⁴" },
     ],
   },
   truss: {
     lead: "二维平面桁架线弹性静力分析",
     items: [
-      { label: "模型", value: "桁架杆单元 · ux/uy" },
+      { label: "模型", value: "桁架杆单元 · 水平位移 ux / 竖向位移 uy" },
       { label: "内力", value: "只传轴力，不列弯矩" },
-      { label: "单位", value: "E:GPa · A:cm2 · kN/MPa/mm" },
+      { label: "单位", value: "弹性模量 E：GPa · 截面面积 A：cm² · 力：kN · 应力：MPa · 位移：mm" },
     ],
   },
 };

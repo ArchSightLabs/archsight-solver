@@ -330,13 +330,13 @@ def test_frame_truss_evidence_input_summary_preserves_material_and_support_seman
     frame_text = _table_text(build_evidence_tables(frame_solution, "frame", "测试材料")["工程输入摘要"])
     truss_text = _table_text(build_evidence_tables(truss_solution, "truss", "测试材料")["工程输入摘要"])
 
-    assert "材料适用范围 | 材料名称为项目默认材料说明；框架整体刚度按各构件 E_GPa / A_cm2 / I_cm4 输入装配。" in frame_text
+    assert "材料适用范围 | 材料名称为项目默认材料说明；框架整体刚度按各构件弹性模量 E、截面面积 A 和截面惯性矩 I 输入装配。" in frame_text
     assert "构件弹性模量分布 | " in frame_text
     assert "Q235 · E=206 GPa：1 个构件" in frame_text
     assert "E=198.5 GPa：1 个构件" in frame_text
     assert "支座体系说明 | 平面框架节点自由度为 ux、uy、rz" in frame_text
 
-    assert "材料适用范围 | 材料名称为项目默认材料说明；桁架整体刚度按各杆件 E_GPa / A_cm2 输入装配。" in truss_text
+    assert "材料适用范围 | 材料名称为项目默认材料说明；桁架整体刚度按各杆件弹性模量 E 和截面面积 A 输入装配。" in truss_text
     assert "杆件弹性模量分布 | Q345 · E=210 GPa：1 个杆件" in truss_text
     assert "支座体系说明 | 平面桁架节点仅含 ux、uy 平动自由度" in truss_text
 
@@ -414,10 +414,10 @@ def test_report_review_table_records_result_object_revision_and_model_signatures
     )
     rows = table.astype(str).values.tolist()
 
-    assert any(row[0] == "分析对象 ID" and row[1] == "frame-object-1" for row in rows)
+    assert any(row[0] == "分析对象编号" and row[1] == "frame-object-1" for row in rows)
     assert any(row[0] == "工程修订" and "计算时 12" in row[1] and "导出时 14" in row[1] for row in rows)
-    assert any(row[0] == "模型签名" and "fnv1a64:1234567890abcdef" in row[1] and "backend-model-hash" in row[1] for row in rows)
-    assert any(row[0] == "请求签名" and "backend-request-hash" in row[1] for row in rows)
+    assert any(row[0] == "模型签名（技术审计）" and "fnv1a64:1234567890abcdef" in row[1] and "backend-model-hash" in row[1] for row in rows)
+    assert any(row[0] == "请求签名（技术审计）" and "backend-request-hash" in row[1] for row in rows)
 
 
 def test_frame_export_templates_split_stability_summary_and_detail():
@@ -502,28 +502,12 @@ def test_frame_export_templates_split_stability_summary_and_detail():
     assert "初始缺陷说明" in standard_text
     assert "方法比较" in standard_text
     assert "构件 Euler K=1 初筛仅用于定位复核对象，不替代整体屈曲结论" in standard_text
-    assert "corotational_newton_v1" in standard_text
-    assert "initial_stress_v1" in standard_text
-    assert "linear_buckling_v1" in standard_text
-    assert "cutback" in standard_text
-    assert "failure" in standard_text
-    assert "sourceHash" in standard_text
-    assert "requestHash" in standard_text
-    assert "modelHash" in standard_text
-    assert "residual_reduction" in standard_text
-    assert "explicit" in standard_text
-    assert any(
-        reason in standard_text
-        for reason in (
-            "maximum_iterations_exhausted",
-            "maximum_cutbacks_exhausted",
-            "minimum_step_exhausted",
-            "line_search_failed",
-            "singular_tangent",
-            "non_finite_increment",
-        )
-    )
-    assert not any(reason in standard_text for reason in ("P-Delta 收敛记录", "lineSearchScale", "energyIncrementJ"))
+    assert "共回转 Newton 法" in standard_text
+    assert "线性屈曲特征值" in standard_text
+    assert "失败切步" in standard_text
+    assert "显式节点初始缺陷" in standard_text
+    assert not any(raw in standard_text for raw in ("corotational_newton_v1", "initial_stress_v1", "linear_buckling_v1", "sourceHash", "requestHash", "modelHash", "residual_reduction", "explicit"))
+    assert not any(reason in standard_text for reason in ("P-Delta 收敛记录", "线搜索尺度", "能量增量（J）"))
     assert "屈曲节点模态向量" not in standard_text
     assert "屈曲构件模态形状" not in standard_text
     assert "共回转计算原理" not in standard_text
@@ -536,8 +520,13 @@ def test_frame_export_templates_split_stability_summary_and_detail():
     assert "稳定审查摘要" in complete_text
     assert "构件 Euler K=1 初筛仅用于定位复核对象，不替代整体屈曲结论" in complete_text
     assert "稳定审查过程" in complete_text
-    assert "lineSearchScale" in complete_text
-    assert "energyIncrementJ" in complete_text
+    assert "线搜索尺度" in complete_text
+    assert "能量增量（J）" in complete_text
+    assert "方法比较技术审计" in complete_text
+    assert "corotational_newton_v1" in complete_text
+    assert "结果签名" in complete_text
+    assert "请求签名" in complete_text
+    assert "模型签名" in complete_text
     assert "P-Delta 收敛记录" in complete_text
     assert "屈曲节点模态向量" in complete_text
     assert "屈曲构件模态形状" in complete_text
@@ -555,17 +544,17 @@ def test_frame_export_templates_split_stability_summary_and_detail():
     assert "P-Delta 失败尝试" in standard_xlsx_text
     assert "初始缺陷说明" in standard_xlsx_text
     assert "方法比较" in standard_xlsx_text
-    assert "sourceHash" in standard_xlsx_text
-    assert "requestHash" in standard_xlsx_text
-    assert "modelHash" in standard_xlsx_text
+    assert "方法比较技术审计" not in standard_xlsx_text
+    assert not any(raw in standard_xlsx_text for raw in ("sourceHash", "requestHash", "modelHash"))
     assert "P-Delta 收敛记录" not in standard_xlsx_text
     assert "屈曲节点模态向量" not in standard_xlsx_text
 
     complete_xlsx = pd.read_excel(export_report(complete_report, "xlsx").buffer, sheet_name=None, header=None)
     complete_xlsx_text = "\n".join(frame.astype(str).to_string() for frame in complete_xlsx.values())
     assert "稳定审查摘要" in complete_xlsx_text
-    assert "lineSearchTrials" in complete_xlsx_text
-    assert "energyIncrementJ" in complete_xlsx_text
+    assert "线搜索次数" in complete_xlsx_text
+    assert "能量增量（J）" in complete_xlsx_text
+    assert "方法比较技术审计" in complete_xlsx_text
     assert "P-Delta 收敛记录" in complete_xlsx_text
     assert "屈曲节点模态向量" in complete_xlsx_text
     assert "屈曲构件模态形状" in complete_xlsx_text
@@ -620,14 +609,14 @@ def test_standard_and_complete_exports_diverge_by_analysis_type_for_docx_and_xls
 
         assert "工程输入摘要" in standard_docx_text
         assert "关键点表" in standard_docx_text
-        assert "CalculationTrace" not in standard_docx_text
+        assert "计算过程技术审计（CalculationTrace）" not in standard_docx_text
         assert "复核点表" not in standard_docx_text
         assert "包络来源" not in standard_docx_text
         assert "计算快照" not in standard_docx_text
 
         assert "工程输入摘要" in complete_docx_text
         assert "关键点表" in complete_docx_text
-        assert "CalculationTrace" in complete_docx_text
+        assert "计算过程技术审计（CalculationTrace）" in complete_docx_text
         assert "复核点表" in complete_docx_text
         assert "包络来源" in complete_docx_text
         assert "计算快照" in complete_docx_text

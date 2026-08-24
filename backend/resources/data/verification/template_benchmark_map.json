@@ -197,36 +197,36 @@
     {
       "module": "truss",
       "templateId": "pratt-truss",
-      "templateTitle": "Pratt 桁架",
+      "templateTitle": "普拉特（Pratt）桁架",
       "validationRefs": [
         {
           "caseId": "truss-pratt-bridge",
           "relation": "对应",
-          "note": "同为 Pratt 桁架，主要复核节点位移、杆件轴力和控制杆件。"
+          "note": "同为普拉特（Pratt）桁架，主要复核节点位移、杆件轴力和控制杆件。"
         }
       ]
     },
     {
       "module": "truss",
       "templateId": "warren-truss",
-      "templateTitle": "Warren 桁架",
+      "templateTitle": "沃伦（Warren）桁架",
       "validationRefs": [
         {
           "caseId": "truss-warren-roof",
           "relation": "对应",
-          "note": "同为 Warren 桁架，主要复核节点位移与杆件轴力。"
+          "note": "同为沃伦（Warren）桁架，主要复核节点位移与杆件轴力。"
         }
       ]
     },
     {
       "module": "truss",
       "templateId": "howe-roof-truss",
-      "templateTitle": "Howe 型屋架",
+      "templateTitle": "豪式（Howe）屋架",
       "validationRefs": [
         {
           "caseId": "truss-howe-roof",
           "relation": "对应",
-          "note": "同为 Howe 型屋架，主要复核反向斜腹杆布置下的节点位移与杆件轴力。"
+          "note": "同为豪式（Howe）屋架，主要复核反向斜腹杆布置下的节点位移与杆件轴力。"
         }
       ]
     },

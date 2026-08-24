@@ -22,7 +22,7 @@ from backend.exporters.common.report_options import include_all_result_figures, 
 from backend.exporters.common.report_figures import (
     sensitivity_chart_png,
 )
-from backend.exporters.frame.xlsx_exporter import build_summary_tables
+from backend.exporters.frame.xlsx_exporter import _result_status_label, build_summary_tables
 
 
 FRAME_DATA_CURVE_FIGURES = (
@@ -41,7 +41,7 @@ FRAME_STANDARD_EVIDENCE_TABLES = (
 )
 
 FRAME_COMPLETE_EVIDENCE_TABLES = (
-    "CalculationTrace",
+    "计算过程技术审计（CalculationTrace）",
     "复核点表",
     "包络来源",
     "计算快照",
@@ -90,7 +90,7 @@ def export_docx(
             [
                 [f"{max_node_displacement_label} (mm)", round(solution["summary"]["maxDisplacementMm"], 4)],
                 ["允许位移 (mm)", round(solution["summary"]["allowableMm"], 4)],
-                ["结果", solution["summary"]["status"]],
+                ["结果", _result_status_label(solution["summary"]["status"])],
             ],
             columns=["项目", "数值/说明"],
         )
@@ -118,7 +118,6 @@ def export_docx(
     add_heading(doc, "7. 附录数据")
     if not df_member_diagrams.empty:
         add_df_table(doc, df_member_diagrams)
-    add_df_table(doc, pd.DataFrame(solution["memberResults"]))
     if options.get("template") == "complete":
         add_heading(doc, "8. 完整证据链")
         _add_evidence_tables(doc, select_evidence_table_items(stability_tables, FRAME_COMPLETE_EVIDENCE_TABLES))

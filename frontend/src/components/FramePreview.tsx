@@ -10,6 +10,7 @@ import { summaryMetricLabel } from "../lib/result-metrics";
 import { STRUCTURE_NODE_RADII, STRUCTURE_STATE_COLORS, STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
 import type { ResultViewSettings } from "../types/structure";
 import { modelLabelTransformFromOffsets, type ModelLabelOffsets } from "../lib/model-label-overrides";
+import { calculationStatusTitle } from "../lib/calculation-artifacts";
 
 interface FramePreviewProps {
   frame: FramePreviewData | null;
@@ -588,7 +589,7 @@ export function FramePreview({ frame, compact = false, viewSettings, modelLabelO
           {
             label: maxMemberMomentLabel,
             main: formatEngineeringValue(maxMomentKnM, "kN·m"),
-            sub: `状态：${peakBadge.status}`,
+            sub: `状态：${calculationStatusTitle(peakBadge.status) || "状态待确认"}`,
             highlight: true,
           },
         ].map((item, index) => (

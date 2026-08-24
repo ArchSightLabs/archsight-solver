@@ -14,6 +14,21 @@ const TONE_CLASSES: Record<WorkbenchOperationNoticeModel["tone"], string> = {
   error: "border-rose-500/30 bg-rose-500/[0.08] text-rose-900 dark:border-rose-400/30 dark:bg-rose-400/[0.10] dark:text-rose-100",
 };
 
+const OBJECT_KIND_LABELS: Record<string, string> = {
+  node: "节点",
+  member: "构件",
+  span: "跨段",
+  support: "支座",
+  load: "荷载",
+  loadCase: "荷载工况",
+  loadCombination: "荷载组合",
+  project: "项目",
+};
+
+function diagnosticObjectLabel(kind: string, id: string): string {
+  return `${OBJECT_KIND_LABELS[kind] ?? "对象"} ${id}`;
+}
+
 export function WorkbenchOperationNotice({ notice, compact = false, exportingFormat = null, onExportFailureReview }: WorkbenchOperationNoticeProps) {
   if (!notice) {
     return null;
@@ -33,11 +48,14 @@ export function WorkbenchOperationNotice({ notice, compact = false, exportingFor
             <div key={`${issue.code}-${issue.title}`} className="rounded-md border border-current/15 bg-white/20 px-2 py-1.5 dark:bg-black/10">
               <div className="flex flex-wrap items-center gap-1.5 font-black">
                 <span>{issue.title}</span>
-                <code className="rounded bg-black/5 px-1 py-0.5 text-[9px] font-bold dark:bg-white/10">{issue.code}</code>
               </div>
               <div className="mt-0.5 opacity-85">{issue.detail}</div>
-              {issue.objectRefs.length ? <div className="mt-0.5 opacity-75">定位：{issue.objectRefs.map((ref) => `${ref.kind} ${ref.id}`).join("、")}</div> : null}
+              {issue.objectRefs.length ? <div className="mt-0.5 opacity-75">定位：{issue.objectRefs.map((ref) => diagnosticObjectLabel(ref.kind, ref.id)).join("、")}</div> : null}
               {issue.suggestions[0] ? <div className="mt-0.5 opacity-75">建议：{issue.suggestions[0]}</div> : null}
+              <details className="mt-1 opacity-75">
+                <summary className="cursor-pointer select-none">技术诊断信息</summary>
+                <code className="mt-1 block break-all rounded bg-black/5 px-1.5 py-1 text-[9px] font-bold dark:bg-white/10">诊断代码：{issue.code}</code>
+              </details>
             </div>
           ))}
         </div>

@@ -23,6 +23,7 @@ from backend.exporters.common.report_figures import (
     line_chart_png,
     sensitivity_chart_png,
 )
+from backend.exporters.beam.xlsx_exporter import _result_status_label, _solver_label
 
 
 BEAM_STANDARD_EVIDENCE_TABLES = (
@@ -37,7 +38,7 @@ BEAM_STANDARD_EVIDENCE_TABLES = (
 )
 
 BEAM_COMPLETE_EVIDENCE_TABLES = (
-    "CalculationTrace",
+    "计算过程技术审计（CalculationTrace）",
     "复核点表",
     "包络来源",
     "计算快照",
@@ -170,7 +171,7 @@ def export_docx(
     _add_load_combination_table(doc, solution, "3.1 荷载组合标签")
     status_paragraph = doc.add_paragraph()
     status_paragraph.add_run("设计判定: ").bold = True
-    status_paragraph.add_run(solution["status"])
+    status_paragraph.add_run(_result_status_label(solution["status"]))
 
     add_heading(doc, "4. 结果汇总")
     doc.add_paragraph("本计算书使用工作台中的梁型与荷载配置生成结构计算结果。")
@@ -183,7 +184,7 @@ def export_docx(
     result_rows = [
         ("梁型", request["beam_type_label"], "决定支座约束模式"),
         ("荷载类型", request["load_type_label"], "决定荷载分布方式"),
-        ("求解器", solution["solver"], "连续梁默认 UDL 保留解析解，其余工况使用数值求解"),
+        ("求解器", _solver_label(solution["solver"]), "连续梁默认均布荷载保留解析解，其余工况使用数值求解"),
     ]
     for a, b, c in result_rows:
         row = result_table.add_row().cells

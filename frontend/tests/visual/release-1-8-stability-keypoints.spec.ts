@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 test.describe.configure({ mode: "serial" });
 test.setTimeout(90_000);
@@ -71,6 +71,50 @@ function stabilizeWorkbench(page: Page) {
       }
     `,
   });
+}
+
+async function productTextWithoutTechnicalAudit(panel: Locator) {
+  return panel.evaluate((element) => {
+    const clone = element.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll("details").forEach((details) => details.remove());
+    return clone.innerText;
+  });
+}
+
+async function expectVisibleKeyPointLabelsNotToOverlap(panel: Locator) {
+  const overlaps = await panel.locator('[data-keypoint-kind]').evaluateAll((groups) => {
+    const boxes = groups
+      .map((group) => {
+        const lines = Array.from(group.querySelectorAll("text"))
+          .filter((label) => {
+            const style = window.getComputedStyle(label);
+            return style.display !== "none" && style.visibility !== "hidden";
+          })
+          .map((label) => label.getBoundingClientRect())
+          .filter((bounds) => bounds.right > bounds.left && bounds.bottom > bounds.top);
+        if (!lines.length) return null;
+        return {
+          text: group.getAttribute("aria-label") ?? group.textContent ?? "",
+          left: Math.min(...lines.map((bounds) => bounds.left)),
+          right: Math.max(...lines.map((bounds) => bounds.right)),
+          top: Math.min(...lines.map((bounds) => bounds.top)),
+          bottom: Math.max(...lines.map((bounds) => bounds.bottom)),
+        };
+      })
+      .filter((bounds): bounds is NonNullable<typeof bounds> => bounds !== null);
+    const pairs: string[] = [];
+    for (let leftIndex = 0; leftIndex < boxes.length; leftIndex += 1) {
+      for (let rightIndex = leftIndex + 1; rightIndex < boxes.length; rightIndex += 1) {
+        const left = boxes[leftIndex]!;
+        const right = boxes[rightIndex]!;
+        const horizontalOverlap = Math.min(left.right, right.right) - Math.max(left.left, right.left);
+        const verticalOverlap = Math.min(left.bottom, right.bottom) - Math.max(left.top, right.top);
+        if (horizontalOverlap > 1 && verticalOverlap > 1) pairs.push(`${left.text} / ${right.text}`);
+      }
+    }
+    return pairs;
+  });
+  expect(overlaps, `关键点文字不应相互覆盖：${overlaps.join("；")}`).toEqual([]);
 }
 
 function beamCalculationEnvelope(payload: BeamPayload) {
@@ -603,6 +647,9 @@ test("梁系工程图关键点暴露 data-keypoint-kind 与站位数值", async 
   await expect(firstEndpoint).toContainText("端点");
   await expect(firstEndpoint).toContainText("x = 0.00 m");
   await expect(firstEndpoint).toContainText("1.2");
+
+  await page.getByRole("button", { name: "显示关键点类型" }).click();
+  await expectVisibleKeyPointLabelsNotToOverlap(page.getByRole("tabpanel", { name: "工程图" }));
 });
 
 test("框架工程图关键点暴露 data-keypoint-kind 与站位数值", async ({ page }) => {
@@ -628,9 +675,10 @@ test("框架工程图关键点暴露 data-keypoint-kind 与站位数值", async 
   await page.getByRole("button", { name: "显示关键点类型" }).click();
   await expect(globalExtreme.locator("text").filter({ hasText: "全局极值" })).toBeVisible();
   await expect(endPoint.locator("text").filter({ hasText: "端点" })).toBeVisible();
+  await expectVisibleKeyPointLabelsNotToOverlap(page.getByRole("tabpanel", { name: "工程图" }));
 });
 
-test("v1.8.1 几何非线性过程播放显示 canonical 关键点、数值和分层解释", async ({ page }) => {
+test("几何非线性过程播放显示规范关键点、数值和分层解释", async ({ page }) => {
   await openWorkbench(page);
   await page.locator("aside").filter({ hasText: "分析对象" }).getByRole("button", { name: /平面框架-1\s+(平面框架|框架)/ }).click();
   await runCalculation(page, "运行平面框架计算", "平面框架计算完成");
@@ -716,6 +764,7 @@ test("桁架位移图暴露控制值、端点与真零节点标签", async ({ pa
   await expect(control.locator("text").filter({ hasText: "控制值" })).toBeVisible();
   await expect(zero.locator("text").filter({ hasText: "零点" })).toBeVisible();
   await expect(endPoints.first().locator("text").filter({ hasText: "端点" })).toBeVisible();
+  await expectVisibleKeyPointLabelsNotToOverlap(page.getByRole("tabpanel", { name: "工程图" }));
 });
 
 test("框架稳定审查面板暴露 P-Delta 轨迹、模态选择器与屈曲模态", async ({ page }) => {
@@ -725,7 +774,7 @@ test("框架稳定审查面板暴露 P-Delta 轨迹、模态选择器与屈曲�
   await page.getByRole("tab", { name: "稳定审查", exact: true }).click();
 
   await expect(page.getByText("平衡状态", { exact: true })).toBeVisible();
-  await expect(page.getByText("P-Delta · 共回转 Newton 法", { exact: true })).toBeVisible();
+  await expect(page.getByText("共回转 Newton 法", { exact: true })).toBeVisible();
   await expect(page.getByText("稳定状态", { exact: true })).toBeVisible();
   await expect(page.getByText("收敛轨迹", { exact: true })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "荷载因子", exact: true })).toBeVisible();
@@ -738,4 +787,6 @@ test("框架稳定审查面板暴露 P-Delta 轨迹、模态选择器与屈曲�
   await expect(page.getByRole("img", { name: /屈曲模态 1 全局振型图/u })).toBeVisible();
   await expect(page.getByRole("cell", { name: "已收敛", exact: true })).toBeVisible();
   await expect(page.getByRole("row", { name: /1 1 0\.5 0\.0001/u })).toBeVisible();
+  const stabilityPanel = page.getByRole("tabpanel", { name: "稳定审查" });
+  expect(await productTextWithoutTechnicalAudit(stabilityPanel)).not.toMatch(/corotational_newton_v1|initial_stress_v1|linear_buckling_v1|critical_load_factor|maximum_iterations_exhausted|\bloadFactor\b/iu);
 });

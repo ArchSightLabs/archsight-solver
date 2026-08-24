@@ -169,12 +169,7 @@ export function WorkbenchResultTabs({
               {hasResults && (resultValidity.status === "stale" || resultValidity.status === "unverifiable") && (
                 <span className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-medium text-amber-600 dark:border-amber-900/30 dark:bg-amber-900/20 dark:text-amber-400">
                   <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
-                  {resultValidity.status === "unverifiable" ? "结果来源待验证" : "结果已失效 (需重新计算)"}
-                </span>
-              )}
-              {modelHash && (
-                <span className="font-mono text-[9px] text-slate-400 dark:text-slate-500 truncate max-w-[120px] sm:max-w-[200px]" title={`模型签名: ${modelHash}`}>
-                  {modelHash.substring(0, 12)}
+                  {resultValidity.status === "unverifiable" ? "结果来源待验证" : "结果已失效（需重新计算）"}
                 </span>
               )}
             </div>
