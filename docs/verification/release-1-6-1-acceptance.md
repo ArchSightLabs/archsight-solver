@@ -1,5 +1,7 @@
 # v1.6.1 发布验收清单
 
+> 发布状态：已发布。[GitHub Release v1.6.1](https://github.com/ArchSightLabs/archsight-solver/releases/tag/v1.6.1) 于 2026-07-16 发布；下列复选项均已完成，下文继续保留发布前的门禁口径。
+
 v1.6.1 面向需要把 Solver 嵌入现有业务页面的前端接入开发者，通过本仓库内置 Reference Host DEMO 验证 v1.6 Host Protocol 1.0 的基础接入闭环。本版验收不依赖 `archsight-solver-platform` 或其他外部项目，不新增求解对象，也不包含学校、课程、学生、账号或云存储。
 
 ## 产品验收口径

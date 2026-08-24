@@ -1,5 +1,7 @@
 # v1.5.0 发布验收清单
 
+> 发布状态：已发布。[GitHub Release v1.5.0](https://github.com/ArchSightLabs/archsight-solver/releases/tag/v1.5.0) 于 2026-06-22 发布；下文保留发布前的验收口径与证据要求。
+
 本文记录 v1.5.0 发布前必须复核的建模易用性、荷载场景、结构模型诊断、计算书审阅状态、ASMS-JSON 契约治理和导出证据链。v1.5.0 是高可用建模工作台大版本，不新增第四类分析域，但必须证明三类既有模块能更快完成首个可计算模型，并且 `loadCases` / `loadCombinations` 编辑、结果切换、求解前诊断和导出来源一致。
 
 ## 自动化验收

@@ -209,6 +209,27 @@ def test_release_governance_blocks_back_to_back_minor_releases():
     assert "不超过五条重点" in governance
 
 
+def test_published_acceptance_records_do_not_look_pending():
+    acceptance_paths = (
+        "docs/verification/release-1-5-acceptance.md",
+        "docs/verification/release-1-6-acceptance.md",
+        "docs/verification/release-1-6-1-acceptance.md",
+        "docs/verification/release-1-6-2-acceptance.md",
+        "docs/verification/release-1-6-3-acceptance.md",
+        "docs/verification/release-1-7-acceptance.md",
+        "docs/verification/release-1-8-acceptance.md",
+    )
+
+    for path in acceptance_paths:
+        acceptance = _read_doc(path)
+        assert "> 发布状态：已发布" in acceptance
+        assert "- [ ]" not in acceptance
+
+    v170_acceptance = _read_doc("docs/verification/release-1-7-acceptance.md")
+    assert "重新规划的正式 `v1.8.0` 后于 2026-08-23 独立发布" in v170_acceptance
+    assert "latest 为合并后的 `v1.7.0`" not in v170_acceptance
+
+
 def test_v170_quickstarts_and_golden_flows_are_published_as_online_pages():
     changelog = _read_doc("CHANGELOG.md")
     release_html = _read_doc("frontend/public/docs/release-notes.html")

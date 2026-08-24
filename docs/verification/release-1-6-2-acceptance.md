@@ -1,6 +1,6 @@
 # v1.6.2 发布验收
 
-> 状态：正式发布验收（2026-07-21）。本文记录创建 `v1.6.2` tag 前已经完成的候选证据，以及 Tag 发布工作流必须复跑的正式门禁；其他镜像仓库推送和服务器更新由维护者独立执行。
+> 发布状态：已发布。[GitHub Release v1.6.2](https://github.com/ArchSightLabs/archsight-solver/releases/tag/v1.6.2) 于 2026-07-21 发布；下文保留创建 Tag 前的候选证据和门禁口径，其他镜像仓库推送和服务器更新仍属于独立运维状态。
 
 ## 范围与结论门槛
 
@@ -84,4 +84,4 @@ v1.6.1 未更新线上服务器时，可以直接从 v1.6.0 升级到 v1.6.2，�
 | Trivy HIGH / CRITICAL | Trivy 0.69.3 使用 2026-07-20 下载的漏洞库扫描 Debian 13.6 与 Python 依赖；`--ignore-unfixed` 下 HIGH 0、CRITICAL 0 |
 | SPDX SBOM | Syft 1.48.0 生成 SPDX-2.3，识别 124 个 packages、928 条 relationships，结构校验通过 |
 
-最终发布判断：**GO**。当前代码和候选镜像达到创建 `v1.6.2` tag 与 GitHub Release 的门槛；Tag 工作流全绿是 GitHub Release 与 GHCR 制品发布完成的必要条件，其他镜像仓库推送和线上更新继续作为独立的维护者操作。
+历史候选判断：**GO**。当时代码和候选镜像已达到创建 `v1.6.2` Tag 与 GitHub Release 的门槛；Tag 工作流随后完成，正式发布事实见本文顶部。其他镜像仓库推送和线上更新继续作为独立的维护者操作。
