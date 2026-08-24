@@ -7,4 +7,7 @@ test("new workspaces show engineering control labels on all three structure prev
   assert.equal(workspace.beam.viewSettings?.showExtremeLabel, true);
   assert.equal(workspace.frame.viewSettings?.showExtremeLabel, true);
   assert.equal(workspace.truss.viewSettings?.showExtremeLabel, true);
+  assert.equal(workspace.beam.viewSettings?.showKeyPointTypes, false);
+  assert.equal(workspace.frame.viewSettings?.showKeyPointTypes, false);
+  assert.equal(workspace.truss.viewSettings?.showKeyPointTypes, false);
 });

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import type { FrameMemberDiagram, FramePreviewData, SupportType } from "../types/structure";
+import type { FrameMemberDiagram, FramePreviewData, ResultViewSettings, SupportType } from "../types/structure";
 import {
   DEFAULT_FRAME_DIAGRAM_METRIC_KEY,
   findFrameDiagramExtreme,
@@ -29,7 +29,7 @@ import { modelObjectMemberTerm } from "../lib/model-object-vocabulary";
 import { summaryMetricLabel } from "../lib/result-metrics";
 import { STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
 import { useCanvasDrag } from "../hooks/useModelCanvasZoom";
-import { ResultDiagramCard, ResultDiagramEmptyState, ResultDiagramMetricBadge, ResultDiagramMetricGallery } from "./ResultDiagramLayout";
+import { ResultDiagramCard, ResultDiagramEmptyState, ResultDiagramKeyPointTypeToggle, ResultDiagramMetricBadge, ResultDiagramMetricGallery } from "./ResultDiagramLayout";
 import { buildFrameDimensionLegendRows, buildFrameGeometryDimensions, frameMemberLabelPlacement } from "./frame-preview-utils";
 import { modelLabelTransformFromOffsets, type ModelLabelOffsets } from "../lib/model-label-overrides";
 
@@ -41,6 +41,8 @@ interface FrameMemberDiagramsProps {
   showMetricTabs?: boolean;
   heading?: string;
   modelLabelOffsets?: ModelLabelOffsets;
+  viewSettings?: ResultViewSettings;
+  onChangeViewSettings?: (settings: ResultViewSettings) => void;
 }
 
 type SvgPoint = { x: number; y: number };
@@ -185,12 +187,14 @@ function FrameStructureDiagram({
   metric,
   compact,
   modelLabelOffsets,
+  showKeyPointTypes,
 }: {
   frame: FramePreviewData;
   diagrams: FrameMemberDiagram[];
   metric: FrameDiagramMetric;
   compact: boolean;
   modelLabelOffsets?: ModelLabelOffsets;
+  showKeyPointTypes: boolean;
 }) {
   const padding = compact ? 68 : 88;
   const { canvasScrollRef, isCanvasDragging, handleCanvasPointerDown, handleCanvasPointerMove, finishCanvasDrag, handleCanvasClickCapture } = useCanvasDrag();
@@ -326,7 +330,7 @@ function FrameStructureDiagram({
           id: `keypoint-${member.id}-${point.key}`,
           anchor: point,
           lines: [
-            { text: kindLabel, fontSize: compact ? 9 : 11 },
+            ...(showKeyPointTypes ? [{ text: kindLabel, fontSize: compact ? 9 : 11 }] : []),
             { text: valueText(point.value, metric.unit), fontSize: compact ? 11 : 13 },
             { text: `x = ${point.stationM.toFixed(2)} m`, fontSize: compact ? 9 : 11 },
           ],
@@ -364,7 +368,7 @@ function FrameStructureDiagram({
       });
     });
     return placedById(placeDiagramLabels(labels, { baseBlockers, bounds }));
-  }, [canvasSize, compact, dimensionLegendRows, frame.members, frame.nodes, frameCenter, layout.nodeMap, metric.key, metric.unit, renderedMembers]);
+  }, [canvasSize, compact, dimensionLegendRows, frame.members, frame.nodes, frameCenter, layout.nodeMap, metric.key, metric.unit, renderedMembers, showKeyPointTypes]);
 
   return (
     <div
@@ -503,16 +507,20 @@ function FrameStructureDiagram({
         {renderedMembers.flatMap((member) =>
           member.keyPoints.map((point) => {
             const label = labelLayouts.get(`keypoint-${member.id}-${point.key}`);
-            const kindLine = label?.lines[0];
-            const valueLine = label?.lines[1];
-            const stationLine = label?.lines[2];
-            if (!label || !kindLine || !valueLine || !stationLine) return null;
+            const kindLine = showKeyPointTypes ? label?.lines[0] : undefined;
+            const valueLine = label?.lines[showKeyPointTypes ? 1 : 0];
+            const stationLine = label?.lines[showKeyPointTypes ? 2 : 1];
+            if (!label || !valueLine || !stationLine) return null;
             const isGlobalExtreme = point.kind === "global-extreme";
+            const kindLabel = frameKeyPointKindLabel(point.kind, metric.key);
             return (
-              <g key={`keypoint-${member.id}-${point.key}`} data-keypoint-kind={point.kind} aria-label={`${kindLine.text} ${member.id} ${stationLine.text} ${valueLine.text}`}>
-                <text x={kindLine.x} y={kindLine.y} textAnchor={label.textAnchor} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke" fontSize={kindLine.fontSize} fontFamily="Fira Code" fontWeight="600">
-                  {kindLine.text}
-                </text>
+              <g key={`keypoint-${member.id}-${point.key}`} data-keypoint-kind={point.kind} aria-label={`${kindLabel} ${member.id} ${stationLine.text} ${valueLine.text}`}>
+                <title>{kindLabel}</title>
+                {kindLine ? (
+                  <text x={kindLine.x} y={kindLine.y} textAnchor={label.textAnchor} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke" fontSize={kindLine.fontSize} fontFamily="Fira Code" fontWeight="600">
+                    {kindLine.text}
+                  </text>
+                ) : null}
                 <circle cx={point.x} cy={point.y} r={isGlobalExtreme ? 5 : 4.2} fill={metric.color} fillOpacity={isGlobalExtreme ? 1 : 0.88} stroke="var(--structure-preview-text-halo)" strokeWidth={isGlobalExtreme ? "1.4" : "1.1"} />
                 <line x1={point.x} y1={point.y} x2={label.connectorX} y2={label.connectorY} stroke={metric.color} strokeWidth="1.4" strokeDasharray="4 4" />
                 <text x={valueLine.x} y={valueLine.y} textAnchor={label.textAnchor} fill={metric.color} stroke="var(--structure-preview-text-halo)" strokeWidth="5" paintOrder="stroke" fontSize={valueLine.fontSize} fontFamily="Fira Code" fontWeight={isGlobalExtreme ? "700" : "650"}>
@@ -530,11 +538,12 @@ function FrameStructureDiagram({
   );
 }
 
-export function FrameMemberDiagrams({ frame, diagrams, compact = false, metricKey, showMetricTabs = true, heading = "工程图", modelLabelOffsets }: FrameMemberDiagramsProps) {
+export function FrameMemberDiagrams({ frame, diagrams, compact = false, metricKey, showMetricTabs = true, heading = "工程图", modelLabelOffsets, viewSettings, onChangeViewSettings }: FrameMemberDiagramsProps) {
   const [selectedMetricState, setSelectedMetricState] = useState<FrameDiagramSelectionKey>("all");
   const selectedMetricKey = metricKey ?? selectedMetricState;
   const selectedMetric = getFrameDiagramMetric(selectedMetricKey === "all" ? DEFAULT_FRAME_DIAGRAM_METRIC_KEY : selectedMetricKey);
   const extreme = useMemo(() => findFrameDiagramExtreme(diagrams, selectedMetric), [diagrams, selectedMetric]);
+  const showKeyPointTypes = viewSettings?.showKeyPointTypes ?? false;
 
   if (!frame || !diagrams.length) {
     return <ResultDiagramEmptyState compact={compact} label="暂无框架工程图数据" />;
@@ -551,7 +560,7 @@ export function FrameMemberDiagrams({ frame, diagrams, compact = false, metricKe
         selectedMetric={selectedMetric}
         onSelect={(key) => setSelectedMetricState(key)}
         renderMetric={(metric) => (
-          <FrameMemberDiagrams key={metric.key} frame={frame} diagrams={diagrams} compact={compact} metricKey={metric.key} showMetricTabs={false} heading={metric.title} modelLabelOffsets={modelLabelOffsets} />
+          <FrameMemberDiagrams key={metric.key} frame={frame} diagrams={diagrams} compact={compact} metricKey={metric.key} showMetricTabs={false} heading={metric.title} modelLabelOffsets={modelLabelOffsets} viewSettings={viewSettings} onChangeViewSettings={onChangeViewSettings} />
         )}
       />
     );
@@ -561,6 +570,12 @@ export function FrameMemberDiagrams({ frame, diagrams, compact = false, metricKe
     <ResultDiagramCard
       compact={compact}
       heading={heading}
+      actions={viewSettings && onChangeViewSettings ? (
+        <ResultDiagramKeyPointTypeToggle
+          visible={showKeyPointTypes}
+          onChange={(visible) => onChangeViewSettings({ ...viewSettings, showKeyPointTypes: visible })}
+        />
+      ) : null}
       badges={
         extreme ? (
           <ResultDiagramMetricBadge>
@@ -569,7 +584,7 @@ export function FrameMemberDiagrams({ frame, diagrams, compact = false, metricKe
         ) : null
       }
     >
-      <FrameStructureDiagram frame={frame} diagrams={diagrams} metric={selectedMetric} compact={compact} modelLabelOffsets={modelLabelOffsets} />
+      <FrameStructureDiagram frame={frame} diagrams={diagrams} metric={selectedMetric} compact={compact} modelLabelOffsets={modelLabelOffsets} showKeyPointTypes={showKeyPointTypes} />
     </ResultDiagramCard>
   );
 }

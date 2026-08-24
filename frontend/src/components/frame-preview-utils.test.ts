@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildFrameDimensionLegendRows, buildFrameGeometryDimensions, buildFrameLoadLabelMap, buildFrameLoadMarkers, frameMemberDimensionValueLabel } from "./frame-preview-utils.ts";
+import { buildFrameDimensionLegendRows, buildFrameGeometryDimensions, buildFrameLoadLabelMap, buildFrameLoadMarkers, fitFrameLoadMarkerLabels, frameMemberDimensionValueLabel } from "./frame-preview-utils.ts";
 
 test("buildFrameLoadMarkers anchors vertical nodal loads on the node x-coordinate", () => {
   const load = { type: "nodal" as const, node: "N2", fyKn: -42 };
@@ -41,6 +41,17 @@ test("buildFrameLoadMarkers places horizontal nodal load labels outside the arro
   assert.equal(markers[0].label, "F1=24.0 kN");
   assert.equal(markers[0].labelX, 656);
   assert.equal(markers[0].textAnchor, "end");
+});
+
+test("框架荷载文字会被约束在结果图安全区内", () => {
+  const markers = fitFrameLoadMarkerLabels(
+    [{ type: "force", x1: 480, y1: 4, x2: 480, y2: 60, label: "P1=35.0 kN", labelX: 480, labelY: 4, textAnchor: "middle", key: "0-member-point" }],
+    { left: 12, right: 808, top: 8, bottom: 242 },
+    11,
+  );
+
+  assert.equal(markers[0]?.labelY, 19);
+  assert.equal(markers[0]?.textAnchor, "middle");
 });
 
 test("buildFrameLoadMarkers builds distributed load guide and arrows from the member axis", () => {

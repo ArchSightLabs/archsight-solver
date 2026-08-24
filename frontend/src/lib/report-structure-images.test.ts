@@ -332,6 +332,16 @@ test("框架计算书叠加图保留结果图名称控制值和模型编号", ()
   assertGraphicText(graphics, "C1");
   assertGraphicText(graphics, "B1");
   assertGraphicText(graphics, "42.91 kN·m\nB1 / 3.00 m");
+  assert.ok(!graphicTexts(graphics).some((text) => text.includes("全局极值")));
+
+  const graphicsWithTypeLabels = buildFrameOverlayGraphics(results, "momentKnM", undefined, {
+    showLoads: true,
+    showDisplacement: true,
+    showExtremeLabel: true,
+    showKeyPointTypes: true,
+    displacementScale: null,
+  });
+  assertGraphicText(graphicsWithTypeLabels, "全局极值\n42.91 kN·m\nB1 / 3.00 m");
 });
 
 test("桁架计算书图形保留节点杆件编号尺寸和轴力控制标注", () => {
@@ -385,6 +395,16 @@ test("桁架计算书图形保留节点杆件编号尺寸和轴力控制标注",
   assertGraphicText(previewGraphics, "竖向荷载 20.0 kN");
   assertGraphicText(overlayGraphics, "平面桁架 杆件轴力图（模型叠加）");
   assertGraphicText(overlayGraphics, "-25.00 kN\nR2");
+  assert.ok(!graphicTexts(overlayGraphics).some((text) => text.includes("控制值")));
+
+  const overlayGraphicsWithTypeLabels = buildTrussOverlayGraphics(results, "axial", undefined, {
+    showLoads: true,
+    showDisplacement: true,
+    showExtremeLabel: true,
+    showKeyPointTypes: true,
+    displacementScale: null,
+  });
+  assertGraphicText(overlayGraphicsWithTypeLabels, "控制值\n-25.00 kN\nR2");
 });
 
 test("桁架计算书预览图随大模型扩展画布并压缩等长杆件图例", () => {

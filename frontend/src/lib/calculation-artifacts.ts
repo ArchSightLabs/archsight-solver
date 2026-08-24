@@ -50,16 +50,154 @@ const CRITICAL_POINT_TITLES: Record<string, string> = {
 
 const METRIC_TITLES: Record<string, string> = {
   deflection: "挠度",
+  deflectionMm: "挠度",
+  maxDeflectionMm: "最大挠度",
   moment: "弯矩",
+  momentKnM: "弯矩",
+  maxMomentKnM: "最大弯矩",
   shear: "剪力",
+  shearKn: "剪力",
+  maxShearKn: "最大剪力",
   axial: "轴力",
+  axialKn: "轴力",
+  axialForceKn: "轴力",
+  maxAxialKn: "最大轴力",
+  maxAxialForceKn: "最大轴力",
+  displacement: "位移",
+  displacementMm: "位移",
+  maxDisplacementMm: "最大位移",
+  maxVerticalMm: "最大竖向位移",
+  rotationDeg: "转角",
+  maxRotationDeg: "最大转角",
   ux: "X 向位移",
+  uxMm: "X 向位移",
   uy: "Y 向位移",
+  uyMm: "Y 向位移",
   resultant: "合位移",
+  resultantMm: "合位移",
   reactionFx: "X 向反力",
+  reactionFxKn: "X 向反力",
   reactionFy: "Y 向反力",
+  reactionFyKn: "Y 向反力",
   reactionMz: "约束弯矩",
+  reactionMzKnM: "约束弯矩",
 };
+
+const CRITICAL_POINT_KIND_TITLES: Record<string, string> = {
+  ...CRITICAL_POINT_TITLES,
+  critical: "关键点",
+  end: "端点",
+  local_extreme: "局部极值",
+  "local-extreme": "局部极值",
+  global_extreme: "全局极值",
+  "global-extreme": "全局极值",
+  zero_crossing: "过零点",
+  "zero-crossing": "过零点",
+  jump_left: "跳变左侧",
+  "jump-left": "跳变左侧",
+  jump_right: "跳变右侧",
+  "jump-right": "跳变右侧",
+  "station-check": "截面复核点",
+  "node-check": "节点复核点",
+  "member-check": "构件复核点",
+  member: "构件结果",
+};
+
+const SOURCE_TYPE_TITLES: Record<string, string> = {
+  main: "主结果",
+  primary: "主结果",
+  beam: "梁系",
+  frame: "平面框架",
+  truss: "平面桁架",
+  member: "构件",
+  node: "节点",
+  station: "截面",
+  case: "荷载工况",
+  "load-case": "荷载工况",
+  combination: "荷载组合",
+  "load-combination": "荷载组合",
+  system: "系统识别",
+  request: "用户复核",
+  legacy: "历史结果",
+};
+
+const SIDE_TITLES: Record<string, string> = {
+  exact: "精确位置",
+  left: "左侧",
+  right: "右侧",
+  jump_left: "跳变左侧",
+  jump_right: "跳变右侧",
+};
+
+const TRACE_SUMMARY_TITLES: Record<string, string> = {
+  nodeCount: "节点数",
+  globalDofCount: "总自由度数",
+  freeDofCount: "未约束自由度数",
+  fixedDofCount: "约束自由度数",
+  constraintRank: "约束矩阵秩",
+  elementCount: "单元数",
+  memberResultCount: "构件结果数",
+  diagramCount: "工程图数",
+  nodeResultCount: "节点结果数",
+  solverBackend: "求解方法",
+  criticalPointCount: "关键点数",
+  reviewPointCount: "复核点数",
+  envelopeEntryCount: "控制来源数",
+  maxResidualN: "最大平衡残差",
+  rmsRelativeError: "均方根相对误差",
+  equilibriumMaxResidualN: "最大平衡残差",
+  equilibriumRmsRelativeError: "均方根相对误差",
+  method: "计算方法",
+};
+
+const STATUS_TITLES: Record<string, string> = {
+  available: "已提供完整信息",
+  diagnostic_summary: "已提供诊断摘要",
+  count_summary: "已提供数量摘要",
+  unavailable: "暂未提供",
+  completed: "已完成",
+  done: "已完成",
+  converged: "已收敛",
+  not_converged: "未收敛",
+  pass: "通过",
+  fail: "未通过",
+};
+
+export function calculationMetricTitle(metricKey: string | undefined) {
+  if (!metricKey) return "—";
+  return METRIC_TITLES[metricKey] ?? metricKey;
+}
+
+export function calculationCriticalPointKindTitle(kind: string) {
+  return CRITICAL_POINT_KIND_TITLES[kind] ?? kind;
+}
+
+export function calculationSourceTypeTitle(sourceType: string | undefined) {
+  if (!sourceType) return "";
+  return SOURCE_TYPE_TITLES[sourceType] ?? sourceType;
+}
+
+export function calculationSourceIdTitle(sourceId: string | undefined) {
+  if (!sourceId) return "";
+  return sourceId === "__primary__" ? "基本结果" : sourceId;
+}
+
+export function calculationSideTitle(side: string | undefined) {
+  if (!side) return "";
+  return SIDE_TITLES[side] ?? side;
+}
+
+export function calculationStatusTitle(status: string | undefined) {
+  if (!status) return "";
+  return STATUS_TITLES[status.toLowerCase()] ?? status;
+}
+
+export function calculationObjectTitle(kind: string, objectId: string | undefined) {
+  if (!objectId) return "";
+  if (kind === "node") return `节点 ${objectId}`;
+  if (kind === "member") return `构件 ${objectId}`;
+  return `对象 ${objectId}`;
+}
 
 function isRecord(value: unknown): value is RecordLike {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -108,7 +246,7 @@ function serializedByteSize(value: unknown): number {
   }
 }
 
-function summarizeTracePayload(value: unknown): string | undefined {
+function summarizeTechnicalTracePayload(value: unknown): string | undefined {
   if (!isRecord(value)) return undefined;
   const entries = Object.entries(value)
     .filter(([, item]) => item !== null && item !== undefined && item !== "")
@@ -119,14 +257,80 @@ function summarizeTracePayload(value: unknown): string | undefined {
         const nested = Object.entries(item)
           .filter(([, nestedItem]) => nestedItem !== null && nestedItem !== undefined && nestedItem !== "")
           .slice(0, 4)
-          .map(([nestedKey, nestedItem]) => `${nestedKey}:${String(nestedItem)}`)
+          .map(([nestedKey, nestedItem]) => `${nestedKey}:${technicalValue(nestedItem)}`)
           .join(", ");
         return nested ? `${key}={${nested}}` : "";
       }
-      return `${key}=${String(item)}`;
+      return `${key}=${technicalValue(item)}`;
     })
     .filter(Boolean);
   return entries.length > 0 ? entries.join(" · ") : undefined;
+}
+
+function summarizeTracePayload(value: unknown): string | undefined {
+  if (!isRecord(value)) return undefined;
+  const entries: string[] = [];
+  const append = (key: string, item: unknown) => {
+    if (item === null || item === undefined || item === "") return;
+    if (key === "analysisType") {
+      const label = item === "frame" ? "平面框架" : item === "truss" ? "平面桁架" : item === "beam" ? "梁系" : String(item);
+      entries.push(`分析类型：${label}`);
+      return;
+    }
+    if (key === "availability") {
+      entries.push(calculationStatusTitle(String(item)));
+      return;
+    }
+    if (key === "status" || key === "statusCode") {
+      entries.push(`状态：${calculationStatusTitle(String(item))}`);
+      return;
+    }
+    if (key === "reason" && String(item).trim()) {
+      entries.push(String(item));
+      return;
+    }
+    if (key === "warnings" || key === "infos") {
+      entries.push(`${key === "warnings" ? "警告" : "提示"}：${Array.isArray(item) ? item.length : 1} 项`);
+      return;
+    }
+    const title = TRACE_SUMMARY_TITLES[key];
+    if (title) entries.push(`${title}：${traceSummaryValue(key, item)}`);
+  };
+
+  Object.entries(value).forEach(([key, item]) => {
+    if (isRecord(item)) {
+      Object.entries(item).forEach(([nestedKey, nestedItem]) => append(nestedKey, nestedItem));
+      return;
+    }
+    append(key, item);
+  });
+  return entries.length > 0 ? entries.slice(0, 8).join("；") : "已记录本阶段的可审查摘要。";
+}
+
+function traceSummaryValue(key: string, value: unknown) {
+  if (key === "solverBackend") {
+    if (value === "dense-corotational-newton") return "稠密矩阵共回转 Newton 法";
+    if (value === "dense") return "稠密矩阵求解";
+  }
+  if (typeof value === "number") return Number.isInteger(value) ? String(value) : formatTraceNumber(value);
+  return String(value);
+}
+
+function formatTraceNumber(value: number) {
+  const absolute = Math.abs(value);
+  if (absolute !== 0 && (absolute < 1e-3 || absolute >= 1e5)) return value.toExponential(3);
+  return value.toFixed(6).replace(/\.?0+$/u, "");
+}
+
+function technicalValue(value: unknown) {
+  if (Array.isArray(value) || isRecord(value)) {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+  return String(value);
 }
 
 function cloneSnapshot(snapshot: CalculationSnapshot): CalculationSnapshot {
@@ -153,6 +357,7 @@ function normalizeTraceEntries(rawTrace: unknown): CalculationTraceEntry[] {
       stage,
       title: normalizeText(item.title ?? item.label, TRACE_STAGE_TITLES[stage] ?? `步骤 ${index + 1}`),
       detail: String(item.detail ?? item.message ?? item.note ?? "").trim() || summarizeTracePayload(summary),
+      technicalDetail: summarizeTechnicalTracePayload(summary),
       status: String(item.status ?? summary?.status ?? summary?.availability ?? "").trim() || undefined,
       step: safeNumber(item.step),
       iteration: safeNumber(item.iteration),

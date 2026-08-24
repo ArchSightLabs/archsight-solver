@@ -386,6 +386,7 @@ export function createDefaultBeamWorkspaceState(): BeamWorkspaceState {
       showLoads: true,
       showDisplacement: true,
       showExtremeLabel: true,
+      showKeyPointTypes: false,
       displacementScale: null,
     },
   };
@@ -422,6 +423,7 @@ export function createDefaultFrameWorkspaceState(): FrameWorkspaceState {
       showLoads: true,
       showDisplacement: true,
       showExtremeLabel: true,
+      showKeyPointTypes: false,
       displacementScale: null,
     },
   };
@@ -443,6 +445,7 @@ export function createDefaultTrussWorkspaceState(): TrussWorkspaceState {
       showLoads: true,
       showDisplacement: true,
       showExtremeLabel: true,
+      showKeyPointTypes: false,
       displacementScale: null,
     },
   };

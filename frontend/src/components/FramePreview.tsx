@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { GlassCard } from "./ui/GlassCard";
 import type { FramePreviewData, SupportType } from "../types/structure";
-import { buildFrameDimensionLegendRows, buildFrameGeometryDimensions, buildFrameLoadLabelMap, buildFrameLoadMarkers, frameMemberLabelPlacement, type FrameLoadMarker } from "./frame-preview-utils";
+import { buildFrameDimensionLegendRows, buildFrameGeometryDimensions, buildFrameLoadLabelMap, buildFrameLoadMarkers, fitFrameLoadMarkerLabels, frameMemberLabelPlacement, type FrameLoadMarker } from "./frame-preview-utils";
 import { formatEngineeringValue } from "../lib/engineering-format";
 import { modelObjectMemberTerm, modelObjectVocabulary } from "../lib/model-object-vocabulary";
 import { useCanvasDrag } from "../hooks/useModelCanvasZoom";
@@ -134,7 +134,9 @@ export function FramePreview({ frame, compact = false, viewSettings, modelLabelO
   const memberTerm = modelObjectMemberTerm("frame");
   const { canvasScrollRef, isCanvasDragging, handleCanvasPointerDown, handleCanvasPointerMove, finishCanvasDrag, handleCanvasClickCapture } = useCanvasDrag();
   const labelTransform = (id: string) => modelLabelTransformFromOffsets(modelLabelOffsets, id);
-  const padding = compact ? 52 : PADDING;
+  const sidePadding = compact ? 52 : PADDING;
+  const topPadding = showLoads && (frame?.loads.length ?? 0) > 0 ? (compact ? 92 : 116) : sidePadding;
+  const bottomPadding = sidePadding;
   const canvasSize = useMemo(
     () => frame ? resultPreviewCanvasSize(frame.nodes, frame.members.length) : RESULT_PREVIEW_BASE_SIZE,
     [frame],
@@ -151,11 +153,14 @@ export function FramePreview({ frame, compact = false, viewSettings, modelLabelO
     const maxY = Math.max(...ys, 1);
     const width = Math.max(1, maxX - minX);
     const height = Math.max(1, maxY - minY);
-    const scale = Math.min((canvasSize.width - padding * 2) / width, (canvasSize.height - padding * 2) / height);
+    const scale = Math.min(
+      (canvasSize.width - sidePadding * 2) / width,
+      (canvasSize.height - topPadding - bottomPadding) / height,
+    );
 
     const map = (point: { x: number; y: number }) => ({
-      x: padding + (point.x - minX) * scale,
-      y: canvasSize.height - padding - (point.y - minY) * scale,
+      x: sidePadding + (point.x - minX) * scale,
+      y: topPadding + (maxY - point.y) * scale,
     });
 
     const mappedNodes = frame.nodes.map((node) => map(node));
@@ -174,7 +179,7 @@ export function FramePreview({ frame, compact = false, viewSettings, modelLabelO
     const nodeMap = new Map(frame.nodes.map((node, index) => [node.id, mappedNodes[index]]));
     const dimensionLegendX = clamp(bounds.left - (compact ? 148 : 170), 8, canvasSize.width - 260);
     return { map, nodeMap, scale, center, bounds, dimensionLegendX };
-  }, [frame, padding, compact, canvasSize]);
+  }, [frame, sidePadding, topPadding, bottomPadding, compact, canvasSize]);
 
   const hasDeformation = Boolean(frame && frame.summary.maxDisplacementMm > 1e-9 && frame.nodeResults.length);
   const autoDeformationDisplayScale = frame && hasDeformation ? Math.max(1, Math.round(Math.min(frame.deformationScale, FRAME_PREVIEW_AUTO_DEFORMATION_SCALE_CAP))) : 0;
@@ -224,7 +229,11 @@ export function FramePreview({ frame, compact = false, viewSettings, modelLabelO
     [frame, compact],
   );
   const loadMarkers: FrameLoadMarker[] = frame && layout
-    ? frame.loads.flatMap((load, index) => buildFrameLoadMarkers(load, index, { nodeMap: layout.nodeMap, memberMap, loadLabel: loadLabelMap.get(index), reservedLoadPoints }))
+    ? fitFrameLoadMarkerLabels(
+        frame.loads.flatMap((load, index) => buildFrameLoadMarkers(load, index, { nodeMap: layout.nodeMap, memberMap, loadLabel: loadLabelMap.get(index), reservedLoadPoints })),
+        { left: 12, right: canvasSize.width - 12, top: 8, bottom: canvasSize.height - 18 },
+        compact ? 9 : 11,
+      )
     : [];
 
   if (!frame || !layout) {
@@ -396,6 +405,9 @@ export function FramePreview({ frame, compact = false, viewSettings, modelLabelO
                   x={label.x}
                   y={label.y}
                   fill="var(--structure-preview-label)"
+                  stroke="var(--structure-preview-text-halo)"
+                  strokeWidth="4"
+                  paintOrder="stroke"
                   textAnchor={label.textAnchor}
                   dominantBaseline="middle"
                   fontSize={compact ? "9" : "11"}

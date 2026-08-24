@@ -10,6 +10,7 @@ export interface CalculationTraceEntry {
   stage: string;
   title: string;
   detail?: string;
+  technicalDetail?: string;
   status?: string;
   step?: number | null;
   iteration?: number | null;
@@ -111,6 +112,7 @@ export interface ResultViewSettings {
   showLoads: boolean;
   showDisplacement: boolean;
   showExtremeLabel: boolean;
+  showKeyPointTypes: boolean;
   displacementScale: number | null;
 }
 

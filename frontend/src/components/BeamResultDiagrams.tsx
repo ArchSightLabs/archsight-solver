@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { BeamCalculationResults, BeamPreviewData, BeamSupportType } from "../types/beam";
+import type { ResultViewSettings } from "../types/structure";
 import { findBeamDiagramKeyPoints, type BeamDiagramKeyPointKind, type BeamDiagramMetricKey } from "../lib/beam-diagram-key-points";
 import { buildBeamSpanDimensionLegendRows, buildBeamSpanDimensionSegments, formatBeamDimensionLength, type BeamSpanDimension } from "../lib/beam-span-dimensions";
 import {
@@ -14,7 +15,7 @@ import { clamp, svgAreaPath, svgPathFromPoints } from "../lib/result-diagram-geo
 import { sensitivityResponseMetricLabel } from "../lib/result-metrics";
 import { STRUCTURE_NODE_RADII, STRUCTURE_RESULT_COLORS, STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
 import { useCanvasDrag } from "../hooks/useModelCanvasZoom";
-import { ResultDiagramCard, ResultDiagramEmptyState, ResultDiagramMetricBadge, ResultDiagramMetricGallery } from "./ResultDiagramLayout";
+import { ResultDiagramCard, ResultDiagramEmptyState, ResultDiagramKeyPointTypeToggle, ResultDiagramMetricBadge, ResultDiagramMetricGallery } from "./ResultDiagramLayout";
 import { modelLabelTransformFromOffsets, type ModelLabelOffsets } from "../lib/model-label-overrides";
 
 interface BeamDiagramMetric {
@@ -33,6 +34,8 @@ interface BeamResultDiagramsProps {
   showMetricTabs?: boolean;
   heading?: string;
   modelLabelOffsets?: ModelLabelOffsets;
+  viewSettings?: ResultViewSettings;
+  onChangeViewSettings?: (settings: ResultViewSettings) => void;
 }
 
 type SvgPoint = { x: number; y: number };
@@ -258,12 +261,13 @@ function beamXData(results: BeamCalculationResults, beam: BeamPreviewData) {
   return [0, beam.totalLength || 1];
 }
 
-export function BeamResultDiagrams({ results, compact = false, metricKey, showMetricTabs = true, heading = "工程图", modelLabelOffsets }: BeamResultDiagramsProps) {
+export function BeamResultDiagrams({ results, compact = false, metricKey, showMetricTabs = true, heading = "工程图", modelLabelOffsets, viewSettings, onChangeViewSettings }: BeamResultDiagramsProps) {
   const [selectedMetricState, setSelectedMetricState] = useState<BeamDiagramSelectionKey>("all");
   const selectedMetricKey = metricKey ?? selectedMetricState;
   const selectedMetric = getMetric(selectedMetricKey === "all" ? DEFAULT_BEAM_DIAGRAM_METRIC_KEY : selectedMetricKey);
   const { canvasScrollRef, isCanvasDragging, handleCanvasPointerDown, handleCanvasPointerMove, finishCanvasDrag, handleCanvasClickCapture } = useCanvasDrag();
   const beam = results?.beam ?? null;
+  const showKeyPointTypes = viewSettings?.showKeyPointTypes ?? false;
   const labelTransform = (id: string) => modelLabelTransformFromOffsets(modelLabelOffsets, id);
 
   const diagram = useMemo(() => {
@@ -367,7 +371,7 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
         selectedMetric={selectedMetric}
         onSelect={(key) => setSelectedMetricState(key)}
         renderMetric={(metric) => (
-          <BeamResultDiagrams key={metric.key} results={results} compact={compact} metricKey={metric.key} showMetricTabs={false} heading={metric.title} modelLabelOffsets={modelLabelOffsets} />
+          <BeamResultDiagrams key={metric.key} results={results} compact={compact} metricKey={metric.key} showMetricTabs={false} heading={metric.title} modelLabelOffsets={modelLabelOffsets} viewSettings={viewSettings} onChangeViewSettings={onChangeViewSettings} />
         )}
       />
     );
@@ -377,6 +381,12 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
     <ResultDiagramCard
       compact={compact}
       heading={heading}
+      actions={viewSettings && onChangeViewSettings ? (
+        <ResultDiagramKeyPointTypeToggle
+          visible={showKeyPointTypes}
+          onChange={(visible) => onChangeViewSettings({ ...viewSettings, showKeyPointTypes: visible })}
+        />
+      ) : null}
       badges={
         extreme ? (
           <ResultDiagramMetricBadge>
@@ -496,19 +506,22 @@ export function BeamResultDiagrams({ results, compact = false, metricKey, showMe
             const isGlobalExtreme = point.kind === "global-extreme";
             return (
               <g key={point.key} data-keypoint-kind={point.kind} aria-label={`${kindLabel} ${stationLabel} ${valueLabel}`}>
-                <text
-                  x={layout.textX}
-                  y={layout.valueY - (compact ? 12 : 14)}
-                  fill="var(--structure-preview-label)"
-                  stroke="var(--structure-preview-text-halo)"
-                  strokeWidth={STATION_TEXT_HALO_WIDTH}
-                  paintOrder="stroke"
-                  fontSize={compact ? "9" : "11"}
-                  fontFamily={DIAGRAM_NUMERIC_FONT}
-                  fontWeight="600"
-                >
-                  {kindLabel}
-                </text>
+                <title>{kindLabel}</title>
+                {showKeyPointTypes ? (
+                  <text
+                    x={layout.textX}
+                    y={layout.valueY - (compact ? 12 : 14)}
+                    fill="var(--structure-preview-label)"
+                    stroke="var(--structure-preview-text-halo)"
+                    strokeWidth={STATION_TEXT_HALO_WIDTH}
+                    paintOrder="stroke"
+                    fontSize={compact ? "9" : "11"}
+                    fontFamily={DIAGRAM_NUMERIC_FONT}
+                    fontWeight="600"
+                  >
+                    {kindLabel}
+                  </text>
+                ) : null}
                 <circle
                   cx={point.x}
                   cy={point.y}

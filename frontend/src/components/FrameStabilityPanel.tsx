@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { BarChart3, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react";
 import { GlassCard } from "./ui/GlassCard";
 import { formatEngineeringValue } from "../lib/engineering-format";
-import { buildNonlinearPathKeyPoints, nonlinearPathPlotPoints } from "../lib/frame-nonlinear-path";
+import { buildNonlinearPathKeyPoints, layoutNonlinearPathLabels, nonlinearPathPlotPoints } from "../lib/frame-nonlinear-path";
 import type {
   FrameBucklingMode,
   FrameBucklingModeShape,
@@ -96,6 +96,19 @@ function NonlinearPathChart({
     x: padding.left + ((point.pathProgress - minX) / spanX) * (width - padding.left - padding.right),
     y: height - padding.bottom - ((point.displacementMm - minY) / spanY) * (height - padding.top - padding.bottom),
   });
+  const keyPointLabels = layoutNonlinearPathLabels(
+    keyPoints.map((point, index) => ({
+      id: `${point.kind}-${point.step}-${index}`,
+      label: point.label,
+      ...project(point),
+    })),
+    {
+      left: padding.left + 4,
+      right: width - padding.right - 4,
+      top: 8,
+      bottom: height - padding.bottom - 6,
+    },
+  );
 
   if (!points.length) return <div className="text-xs text-muted-foreground">尚无已收敛荷载步。</div>;
 
@@ -135,7 +148,7 @@ function NonlinearPathChart({
         })}
         {keyPoints.map((point, index) => {
           const plotted = project(point);
-          const labelY = Math.max(16, plotted.y - 12 - (index % 3) * 14);
+          const labelPlacement = keyPointLabels[index]!;
           const tone = point.kind === "failure"
             ? "#fb7185"
             : point.kind === "cutback"
@@ -145,13 +158,19 @@ function NonlinearPathChart({
                 : "#a5f3fc";
           return (
             <g
-              key={`${point.kind}-${point.step}-${index}`}
+              key={labelPlacement.id}
               data-keypoint-kind={point.kind}
               aria-label={`路径关键点：${point.label}`}
             >
-              <line x1={plotted.x} y1={plotted.y} x2={plotted.x} y2={labelY + 4} stroke={tone} strokeDasharray="3 3" />
+              <line x1={plotted.x} y1={plotted.y} x2={labelPlacement.leaderX} y2={labelPlacement.leaderY} stroke={tone} strokeDasharray="3 3" />
               <circle cx={plotted.x} cy={plotted.y} r="4.5" fill={tone} />
-              <text x={Math.min(width - 210, Math.max(padding.left, plotted.x + 6))} y={labelY} fill={tone} className="text-[10px] font-semibold">
+              <text
+                x={labelPlacement.labelX}
+                y={labelPlacement.labelY}
+                textAnchor={labelPlacement.textAnchor}
+                fill={tone}
+                className="text-[10px] font-semibold"
+              >
                 {point.label}
               </text>
             </g>

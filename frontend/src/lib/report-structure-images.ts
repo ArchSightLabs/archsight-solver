@@ -379,7 +379,7 @@ export function buildFrameOverlayGraphics(
   if (extreme && extremePoint && viewSettings?.showExtremeLabel !== false) {
     addControlCallout(graphics, {
       point: extremePoint,
-      text: `${extreme.value.toFixed(2)} ${metricConfig.unit}\n${extreme.memberId} / ${extreme.stationM.toFixed(2)} m`,
+      text: `${viewSettings?.showKeyPointTypes ? "全局极值\n" : ""}${extreme.value.toFixed(2)} ${metricConfig.unit}\n${extreme.memberId} / ${extreme.stationM.toFixed(2)} m`,
       color: metricConfig.color,
       offsetY: -42,
       clampX: reportCalloutClampX(effectiveCanvasSize),
@@ -468,7 +468,7 @@ export function buildTrussOverlayGraphics(results: TrussCalculationResults, metr
   if (controlPoint && controlText && viewSettings?.showExtremeLabel !== false) {
     addControlCallout(graphics, {
       point: controlPoint,
-      text: controlText,
+      text: `${viewSettings?.showKeyPointTypes ? "控制值\n" : ""}${controlText}`,
       color: metric === "axial" ? STRUCTURE_RESULT_COLORS.trussTension : STRUCTURE_RESULT_COLORS.reportDisplacement,
       clampX: reportCalloutClampX(effectiveCanvasSize),
       clampY: reportCalloutClampY(effectiveCanvasSize),

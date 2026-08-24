@@ -13,6 +13,13 @@ import { trackSolverAnalyticsEvent } from "../analytics/umami-analytics";
 import { formatEngineeringValue } from "../lib/engineering-format";
 import {
   appendCalculationSnapshot,
+  calculationCriticalPointKindTitle,
+  calculationMetricTitle,
+  calculationObjectTitle,
+  calculationSideTitle,
+  calculationSourceIdTitle,
+  calculationSourceTypeTitle,
+  calculationStatusTitle,
   compareCalculationSnapshots,
   createCalculationSnapshotFromResult,
   measureCalculationSnapshotBytes,
@@ -246,7 +253,7 @@ export function CalculationTracePanel({ analysisMode, results, workspace, update
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="font-bold text-foreground">{entry.title}</div>
-                  <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{entry.stage}</div>
+                  <div className="text-[10px] font-semibold tracking-widest text-muted-foreground">第 {index + 1} 步</div>
                 </div>
                 <div className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
                   {entry.detail ? <div>{entry.detail}</div> : null}
@@ -255,9 +262,15 @@ export function CalculationTracePanel({ analysisMode, results, workspace, update
                     {entry.iteration != null ? <span>迭代 {entry.iteration}</span> : null}
                     {entry.residual != null ? <span>残差 {formatEngineeringValue(entry.residual, "")}</span> : null}
                     {entry.value != null ? <span>数值 {formatEngineeringValue(entry.value, entry.unit ?? "")}</span> : null}
-                    {entry.sourceId ? <span>来源 {entry.sourceId}</span> : null}
-                    {entry.status ? <span>状态 {entry.status}</span> : null}
+                    {entry.sourceId ? <span>来源 {calculationSourceIdTitle(entry.sourceId)}</span> : null}
+                    {entry.status ? <span>状态 {calculationStatusTitle(entry.status)}</span> : null}
                   </div>
+                  <details className="mt-2 rounded-md border border-white/8 bg-black/5 px-2 py-1.5 dark:bg-black/15">
+                    <summary className="cursor-pointer select-none font-semibold text-slate-500 dark:text-slate-400">技术审计信息</summary>
+                    <div className="mt-1 break-all font-mono text-[10px] leading-relaxed opacity-80">
+                      阶段代码：{entry.stage}{entry.technicalDetail ? ` · ${entry.technicalDetail}` : ""}
+                    </div>
+                  </details>
                 </div>
               </article>
             ))}
@@ -476,11 +489,18 @@ export function CriticalPointsPanel({ analysisMode, results, compact = false }: 
                 {criticalPoints.map((point) => (
                   <tr key={point.id} className="border-t border-white/8 bg-white/[0.02]">
                     <td className="px-3 py-2 font-bold text-foreground">{point.label}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{point.kind}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{point.metricKey ?? "—"}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{calculationCriticalPointKindTitle(point.kind)}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{calculationMetricTitle(point.metricKey)}</td>
                     <td className="px-3 py-2 font-mono font-bold text-primary">{point.value == null ? "—" : formatEngineeringValue(point.value, point.unit ?? "")}</td>
                     <td className="px-3 py-2 text-muted-foreground">{point.station == null ? "—" : formatEngineeringValue(point.station, "m")}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{[point.sourceType, point.sourceId, point.objectId, point.side].filter(Boolean).join(" · ") || "—"}</td>
+                    <td className="px-3 py-2 text-muted-foreground">
+                      {[
+                        calculationSourceTypeTitle(point.sourceType),
+                        calculationSourceIdTitle(point.sourceId),
+                        calculationObjectTitle(point.kind, point.objectId),
+                        calculationSideTitle(point.side),
+                      ].filter(Boolean).join(" · ") || "—"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -511,18 +531,23 @@ export function CriticalPointsPanel({ analysisMode, results, compact = false }: 
                   </div>
                 </div>
                 <div className="mt-1 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
-                  <span>{item.metricKey}</span>
+                  <span>{calculationMetricTitle(item.metricKey)}</span>
                   {item.absoluteValue != null ? <span>绝对值 {formatEngineeringValue(item.absoluteValue, item.unit ?? "")}</span> : null}
                   {item.relativeValue != null ? <span>相对值 {formatEngineeringValue(item.relativeValue, "")}</span> : null}
-                  {item.sourceType ? <span>来源 {item.sourceType}</span> : null}
+                  {item.sourceType ? <span>来源 {calculationSourceTypeTitle(item.sourceType)}</span> : null}
                   {item.sourceLabel ? <span>{item.sourceLabel}</span> : null}
-                  {item.sourceId ? <span>{item.sourceId}</span> : null}
+                  {item.sourceId ? <span>{calculationSourceIdTitle(item.sourceId)}</span> : null}
                   {item.objectId ? <span>对象 {item.objectId}</span> : null}
                   {item.station != null ? <span>位置 {formatEngineeringValue(item.station, "m")}</span> : null}
                   {item.scope ? <span>{item.scope === "location" ? "逐点包络" : "全局包络"}</span> : null}
-                  {item.side ? <span>{item.side}</span> : null}
-                  {item.sourceHash ? <span className="font-mono">{item.sourceHash}</span> : null}
+                  {item.side ? <span>{calculationSideTitle(item.side)}</span> : null}
                 </div>
+                {item.sourceHash ? (
+                  <details className="mt-2 text-[10px] text-muted-foreground">
+                    <summary className="cursor-pointer select-none font-semibold">技术审计信息</summary>
+                    <div className="mt-1 break-all font-mono">结果哈希：{item.sourceHash}</div>
+                  </details>
+                ) : null}
               </article>
             ))}
           </div>

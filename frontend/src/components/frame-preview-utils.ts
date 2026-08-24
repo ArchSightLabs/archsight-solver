@@ -1,4 +1,5 @@
 import { formatDimensionLegendGroupRows } from "../lib/dimension-legend-rows.ts";
+import { estimateDiagramTextWidth } from "../lib/diagram-label-layout.ts";
 import type { FrameLoad, FrameLoadDirection } from "../types/structure";
 
 export interface FramePreviewPoint {
@@ -208,6 +209,38 @@ export function buildFrameLoadLabelMap(loads: FrameLoad[]) {
   });
 
   return labels;
+}
+
+export function fitFrameLoadMarkerLabels(
+  markers: FrameLoadMarker[],
+  bounds: { left: number; right: number; top: number; bottom: number },
+  fontSize = 11,
+): FrameLoadMarker[] {
+  return markers.map((marker) => {
+    if (!marker.label) return marker;
+    const labelWidth = estimateDiagramTextWidth(marker.label, fontSize);
+    let labelX = marker.labelX;
+    let textAnchor = marker.textAnchor ?? "start";
+    if (textAnchor === "start" && labelX + labelWidth > bounds.right) {
+      labelX = bounds.right;
+      textAnchor = "end";
+    } else if (textAnchor === "end" && labelX - labelWidth < bounds.left) {
+      labelX = bounds.left;
+      textAnchor = "start";
+    } else if (textAnchor === "middle" && labelX - labelWidth / 2 < bounds.left) {
+      labelX = bounds.left;
+      textAnchor = "start";
+    } else if (textAnchor === "middle" && labelX + labelWidth / 2 > bounds.right) {
+      labelX = bounds.right;
+      textAnchor = "end";
+    }
+    return {
+      ...marker,
+      labelX,
+      labelY: Math.min(bounds.bottom, Math.max(bounds.top + fontSize, marker.labelY)),
+      textAnchor,
+    };
+  });
 }
 
 function forceComponentLabel(baseLabel: string, hasFx: boolean, hasFy: boolean, component: "x" | "y") {

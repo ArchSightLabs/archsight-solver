@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { FrameNonlinearPathTrace } from "../types/structure.ts";
-import { buildNonlinearPathKeyPoints, nonlinearPathPlotPoints } from "./frame-nonlinear-path.ts";
+import { buildNonlinearPathKeyPoints, layoutNonlinearPathLabels, nonlinearPathPlotPoints } from "./frame-nonlinear-path.ts";
 
 function legacyTrace(): FrameNonlinearPathTrace {
   return {
@@ -106,4 +106,35 @@ test("legacy traces still derive response turning, stability transitions and res
   assert.ok(points.some((point) => point.kind === "residual_peak" && point.label.includes("0.03")));
   assert.ok(points.some((point) => point.kind === "cutback" && point.label.includes("0.8")));
   assert.ok(points.some((point) => point.kind === "failure" && point.label.includes("0.75")));
+});
+
+test("同一终点附近的非线性关键点标签会分层避让且不越出图框", () => {
+  const placements = layoutNonlinearPathLabels(
+    [
+      { id: "minimum", x: 712, y: 48, label: "最小切线指标 0.18" },
+      { id: "cutback", x: 786, y: 34, label: "切步回退 · λ 0.8" },
+      { id: "last", x: 712, y: 48, label: "最后收敛 · λ 0.72 / 1.18 mm" },
+      { id: "failure", x: 786, y: 34, label: "终止 · λ 0.8" },
+    ],
+    { left: 60, right: 786, top: 8, bottom: 232 },
+  );
+
+  for (const placement of placements) {
+    assert.ok(placement.bounds.left >= 60);
+    assert.ok(placement.bounds.right <= 786);
+    assert.ok(placement.bounds.top >= 8);
+    assert.ok(placement.bounds.bottom <= 232);
+  }
+  for (let leftIndex = 0; leftIndex < placements.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < placements.length; rightIndex += 1) {
+      const left = placements[leftIndex]!.bounds;
+      const right = placements[rightIndex]!.bounds;
+      assert.ok(
+        left.right <= right.left
+        || right.right <= left.left
+        || left.bottom <= right.top
+        || right.bottom <= left.top,
+      );
+    }
+  }
 });

@@ -399,8 +399,41 @@ test("v1.4.0 平面框架多工况可切换普通荷载和均匀温度荷载结�
 
   await page.getByRole("button", { name: /恒载\s+工况 DL/ }).click();
   await page.getByRole("tab", { name: "受力变形", exact: true }).click();
-  await expect(page.locator('[data-result-mode="frame"][data-result-surface="preview"][data-result-label-id="load:0:distributed"]')).toBeVisible();
+  const distributedLoadLabel = page.locator('[data-result-mode="frame"][data-result-surface="preview"][data-result-label-id="load:0:distributed"]');
+  await expect(distributedLoadLabel).toBeVisible();
   await expect(page.locator('[data-result-mode="frame"][data-result-surface="preview"][data-result-label-id="load:0:temperature"]')).toHaveCount(0);
+
+  const loadLabelBounds = await distributedLoadLabel.evaluate((label) => {
+    const bounds = label.getBoundingClientRect();
+    const svgBounds = label.ownerSVGElement?.getBoundingClientRect();
+    if (!svgBounds) throw new Error("框架受力变形图缺少 SVG 画布");
+    return {
+      left: bounds.left,
+      right: bounds.right,
+      top: bounds.top,
+      bottom: bounds.bottom,
+      svgLeft: svgBounds.left,
+      svgRight: svgBounds.right,
+      svgTop: svgBounds.top,
+      svgBottom: svgBounds.bottom,
+    };
+  });
+  expect(loadLabelBounds.left).toBeGreaterThanOrEqual(loadLabelBounds.svgLeft);
+  expect(loadLabelBounds.right).toBeLessThanOrEqual(loadLabelBounds.svgRight);
+  expect(loadLabelBounds.top).toBeGreaterThanOrEqual(loadLabelBounds.svgTop);
+  expect(loadLabelBounds.bottom).toBeLessThanOrEqual(loadLabelBounds.svgBottom);
+  const dimensionLegendBounds = await page.locator('[data-result-mode="frame"][data-result-surface="preview"][data-result-label-id="dimension-legend"]').boundingBox();
+  const loadBounds = await distributedLoadLabel.boundingBox();
+  expect(dimensionLegendBounds).not.toBeNull();
+  expect(loadBounds).not.toBeNull();
+  if (dimensionLegendBounds && loadBounds) {
+    const overlapsDimensionLegend =
+      loadBounds.x < dimensionLegendBounds.x + dimensionLegendBounds.width
+      && dimensionLegendBounds.x < loadBounds.x + loadBounds.width
+      && loadBounds.y < dimensionLegendBounds.y + dimensionLegendBounds.height
+      && dimensionLegendBounds.y < loadBounds.y + loadBounds.height;
+    expect(overlapsDimensionLegend, "框架荷载标注不应与尺寸图例重叠").toBe(false);
+  }
 
   await page.getByRole("button", { name: /温度\s+工况 TL/ }).click();
   await expect(page.locator('[data-result-mode="frame"][data-result-surface="preview"][data-result-label-id="load:0:temperature"]')).toBeVisible();

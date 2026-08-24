@@ -21,6 +21,7 @@ interface ResultDiagramCardProps {
   compact: boolean;
   heading: string;
   badges?: ReactNode;
+  actions?: ReactNode;
   children: ReactNode;
 }
 
@@ -137,7 +138,25 @@ export function ResultDiagramMetricBadge({ children }: { children: ReactNode }) 
   );
 }
 
-export function ResultDiagramCard({ compact, heading, badges, children }: ResultDiagramCardProps) {
+export function ResultDiagramKeyPointTypeToggle({ visible, onChange }: { visible: boolean; onChange: (visible: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={visible}
+      aria-label="显示关键点类型"
+      onClick={() => onChange(!visible)}
+      className={`h-8 shrink-0 rounded-lg border px-2.5 text-[11px] font-bold transition-colors ${
+        visible
+          ? "border-sky-400/55 bg-sky-400/15 text-sky-700 dark:text-sky-200"
+          : "border-slate-200 bg-white text-slate-600 hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:border-sky-400/50 dark:hover:text-sky-200"
+      }`}
+    >
+      类型说明
+    </button>
+  );
+}
+
+export function ResultDiagramCard({ compact, heading, badges, actions, children }: ResultDiagramCardProps) {
   return (
     <GlassCard className={compact ? "space-y-3 p-3 sm:p-4" : "space-y-4 p-4 sm:p-5"}>
       <div className={`flex gap-3 ${compact ? "flex-col" : "flex-col xl:flex-row xl:items-start xl:justify-between"}`}>
@@ -145,6 +164,7 @@ export function ResultDiagramCard({ compact, heading, badges, children }: Result
           <h3 className={`${compact ? "text-lg" : "text-xl"} font-black tracking-tight`}>{heading}</h3>
           {badges ? <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-bold text-slate-600 dark:text-slate-300">{badges}</div> : null}
         </div>
+        {actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
       </div>
       {children}
     </GlassCard>

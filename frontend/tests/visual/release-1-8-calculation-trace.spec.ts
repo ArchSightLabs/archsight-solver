@@ -807,30 +807,41 @@ test("梁系、框架与桁架的计算过程都暴露 8 个阶段和关键点�
   await openWorkbench(page);
 
   for (const scenario of [
-    { mode: "beam" as const, run: "运行梁系计算", complete: "梁系计算完成" },
-    { mode: "frame" as const, run: "运行平面框架计算", complete: "平面框架计算完成" },
-    { mode: "truss" as const, run: "运行平面桁架计算", complete: "平面桁架计算完成" },
+    { mode: "beam" as const, run: "运行梁系计算", complete: "梁系计算完成", metric: "弯矩", source: "梁系" },
+    { mode: "frame" as const, run: "运行平面框架计算", complete: "平面框架计算完成", metric: "弯矩", source: "构件" },
+    { mode: "truss" as const, run: "运行平面桁架计算", complete: "平面桁架计算完成", metric: "轴力", source: "构件" },
   ]) {
     await openMode(page, scenario.mode);
     await runCalculation(page, scenario.run, scenario.complete);
     await openCalculationTrace(page);
 
-    for (const stage of [
-      "input_normalized",
-      "dof_mapping",
-      "element_process",
-      "global_assembly",
-      "boundary_reduction",
-      "solver_diagnostics",
-      "result_recovery",
-      "equilibrium_check",
+    for (const stageTitle of [
+      "输入归一化",
+      "自由度映射",
+      "单元处理",
+      "全局装配",
+      "边界约束消元",
+      "求解器诊断",
+      "结果回代",
+      "平衡复核",
     ]) {
-      await expect(page.getByText(stage, { exact: true })).toBeVisible();
+      await expect(page.getByText(stageTitle, { exact: true })).toBeVisible();
     }
-    await expect(page.getByText("8 步", { exact: false })).toBeVisible();
+    await expect(page.getByText(/8 步 · \d+ 个复核点/u)).toBeVisible();
+    await expect(page.getByText("input_normalized", { exact: true })).toHaveCount(0);
+
+    const firstAuditDetails = page.getByRole("tabpanel", { name: "计算过程" }).locator("details").first();
+    await firstAuditDetails.locator("summary").click();
+    await expect(firstAuditDetails.getByText(/阶段代码：input_normalized/u)).toBeVisible();
 
     await openCriticalPoints(page);
-    await expect(page.getByText("全局极值", { exact: true })).toBeVisible();
+    await expect(page.getByText("全局极值", { exact: true }).first()).toBeVisible();
+    const criticalPanel = page.getByRole("tabpanel", { name: "关键点" });
+    await expect(criticalPanel.getByText(scenario.metric, { exact: true }).first()).toBeVisible();
+    await expect(criticalPanel.getByText(new RegExp(`^${scenario.source} ·`, "u")).first()).toBeVisible();
+    await expect(criticalPanel.getByText("global-extreme", { exact: true })).toHaveCount(0);
+    await expect(criticalPanel.getByText("momentKnM", { exact: true })).toHaveCount(0);
+    await expect(criticalPanel.getByText("axialForceKn", { exact: true })).toHaveCount(0);
     await expect(page.getByText("控制来源 1", { exact: true })).toBeVisible();
     await expect(page.getByText("控制来源与包络", { exact: true })).toBeVisible();
   }

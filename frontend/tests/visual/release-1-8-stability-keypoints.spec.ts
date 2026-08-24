@@ -615,12 +615,17 @@ test("框架工程图关键点暴露 data-keypoint-kind 与站位数值", async 
 
   await expect(globalExtreme).toBeVisible();
   await expect(globalExtreme).toContainText("全局极值");
+  await expect(globalExtreme.locator("text").filter({ hasText: "全局极值" })).toHaveCount(0);
   await expect(globalExtreme).toContainText(/x = \d+\.\d{2} m/u);
   await expect(globalExtreme).toContainText(/kN·m/u);
   await expect(endPoint).toBeVisible();
   await expect(endPoint).toContainText("端点");
   await expect(endPoint).toContainText(/x = \d+\.\d{2} m/u);
   await expect(endPoint).toContainText(/kN·m/u);
+
+  await page.getByRole("button", { name: "显示关键点类型" }).click();
+  await expect(globalExtreme.locator("text").filter({ hasText: "全局极值" })).toBeVisible();
+  await expect(endPoint.locator("text").filter({ hasText: "端点" })).toBeVisible();
 });
 
 test("v1.8.1 几何非线性过程播放显示 canonical 关键点、数值和分层解释", async ({ page }) => {
@@ -638,6 +643,19 @@ test("v1.8.1 几何非线性过程播放显示 canonical 关键点、数值和�
   await expect(page.getByText(/终止 · λ 0\.8/u).first()).toBeVisible();
   await expect(page.getByText("方法比较", { exact: true })).toBeVisible();
   await expect(page.getByText("corotational_newton_v1", { exact: true })).toBeVisible();
+
+  const labelBounds = await page.locator('[data-keypoint-kind] text').evaluateAll((labels) => labels.map((label) => {
+    const bounds = label.getBoundingClientRect();
+    return { text: label.textContent ?? "", left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom };
+  }));
+  for (let leftIndex = 0; leftIndex < labelBounds.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < labelBounds.length; rightIndex += 1) {
+      const left = labelBounds[leftIndex]!;
+      const right = labelBounds[rightIndex]!;
+      const overlaps = left.left < right.right && right.left < left.right && left.top < right.bottom && right.top < left.bottom;
+      expect(overlaps, `关键点标签不应重叠：${left.text} / ${right.text}`).toBe(false);
+    }
+  }
 
   await page.getByRole("button", { name: "算法", exact: true }).click();
   await expect(page.getByText(/共回转基本变形.*一致切线.*全 Newton/u)).toBeVisible();
@@ -662,10 +680,12 @@ test("桁架位移图暴露控制值、端点与真零节点标签", async ({ pa
 
   await expect(control).toBeVisible();
   await expect(control).toContainText("控制值");
+  await expect(control.locator("text").filter({ hasText: "控制值" })).toHaveCount(0);
   await expect(control).toContainText("2.4");
   await expect(control).toContainText("mm");
   await expect(zero).toBeVisible();
   await expect(zero).toContainText("零点");
+  await expect(zero.locator("text").filter({ hasText: "零点" })).toHaveCount(0);
   await expect(zero).toContainText("0");
   await expect(zero).toContainText("mm");
   await expect(endPoints).toHaveCount(2);
@@ -673,6 +693,11 @@ test("桁架位移图暴露控制值、端点与真零节点标签", async ({ pa
   await expect(endPoints.nth(1)).toBeVisible();
   await expect(endPoints.first()).toContainText("端点");
   await expect(endPoints.nth(1)).toContainText("端点");
+
+  await page.getByRole("button", { name: "显示关键点类型" }).click();
+  await expect(control.locator("text").filter({ hasText: "控制值" })).toBeVisible();
+  await expect(zero.locator("text").filter({ hasText: "零点" })).toBeVisible();
+  await expect(endPoints.first().locator("text").filter({ hasText: "端点" })).toBeVisible();
 });
 
 test("框架稳定审查面板暴露 P-Delta 轨迹、模态选择器与屈曲模态", async ({ page }) => {

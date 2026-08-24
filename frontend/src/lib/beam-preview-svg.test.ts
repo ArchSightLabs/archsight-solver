@@ -135,6 +135,15 @@ test("buildBeamResultDiagramSvg uses workbench-style span dimensions and key poi
   assert.match(svg, /cx="90\.00" cy="164\.00"/);
   assert.match(svg, />x = 4\.00 m</);
   assert.match(svg, />x = 1\.50 m</);
+  assert.doesNotMatch(svg, />全局极值</);
+  const svgWithTypeLabels = buildBeamResultDiagramSvg(results, "momentKnM", false, {
+    showLoads: true,
+    showDisplacement: true,
+    showExtremeLabel: true,
+    showKeyPointTypes: true,
+    displacementScale: null,
+  });
+  assert.match(svgWithTypeLabels, />全局极值</);
   assert.doesNotMatch(svg, />S3</);
   assert.match(svg, /stroke-dasharray="4 4"/);
   assert.match(svg, /stroke="#2563eb" stroke-opacity="0\.82"/);
@@ -337,6 +346,7 @@ test("计算书工程图计划即使工作台隐藏极值也强制导出控制�
     showLoads: false,
     showDisplacement: false,
     showExtremeLabel: false,
+    showKeyPointTypes: false,
     displacementScale: 18,
   };
   const beamResults = {
@@ -377,6 +387,7 @@ test("计算书工程图计划即使工作台隐藏极值也强制导出控制�
       assert.equal(itemViewSettings?.showExtremeLabel, true);
       assert.equal(itemViewSettings?.showLoads, false);
       assert.equal(itemViewSettings?.showDisplacement, false);
+      assert.equal(itemViewSettings?.showKeyPointTypes, false);
       assert.equal(itemViewSettings?.displacementScale, 18);
     }
   }

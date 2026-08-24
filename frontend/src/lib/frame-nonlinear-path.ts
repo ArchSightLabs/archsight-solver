@@ -36,6 +36,74 @@ export interface NonlinearPathKeyPoint extends NonlinearPathPlotPoint {
   residualRelative?: number;
 }
 
+export interface NonlinearPathLabelCandidate {
+  id: string;
+  x: number;
+  y: number;
+  label: string;
+}
+
+export interface NonlinearPathLabelPlacement extends NonlinearPathLabelCandidate {
+  labelX: number;
+  labelY: number;
+  leaderX: number;
+  leaderY: number;
+  textAnchor: "start" | "end";
+  bounds: { left: number; right: number; top: number; bottom: number };
+}
+
+export function layoutNonlinearPathLabels(
+  candidates: NonlinearPathLabelCandidate[],
+  chartBounds: { left: number; right: number; top: number; bottom: number },
+): NonlinearPathLabelPlacement[] {
+  const labelHeight = 13;
+  const collisionGap = 4;
+  const pointGap = 8;
+  const verticalStep = labelHeight + collisionGap;
+  const verticalOffsets = [-12];
+  for (let lane = 1; lane <= candidates.length + 4; lane += 1) {
+    verticalOffsets.push(18 + (lane - 1) * verticalStep, -12 - lane * verticalStep);
+  }
+
+  const placements: NonlinearPathLabelPlacement[] = [];
+  for (const candidate of candidates) {
+    const estimatedWidth = Math.min(
+      estimateSvgLabelWidth(candidate.label),
+      chartBounds.right - chartBounds.left,
+    );
+    const textAnchor = candidate.x + pointGap + estimatedWidth <= chartBounds.right ? "start" : "end";
+    const labelX = textAnchor === "start"
+      ? clamp(candidate.x + pointGap, chartBounds.left, chartBounds.right - estimatedWidth)
+      : clamp(candidate.x - pointGap, chartBounds.left + estimatedWidth, chartBounds.right);
+
+    const buildPlacement = (offset: number): NonlinearPathLabelPlacement => {
+      const labelY = clamp(candidate.y + offset, chartBounds.top + labelHeight - 3, chartBounds.bottom - 3);
+      const left = textAnchor === "start" ? labelX : labelX - estimatedWidth;
+      return {
+        ...candidate,
+        labelX,
+        labelY,
+        leaderX: textAnchor === "start" ? labelX - 3 : labelX + 3,
+        leaderY: labelY < candidate.y ? labelY + 4 : labelY - labelHeight + 1,
+        textAnchor,
+        bounds: {
+          left,
+          right: left + estimatedWidth,
+          top: labelY - labelHeight + 3,
+          bottom: labelY + 3,
+        },
+      };
+    };
+
+    const placement = verticalOffsets
+      .map(buildPlacement)
+      .find((current) => placements.every((placed) => !labelBoundsOverlap(current.bounds, placed.bounds, collisionGap)))
+      ?? buildPlacement(verticalOffsets.at(-1)!);
+    placements.push(placement);
+  }
+  return placements;
+}
+
 export function nonlinearPathPlotPoints(trace: FrameNonlinearPathTrace): NonlinearPathPlotPoint[] {
   const hasFixedPreload = trace.steps.some((step) => (step.fixedLoadFactor ?? 0) > 0);
   return trace.steps.map((step) => ({
@@ -294,4 +362,29 @@ function formatNumber(value: number | null | undefined) {
   const absolute = Math.abs(numeric);
   if (absolute !== 0 && (absolute >= 1e5 || absolute < 1e-3)) return numeric.toExponential(3);
   return numeric.toFixed(3).replace(/\.?0+$/, "");
+}
+
+function estimateSvgLabelWidth(label: string) {
+  return Array.from(label).reduce((width, character) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    if (character === " ") return width + 3.5;
+    return width + (codePoint > 0xff ? 10 : 6.2);
+  }, 6);
+}
+
+function labelBoundsOverlap(
+  left: NonlinearPathLabelPlacement["bounds"],
+  right: NonlinearPathLabelPlacement["bounds"],
+  gap: number,
+) {
+  return !(
+    left.right + gap <= right.left
+    || right.right + gap <= left.left
+    || left.bottom + gap <= right.top
+    || right.bottom + gap <= left.top
+  );
+}
+
+function clamp(value: number, minimum: number, maximum: number) {
+  return Math.min(maximum, Math.max(minimum, value));
 }

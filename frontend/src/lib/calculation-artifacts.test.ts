@@ -3,6 +3,11 @@ import test from "node:test";
 
 import {
   appendCalculationSnapshot,
+  calculationCriticalPointKindTitle,
+  calculationMetricTitle,
+  calculationSideTitle,
+  calculationSourceIdTitle,
+  calculationSourceTypeTitle,
   compareCalculationSnapshots,
   createCalculationSnapshotFromResult,
   MAX_SNAPSHOT_BYTES,
@@ -29,7 +34,29 @@ test("canonical CalculationTrace stages are rendered as the eight engineering pr
 
   assert.deepEqual(trace.map((entry) => entry.stage), stages);
   assert.equal(trace[0]?.title, "输入规范化");
-  assert.match(trace[0]?.detail ?? "", /step=1/u);
+  assert.match(trace[0]?.detail ?? "", /已提供完整信息/u);
+  assert.match(trace[0]?.technicalDetail ?? "", /step=1/u);
+});
+
+test("计算过程与关键点使用工程中文展示并保留折叠审计原值", () => {
+  const trace = normalizeCalculationTrace({
+    stages: [{
+      stage: "dof_mapping",
+      summary: { availability: "diagnostic_summary", nodeCount: 4, globalDofCount: 39, freeDofCount: 33 },
+    }],
+  });
+
+  assert.equal(trace[0]?.detail, "已提供诊断摘要；节点数：4；总自由度数：39；未约束自由度数：33");
+  assert.match(trace[0]?.technicalDetail ?? "", /freeDofCount=33/u);
+  assert.equal(calculationCriticalPointKindTitle("node"), "节点值");
+  assert.equal(calculationCriticalPointKindTitle("global-extreme"), "全局极值");
+  assert.equal(calculationMetricTitle("reactionMz"), "约束弯矩");
+  assert.equal(calculationMetricTitle("momentKnM"), "弯矩");
+  assert.equal(calculationMetricTitle("maxAxialForceKn"), "最大轴力");
+  assert.equal(calculationSourceTypeTitle("main"), "主结果");
+  assert.equal(calculationSourceTypeTitle("member"), "构件");
+  assert.equal(calculationSourceIdTitle("__primary__"), "基本结果");
+  assert.equal(calculationSideTitle("exact"), "精确位置");
 });
 
 test("canonical result snapshot keeps hashes and the same evidence collections", () => {

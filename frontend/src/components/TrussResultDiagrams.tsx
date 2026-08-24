@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import type { SupportType, TrussMemberResult, TrussNodeResult, TrussPreviewData } from "../types/structure";
+import type { ResultViewSettings, SupportType, TrussMemberResult, TrussNodeResult, TrussPreviewData } from "../types/structure";
 import {
   legendLabelCandidates,
   lineBlocker,
@@ -26,7 +26,7 @@ import {
   TRUSS_DIAGRAM_METRICS,
   type TrussDiagramMetricKey,
 } from "../lib/truss-result-diagrams";
-import { ResultDiagramCard, ResultDiagramEmptyState, ResultDiagramMetricBadge, ResultDiagramMetricGallery } from "./ResultDiagramLayout";
+import { ResultDiagramCard, ResultDiagramEmptyState, ResultDiagramKeyPointTypeToggle, ResultDiagramMetricBadge, ResultDiagramMetricGallery } from "./ResultDiagramLayout";
 import { modelLabelTransformFromOffsets, type ModelLabelOffsets } from "../lib/model-label-overrides";
 import {
   buildTrussMemberLengthDimensions,
@@ -44,6 +44,8 @@ interface TrussResultDiagramsProps {
   showMetricTabs?: boolean;
   heading?: string;
   modelLabelOffsets?: ModelLabelOffsets;
+  viewSettings?: ResultViewSettings;
+  onChangeViewSettings?: (settings: ResultViewSettings) => void;
 }
 
 const PADDING = 72;
@@ -119,13 +121,23 @@ function placedById(labels: DiagramPlacedLabel[]) {
   return new Map(labels.map((label) => [label.id, label]));
 }
 
-export function TrussResultDiagrams({ truss, compact = false, metricKey, showMetricTabs = true, heading = "工程图", modelLabelOffsets }: TrussResultDiagramsProps) {
+export function TrussResultDiagrams({
+  truss,
+  compact = false,
+  metricKey,
+  showMetricTabs = true,
+  heading = "工程图",
+  modelLabelOffsets,
+  viewSettings,
+  onChangeViewSettings,
+}: TrussResultDiagramsProps) {
   const [selectedMetricState, setSelectedMetricState] = useState<TrussDiagramSelectionKey>("all");
   const [manualDisplacementScale, setManualDisplacementScale] = useState<number | null>(null);
   const selectedMetricKey = metricKey ?? selectedMetricState;
   const selectedMetric = getTrussDiagramMetric(selectedMetricKey === "all" ? DEFAULT_TRUSS_DIAGRAM_METRIC_KEY : selectedMetricKey);
   const { canvasScrollRef, isCanvasDragging, handleCanvasPointerDown, handleCanvasPointerMove, finishCanvasDrag, handleCanvasClickCapture } = useCanvasDrag();
   const labelTransform = (id: string) => modelLabelTransformFromOffsets(modelLabelOffsets, id);
+  const showKeyPointTypes = viewSettings?.showKeyPointTypes ?? false;
   const padding = compact ? 54 : PADDING;
   const canvasSize = useMemo(
     () => truss ? resultPreviewCanvasSize(truss.nodes, truss.members.length) : RESULT_PREVIEW_BASE_SIZE,
@@ -293,7 +305,7 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
           id: `displacement-${keyPoint.nodeId}`,
           anchor: point,
           lines: [
-            { text: kindLabel, fontSize: compact ? 9 : 11 },
+            ...(showKeyPointTypes ? [{ text: kindLabel, fontSize: compact ? 9 : 11 }] : []),
             { text: valueText(keyPoint.value, "mm"), fontSize: compact ? 11 : 13 },
             { text: keyPoint.nodeId, fontSize: compact ? 9 : 11 },
           ],
@@ -342,6 +354,7 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
     memberResultsById,
     renderedDeformedMap,
     selectedMetricKey,
+    showKeyPointTypes,
     supportTypeById,
     truss,
   ]);
@@ -364,7 +377,17 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
         selectedMetric={selectedMetric}
         onSelect={(key) => setSelectedMetricState(key)}
         renderMetric={(metric) => (
-          <TrussResultDiagrams key={metric.key} truss={truss} compact={compact} metricKey={metric.key} showMetricTabs={false} heading={metric.title} modelLabelOffsets={modelLabelOffsets} />
+          <TrussResultDiagrams
+            key={metric.key}
+            truss={truss}
+            compact={compact}
+            metricKey={metric.key}
+            showMetricTabs={false}
+            heading={metric.title}
+            modelLabelOffsets={modelLabelOffsets}
+            viewSettings={viewSettings}
+            onChangeViewSettings={onChangeViewSettings}
+          />
         )}
       />
     );
@@ -388,6 +411,12 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
           ) : null}
         </>
       }
+      actions={selectedMetricKey === "displacementMm" && viewSettings && onChangeViewSettings ? (
+        <ResultDiagramKeyPointTypeToggle
+          visible={showKeyPointTypes}
+          onChange={(visible) => onChangeViewSettings({ ...viewSettings, showKeyPointTypes: visible })}
+        />
+      ) : null}
     >
       {selectedMetricKey === "displacementMm" && autoDisplacementDisplayScale > 0 ? (
         <div className="mb-3 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
@@ -564,16 +593,20 @@ export function TrussResultDiagrams({ truss, compact = false, metricKey, showMet
                 const node = truss.nodeResults.find((result) => result.nodeId === keyPoint.nodeId);
                 const anchor = (node ? renderedDeformedMap.get(node.nodeId) : undefined) ?? (node ? layout.nodeMap.get(node.nodeId) : undefined);
                 const label = labelLayouts.get(`displacement-${keyPoint.nodeId}`);
-                const kindLine = label?.lines[0];
-                const valueLine = label?.lines[1];
-                const nodeLine = label?.lines[2];
-                if (!anchor || !label || !kindLine || !valueLine || !nodeLine) return null;
+                const kindLine = showKeyPointTypes ? label?.lines[0] : undefined;
+                const valueLine = label?.lines[showKeyPointTypes ? 1 : 0];
+                const nodeLine = label?.lines[showKeyPointTypes ? 2 : 1];
+                if (!anchor || !label || !valueLine || !nodeLine) return null;
                 const isControl = keyPoint.kind === "control";
+                const kindLabel = trussDisplacementKindLabel(keyPoint.kind);
                 return (
-                  <g key={`displacement-${keyPoint.nodeId}`} data-keypoint-kind={keyPoint.kind} aria-label={`${kindLine.text} ${keyPoint.nodeId} ${nodeLine.text} ${valueLine.text}`}>
-                    <text x={kindLine.x} y={kindLine.y} textAnchor={label.textAnchor} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke" fontSize={kindLine.fontSize} fontFamily="Fira Code" fontWeight="600">
-                      {kindLine.text}
-                    </text>
+                  <g key={`displacement-${keyPoint.nodeId}`} data-keypoint-kind={keyPoint.kind} aria-label={`${kindLabel} ${keyPoint.nodeId} ${valueLine.text}`}>
+                    <title>{kindLabel}</title>
+                    {kindLine ? (
+                      <text x={kindLine.x} y={kindLine.y} textAnchor={label.textAnchor} fill="var(--structure-preview-label)" stroke="var(--structure-preview-text-halo)" strokeWidth="4" paintOrder="stroke" fontSize={kindLine.fontSize} fontFamily="Fira Code" fontWeight="600">
+                        {kindLine.text}
+                      </text>
+                    ) : null}
                     <circle cx={anchor.x} cy={anchor.y} r={isControl ? 4.8 : 4.1} fill="var(--structure-preview-deformed-start)" fillOpacity={isControl ? 1 : 0.88} stroke="var(--structure-preview-text-halo)" strokeWidth={isControl ? "1.3" : "1.05"} />
                     <line x1={anchor.x} y1={anchor.y} x2={label.connectorX} y2={label.connectorY} stroke="var(--structure-preview-deformed-start)" strokeWidth="1.35" strokeDasharray="4 4" />
                     <text x={valueLine.x} y={valueLine.y} textAnchor={label.textAnchor} fill="var(--structure-preview-deformed-start)" stroke="var(--structure-preview-text-halo)" strokeWidth="5" paintOrder="stroke" fontSize={valueLine.fontSize} fontFamily="Fira Code" fontWeight={isControl ? "700" : "650"}>

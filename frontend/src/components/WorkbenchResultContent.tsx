@@ -40,6 +40,7 @@ const DEFAULT_RESULT_VIEW_SETTINGS: ResultViewSettings = {
   showLoads: true,
   showDisplacement: true,
   showExtremeLabel: true,
+  showKeyPointTypes: false,
   displacementScale: null,
 };
 
@@ -81,7 +82,7 @@ export function WorkbenchResultContent({
             </Suspense>
           ) : null}
           <Suspense fallback={<LoadingPanel compact={compact} />}>
-            <BeamResultDiagrams results={beamResults} compact={compact} modelLabelOffsets={workspace.beam.modelLabelOffsets} />
+            <BeamResultDiagrams results={beamResults} compact={compact} modelLabelOffsets={workspace.beam.modelLabelOffsets} viewSettings={workspace.beam.viewSettings ?? DEFAULT_RESULT_VIEW_SETTINGS} onChangeViewSettings={(s) => updateWorkspace((w) => ({ ...w, beam: { ...w.beam, viewSettings: s } }))} />
           </Suspense>
           <SummaryGrid compact={compact} rows={beamSummaryRows(beamResults)} />
           <DataCurvePanel options={beamDataCurveOptions(beamResults)} compact={compact} />
@@ -102,7 +103,7 @@ export function WorkbenchResultContent({
     if (activeTabId === "diagrams") {
       return (
         <Suspense fallback={<LoadingPanel compact={compact} />}>
-          <BeamResultDiagrams results={beamResults} compact={compact} modelLabelOffsets={workspace.beam.modelLabelOffsets} />
+          <BeamResultDiagrams results={beamResults} compact={compact} modelLabelOffsets={workspace.beam.modelLabelOffsets} viewSettings={workspace.beam.viewSettings ?? DEFAULT_RESULT_VIEW_SETTINGS} onChangeViewSettings={(s) => updateWorkspace((w) => ({ ...w, beam: { ...w.beam, viewSettings: s } }))} />
         </Suspense>
       );
     }
@@ -140,7 +141,7 @@ export function WorkbenchResultContent({
             <TrussPreview truss={trussResults.truss ?? null} compact={compact} viewSettings={workspace.truss.viewSettings ?? DEFAULT_RESULT_VIEW_SETTINGS} modelLabelOffsets={workspace.truss.modelLabelOffsets} onChangeViewSettings={(s) => updateWorkspace((w) => ({ ...w, truss: { ...w.truss, viewSettings: s } }))} />
           </Suspense>
           <Suspense fallback={<LoadingPanel compact={compact} />}>
-            <TrussResultDiagrams truss={trussResults.truss ?? null} compact={compact} modelLabelOffsets={workspace.truss.modelLabelOffsets} />
+            <TrussResultDiagrams truss={trussResults.truss ?? null} compact={compact} modelLabelOffsets={workspace.truss.modelLabelOffsets} viewSettings={workspace.truss.viewSettings ?? DEFAULT_RESULT_VIEW_SETTINGS} onChangeViewSettings={(s) => updateWorkspace((w) => ({ ...w, truss: { ...w.truss, viewSettings: s } }))} />
           </Suspense>
           <SummaryGrid compact={compact} rows={trussSummaryRows(trussResults)} />
           <DataCurvePanel options={trussDataCurveOptions(trussResults)} compact={compact} />
@@ -158,7 +159,7 @@ export function WorkbenchResultContent({
     if (activeTabId === "diagrams") {
       return (
         <Suspense fallback={<LoadingPanel compact={compact} />}>
-          <TrussResultDiagrams truss={trussResults.truss ?? null} compact={compact} modelLabelOffsets={workspace.truss.modelLabelOffsets} />
+          <TrussResultDiagrams truss={trussResults.truss ?? null} compact={compact} modelLabelOffsets={workspace.truss.modelLabelOffsets} viewSettings={workspace.truss.viewSettings ?? DEFAULT_RESULT_VIEW_SETTINGS} onChangeViewSettings={(s) => updateWorkspace((w) => ({ ...w, truss: { ...w.truss, viewSettings: s } }))} />
         </Suspense>
       );
     }
@@ -194,7 +195,7 @@ export function WorkbenchResultContent({
           <FramePreview frame={displayedFrameResults.frame ?? null} compact={compact} viewSettings={workspace.frame.viewSettings ?? DEFAULT_RESULT_VIEW_SETTINGS} modelLabelOffsets={workspace.frame.modelLabelOffsets} onChangeViewSettings={(s) => updateWorkspace((w) => ({ ...w, frame: { ...w.frame, viewSettings: s } }))} />
         </Suspense>
         <Suspense fallback={<LoadingPanel compact={compact} />}>
-          <FrameMemberDiagrams frame={displayedFrameResults.frame ?? null} diagrams={displayedFrameResults.memberDiagrams ?? []} compact={compact} modelLabelOffsets={workspace.frame.modelLabelOffsets} />
+          <FrameMemberDiagrams frame={displayedFrameResults.frame ?? null} diagrams={displayedFrameResults.memberDiagrams ?? []} compact={compact} modelLabelOffsets={workspace.frame.modelLabelOffsets} viewSettings={workspace.frame.viewSettings ?? DEFAULT_RESULT_VIEW_SETTINGS} onChangeViewSettings={(s) => updateWorkspace((w) => ({ ...w, frame: { ...w.frame, viewSettings: s } }))} />
         </Suspense>
         <SummaryGrid compact={compact} rows={frameSummaryRows(displayedFrameResults)} />
         <DataCurvePanel options={frameDataCurveOptions(displayedFrameResults)} compact={compact} />
@@ -212,7 +213,7 @@ export function WorkbenchResultContent({
   if (activeTabId === "diagrams") {
     return (
       <Suspense fallback={<LoadingPanel compact={compact} />}>
-        <FrameMemberDiagrams frame={displayedFrameResults.frame ?? null} diagrams={displayedFrameResults.memberDiagrams ?? []} compact={compact} modelLabelOffsets={workspace.frame.modelLabelOffsets} />
+        <FrameMemberDiagrams frame={displayedFrameResults.frame ?? null} diagrams={displayedFrameResults.memberDiagrams ?? []} compact={compact} modelLabelOffsets={workspace.frame.modelLabelOffsets} viewSettings={workspace.frame.viewSettings ?? DEFAULT_RESULT_VIEW_SETTINGS} onChangeViewSettings={(s) => updateWorkspace((w) => ({ ...w, frame: { ...w.frame, viewSettings: s } }))} />
       </Suspense>
     );
   }
