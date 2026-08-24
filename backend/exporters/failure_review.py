@@ -34,6 +34,11 @@ def export_docx(review: Dict[str, Any], format_type: str = "docx") -> ExportArti
     add_heading(doc, "4. 建议动作")
     add_df_table(doc, _actions_table(normalized["suggestedActions"]))
 
+    if normalized.get("nonlinearPartialEvidence"):
+        add_heading(doc, "5. 非线性部分结果证据")
+        add_report_note(doc, "以下内容只来自已持久化作业的最后收敛状态与失败尝试；不表示目标荷载点已收敛。")
+        add_df_table(doc, _nonlinear_partial_table(normalized["nonlinearPartialEvidence"]))
+
     output = io.BytesIO()
     doc.save(output)
     output.seek(0)
@@ -55,6 +60,8 @@ def export_xlsx(review: Dict[str, Any], format_type: str = "xlsx") -> ExportArti
         write_sectioned_sheet(writer, "02_对象定位", [("对象定位", _object_ref_table(normalized["objectRefs"]))])
         write_sectioned_sheet(writer, "03_诊断记录", [("诊断记录", _diagnostics_table(normalized["diagnostics"]))])
         write_sectioned_sheet(writer, "04_建议动作", [("建议动作", _actions_table(normalized["suggestedActions"]))])
+        if normalized.get("nonlinearPartialEvidence"):
+            write_sectioned_sheet(writer, "05_非线性部分证据", [("非线性部分结果证据", _nonlinear_partial_table(normalized["nonlinearPartialEvidence"]))])
         apply_standard_worksheet_style(writer.book)
 
     output.seek(0)
@@ -99,3 +106,24 @@ def _diagnostics_table(diagnostics: List[Dict[str, str]]) -> pd.DataFrame:
 def _actions_table(actions: List[str]) -> pd.DataFrame:
     rows = [[index + 1, action] for index, action in enumerate(actions)] or [[1, "—"]]
     return pd.DataFrame(rows, columns=["序号", "建议动作"])
+
+
+def _nonlinear_partial_table(evidence: Dict[str, Any]) -> pd.DataFrame:
+    last = evidence.get("lastConverged") if isinstance(evidence.get("lastConverged"), dict) else {}
+    final = evidence.get("finalAttempt") if isinstance(evidence.get("finalAttempt"), dict) else {}
+    algorithm = evidence.get("algorithm") if isinstance(evidence.get("algorithm"), dict) else {}
+    attempts = evidence.get("attempts") if isinstance(evidence.get("attempts"), list) else []
+    return pd.DataFrame(
+        [
+            ["算法", f"{algorithm.get('id', '—')} v{algorithm.get('version', '—')}", "服务端求解记录"],
+            ["平衡状态", evidence.get("equilibriumStatus", "—"), "未收敛时不得作为目标荷载点结果"],
+            ["稳定状态", evidence.get("stabilityStatus", "—"), "与平衡状态分别记录"],
+            ["失败码", evidence.get("failureCode", "—"), evidence.get("terminationReason", "—")],
+            ["最后收敛步", last.get("step", "—"), "最后成功建立平衡的步号"],
+            ["最后收敛荷载系数", last.get("loadFactor", "—"), f"固定荷载系数={last.get('fixedLoadFactor', '—')}"],
+            ["最后收敛最大位移", last.get("maxDisplacementMm", "—"), "mm"],
+            ["失败尝试数", len(attempts), f"最终尝试={final.get('reason', final.get('terminationReason', '—'))}"],
+            ["路径签名", evidence.get("pathHash", "—"), "canonical NonlinearPathTrace hash"],
+        ],
+        columns=["项目", "数值/状态", "说明"],
+    )

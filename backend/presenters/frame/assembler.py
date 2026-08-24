@@ -40,8 +40,8 @@ def build_frame_solution_response(
         deformed_nodes.append(
             {
                 "nodeId": item["nodeId"],
-                "x": item["x"] + (item["uxMm"] / 1000.0) * deformation_scale,
-                "y": item["y"] + (item["uyMm"] / 1000.0) * deformation_scale,
+                "x": item["x"] + (item.get("totalUxMm", item["uxMm"]) / 1000.0) * deformation_scale,
+                "y": item["y"] + (item.get("totalUyMm", item["uyMm"]) / 1000.0) * deformation_scale,
             }
         )
 

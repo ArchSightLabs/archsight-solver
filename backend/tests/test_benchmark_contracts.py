@@ -17,6 +17,7 @@ BENCHMARK_CATALOG = load_benchmark_catalog()
 ALLOWED_VERIFICATION_SOURCE_TYPES = {
     "textbook-analytical",
     "independent-stiffness-baseline",
+    "published-benchmark",
     "engineering-software",
     "internal-regression",
 }
@@ -24,6 +25,7 @@ ALLOWED_VERIFICATION_SOURCE_TYPES = {
 EXPECTED_VERIFICATION_LEVEL_BY_SOURCE_TYPE = {
     "textbook-analytical": "A",
     "independent-stiffness-baseline": "B",
+    "published-benchmark": "B",
     "engineering-software": "C",
     "internal-regression": "D",
 }
@@ -33,6 +35,7 @@ PROFESSIONAL_METRICS_BY_CATEGORY = {
     "frame": {"最大节点位移", "节点位移", "构件弯矩", "支座反力", "节点数量", "构件数量"},
     "truss": {"节点位移", "杆件轴力", "杆件轴应力", "支座反力", "节点数量", "杆件数量"},
     "frame-beam-verify": {"支座反力", "跨中挠度", "构件弯矩", "构件轴力", "最大节点位移", "节点位移", "节点转角", "坐标变换"},
+    "frame-nonlinear-verify": {"节点位移", "二阶放大", "临界荷载系数", "荷载路径", "平衡状态", "稳定状态", "初始缺陷"},
     "truss-verify": {"节点位移", "杆件轴力", "杆件轴应力", "支座反力", "平衡误差"},
 }
 
@@ -51,7 +54,9 @@ def test_benchmark_catalog_shape_is_stable():
 
     for case in BENCHMARK_CATALOG["cases"]:
         assert {"id", "category", "title", "purpose", "payload", "expected", "tolerances", "verification"} <= set(case)
-        assert case["category"] in {"beam", "frame", "truss", "frame-beam-verify", "truss-verify"}
+        assert case["category"] in {
+            "beam", "frame", "truss", "frame-beam-verify", "frame-nonlinear-verify", "truss-verify"
+        }
         assert case["id"].strip()
         assert case["title"].strip()
         assert case["purpose"].strip()
@@ -95,6 +100,7 @@ def test_benchmark_catalog_contains_external_or_analytical_cross_checks():
 
     assert "textbook-analytical" in source_types
     assert "independent-stiffness-baseline" in source_types
+    assert "published-benchmark" in source_types
     assert "internal-regression" in source_types
 
 
@@ -115,6 +121,28 @@ def test_benchmark_catalog_has_detailed_analytical_checks_for_frame_and_truss():
 
     assert analytical_by_category["frame-beam-verify"] >= 7
     assert analytical_by_category["truss-verify"] >= 2
+    assert analytical_by_category["frame-nonlinear-verify"] >= 2
+
+
+def test_all_analytical_frame_nonlinear_cases_cover_path_equilibrium_and_stability_metrics():
+    cases = [
+        case
+        for case in BENCHMARK_CATALOG["cases"]
+        if case["category"] == "frame-nonlinear-verify"
+        and case["verification"]["verificationLevel"] == "A"
+    ]
+
+    assert len(cases) >= 2
+    for case in cases:
+        assert {
+            "algorithmId",
+            "equilibriumStatus",
+            "pathControlType",
+            "controlNodeId",
+        } <= set(case["expected"]), case["id"]
+        assert "stabilityStatus" in case["expected"] or "stabilityStatuses" in case["expected"], case["id"]
+        assert "controlNodeUxMm" in case["expected"] or "controlNodeDisplacementMm" in case["expected"], case["id"]
+        assert {"节点位移", "平衡状态", "稳定状态"} <= set(case["verification"]["checkedMetrics"]), case["id"]
 
 
 def test_all_analytical_beam_cases_cover_force_and_displacement_metrics():

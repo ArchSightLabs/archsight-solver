@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
-import { BarChart3, ShieldCheck } from "lucide-react";
+import { BarChart3, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react";
 import { GlassCard } from "./ui/GlassCard";
 import { formatEngineeringValue } from "../lib/engineering-format";
+import { buildNonlinearPathKeyPoints, nonlinearPathPlotPoints } from "../lib/frame-nonlinear-path";
 import type {
   FrameBucklingMode,
   FrameBucklingModeShape,
   FrameCalculationResults,
+  FrameNonlinearPathTrace,
   FrameStructure,
 } from "../types/structure";
 
@@ -56,8 +58,233 @@ function statusTone(status: StabilityStatus) {
   return "text-amber-600 dark:text-amber-400";
 }
 
+function nonlinearStabilityLabel(status: string | undefined) {
+  if (status === "stable") return "切线稳定";
+  if (status === "near_critical") return "接近临界";
+  if (status === "unstable") return "切线不稳定";
+  return "未单独评估";
+}
+
 function scalarSummary(label: string, value: string, detail?: string) {
   return { label, value, detail };
+}
+
+function NonlinearPathChart({
+  trace,
+  selectedStep,
+  onSelectStep,
+}: {
+  trace: FrameNonlinearPathTrace;
+  selectedStep: number;
+  onSelectStep: (step: number) => void;
+}) {
+  const points = nonlinearPathPlotPoints(trace);
+  const keyPoints = buildNonlinearPathKeyPoints(trace);
+  const residualPeak = keyPoints.find((point) => point.kind === "residual_peak");
+  const width = 820;
+  const height = 280;
+  const padding = { left: 56, right: 30, top: 34, bottom: 42 };
+  const xValues = [...points.map((point) => point.pathProgress), ...keyPoints.map((point) => point.pathProgress)];
+  const yValues = [...points.map((point) => point.displacementMm), ...keyPoints.map((point) => point.displacementMm), 0];
+  const minX = Math.min(...xValues, 0);
+  const maxX = Math.max(...xValues, 1);
+  const minY = Math.min(...yValues);
+  const maxY = Math.max(...yValues, 1e-9);
+  const spanX = Math.max(maxX - minX, 1e-9);
+  const spanY = Math.max(maxY - minY, 1e-9);
+  const project = (point: { pathProgress: number; displacementMm: number }) => ({
+    x: padding.left + ((point.pathProgress - minX) / spanX) * (width - padding.left - padding.right),
+    y: height - padding.bottom - ((point.displacementMm - minY) / spanY) * (height - padding.top - padding.bottom),
+  });
+
+  if (!points.length) return <div className="text-xs text-muted-foreground">尚无已收敛荷载步。</div>;
+
+  return (
+    <div className="overflow-x-auto rounded-xl border border-white/8 bg-slate-950/20 p-2">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="min-w-[680px] w-full"
+        role="img"
+        aria-label={residualPeak ? `几何非线性荷载路径，当前残差峰值 ${residualPeak.label}` : "几何非线性荷载路径，关键点、拐点和残差峰值均标注数值"}
+      >
+        <line x1={padding.left} y1={height - padding.bottom} x2={width - padding.right} y2={height - padding.bottom} stroke="rgba(148,163,184,.45)" />
+        <line x1={padding.left} y1={padding.top} x2={padding.left} y2={height - padding.bottom} stroke="rgba(148,163,184,.45)" />
+        <polyline points={toPolyline(points.map(project))} fill="none" stroke="#0ea5e9" strokeWidth="3" strokeLinejoin="round" />
+        {points.map((point) => {
+          const plotted = project(point);
+          const selected = point.step === selectedStep;
+          return (
+            <circle
+              key={point.step}
+              cx={plotted.x}
+              cy={plotted.y}
+              r={selected ? 6 : 4}
+              fill={selected ? "#f59e0b" : "#38bdf8"}
+              stroke="#082f49"
+              strokeWidth="1.5"
+              role="button"
+              tabIndex={0}
+              aria-label={`查看荷载步 ${point.step}`}
+              onClick={() => onSelectStep(point.step)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") onSelectStep(point.step);
+              }}
+              className="cursor-pointer focus:outline-none"
+            />
+          );
+        })}
+        {keyPoints.map((point, index) => {
+          const plotted = project(point);
+          const labelY = Math.max(16, plotted.y - 12 - (index % 3) * 14);
+          const tone = point.kind === "failure"
+            ? "#fb7185"
+            : point.kind === "cutback"
+              ? "#fbbf24"
+              : point.kind === "residual_peak"
+                ? "#f472b6"
+                : "#a5f3fc";
+          return (
+            <g
+              key={`${point.kind}-${point.step}-${index}`}
+              data-keypoint-kind={point.kind}
+              aria-label={`路径关键点：${point.label}`}
+            >
+              <line x1={plotted.x} y1={plotted.y} x2={plotted.x} y2={labelY + 4} stroke={tone} strokeDasharray="3 3" />
+              <circle cx={plotted.x} cy={plotted.y} r="4.5" fill={tone} />
+              <text x={Math.min(width - 210, Math.max(padding.left, plotted.x + 6))} y={labelY} fill={tone} className="text-[10px] font-semibold">
+                {point.label}
+              </text>
+            </g>
+          );
+        })}
+        <text x={width / 2} y={height - 8} textAnchor="middle" className="fill-slate-400 text-[11px] font-semibold">荷载路径进度（预荷载 → 变量荷载）</text>
+        <text x="14" y={height / 2} transform={`rotate(-90 14 ${height / 2})`} textAnchor="middle" className="fill-slate-400 text-[11px] font-semibold">最大位移 / mm</text>
+      </svg>
+    </div>
+  );
+}
+
+function NonlinearPlaybackCanvas({ trace, selectedStep }: { trace: FrameNonlinearPathTrace; selectedStep: number }) {
+  const referenceNodes = Array.isArray(trace.mesh.referenceNodes) ? trace.mesh.referenceNodes as Array<{ id: string; x: number; y: number }> : [];
+  const refinedMembers = Array.isArray(trace.mesh.refinedMembers) ? trace.mesh.refinedMembers as Array<{ id: string; start: string; end: string }> : [];
+  const keyframe = trace.keyframes.reduce((closest, current) =>
+    Math.abs(current.step - selectedStep) < Math.abs(closest.step - selectedStep) ? current : closest,
+    trace.keyframes[0]!,
+  );
+  if (!keyframe || !referenceNodes.length || !refinedMembers.length) {
+    return <div className="flex min-h-48 items-center justify-center rounded-xl border border-dashed border-white/10 text-xs text-muted-foreground">当前轨迹没有几何关键帧。</div>;
+  }
+  const displacements = new Map(keyframe.nodeDisplacements.map((item) => [item.nodeIndex, item]));
+  const bounds = expandBounds(computeStructureBounds(referenceNodes));
+  const structureSize = Math.max(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY, 1);
+  const maximumTranslation = Math.max(...keyframe.nodeDisplacements.map((item) => Math.hypot(item.uxM, item.uyM)), 1e-12);
+  const displayScale = Math.min(100, 0.16 * structureSize / maximumTranslation);
+  const deformedNodes = referenceNodes.map((node, index) => {
+    const displacement = displacements.get(index);
+    return {
+      id: node.id,
+      x: node.x + stableNumber(displacement?.uxM) * displayScale,
+      y: node.y + stableNumber(displacement?.uyM) * displayScale,
+    };
+  });
+  const nodeMap = new Map(referenceNodes.map((node) => [node.id, node]));
+  const deformedMap = new Map(deformedNodes.map((node) => [node.id, node]));
+  const allBounds = expandBounds(computeStructureBounds([...referenceNodes, ...deformedNodes]));
+  const width = 820;
+  const height = 300;
+  const scale = Math.min(width / Math.max(allBounds.maxX - allBounds.minX, 1e-9), height / Math.max(allBounds.maxY - allBounds.minY, 1e-9));
+  const project = (point: Point) => ({ x: (point.x - allBounds.minX) * scale, y: height - (point.y - allBounds.minY) * scale });
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-white/8 bg-slate-950/20">
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-[260px] w-full" role="img" aria-label={`非线性荷载步 ${selectedStep} 的变形过程关键帧`}>
+        {refinedMembers.map((member) => {
+          const start = nodeMap.get(member.start);
+          const end = nodeMap.get(member.end);
+          if (!start || !end) return null;
+          const p1 = project(start);
+          const p2 = project(end);
+          return <line key={`base-${member.id}`} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="rgba(148,163,184,.5)" strokeWidth="1.5" strokeDasharray="5 4" />;
+        })}
+        {refinedMembers.map((member) => {
+          const start = deformedMap.get(member.start);
+          const end = deformedMap.get(member.end);
+          if (!start || !end) return null;
+          const p1 = project(start);
+          const p2 = project(end);
+          return <line key={`deformed-${member.id}`} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="#0ea5e9" strokeWidth="3" strokeLinecap="round" />;
+        })}
+        <text x="16" y="22" className="fill-slate-400 text-[11px] font-semibold">灰：参考几何 蓝：放大位移 × {formatEngineeringValue(displayScale, "")}</text>
+        <text x="16" y="40" className="fill-cyan-300 text-[11px] font-semibold">步 {keyframe.step} · 固定 {formatEngineeringValue(keyframe.fixedLoadFactor ?? 0, "")} · 变量 {formatEngineeringValue(keyframe.loadFactor, "")}</text>
+      </svg>
+    </div>
+  );
+}
+
+function NonlinearPathPanel({ result, compact }: { result: FrameCalculationResults; compact: boolean }) {
+  const trace = result.secondOrder?.nonlinearPathTrace;
+  const [selectedStep, setSelectedStep] = useState(trace?.keyframes.at(-1)?.step ?? 0);
+  const [explanationLevel, setExplanationLevel] = useState<"intro" | "engineering" | "algorithm">("engineering");
+  if (!trace) return null;
+  const residualPeak = buildNonlinearPathKeyPoints(trace).find((point) => point.kind === "residual_peak");
+  const keyframeSteps = trace.keyframes.map((item) => item.step);
+  const currentIndex = Math.max(0, keyframeSteps.findIndex((step) => step === selectedStep));
+  const methodLabels = Object.fromEntries(
+    (result.secondOrder?.methodComparison?.methods ?? []).map((method) => [
+      String(method.id ?? "unknown"),
+      String(method.label ?? method.id ?? "unknown"),
+    ]),
+  );
+  const explanations = {
+    intro: "结构会在每个荷载步更新形状，再寻找内力与外力平衡；播放的是实际求解路径，不是动画插值。",
+    engineering: "平衡收敛只说明该荷载点成立；切线稳定、接近临界或不稳定单独报告，不能把已收敛解释为安全。",
+    algorithm: "corotational_newton_v1 使用共回转基本变形、解析一致切线、全 Newton、残差线搜索和自适应 cutback；荷载控制不追踪极限点后的分支。",
+  };
+  return (
+    <GlassCard className={compact ? "p-3 sm:p-4" : "p-4 sm:p-5"}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-[10px] font-black tracking-widest text-sky-500">NONLINEAR PATH · {trace.schema}</div>
+          <h3 className={`${compact ? "text-lg" : "text-xl"} mt-1 font-black tracking-tight`}>几何非线性过程播放</h3>
+          <p className="mt-1 text-xs text-muted-foreground">路径拐点、残差峰值、切步、最小稳定指标和终止点均保留数值标注。</p>
+        </div>
+        <div className="flex gap-2">
+          {(["intro", "engineering", "algorithm"] as const).map((level) => (
+            <button key={level} type="button" onClick={() => setExplanationLevel(level)} aria-pressed={explanationLevel === level} className={`rounded-full border px-3 py-1 text-[10px] font-bold ${explanationLevel === level ? "border-sky-400 bg-sky-500/15 text-sky-300" : "border-white/10 text-muted-foreground"}`}>
+              {level === "intro" ? "入门" : level === "engineering" ? "工程" : "算法"}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="mt-3 rounded-lg border border-white/8 bg-white/[0.03] p-3 text-xs leading-relaxed text-muted-foreground">{explanations[explanationLevel]}</div>
+      <div className="mt-4 grid gap-4 xl:grid-cols-[1.1fr_.9fr]">
+        <NonlinearPathChart trace={trace} selectedStep={selectedStep} onSelectStep={setSelectedStep} />
+        <NonlinearPlaybackCanvas trace={trace} selectedStep={selectedStep} />
+      </div>
+      <div className="mt-3 flex items-center gap-3">
+        <button type="button" aria-label="上一个非线性关键帧" disabled={currentIndex <= 0} onClick={() => setSelectedStep(keyframeSteps[Math.max(0, currentIndex - 1)] ?? 0)} className="rounded-lg border border-white/10 p-2 disabled:opacity-30"><ChevronLeft className="h-4 w-4" /></button>
+        <input aria-label="选择非线性荷载步" type="range" min={0} max={Math.max(0, keyframeSteps.length - 1)} value={currentIndex} onChange={(event) => setSelectedStep(keyframeSteps[Number(event.target.value)] ?? 0)} className="min-w-0 flex-1 accent-sky-500" />
+        <button type="button" aria-label="下一个非线性关键帧" disabled={currentIndex >= keyframeSteps.length - 1} onClick={() => setSelectedStep(keyframeSteps[Math.min(keyframeSteps.length - 1, currentIndex + 1)] ?? 0)} className="rounded-lg border border-white/10 p-2 disabled:opacity-30"><ChevronRight className="h-4 w-4" /></button>
+        <span className="font-mono text-xs text-muted-foreground">{currentIndex + 1}/{keyframeSteps.length}</span>
+      </div>
+      {residualPeak ? <div className="mt-2 text-[11px] text-muted-foreground">残差峰值：{residualPeak.label}</div> : null}
+      {result.secondOrder?.methodComparison ? (
+        <div className="mt-4 rounded-xl border border-white/8 bg-white/[0.03] p-3">
+          <div className="text-[10px] font-black tracking-widest text-muted-foreground">方法比较</div>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            {result.secondOrder.methodComparison.metrics.map((metric) => Object.entries(metric.values).map(([method, value]) => (
+              <div key={`${metric.id}-${method}`} className={`rounded-lg border p-2 ${metric.comparable ? "border-white/8 bg-white/[0.02]" : "border-amber-400/20 bg-amber-400/[0.04]"}`}>
+                <div className="text-[10px] text-muted-foreground">{methodLabels[method] ?? method} · {metric.id}</div>
+                <div className="font-mono text-[9px] text-slate-500">{method}</div>
+                <div className="font-mono text-sm font-bold text-primary">{formatEngineeringValue(value, metric.unit)}</div>
+                {!metric.comparable ? <div className="mt-1 text-[9px] leading-relaxed text-amber-300">参考项/不可直接比较：{metric.unavailableReason ?? "比较条件不一致"}</div> : null}
+              </div>
+            )))}
+          </div>
+        </div>
+      ) : null}
+    </GlassCard>
+  );
 }
 
 function stableNumber(value: number | null | undefined) {
@@ -360,16 +587,17 @@ function StabilityTracePanel({ result, compact = false }: { result: FrameCalcula
         <ShieldCheck className="h-4 w-4 text-sky-500" />
         <h3 className={`${compact ? "text-lg" : "text-xl"} font-black tracking-tight`}>稳定审查</h3>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {[
-          scalarSummary("P-Delta 状态", secondStatus, secondOrder?.method),
-          scalarSummary("P-Delta 放大", formatEngineeringValue(secondOrder?.amplificationFactor, ""), secondOrder?.limitations),
+          scalarSummary("平衡状态", secondStatus, `${secondOrder?.method ?? ""} · ${secondOrder?.algorithm?.id ?? "未版本化"}`),
+          scalarSummary("稳定状态", nonlinearStabilityLabel(secondOrder?.stabilityStatus), "平衡收敛不等于稳定或安全"),
+          scalarSummary("二阶放大", formatEngineeringValue(secondOrder?.amplificationFactor, ""), secondOrder?.amplificationUnavailableReason ?? secondOrder?.limitations),
           scalarSummary("首阶位移", formatEngineeringValue(firstOrder?.summary.maxDisplacementMm ?? result.summary.maxDisplacementMm, "mm"), "首阶对比"),
           scalarSummary("二阶位移", formatEngineeringValue(secondOrder?.maxDisplacementMm ?? result.summary.maxDisplacementMm, "mm"), "最终二阶快照"),
         ].map((item) => (
           <div key={item.label} className="rounded-lg border border-white/8 bg-white/[0.03] p-3">
             <div className="text-[10px] font-black tracking-widest text-muted-foreground">{item.label}</div>
-            <div className={`mt-1 font-mono text-sm font-bold ${item.label === "P-Delta 状态" ? statusTone(secondStatus) : "text-primary"}`}>{item.value}</div>
+            <div className={`mt-1 font-mono text-sm font-bold ${item.label === "平衡状态" ? statusTone(secondStatus) : item.label === "稳定状态" && secondOrder?.stabilityStatus === "unstable" ? "text-rose-500" : "text-primary"}`}>{item.value}</div>
             {item.detail ? <div className="mt-1 text-[10px] leading-snug text-muted-foreground">{item.detail}</div> : null}
           </div>
         ))}
@@ -388,6 +616,7 @@ function StabilityTracePanel({ result, compact = false }: { result: FrameCalcula
           <div className="rounded-md border border-white/8 bg-white/[0.02] p-2">
             <div className="text-[10px] text-muted-foreground">放大系数</div>
             <div className="font-mono font-bold text-primary">{formatEngineeringValue(secondOrder?.amplificationFactor, "")}</div>
+            {secondOrder?.amplificationUnavailableReason ? <div className="mt-1 text-[9px] text-amber-300">{secondOrder.amplificationUnavailableReason}</div> : null}
           </div>
         </div>
       </div>
@@ -411,8 +640,8 @@ function StabilityTracePanel({ result, compact = false }: { result: FrameCalcula
                   <td className="py-1.5 pr-3 font-mono">{item.step}</td>
                   <td className="py-1.5 pr-3 font-mono">{item.iteration}</td>
                   <td className="py-1.5 pr-3 font-mono">{formatEngineeringValue(item.loadFactor, "")}</td>
-                  <td className="py-1.5 pr-3 font-mono">{formatEngineeringValue(item.equilibriumResidual ?? item.equilibriumRmsRelativeError ?? item.residualNorm, "")}</td>
-                  <td className="py-1.5 pr-3 font-mono">{formatEngineeringValue(item.displacementIncrementMm ?? item.displacementMm, "mm")}</td>
+                  <td className="py-1.5 pr-3 font-mono">{formatEngineeringValue(item.equilibriumResidualRelative ?? item.equilibriumResidual ?? item.equilibriumRmsRelativeError ?? item.residualNorm, "")}</td>
+                  <td className="py-1.5 pr-3 font-mono">{formatEngineeringValue(item.displacementIncrementMm ?? (item.displacementIncrementMaxM == null ? item.displacementMm : item.displacementIncrementMaxM * 1000), "mm")}</td>
                   <td className="py-1.5 pr-3 font-semibold">{item.status === "converged" ? "已收敛" : item.status === "iterating" ? "迭代中" : (item.status ?? secondStatus)}</td>
                 </tr>
               )) : (
@@ -506,6 +735,7 @@ export function FrameStabilityPanel({ results, compact = false }: FrameStability
 
   return (
     <div className={`space-y-3 ${compact ? "" : "sm:space-y-4"}`}>
+      {results.secondOrder?.nonlinearPathTrace ? <NonlinearPathPanel result={results} compact={compact} /> : null}
       <div className="grid gap-3 xl:grid-cols-[1.2fr_0.8fr]">
         <GlassCard className={`${compact ? "p-3 sm:p-4" : "p-4 sm:p-5"}`}>
           <div className="mb-3 flex items-center gap-2">

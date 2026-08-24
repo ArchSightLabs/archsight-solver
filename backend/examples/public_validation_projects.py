@@ -35,11 +35,21 @@ GROUPS = [
         "projectType": "公开验证 / 平面框架",
         "scale": "13 个框架分析对象",
     },
+    {
+        "id": "frame-nonlinear-public-validation",
+        "title": "二维框架弹性几何非线性教学与验证工程",
+        "description": "由公开解析基准组成，专门展示共回转 Newton、固定预载—可变荷载路径、二阶放大以及平衡与稳定分离。",
+        "analysisTypes": {"frame"},
+        "caseCategories": {"frame-nonlinear-verify"},
+        "projectType": "公开验证 / 框架弹性几何非线性",
+        "scale": "5 个几何非线性分析对象",
+    },
 ]
 
 SOURCE_LABELS = {
     "textbook-analytical": "教材解析解",
     "independent-stiffness-baseline": "独立刚度法基准",
+    "published-benchmark": "公开经典数值基准",
     "engineering-software": "工程软件对标",
     "internal-regression": "内部回归算例",
 }
@@ -301,6 +311,9 @@ def _frame_state_from_payload(case: Mapping[str, Any]) -> Dict[str, Any]:
         "customLoads": loads,
         "customLoadCases": [dict(item) for item in structure.get("loadCases", []) if isinstance(item, Mapping)],
         "customLoadCombinations": [dict(item) for item in structure.get("loadCombinations", []) if isinstance(item, Mapping)],
+        "analysisOptions": dict(payload.get("analysisOptions", {}))
+        if isinstance(payload.get("analysisOptions"), Mapping)
+        else {},
     }
 
 

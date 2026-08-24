@@ -171,6 +171,7 @@ export interface FrameNodalLoad {
   fxKn?: number;
   fyKn?: number;
   mzKnM?: number;
+  pathRole?: "fixed" | "variable";
 }
 
 export interface FrameDistributedLoad {
@@ -182,6 +183,7 @@ export interface FrameDistributedLoad {
   qEndKnPerM?: number;
   startRatio?: number;
   endRatio?: number;
+  pathRole?: "fixed" | "variable";
 }
 
 export interface FrameMemberPointLoad {
@@ -190,6 +192,7 @@ export interface FrameMemberPointLoad {
   direction?: FrameLoadDirection;
   forceKn?: number;
   positionRatio?: number;
+  pathRole?: "fixed" | "variable";
 }
 
 export interface FrameTemperatureLoad {
@@ -197,6 +200,7 @@ export interface FrameTemperatureLoad {
   member: string;
   deltaTempC?: number;
   alphaPerC?: number;
+  pathRole?: "fixed" | "variable";
 }
 
 export type FrameLoad = FrameNodalLoad | FrameDistributedLoad | FrameMemberPointLoad | FrameTemperatureLoad;
@@ -242,9 +246,34 @@ export interface FrameFormPayload {
 }
 
 export interface FramePDeltaOptions {
+  algorithm: "initial_stress_v1" | "corotational_newton_v1";
   loadSteps: number;
   maxIterations: number;
   tolerance: number;
+  initialStep: number;
+  minStep: number;
+  maxStep: number;
+  maxCutbacks: number;
+  relativeResidualTolerance: number;
+  absoluteResidualToleranceN: number;
+  relativeDisplacementTolerance: number;
+  absoluteDisplacementToleranceM: number;
+  relativeEnergyTolerance: number;
+  absoluteEnergyToleranceJ: number;
+  lineSearchMaxTrials: number;
+  memberSubdivisions: number;
+  maxRefinedDofs: number;
+  maxAcceptedSteps: number;
+  includeMethodComparison: boolean;
+  initialImperfection: FrameInitialImperfection;
+}
+
+export interface FrameInitialImperfection {
+  type: "none" | "explicit" | "buckling_mode";
+  nodeOffsets: Array<{ nodeId: string; uxMm: number; uyMm: number }>;
+  modeNumber: number;
+  amplitudeMm: number;
+  direction: -1 | 1;
 }
 
 export interface FrameBucklingOptions {
@@ -296,6 +325,11 @@ export interface FrameNodeResult {
   uyMm: number;
   rotationDeg: number;
   resultantMm: number;
+  initialImperfectionUxMm?: number;
+  initialImperfectionUyMm?: number;
+  totalUxMm?: number;
+  totalUyMm?: number;
+  totalResultantMm?: number;
   reactionFxKn: number;
   reactionFyKn: number;
   reactionMzKnM: number;
@@ -387,6 +421,8 @@ export interface FrameStabilityIterationRecord {
   step: number;
   iteration: number;
   loadFactor: number;
+  fixedLoadFactor?: number;
+  pathPhase?: "fixed_preload" | "variable";
   residualNorm?: number;
   displacementMm?: number;
   displacementIncrementMm?: number;
@@ -396,6 +432,17 @@ export interface FrameStabilityIterationRecord {
   equilibriumRmsRelativeError?: number;
   equilibriumResidual?: number;
   equilibriumMaxResidualN?: number;
+  equilibriumResidualNormN?: number;
+  equilibriumResidualRelative?: number;
+  displacementIncrementNormM?: number;
+  displacementIncrementMaxM?: number;
+  energyIncrementJ?: number;
+  energyIncrementRelative?: number;
+  lineSearchScale?: number;
+  lineSearchTrials?: number;
+  minimumTangentEigenvalue?: number;
+  tangentInertia?: { positive: number; nearZero: number; negative: number };
+  stabilityStatus?: "stable" | "near_critical" | "unstable";
   maxDisplacementMm?: number;
   status?: string;
 }
@@ -433,18 +480,94 @@ export interface FrameSecondOrderResult {
   status: string;
   statusLabel?: string;
   method: string;
+  algorithm?: { id: "initial_stress_v1" | "corotational_newton_v1"; version: string };
+  equilibriumStatus?: "not_enabled" | "converged" | "not_converged";
+  stabilityStatus?: "not_evaluated" | "stable" | "near_critical" | "unstable";
   converged?: boolean;
   loadSteps?: number;
   totalIterations?: number;
   tolerance?: number | null;
-  amplificationFactor: number;
+  amplificationFactor: number | null;
+  amplificationUnavailableReason?: string | null;
   maxHorizontalDisplacementMm?: number;
   maxVerticalDisplacementMm?: number;
   maxDisplacementMm?: number;
   firstOrder?: FrameStabilityReferenceResults;
   iterationHistory?: FrameStabilityIterationRecord[];
+  nonlinearPathTrace?: FrameNonlinearPathTrace | null;
+  methodComparison?: FrameMethodComparison | null;
+  lastConverged?: { loadFactor: number; fixedLoadFactor?: number; maxDisplacementMm?: number; step?: number } | null;
+  initialImperfection?: Record<string, unknown> | null;
+  failureReason?: string | null;
   failureCode?: string | null;
   limitations?: string;
+}
+
+export interface FrameNonlinearPathStep {
+  step: number;
+  loadFactor: number;
+  fixedLoadFactor?: number;
+  pathPhase?: "fixed_preload" | "variable";
+  stepSize: number;
+  iterations: number;
+  equilibriumStatus: string;
+  stabilityStatus: "stable" | "near_critical" | "unstable";
+  minimumTangentEigenvalue: number;
+  maxDisplacementMm: number;
+}
+
+export interface FrameNonlinearPathKeyPoint {
+  id: string;
+  kind: "start" | "preload_end" | "response_turning" | "stability_change" | "minimum_stability" | "residual_peak" | "cutback" | "last_converged" | "failure";
+  source: string;
+  sourceIndex: number;
+  step: number;
+  pathPhase: "fixed_preload" | "variable";
+  pathProgress: number;
+  fixedLoadFactor: number;
+  loadFactor: number;
+  maxDisplacementMm?: number | null;
+  minimumTangentEigenvalue?: number | null;
+  equilibriumResidualRelative?: number | null;
+  status?: string | null;
+  stabilityStatus?: "stable" | "near_critical" | "unstable" | null;
+}
+
+export interface FrameNonlinearPathTrace {
+  schema: "NonlinearPathTrace@1";
+  algorithm: { id: string; version: string };
+  control: Record<string, unknown>;
+  convergence: Record<string, number>;
+  mesh: Record<string, unknown>;
+  representativeElementState?: Record<string, unknown> | null;
+  steps: FrameNonlinearPathStep[];
+  iterations: FrameStabilityIterationRecord[];
+  attempts: Array<Record<string, unknown>>;
+  keyPoints?: FrameNonlinearPathKeyPoint[];
+  keyframes: Array<{
+    step: number;
+    loadFactor: number;
+    fixedLoadFactor?: number;
+    pathPhase?: string;
+    nodeDisplacements: Array<{ nodeIndex: number; uxM: number; uyM: number; rzRad: number }>;
+  }>;
+  lastConverged: { loadFactor: number; fixedLoadFactor?: number; maxDisplacementMm: number; step: number };
+  finalAttempt?: Record<string, unknown> | null;
+  summary: Record<string, unknown>;
+}
+
+export interface FrameMethodComparison {
+  schema: "MethodComparison@1";
+  methods: Array<Record<string, unknown>>;
+  metrics: Array<{
+    id: string;
+    unit: string;
+    comparable: boolean;
+    unavailableReason?: string | null;
+    referenceOnly?: boolean;
+    values: Record<string, number>;
+  }>;
+  limitations?: string[];
 }
 
 export interface FrameBucklingControlMember {

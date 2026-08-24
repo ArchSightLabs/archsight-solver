@@ -230,6 +230,57 @@ def test_failure_review_export_job_mode_rejects_manual_fabrication(client, monke
     assert "jobId 模式不接受" in data["error"]["message"]
 
 
+def test_failure_review_export_accepts_server_owned_partial_gna_job(client, monkeypatch, tmp_path):
+    monkeypatch.setenv("ARCHSIGHT_SOLVER_JOB_DB_PATH", str(tmp_path / "solver-jobs.sqlite3"))
+    now = "2026-08-24T08:00:00+00:00"
+    trace = {
+        "attempts": [{"step": 3, "status": "cutback", "reason": "line_search_failed"}],
+        "finalAttempt": {"step": 3, "status": "failed", "reason": "minimum_step"},
+    }
+    store_job(
+        {
+            "jobId": "partial-gna-job-001",
+            "clientJobId": "partial-gna-client-001",
+            "operation": "calculate",
+            "payload": _failed_job_payload(),
+            "status": "succeeded",
+            "result": {
+                "analysisType": "frame",
+                "resultHash": "a" * 64,
+                "solution": {
+                    "secondOrder": {
+                        "status": "not_converged",
+                        "algorithm": {"id": "corotational_newton_v1", "version": "1"},
+                        "equilibriumStatus": "not_converged",
+                        "stabilityStatus": "near_critical",
+                        "failureCode": "GNA_MINIMUM_STEP_EXHAUSTED",
+                        "failureReason": "最小步长耗尽，目标路径未完成。",
+                        "terminationReason": "minimum_step_exhausted",
+                        "lastConverged": {"step": 2, "loadFactor": 0.62, "fixedLoadFactor": 1.0, "maxDisplacementMm": 18.4},
+                        "nonlinearPathTrace": trace,
+                    }
+                },
+            },
+            "warnings": [],
+            "infos": [],
+            "createdAt": now,
+            "updatedAt": now,
+            "startedAt": now,
+            "completedAt": now,
+        }
+    )
+
+    response = client.post("/api/export/failure", json={"jobId": "partial-gna-job-001", "format": "docx"})
+
+    assert response.status_code == 200
+    text = _docx_text(response)
+    assert "非线性部分结果证据" in text
+    assert "GNA_MINIMUM_STEP_EXHAUSTED" in text
+    assert "0.62" in text
+    assert "18.4" in text
+    assert "不表示目标荷载点已收敛" in text
+
+
 def test_failure_review_export_rejects_result_like_fields(client):
     response = client.post(
         "/api/export/failure",

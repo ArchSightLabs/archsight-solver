@@ -234,6 +234,7 @@ export function createFrameMemberDraft(index: number, nodes: StructureNode[], ex
 export function createFrameLoadDraft(index: number, nodes: StructureNode[], members: StructureMember[]): FrameLoad {
   const fallbackNodeId = nodes[0]?.id ?? "N1";
   const fallbackMemberId = members[0]?.id ?? "M1";
+  const pathRole: "fixed" | "variable" = "variable";
 
   if (index % 4 === 1 && members.length > 0) {
     return {
@@ -244,6 +245,7 @@ export function createFrameLoadDraft(index: number, nodes: StructureNode[], memb
       qEndKnPerM: -10,
       startRatio: 0,
       endRatio: 1,
+      pathRole,
     };
   }
 
@@ -254,6 +256,7 @@ export function createFrameLoadDraft(index: number, nodes: StructureNode[], memb
       direction: "local_y",
       forceKn: -10,
       positionRatio: 0.5,
+      pathRole,
     };
   }
 
@@ -263,6 +266,7 @@ export function createFrameLoadDraft(index: number, nodes: StructureNode[], memb
       member: members[index % members.length]?.id ?? fallbackMemberId,
       deltaTempC: 30,
       alphaPerC: 1.2e-5,
+      pathRole,
     };
   }
 
@@ -272,6 +276,7 @@ export function createFrameLoadDraft(index: number, nodes: StructureNode[], memb
     fxKn: 0,
     fyKn: -10,
     mzKnM: 0,
+    pathRole,
   };
 }
 

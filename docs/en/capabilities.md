@@ -2,7 +2,7 @@
 
 [中文](../capabilities.md) | English
 
-ArchSight Solver is a deterministic structural mechanics workbench and integration runtime. It supports three two-dimensional, linear-elastic, small-displacement static analysis families.
+ArchSight Solver is a deterministic structural mechanics workbench and integration runtime. It supports three two-dimensional, linear-elastic static analysis families. First-order analysis uses the small-displacement assumption; plane frames can additionally run the bounded P-Delta GNA/GNIA described below.
 
 ## Intended users
 
@@ -32,7 +32,7 @@ ArchSight Solver is a deterministic structural mechanics workbench and integrati
 - Portal frames, explicit 2D frames, and frame-beam degradation checks.
 - Nodal, distributed member, concentrated member, and uniform member temperature loads, plus basic load cases and combinations.
 - Node displacement, support reaction, member-end axial/shear/moment, and controlling member values.
-- Optional true second-order P-Delta and global linear eigenvalue buckling analysis, solved independently per load case or combination with load-step and convergence traces, controlling-source provenance, buckling modes, and eigen residuals. Member Euler K=1 values are retained only as a screen for locating review targets; they are not the global buckling conclusion or a code stability design check.
+- Optional 2D elastic P-Delta geometric nonlinear analysis and global linear eigenvalue buckling. `corotational_newton_v1` runs an independent full-Newton load path per case or combination with multiple convergence criteria, residual line search, adaptive cutback, separate equilibrium/stability states, last-converged recovery, and explicit failure evidence. Explicit or linear-buckling-mode imperfections enter the reference geometry for GNIA. `initial_stress_v1` remains only for v1.8.0 replay compatibility. Member Euler K=1 values are only a review-target screen, not the global buckling conclusion or a code design check.
 - Frame nodes use `ux`, `uy`, and `rz`.
 
 Temperature support is limited to uniform temperature change on 2D linear-elastic frame and truss members. It does not include through-section gradients, transient heat transfer, creep, or bridge-specific thermal fields.
@@ -67,7 +67,7 @@ The public demonstration may enable allowlisted aggregate milestone events. Anal
 ## Explicit non-goals
 
 - 3D frames, spatial structures, shells, solids, or BIM authoring.
-- Dynamic or response-spectrum analysis; material nonlinearity, plasticity, contact, post-buckling analysis, or code stability design. The 2D frame P-Delta capability is limited to geometric-stiffness iteration, and linear buckling is limited to a generalized eigenvalue analysis about a prestressed state; neither includes automatic imperfection generation or a post-buckling path.
+- Dynamic or response-spectrum analysis; material nonlinearity, plasticity, contact, code stability design, or arc-length/displacement-controlled post-buckling paths. Frame GNA/GNIA is limited to 2D Euler-Bernoulli members, linear-elastic material, conservative static loading, and load control. It supports explicit and linear-buckling-mode imperfections, but not plasticity, local/lateral-torsional buckling, GMNIA, or the full equilibrium branch beyond a limit point.
 - Code-based member design, reinforcement design, construction safety approval, or engineering sign-off.
 - OpenSeesPy or another external solver as the runtime kernel.
 - Accounts, organizations, subscriptions, cloud collaboration, or a plugin marketplace.

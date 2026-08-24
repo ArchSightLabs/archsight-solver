@@ -90,12 +90,23 @@ def export_docx(
         rows.append(("均布荷载 q", f"{request['q_kn']} kN/m"))
     elif request["load_type"] == "point":
         rows.extend([("集中荷载 P", f"{request['point_load_kn']} kN"), ("作用位置", f"x = {round(request['point_position'], 3)} m")])
-    else:
+    elif request["load_type"] in {"linear", "distributed"}:
         rows.extend(
             [
                 ("线性分布荷载起点", f"{request['distributed_start_kn']} kN/m"),
                 ("线性分布荷载终点", f"{request['distributed_end_kn']} kN/m"),
                 ("线性分布荷载范围", f"{round(request['distributed_start'], 3)} m ~ {round(request['distributed_end'], 3)} m"),
+            ]
+        )
+    elif request["load_type"] == "combination":
+        combination = request.get("selected_load_combination", {})
+        factors = combination.get("factors", {})
+        expression = " + ".join(f"{float(factor):g}×{case_id}" for case_id, factor in factors.items()) or "—"
+        rows.extend(
+            [
+                ("荷载组合", f"{combination.get('title', combination.get('id', '—'))} [{combination.get('id', '—')}]"),
+                ("组合表达式", expression),
+                ("组合竖向荷载合计", f"{request.get('resultant_load_kn', 0.0):g} kN"),
             ]
         )
     for left, right in rows:

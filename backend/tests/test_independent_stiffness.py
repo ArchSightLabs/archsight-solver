@@ -17,7 +17,7 @@ def _independent_cases():
     return [
         case
         for case in load_benchmark_catalog()["cases"]
-        if case["verification"]["verificationLevel"] == "B"
+        if case["verification"]["sourceType"] == "independent-stiffness-baseline"
     ]
 
 
@@ -34,7 +34,7 @@ def test_independent_stiffness_does_not_import_production_solver_pipeline():
     assert not any(module_name in source for module_name in forbidden_imports)
 
 
-def test_independent_stiffness_reproduces_every_level_b_benchmark():
+def test_independent_stiffness_reproduces_every_declared_independent_baseline():
     cases = _independent_cases()
     suite = evaluate_independent_suite()
 

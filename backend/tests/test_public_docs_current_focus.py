@@ -65,12 +65,14 @@ def test_public_roadmap_tracks_current_benchmark_catalog_counts():
     categories = Counter(case["category"] for case in catalog["cases"])
     beam_count = categories["beam"]
     frame_count = categories["frame"] + categories["frame-beam-verify"]
+    nonlinear_frame_count = categories["frame-nonlinear-verify"]
     truss_count = categories["truss"] + categories["truss-verify"]
 
     assert f"公开验证集包含 {len(catalog['cases'])} 个通过算例" in roadmap
     assert f"| 梁系 | {beam_count} |" in roadmap
     assert f"| 二维平面桁架 | {truss_count} |" in roadmap
     assert f"| 二维平面框架 | {frame_count} |" in roadmap
+    assert f"| 二维框架弹性几何非线性 | {nonlinear_frame_count} |" in roadmap
 
 
 def test_learning_docs_describe_current_three_module_load_case_ui():
@@ -158,12 +160,12 @@ def test_v170_bilingual_entry_and_golden_flows_share_one_verification_contract()
         assert "1e-6" in document
         assert "digital signature" in document.lower() or "数字签名" in document
 
-    assert "archsight_solver-1.8.0-py3-none-any.whl" in quickstart_en
+    assert "archsight_solver-1.8.1-py3-none-any.whl" in quickstart_en
     assert "archsight-solver-tool verification_package_create" in quickstart_en
     assert "archsight-solver-mcp" in quickstart_en
     assert "public Release archive is the direct container distribution path" in quickstart_en
     assert "docker login ghcr.io" in quickstart_en
-    assert "ghcr.io/archsightlabs/archsight-solver:v1.8.0" in quickstart_en
+    assert "ghcr.io/archsightlabs/archsight-solver:v1.8.1" in quickstart_en
     assert "Alibaba Cloud Container Registry" in quickstart_en
     assert "Host Client" in quickstart_en
     example_request = json.loads(_read_doc("examples/verification-package/create-request.json"))

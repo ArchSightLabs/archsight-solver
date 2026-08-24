@@ -11,7 +11,7 @@ ArchSight Solver is an Apache-2.0, web-native structural mechanics workbench for
 - Beam systems: simply supported, continuous, and cantilever beams.
 - Two-dimensional plane trusses.
 - Two-dimensional plane frames.
-- Linear-elastic, deterministic 2D static analysis: first-order by default, with optional geometric second-order P-Delta and linear eigenvalue buckling for frames.
+- Linear-elastic, deterministic 2D static analysis: first-order by default, with optional corotational P-Delta geometric nonlinear analysis (GNA/GNIA) and linear eigenvalue buckling for frames.
 
 The workbench reports reactions, displacements, member forces, shear, bending moment, deflection, diagnostics, and result provenance as appropriate for each system. It also supports load cases and combinations, public benchmark projects, DOCX/XLSX reports, ASMS-JSON, REST, CLI, MCP, and Host Protocol 1.0.
 
@@ -19,7 +19,7 @@ The workbench reports reactions, displacements, member forces, shear, bending mo
 
 v1.8 turns the portable evidence introduced in v1.7 into a reviewable static and stability workbench. A completed calculation exposes its trace, engineering critical points, review points, governing sources, and a bounded named snapshot for comparing one model iteration.
 
-Screen results, standard or detailed DOCX, XLSX, and the portable verification package reuse the same canonical evidence. Failed validation, singular systems, and non-convergence can produce a failure review record without fabricating displacements or forces. Real frame P-Delta and linear buckling remain separate verified gates. v1.8 does not add accounts, cloud project storage, code design, or another analysis domain.
+Screen results, standard or detailed DOCX, XLSX, and the portable verification package reuse the same canonical evidence. Failed validation, singular systems, and incomplete nonlinear paths preserve explicit review evidence without fabricating final displacements or forces. Corotational GNA/GNIA and linear buckling remain separate verified gates. The legacy initial-stress iteration remains available only for v1.8.0 replay compatibility. v1.8 does not add accounts, cloud project storage, code design, or another analysis domain.
 
 The verification package introduced in v1.7 remains shared by the Web workbench, REST API, CLI, and MCP. It can be replayed with the current solver and returns one of three states:
 
@@ -63,11 +63,11 @@ See the [English quickstart](docs/en/quickstart.md) for GitHub Release installat
 
 ## Open distribution
 
-The v1.8 GitHub Release includes:
+The v1.8.1 release candidate is prepared to publish:
 
-- Python wheel `archsight_solver-1.8.0-py3-none-any.whl` and source distribution for the CLI and MCP server.
-- `archsight-solver-host-client-1.8.0.tgz` with zero runtime dependencies.
-- A public offline Docker image archive, plus the immutable workflow image `ghcr.io/archsightlabs/archsight-solver:v1.8.0` for callers with GitHub Packages access.
+- Python wheel `archsight_solver-1.8.1-py3-none-any.whl` and source distribution for the CLI and MCP server.
+- `archsight-solver-host-client-1.8.1.tgz` with zero runtime dependencies.
+- A public offline Docker image archive, plus the immutable workflow image `ghcr.io/archsightlabs/archsight-solver:v1.8.1` for callers with GitHub Packages access.
 - SPDX SBOM, Trivy report, and `SHA256SUMS`.
 
 PyPI and npm registry publication are not required. The versioned assets attached to the GitHub Release are the direct distribution path.
@@ -77,7 +77,7 @@ PyPI and npm registry publication are not required. The versioned assets attache
 ArchSight Solver does not provide:
 
 - 3D frames or spatial structures.
-- Dynamic or response-spectrum analysis; material nonlinearity, plasticity, contact, post-buckling paths, or code stability design. Frame P-Delta is limited to geometric-stiffness iteration, and linear buckling is limited to a generalized eigenvalue analysis about a prestressed state.
+- Dynamic or response-spectrum analysis; material nonlinearity, plasticity, contact, arc-length/post-buckling path tracing, or code stability design. Frame GNA/GNIA is limited to 2D Euler-Bernoulli members, linear-elastic material, conservative static loading, and load control; linear buckling is limited to a generalized eigenvalue analysis about a prestressed state.
 - Code-based member design, reinforcement design, construction safety approval, or engineering sign-off.
 - Accounts, organizations, subscriptions, cloud project storage, or a multi-tenant platform.
 - Digital signatures, certificates, third-party certification, or replacement of licensed engineering judgment.

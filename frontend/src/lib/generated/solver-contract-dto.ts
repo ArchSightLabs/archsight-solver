@@ -49,9 +49,36 @@ export type SolverJobRequestDto = {
       pDelta?: boolean;
       buckling?: boolean;
       pDeltaOptions?: {
+        algorithm?: "initial_stress_v1" | "corotational_newton_v1";
         loadSteps?: number;
         maxIterations?: number;
         tolerance?: number;
+        initialStep?: number;
+        minStep?: number;
+        maxStep?: number;
+        maxCutbacks?: number;
+        maxAcceptedSteps?: number;
+        relativeResidualTolerance?: number;
+        absoluteResidualToleranceN?: number;
+        relativeDisplacementTolerance?: number;
+        absoluteDisplacementToleranceM?: number;
+        relativeEnergyTolerance?: number;
+        absoluteEnergyToleranceJ?: number;
+        lineSearchMaxTrials?: number;
+        memberSubdivisions?: number;
+        maxRefinedDofs?: number;
+        includeMethodComparison?: boolean;
+        initialImperfection?: {
+          type?: "none" | "explicit" | "buckling_mode";
+          nodeOffsets?: Array<{
+            nodeId : string;
+            uxMm?: number;
+            uyMm?: number;
+          }>;
+          modeNumber?: number;
+          amplitudeMm?: number;
+          direction?: -1 | 1;
+        };
       };
       bucklingOptions?: {
         modeCount?: number;
@@ -106,6 +133,7 @@ export type SolverJobRequestDto = {
         fxKn?: number;
         fyKn?: number;
         mzKnM?: number;
+        pathRole?: "fixed" | "variable";
       } | {
         type : "distributed";
         member : string;
@@ -115,16 +143,19 @@ export type SolverJobRequestDto = {
         qEndKnPerM?: number;
         startRatio?: number;
         endRatio?: number;
+        pathRole?: "fixed" | "variable";
       } | {
         type : "member_point";
         member : string;
         forceKn : number;
         positionRatio?: number;
+        pathRole?: "fixed" | "variable";
       } | {
         type : "temperature";
         member : string;
         deltaTempC : number;
         alphaPerC?: number;
+        pathRole?: "fixed" | "variable";
       }>;
       loadCases?: Array<{
         id : string;
@@ -135,6 +166,7 @@ export type SolverJobRequestDto = {
           fxKn?: number;
           fyKn?: number;
           mzKnM?: number;
+          pathRole?: "fixed" | "variable";
         } | {
           type : "distributed";
           member : string;
@@ -144,16 +176,19 @@ export type SolverJobRequestDto = {
           qEndKnPerM?: number;
           startRatio?: number;
           endRatio?: number;
+          pathRole?: "fixed" | "variable";
         } | {
           type : "member_point";
           member : string;
           forceKn : number;
           positionRatio?: number;
+          pathRole?: "fixed" | "variable";
         } | {
           type : "temperature";
           member : string;
           deltaTempC : number;
           alphaPerC?: number;
+          pathRole?: "fixed" | "variable";
         }>;
       }>;
       loadCombinations?: Array<{
@@ -194,6 +229,7 @@ export type SolverJobRequestDto = {
         fxKn?: number;
         fyKn?: number;
         mzKnM?: number;
+        pathRole?: "fixed" | "variable";
       } | {
         type : "distributed" | "member_load" | "member";
         member : string;
@@ -207,6 +243,7 @@ export type SolverJobRequestDto = {
         member : string;
         deltaTempC : number;
         alphaPerC?: number;
+        pathRole?: "fixed" | "variable";
       }>;
       loadCases?: Array<{
         id : string;
@@ -217,6 +254,7 @@ export type SolverJobRequestDto = {
           fxKn?: number;
           fyKn?: number;
           mzKnM?: number;
+          pathRole?: "fixed" | "variable";
         } | {
           type : "distributed" | "member_load" | "member";
           member : string;
@@ -230,6 +268,7 @@ export type SolverJobRequestDto = {
           member : string;
           deltaTempC : number;
           alphaPerC?: number;
+          pathRole?: "fixed" | "variable";
         }>;
       }>;
       loadCombinations?: Array<{

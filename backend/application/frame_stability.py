@@ -12,6 +12,8 @@ from backend.normalizers.frame.request_normalizer import normalize_frame_analysi
 from backend.presenters.frame.assembler import build_frame_solution_response
 from backend.solver.frame.assembler import assemble_global_system
 from backend.solver.frame.elements import apply_rotational_releases, member_geometric_stiffness_local
+from backend.solver.frame.nonlinear_path import solve_corotational_path
+from backend.solver.frame.nonlinear_recover import build_corotational_solution_response
 from backend.solver.frame.recover import recover_member_diagrams, recover_member_results, recover_node_results
 from backend.solver.frame.solver import solve_frame_system
 from backend.solver.frame.stability_mesh import solve_frame_stability_mesh
@@ -30,6 +32,7 @@ def build_frame_stability_results(
     reference_source = _reference_source(request)
     second_order = _second_order_result(request, structure, solution, options, first_order, reference_source)
     buckling = _buckling_result(request, structure, solution, options, first_order, reference_source)
+    _attach_linear_buckling_reference(second_order, buckling, reference_source)
     return {
         "analysisOptions": options,
         "secondOrder": second_order,
@@ -67,6 +70,7 @@ def _second_order_result(
 ) -> Dict[str, Any]:
     enabled = bool(options.get("pDelta"))
     pdelta_options = options.get("pDeltaOptions", {})
+    algorithm_id = str(pdelta_options.get("algorithm") or "initial_stress_v1")
     first_horizontal = _max_abs_value(first_order.get("nodeResults", []), ("uxMm",))
     first_resultant = float(first_order.get("summary", {}).get("maxDisplacementMm", 0.0))
     if not enabled:
@@ -76,12 +80,17 @@ def _second_order_result(
             "status": "not_enabled",
             "statusLabel": "未启用",
             "method": "二维框架初始应力法 P-Delta 迭代",
+            "algorithm": {"id": algorithm_id, "version": "1"},
+            "equilibriumStatus": "not_enabled",
+            "stabilityStatus": "not_evaluated",
             "referenceSource": dict(reference_source),
             "controlSource": dict(reference_source),
             "loadSteps": 0,
             "maxIterations": 0,
             "tolerance": None,
             "iterationHistory": [],
+            "nonlinearPathTrace": None,
+            "methodComparison": None,
             "totalIterations": 0,
             "amplificationFactor": 1.0,
             "firstOrderMaxHorizontalDisplacementMm": round(first_horizontal, 6),
@@ -94,25 +103,45 @@ def _second_order_result(
             "limitations": "未启用二阶分析。",
         }
 
+    if algorithm_id == "corotational_newton_v1":
+        return _corotational_second_order_result(
+            request=request,
+            structure=structure,
+            options=pdelta_options,
+            first_order=first_order,
+            reference_source=reference_source,
+        )
+
     second_solution, history, final_step = _solve_pdelta_path(request, structure, options, solution, reference_source)
     second_summary = second_solution["summary"]
     second_horizontal = _max_abs_value(second_solution.get("nodeResults", []), ("uxMm",))
     second_resultant = float(second_summary.get("maxDisplacementMm", 0.0))
-    amplification = max(_safe_ratio(second_horizontal, first_horizontal), _safe_ratio(second_resultant, first_resultant))
+    amplification, amplification_unavailable_reason = _amplification_measure(
+        second_horizontal,
+        first_horizontal,
+        second_resultant,
+        first_resultant,
+    )
     return {
         "enabled": True,
         "converged": True,
         "status": "converged",
         "statusLabel": "已收敛",
         "method": "二维框架初始应力法 P-Delta 迭代",
+        "algorithm": {"id": "initial_stress_v1", "version": "1"},
+        "equilibriumStatus": "converged",
+        "stabilityStatus": "not_evaluated",
         "referenceSource": dict(reference_source),
         "controlSource": dict(reference_source),
         "loadSteps": int(pdelta_options.get("loadSteps", 4)),
         "maxIterations": int(pdelta_options.get("maxIterations", 12)),
         "tolerance": float(pdelta_options.get("tolerance", 1e-6)),
         "iterationHistory": history,
+        "nonlinearPathTrace": None,
+        "methodComparison": None,
         "totalIterations": len(history),
-        "amplificationFactor": round(float(amplification), 6),
+        "amplificationFactor": round(float(amplification), 6) if amplification is not None else None,
+        "amplificationUnavailableReason": amplification_unavailable_reason,
         "firstOrderMaxHorizontalDisplacementMm": round(first_horizontal, 6),
         "firstOrderMaxDisplacementMm": round(first_resultant, 6),
         "maxHorizontalDisplacementMm": round(second_horizontal, 6),
@@ -125,6 +154,327 @@ def _second_order_result(
         "limitations": "线弹性小位移二阶分析；未包含材料非线性、后屈曲、初始缺陷和施工阶段效应。",
         "stepCount": final_step,
     }
+
+
+def _corotational_second_order_result(
+    *,
+    request: Mapping[str, Any],
+    structure: Mapping[str, Any],
+    options: Mapping[str, Any],
+    first_order: Mapping[str, Any],
+    reference_source: Mapping[str, str],
+) -> Dict[str, Any]:
+    resolved_options = _resolve_initial_imperfection(
+        structure=structure,
+        first_order=first_order,
+        options=options,
+        solver_backend=str(request.get("solver_backend", "auto")),
+    )
+    path_result = solve_corotational_path(
+        structure,
+        solver_backend=str(request.get("solver_backend", "auto")),
+        options=resolved_options,
+    )
+    recovered = build_corotational_solution_response(
+        request=request,
+        structure=structure,
+        result=path_result,
+    )
+    first_horizontal = _max_abs_value(first_order.get("nodeResults", []), ("uxMm",))
+    first_resultant = float(first_order.get("summary", {}).get("maxDisplacementMm", 0.0))
+    nonlinear_horizontal = _max_abs_value(recovered.get("nodeResults", []), ("uxMm",))
+    nonlinear_resultant = float(recovered.get("summary", {}).get("maxDisplacementMm", 0.0))
+    amplification, amplification_unavailable_reason = _amplification_measure(
+        nonlinear_horizontal,
+        first_horizontal,
+        nonlinear_resultant,
+        first_resultant,
+    )
+    trace = deepcopy(path_result.path_trace)
+    status = "converged" if path_result.success else "not_converged"
+    failure_reason = _nonlinear_failure_message(path_result.termination_reason) if not path_result.success else None
+    method_comparison = _corotational_method_comparison(
+        request=request,
+        structure=structure,
+        options=options,
+        first_order=first_order,
+        nonlinear_solution=recovered,
+        path_result=path_result,
+        reference_source=reference_source,
+    ) if bool(options.get("includeMethodComparison")) else None
+    return {
+        "enabled": True,
+        "converged": path_result.success,
+        "status": status,
+        "statusLabel": "已收敛" if path_result.success else "未收敛，已保留最后收敛点",
+        "method": "二维框架共回转全 Newton 弹性几何非线性分析",
+        "algorithm": {"id": "corotational_newton_v1", "version": "1"},
+        "equilibriumStatus": path_result.equilibrium_status,
+        "stabilityStatus": path_result.stability_status,
+        "referenceSource": dict(reference_source),
+        "controlSource": dict(reference_source),
+        "loadSteps": len(trace.get("steps", [])),
+        "maxIterations": int(options.get("maxIterations", 30)),
+        "tolerance": float(options.get("relativeResidualTolerance", 1e-8)),
+        "iterationHistory": deepcopy(list(trace.get("iterations", []))),
+        "nonlinearPathTrace": trace,
+        "methodComparison": method_comparison,
+        "totalIterations": len(trace.get("iterations", [])),
+        "amplificationFactor": round(float(amplification), 6) if amplification is not None else None,
+        "amplificationUnavailableReason": amplification_unavailable_reason,
+        "firstOrderMaxHorizontalDisplacementMm": round(first_horizontal, 6),
+        "firstOrderMaxDisplacementMm": round(first_resultant, 6),
+        "maxHorizontalDisplacementMm": round(nonlinear_horizontal, 6),
+        "maxDisplacementMm": round(nonlinear_resultant, 6),
+        "firstOrder": first_order,
+        "final": recovered if path_result.success else None,
+        "solution": recovered if path_result.success else None,
+        "lastConvergedSolution": recovered,
+        "lastConverged": deepcopy(trace.get("lastConverged")),
+        "initialImperfection": deepcopy(trace.get("mesh", {}).get("initialImperfection", {"type": "none"})),
+        "summary": deepcopy(dict(recovered.get("summary", {}))),
+        "failureReason": failure_reason,
+        "failureCode": _nonlinear_failure_code(path_result.termination_reason) if not path_result.success else None,
+        "terminationReason": path_result.termination_reason,
+        "limitations": (
+            "二维 Euler-Bernoulli 梁柱、材料线弹性、保守静力荷载的 GNA；"
+            "未包含材料非线性、塑性铰、局部/侧扭屈曲、施工阶段、弧长后屈曲或 GMNIA。"
+        ),
+        "stepCount": len(trace.get("steps", [])),
+    }
+
+
+def _corotational_method_comparison(
+    *,
+    request: Mapping[str, Any],
+    structure: Mapping[str, Any],
+    options: Mapping[str, Any],
+    first_order: Mapping[str, Any],
+    nonlinear_solution: Mapping[str, Any],
+    path_result: Any,
+    reference_source: Mapping[str, str],
+) -> Dict[str, Any]:
+    first_displacement = float(first_order.get("summary", {}).get("maxDisplacementMm", 0.0))
+    nonlinear_displacement = float(nonlinear_solution.get("summary", {}).get("maxDisplacementMm", 0.0))
+    legacy_method: Dict[str, Any] = {
+        "id": "initial_stress_v1",
+        "label": "初始应力迭代（兼容）",
+        "equilibriumStatus": "not_evaluated",
+        "stabilityStatus": "not_evaluated",
+    }
+    legacy_displacement: float | None = None
+    legacy_options = {
+        "pDeltaOptions": {
+            "loadSteps": int(options.get("loadSteps", 4)),
+            "maxIterations": int(options.get("maxIterations", 30)),
+            "tolerance": float(options.get("tolerance", 1e-6)),
+        }
+    }
+    try:
+        legacy_solution, legacy_history, _ = _solve_pdelta_path(
+            request,
+            structure,
+            legacy_options,
+            first_order,
+            reference_source,
+        )
+        legacy_displacement = float(legacy_solution.get("summary", {}).get("maxDisplacementMm", 0.0))
+        legacy_method.update(
+            {
+                "equilibriumStatus": "converged",
+                "iterationCount": len(legacy_history),
+            }
+        )
+    except (FramePDeltaConvergenceError, FramePDeltaSingularError, StructureStabilityError, ValueError) as exc:
+        legacy_method.update(
+            {
+                "equilibriumStatus": "not_converged",
+                "failureReason": str(exc),
+            }
+        )
+    values = {
+        "linear_first_order_v1": round(first_displacement, 8),
+        "corotational_newton_v1": round(nonlinear_displacement, 8),
+    }
+    if legacy_displacement is not None:
+        values["initial_stress_v1"] = round(legacy_displacement, 8)
+    imperfection = options.get("initialImperfection")
+    imperfection_type = str(imperfection.get("type") or "none") if isinstance(imperfection, Mapping) else "none"
+    unavailable_reasons: List[str] = []
+    if legacy_displacement is None:
+        unavailable_reasons.append("兼容初始应力迭代未收敛。")
+    if not path_result.success:
+        unavailable_reasons.append("共回转目标荷载路径未完成；其数值仅代表最后收敛点。")
+    if imperfection_type != "none":
+        unavailable_reasons.append("共回转分析含初始缺陷，而首阶与兼容算法使用未扰动参考几何。")
+    displacement_comparable = not unavailable_reasons
+    return {
+        "schema": "MethodComparison@1",
+        "methods": [
+            {
+                "id": "linear_first_order_v1",
+                "label": "首阶线弹性",
+                "equilibriumStatus": "converged",
+                "stabilityStatus": "not_evaluated",
+                "targetLoadFactor": 1.0,
+            },
+            legacy_method,
+            {
+                "id": "corotational_newton_v1",
+                "label": "共回转全 Newton",
+                "equilibriumStatus": path_result.equilibrium_status,
+                "stabilityStatus": path_result.stability_status,
+                "targetLoadFactor": float(path_result.load_factor),
+                "failureReason": _nonlinear_failure_message(path_result.termination_reason) if not path_result.success else None,
+            },
+        ],
+        "metrics": [
+            {
+                "id": "max_displacement_mm",
+                "unit": "mm",
+                "comparable": displacement_comparable,
+                "unavailableReason": " ".join(unavailable_reasons) if unavailable_reasons else None,
+                "values": values,
+            }
+        ],
+        "limitations": [
+            "方法比较只描述当前模型的数值响应差异，不给出规范安全结论。",
+            "initial_stress_v1 使用固定初始几何兼容算法；corotational_newton_v1 使用更新几何、完整残差和一致切线。",
+        ],
+    }
+
+
+def _attach_linear_buckling_reference(
+    second_order: Dict[str, Any],
+    buckling: Mapping[str, Any],
+    reference_source: Mapping[str, str],
+) -> None:
+    """Complete MethodComparison only after both analysis branches exist."""
+
+    comparison = second_order.get("methodComparison")
+    if not isinstance(comparison, dict):
+        return
+    methods = comparison.setdefault("methods", [])
+    if not any(isinstance(item, Mapping) and item.get("id") == "linear_buckling_v1" for item in methods):
+        methods.append(
+            {
+                "id": "linear_buckling_v1",
+                "label": "线性屈曲特征值",
+                "equilibriumStatus": "not_applicable",
+                "stabilityStatus": str(buckling.get("status") or "not_evaluated"),
+                "referenceSource": deepcopy(dict(reference_source)),
+                "targetLoadFactor": None,
+                "failureReason": None if buckling.get("criticalLoadFactor") is not None else buckling.get("limitations"),
+            }
+        )
+    comparison.setdefault("metrics", []).append(
+        {
+            "id": "critical_load_factor",
+            "unit": "",
+            "comparable": False,
+            "unavailableReason": "临界荷载因子是稳定特征值参考，不与位移响应作同量纲比较。",
+            "referenceOnly": True,
+            "values": (
+                {"linear_buckling_v1": float(buckling["criticalLoadFactor"])}
+                if buckling.get("criticalLoadFactor") is not None
+                else {}
+            ),
+        }
+    )
+
+
+def _resolve_initial_imperfection(
+    *,
+    structure: Mapping[str, Any],
+    first_order: Mapping[str, Any],
+    options: Mapping[str, Any],
+    solver_backend: str,
+) -> Dict[str, Any]:
+    resolved = deepcopy(dict(options))
+    imperfection = resolved.get("initialImperfection")
+    if not isinstance(imperfection, Mapping) or str(imperfection.get("type") or "none") != "buckling_mode":
+        return resolved
+    mode_number = int(imperfection.get("modeNumber", 1))
+    amplitude_mm = float(imperfection.get("amplitudeMm", 0.0))
+    direction = -1.0 if float(imperfection.get("direction", 1.0)) < 0.0 else 1.0
+    if amplitude_mm <= 0.0:
+        raise ValueError("屈曲模态初始缺陷 amplitudeMm 必须大于 0")
+    member_results = list(first_order.get("memberResults", []))
+    if not any(
+        float(item.get("axialStartKn", 0.0)) > 0.0 or float(item.get("axialEndKn", 0.0)) > 0.0
+        for item in member_results
+    ):
+        raise ValueError("屈曲模态初始缺陷需要存在受压预应力状态，当前模型没有可用压缩模态")
+    mesh_result = solve_frame_stability_mesh(
+        structure,
+        member_results,
+        mode_number,
+        solver_backend=solver_backend,
+    )
+    modes = list(mesh_result.get("modes", []))
+    if len(modes) < mode_number:
+        raise ValueError(f"屈曲模态初始缺陷请求模态 {mode_number}，求解器只返回 {len(modes)} 个有效模态")
+    mode = modes[mode_number - 1]
+    magnitudes: List[float] = []
+    for shape in mode.get("memberModeShapes", []):
+        magnitudes.extend(
+            math.hypot(float(ux), float(uy))
+            for ux, uy in zip(shape.get("ux", []), shape.get("uy", []))
+        )
+    scale = max(magnitudes, default=0.0)
+    if scale <= 1e-12:
+        raise ValueError(f"屈曲模态 {mode_number} 没有可用于初始缺陷的平动分量")
+    multiplier = direction * amplitude_mm / scale
+    node_offsets = [
+        {
+            "nodeId": str(node["nodeId"]),
+            "uxMm": round(float(node.get("ux", 0.0)) * multiplier, 9),
+            "uyMm": round(float(node.get("uy", 0.0)) * multiplier, 9),
+        }
+        for node in mode.get("nodeDisplacements", [])
+        if str(node.get("nodeId") or "")
+    ]
+    member_shapes = [
+        {
+            "memberId": str(shape["memberId"]),
+            "ratios": deepcopy(list(shape.get("ratios", shape.get("stations", [])))),
+            "uxMm": [round(float(value) * multiplier, 9) for value in shape.get("ux", [])],
+            "uyMm": [round(float(value) * multiplier, 9) for value in shape.get("uy", [])],
+        }
+        for shape in mode.get("memberModeShapes", [])
+    ]
+    resolved["initialImperfection"] = {
+        "type": "explicit",
+        "nodeOffsets": node_offsets,
+        "memberShapeOffsets": member_shapes,
+        "source": {
+            "type": "linear_buckling_mode",
+            "modeNumber": mode_number,
+            "criticalLoadFactor": mode.get("criticalLoadFactor"),
+            "amplitudeMm": amplitude_mm,
+            "direction": int(direction),
+            "normalization": deepcopy(mode.get("normalization", {})),
+        },
+    }
+    return resolved
+
+
+def _nonlinear_failure_message(reason: str | None) -> str:
+    labels = {
+        "minimum_step_exhausted": "自适应荷载步已缩小到最小步长，仍未建立收敛平衡",
+        "maximum_cutbacks_exhausted": "自适应荷载步回退次数已用尽，仍未建立收敛平衡",
+        "maximum_accepted_steps_exhausted": "已达到允许的最大收敛荷载步数，路径尚未完成",
+    }
+    return labels.get(reason, "共回转 Newton 路径未完成，已保留最后收敛状态和失败尝试")
+
+
+def _nonlinear_failure_code(reason: str | None) -> str:
+    codes = {
+        "minimum_step_exhausted": "GNA_MINIMUM_STEP_EXHAUSTED",
+        "maximum_cutbacks_exhausted": "GNA_MAXIMUM_CUTBACKS_EXHAUSTED",
+        "maximum_accepted_steps_exhausted": "GNA_MAXIMUM_ACCEPTED_STEPS_EXHAUSTED",
+    }
+    return codes.get(reason, "GNA_PATH_NOT_COMPLETED")
 
 
 def _solve_pdelta_path(
@@ -495,10 +845,29 @@ def _member_euler_screen(solution: Mapping[str, Any]) -> List[Dict[str, Any]]:
     return controlling[:3]
 
 
-def _safe_ratio(numerator: float, denominator: float) -> float:
+def _safe_ratio(numerator: float, denominator: float) -> float | None:
     if abs(denominator) <= 1e-12:
-        return 1.0 if abs(numerator) <= 1e-12 else float("inf")
-    return float(numerator) / float(denominator)
+        return 1.0 if abs(numerator) <= 1e-12 else None
+    ratio = abs(float(numerator) / float(denominator))
+    return ratio if math.isfinite(ratio) else None
+
+
+def _amplification_measure(
+    nonlinear_horizontal: float,
+    first_horizontal: float,
+    nonlinear_resultant: float,
+    first_resultant: float,
+) -> tuple[float | None, str | None]:
+    """Return a finite amplification or an explicit non-comparability fact."""
+
+    horizontal_ratio = _safe_ratio(nonlinear_horizontal, first_horizontal)
+    if horizontal_ratio is None and abs(nonlinear_horizontal) > 1e-12:
+        return None, "首阶水平位移为零而几何非线性水平位移非零，放大系数不可比。"
+    resultant_ratio = _safe_ratio(nonlinear_resultant, first_resultant)
+    finite_ratios = [value for value in (horizontal_ratio, resultant_ratio) if value is not None]
+    if not finite_ratios:
+        return None, "首阶响应为零，无法定义有限的二阶放大系数。"
+    return max(finite_ratios), None
 
 
 def _max_abs_value(items: Sequence[Mapping[str, Any]], keys: Sequence[str]) -> float:

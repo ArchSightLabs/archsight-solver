@@ -65,13 +65,24 @@ def build_summary_tables(solution: Dict[str, Any], material_name: str):
         param_rows.append(["均布荷载 q (kN/m)", request["q_kn"]])
     elif request["load_type"] == "point":
         param_rows.extend([["集中荷载 P (kN)", request["point_load_kn"]], ["集中荷载位置 (m)", round(request["point_position"], 3)]])
-    else:
+    elif request["load_type"] in {"linear", "distributed"}:
         param_rows.extend(
             [
                 ["线性分布荷载起点 (kN/m)", request["distributed_start_kn"]],
                 ["线性分布荷载终点 (kN/m)", request["distributed_end_kn"]],
                 ["线性分布荷载起点 (m)", round(request["distributed_start"], 3)],
                 ["线性分布荷载终点 (m)", round(request["distributed_end"], 3)],
+            ]
+        )
+    elif request["load_type"] == "combination":
+        combination = request.get("selected_load_combination", {})
+        factors = combination.get("factors", {})
+        expression = " + ".join(f"{float(factor):g}×{case_id}" for case_id, factor in factors.items()) or "—"
+        param_rows.extend(
+            [
+                ["荷载组合", f"{combination.get('title', combination.get('id', '—'))} [{combination.get('id', '—')}]"],
+                ["组合表达式", expression],
+                ["组合竖向荷载合计 (kN)", request.get("resultant_load_kn", 0.0)],
             ]
         )
     df_params = pd.DataFrame(param_rows, columns=["参数", "值"])

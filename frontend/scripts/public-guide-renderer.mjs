@@ -220,9 +220,12 @@ function renderThemeRuntime({ lightLabel, darkLabel }) {
 }
 
 export function renderPublicGuideHtml(markdown, options) {
-  const { sourcePath, lang, backLabel, contentsLabel, themeButtonPrefix, lightThemeLabel, darkThemeLabel } = options
+  const { sourcePath, lang, backLabel, contentsLabel, themeButtonPrefix, lightThemeLabel, darkThemeLabel, currentVersion } = options
   const title = markdown.match(/^#\s+(.+)$/m)?.[1]?.trim() ?? 'ArchSight Solver'
   const { body, headings } = renderMarkdown(markdown, sourcePath)
+  const versionLabel = currentVersion
+    ? (String(currentVersion).startsWith('v') ? String(currentVersion) : `v${currentVersion}`)
+    : 'v1.8.1'
   const tableOfContents = headings.length > 1
     ? `
       <nav class="toc" aria-label="${escapeHtml(contentsLabel)}">
@@ -310,7 +313,7 @@ export function renderPublicGuideHtml(markdown, options) {
       <button class="theme-toggle" type="button" data-theme-toggle>${escapeHtml(themeButtonPrefix)}<span data-theme-label>${escapeHtml(lightThemeLabel)}</span></button>
     </div>
     <header class="page-header">
-      <p>ArchSight Solver v1.8.0</p>
+      <p>ArchSight Solver ${escapeHtml(versionLabel)}</p>
       <h1>${renderInlineMarkdown(title, sourcePath)}</h1>
     </header>${tableOfContents}
     <article>

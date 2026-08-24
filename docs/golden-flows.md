@@ -56,7 +56,7 @@ archsight-solver-tool verification_package_verify --input verify-request.json --
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install .\archsight_solver-1.8.0-py3-none-any.whl
+python -m pip install .\archsight_solver-1.8.1-py3-none-any.whl
 ```
 
 2. 按[五分钟英文 Quickstart](en/quickstart.md)创建 `create-request.json`。
@@ -85,7 +85,7 @@ archsight-solver-tool verification_package_verify --input verify-request.json --
 | 黄金流程 | 主要自动化证据 |
 |---|---|
 | 工程师 | 工作台可信计算包 Chromium 下载/竞态测试、三类计算书回归、CLI 复算 |
-| 教师/学习者 | 66 个公开 Benchmark、独立刚度法基线、工作台公开案例与来源展示 |
+| 教师/学习者 | 71 个公开 Benchmark、独立刚度法基线、工作台公开案例与来源展示 |
 | 开发者 | wheel/sdist 隔离安装、Host Client tarball 临时安装、REST/CLI/MCP 契约、Docker 健康检查 |
 
 正式候选阶段必须把这些证据与版本一致性、三浏览器、Docker、SBOM、Trivy、校验和和 GitHub Release 资产一起复核。

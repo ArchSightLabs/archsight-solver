@@ -62,6 +62,32 @@ def _coerce_float(value: Any, default: float, minimum: float, maximum: float) ->
     return max(minimum, min(maximum, numeric))
 
 
+def _normalize_initial_imperfection(raw: Any) -> Dict[str, Any]:
+    value = raw if isinstance(raw, dict) else {}
+    imperfection_type = str(value.get("type") or "none").strip().lower()
+    if imperfection_type not in {"none", "explicit", "buckling_mode"}:
+        imperfection_type = "none"
+    offsets: List[Dict[str, Any]] = []
+    if imperfection_type == "explicit" and isinstance(value.get("nodeOffsets"), list):
+        for item in value["nodeOffsets"]:
+            if not isinstance(item, dict) or not str(item.get("nodeId") or "").strip():
+                continue
+            offsets.append(
+                {
+                    "nodeId": str(item["nodeId"]).strip(),
+                    "uxMm": _coerce_float(item.get("uxMm"), 0.0, -1000.0, 1000.0),
+                    "uyMm": _coerce_float(item.get("uyMm"), 0.0, -1000.0, 1000.0),
+                }
+            )
+    return {
+        "type": imperfection_type,
+        "nodeOffsets": offsets,
+        "modeNumber": _coerce_int(value.get("modeNumber"), 1, 1, 12),
+        "amplitudeMm": _coerce_float(value.get("amplitudeMm"), 0.0, 0.0, 1000.0),
+        "direction": -1 if _coerce_float(value.get("direction"), 1.0, -1.0, 1.0) < 0 else 1,
+    }
+
+
 def normalize_frame_analysis_options(raw: Any) -> Dict[str, Any]:
     options = raw if isinstance(raw, dict) else {}
     nested = options.get("options") if isinstance(options.get("options"), dict) else {}
@@ -72,21 +98,27 @@ def normalize_frame_analysis_options(raw: Any) -> Dict[str, Any]:
     if not isinstance(buckling_options, dict):
         buckling_options = {}
 
+    load_steps = _coerce_int(
+        pdelta_options.get("loadSteps", options.get("loadSteps", nested.get("loadSteps", 4))),
+        4,
+        1,
+        20,
+    )
+    algorithm = str(pdelta_options.get("algorithm") or "initial_stress_v1").strip().lower()
+    if algorithm not in {"initial_stress_v1", "corotational_newton_v1"}:
+        algorithm = "initial_stress_v1"
+
     return {
         "pDelta": _coerce_bool(options.get("pDelta", options.get("p_delta", nested.get("pDelta", nested.get("p_delta", False))))),
         "buckling": _coerce_bool(options.get("buckling", nested.get("buckling", False))),
         "pDeltaOptions": {
-            "loadSteps": _coerce_int(
-                pdelta_options.get("loadSteps", options.get("loadSteps", nested.get("loadSteps", 4))),
-                4,
-                1,
-                20,
-            ),
+            "algorithm": algorithm,
+            "loadSteps": load_steps,
             "maxIterations": _coerce_int(
                 pdelta_options.get("maxIterations", options.get("maxIterations", nested.get("maxIterations", 12))),
-                12,
+                30 if algorithm == "corotational_newton_v1" else 12,
                 1,
-                50,
+                100,
             ),
             "tolerance": _coerce_float(
                 pdelta_options.get("tolerance", options.get("tolerance", nested.get("tolerance", 1e-6))),
@@ -94,6 +126,22 @@ def normalize_frame_analysis_options(raw: Any) -> Dict[str, Any]:
                 1e-10,
                 1e-3,
             ),
+            "initialStep": _coerce_float(pdelta_options.get("initialStep"), 1.0 / load_steps, 1e-4, 1.0),
+            "minStep": _coerce_float(pdelta_options.get("minStep"), min(0.01, 1.0 / load_steps), 1e-6, 1.0),
+            "maxStep": _coerce_float(pdelta_options.get("maxStep"), max(0.25, 1.0 / load_steps), 1e-4, 1.0),
+            "maxCutbacks": _coerce_int(pdelta_options.get("maxCutbacks"), 12, 0, 30),
+            "maxAcceptedSteps": _coerce_int(pdelta_options.get("maxAcceptedSteps"), 2000, 1, 20000),
+            "relativeResidualTolerance": _coerce_float(pdelta_options.get("relativeResidualTolerance"), 1e-8, 1e-12, 1e-3),
+            "absoluteResidualToleranceN": _coerce_float(pdelta_options.get("absoluteResidualToleranceN"), 1e-5, 1e-10, 1e3),
+            "relativeDisplacementTolerance": _coerce_float(pdelta_options.get("relativeDisplacementTolerance"), 1e-8, 1e-12, 1e-3),
+            "absoluteDisplacementToleranceM": _coerce_float(pdelta_options.get("absoluteDisplacementToleranceM"), 1e-10, 1e-14, 1e-3),
+            "relativeEnergyTolerance": _coerce_float(pdelta_options.get("relativeEnergyTolerance"), 1e-10, 1e-14, 1e-3),
+            "absoluteEnergyToleranceJ": _coerce_float(pdelta_options.get("absoluteEnergyToleranceJ"), 1e-8, 1e-14, 1e2),
+            "lineSearchMaxTrials": _coerce_int(pdelta_options.get("lineSearchMaxTrials"), 8, 1, 20),
+            "memberSubdivisions": _coerce_int(pdelta_options.get("memberSubdivisions"), 4, 1, 12),
+            "maxRefinedDofs": _coerce_int(pdelta_options.get("maxRefinedDofs"), 1800, 30, 5000),
+            "includeMethodComparison": _coerce_bool(pdelta_options.get("includeMethodComparison"), False),
+            "initialImperfection": _normalize_initial_imperfection(pdelta_options.get("initialImperfection")),
         },
         "bucklingOptions": {
             "modeCount": _coerce_int(

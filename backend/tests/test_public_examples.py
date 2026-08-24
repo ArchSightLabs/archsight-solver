@@ -39,13 +39,16 @@ def test_public_validation_projects_group_by_analysis_object():
         "beam-public-validation",
         "truss-public-validation",
         "frame-public-validation",
+        "frame-nonlinear-public-validation",
     ]
     assert projects["beam-public-validation"]["caseCount"] == category_counts["beam"]
     assert projects["truss-public-validation"]["caseCount"] == category_counts["truss"] + category_counts["truss-verify"]
     assert projects["frame-public-validation"]["caseCount"] == category_counts["frame"] + category_counts["frame-beam-verify"]
+    assert projects["frame-nonlinear-public-validation"]["caseCount"] == category_counts["frame-nonlinear-verify"]
     assert {obj["type"] for obj in projects["beam-public-validation"]["project"]["objects"]} == {"beam"}
     assert {obj["type"] for obj in projects["truss-public-validation"]["project"]["objects"]} == {"truss"}
     assert {obj["type"] for obj in projects["frame-public-validation"]["project"]["objects"]} == {"frame"}
+    assert {obj["type"] for obj in projects["frame-nonlinear-public-validation"]["project"]["objects"]} == {"frame"}
 
 
 def test_public_validation_project_objects_use_continuous_number_prefixes():
@@ -80,7 +83,7 @@ def test_public_examples_api_returns_importable_projects(client):
 
     assert data["schemaVersion"] == 1
     assert data["caseCount"] == len(catalog["cases"])
-    assert len(data["projects"]) == 3
+    assert len(data["projects"]) == 4
     benchmark = data["projects"][0]["project"]["objects"][0]["benchmark"]
     assert benchmark["caseId"]
     assert benchmark["verificationLevel"] in {"A", "B", "C", "D"}
@@ -103,7 +106,7 @@ def test_public_examples_endpoint_is_published_in_openapi():
     assert "learning" in benchmark_schema["properties"]
 
 
-def test_public_examples_expose_three_featured_a_level_learning_paths():
+def test_public_examples_expose_five_featured_learning_paths_with_declared_evidence_levels():
     examples = build_public_validation_projects()
     featured = [
         (obj["type"], obj["benchmark"])
@@ -116,9 +119,17 @@ def test_public_examples_expose_three_featured_a_level_learning_paths():
         ("beam", "beam-simply-supported-center-point"),
         ("truss", "BM-009"),
         ("frame", "BM-010"),
+        ("frame", "GNA-001"),
+        ("frame", "GNA-003"),
     ]
-    assert {benchmark["verificationLevel"] for _, benchmark in featured} == {"A"}
-    assert len({benchmark["learning"]["pathId"] for _, benchmark in featured}) == 3
+    assert {benchmark["caseId"]: benchmark["verificationLevel"] for _, benchmark in featured} == {
+        "beam-simply-supported-center-point": "A",
+        "BM-009": "A",
+        "BM-010": "A",
+        "GNA-001": "A",
+        "GNA-003": "B",
+    }
+    assert len({benchmark["learning"]["pathId"] for _, benchmark in featured}) == 5
 
     for _, benchmark in featured:
         learning = benchmark["learning"]

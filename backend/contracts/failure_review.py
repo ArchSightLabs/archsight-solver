@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from copy import deepcopy
 from typing import Any, Dict, List
 
 
@@ -16,6 +17,7 @@ FAILURE_REVIEW_ALLOWED_KEYS = {
     "hashes",
     "suggestedActions",
 }
+_SERVER_EVIDENCE_KEY = "nonlinearPartialEvidence"
 FAILURE_REVIEW_FORBIDDEN_KEYS = {
     "analysisType",
     "payload",
@@ -50,11 +52,19 @@ FAILURE_REVIEW_FORBIDDEN_KEYS = {
 }
 
 
-def normalize_failure_review_payload(data: Mapping[str, Any], *, material_type: str = FAILURE_REVIEW_MATERIAL_TYPE) -> Dict[str, Any]:
+def normalize_failure_review_payload(
+    data: Mapping[str, Any],
+    *,
+    material_type: str = FAILURE_REVIEW_MATERIAL_TYPE,
+    allow_server_evidence: bool = False,
+) -> Dict[str, Any]:
     if not isinstance(data, Mapping):
         raise ValueError("失败审查材料必须是对象")
 
-    unknown_keys = sorted(set(data.keys()) - FAILURE_REVIEW_ALLOWED_KEYS)
+    allowed_keys = set(FAILURE_REVIEW_ALLOWED_KEYS)
+    if allow_server_evidence:
+        allowed_keys.add(_SERVER_EVIDENCE_KEY)
+    unknown_keys = sorted(set(data.keys()) - allowed_keys)
     if unknown_keys:
         raise ValueError(f"失败审查材料不允许这些字段: {', '.join(unknown_keys)}")
 
@@ -81,6 +91,11 @@ def normalize_failure_review_payload(data: Mapping[str, Any], *, material_type: 
         "hashes": _normalize_hashes(data.get("hashes")),
         "suggestedActions": _normalize_text_list(data.get("suggestedActions"), "suggestedActions"),
     }
+    if allow_server_evidence and data.get(_SERVER_EVIDENCE_KEY) is not None:
+        evidence = data.get(_SERVER_EVIDENCE_KEY)
+        if not isinstance(evidence, Mapping):
+            raise ValueError(f"{_SERVER_EVIDENCE_KEY} 必须是服务端证据对象")
+        normalized[_SERVER_EVIDENCE_KEY] = deepcopy(dict(evidence))
     return normalized
 
 

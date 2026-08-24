@@ -12,7 +12,7 @@ from backend.contracts.json_schemas import API_SCHEMA_VERSION
 
 SUBMISSION_PACKAGE_FORMAT = "archsight-benchmark-submission"
 SUBMISSION_PACKAGE_FORMAT_VERSION = "1.0"
-SUPPORTED_CATEGORIES = {"beam", "frame", "truss", "frame-beam-verify", "truss-verify"}
+SUPPORTED_CATEGORIES = {"beam", "frame", "truss", "frame-beam-verify", "frame-nonlinear-verify", "truss-verify"}
 REQUIRED_CASE_FIELDS = {"id", "category", "title", "purpose", "payload", "expected", "tolerances", "verification"}
 TRUSS_CATEGORIES = {"truss", "truss-verify"}
 TRUSS_FORBIDDEN_PRIMARY_TOKENS = (

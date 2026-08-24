@@ -531,7 +531,7 @@ def evaluate_independent_suite() -> dict[str, Any]:
     cases = [
         case
         for case in catalog.get("cases", [])
-        if case.get("verification", {}).get("verificationLevel") == "B"
+        if case.get("verification", {}).get("sourceType") == "independent-stiffness-baseline"
     ]
     results = [evaluate_independent_case(case) for case in cases]
     passed = sum(result["passed"] for result in results)

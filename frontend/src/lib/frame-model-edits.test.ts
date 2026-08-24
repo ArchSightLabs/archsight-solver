@@ -23,19 +23,19 @@ const frameCollections = (): FrameEditorCollections => ({
     { id: "B1", start: "N2", end: "N3", elementType: "frame", E_GPa: 210, A_cm2: 120, I_cm4: 8000 },
   ],
   loads: [
-    { type: "nodal", node: "N3", fyKn: -10 },
-    { type: "distributed", member: "C1", direction: "global_y", qStartKnPerM: -6, qEndKnPerM: -6 },
-    { type: "member_point", member: "B1", forceKn: -4, positionRatio: 0.5 },
-    { type: "temperature", member: "C1", deltaTempC: 30, alphaPerC: 1.2e-5 },
+    { type: "nodal", node: "N3", fyKn: -10, pathRole: "fixed" },
+    { type: "distributed", member: "C1", direction: "global_y", qStartKnPerM: -6, qEndKnPerM: -6, pathRole: "variable" },
+    { type: "member_point", member: "B1", forceKn: -4, positionRatio: 0.5, pathRole: "fixed" },
+    { type: "temperature", member: "C1", deltaTempC: 30, alphaPerC: 1.2e-5, pathRole: "variable" },
   ],
   loadCases: [
     {
       id: "DL",
       title: "恒载",
-      loads: [
-        { type: "nodal", node: "N3", fyKn: -10 },
-        { type: "distributed", member: "C1", direction: "global_y", qStartKnPerM: -6, qEndKnPerM: -6 },
-        { type: "temperature", member: "C1", deltaTempC: 30, alphaPerC: 1.2e-5 },
+        loads: [
+        { type: "nodal", node: "N3", fyKn: -10, pathRole: "fixed" },
+        { type: "distributed", member: "C1", direction: "global_y", qStartKnPerM: -6, qEndKnPerM: -6, pathRole: "variable" },
+        { type: "temperature", member: "C1", deltaTempC: 30, alphaPerC: 1.2e-5, pathRole: "variable" },
       ],
     },
   ],
@@ -53,8 +53,8 @@ test("updateFrameNodeCollections renames node references across members and load
   assert.equal(result.nextId, "N4");
   assert.equal(result.next.members[0]?.end, "N4");
   assert.equal(result.next.members[1]?.end, "N4");
-  assert.deepEqual(result.next.loads[0], { type: "nodal", node: "N4", fyKn: -10 });
-  assert.deepEqual(result.next.loadCases[0]?.loads[0], { type: "nodal", node: "N4", fyKn: -10 });
+  assert.deepEqual(result.next.loads[0], { type: "nodal", node: "N4", fyKn: -10, pathRole: "fixed" });
+  assert.deepEqual(result.next.loadCases[0]?.loads[0], { type: "nodal", node: "N4", fyKn: -10, pathRole: "fixed" });
 });
 
 test("removeFrameNodeCollections removes dangling member loads created by connected member removal", () => {
@@ -64,10 +64,10 @@ test("removeFrameNodeCollections removes dangling member loads created by connec
   assert.deepEqual(next.nodes.map((node) => node.id), ["N2", "N3"]);
   assert.deepEqual(next.members.map((member) => member.id), ["B1"]);
   assert.deepEqual(next.loads, [
-    { type: "nodal", node: "N3", fyKn: -10 },
-    { type: "member_point", member: "B1", forceKn: -4, positionRatio: 0.5 },
+    { type: "nodal", node: "N3", fyKn: -10, pathRole: "fixed" },
+    { type: "member_point", member: "B1", forceKn: -4, positionRatio: 0.5, pathRole: "fixed" },
   ]);
-  assert.deepEqual(next.loadCases[0]?.loads, [{ type: "nodal", node: "N3", fyKn: -10 }]);
+  assert.deepEqual(next.loadCases[0]?.loads, [{ type: "nodal", node: "N3", fyKn: -10, pathRole: "fixed" }]);
 });
 
 test("updateFrameMemberCollections renames member loads in base loads and load cases", () => {
@@ -81,12 +81,16 @@ test("updateFrameMemberCollections renames member loads in base loads and load c
   const loadCaseTemperatureLoad = result.next.loadCases[0]?.loads[2];
   assert.equal(baseLoad?.type, "distributed");
   assert.equal(baseLoad && "member" in baseLoad ? baseLoad.member : "", "C10");
+  assert.equal(baseLoad && "pathRole" in baseLoad ? baseLoad.pathRole : "", "variable");
   assert.equal(temperatureLoad?.type, "temperature");
   assert.equal(temperatureLoad && "member" in temperatureLoad ? temperatureLoad.member : "", "C10");
+  assert.equal(temperatureLoad && "pathRole" in temperatureLoad ? temperatureLoad.pathRole : "", "variable");
   assert.equal(loadCaseLoad?.type, "distributed");
   assert.equal(loadCaseLoad && "member" in loadCaseLoad ? loadCaseLoad.member : "", "C10");
+  assert.equal(loadCaseLoad && "pathRole" in loadCaseLoad ? loadCaseLoad.pathRole : "", "variable");
   assert.equal(loadCaseTemperatureLoad?.type, "temperature");
   assert.equal(loadCaseTemperatureLoad && "member" in loadCaseTemperatureLoad ? loadCaseTemperatureLoad.member : "", "C10");
+  assert.equal(loadCaseTemperatureLoad && "pathRole" in loadCaseTemperatureLoad ? loadCaseTemperatureLoad.pathRole : "", "variable");
 });
 
 test("copyFrameCollections duplicates selected subgraph with rewritten loads", () => {
@@ -98,14 +102,14 @@ test("copyFrameCollections duplicates selected subgraph with rewritten loads", (
   ]);
   assert.deepEqual(next.members[2], { id: "C1_C1", start: "N1_C1", end: "N3_C1", elementType: "frame", E_GPa: 210, A_cm2: 120, I_cm4: 8000 });
   assert.deepEqual(next.loads.slice(4), [
-    { type: "nodal", node: "N3_C1", fyKn: -10 },
-    { type: "distributed", member: "C1_C1", direction: "global_y", qStartKnPerM: -6, qEndKnPerM: -6 },
-    { type: "temperature", member: "C1_C1", deltaTempC: 30, alphaPerC: 1.2e-5 },
+    { type: "nodal", node: "N3_C1", fyKn: -10, pathRole: "fixed" },
+    { type: "distributed", member: "C1_C1", direction: "global_y", qStartKnPerM: -6, qEndKnPerM: -6, pathRole: "variable" },
+    { type: "temperature", member: "C1_C1", deltaTempC: 30, alphaPerC: 1.2e-5, pathRole: "variable" },
   ]);
   assert.deepEqual(next.loadCases[0]?.loads.slice(3), [
-    { type: "nodal", node: "N3_C1", fyKn: -10 },
-    { type: "distributed", member: "C1_C1", direction: "global_y", qStartKnPerM: -6, qEndKnPerM: -6 },
-    { type: "temperature", member: "C1_C1", deltaTempC: 30, alphaPerC: 1.2e-5 },
+    { type: "nodal", node: "N3_C1", fyKn: -10, pathRole: "fixed" },
+    { type: "distributed", member: "C1_C1", direction: "global_y", qStartKnPerM: -6, qEndKnPerM: -6, pathRole: "variable" },
+    { type: "temperature", member: "C1_C1", deltaTempC: 30, alphaPerC: 1.2e-5, pathRole: "variable" },
   ]);
 });
 
@@ -115,7 +119,7 @@ test("mirrorFrameCollections mirrors geometry and global load signs", () => {
   const copiedLoad = next.loads.find((load) => load.type === "nodal" && load.node === "N3_C1");
 
   assert.deepEqual(copiedNode, { id: "N3_C1", x: 4, y: -3, supportType: "free" });
-  assert.deepEqual(copiedLoad, { type: "nodal", node: "N3_C1", fyKn: 10 });
+  assert.deepEqual(copiedLoad, { type: "nodal", node: "N3_C1", fyKn: 10, pathRole: "fixed" });
 });
 
 test("arrayFrameCollections creates fixed-count copies from the original selection", () => {

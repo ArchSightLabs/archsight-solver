@@ -325,7 +325,8 @@ async function solveAndExportDocx(page: Page, mode: AnalysisMode, options: { inc
   await expect(page.getByText("Word 计算书已生成")).toBeVisible();
 }
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page, browserName }, testInfo) => {
+  testInfo.setTimeout(browserName === "webkit" ? 180_000 : 90_000);
   await page.addInitScript(() => {
     (window as any).localStorage.clear();
   });

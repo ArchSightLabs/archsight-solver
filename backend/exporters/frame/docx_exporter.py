@@ -10,6 +10,7 @@ from backend.exporters.common.artifact import ExportArtifact
 from backend.exporters.common.docx_utils import HAS_DOCX, add_df_table, add_heading, add_png_figure, add_report_note, add_report_title, create_document, png_from_report_images
 from backend.exporters.common.evidence import (
     FRAME_STABILITY_FULL_TABLES,
+    FRAME_STABILITY_STANDARD_TABLES,
     build_evidence_tables,
     build_report_review_table,
     select_evidence_table_items,
@@ -103,10 +104,11 @@ def export_docx(
                 add_heading(doc, table_name)
                 add_df_table(doc, stability_tables[table_name])
     else:
-        add_heading(doc, "5.2 首模态概览")
-        if "屈曲模态摘要" in stability_tables:
-            add_heading(doc, "屈曲模态摘要")
-            add_df_table(doc, stability_tables["屈曲模态摘要"])
+        add_heading(doc, "5.2 稳定路径与方法比较")
+        for table_name in FRAME_STABILITY_STANDARD_TABLES[1:]:
+            if table_name in stability_tables:
+                add_heading(doc, table_name)
+                add_df_table(doc, stability_tables[table_name])
     add_heading(doc, "6. 符号与单位约定")
     add_df_table(doc, df_conventions)
     if sensitivity_results:

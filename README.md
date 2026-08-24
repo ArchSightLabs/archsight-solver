@@ -67,20 +67,21 @@ npm --prefix frontend run test:unit
 
 详细功能边界见 [功能与适用边界](docs/capabilities.md)。
 
-## v1.8.0 版本主题
+## v1.8.1 版本主题
 
-v1.8.0 的重点是“二维框架稳定分析 + 可审查计算工作台”：新增真实 P-Delta 与线性屈曲分析，并把计算过程、工程关键点、控制来源、方案比较和计算书收敛到同一条证据链。
+v1.8.1 的重点是把二维框架弹性几何非线性做完整：无初始缺陷时为 GNA，配置显式或屈曲模态缺陷时为 GNIA。新增共回转全 Newton 路径、方法比较、过程播放、失败恢复、路径关键点和可信包同源证据，让计算书不仅能看到结果，也能复核过程与失败边界。
 
-当前状态：**已发布并上线（2026-08-23）**。官方演示站运行阿里云镜像 `v1.8.0-2f839f3`，健康、真实计算、P-Delta、线性屈曲及 DOCX/XLSX 导出均已通过线上冒烟；升级前的 `v1.7.0-b52641c` 镜像继续保留为回滚点。GHCR 仍只是可能需要 GitHub Packages 授权的工作流镜像副本。
+当前状态：**发布准备中（2026-08-24）**。仓库事实源已切到 `v1.8.1`；线上镜像、回滚点和发布资产将按正式发布流程单独记录。GHCR 仍只是可能需要 GitHub Packages 授权的工作流镜像副本。
 
-- `CalculationTrace@1`、关键点/复核点、控制包络和命名快照使用同一次 canonical result，不由前端或导出器二次求解。
+- `CalculationTrace@1`、`NonlinearPathTrace@1`、关键点/复核点、控制包络和命名快照使用同一次 canonical result，不由前端或导出器二次求解。
 - 梁、平面桁架、平面框架的图形、点表、标准/详细计算书、XLSX 与可信计算包共享对象、测站、数值、单位和来源。
-- 二维框架真实 P-Delta 与线性屈曲分别保留迭代、模态、残差和接近临界失败证据。
+- 二维框架共回转几何非线性与线性屈曲分别保留迭代、模态、残差、线搜索、cutback 和接近临界失败证据；`initial_stress_v1` 仅作为 v1.8.0 复算兼容算法保留。
+- 公开验证集达到 71 个通过算例，新增 Williams toggle、Lee frame 极限点前路径和 Euler 初始缺陷柱解析验证。
 - 失败计算可形成只包含已完成阶段与诊断证据的审查材料；不引入账号、云项目、规范设计或第四类分析域。
 
 直接开始：[公开案例与五分钟学习路径](https://solver.archsight.cn/) · [五分钟安装路径](docs/quickstart.md) · [可信计算包指南](docs/verification-package.md) · [English entry](README.en.md)
 
-完整验证证据、Tag Release 门禁与回滚边界见 [v1.8.0 发布验收](docs/verification/release-1-8-acceptance.md)。
+完整验证证据、Tag Release 门禁与回滚边界见 [v1.8.1 发布验收](docs/verification/release-1-8-1-acceptance.md)。
 
 ## v1.3.0 发布重点
 
@@ -160,7 +161,7 @@ ArchSight Solver 使用 **ASMS-JSON** 作为结构模型入口标准，让 Web�
 
 ## 公开验证
 
-公开验证集当前覆盖梁系、二维平面桁架、二维平面框架和框架梁退化验证等基础力学场景。前端顶部“公开案例”入口可直接打开由 benchmark 生成的三个验证工程。
+公开验证集当前覆盖梁系、二维平面桁架、二维平面框架、框架梁退化验证以及二维框架 GNA/GNIA 教学基准。前端顶部“公开案例”入口可直接打开由 benchmark 生成的四个验证工程。
 
 ```bash
 uv run python -m pytest backend/tests/test_benchmark_cases.py backend/tests/test_benchmark_runner.py -q
@@ -196,7 +197,7 @@ uv run python -m backend.benchmarks.catalog_summary --output docs/verification/b
 | [Benchmark 算例目录摘要](docs/verification/benchmark-catalog-summary.md) | 按结构体系列出算例目的、来源、标准值、容差和模板映射 | 当前验证摘要 |
 | [跨浏览器视觉回归](docs/verification/visual-regression.md) | 前端工作台视觉回归说明 | 当前验证说明 |
 | [发布治理](docs/release-governance.md) | `x.y.0` 用户价值门槛、观察窗口、确认和不可变发布规则 | 当前发布规则 |
-| [v1.8.0 发布验收](docs/verification/release-1-8-acceptance.md) | 计算过程、关键点/复核点、快照、分层/失败材料、稳定分析与正式制品证据 | v1.8.0 发布基线 |
+| [v1.8.1 发布验收](docs/verification/release-1-8-1-acceptance.md) | 可复算几何非线性、过程播放、方法比较、失败证据与正式制品证据 | v1.8.1 发布收口 |
 | [v1.7.0 发布验收](docs/verification/release-1-7-acceptance.md) | 可信计算包、开放分发、学习复核路径、三浏览器与正式制品证据 | v1.7.0 历史基线 |
 | [v1.6.3 发布验收](docs/verification/release-1-6-3-acceptance.md) | 可靠性补丁、验证证据、镜像与发布授权边界 | v1.6.3 发布基线 |
 | [v1.6.2 发布验收](docs/verification/release-1-6-2-acceptance.md) | 工作台与宿主接入统一验收、镜像门禁、升级与回滚 | v1.6.2 发布基线 |

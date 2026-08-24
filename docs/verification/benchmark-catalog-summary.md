@@ -2,8 +2,8 @@
 
 > 本文件由 `python -m backend.benchmarks.catalog_summary --output docs/verification/benchmark-catalog-summary.md` 生成。`backend/benchmarks/benchmark_cases.json` 仍是机器事实源。
 
-- 算例目录版本：2026-08-09
-- 算例总数：66
+- 算例目录版本：2026-08-24
+- 算例总数：71
 - 用途：帮助人工快速阅读算例目的、验证来源、关键指标、标准值和容许误差。
 
 ## 二维平面桁架
@@ -61,6 +61,18 @@
 | `BM-002` | 对称平面桁架（顶点水平荷载，轴力与位移验证） | 验证平面静定桁架的轴力计算与节点位移，对标节点平衡法解析解 T_AB=31.25kN(拉)、T_BC=-31.25kN(压)、T_AC=25kN(拉)，确认拉压状态标注与支座反力正确性。 | A 级验证 | 教材解析解 | 节点位移、杆件轴力、支座反力 | nodeCount=3；memberCount=3；statusCode=PASS；maxDisplacementMm=0.162；maxDisplacementNodeId=N2；maxAxialForceKn=31.25；maxAxialForceMemberId=M1；nodeDisplacements=2 项；memberAxialForces=3 项；supportReactions=2 项 | maxDisplacementMm=0.005；maxAxialForceKn=0.1；nodeDisplacementMm=0.001；memberAxialForceKn=0.1；reactionKn=0.1 |
 | `BM-009` | 对称三杆桁架顶点竖向荷载（拉压与位移验证） | 验证对称三杆静定桁架在顶点竖向荷载下的对称支座反力、斜杆受压、下弦受拉和节点位移，补齐桁架解析验证仅覆盖水平荷载的缺口。 | A 级验证 | 教材解析解 | 节点位移、杆件轴力、支座反力 | nodeCount=3；memberCount=3；statusCode=PASS；maxDisplacementMm=0.325；maxDisplacementNodeId=N2；maxAxialForceKn=50；maxAxialForceMemberId=M1；nodeDisplacements=2 项；memberAxialForces=3 项；supportReactions=2 项 | maxDisplacementMm=0.001；maxAxialForceKn=0.001；nodeDisplacementMm=0.001；memberAxialForceKn=0.001；reactionKn=0.001 |
 | `BM-012` | 非对称直角三杆桁架水平荷载（零杆与位移验证） | 验证非对称 3-4-5 直角静定桁架在水平节点荷载下的拉压杆、零杆、非对称支座反力和双向节点位移，补齐现有专项解析验证集中于对称几何的缺口。 | A 级验证 | 教材解析解 | 节点位移、杆件轴力、支座反力 | nodeCount=3；memberCount=3；statusCode=PASS；maxDisplacementMm=0.65；maxDisplacementNodeId=N2；maxAxialForceKn=100；maxAxialForceMemberId=M1；nodeDisplacements=2 项；memberAxialForces=3 项；supportReactions=2 项 | maxDisplacementMm=0.001；maxAxialForceKn=0.001；nodeDisplacementMm=0.001；memberAxialForceKn=0.001；reactionKn=0.001 |
+
+## 框架几何非线性验证
+
+- 算例数量：5
+
+| Case ID | 名称 | 目的 | 验证等级 | 验证来源 | 校核指标 | 标准值 | 容许误差 |
+|---|---|---|---|---|---|---|---|
+| `GNA-001` | 受压悬臂梁柱的弹性二阶放大 | 以等截面受压悬臂梁柱的经典稳定函数解析解，验证固定轴压预载、可变水平荷载、共回转路径、二阶位移放大和临界荷载系数。 | A 级验证 | 教材解析解 | 节点位移、二阶放大、临界荷载系数、荷载路径、平衡状态、稳定状态 | algorithmId=corotational_newton_v1；equilibriumStatus=converged；stabilityStatus=stable；pathControlType=fixed_preload_then_adaptive_variable_load；controlNodeId=N2；controlNodeUxMm=1.122620218；criticalLoadFactor=2.5 | controlNodeUxMm=0.005；criticalLoadFactor=0.0001 |
+| `GNA-002` | Euler 临界点后的平衡—稳定分离 | 验证完美直悬臂柱在纯轴压下可以保持零侧移平衡，但当 P>Pcr 时约化切线已出现负特征值，不能把平衡收敛误报为结构稳定。 | A 级验证 | 教材解析解 | 节点位移、临界荷载系数、平衡状态、稳定状态 | algorithmId=corotational_newton_v1；equilibriumStatus=converged；stabilityStatus=unstable；pathControlType=adaptive_fixed_load_control；controlNodeId=N2；controlNodeUxMm=0；criticalLoadFactor=0.833333333 | controlNodeUxMm=1e-06；criticalLoadFactor=0.0001 |
+| `GNA-003` | Williams toggle frame 极限点 | 复现 Williams 浅拱 toggle frame 的 snap-through 前路径，验证大转动、路径关键点、cutback 与荷载控制在极限点显式停止。 | B 级验证 | 公开经典数值基准 | 节点位移、荷载路径、平衡状态、稳定状态 | algorithmId=corotational_newton_v1；equilibriumStatus=not_converged；stabilityStatuses=2 项；pathControlType=adaptive_load_control；controlNodeId=N2；controlDof=uy；controlNodeDisplacementMm=-5.91；terminationReasons=2 项；lastConvergedLoadFactor=0.85098；referenceLoadKn=0.17792886461；lastConvergedLoadKn=0.151412；failedAttemptsMinimum=1 | controlNodeDisplacementMm=0.5；lastConvergedLoadFactor=0.02；lastConvergedLoadKn=0.002 |
+| `GNA-004` | Lee frame 极限点前路径 | 对标 Lee L 形框架公开荷载—位移表，验证强非线性极限点前多点路径，并确认本版荷载控制在第一个极限点附近结构化停止。 | C 级验证 | 工程软件对标 | 节点位移、荷载路径、平衡状态、稳定状态 | algorithmId=corotational_newton_v1；equilibriumStatus=not_converged；stabilityStatuses=2 项；pathControlType=adaptive_load_control；controlNodeId=N3；controlDof=uy；controlNodeDisplacementMm=-470.73；terminationReasons=2 项；lastConvergedLoadFactor=0.92；referenceLoadKn=20；lastConvergedLoadKn=18.4；failedAttemptsMinimum=1；pathPoints=6 项 | controlNodeDisplacementMm=40；lastConvergedLoadFactor=0.03；lastConvergedLoadKn=0.6 |
+| `GNA-005` | Euler 初始缺陷柱放大 | 用一阶屈曲模态生成正弦初始缺陷，按 Euler 缺陷柱解析放大式校核 GNIA 的缺陷来源、增量位移、总位移与稳定裕度。 | A 级验证 | 教材解析解 | 初始缺陷、节点位移、荷载路径、临界荷载系数、平衡状态、稳定状态 | algorithmId=corotational_newton_v1；equilibriumStatus=converged；stabilityStatus=stable；pathControlType=adaptive_load_control；initialImperfectionType=explicit；initialImperfectionSourceType=linear_buckling_mode；initialImperfectionModeNumber=1；initialImperfectionAmplitudeMm=10；controlNodeId=N2；controlDof=ux；controlNodeDisplacementMm=6.6666666667；controlNodeTotalDisplacementMm=16.6666666667；criticalLoadFactor=2.5；lastConvergedLoadFactor=1；pathPoints=1 项 | initialImperfectionAmplitudeMm=1e-06；controlNodeDisplacementMm=0.2；controlNodeTotalDisplacementMm=0.2；criticalLoadFactor=0.0001；lastConvergedLoadFactor=1e-06 |
 
 ## 框架梁退化验证
 

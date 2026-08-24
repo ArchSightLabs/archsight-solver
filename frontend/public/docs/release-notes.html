@@ -116,11 +116,37 @@
       </button>
     </div>
     <header>
-      <span class="tag">当前版本 v1.8.0</span>
+      <span class="tag">当前版本 v1.8.1</span>
       <h1>版本发布记录</h1>
     </header>
 
     <section class="release-list" aria-label="版本发布记录">
+      <article class="release">
+        <div class="release-head">
+          <h2>v1.8.1</h2>
+          <span class="date"></span>
+        </div>
+          <p class="section-label">核心新增</p>
+          <ul>
+            <li>共回转全 Newton：新增 <code>corotational_newton_v1</code>，以当前几何组装完整残差与一致切线，支持确定性残差线搜索、自适应增步、cutback、多重收敛判据和最大接受步数保护；<code>initial_stress_v1</code> 继续保留用于 v1.8.0 结果复算。</li>
+            <li>平衡与稳定分离：<code>equilibriumStatus</code> 与 <code>stabilityStatus</code> 独立报告；荷载控制无法越过极限点时保留最后收敛状态、失败尝试、稳定指标和稳定错误码，不把 Newton 收敛写成安全结论。</li>
+            <li>初始缺陷与荷载路径：支持显式节点缺陷及首阶线性屈曲模态缺陷，记录模态号、幅值、归一化、来源和实际几何偏置；固定预荷载与变量荷载分别推进，不对非线性结果做线性叠加。</li>
+            <li>过程播放与方法比较：新增 <code>NonlinearPathTrace@1</code> 和 <code>MethodComparison@1</code>；首阶、兼容算法与共回转算法共享请求/模型签名及各自来源哈希，入门、工程、算法三层解释绑定确定性事实。</li>
+            <li>图形与交付证据：路径拐点、残差峰值、最小切线指标、cutback、最后收敛点和终止点均保留数值；标准/详细 DOCX、XLSX 与可信计算包同源记录路径、关键点、缺陷、方法比较和失败证据。</li>
+            <li>可信导出闭环：所选工况/组合先在后端统一投影再生成正文，避免“来源标签正确但表格仍是主结果”；零首阶横向响应不再写出 <code>Infinity</code>，而是返回可机读的不可比原因；详细计算书新增共回转当前弦、基本变形、残差方程、切线增量和代表单元状态。</li>
+            <li>失败与比较证据：部分收敛 GNA 作业可由服务端持久化结果生成失败审查材料，保留最后收敛点、失败尝试和路径签名；方法比较补充线性屈曲参考、目标荷载点、不可比原因及四种方法的来源哈希。</li>
+            <li>公开专业验证：公开验证集扩展到 71 个通过算例，新增受压梁柱解析放大、临界后平衡/不稳定分离、Williams toggle 极限点、Lee frame 极限点前多点路径和 Euler 初始缺陷柱解析基准。</li>
+            <li>关键正确性修复：长路径关键帧按全路径分布保留，避免只剩前段与终点；屈曲模态缺陷只叠加相对端点弦的形状残差，避免内部网格重复计算端点插值；模态方向采用确定性平动锚点规范化。</li>
+          </ul>
+          <p class="section-label">发布验证</p>
+          <ul>
+            <li>后端全量 <code>736 passed, 2 skipped</code>，前端单元测试 <code>444/444</code>，lint、TypeScript、生产构建和生产依赖审计通过；公开 benchmark <code>71/71</code> 通过。</li>
+            <li>Chromium 发布闭环 <code>51/51</code>、三浏览器 DOCX 导出 <code>12/12</code>、三浏览器稳定与关键点矩阵 <code>15/15</code> 通过；候选镜像的真实 GNA 教学链路与 Host 集成通过。</li>
+            <li>Trivy 中“已有修复版本但未升级”的 HIGH/CRITICAL 为 0；原始扫描仍有 14 个 HIGH、3 个 CRITICAL 未提供上游修复版本，已如实保留在验收记录。SPDX SBOM 包含 109 个包、2959 个文件。</li>
+            <li>当前只达到发布候选：尚未创建 <code>v1.8.1</code> tag、未推送镜像仓库、未更新线上；完整证据见 [v1.8.1 发布验收](docs/verification/release-1-8-1-acceptance.md)。</li>
+          </ul>
+      </article>
+
       <article class="release">
         <div class="release-head">
           <h2>v1.8.0</h2>

@@ -160,6 +160,21 @@ def _solve_load_cases(request: Dict[str, Any], structure: Dict[str, Any]) -> Lis
                 "memberDiagrams": case_solution["memberDiagrams"],
                 "secondOrder": case_solution.get("secondOrder", {}),
                 "buckling": case_solution.get("buckling", {}),
+                "preview": case_solution.get("preview", {}),
+                "diagram": case_solution.get("diagram", {}),
+                "inputSnapshot": {
+                    "source": case_reference,
+                    "structure": deepcopy(case_structure),
+                    "payload": deepcopy(case_solution.get("payload", {})),
+                    "components": [
+                        {
+                            "id": load_case["id"],
+                            "title": load_case.get("title", load_case["id"]),
+                            "factor": 1.0,
+                            "loads": deepcopy(load_case.get("loads", [])),
+                        }
+                    ],
+                },
             }
         )
     return results
@@ -196,6 +211,24 @@ def _solve_load_combinations(request: Dict[str, Any], structure: Dict[str, Any])
             "memberDiagrams": combination_solution["memberDiagrams"],
             "secondOrder": combination_solution.get("secondOrder", {}),
             "buckling": combination_solution.get("buckling", {}),
+            "preview": combination_solution.get("preview", {}),
+            "diagram": combination_solution.get("diagram", {}),
+            "inputSnapshot": {
+                "source": combination_reference,
+                "structure": deepcopy(combination_structure),
+                "payload": deepcopy(combination_solution.get("payload", {})),
+                "factors": deepcopy(combination.get("factors", {})),
+                "components": [
+                    {
+                        "id": load_case["id"],
+                        "title": load_case.get("title", load_case["id"]),
+                        "factor": float(combination.get("factors", {}).get(load_case["id"], 0.0)),
+                        "loads": deepcopy(load_case.get("loads", [])),
+                    }
+                    for load_case in load_cases
+                    if load_case["id"] in combination.get("factors", {})
+                ],
+            },
         }
         if combination.get("tags"):
             result["tags"] = combination["tags"]

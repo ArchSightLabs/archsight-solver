@@ -10,7 +10,7 @@ VERIFICATION_LEVELS: Dict[str, Dict[str, str]] = {
     },
     "B": {
         "label": "B 级验证",
-        "description": "独立刚度法基线或独立矩阵法算例，可用于校验装配、约束和结果恢复。",
+        "description": "独立数值基线或公开经典数值基准，可用于校验装配、路径、约束和结果恢复。",
     },
     "C": {
         "label": "C 级验证",
@@ -25,6 +25,7 @@ VERIFICATION_LEVELS: Dict[str, Dict[str, str]] = {
 SOURCE_TYPE_TO_LEVEL = {
     "textbook-analytical": "A",
     "independent-stiffness-baseline": "B",
+    "published-benchmark": "B",
     "engineering-software": "C",
     "internal-regression": "D",
 }

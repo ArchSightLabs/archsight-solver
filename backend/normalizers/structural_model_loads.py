@@ -59,6 +59,7 @@ def expand_loads_for_split_members(raw_loads: Sequence[Dict[str, Any]], split_ma
                         "qEndKnPerM": interpolate(q_start, q_end, (overlap_end - load_start) / load_span),
                         "startRatio": (overlap_start - start_ratio) / segment_span,
                         "endRatio": (overlap_end - start_ratio) / segment_span,
+                        **parse_load_path_role(load),
                     },
                 )
             continue
@@ -170,6 +171,15 @@ def parse_temperature_load_values(load: Mapping[str, Any], *, member: Structural
     }
 
 
+def parse_load_path_role(load: Mapping[str, Any]) -> Dict[str, str]:
+    if "pathRole" not in load and "path_role" not in load:
+        return {}
+    role = str(load.get("pathRole", load.get("path_role", "variable"))).strip().lower()
+    if role not in {"fixed", "variable"}:
+        raise ValueError("非线性荷载路径 pathRole 必须为 fixed 或 variable")
+    return {"pathRole": role}
+
+
 def preprocess_truss_member_loads(
     raw_loads: Sequence[Dict[str, Any]],
     nodes: Sequence[StructuralNode],
@@ -274,6 +284,7 @@ def parse_loads(
             }
             if allow_distributed:
                 values["mzKnM"] = to_float(load.get("mzKnM", 0.0), 0.0)
+            values.update(parse_load_path_role(load))
             parsed_loads.append(StructuralLoad(type="nodal", target=node_id, values=values))
         elif load_type == "distributed":
             if not allow_distributed:
@@ -282,6 +293,7 @@ def parse_loads(
             if member_id not in member_ids:
                 raise InvalidStructureReferenceError("load", member_id or "unknown", "构件荷载引用了不存在的构件", referenced_kind="member", referenced_id=member_id or "unknown")
             values = parse_distributed_load_values(load)
+            values.update(parse_load_path_role(load))
             parsed_loads.append(StructuralLoad(type="distributed", target=member_id, values=values))
         elif load_type == "member_point":
             if not allow_distributed:
@@ -289,12 +301,16 @@ def parse_loads(
             member_id = str(load.get("member") or "")
             if member_id not in member_ids:
                 raise InvalidStructureReferenceError("load", member_id or "unknown", "构件荷载引用了不存在的构件", referenced_kind="member", referenced_id=member_id or "unknown")
-            parsed_loads.append(StructuralLoad(type="member_point", target=member_id, values=parse_member_point_load_values(load)))
+            values = parse_member_point_load_values(load)
+            values.update(parse_load_path_role(load))
+            parsed_loads.append(StructuralLoad(type="member_point", target=member_id, values=values))
         elif load_type == "temperature":
             member_id = str(load.get("member") or "")
             if member_id not in member_ids:
                 raise InvalidStructureReferenceError("load", member_id or "unknown", "构件荷载引用了不存在的构件", referenced_kind="member", referenced_id=member_id or "unknown")
-            parsed_loads.append(StructuralLoad(type="temperature", target=member_id, values=parse_temperature_load_values(load, member=member_by_id.get(member_id))))
+            values = parse_temperature_load_values(load, member=member_by_id.get(member_id))
+            values.update(parse_load_path_role(load))
+            parsed_loads.append(StructuralLoad(type="temperature", target=member_id, values=values))
         elif not allow_distributed:
             raise ValueError("桁架当前仅支持节点荷载")
         else:

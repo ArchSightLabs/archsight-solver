@@ -17,6 +17,7 @@ TEMPLATE_BENCHMARK_MAP_PATH = runtime_resource_path("data/verification/template_
 SOURCE_LABELS = {
     "textbook-analytical": "教材解析解",
     "independent-stiffness-baseline": "独立刚度法基准",
+    "published-benchmark": "公开经典数值基准",
     "engineering-software": "工程软件对标",
     "internal-regression": "内部回归算例",
 }
@@ -26,6 +27,7 @@ CATEGORY_LABELS = {
     "frame": "二维平面框架",
     "truss": "二维平面桁架",
     "frame-beam-verify": "框架梁退化验证",
+    "frame-nonlinear-verify": "框架几何非线性验证",
     "truss-verify": "桁架专项验证",
 }
 

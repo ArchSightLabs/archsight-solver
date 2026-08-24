@@ -598,18 +598,24 @@ def _normalize_output_mode(
         return mode_vector, [deepcopy(dict(shape)) for shape in member_shapes], 1.0
 
     scale = max_translation
-    normalized_mode = np.asarray(mode_vector, dtype=float) / scale
+    anchor_value = float(member_shapes[max_shape_index].get(max_key, [])[max_item_index])
+    # Eigenvectors are sign-indeterminate.  Orient every reported mode by the
+    # first maximum translational shape ordinate so `direction=+1/-1` for a
+    # mode-derived imperfection has a deterministic physical meaning across
+    # dense/sparse solvers and repeated runs.
+    orientation = 1.0 if anchor_value >= 0.0 else -1.0
+    normalized_mode = orientation * np.asarray(mode_vector, dtype=float) / scale
     normalized_shapes: List[Dict[str, Any]] = []
     for shape in member_shapes:
         copied = deepcopy(dict(shape))
         for key in ("ux", "uy", "rz"):
-            copied[key] = [round(float(value) / scale, 8) for value in copied.get(key, [])]
+            copied[key] = [round(orientation * float(value) / scale, 8) for value in copied.get(key, [])]
         copied["stations"] = [
             {
                 **dict(station),
-                "ux": round(float(station.get("ux", 0.0)) / scale, 8),
-                "uy": round(float(station.get("uy", 0.0)) / scale, 8),
-                "rz": round(float(station.get("rz", 0.0)) / scale, 8),
+                "ux": round(orientation * float(station.get("ux", 0.0)) / scale, 8),
+                "uy": round(orientation * float(station.get("uy", 0.0)) / scale, 8),
+                "rz": round(orientation * float(station.get("rz", 0.0)) / scale, 8),
             }
             for station in copied.get("stations", [])
         ]
@@ -620,7 +626,7 @@ def _normalize_output_mode(
         if max_key in {"ux", "uy"}:
             values = list(target_shape.get(max_key, []))
             if 0 <= max_item_index < len(values):
-                values[max_item_index] = 1.0 if float(member_shapes[max_shape_index].get(max_key, [])[max_item_index]) >= 0 else -1.0
+                values[max_item_index] = 1.0
                 target_shape[max_key] = values
             stations = list(target_shape.get("stations", []))
             if 0 <= max_item_index < len(stations):

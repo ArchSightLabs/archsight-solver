@@ -6,10 +6,10 @@ function source(path: string) {
   return readFileSync(new URL(path, import.meta.url), "utf-8");
 }
 
-test("公开案例置顶三条路径并只打开目标分析对象", () => {
+test("公开案例置顶路径并只打开目标分析对象", () => {
   const dialog = source("./PublicExamplesDialog.tsx");
 
-  assert.match(dialog, /三条五分钟学习路径/u);
+  assert.match(dialog, /条五分钟学习路径/u);
   assert.match(dialog, /featuredLearningPaths/u);
   assert.match(dialog, /createSelectedProject\(project\.project, \[object\]\)/u);
   assert.match(dialog, /先预判，再计算并核对/u);

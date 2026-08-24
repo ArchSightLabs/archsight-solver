@@ -100,16 +100,18 @@ const learningPaths = [
   { title: "简支梁：先判反力，再读弯矩与挠度", caseId: "beam-simply-supported-center-point", pathId: "beam-symmetry-path", analysisType: "beam" },
   { title: "三杆桁架：先判拉压，再看位移", caseId: "BM-009", pathId: "truss-force-path", analysisType: "truss" },
   { title: "悬臂柱：用变形读懂反力与弯矩", caseId: "BM-010", pathId: "frame-cantilever-path", analysisType: "frame" },
+  { title: "P-Delta：从首阶位移到真实平衡路径", caseId: "GNA-001", pathId: "frame-gna-beam-column-path", analysisType: "frame" },
+  { title: "Williams toggle：为什么收敛失败也可能是正确结果", caseId: "GNA-003", pathId: "williams-toggle-limit-path", analysisType: "frame" },
 ] as const;
 
 for (const learningPath of learningPaths) {
-  test(`v1.7 ${learningPath.title} 完成预判、计算与可信证据导出`, async ({ page }) => {
+  test(`公开学习路径 ${learningPath.title} 完成预判、计算与可信证据导出`, async ({ page }) => {
     await page.addInitScript(() => localStorage.clear());
     await installApiMocks(page);
 
     await page.goto("/");
     await page.getByRole("button", { name: "公开案例", exact: true }).click();
-    await expect(page.getByText("三条五分钟学习路径")).toBeVisible();
+    await expect(page.getByText(`${learningPaths.length} 条五分钟学习路径`)).toBeVisible();
     await page.getByRole("button", { name: new RegExp(learningPath.title, "u") }).click();
 
     const panel = page.getByRole("region", { name: "五分钟学习路径" });

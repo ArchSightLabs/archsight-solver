@@ -14,13 +14,13 @@ No account is required. The public site is a demonstration environment; save imp
 
 Requirements: Python `>=3.13`.
 
-Download `archsight_solver-1.8.0-py3-none-any.whl` from the [v1.8.0 GitHub Release](https://github.com/ArchSightLabs/archsight-solver/releases/tag/v1.8.0), then install it into a virtual environment:
+Download `archsight_solver-1.8.1-py3-none-any.whl` from the [v1.8.1 GitHub Release](https://github.com/ArchSightLabs/archsight-solver/releases/tag/v1.8.1), then install it into a virtual environment:
 
 ```bash
 python -m venv .venv
 # Linux/macOS: source .venv/bin/activate
 # Windows PowerShell: .\.venv\Scripts\Activate.ps1
-python -m pip install ./archsight_solver-1.8.0-py3-none-any.whl
+python -m pip install ./archsight_solver-1.8.1-py3-none-any.whl
 ```
 
 Create `create-request.json` (a source checkout also includes `examples/verification-package/create-request.json`):
@@ -62,11 +62,11 @@ The installed distribution includes runtime schemas, benchmark data, templates, 
 
 ## 3. Run the complete Web/API image
 
-Download `archsight-solver-v1.8.0.tar.gz` and `SHA256SUMS` from the GitHub Release, verify the archive, and load it:
+Download `archsight-solver-v1.8.1.tar.gz` and `SHA256SUMS` from the GitHub Release, verify the archive, and load it:
 
 ```bash
 sha256sum --check SHA256SUMS --ignore-missing
-docker load --input archsight-solver-v1.8.0.tar.gz
+docker load --input archsight-solver-v1.8.1.tar.gz
 docker run --rm -p 127.0.0.1:6240:6240 archsight-solver:release
 ```
 
@@ -74,17 +74,17 @@ Open `http://127.0.0.1:6240`. The single image serves the frontend and `/api`. T
 
 ```bash
 docker login ghcr.io
-docker run --rm -p 127.0.0.1:6240:6240 ghcr.io/archsightlabs/archsight-solver:v1.8.0
+docker run --rm -p 127.0.0.1:6240:6240 ghcr.io/archsightlabs/archsight-solver:v1.8.1
 ```
 
 Do not use `latest` as release evidence. Official production deployment uses its independently managed Alibaba Cloud Container Registry target rather than GHCR.
 
 ## 4. Install the framework-free Host Client
 
-Download `archsight-solver-host-client-1.8.0.tgz` from the GitHub Release:
+Download `archsight-solver-host-client-1.8.1.tgz` from the GitHub Release:
 
 ```bash
-npm install ./archsight-solver-host-client-1.8.0.tgz
+npm install ./archsight-solver-host-client-1.8.1.tgz
 ```
 
 ```ts

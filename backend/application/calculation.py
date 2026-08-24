@@ -65,6 +65,53 @@ def _beam_summary(solution: Mapping[str, Any]) -> Dict[str, Any]:
     }
 
 
+def attach_method_comparison_provenance(
+    value: Any,
+    *,
+    request_hash: str,
+    model_hash: str,
+    inherited_reference: Mapping[str, Any] | None = None,
+) -> None:
+    """Attach stable same-input provenance to every MethodComparison record."""
+
+    if isinstance(value, list):
+        for item in value:
+            attach_method_comparison_provenance(
+                item,
+                request_hash=request_hash,
+                model_hash=model_hash,
+                inherited_reference=inherited_reference,
+            )
+        return
+    if not isinstance(value, dict):
+        return
+    reference = value.get("referenceSource")
+    current_reference = reference if isinstance(reference, Mapping) else inherited_reference
+    comparison = value.get("methodComparison")
+    if isinstance(comparison, dict) and comparison.get("schema") == "MethodComparison@1":
+        for method in comparison.get("methods", []):
+            if not isinstance(method, dict):
+                continue
+            method_id = str(method.get("id") or "unknown")
+            source_record = {
+                "methodId": method_id,
+                "requestHash": request_hash,
+                "modelHash": model_hash,
+                "referenceSource": deepcopy(dict(current_reference or {})),
+            }
+            method["requestHash"] = request_hash
+            method["modelHash"] = model_hash
+            method["referenceSource"] = source_record["referenceSource"]
+            method["sourceHash"] = _stable_hash(source_record)
+    for child in value.values():
+        attach_method_comparison_provenance(
+            child,
+            request_hash=request_hash,
+            model_hash=model_hash,
+            inherited_reference=current_reference,
+        )
+
+
 def build_calculation_result(data: Mapping[str, Any], operation: str = "calculate") -> Dict[str, Any]:
     if "reviewPoints" in data:
         review_points = data.get("reviewPoints")
@@ -105,6 +152,14 @@ def build_calculation_result(data: Mapping[str, Any], operation: str = "calculat
         request_echo["reviewPoints"] = deepcopy(data["reviewPoints"])
 
     generated_at = datetime.now(timezone.utc).isoformat()
+    request_hash = _stable_hash(request_echo)
+    model_hash = _stable_hash(structure)
+    if analysis_type == "frame":
+        attach_method_comparison_provenance(
+            solution,
+            request_hash=request_hash,
+            model_hash=model_hash,
+        )
     result: Dict[str, Any] = {
         "storageSchema": CALCULATION_RESULT_SCHEMA,
         "operation": operation,
@@ -115,8 +170,8 @@ def build_calculation_result(data: Mapping[str, Any], operation: str = "calculat
         "diagnostics": solution.get("diagnostics", {}),
         "solution": solution,
         "generatedAt": generated_at,
-        "requestHash": _stable_hash(request_echo),
-        "modelHash": _stable_hash(structure),
+        "requestHash": request_hash,
+        "modelHash": model_hash,
     }
     if normalized_request is not None:
         result["normalizedRequest"] = normalized_request

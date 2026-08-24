@@ -161,7 +161,7 @@ BENCHMARK_CASE_LIST_INPUT_SCHEMA: Dict[str, Any] = {
     "properties": {
         "category": {
             "type": "string",
-            "enum": ["beam", "truss", "frame", "truss-verify", "frame-beam-verify"],
+            "enum": ["beam", "truss", "frame", "truss-verify", "frame-beam-verify", "frame-nonlinear-verify"],
         }
     },
     "additionalProperties": False,
@@ -186,7 +186,7 @@ BENCHMARK_SUBMISSION_CASE_SCHEMA: Dict[str, Any] = {
         "id": {"type": "string", "description": "建议使用稳定短横线 caseId。"},
         "category": {
             "type": "string",
-            "enum": ["beam", "truss", "frame", "truss-verify", "frame-beam-verify"],
+            "enum": ["beam", "truss", "frame", "truss-verify", "frame-beam-verify", "frame-nonlinear-verify"],
         },
         "title": {"type": "string"},
         "purpose": {"type": "string", "description": "说明该算例验证的结构体系、边界或荷载特征。"},
@@ -212,6 +212,7 @@ BENCHMARK_SUBMISSION_CASE_SCHEMA: Dict[str, Any] = {
                     "enum": [
                         "textbook-analytical",
                         "independent-stiffness-baseline",
+                        "published-benchmark",
                         "engineering-software",
                         "internal-regression",
                     ],

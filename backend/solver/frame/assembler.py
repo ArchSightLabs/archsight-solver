@@ -81,13 +81,16 @@ def assemble_global_system(structure: Dict[str, Any], solver_backend: str = "aut
         ]
 
         f_base_local = np.zeros(6, dtype=float)
+        f_base_fixed_local = np.zeros(6, dtype=float)
+        f_base_variable_local = np.zeros(6, dtype=float)
         load_components: List[Dict[str, Any]] = []
         for load in loads:
+            path_role = str(load.get("pathRole") or "variable")
             if load["type"] == "distributed" and load["member"] == member["id"]:
                 q_start_kn, q_end_kn, direction, start_ratio, end_ratio = _distributed_load_contract(load)
                 qx_start, qy_start = _load_components_to_local(direction, q_start_kn * 1000.0, cosine, sine)
                 qx_end, qy_end = _load_components_to_local(direction, q_end_kn * 1000.0, cosine, sine)
-                f_base_local += distributed_load_local_vector(
+                load_vector_local = distributed_load_local_vector(
                     qy_start,
                     length,
                     wx_npm=qx_start,
@@ -96,9 +99,15 @@ def assemble_global_system(structure: Dict[str, Any], solver_backend: str = "aut
                     start_ratio=start_ratio,
                     end_ratio=end_ratio,
                 )
+                f_base_local += load_vector_local
+                if path_role == "fixed":
+                    f_base_fixed_local += load_vector_local
+                else:
+                    f_base_variable_local += load_vector_local
                 load_components.append(
                     {
                         "type": "distributed",
+                        "pathRole": path_role,
                         "direction": direction,
                         "qxStartNPerM": qx_start,
                         "qxEndNPerM": qx_end,
@@ -113,15 +122,21 @@ def assemble_global_system(structure: Dict[str, Any], solver_backend: str = "aut
             elif load["type"] == "member_point" and load["member"] == member["id"]:
                 force_kn, position_ratio, direction = _member_point_load_contract(load)
                 px, py = _load_components_to_local(direction, force_kn * 1000.0, cosine, sine)
-                f_base_local += point_load_local_vector(
+                load_vector_local = point_load_local_vector(
                     py,
                     length,
                     px_n=px,
                     position_ratio=position_ratio,
                 )
+                f_base_local += load_vector_local
+                if path_role == "fixed":
+                    f_base_fixed_local += load_vector_local
+                else:
+                    f_base_variable_local += load_vector_local
                 load_components.append(
                     {
                         "type": "member_point",
+                        "pathRole": path_role,
                         "direction": direction,
                         "pxN": px,
                         "pyN": py,
@@ -131,10 +146,16 @@ def assemble_global_system(structure: Dict[str, Any], solver_backend: str = "aut
                 )
             elif load["type"] == "temperature" and load["member"] == member["id"]:
                 delta_temp_c, alpha_per_c = _temperature_load_contract(load)
-                f_base_local += temperature_load_local_vector(e, a, alpha_per_c, delta_temp_c)
+                load_vector_local = temperature_load_local_vector(e, a, alpha_per_c, delta_temp_c)
+                f_base_local += load_vector_local
+                if path_role == "fixed":
+                    f_base_fixed_local += load_vector_local
+                else:
+                    f_base_variable_local += load_vector_local
                 load_components.append(
                     {
                         "type": "temperature",
+                        "pathRole": path_role,
                         "deltaTempC": delta_temp_c,
                         "alphaPerC": alpha_per_c,
                         "freeStrain": alpha_per_c * delta_temp_c,
@@ -143,6 +164,8 @@ def assemble_global_system(structure: Dict[str, Any], solver_backend: str = "aut
 
         release_dofs = _release_dofs(member.get("endReleases", {}))
         k_local, f_local = apply_rotational_releases(k_base_local, f_base_local, release_dofs)
+        _, f_fixed_local = apply_rotational_releases(k_base_local, f_base_fixed_local, release_dofs)
+        _, f_variable_local = apply_rotational_releases(k_base_local, f_base_variable_local, release_dofs)
         k_global = transform.T @ k_local @ transform
         load_vector[dofs] += transform.T @ f_local
         add_local_stiffness(stiffness, dofs, k_global)
@@ -166,6 +189,10 @@ def assemble_global_system(structure: Dict[str, Any], solver_backend: str = "aut
                 "transform": transform,
                 "f_base_local": f_base_local,
                 "f_local": f_local,
+                "f_base_fixed_local": f_base_fixed_local,
+                "f_base_variable_local": f_base_variable_local,
+                "f_fixed_local": f_fixed_local,
+                "f_variable_local": f_variable_local,
                 "loads": load_components,
                 "endReleases": member.get("endReleases", {}),
                 "section": member.get("section", {}),

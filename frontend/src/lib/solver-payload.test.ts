@@ -159,9 +159,32 @@ test("buildFramePayload preserves advanced frame modeling fields", () => {
     pDelta: true,
     buckling: true,
     pDeltaOptions: {
+      algorithm: "corotational_newton_v1",
       loadSteps: 8,
       maxIterations: 16,
       tolerance: 1e-7,
+      initialStep: 0.2,
+      minStep: 0.01,
+      maxStep: 0.5,
+      maxCutbacks: 10,
+      relativeResidualTolerance: 1e-8,
+      absoluteResidualToleranceN: 1e-5,
+      relativeDisplacementTolerance: 1e-8,
+      absoluteDisplacementToleranceM: 1e-10,
+      relativeEnergyTolerance: 1e-10,
+      absoluteEnergyToleranceJ: 1e-8,
+      lineSearchMaxTrials: 8,
+      memberSubdivisions: 4,
+      maxRefinedDofs: 1800,
+      maxAcceptedSteps: 2000,
+      includeMethodComparison: true,
+      initialImperfection: {
+        type: "none",
+        nodeOffsets: [],
+        modeNumber: 1,
+        amplitudeMm: 0,
+        direction: 1,
+      },
     },
     bucklingOptions: {
       modeCount: 4,
@@ -180,9 +203,9 @@ test("buildFramePayload preserves advanced frame modeling fields", () => {
     internalHinges: [{ ratio: 0.5 }],
   };
   workspace.customLoads = [
-    { type: "distributed", member: "B1", direction: "global_y", qStartKnPerM: -8, qEndKnPerM: -12, startRatio: 0.2, endRatio: 0.8 },
-    { type: "member_point", member: "B1", direction: "local_y", forceKn: -12, positionRatio: 0.5 },
-    { type: "temperature", member: "B1", deltaTempC: 30, alphaPerC: 1.1e-5 },
+    { type: "distributed", member: "B1", direction: "global_y", qStartKnPerM: -8, qEndKnPerM: -12, startRatio: 0.2, endRatio: 0.8, pathRole: "fixed" },
+    { type: "member_point", member: "B1", direction: "local_y", forceKn: -12, positionRatio: 0.5, pathRole: "variable" },
+    { type: "temperature", member: "B1", deltaTempC: 30, alphaPerC: 1.1e-5, pathRole: "fixed" },
   ];
   workspace.customLoadCases = [
     {
@@ -214,11 +237,11 @@ test("buildFramePayload preserves advanced frame modeling fields", () => {
   assert.deepEqual(payload.structure.nodes[1]?.supportDisplacements, [{ dof: "n", displacementMm: -2.5 }]);
   assert.deepEqual(payload.structure.members[1]?.endReleases, { start: ["rz"] });
   assert.deepEqual(payload.structure.members[1]?.internalHinges, [{ ratio: 0.5 }]);
-  assert.deepEqual(payload.structure.loads[0], { type: "distributed", member: "B1", direction: "global_y", qStartKnPerM: -8, qEndKnPerM: -12, startRatio: 0.2, endRatio: 0.8 });
-  assert.deepEqual(payload.structure.loads[1], { type: "member_point", member: "B1", direction: "local_y", forceKn: -12, positionRatio: 0.5 });
-  assert.deepEqual(payload.structure.loads[2], { type: "temperature", member: "B1", deltaTempC: 30, alphaPerC: 1.1e-5 });
+  assert.deepEqual(payload.structure.loads[0], { type: "distributed", member: "B1", direction: "global_y", qStartKnPerM: -8, qEndKnPerM: -12, startRatio: 0.2, endRatio: 0.8, pathRole: "fixed" });
+  assert.deepEqual(payload.structure.loads[1], { type: "member_point", member: "B1", direction: "local_y", forceKn: -12, positionRatio: 0.5, pathRole: "variable" });
+  assert.deepEqual(payload.structure.loads[2], { type: "temperature", member: "B1", deltaTempC: 30, alphaPerC: 1.1e-5, pathRole: "fixed" });
   assert.equal(payload.structure.loadCases?.length, 3);
-  assert.deepEqual(payload.structure.loadCases?.[2]?.loads[0], { type: "temperature", member: "B1", deltaTempC: 20, alphaPerC: 1.2e-5 });
+  assert.deepEqual(payload.structure.loadCases?.[2]?.loads[0], { type: "temperature", member: "B1", deltaTempC: 20, alphaPerC: 1.2e-5, pathRole: "variable" });
   assert.deepEqual(payload.structure.loadCombinations?.[0]?.factors, { DL: 1.2, WL: 1.5, TL: 1.0 });
   assert.deepEqual(payload.structure.loadCombinations?.[0]?.tags, ["ULS", "包络"]);
 });
@@ -245,9 +268,32 @@ test("normalizeFrameWorkspaceState backfills and clamps legacy analysis options"
     pDelta: true,
     buckling: true,
     pDeltaOptions: {
+      algorithm: "initial_stress_v1",
       loadSteps: 20,
       maxIterations: 12,
       tolerance: 1e-10,
+      initialStep: 0.25,
+      minStep: 0.01,
+      maxStep: 0.5,
+      maxCutbacks: 12,
+      relativeResidualTolerance: 1e-8,
+      absoluteResidualToleranceN: 1e-5,
+      relativeDisplacementTolerance: 1e-8,
+      absoluteDisplacementToleranceM: 1e-10,
+      relativeEnergyTolerance: 1e-10,
+      absoluteEnergyToleranceJ: 1e-8,
+      lineSearchMaxTrials: 8,
+      memberSubdivisions: 4,
+      maxRefinedDofs: 1800,
+      maxAcceptedSteps: 2000,
+      includeMethodComparison: true,
+      initialImperfection: {
+        type: "none",
+        nodeOffsets: [],
+        modeNumber: 1,
+        amplitudeMm: 0,
+        direction: 1,
+      },
     },
     bucklingOptions: {
       modeCount: 8,
@@ -256,6 +302,13 @@ test("normalizeFrameWorkspaceState backfills and clamps legacy analysis options"
   assert.deepEqual(cloned.analysisOptions, workspace.analysisOptions);
   cloned.analysisOptions.pDeltaOptions.loadSteps = 6;
   assert.equal(workspace.analysisOptions.pDeltaOptions.loadSteps, 20);
+});
+
+test("createDefaultFrameWorkspaceState uses the professional corotational default", () => {
+  const workspace = createDefaultFrameWorkspaceState();
+
+  assert.equal(workspace.analysisOptions.pDeltaOptions.algorithm, "corotational_newton_v1");
+  assert.equal(workspace.analysisOptions.pDeltaOptions.maxAcceptedSteps, 2000);
 });
 
 test("validateCustomFrameWorkspace rejects invalid load combination factors", () => {
@@ -356,7 +409,7 @@ test("normalizeFrameWorkspaceState canonicalizes load case ids and preserves adv
   assert.equal(cloned.customMembers[0].materialId, "q235");
   assert.deepEqual(cloned.customMembers[0].endReleases?.end, ["rz"]);
   assert.deepEqual(cloned.customMembers[0].internalHinges, [{ ratio: 0.5 }]);
-  assert.deepEqual(cloned.customLoads[0], { type: "temperature", member: "B1", deltaTempC: 28, alphaPerC: 1.2e-5 });
+  assert.deepEqual(cloned.customLoads[0], { type: "temperature", member: "B1", deltaTempC: 28, alphaPerC: 1.2e-5, pathRole: "variable" });
   assert.equal(cloned.customLoadCases[0].id, "DL");
   assert.equal(cloned.customLoadCombinations[0].id, "ULS1");
   assert.deepEqual(cloned.customLoadCombinations[0].factors, { DL: 1.2 });

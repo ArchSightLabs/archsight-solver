@@ -36,6 +36,61 @@ def _member_results_by_id(data: Mapping[str, Any]) -> Dict[str, Mapping[str, Any
     return {str(item["memberId"]): item for item in data.get("memberResults", [])}
 
 
+def _nonlinear_keyframe_response(
+    trace: Mapping[str, Any],
+    *,
+    node_id: str,
+    dof: str,
+    path_progress: float,
+) -> float:
+    reference_nodes = list(trace.get("mesh", {}).get("referenceNodes", []))
+    node_index = next(
+        (index for index, node in enumerate(reference_nodes) if str(node.get("id")) == node_id),
+        None,
+    )
+    if node_index is None:
+        raise BenchmarkCaseError(f"非线性路径不存在控制节点 {node_id}")
+    component = {"ux": "uxM", "uy": "uyM"}.get(dof)
+    if component is None:
+        raise BenchmarkCaseError(f"非线性路径暂不支持控制自由度 {dof}")
+    has_preload = any(float(frame.get("fixedLoadFactor", 0.0)) > 0.0 for frame in trace.get("keyframes", []))
+
+    def progress(frame: Mapping[str, Any]) -> float:
+        if str(frame.get("pathPhase")) == "fixed_preload":
+            return float(frame.get("fixedLoadFactor", 0.0))
+        return (1.0 if has_preload else 0.0) + float(frame.get("loadFactor", 0.0))
+
+    def value(frame: Mapping[str, Any]) -> float:
+        node = next(
+            (
+                item
+                for item in frame.get("nodeDisplacements", [])
+                if int(item.get("nodeIndex", -1)) == node_index
+            ),
+            None,
+        )
+        if node is None:
+            raise BenchmarkCaseError(f"非线性关键帧缺少节点 {node_id} 的位移")
+        return float(node.get(component, 0.0)) * 1000.0
+
+    frames = sorted(trace.get("keyframes", []), key=progress)
+    if not frames:
+        raise BenchmarkCaseError("非线性路径没有可用于 benchmark 的关键帧")
+    target = float(path_progress)
+    if target < progress(frames[0]) - 1e-12 or target > progress(frames[-1]) + 1e-12:
+        raise BenchmarkCaseError(f"非线性路径未覆盖 benchmark 目标进度 {target}")
+    for frame in frames:
+        if abs(progress(frame) - target) <= 1e-12:
+            return value(frame)
+    upper_index = next(index for index, frame in enumerate(frames) if progress(frame) > target)
+    lower = frames[upper_index - 1]
+    upper = frames[upper_index]
+    lower_progress = progress(lower)
+    upper_progress = progress(upper)
+    ratio = (target - lower_progress) / max(upper_progress - lower_progress, 1e-15)
+    return value(lower) + ratio * (value(upper) - value(lower))
+
+
 def _evaluate_response(case: Mapping[str, Any], data: Mapping[str, Any]) -> list[Dict[str, Any]]:
     category = str(case["category"])
     expected = case["expected"]
@@ -234,6 +289,111 @@ def _evaluate_response(case: Mapping[str, Any], data: Mapping[str, Any]) -> list
                         tolerances["rotationDeg"],
                     )
                 )
+        return checks
+
+    if category == "frame-nonlinear-verify":
+        second_order = data["secondOrder"]
+        trace = second_order["nonlinearPathTrace"]
+        node_by_id = _node_results_by_id(second_order["lastConvergedSolution"])
+        checks.append(_check("非线性算法", second_order["algorithm"]["id"], expected["algorithmId"]))
+        checks.append(_check("平衡状态", second_order["equilibriumStatus"], expected["equilibriumStatus"]))
+        if "stabilityStatuses" in expected:
+            checks.append(
+                _check("稳定状态", second_order["stabilityStatus"] in expected["stabilityStatuses"], True)
+            )
+        else:
+            checks.append(_check("稳定状态", second_order["stabilityStatus"], expected["stabilityStatus"]))
+        checks.append(_check("路径控制", trace["control"]["type"], expected["pathControlType"]))
+        if "initialImperfectionType" in expected:
+            imperfection = second_order.get("initialImperfection", {})
+            checks.append(
+                _check("初始缺陷类型", imperfection.get("type"), expected["initialImperfectionType"])
+            )
+            checks.append(
+                _check(
+                    "初始缺陷最大幅值(mm)",
+                    imperfection.get("maximumAmplitudeMm"),
+                    expected["initialImperfectionAmplitudeMm"],
+                    tolerances["initialImperfectionAmplitudeMm"],
+                )
+            )
+            source = imperfection.get("source", {})
+            checks.append(_check("初始缺陷来源", source.get("type"), expected["initialImperfectionSourceType"]))
+            checks.append(_check("初始缺陷模态号", source.get("modeNumber"), expected["initialImperfectionModeNumber"]))
+        control_node_id = str(expected["controlNodeId"])
+        control_dof = str(expected.get("controlDof", "ux"))
+        result_field = {"ux": "uxMm", "uy": "uyMm"}[control_dof]
+        expected_displacement = expected.get("controlNodeDisplacementMm", expected.get("controlNodeUxMm"))
+        displacement_tolerance = tolerances.get("controlNodeDisplacementMm", tolerances.get("controlNodeUxMm"))
+        checks.append(
+            _check(
+                f"{control_node_id} {'水平' if control_dof == 'ux' else '竖向'}位移(mm)",
+                node_by_id[control_node_id][result_field],
+                expected_displacement,
+                displacement_tolerance,
+            )
+        )
+        if "controlNodeTotalDisplacementMm" in expected:
+            total_field = {"ux": "totalUxMm", "uy": "totalUyMm"}[control_dof]
+            checks.append(
+                _check(
+                    f"{control_node_id} {'总水平' if control_dof == 'ux' else '总竖向'}位移(mm)",
+                    node_by_id[control_node_id][total_field],
+                    expected["controlNodeTotalDisplacementMm"],
+                    tolerances["controlNodeTotalDisplacementMm"],
+                )
+            )
+        if "criticalLoadFactor" in expected:
+            checks.append(
+                _check(
+                    "线性屈曲临界系数",
+                    data["buckling"]["criticalLoadFactor"],
+                    expected["criticalLoadFactor"],
+                    tolerances["criticalLoadFactor"],
+                )
+            )
+        if "terminationReasons" in expected:
+            checks.append(
+                _check("路径终止原因", second_order.get("terminationReason") in expected["terminationReasons"], True)
+            )
+        if "lastConvergedLoadFactor" in expected:
+            checks.append(
+                _check(
+                    "最后收敛荷载系数",
+                    second_order["lastConverged"]["loadFactor"],
+                    expected["lastConvergedLoadFactor"],
+                    tolerances["lastConvergedLoadFactor"],
+                )
+            )
+        if "lastConvergedLoadKn" in expected:
+            actual_load = float(second_order["lastConverged"]["loadFactor"]) * float(expected["referenceLoadKn"])
+            checks.append(
+                _check(
+                    "最后收敛荷载(kN)",
+                    actual_load,
+                    expected["lastConvergedLoadKn"],
+                    tolerances["lastConvergedLoadKn"],
+                )
+            )
+        if "failedAttemptsMinimum" in expected:
+            checks.append(
+                _check("失败尝试数量", len(trace.get("attempts", [])) >= int(expected["failedAttemptsMinimum"]), True)
+            )
+        for point in expected.get("pathPoints", []):
+            actual = _nonlinear_keyframe_response(
+                trace,
+                node_id=str(point["nodeId"]),
+                dof=str(point["dof"]),
+                path_progress=float(point["pathProgress"]),
+            )
+            checks.append(
+                _check(
+                    f"路径点 {point['pathProgress']:.6g} / {point['nodeId']} {point['dof']}(mm)",
+                    actual,
+                    point["responseMm"],
+                    point["toleranceMm"],
+                )
+            )
         return checks
 
     if category == "truss-verify":

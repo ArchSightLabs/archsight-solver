@@ -31,7 +31,7 @@
 | 字段 | 含义 | 阅读重点 |
 |---|---|---|
 | `id` | 稳定算例编号，供测试、CLI、MCP 和公开案例引用。 | 不应随意改名。 |
-| `category` | 算例类型：`beam`、`frame`、`truss`、`frame-beam-verify`、`truss-verify`。 | 决定 runner 使用哪类结果提取逻辑。 |
+| `category` | 算例类型：`beam`、`frame`、`truss`、`frame-beam-verify`、`frame-nonlinear-verify`、`truss-verify`。 | 决定 runner 使用哪类结果提取逻辑。 |
 | `title` | 中文算例名称。 | 用于报告和公开案例展示。 |
 | `purpose` | 该算例要验证的工程含义。 | 应写清结构体系、荷载或边界条件。 |
 | `payload` | 送入求解器的完整输入。 | 梁系较短，框架/桁架会包含节点、构件和荷载数组。 |

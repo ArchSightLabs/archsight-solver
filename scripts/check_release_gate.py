@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_PATHS = (
     ".github/workflows/release.yml",
     ".github/workflows/nightly-quality.yml",
+    "docs/verification/release-1-8-1-acceptance.md",
     "docs/verification/release-1-7-acceptance.md",
     "docs/verification/release-1-6-3-acceptance.md",
     "docs/verification/release-1-6-2-acceptance.md",
@@ -33,6 +34,7 @@ REQUIRED_PATHS = (
     "frontend/tests/visual/release-1-8-stability-keypoints.spec.ts",
     "frontend/tests/visual/release-1-8-calculation-trace.spec.ts",
     "frontend/tests/visual/release-1-8-workbench-accessibility.spec.ts",
+    "frontend/tests/visual/release-1-8-1-real-teaching-e2e.spec.ts",
     "frontend/tests/visual/workbench-export-docx.spec.ts",
     "scripts/run_host_iframe_demo.py",
     "scripts/build-image.ps1",
@@ -89,6 +91,11 @@ REQUIRED_MARKERS = {
         "save-timeout",
         "late-save-snapshot",
     ),
+    "frontend/tests/visual/release-1-8-stability-keypoints.spec.ts": (
+        "v1.8.1 几何非线性过程播放",
+        "canonical 关键点",
+        "corotational_newton_v1",
+    ),
     ".github/workflows/ci.yml": (
         "python scripts/check_versions.py",
         "python scripts/check_release_gate.py",
@@ -104,6 +111,7 @@ REQUIRED_MARKERS = {
         "release-1-8-stability-keypoints.spec.ts",
         "release-1-8-calculation-trace.spec.ts",
         "release-1-8-workbench-accessibility.spec.ts",
+        "release-1-8-1-real-teaching-e2e.spec.ts",
         "workbench-export-docx.spec.ts",
         "npm ci --include=optional",
         "npm --prefix frontend ci --include=optional",
@@ -133,6 +141,7 @@ REQUIRED_MARKERS = {
         "release-1-8-stability-keypoints.spec.ts",
         "release-1-8-calculation-trace.spec.ts",
         "release-1-8-workbench-accessibility.spec.ts",
+        "release-1-8-1-real-teaching-e2e.spec.ts",
         "test:visual:export-docx",
         "npm --prefix frontend ci --include=optional",
         "npm --prefix frontend audit --omit=dev --audit-level=moderate",
@@ -181,26 +190,35 @@ def main() -> int:
     if build_script_path.is_file() and "DOCKER_BUILDKIT" in build_script_path.read_text(encoding="utf-8"):
         failures.append("scripts/build-image.ps1 不得回退到已弃用的 Legacy Builder")
 
+    current_acceptance_path = ROOT / "docs/verification/release-1-8-1-acceptance.md"
+    if current_acceptance_path.is_file():
+        acceptance = current_acceptance_path.read_text(encoding="utf-8")
+        if not re.search(r"^> 状态：(发布候选就绪|已发布)\s*$", acceptance, flags=re.MULTILINE):
+            failures.append("v1.8.1 发布验收状态必须为‘发布候选就绪’或‘已发布’")
+        unchecked_items = re.findall(r"^- \[ \] ", acceptance, flags=re.MULTILINE)
+        if unchecked_items:
+            failures.append(f"v1.8.1 发布验收仍有 {len(unchecked_items)} 项未完成")
+
     deploy_expectations = {
         "deploy/.env.example": (
-            "IMAGE_TAG=v1.8.0",
+            "IMAGE_TAG=v1.8.1",
             "NODE_IMAGE=public.ecr.aws/docker/library/node:22-bookworm-slim@sha256:",
             "PYTHON_IMAGE=public.ecr.aws/docker/library/python:3.13-slim@sha256:",
             "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS=",
         ),
         "deploy/docker-compose.yml.example": (
-            "${IMAGE_TAG:-v1.8.0}",
+            "${IMAGE_TAG:-v1.8.1}",
             "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS: ${ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS:-}",
         ),
         "deploy/deploy.sh": (
-            '${IMAGE_TAG:-v1.8.0}',
+            '${IMAGE_TAG:-v1.8.1}',
             'ps --all --quiet',
             "docker inspect --format",
             "DEPLOY_HEALTH_TIMEOUT_SECONDS",
             "logs --tail=100",
             "wait_for_services_healthy",
         ),
-        "docs/deployment.md": ("archsight-solver:v1.8.0", "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS", "VITE_UMAMI_WEBSITE_ID"),
+        "docs/deployment.md": ("archsight-solver:v1.8.1", "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS", "VITE_UMAMI_WEBSITE_ID"),
     }
     for relative_path, expected_markers in deploy_expectations.items():
         text = (ROOT / relative_path).read_text(encoding="utf-8")

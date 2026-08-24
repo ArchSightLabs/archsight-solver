@@ -3,15 +3,17 @@ from __future__ import annotations
 import io
 
 import pandas as pd
+import pytest
 from docx import Document
 
 from backend.benchmarks.catalog import find_benchmark_case
 from backend.examples.public_validation_projects import build_public_validation_projects
 from backend.contracts.json_schemas import API_SCHEMA_VERSION
-from backend.exporters.common.evidence import build_evidence_tables, build_report_review_table
+from backend.exporters.common.evidence import _beam_vertical_load_kn, _structure_load_resultant, build_evidence_tables, build_report_review_table
+from backend.application.truss_analysis import _loads_for_combination as truss_loads_for_combination
 from backend.services.export_service import build_report_model, export_report
 from backend.tests.test_beam_workbench import beam_payload
-from backend.tests.test_frame_workbench import frame_payload
+from backend.tests.test_frame_workbench import frame_payload, frame_payload_with_combination_tags
 from backend.tests.test_truss_workbench import _base_payload as truss_payload
 
 
@@ -33,6 +35,177 @@ def _xlsx_text(artifact) -> str:
             pd.read_excel(xls, sheet_name=sheet_name, header=None).astype(str).to_string()
             for sheet_name in xls.sheet_names
         )
+
+
+def test_selected_frame_combination_projects_the_entire_report_body():
+    payload = frame_payload_with_combination_tags()
+    report = build_report_model(
+        {
+            **payload,
+            "resultSource": {
+                "source": "combination",
+                "id": "ULS1",
+                "label": "承载能力基本组合",
+                "description": "1.2DL + 1.5WL",
+            },
+        },
+        analysis_type="frame",
+        material_name="测试材料",
+        sensitivity_results=None,
+        report_images=None,
+    )
+    selected = next(item for item in report["loadCombinationResults"] if item["id"] == "ULS1")
+
+    assert report["summary"] == selected["summary"]
+    assert report["nodeResults"] == selected["nodeResults"]
+    assert report["memberResults"] == selected["memberResults"]
+    assert report["memberDiagrams"] == selected["memberDiagrams"]
+    selected_loads = report["structure"]["loads"]
+    assert selected_loads[0]["type"] == "distributed"
+    assert selected_loads[0]["qStartKnPerM"] == pytest.approx(-21.6)
+    assert selected_loads[1]["type"] == "nodal"
+    assert selected_loads[1]["fxKn"] == pytest.approx(36.0)
+    equilibrium = build_evidence_tables(report, "frame", "测试材料")["校核证据"]
+    equilibrium_text = _table_text(equilibrium)
+    assert equilibrium_text.count("相对误差 0.0%") >= 2
+    assert report["selectedResult"]["factors"] == {"DL": 1.2, "WL": 1.5}
+    assert "ULS1" in _docx_text(export_report(report, "docx"))
+    assert "ULS1" in _xlsx_text(export_report(report, "xlsx"))
+
+
+def test_selected_beam_case_and_combination_project_resolved_input_and_equilibrium():
+    payload = beam_payload()
+    payload["loadCases"] = [
+        {"id": "DL", "title": "恒载", "loads": [{"type": "uniform", "qKnPerM": 8.0}]},
+        {"id": "LL", "title": "活载", "loads": [{"type": "point", "magnitudeKn": 20.0, "x": 2.5}]},
+    ]
+    payload["loadCombinations"] = [
+        {"id": "ULS1", "title": "基本组合", "factors": {"DL": 1.2, "LL": 1.4}},
+    ]
+
+    case_report = build_report_model(
+        {**payload, "resultSource": {"source": "case", "id": "LL", "label": "活载"}},
+        analysis_type="beam",
+        material_name="测试材料",
+        sensitivity_results=None,
+        report_images=None,
+    )
+    assert case_report["request"]["load_type"] == "point"
+    assert case_report["request"]["point_load_kn"] == pytest.approx(20.0)
+    assert case_report["status"] == case_report["summary"]["status"]
+    assert case_report["max_deflection_position_m"] == pytest.approx(case_report["summary"]["maxDeflectionPositionM"])
+    case_docx = _docx_text(export_report(case_report, "docx"))
+    assert "集中荷载 P" in case_docx and "20.0 kN" in case_docx
+    assert "均布荷载 q | 10.0 kN/m" not in case_docx
+
+    combination_report = build_report_model(
+        {**payload, "resultSource": {"source": "combination", "id": "ULS1", "label": "基本组合"}},
+        analysis_type="beam",
+        material_name="测试材料",
+        sensitivity_results=None,
+        report_images=None,
+    )
+    assert combination_report["request"]["load_type"] == "combination"
+    assert combination_report["request"]["selected_load_combination"]["factors"] == {"DL": 1.2, "LL": 1.4}
+    assert combination_report["status"] == combination_report["summary"]["status"]
+    assert combination_report["max_deflection_position_m"] == pytest.approx(
+        combination_report["summary"]["maxDeflectionPositionM"]
+    )
+    combination_docx = _docx_text(export_report(combination_report, "docx"))
+    assert "1.2×DL + 1.4×LL" in combination_docx
+    assert "均布荷载 q | 10.0 kN/m" not in combination_docx
+    evidence_text = _table_text(build_evidence_tables(combination_report, "beam", "测试材料")["校核证据"])
+    assert evidence_text.count("相对误差 0.0%") >= 1
+
+
+def test_selected_truss_case_and_combination_project_resolved_loads():
+    payload = truss_payload()
+    payload["structure"]["loads"] = []
+    payload["structure"]["loadCases"] = [
+        {"id": "VL", "title": "竖向", "loads": [{"type": "nodal", "node": "N3", "fxKn": 0.0, "fyKn": -12.0}]},
+        {"id": "HL", "title": "水平", "loads": [{"type": "nodal", "node": "N4", "fxKn": 8.0, "fyKn": 0.0}]},
+    ]
+    payload["structure"]["loadCombinations"] = [
+        {"id": "COMB1", "title": "组合", "factors": {"VL": 1.2, "HL": 1.0}},
+    ]
+
+    case_report = build_report_model(
+        {**payload, "resultSource": {"source": "case", "id": "VL", "label": "竖向"}},
+        analysis_type="truss",
+        material_name="测试材料",
+        sensitivity_results=None,
+        report_images=None,
+    )
+    assert case_report["structure"]["loads"] == [
+        {"type": "nodal", "node": "N3", "fxKn": 0.0, "fyKn": -12.0}
+    ]
+
+    combination_report = build_report_model(
+        {**payload, "resultSource": {"source": "combination", "id": "COMB1", "label": "组合"}},
+        analysis_type="truss",
+        material_name="测试材料",
+        sensitivity_results=None,
+        report_images=None,
+    )
+    combination_loads = combination_report["structure"]["loads"]
+    assert combination_loads[0]["node"] == "N3"
+    assert combination_loads[0]["fyKn"] == pytest.approx(-14.4)
+    assert combination_loads[1]["node"] == "N4"
+    assert combination_loads[1]["fxKn"] == pytest.approx(8.0)
+    evidence_text = _table_text(build_evidence_tables(combination_report, "truss", "测试材料")["校核证据"])
+    assert "残差 0.0 kN" in evidence_text
+    assert "COMB1" in _docx_text(export_report(combination_report, "docx"))
+    assert "COMB1" in _xlsx_text(export_report(combination_report, "xlsx"))
+
+
+def test_report_equilibrium_helpers_cover_partial_and_member_load_contracts():
+    assert _beam_vertical_load_kn(
+        {
+            "load_type": "uniform",
+            "q_kn": 10.0,
+            "total_length": 10.0,
+            "uniform_start": 2.5,
+            "uniform_end": 7.5,
+        }
+    ) == pytest.approx(50.0)
+
+    structure = {
+        "nodes": [
+            {"id": "N1", "x": 0.0, "y": 0.0},
+            {"id": "N2", "x": 4.0, "y": 0.0},
+        ],
+        "members": [{"id": "M1", "start": "N1", "end": "N2"}],
+        "loads": [
+            {"type": "member_point", "member": "M1", "direction": "global_y", "forceKn": -10.0},
+            {
+                "type": "distributed",
+                "member": "M1",
+                "direction": "local_y",
+                "qStartKnPerM": -2.0,
+                "qEndKnPerM": -2.0,
+                "startRatio": 0.25,
+                "endRatio": 0.75,
+            },
+        ],
+    }
+    resultant = _structure_load_resultant(structure)
+    assert resultant["fx"] == pytest.approx(0.0)
+    assert resultant["fy"] == pytest.approx(-14.0)
+
+    temperature_loads = truss_loads_for_combination(
+        {"id": "T-COMB", "factors": {"T": 1.5}},
+        [
+            {
+                "id": "T",
+                "loads": [
+                    {"type": "temperature", "member": "M1", "deltaTempC": 20.0, "alphaPerC": 1.2e-5}
+                ],
+            }
+        ],
+    )
+    assert temperature_loads == [
+        {"type": "temperature", "member": "M1", "deltaTempC": 30.0, "alphaPerC": 1.2e-5}
+    ]
 
 
 def test_export_evidence_tables_include_public_benchmark_source_and_expected_values():
@@ -261,7 +434,9 @@ def test_frame_export_templates_split_stability_summary_and_detail():
             "members": [
                 {"id": "C1", "start": "N1", "end": "N2", "E_GPa": 210.0, "A_cm2": 220.0, "I_cm4": 1200.0, "kind": "column"},
             ],
-            "loads": [],
+            "loads": [
+                {"type": "nodal", "node": "N2", "fxKn": 80.0, "fyKn": -300.0, "mzKnM": 0.0},
+            ],
             "loadCases": [
                 {
                     "id": "DL",
@@ -278,7 +453,23 @@ def test_frame_export_templates_split_stability_summary_and_detail():
                 {"id": "ULS1", "title": "基本组合", "factors": {"DL": 1.2, "WL": 1.5}},
             ],
         },
-        "analysisOptions": {"pDelta": True, "buckling": True, "pDeltaOptions": {"loadSteps": 4, "maxIterations": 10, "tolerance": 1e-8}},
+        "analysisOptions": {
+            "pDelta": True,
+            "buckling": True,
+            "pDeltaOptions": {
+                "algorithm": "corotational_newton_v1",
+                "initialStep": 1.0,
+                "minStep": 0.2,
+                "maxStep": 1.0,
+                "maxIterations": 1,
+                "maxCutbacks": 1,
+                "includeMethodComparison": True,
+                "initialImperfection": {
+                    "type": "explicit",
+                    "nodeOffsets": [{"nodeId": "N2", "uxMm": 6.0, "uyMm": 0.0}],
+                },
+            },
+        },
     }
 
     standard_report = build_report_model(
@@ -304,11 +495,38 @@ def test_frame_export_templates_split_stability_summary_and_detail():
         + [cell.text for table in standard_docx.tables for row in table.rows for cell in row.cells]
     )
     assert "稳定审查摘要" in standard_text
+    assert "P-Delta 路径控制" in standard_text
+    assert "P-Delta 路径关键点" in standard_text
+    assert "P-Delta 最后收敛点" in standard_text
+    assert "P-Delta 失败尝试" in standard_text
+    assert "初始缺陷说明" in standard_text
+    assert "方法比较" in standard_text
     assert "构件 Euler K=1 初筛仅用于定位复核对象，不替代整体屈曲结论" in standard_text
-    assert "首模态概览" in standard_text
-    assert "P-Delta 收敛记录" not in standard_text
+    assert "corotational_newton_v1" in standard_text
+    assert "initial_stress_v1" in standard_text
+    assert "linear_buckling_v1" in standard_text
+    assert "cutback" in standard_text
+    assert "failure" in standard_text
+    assert "sourceHash" in standard_text
+    assert "requestHash" in standard_text
+    assert "modelHash" in standard_text
+    assert "residual_reduction" in standard_text
+    assert "explicit" in standard_text
+    assert any(
+        reason in standard_text
+        for reason in (
+            "maximum_iterations_exhausted",
+            "maximum_cutbacks_exhausted",
+            "minimum_step_exhausted",
+            "line_search_failed",
+            "singular_tangent",
+            "non_finite_increment",
+        )
+    )
+    assert not any(reason in standard_text for reason in ("P-Delta 收敛记录", "lineSearchScale", "energyIncrementJ"))
     assert "屈曲节点模态向量" not in standard_text
     assert "屈曲构件模态形状" not in standard_text
+    assert "共回转计算原理" not in standard_text
 
     complete_docx = Document(export_report(complete_report, "docx").buffer)
     complete_text = "\n".join(
@@ -318,22 +536,41 @@ def test_frame_export_templates_split_stability_summary_and_detail():
     assert "稳定审查摘要" in complete_text
     assert "构件 Euler K=1 初筛仅用于定位复核对象，不替代整体屈曲结论" in complete_text
     assert "稳定审查过程" in complete_text
+    assert "lineSearchScale" in complete_text
+    assert "energyIncrementJ" in complete_text
     assert "P-Delta 收敛记录" in complete_text
     assert "屈曲节点模态向量" in complete_text
     assert "屈曲构件模态形状" in complete_text
+    assert "共回转计算原理" in complete_text
+    assert "g(u, λ) = f_ext(λ) - f_int(u) = 0" in complete_text
+    assert "共回转代表单元" in complete_text
+    assert "当前弦长 L" in complete_text
 
     standard_xlsx = pd.read_excel(export_report(standard_report, "xlsx").buffer, sheet_name=None, header=None)
     standard_xlsx_text = "\n".join(frame.astype(str).to_string() for frame in standard_xlsx.values())
     assert "稳定审查摘要" in standard_xlsx_text
+    assert "P-Delta 路径控制" in standard_xlsx_text
+    assert "P-Delta 路径关键点" in standard_xlsx_text
+    assert "P-Delta 最后收敛点" in standard_xlsx_text
+    assert "P-Delta 失败尝试" in standard_xlsx_text
+    assert "初始缺陷说明" in standard_xlsx_text
+    assert "方法比较" in standard_xlsx_text
+    assert "sourceHash" in standard_xlsx_text
+    assert "requestHash" in standard_xlsx_text
+    assert "modelHash" in standard_xlsx_text
     assert "P-Delta 收敛记录" not in standard_xlsx_text
     assert "屈曲节点模态向量" not in standard_xlsx_text
 
     complete_xlsx = pd.read_excel(export_report(complete_report, "xlsx").buffer, sheet_name=None, header=None)
     complete_xlsx_text = "\n".join(frame.astype(str).to_string() for frame in complete_xlsx.values())
     assert "稳定审查摘要" in complete_xlsx_text
+    assert "lineSearchTrials" in complete_xlsx_text
+    assert "energyIncrementJ" in complete_xlsx_text
     assert "P-Delta 收敛记录" in complete_xlsx_text
     assert "屈曲节点模态向量" in complete_xlsx_text
     assert "屈曲构件模态形状" in complete_xlsx_text
+    assert "共回转计算原理" in complete_xlsx_text
+    assert "共回转代表单元" in complete_xlsx_text
 
 
 def test_standard_and_complete_exports_diverge_by_analysis_type_for_docx_and_xlsx():

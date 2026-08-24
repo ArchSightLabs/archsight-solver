@@ -152,6 +152,27 @@ def test_benchmark_runner_checks_additional_frame_beam_displacement_metrics():
     }
 
 
+def test_benchmark_runner_checks_public_geometric_nonlinear_reference_cases():
+    beam_column = evaluate_benchmark_case_by_id("GNA-001")
+    unstable_column = evaluate_benchmark_case_by_id("GNA-002")
+
+    assert beam_column["status"] == "pass"
+    assert {check["metric"] for check in beam_column["checks"]} >= {
+        "非线性算法",
+        "平衡状态",
+        "稳定状态",
+        "N2 水平位移(mm)",
+        "线性屈曲临界系数",
+        "路径控制",
+    }
+    assert unstable_column["status"] == "pass"
+    assert {check["metric"] for check in unstable_column["checks"]} >= {
+        "平衡状态",
+        "稳定状态",
+        "线性屈曲临界系数",
+    }
+
+
 def test_benchmark_runner_executes_suite():
     result = evaluate_benchmark_suite()
 

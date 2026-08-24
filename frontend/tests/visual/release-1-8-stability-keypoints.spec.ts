@@ -200,6 +200,65 @@ function frameCalculationEnvelope(payload: FramePayload) {
       { step: 1, iteration: 1, loadFactor: 0.5, residualNorm: 1e-4, displacementMm: 0.28, status: "iterating" },
       { step: 1, iteration: 2, loadFactor: 1, residualNorm: 8e-7, displacementMm: 0.92, status: "converged" },
     ],
+    algorithm: { id: "corotational_newton_v1", version: "1" },
+    equilibriumStatus: "not_converged",
+    stabilityStatus: "near_critical",
+    nonlinearPathTrace: {
+      schema: "NonlinearPathTrace@1",
+      algorithm: { id: "corotational_newton_v1", version: "1" },
+      control: { type: "adaptive_load_control", lineSearch: "residual_reduction" },
+      convergence: { relativeResidualTolerance: 1e-8 },
+      mesh: {
+        referenceNodes: nodes.map((node) => ({ id: node.id, x: node.x, y: node.y })),
+        refinedMembers: members.map((member) => ({ id: member.id, start: member.start, end: member.end })),
+      },
+      steps: [
+        { step: 1, loadFactor: 0.25, fixedLoadFactor: 0, pathPhase: "variable", stepSize: 0.25, iterations: 3, equilibriumStatus: "converged", stabilityStatus: "stable", minimumTangentEigenvalue: 8.4, maxDisplacementMm: 0.28 },
+        { step: 2, loadFactor: 0.5, fixedLoadFactor: 0, pathPhase: "variable", stepSize: 0.25, iterations: 5, equilibriumStatus: "converged", stabilityStatus: "stable", minimumTangentEigenvalue: 3.2, maxDisplacementMm: 0.62 },
+        { step: 3, loadFactor: 0.72, fixedLoadFactor: 0, pathPhase: "variable", stepSize: 0.22, iterations: 8, equilibriumStatus: "converged", stabilityStatus: "near_critical", minimumTangentEigenvalue: 0.18, maxDisplacementMm: 1.18 },
+      ],
+      iterations: [
+        { step: 2, iteration: 4, loadFactor: 0.5, equilibriumResidualRelative: 0.0024, displacementIncrementRelative: 0.0008, energyIncrementRelative: 0.0002, status: "iterating" },
+      ],
+      attempts: [
+        { step: 4, loadFactor: 0.8, fixedLoadFactor: 0, pathPhase: "variable", status: "cutback", terminationReason: "minimum_step_exhausted" },
+      ],
+      keyPoints: [
+        { id: "start:keyframe:0", kind: "start", source: "keyframe", sourceIndex: 0, step: 0, pathPhase: "variable", pathProgress: 0, fixedLoadFactor: 0, loadFactor: 0, maxDisplacementMm: 0, minimumTangentEigenvalue: 10, equilibriumResidualRelative: 0, status: "converged", stabilityStatus: "stable" },
+        { id: "residual_peak:iteration:0", kind: "residual_peak", source: "iteration", sourceIndex: 0, step: 2, pathPhase: "variable", pathProgress: 0.5, fixedLoadFactor: 0, loadFactor: 0.5, maxDisplacementMm: 0.62, minimumTangentEigenvalue: 3.2, equilibriumResidualRelative: 0.0024, status: "iterating", stabilityStatus: "stable" },
+        { id: "minimum_stability:step:2", kind: "minimum_stability", source: "step", sourceIndex: 2, step: 3, pathPhase: "variable", pathProgress: 0.72, fixedLoadFactor: 0, loadFactor: 0.72, maxDisplacementMm: 1.18, minimumTangentEigenvalue: 0.18, equilibriumResidualRelative: 1e-9, status: "converged", stabilityStatus: "near_critical" },
+        { id: "cutback:attempt:0", kind: "cutback", source: "attempt", sourceIndex: 0, step: 4, pathPhase: "variable", pathProgress: 0.8, fixedLoadFactor: 0, loadFactor: 0.8, maxDisplacementMm: 1.35, minimumTangentEigenvalue: 0.04, equilibriumResidualRelative: 0.012, status: "cutback", stabilityStatus: "near_critical" },
+        { id: "last_converged:step:2", kind: "last_converged", source: "step", sourceIndex: 2, step: 3, pathPhase: "variable", pathProgress: 0.72, fixedLoadFactor: 0, loadFactor: 0.72, maxDisplacementMm: 1.18, minimumTangentEigenvalue: 0.18, equilibriumResidualRelative: 1e-9, status: "converged", stabilityStatus: "near_critical" },
+        { id: "failure:attempt:0", kind: "failure", source: "attempt", sourceIndex: 0, step: 4, pathPhase: "variable", pathProgress: 0.8, fixedLoadFactor: 0, loadFactor: 0.8, maxDisplacementMm: 1.35, minimumTangentEigenvalue: 0.04, equilibriumResidualRelative: 0.012, status: "failed", stabilityStatus: "near_critical" },
+      ],
+      keyframes: [0, 0.25, 0.5, 0.72].map((loadFactor, step) => ({
+        step,
+        loadFactor,
+        fixedLoadFactor: 0,
+        pathPhase: "variable",
+        nodeDisplacements: nodes.map((_, nodeIndex) => ({
+          nodeIndex,
+          uxM: nodeIndex * loadFactor * 0.00008,
+          uyM: -nodeIndex * loadFactor * 0.00016,
+          rzRad: nodeIndex * loadFactor * 0.00001,
+        })),
+      })),
+      lastConverged: { loadFactor: 0.72, fixedLoadFactor: 0, maxDisplacementMm: 1.18, step: 3 },
+      finalAttempt: { step: 4, loadFactor: 0.8, status: "failed", terminationReason: "minimum_step_exhausted" },
+      summary: { equilibriumStatus: "not_converged", stabilityStatus: "near_critical", acceptedSteps: 3, failedAttempts: 1, terminationReason: "minimum_step_exhausted" },
+    },
+    methodComparison: {
+      schema: "MethodComparison@1",
+      methods: [
+        { id: "linear_first_order_v1", label: "首阶线性" },
+        { id: "initial_stress_v1", label: "初始应力兼容" },
+        { id: "corotational_newton_v1", label: "共回转 Newton" },
+      ],
+      metrics: [
+        { id: "max_displacement_mm", unit: "mm", comparable: true, values: { linear_first_order_v1: 0.78, initial_stress_v1: 0.96, corotational_newton_v1: 1.18 } },
+      ],
+      limitations: ["只比较当前模型的数值响应，不给出规范安全结论。"],
+    },
     limitations: "P-Delta 迭代 mock",
   };
   const buckling = {
@@ -564,6 +623,32 @@ test("框架工程图关键点暴露 data-keypoint-kind 与站位数值", async 
   await expect(endPoint).toContainText(/kN·m/u);
 });
 
+test("v1.8.1 几何非线性过程播放显示 canonical 关键点、数值和分层解释", async ({ page }) => {
+  await openWorkbench(page);
+  await page.locator("aside").filter({ hasText: "分析对象" }).getByRole("button", { name: /平面框架-1\s+(平面框架|框架)/ }).click();
+  await runCalculation(page, "运行平面框架计算", "平面框架计算完成");
+  await page.getByRole("tab", { name: "稳定审查", exact: true }).click();
+
+  await expect(page.getByRole("heading", { name: "几何非线性过程播放" })).toBeVisible();
+  await expect(page.getByRole("img", { name: /几何非线性荷载路径.*残差峰值/u })).toBeVisible();
+  await expect(page.getByText(/残差峰值 · r 0\.002 \/ 0\.62 mm/u).first()).toBeVisible();
+  await expect(page.getByText(/最小切线指标 0\.18/u).first()).toBeVisible();
+  await expect(page.getByText(/切步回退 · λ 0\.8/u).first()).toBeVisible();
+  await expect(page.getByText(/最后收敛 · λ 0\.72/u).first()).toBeVisible();
+  await expect(page.getByText(/终止 · λ 0\.8/u).first()).toBeVisible();
+  await expect(page.getByText("方法比较", { exact: true })).toBeVisible();
+  await expect(page.getByText("corotational_newton_v1", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "算法", exact: true }).click();
+  await expect(page.getByText(/共回转基本变形.*一致切线.*全 Newton/u)).toBeVisible();
+  await page.getByRole("button", { name: "入门", exact: true }).click();
+  await expect(page.getByText(/播放的是实际求解路径/u)).toBeVisible();
+
+  const slider = page.getByRole("slider", { name: "选择非线性荷载步" });
+  await slider.fill("1");
+  await expect(page.getByText("2/4", { exact: true })).toBeVisible();
+});
+
 test("桁架位移图暴露控制值、端点与真零节点标签", async ({ page }) => {
   await openWorkbench(page);
   await page.locator("aside").filter({ hasText: "分析对象" }).getByRole("button", { name: /平面桁架-1\s+(平面桁架|桁架)/ }).click();
@@ -596,7 +681,9 @@ test("框架稳定审查面板暴露 P-Delta 轨迹、模态选择器与屈曲�
   await runCalculation(page, "运行平面框架计算", "平面框架计算完成");
   await page.getByRole("tab", { name: "稳定审查", exact: true }).click();
 
-  await expect(page.getByText("P-Delta 状态", { exact: true })).toBeVisible();
+  await expect(page.getByText("平衡状态", { exact: true })).toBeVisible();
+  await expect(page.getByText("P-Delta · corotational_newton_v1", { exact: true })).toBeVisible();
+  await expect(page.getByText("稳定状态", { exact: true })).toBeVisible();
   await expect(page.getByText("收敛轨迹", { exact: true })).toBeVisible();
   await expect(page.getByText("模态选择器", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "屈曲模态" })).toBeVisible();

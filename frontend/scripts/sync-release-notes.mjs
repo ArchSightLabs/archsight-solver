@@ -318,7 +318,8 @@ ${releaseArticles}
 }
 
 const changelogMarkdown = normalizeMarkdown(readFileSync(changelogPath, 'utf-8'))
-const releaseNotesHtml = renderReleaseNotesHtml(parseReleaseNotes(changelogMarkdown))
+const releaseNotes = parseReleaseNotes(changelogMarkdown)
+const releaseNotesHtml = renderReleaseNotesHtml(releaseNotes)
 
 mkdirSync(publicDocsDir, { recursive: true })
 writeFileSync(releaseNotesMarkdownPath, renderPublicMarkdown(changelogMarkdown), 'utf-8')
@@ -326,7 +327,7 @@ writeFileSync(releaseNotesHtmlPath, releaseNotesHtml, 'utf-8')
 
 for (const guide of publicGuideSpecs) {
   const markdown = normalizeMarkdown(readFileSync(path.join(repoRoot, guide.sourcePath), 'utf-8'))
-  const html = renderPublicGuideHtml(markdown, guide)
+  const html = renderPublicGuideHtml(markdown, { ...guide, currentVersion: releaseNotes.releases[0]?.version ?? '1.8.1' })
   writeFileSync(path.join(publicDocsDir, guide.outputPath), html, 'utf-8')
 }
 

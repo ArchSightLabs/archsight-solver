@@ -40,7 +40,11 @@ def build_report() -> str:
     category_counts = Counter(case.get("category", "unknown") for case in catalog.get("cases", []))
     beam_project_count = category_counts.get("beam", 0)
     truss_project_count = category_counts.get("truss", 0) + category_counts.get("truss-verify", 0)
-    frame_project_count = category_counts.get("frame", 0) + category_counts.get("frame-beam-verify", 0)
+    frame_project_count = (
+        category_counts.get("frame", 0)
+        + category_counts.get("frame-beam-verify", 0)
+    )
+    nonlinear_project_count = category_counts.get("frame-nonlinear-verify", 0)
     source_types = sorted({result["verification"].get("sourceType", "") for result in suite["results"]})
     verification_levels = sorted({result["verification"].get("verificationLevel", "") for result in suite["results"]})
 
@@ -63,11 +67,12 @@ def build_report() -> str:
         "",
         "## 界面入口",
         "",
-        "工作台顶部提供“公开案例”入口，可直接打开由本验证集生成的三个工程：",
+        "工作台顶部提供“公开案例”入口，可直接打开由本验证集生成的四个工程：",
         "",
         f"- 梁系公开验证工程：{beam_project_count} 个梁系分析对象。",
         f"- 二维平面桁架公开验证工程：{truss_project_count} 个桁架分析对象。",
         f"- 二维平面框架公开验证工程：{frame_project_count} 个框架与框架梁退化分析对象。",
+        f"- 二维框架弹性几何非线性教学与验证工程：{nonlinear_project_count} 个 GNA/GNIA 分析对象。",
         "",
         "每个分析对象均保留 `caseId`、来源类型、校核指标、标准值、容许误差和可用出处链接。打开工程后可直接查看模型、运行计算、查看图形结果并导出计算书，无需重新输入参数建模。",
         "",
@@ -78,7 +83,7 @@ def build_report() -> str:
         "| 等级 | 口径 |",
         "|---|---|",
         "| A | 教材解析解或标准公式。 |",
-        "| B | 独立刚度法基线或独立矩阵法算例。 |",
+        "| B | 独立数值基线或公开经典数值基准。 |",
         "| C | 版本明确的工程软件对标。 |",
         "| D | 项目内部回归基线，只用于防止行为漂移。 |",
         "",

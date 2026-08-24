@@ -13,6 +13,11 @@ import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import { PREDEFINED_MATERIALS, type Material } from "../types/material.ts";
 import type { FrameLoad, FrameLoadDirection, StructureMember, StructureNode } from "../types/structure.ts";
 
+const FRAME_LOAD_PATH_ROLE_OPTIONS = [
+  { value: "variable", label: "变量荷载" },
+  { value: "fixed", label: "固定荷载" },
+];
+
 interface FrameLoadEditorProps {
   load: FrameLoad;
   index: number;
@@ -52,6 +57,7 @@ export function FrameLoadEditor({
     if (currentAlpha == null) return true;
     return Math.abs(Number(currentAlpha) - temperatureAlphaForMember(previousMemberId)) < 1e-12;
   };
+  const pathRole = load.pathRole ?? "variable";
   const loadTypeOptions =
     load.type === "distributed"
       ? FRAME_LOAD_TYPE_OPTIONS.map((option) => option.value === "distributed" ? { ...option, label: frameDistributedLoadKindLabel(load) } : option)
@@ -74,6 +80,7 @@ export function FrameLoadEditor({
                   qEndKnPerM: "qEndKnPerM" in load ? load.qEndKnPerM ?? 0 : -10,
                   startRatio: "startRatio" in load ? load.startRatio ?? 0 : 0,
                   endRatio: "endRatio" in load ? load.endRatio ?? 1 : 1,
+                  pathRole,
                 } as FrameLoad);
                 return;
               }
@@ -84,6 +91,7 @@ export function FrameLoadEditor({
                   direction: "direction" in load ? load.direction ?? "local_y" : "local_y",
                   forceKn: "forceKn" in load ? load.forceKn ?? -10 : -10,
                   positionRatio: "positionRatio" in load ? load.positionRatio ?? 0.5 : 0.5,
+                  pathRole,
                 } as FrameLoad);
                 return;
               }
@@ -94,6 +102,7 @@ export function FrameLoadEditor({
                   member,
                   deltaTempC: "deltaTempC" in load ? load.deltaTempC ?? 30 : 30,
                   alphaPerC: "alphaPerC" in load ? load.alphaPerC ?? temperatureAlphaForMember(member) : temperatureAlphaForMember(member),
+                  pathRole,
                 } as FrameLoad);
                 return;
               }
@@ -103,6 +112,7 @@ export function FrameLoadEditor({
                 fxKn: "fxKn" in load ? load.fxKn ?? 0 : 0,
                 fyKn: "fyKn" in load ? load.fyKn ?? -10 : -10,
                 mzKnM: "mzKnM" in load ? load.mzKnM ?? 0 : 0,
+                pathRole,
               } as FrameLoad);
             }}
             options={loadTypeOptions}
@@ -143,6 +153,20 @@ export function FrameLoadEditor({
           <Button variant="ghost" size="icon" className="w-10" onClick={onRemove} aria-label={`删除第 ${index + 1} 条荷载`}>
             <Trash2 className="h-4 w-4 text-rose-300" />
           </Button>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,12rem)_1fr]">
+        <div className="space-y-1">
+          <div className={fieldLabelClass}>路径角色</div>
+          <DropdownSelect
+            compact={compact}
+            value={pathRole}
+            onChange={(nextValue) => onUpdate({ pathRole: nextValue as "fixed" | "variable" })}
+            options={FRAME_LOAD_PATH_ROLE_OPTIONS}
+            className="text-xs font-mono"
+            menuClassName="text-xs font-mono"
+            ariaLabel={`第 ${index + 1} 条荷载路径角色`}
+          />
         </div>
       </div>
       {load.type === "nodal" ? (

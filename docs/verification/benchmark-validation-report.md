@@ -1,11 +1,11 @@
 # ArchSight Solver 公开验证集报告
 
-- 算例目录版本：2026-08-09
-- 算例数量：66
-- 通过数量：66
+- 算例目录版本：2026-08-24
+- 算例数量：71
+- 通过数量：71
 - 未通过数量：0
 - 验证等级：A, B, C, D
-- 来源类型：engineering-software, independent-stiffness-baseline, internal-regression, textbook-analytical
+- 来源类型：engineering-software, independent-stiffness-baseline, internal-regression, published-benchmark, textbook-analytical
 
 ## 结论
 
@@ -13,11 +13,12 @@
 
 ## 界面入口
 
-工作台顶部提供“公开案例”入口，可直接打开由本验证集生成的三个工程：
+工作台顶部提供“公开案例”入口，可直接打开由本验证集生成的四个工程：
 
 - 梁系公开验证工程：22 个梁系分析对象。
 - 二维平面桁架公开验证工程：18 个桁架分析对象。
 - 二维平面框架公开验证工程：26 个框架与框架梁退化分析对象。
+- 二维框架弹性几何非线性教学与验证工程：5 个 GNA/GNIA 分析对象。
 
 每个分析对象均保留 `caseId`、来源类型、校核指标、标准值、容许误差和可用出处链接。打开工程后可直接查看模型、运行计算、查看图形结果并导出计算书，无需重新输入参数建模。
 
@@ -28,7 +29,7 @@
 | 等级 | 口径 |
 |---|---|
 | A | 教材解析解或标准公式。 |
-| B | 独立刚度法基线或独立矩阵法算例。 |
+| B | 独立数值基线或公开经典数值基准。 |
 | C | 版本明确的工程软件对标。 |
 | D | 项目内部回归基线，只用于防止行为漂移。 |
 
@@ -102,6 +103,11 @@
 | `BM-010` | frame-beam-verify | A 级验证 | 通过 | 最大构件弯矩(kN·m)=120.0（标准 120）；N1 支座水平反力(kN)=-30.0（标准 -30）；N1 支座竖向反力(kN)=0.0（标准 0）；N1 支座反力矩(kN·m)=120.0（标准 120）；N2 水平位移(mm)=12.8（标准 12.8）；N2 竖向位移(mm)=0.0（标准 0） |
 | `BM-011` | frame-beam-verify | A 级验证 | 通过 | 最大构件弯矩(kN·m)=0.0（标准 0）；最大构件轴力(kN)=100.0（标准 100）；N1 支座水平反力(kN)=-60.0（标准 -60）；N1 支座竖向反力(kN)=-80.0（标准 -80）；N1 支座反力矩(kN·m)=0.0（标准 0）；N2 水平位移(mm)=0.15（标准 0.15） |
 | `BM-012` | truss-verify | A 级验证 | 通过 | 最大节点位移(mm)=0.65（标准 0.65）；最大杆件轴力(kN)=100.0（标准 100）；控制节点=N2（标准 N2）；控制杆件=M1（标准 M1）；N2 水平位移(mm)=0.63（标准 0.63）；N2 竖向位移(mm)=-0.16（标准 -0.16） |
+| `GNA-001` | frame-nonlinear-verify | A 级验证 | 通过 | 非线性算法=corotational_newton_v1（标准 corotational_newton_v1）；平衡状态=converged（标准 converged）；稳定状态=stable（标准 stable）；路径控制=fixed_preload_then_adaptive_variable_load（标准 fixed_preload_then_adaptive_variable_load）；N2 水平位移(mm)=1.121431861（标准 1.122620218）；线性屈曲临界系数=2.500005（标准 2.5） |
+| `GNA-002` | frame-nonlinear-verify | A 级验证 | 通过 | 非线性算法=corotational_newton_v1（标准 corotational_newton_v1）；平衡状态=converged（标准 converged）；稳定状态=unstable（标准 unstable）；路径控制=adaptive_fixed_load_control（标准 adaptive_fixed_load_control）；N2 水平位移(mm)=0.0（标准 0）；线性屈曲临界系数=0.833335（标准 0.833333333） |
+| `GNA-003` | frame-nonlinear-verify | B 级验证 | 通过 | 非线性算法=corotational_newton_v1（标准 corotational_newton_v1）；平衡状态=not_converged（标准 not_converged）；稳定状态=True（标准 True）；路径控制=adaptive_load_control（标准 adaptive_load_control）；N2 竖向位移(mm)=-5.90995006（标准 -5.91）；路径终止原因=True（标准 True） |
+| `GNA-004` | frame-nonlinear-verify | C 级验证 | 通过 | 非线性算法=corotational_newton_v1（标准 corotational_newton_v1）；平衡状态=not_converged（标准 not_converged）；稳定状态=True（标准 True）；路径控制=adaptive_load_control（标准 adaptive_load_control）；N3 竖向位移(mm)=-462.7653475（标准 -470.73）；路径终止原因=True（标准 True） |
+| `GNA-005` | frame-nonlinear-verify | A 级验证 | 通过 | 非线性算法=corotational_newton_v1（标准 corotational_newton_v1）；平衡状态=converged（标准 converged）；稳定状态=stable（标准 stable）；路径控制=adaptive_load_control（标准 adaptive_load_control）；初始缺陷类型=explicit（标准 explicit）；初始缺陷最大幅值(mm)=10.0（标准 10） |
 
 ## 使用方式
 

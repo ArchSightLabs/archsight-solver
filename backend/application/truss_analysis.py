@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from copy import deepcopy
 from typing import Any, Dict, List
 
 from backend.normalizers.truss.request_normalizer import normalize_truss_request
@@ -57,6 +58,28 @@ def _solve_load_cases(request: Dict[str, Any]) -> List[Dict[str, Any]]:
                 "summary": case_solution["summary"],
                 "nodeResults": case_solution["nodeResults"],
                 "memberResults": case_solution["memberResults"],
+                "diagnostics": case_solution.get("diagnostics", {}),
+                "truss": case_solution.get("truss", {}),
+                "preview": case_solution.get("preview", {}),
+                "diagram": case_solution.get("diagram", {}),
+                "inputSnapshot": {
+                    "source": {
+                        "source": "case",
+                        "id": load_case["id"],
+                        "title": load_case.get("title", load_case["id"]),
+                    },
+                    "request": deepcopy(case_request),
+                    "structure": deepcopy(case_request["structure"]),
+                    "payload": deepcopy(case_solution.get("payload", {})),
+                    "components": [
+                        {
+                            "id": load_case["id"],
+                            "title": load_case.get("title", load_case["id"]),
+                            "factor": 1.0,
+                            "loads": deepcopy(load_case.get("loads", [])),
+                        }
+                    ],
+                },
             }
         )
     return results
@@ -122,10 +145,65 @@ def _solve_load_combinations(request: Dict[str, Any], case_results: List[Dict[st
             "nodeResults": node_results,
             "memberResults": member_results,
         }
+        combination_structure = {
+            **request["structure"],
+            "loads": _loads_for_combination(combination, request["structure"].get("loadCases", [])),
+        }
+        combination_request = {**request, "structure": combination_structure}
+        combination_solution = _solve_truss_request(combination_request)
+        result.update(
+            {
+                "summary": combination_solution["summary"],
+                "nodeResults": combination_solution["nodeResults"],
+                "memberResults": combination_solution["memberResults"],
+                "diagnostics": combination_solution.get("diagnostics", {}),
+                "truss": combination_solution.get("truss", {}),
+                "preview": combination_solution.get("preview", {}),
+                "diagram": combination_solution.get("diagram", {}),
+                "inputSnapshot": {
+                    "source": {
+                        "source": "combination",
+                        "id": combination["id"],
+                        "title": combination.get("title", combination["id"]),
+                    },
+                    "request": deepcopy(combination_request),
+                    "structure": deepcopy(combination_structure),
+                    "payload": deepcopy(combination_solution.get("payload", {})),
+                    "factors": deepcopy(factors),
+                    "components": [
+                        {
+                            "id": load_case["id"],
+                            "title": load_case.get("title", load_case["id"]),
+                            "factor": float(factors[load_case["id"]]),
+                            "loads": deepcopy(load_case.get("loads", [])),
+                        }
+                        for load_case in request["structure"].get("loadCases", [])
+                        if load_case["id"] in factors
+                    ],
+                },
+            }
+        )
         if combination.get("tags"):
             result["tags"] = combination["tags"]
         results.append(result)
     return results
+
+
+def _loads_for_combination(combination: Dict[str, Any], load_cases: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    cases_by_id = {load_case["id"]: load_case for load_case in load_cases}
+    loads: List[Dict[str, Any]] = []
+    for case_id, factor_value in combination.get("factors", {}).items():
+        load_case = cases_by_id.get(case_id)
+        if not load_case:
+            continue
+        factor = float(factor_value)
+        for source_load in load_case.get("loads", []):
+            load = deepcopy(source_load)
+            for key in ("fxKn", "fyKn", "selfWeightKnPerM", "deltaTempC"):
+                if key in load:
+                    load[key] = float(load[key]) * factor
+            loads.append(load)
+    return loads
 
 
 def _build_envelope(results: List[Dict[str, Any]]) -> Dict[str, Any]:

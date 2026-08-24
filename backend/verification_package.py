@@ -12,6 +12,7 @@ from typing import Any, Dict, Mapping
 
 from backend.application.calculation import build_calculation_result
 from backend.contracts.calculation_evidence import strip_legacy_evidence_fields
+from backend.exporters.common.result_source import validate_result_source
 
 
 VERIFICATION_PACKAGE_FORMAT = "archsight-solver-verification-package"
@@ -63,6 +64,34 @@ def _package_hash(package: Mapping[str, Any]) -> str:
     return _stable_hash(hashable)
 
 
+def _semantic_result_source(
+    solution: Mapping[str, Any],
+    result_source: Mapping[str, Any],
+) -> tuple[Dict[str, Any], Mapping[str, Any]]:
+    source = str(result_source.get("source") or "primary")
+    if source not in {"primary", "case", "combination"}:
+        return deepcopy(dict(result_source)), {}
+    normalized = deepcopy(dict(result_source))
+    normalized["source"] = source
+    normalized["id"] = str(result_source.get("id") or ("__primary__" if source == "primary" else ""))
+    validate_result_source({**dict(solution), "resultSource": normalized})
+    if source == "primary":
+        selected: Mapping[str, Any] = {
+            key: solution[key]
+            for key in ("summary", "diagnostics", "nodeResults", "memberResults", "memberDiagrams", "secondOrder", "buckling")
+            if key in solution
+        }
+    else:
+        result_key = "loadCaseResults" if source == "case" else "loadCombinationResults"
+        selected = next(
+            item
+            for item in solution.get(result_key, [])
+            if isinstance(item, Mapping) and str(item.get("id") or "") == normalized["id"]
+        )
+    normalized["resultHash"] = _stable_hash(selected)
+    return normalized, selected
+
+
 def create_verification_package(
     payload: Mapping[str, Any],
     *,
@@ -86,6 +115,12 @@ def create_verification_package(
     model = deepcopy(calculation_result.get("structure") or {})
     resolved_version = solver_version or _solver_version()
 
+    normalized_evidence = deepcopy(dict(evidence or {}))
+    result_source = normalized_evidence.get("resultSource")
+    if isinstance(result_source, Mapping):
+        normalized_source, _ = _semantic_result_source(calculation_result["solution"], result_source)
+        normalized_evidence["resultSource"] = normalized_source
+
     package: Dict[str, Any] = {
         "format": VERIFICATION_PACKAGE_FORMAT,
         "formatVersion": VERIFICATION_PACKAGE_FORMAT_VERSION,
@@ -104,7 +139,7 @@ def create_verification_package(
             "recordedResult": recorded_result,
             "diagnostics": deepcopy(calculation_result.get("diagnostics") or {}),
         },
-        "evidence": deepcopy(dict(evidence or {})),
+        "evidence": normalized_evidence,
         "replayPolicy": {
             "absoluteTolerance": DEFAULT_ABSOLUTE_TOLERANCE,
             "relativeTolerance": DEFAULT_RELATIVE_TOLERANCE,
@@ -224,6 +259,39 @@ def _integrity_mismatches(package: Mapping[str, Any]) -> list[Dict[str, Any]]:
                 )
             )
     return mismatches
+
+
+def _result_source_mismatches(package: Mapping[str, Any]) -> list[Dict[str, Any]]:
+    evidence = package.get("evidence")
+    analysis = package.get("analysis")
+    if not isinstance(evidence, Mapping) or not isinstance(analysis, Mapping):
+        return []
+    result_source = evidence.get("resultSource")
+    recorded_result = analysis.get("recordedResult")
+    if not isinstance(result_source, Mapping) or not isinstance(recorded_result, Mapping):
+        return []
+    source = str(result_source.get("source") or "primary")
+    if source not in {"primary", "case", "combination"}:
+        return []
+    solution = recorded_result.get("solution")
+    if not isinstance(solution, Mapping):
+        return [_mismatch("$.analysis.recordedResult.solution", "可信包缺少可验证的求解结果来源")]
+    try:
+        normalized, _ = _semantic_result_source(solution, result_source)
+    except (ValueError, StopIteration) as exc:
+        return [_mismatch("$.evidence.resultSource", f"结果来源不属于记录的计算结果: {exc}")]
+    expected_hash = normalized.get("resultHash")
+    actual_hash = result_source.get("resultHash")
+    if actual_hash != expected_hash:
+        return [
+            _mismatch(
+                "$.evidence.resultSource.resultHash",
+                "结果来源摘要与记录的计算结果不一致",
+                expected=expected_hash,
+                actual=actual_hash,
+            )
+        ]
+    return []
 
 
 def _display_value(value: Any) -> Any:
@@ -354,6 +422,11 @@ def verify_verification_package(
         report["mismatches"] = integrity_mismatches[:MAX_MISMATCHES]
         return report
     report["integrityValid"] = True
+
+    result_source_mismatches = _result_source_mismatches(package)
+    if result_source_mismatches:
+        report["mismatches"] = result_source_mismatches[:MAX_MISMATCHES]
+        return report
 
     analysis = package["analysis"]
     policy = package["replayPolicy"]

@@ -35,6 +35,7 @@ interface PublicExamplesDialogProps {
 function sourceTypeLabel(sourceType: string) {
   if (sourceType === "textbook-analytical") return "教材解析解";
   if (sourceType === "independent-stiffness-baseline") return "独立刚度法基准";
+  if (sourceType === "published-benchmark") return "公开经典数值基准";
   if (sourceType === "internal-regression") return "内部回归";
   return sourceType;
 }
@@ -234,7 +235,7 @@ export function PublicExamplesDialog({ onClose, onOpenProject }: PublicExamplesD
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-2">
                       <GraduationCap className="h-4 w-4 shrink-0 text-sky-700 dark:text-sky-300" />
-                      <div className="font-black">三条五分钟学习路径</div>
+                      <div className="font-black">{featuredLearningPaths.length} 条五分钟学习路径</div>
                     </div>
                     <span className="text-xs font-bold text-muted-foreground">先预判，再计算并核对</span>
                   </div>

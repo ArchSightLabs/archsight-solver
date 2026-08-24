@@ -198,6 +198,35 @@ def test_benchmark_case_regressions(client, case):
                 expected["maxAxialForceKn"],
                 abs=tolerances["maxAxialForceKn"],
             ), f"最大轴力应为 {expected['maxAxialForceKn']} kN"
+    elif case["category"] == "frame-nonlinear-verify":
+        second_order = data["secondOrder"]
+        expected_node = next(
+            item
+            for item in second_order["lastConvergedSolution"]["nodeResults"]
+            if item["nodeId"] == expected["controlNodeId"]
+        )
+        assert second_order["algorithm"]["id"] == expected["algorithmId"]
+        assert second_order["equilibriumStatus"] == expected["equilibriumStatus"]
+        if "stabilityStatuses" in expected:
+            assert second_order["stabilityStatus"] in expected["stabilityStatuses"]
+        else:
+            assert second_order["stabilityStatus"] == expected["stabilityStatus"]
+        assert second_order["nonlinearPathTrace"]["control"]["type"] == expected["pathControlType"]
+        control_dof = expected.get("controlDof", "ux")
+        result_field = {"ux": "uxMm", "uy": "uyMm"}[control_dof]
+        assert expected_node[result_field] == pytest.approx(
+            expected.get("controlNodeDisplacementMm", expected.get("controlNodeUxMm")),
+            abs=tolerances.get("controlNodeDisplacementMm", tolerances.get("controlNodeUxMm")),
+        )
+        if "criticalLoadFactor" in expected:
+            assert data["buckling"]["criticalLoadFactor"] == pytest.approx(
+                expected["criticalLoadFactor"], abs=tolerances["criticalLoadFactor"]
+            )
+        if "terminationReasons" in expected:
+            assert second_order["terminationReason"] in expected["terminationReasons"]
+        if "failedAttemptsMinimum" in expected:
+            assert len(second_order["nonlinearPathTrace"]["attempts"]) >= expected["failedAttemptsMinimum"]
+
     elif case["category"] == "truss-verify":
         # 桁架力学验证分支：支持杆件轴力（拉/压）与节点位移详细校验
         # 对应 BM-002（对称平面桁架）

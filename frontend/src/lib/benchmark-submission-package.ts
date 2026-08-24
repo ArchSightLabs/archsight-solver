@@ -95,6 +95,7 @@ export interface BenchmarkSubmissionChannelDraft {
 const SOURCE_TYPES = [
   { value: "textbook-analytical", label: "教材解析解" },
   { value: "independent-stiffness-baseline", label: "独立刚度法基线" },
+  { value: "published-benchmark", label: "公开经典数值基准" },
   { value: "engineering-software", label: "工程软件复核" },
   { value: "internal-regression", label: "内部回归" },
 ];

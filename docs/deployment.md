@@ -2,7 +2,7 @@
 
 本文说明 ArchSight Solver 的本地镜像构建、容器运行和 Docker Compose 入口。
 
-当前仓库稳定版本为 2026-08-23 发布的 v1.8.0。Tag 发布工作流生成 GitHub Release、可能需要 GitHub Packages 授权的 GHCR 工作流镜像和公开校验制品；官方演示站使用阿里云容器镜像服务，当前运行精确标签 `v1.8.0-2f839f3`。镜像推送和服务器更新仍是独立于 GitHub Release 的运维动作，每次部署前都必须确认目标仓库中的不可变镜像真实存在并核对摘要。
+当前仓库版本事实源为 v1.8.1。Tag 发布工作流生成 GitHub Release、可能需要 GitHub Packages 授权的 GHCR 工作流镜像和公开校验制品；官方演示站使用阿里云容器镜像服务，线上镜像和回滚点仍应按独立运维动作单独记录。镜像推送和服务器更新仍是独立于 GitHub Release 的运维动作，每次部署前都必须确认目标仓库中的不可变镜像真实存在并核对摘要。
 
 ## 单镜像模式
 
@@ -17,7 +17,7 @@ docker build -t archsight-solver:latest .
 Dockerfile 默认将 Node 22 与 Python 3.13 基础镜像固定到已验证 digest。若 Docker Hub 直连或本地 mirror 不稳定，推荐通过构建脚本和 `deploy/.env` 显式使用同 digest 的官方 Public ECR Docker Library 镜像：
 
 ```powershell
-.\scripts\build-image.ps1 -Tag v1.8.0
+.\scripts\build-image.ps1 -Tag v1.8.1
 ```
 
 脚本读取 `NODE_IMAGE` 与 `PYTHON_IMAGE`；`-RefreshBaseImages` 会先单独拉取两份固定基础镜像，用于主动刷新或诊断，不是每次构建的必要步骤。
@@ -69,13 +69,13 @@ docker login --username=<your-account> registry.example.com
 构建并打标签：
 
 ```powershell
-docker build -t archsight-solver:v1.8.0 -t registry.example.com/example-namespace/archsight-solver:v1.8.0 .
+docker build -t archsight-solver:v1.8.1 -t registry.example.com/example-namespace/archsight-solver:v1.8.1 .
 ```
 
 推送：
 
 ```powershell
-docker push registry.example.com/example-namespace/archsight-solver:v1.8.0
+docker push registry.example.com/example-namespace/archsight-solver:v1.8.1
 ```
 
 构建脚本只使用 BuildKit；不要通过 `DOCKER_BUILDKIT=0` 回退到已弃用的 Legacy Builder。镜像源异常应通过固定 digest、显式 `NODE_IMAGE` / `PYTHON_IMAGE` 和 `-RefreshBaseImages` 处理。
@@ -92,14 +92,14 @@ Compose 默认将容器内 `6240` 端口绑定到宿主机本地端口。如需�
 
 ## 正式发布制品
 
-推送 `v1.8.0` 形式的 Git tag 后，GitHub Actions 发布工作流会复跑版本、后端、前端、Playwright 和 Docker 门禁，并生成以下可追踪制品：
+推送 `v1.8.1` 形式的 Git tag 后，GitHub Actions 发布工作流会复跑版本、后端、前端、Playwright 和 Docker 门禁，并生成以下可追踪制品：
 
-- `ghcr.io/<owner>/archsight-solver:v1.8.0` 不可变工作流镜像；包可见性由 GitHub Packages 权限决定。
-- 公开 Docker 镜像归档 `archsight-solver-v1.8.0.tar.gz`，可从同一 GitHub Release 下载并离线加载。
+- `ghcr.io/<owner>/archsight-solver:v1.8.1` 不可变工作流镜像；包可见性由 GitHub Packages 权限决定。
+- 公开 Docker 镜像归档 `archsight-solver-v1.8.1.tar.gz`，可从同一 GitHub Release 下载并离线加载。
 - SPDX JSON SBOM、Trivy 高危/严重漏洞扫描报告和 `SHA256SUMS`。
 - 从 `CHANGELOG.md` 当前版本段提取的 GitHub Release 说明。
 
-发布工作流不会推送 `latest`，避免部署配置在未审阅时静默漂移。部署前应核对 tag、镜像摘要和 `SHA256SUMS`。v1.8.0 还会附带 Python wheel/sdist 与 Host Client tarball，供不克隆源码仓库的 CLI/MCP 和嵌入式宿主直接安装。
+发布工作流不会推送 `latest`，避免部署配置在未审阅时静默漂移。部署前应核对 tag、镜像摘要和 `SHA256SUMS`。v1.8.1 还会附带 Python wheel/sdist 与 Host Client tarball，供不克隆源码仓库的 CLI/MCP 和嵌入式宿主直接安装。
 
 ## 回滚
 

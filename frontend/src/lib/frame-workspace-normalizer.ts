@@ -38,6 +38,10 @@ function normalizeLoadDirection(value: unknown, fallback: FrameLoadDirection = "
   return value === "global_y" ? "global_y" : fallback;
 }
 
+function normalizeLoadPathRole(value: unknown, fallback: "fixed" | "variable" = "variable"): "fixed" | "variable" {
+  return value === "fixed" ? "fixed" : fallback;
+}
+
 function normalizeSprings(rawSprings: unknown): FrameSpring[] | undefined {
   if (!Array.isArray(rawSprings)) {
     return undefined;
@@ -216,6 +220,7 @@ function normalizeFrameLoads(rawLoads: unknown, nodes: StructureNode[], members:
         qEndKnPerM,
         startRatio,
         endRatio,
+        pathRole: normalizeLoadPathRole(candidate.pathRole, fallback?.pathRole),
       };
     }
     if (candidate?.type === "member_point") {
@@ -227,6 +232,7 @@ function normalizeFrameLoads(rawLoads: unknown, nodes: StructureNode[], members:
         direction: normalizeLoadDirection(candidate.direction, memberFallback?.direction ?? "local_y"),
         forceKn: Number.isFinite(candidate.forceKn) ? Number(candidate.forceKn) : memberFallback?.forceKn ?? -10,
         positionRatio: Number.isFinite(ratio) ? Math.min(Math.max(ratio, 0), 1) : 0.5,
+        pathRole: normalizeLoadPathRole(candidate.pathRole, memberFallback?.pathRole),
       };
     }
     if (candidate?.type === "temperature") {
@@ -238,6 +244,7 @@ function normalizeFrameLoads(rawLoads: unknown, nodes: StructureNode[], members:
         member: pickExistingId(candidate.member, memberIds, temperatureFallback?.member ?? memberIds[0] ?? "M1"),
         deltaTempC: Number.isFinite(deltaTempC) ? deltaTempC : 30,
         alphaPerC: Number.isFinite(alphaPerC) && alphaPerC >= 0 ? alphaPerC : 1.2e-5,
+        pathRole: normalizeLoadPathRole(candidate.pathRole, temperatureFallback?.pathRole),
       };
     }
     const nodalCandidate = candidate?.type === "nodal" ? candidate : null;
@@ -251,6 +258,7 @@ function normalizeFrameLoads(rawLoads: unknown, nodes: StructureNode[], members:
       fxKn: Number.isFinite(fxKn) ? Number(fxKn) : nodalFallback?.fxKn ?? 0,
       fyKn: Number.isFinite(fyKn) ? Number(fyKn) : nodalFallback?.fyKn ?? 0,
       mzKnM: Number.isFinite(mzKnM) ? Number(mzKnM) : nodalFallback?.mzKnM ?? 0,
+      pathRole: normalizeLoadPathRole(nodalCandidate?.pathRole, nodalFallback?.pathRole),
     };
   });
 }
@@ -312,6 +320,7 @@ function normalizeCombinationTags(rawTags: unknown): string[] {
 }
 
 function normalizeFrameAnalysisOptions(rawOptions: unknown, fallback: FrameAnalysisOptions): FrameAnalysisOptions {
+  const hasRawOptions = rawOptions != null && typeof rawOptions === "object";
   const candidate: Partial<FrameAnalysisOptions> & {
     pDeltaOptions?: Partial<FrameAnalysisOptions["pDeltaOptions"]>;
     bucklingOptions?: Partial<FrameAnalysisOptions["bucklingOptions"]>;
@@ -323,10 +332,23 @@ function normalizeFrameAnalysisOptions(rawOptions: unknown, fallback: FrameAnaly
     : {};
   const pDeltaOptions: Partial<FrameAnalysisOptions["pDeltaOptions"]> = candidate.pDeltaOptions ?? {};
   const bucklingOptions: Partial<FrameAnalysisOptions["bucklingOptions"]> = candidate.bucklingOptions ?? {};
+  const rawImperfection = pDeltaOptions.initialImperfection && typeof pDeltaOptions.initialImperfection === "object"
+    ? pDeltaOptions.initialImperfection
+    : fallback.pDeltaOptions.initialImperfection;
+  const bounded = (value: unknown, fallbackValue: number, minimum: number, maximum: number) => {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? Math.max(minimum, Math.min(maximum, numeric)) : fallbackValue;
+  };
   return {
     pDelta: candidate.pDelta ?? fallback.pDelta,
     buckling: candidate.buckling ?? fallback.buckling,
     pDeltaOptions: {
+      ...fallback.pDeltaOptions,
+      algorithm: !hasRawOptions
+        ? fallback.pDeltaOptions.algorithm
+        : pDeltaOptions.algorithm === "corotational_newton_v1"
+          ? "corotational_newton_v1"
+          : "initial_stress_v1",
       loadSteps:
         Number.isFinite(pDeltaOptions.loadSteps) && Number(pDeltaOptions.loadSteps) > 0
           ? Math.max(1, Math.min(20, Math.round(Number(pDeltaOptions.loadSteps))))
@@ -339,6 +361,32 @@ function normalizeFrameAnalysisOptions(rawOptions: unknown, fallback: FrameAnaly
         Number.isFinite(pDeltaOptions.tolerance) && Number(pDeltaOptions.tolerance) > 0
           ? Math.min(1e-3, Math.max(1e-10, Number(pDeltaOptions.tolerance)))
           : fallback.pDeltaOptions.tolerance,
+      initialStep: bounded(pDeltaOptions.initialStep, fallback.pDeltaOptions.initialStep, 1e-4, 1),
+      minStep: bounded(pDeltaOptions.minStep, fallback.pDeltaOptions.minStep, 1e-6, 1),
+      maxStep: bounded(pDeltaOptions.maxStep, fallback.pDeltaOptions.maxStep, 1e-4, 1),
+      maxCutbacks: Math.round(bounded(pDeltaOptions.maxCutbacks, fallback.pDeltaOptions.maxCutbacks, 0, 30)),
+      relativeResidualTolerance: bounded(pDeltaOptions.relativeResidualTolerance, fallback.pDeltaOptions.relativeResidualTolerance, 1e-12, 1e-3),
+      absoluteResidualToleranceN: bounded(pDeltaOptions.absoluteResidualToleranceN, fallback.pDeltaOptions.absoluteResidualToleranceN, 1e-10, 1e3),
+      relativeDisplacementTolerance: bounded(pDeltaOptions.relativeDisplacementTolerance, fallback.pDeltaOptions.relativeDisplacementTolerance, 1e-12, 1e-3),
+      absoluteDisplacementToleranceM: bounded(pDeltaOptions.absoluteDisplacementToleranceM, fallback.pDeltaOptions.absoluteDisplacementToleranceM, 1e-14, 1e-3),
+      relativeEnergyTolerance: bounded(pDeltaOptions.relativeEnergyTolerance, fallback.pDeltaOptions.relativeEnergyTolerance, 1e-14, 1e-3),
+      absoluteEnergyToleranceJ: bounded(pDeltaOptions.absoluteEnergyToleranceJ, fallback.pDeltaOptions.absoluteEnergyToleranceJ, 1e-14, 1e2),
+      lineSearchMaxTrials: Math.round(bounded(pDeltaOptions.lineSearchMaxTrials, fallback.pDeltaOptions.lineSearchMaxTrials, 1, 20)),
+      memberSubdivisions: Math.round(bounded(pDeltaOptions.memberSubdivisions, fallback.pDeltaOptions.memberSubdivisions, 1, 12)),
+      maxRefinedDofs: Math.round(bounded(pDeltaOptions.maxRefinedDofs, fallback.pDeltaOptions.maxRefinedDofs, 30, 5000)),
+      maxAcceptedSteps: Math.round(bounded(pDeltaOptions.maxAcceptedSteps, fallback.pDeltaOptions.maxAcceptedSteps, 1, 20000)),
+      includeMethodComparison: pDeltaOptions.includeMethodComparison ?? fallback.pDeltaOptions.includeMethodComparison,
+      initialImperfection: {
+        type: rawImperfection.type === "explicit" || rawImperfection.type === "buckling_mode" ? rawImperfection.type : "none",
+        nodeOffsets: Array.isArray(rawImperfection.nodeOffsets)
+          ? rawImperfection.nodeOffsets
+              .filter((item) => item && typeof item.nodeId === "string")
+              .map((item) => ({ nodeId: item.nodeId, uxMm: Number(item.uxMm) || 0, uyMm: Number(item.uyMm) || 0 }))
+          : [],
+        modeNumber: Math.round(bounded(rawImperfection.modeNumber, 1, 1, 12)),
+        amplitudeMm: bounded(rawImperfection.amplitudeMm, 0, 0, 1000),
+        direction: rawImperfection.direction === -1 ? -1 : 1,
+      },
     },
     bucklingOptions: {
       modeCount:

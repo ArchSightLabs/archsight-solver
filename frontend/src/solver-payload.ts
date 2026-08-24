@@ -295,6 +295,7 @@ function normalizeFrameLoad(load: FrameLoad): FrameLoad {
       qEndKnPerM: qEnd,
       startRatio,
       endRatio,
+      pathRole: load.pathRole === "fixed" ? "fixed" : "variable",
     };
   }
 
@@ -305,6 +306,7 @@ function normalizeFrameLoad(load: FrameLoad): FrameLoad {
       direction: load.direction === "global_y" ? "global_y" : "local_y",
       forceKn: Number.isFinite(load.forceKn) ? Number(load.forceKn) : 0,
       positionRatio: normalizeFrameLoadPositionRatio(load.positionRatio),
+      pathRole: load.pathRole === "fixed" ? "fixed" : "variable",
     };
   }
 
@@ -313,6 +315,7 @@ function normalizeFrameLoad(load: FrameLoad): FrameLoad {
       type: "temperature",
       member: String(load.member ?? "M1").trim() || "M1",
       deltaTempC: Number.isFinite(load.deltaTempC) ? Number(load.deltaTempC) : 0,
+      pathRole: load.pathRole === "fixed" ? "fixed" : "variable",
     };
     if ("alphaPerC" in load) {
       const alpha = Number(load.alphaPerC);
@@ -327,6 +330,7 @@ function normalizeFrameLoad(load: FrameLoad): FrameLoad {
     fxKn: Number.isFinite(load.fxKn) ? Number(load.fxKn) : 0,
     fyKn: Number.isFinite(load.fyKn) ? Number(load.fyKn) : 0,
     mzKnM: Number.isFinite(load.mzKnM) ? Number(load.mzKnM) : 0,
+    pathRole: load.pathRole === "fixed" ? "fixed" : "variable",
   };
 }
 

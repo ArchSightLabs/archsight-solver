@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-08-09",
+  "updatedAt": "2026-08-24",
   "cases": [
     {
       "id": "beam-simply-supported-uniform",
@@ -7172,6 +7172,531 @@
         "reference": "结构力学静定平面桁架节点平衡法与杆件变形协调：3-4-5 直角三杆体系",
         "method": "以节点平衡法校核拉压杆、零杆和支座反力，以杆件轴向变形协调独立推导自由节点双向位移",
         "checkedMetrics": ["节点位移", "杆件轴力", "支座反力"],
+        "verificationLevel": "A",
+        "verificationLevelLabel": "A 级验证",
+        "verificationLevelDescription": "教材解析解或标准公式，可用于校验基本公式、单位换算、边界条件和符号约定。"
+      }
+    },
+    {
+      "id": "GNA-001",
+      "category": "frame-nonlinear-verify",
+      "title": "受压悬臂梁柱的弹性二阶放大",
+      "purpose": "以等截面受压悬臂梁柱的经典稳定函数解析解，验证固定轴压预载、可变水平荷载、共回转路径、二阶位移放大和临界荷载系数。",
+      "theory": {
+        "description": "受恒定轴向压力 P 和自由端水平力 H 的等截面悬臂梁柱解析解",
+        "lengthM": 4,
+        "E_GPa": 210,
+        "I_cm4": 1500,
+        "eulerCriticalLoadKn": 485.769591616,
+        "axialLoadKn": 194.307836646,
+        "axialLoadRatio": 0.4,
+        "lateralLoadKn": 0.1,
+        "formula": "k=sqrt(P/EI)，u_H=(H/P)[tan(kL)/k-L]",
+        "expectedHorizontalDisplacementMm": 1.122620218
+      },
+      "learning": {
+        "pathId": "frame-gna-beam-column-path",
+        "featured": true,
+        "durationMinutes": 5,
+        "title": "P-Delta：从首阶位移到真实平衡路径",
+        "objective": "先用 Euler 临界力和梁柱稳定函数预判，再对照首阶、兼容初始应力法与共回转 Newton 的响应和收敛路径。",
+        "modelFocus": [
+          "4 m 等截面悬臂梁柱",
+          "先施加 0.4Pcr 的固定轴压预载",
+          "再施加 0.1 kN 可变水平荷载"
+        ],
+        "predictions": [
+          {
+            "id": "displacement-amplification",
+            "prompt": "轴压达到 0.4Pcr 后，水平位移相对首阶线弹性会怎样？",
+            "options": [
+              {"id": "amplified", "label": "明显放大"},
+              {"id": "unchanged", "label": "基本不变"},
+              {"id": "reduced", "label": "明显减小"}
+            ],
+            "expectedOptionId": "amplified",
+            "explanation": "压杆的几何刚度降低侧向刚度；解析解约 1.123 mm，首阶值约 0.677 mm。"
+          },
+          {
+            "id": "path-order",
+            "prompt": "为了对应该解析解，荷载路径应如何组织？",
+            "options": [
+              {"id": "preload-then-lateral", "label": "先轴压后水平力"},
+              {"id": "lateral-only", "label": "只施加水平力"},
+              {"id": "unload-preload", "label": "先卸载轴压"}
+            ],
+            "expectedOptionId": "preload-then-lateral",
+            "explanation": "解析式假定水平加载过程中轴向压力 P 保持恒定，因此先收敛固定预载，再推进可变荷载。"
+          },
+          {
+            "id": "stability-at-final",
+            "prompt": "最终轴压为 0.4Pcr 时，平衡与稳定应如何判断？",
+            "options": [
+              {"id": "converged-stable", "label": "平衡收敛且稳定"},
+              {"id": "converged-unstable", "label": "平衡收敛但失稳"},
+              {"id": "not-converged", "label": "无法建立平衡"}
+            ],
+            "expectedOptionId": "converged-stable",
+            "explanation": "0.4Pcr 低于 Euler 临界点；位移已放大，但约化切线仍保持正定。"
+          }
+        ],
+        "graphicalChecks": [
+          "路径图先完成 fixed_preload 阶段，再进入 variable 阶段",
+          "关键步、预载结束点和终点均显示数值，播放网格随所选步更新",
+          "方法对比同时列出首阶、initial_stress_v1 与 corotational_newton_v1"
+        ],
+        "proves": [
+          "固定预载—可变荷载路径语义能够进入共回转求解器",
+          "0.4Pcr 范围内水平位移与独立梁柱解析式一致",
+          "平衡状态与切线稳定状态被分别报告"
+        ],
+        "doesNotProve": [
+          "材料屈服、塑性铰、局部屈曲、侧扭屈曲或 GMNIA",
+          "极限点之后的弧长法与后屈曲路径",
+          "规范承载力、安全储备或设计验算结论"
+        ]
+      },
+      "payload": {
+        "analysisType": "frame",
+        "projectName": "GNA-001: Elastic Beam-column Amplification",
+        "materialId": "steel-analytical",
+        "analysisOptions": {
+          "pDelta": true,
+          "buckling": true,
+          "pDeltaOptions": {
+            "algorithm": "corotational_newton_v1",
+            "initialStep": 0.1,
+            "maxStep": 0.2,
+            "memberSubdivisions": 12,
+            "includeMethodComparison": true
+          }
+        },
+        "structure": {
+          "template": "explicit",
+          "nodes": [
+            {"id": "N1", "x": 0, "y": 0, "supportType": "fixed"},
+            {"id": "N2", "x": 0, "y": 4, "supportType": "free"}
+          ],
+          "members": [
+            {"id": "C1", "start": "N1", "end": "N2", "E_GPa": 210, "A_cm2": 220, "I_cm4": 1500, "kind": "column"}
+          ],
+          "loads": [
+            {"type": "nodal", "node": "N2", "fxKn": 0, "fyKn": -194.307836646, "mzKnM": 0, "pathRole": "fixed"},
+            {"type": "nodal", "node": "N2", "fxKn": 0.1, "fyKn": 0, "mzKnM": 0, "pathRole": "variable"}
+          ]
+        }
+      },
+      "expected": {
+        "algorithmId": "corotational_newton_v1",
+        "equilibriumStatus": "converged",
+        "stabilityStatus": "stable",
+        "pathControlType": "fixed_preload_then_adaptive_variable_load",
+        "controlNodeId": "N2",
+        "controlNodeUxMm": 1.122620218,
+        "criticalLoadFactor": 2.5
+      },
+      "tolerances": {
+        "controlNodeUxMm": 0.005,
+        "criticalLoadFactor": 0.0001
+      },
+      "verification": {
+        "sourceType": "textbook-analytical",
+        "reference": "经典弹性梁柱稳定函数：悬臂柱在恒定压力 P 与端部水平力 H 下，k=sqrt(P/EI)，u_H=(H/P)[tan(kL)/k-L]；Euler 悬臂临界力 Pcr=pi^2 EI/(4L^2)",
+        "method": "以独立解析式计算 0.4Pcr 下的水平位移和临界荷载系数，对标最终节点位移、荷载阶段、平衡状态与切线稳定状态",
+        "checkedMetrics": ["节点位移", "二阶放大", "临界荷载系数", "荷载路径", "平衡状态", "稳定状态"],
+        "verificationLevel": "A",
+        "verificationLevelLabel": "A 级验证",
+        "verificationLevelDescription": "教材解析解或标准公式，可用于校验基本公式、单位换算、边界条件和符号约定。"
+      }
+    },
+    {
+      "id": "GNA-002",
+      "category": "frame-nonlinear-verify",
+      "title": "Euler 临界点后的平衡—稳定分离",
+      "purpose": "验证完美直悬臂柱在纯轴压下可以保持零侧移平衡，但当 P>Pcr 时约化切线已出现负特征值，不能把平衡收敛误报为结构稳定。",
+      "theory": {
+        "description": "完美 Euler 悬臂柱的分叉平衡与切线稳定性",
+        "lengthM": 4,
+        "E_GPa": 210,
+        "I_cm4": 1500,
+        "eulerCriticalLoadKn": 485.769591616,
+        "axialLoadKn": 582.923509939,
+        "axialLoadRatio": 1.2,
+        "expectedCriticalLoadFactor": 0.833333333
+      },
+      "payload": {
+        "analysisType": "frame",
+        "projectName": "GNA-002: Equilibrium versus Stability",
+        "materialId": "steel-analytical",
+        "analysisOptions": {
+          "pDelta": true,
+          "buckling": true,
+          "pDeltaOptions": {
+            "algorithm": "corotational_newton_v1",
+            "initialStep": 0.1,
+            "maxStep": 0.1,
+            "memberSubdivisions": 12,
+            "includeMethodComparison": true
+          }
+        },
+        "structure": {
+          "template": "explicit",
+          "nodes": [
+            {"id": "N1", "x": 0, "y": 0, "supportType": "fixed"},
+            {"id": "N2", "x": 0, "y": 4, "supportType": "free"}
+          ],
+          "members": [
+            {"id": "C1", "start": "N1", "end": "N2", "E_GPa": 210, "A_cm2": 220, "I_cm4": 1500, "kind": "column"}
+          ],
+          "loads": [
+            {"type": "nodal", "node": "N2", "fxKn": 0, "fyKn": -582.923509939, "mzKnM": 0, "pathRole": "fixed"}
+          ]
+        }
+      },
+      "expected": {
+        "algorithmId": "corotational_newton_v1",
+        "equilibriumStatus": "converged",
+        "stabilityStatus": "unstable",
+        "pathControlType": "adaptive_fixed_load_control",
+        "controlNodeId": "N2",
+        "controlNodeUxMm": 0,
+        "criticalLoadFactor": 0.833333333
+      },
+      "tolerances": {
+        "controlNodeUxMm": 0.000001,
+        "criticalLoadFactor": 0.0001
+      },
+      "verification": {
+        "sourceType": "textbook-analytical",
+        "reference": "Euler 分叉稳定理论：完美悬臂柱的直线平衡支在纯轴压下仍满足平衡；Pcr=pi^2 EI/(4L^2)，当 P>Pcr 时切线刚度失去正定性",
+        "method": "取 P=1.2Pcr，分别校核零侧移平衡、约化切线负惯性、unstable 状态和线性屈曲系数 Pcr/P=1/1.2",
+        "checkedMetrics": ["节点位移", "临界荷载系数", "平衡状态", "稳定状态"],
+        "verificationLevel": "A",
+        "verificationLevelLabel": "A 级验证",
+        "verificationLevelDescription": "教材解析解或标准公式，可用于校验基本公式、单位换算、边界条件和符号约定。"
+      }
+    },
+    {
+      "id": "GNA-003",
+      "category": "frame-nonlinear-verify",
+      "title": "Williams toggle frame 极限点",
+      "purpose": "复现 Williams 浅拱 toggle frame 的 snap-through 前路径，验证大转动、路径关键点、cutback 与荷载控制在极限点显式停止。",
+      "theory": {
+        "description": "Williams (1964) 浅拱 toggle frame 经典公开基准",
+        "semiSpanIn": 12.943,
+        "riseIn": 0.386,
+        "sectionWidthIn": 0.753,
+        "sectionDepthIn": 0.243,
+        "Epsi": 10300000,
+        "referenceLimitLoadLb": 34.0392,
+        "targetLoadLb": 40
+      },
+      "learning": {
+        "pathId": "williams-toggle-limit-path",
+        "featured": true,
+        "durationMinutes": 5,
+        "title": "Williams toggle：为什么收敛失败也可能是正确结果",
+        "objective": "沿公开浅拱基准观察响应放大、切线指标下降和 cutback，理解荷载控制为何应在极限点保留最后收敛状态并停止。",
+        "modelFocus": [
+          "两根对称浅拱梁柱与中央竖向荷载",
+          "公开尺寸、截面和弹性模量原样换算",
+          "40 lb 目标荷载高于约 34.0392 lb 的公开极限荷载"
+        ],
+        "predictions": [
+          {
+            "id": "limit-before-target",
+            "prompt": "当目标荷载高于公开极限荷载时，纯荷载控制应怎样结束？",
+            "options": [
+              {"id": "stop-with-evidence", "label": "在极限点附近停止并保留证据"},
+              {"id": "force-success", "label": "强制跳到 40 lb 并报成功"},
+              {"id": "fallback-linear", "label": "静默回退首阶线性"}
+            ],
+            "expectedOptionId": "stop-with-evidence",
+            "explanation": "本版本不声明弧长法；切线接近奇异且最小步长耗尽时，正确行为是保留最后平衡点和失败尝试。"
+          },
+          {
+            "id": "equilibrium-versus-completion",
+            "prompt": "最后一个已收敛点与整条目标路径的状态是否相同？",
+            "options": [
+              {"id": "different", "label": "不同：点已平衡，路径未完成"},
+              {"id": "same-success", "label": "相同：都成功"},
+              {"id": "same-failed", "label": "相同：都没有平衡"}
+            ],
+            "expectedOptionId": "different",
+            "explanation": "最后收敛点满足平衡；但 40 lb 目标路径没有完成，因此整体 equilibriumStatus 为 not_converged。"
+          },
+          {
+            "id": "required-evidence",
+            "prompt": "判断这是极限点停止而不是普通报错，最关键的证据组合是什么？",
+            "options": [
+              {"id": "path-cutback-stability", "label": "路径、cutback 与切线指标"},
+              {"id": "final-picture-only", "label": "只看最终变形图"},
+              {"id": "first-order-only", "label": "只看首阶位移"}
+            ],
+            "expectedOptionId": "path-cutback-stability",
+            "explanation": "荷载—位移路径、最小切线特征值、失败尝试和最后收敛荷载共同构成可复核证据。"
+          }
+        ],
+        "graphicalChecks": [
+          "路径终点靠近 34.0392 lb 公开极限荷载而不是 40 lb 目标",
+          "最小稳定指标、残差峰值、cutback、最后收敛点与终止点均有数值标注",
+          "播放停在最后收敛几何，不伪造极限点后的路径"
+        ],
+        "proves": [
+          "共回转单元能够复现 Williams toggle 的极限点前大转动响应",
+          "自适应步长与 cutback 在切线奇异附近保留结构化失败证据",
+          "荷载控制边界与弧长后屈曲能力被明确区分"
+        ],
+        "doesNotProve": [
+          "极限点后的 snap-through 与完整后屈曲支路",
+          "材料非线性、塑性、动力跳跃或阻尼响应",
+          "任何规范承载力或工程设计安全结论"
+        ]
+      },
+      "payload": {
+        "analysisType": "frame",
+        "projectName": "GNA-003: Williams Toggle Limit Point",
+        "materialId": "williams-1964",
+        "analysisOptions": {
+          "pDelta": true,
+          "buckling": false,
+          "pDeltaOptions": {
+            "algorithm": "corotational_newton_v1",
+            "initialStep": 0.05,
+            "minStep": 0.00001,
+            "maxStep": 0.05,
+            "maxIterations": 50,
+            "maxCutbacks": 20,
+            "memberSubdivisions": 12,
+            "includeMethodComparison": true
+          }
+        },
+        "structure": {
+          "template": "explicit",
+          "nodes": [
+            {"id": "N1", "x": -0.3287522, "y": 0, "supportType": "fixed"},
+            {"id": "N2", "x": 0, "y": 0.0098044, "supportType": "free"},
+            {"id": "N3", "x": 0.3287522, "y": 0, "supportType": "fixed"}
+          ],
+          "members": [
+            {"id": "M1", "start": "N1", "end": "N2", "E_GPa": 71.01600012, "A_cm2": 1.1805073164, "I_cm4": 0.03747722425, "kind": "beam"},
+            {"id": "M2", "start": "N2", "end": "N3", "E_GPa": 71.01600012, "A_cm2": 1.1805073164, "I_cm4": 0.03747722425, "kind": "beam"}
+          ],
+          "loads": [
+            {"type": "nodal", "node": "N2", "fxKn": 0, "fyKn": -0.17792886461, "mzKnM": 0}
+          ]
+        }
+      },
+      "expected": {
+        "algorithmId": "corotational_newton_v1",
+        "equilibriumStatus": "not_converged",
+        "stabilityStatuses": ["stable", "near_critical"],
+        "pathControlType": "adaptive_load_control",
+        "controlNodeId": "N2",
+        "controlDof": "uy",
+        "controlNodeDisplacementMm": -5.91,
+        "terminationReasons": ["minimum_step_exhausted", "maximum_cutbacks_exhausted"],
+        "lastConvergedLoadFactor": 0.85098,
+        "referenceLoadKn": 0.17792886461,
+        "lastConvergedLoadKn": 0.151412,
+        "failedAttemptsMinimum": 1
+      },
+      "tolerances": {
+        "controlNodeDisplacementMm": 0.5,
+        "lastConvergedLoadFactor": 0.02,
+        "lastConvergedLoadKn": 0.002
+      },
+      "verification": {
+        "sourceType": "published-benchmark",
+        "reference": "Williams F.W. (1964), An Approach to the non-linear behaviour of the members of a rigid jointed plane framework with finite deflections；公开基准尺寸与解析极限荷载 Pcr=34.0392 lb",
+        "sourceLinks": [
+          "https://doi.org/10.1093/qjmam/17.4.451",
+          "https://www.imechanica.org/sites/default/files/1-s2.0-S0168874X06000953-main.pdf"
+        ],
+        "method": "按英制公开尺寸和材料精确换算建模，以 12 段/构件网格沿荷载控制追踪至极限点，校核最后收敛荷载、中央竖向位移、cutback 和显式终止",
+        "checkedMetrics": ["节点位移", "荷载路径", "平衡状态", "稳定状态"],
+        "verificationLevel": "B",
+        "verificationLevelLabel": "B 级验证",
+        "verificationLevelDescription": "经公开论文给出的经典数值基准，可用于校验大转动路径、极限点与失败恢复。"
+      }
+    },
+    {
+      "id": "GNA-004",
+      "category": "frame-nonlinear-verify",
+      "title": "Lee frame 极限点前路径",
+      "purpose": "对标 Lee L 形框架公开荷载—位移表，验证强非线性极限点前多点路径，并确认本版荷载控制在第一个极限点附近结构化停止。",
+      "theory": {
+        "description": "Lee et al. L 形框架公开 benchmark",
+        "memberLengthCm": 120,
+        "loadOffsetCm": 24,
+        "E_MPa": 70632,
+        "A_cm2": 6,
+        "I_cm4": 2,
+        "referenceLoadKn": 20,
+        "firstLimitLoadRatio": 0.92
+      },
+      "payload": {
+        "analysisType": "frame",
+        "projectName": "GNA-004: Lee Frame Pre-limit Path",
+        "materialId": "lee-nafems",
+        "analysisOptions": {
+          "pDelta": true,
+          "buckling": false,
+          "pDeltaOptions": {
+            "algorithm": "corotational_newton_v1",
+            "initialStep": 0.02,
+            "minStep": 0.001,
+            "maxStep": 0.05,
+            "maxIterations": 60,
+            "maxCutbacks": 20,
+            "memberSubdivisions": 6,
+            "includeMethodComparison": false
+          }
+        },
+        "structure": {
+          "template": "explicit",
+          "nodes": [
+            {"id": "N1", "x": 0, "y": 0, "supportType": "pinned"},
+            {"id": "N2", "x": 0, "y": 1.2, "supportType": "free"},
+            {"id": "N3", "x": 0.24, "y": 1.2, "supportType": "free"},
+            {"id": "N4", "x": 1.2, "y": 1.2, "supportType": "pinned"}
+          ],
+          "members": [
+            {"id": "M1", "start": "N1", "end": "N2", "E_GPa": 70.632, "A_cm2": 6, "I_cm4": 2, "kind": "column"},
+            {"id": "M2", "start": "N2", "end": "N3", "E_GPa": 70.632, "A_cm2": 6, "I_cm4": 2, "kind": "beam"},
+            {"id": "M3", "start": "N3", "end": "N4", "E_GPa": 70.632, "A_cm2": 6, "I_cm4": 2, "kind": "beam"}
+          ],
+          "loads": [
+            {"type": "nodal", "node": "N3", "fxKn": 0, "fyKn": -20, "mzKnM": 0}
+          ]
+        }
+      },
+      "expected": {
+        "algorithmId": "corotational_newton_v1",
+        "equilibriumStatus": "not_converged",
+        "stabilityStatuses": ["stable", "near_critical"],
+        "pathControlType": "adaptive_load_control",
+        "controlNodeId": "N3",
+        "controlDof": "uy",
+        "controlNodeDisplacementMm": -470.73,
+        "terminationReasons": ["minimum_step_exhausted", "maximum_cutbacks_exhausted"],
+        "lastConvergedLoadFactor": 0.92,
+        "referenceLoadKn": 20,
+        "lastConvergedLoadKn": 18.4,
+        "failedAttemptsMinimum": 1,
+        "pathPoints": [
+          {"pathProgress": 0.245165, "nodeId": "N3", "dof": "ux", "responseMm": 3.102, "toleranceMm": 0.6},
+          {"pathProgress": 0.245165, "nodeId": "N3", "dof": "uy", "responseMm": -37.514, "toleranceMm": 1.5},
+          {"pathProgress": 0.63689, "nodeId": "N3", "dof": "ux", "responseMm": 45.534, "toleranceMm": 5},
+          {"pathProgress": 0.63689, "nodeId": "N3", "dof": "uy", "responseMm": -182.12, "toleranceMm": 8},
+          {"pathProgress": 0.85097, "nodeId": "N3", "dof": "ux", "responseMm": 145.37, "toleranceMm": 20},
+          {"pathProgress": 0.85097, "nodeId": "N3", "dof": "uy", "responseMm": -359.24, "toleranceMm": 20}
+        ]
+      },
+      "tolerances": {
+        "controlNodeDisplacementMm": 40,
+        "lastConvergedLoadFactor": 0.03,
+        "lastConvergedLoadKn": 0.6
+      },
+      "verification": {
+        "sourceType": "engineering-software",
+        "reference": "Lee et al. (1968) / Cichon (1984) / NAFEMS Lee frame 公开基准；对标 Altair OptiStruct 2021 示例表，公开表给出 P=4.9033、12.7378、17.0194、18.3815 kN 等点的水平与竖向位移，第一荷载极限比约 0.92",
+        "sourceLinks": [
+          "https://2021.help.altair.com/2021/hwsolvers/os/topics/solvers/os/nafems_nonlinear_static_analysis_lee_frame_postbuckling_r.htm"
+        ],
+        "method": "按 Altair OptiStruct 2021 NAFEMS 示例的平面 Euler-Bernoulli 梁柱假定建模；统一使用 m-kN-rad 单位制并由公开 cm/MPa 参数精确换算，采用公开 E/A/I、24 cm 加载位置、两端铰支与集中竖向荷载，以 6 段/输入构件网格校核三个极限点前荷载—位移点、最后收敛荷载、失败尝试和显式终止",
+        "checkedMetrics": ["节点位移", "荷载路径", "平衡状态", "稳定状态"],
+        "verificationLevel": "C",
+        "verificationLevelLabel": "C 级验证",
+        "verificationLevelDescription": "Altair OptiStruct 2021 发布的 NAFEMS Lee frame 工程软件对标表；对标边界限定为相同单元假定、单位换算与模型边界下的极限点前多点荷载—位移路径。"
+      }
+    },
+    {
+      "id": "GNA-005",
+      "category": "frame-nonlinear-verify",
+      "title": "Euler 初始缺陷柱放大",
+      "purpose": "用一阶屈曲模态生成正弦初始缺陷，按 Euler 缺陷柱解析放大式校核 GNIA 的缺陷来源、增量位移、总位移与稳定裕度。",
+      "theory": {
+        "description": "两端铰接、正弦初弯曲、同心轴压的 Euler 缺陷柱",
+        "lengthM": 3,
+        "E_GPa": 200,
+        "I_cm4": 800,
+        "initialAmplitudeMm": 10,
+        "loadToEulerRatio": 0.4,
+        "eulerCriticalLoadKn": 1754.5963379714,
+        "appliedLoadKn": 701.8385351886,
+        "incrementalMidspanFormula": "e0 * (P/Pcr) / (1 - P/Pcr)",
+        "totalMidspanFormula": "e0 / (1 - P/Pcr)"
+      },
+      "payload": {
+        "analysisType": "frame",
+        "projectName": "GNA-005: Euler Imperfect Column Amplification",
+        "materialId": "elastic-steel",
+        "analysisOptions": {
+          "pDelta": true,
+          "buckling": true,
+          "pDeltaOptions": {
+            "algorithm": "corotational_newton_v1",
+            "initialStep": 0.1,
+            "minStep": 0.01,
+            "maxStep": 0.1,
+            "maxIterations": 30,
+            "memberSubdivisions": 6,
+            "initialImperfection": {
+              "type": "buckling_mode",
+              "modeNumber": 1,
+              "amplitudeMm": 10,
+              "direction": 1
+            }
+          }
+        },
+        "structure": {
+          "template": "explicit",
+          "nodes": [
+            {"id": "N1", "x": 0, "y": 0, "supportType": "pinned"},
+            {"id": "N2", "x": 0, "y": 1.5, "supportType": "free"},
+            {"id": "N3", "x": 0, "y": 3, "supportType": "roller", "supportAngleDeg": 0}
+          ],
+          "members": [
+            {"id": "C1", "start": "N1", "end": "N2", "E_GPa": 200, "A_cm2": 100, "I_cm4": 800, "kind": "column"},
+            {"id": "C2", "start": "N2", "end": "N3", "E_GPa": 200, "A_cm2": 100, "I_cm4": 800, "kind": "column"}
+          ],
+          "loads": [
+            {"type": "nodal", "node": "N3", "fxKn": 0, "fyKn": -701.8385351886, "mzKnM": 0}
+          ]
+        }
+      },
+      "expected": {
+        "algorithmId": "corotational_newton_v1",
+        "equilibriumStatus": "converged",
+        "stabilityStatus": "stable",
+        "pathControlType": "adaptive_load_control",
+        "initialImperfectionType": "explicit",
+        "initialImperfectionSourceType": "linear_buckling_mode",
+        "initialImperfectionModeNumber": 1,
+        "initialImperfectionAmplitudeMm": 10,
+        "controlNodeId": "N2",
+        "controlDof": "ux",
+        "controlNodeDisplacementMm": 6.6666666667,
+        "controlNodeTotalDisplacementMm": 16.6666666667,
+        "criticalLoadFactor": 2.5,
+        "lastConvergedLoadFactor": 1,
+        "pathPoints": [
+          {"pathProgress": 0.5, "nodeId": "N2", "dof": "ux", "responseMm": 2.5, "toleranceMm": 0.15}
+        ]
+      },
+      "tolerances": {
+        "initialImperfectionAmplitudeMm": 0.000001,
+        "controlNodeDisplacementMm": 0.2,
+        "controlNodeTotalDisplacementMm": 0.2,
+        "criticalLoadFactor": 0.0001,
+        "lastConvergedLoadFactor": 0.000001
+      },
+      "verification": {
+        "sourceType": "textbook-analytical",
+        "reference": "Euler 两端铰接柱 Pcr=pi^2 EI/L^2；正弦初始缺陷在同心轴压下的弹性放大为增量 e0(P/Pcr)/(1-P/Pcr)、总位移 e0/(1-P/Pcr)",
+        "method": "取 P/Pcr=0.4、首阶屈曲模态缺陷幅值 10 mm，校核模态来源和幅值、半载路径点、满载增量/总位移以及线性屈曲系数 2.5",
+        "checkedMetrics": ["初始缺陷", "节点位移", "荷载路径", "临界荷载系数", "平衡状态", "稳定状态"],
         "verificationLevel": "A",
         "verificationLevelLabel": "A 级验证",
         "verificationLevelDescription": "教材解析解或标准公式，可用于校验基本公式、单位换算、边界条件和符号约定。"
