@@ -2,7 +2,7 @@
 
 本文说明 ArchSight Solver 的本地镜像构建、容器运行和 Docker Compose 入口。
 
-当前仓库版本事实源为 v1.8.1。Tag 发布工作流已生成 GitHub Release、GHCR 工作流镜像和公开校验制品；官方演示站已部署阿里云精确镜像 `v1.8.1-007e745`，其 manifest digest 为 `sha256:eee50390530b21e40226f330f04e995da14e5eda734d1dd79593273acbbff38f`。GitHub Release、目标镜像仓库与线上容器仍是三个独立状态，每次部署都必须分别核对。
+当前仓库版本事实源为 v1.8.1。Tag 发布工作流已生成 GitHub Release、GHCR 工作流镜像和公开校验制品；阿里云通用标签 `v1.8.1` 保持同一首发摘要 `sha256:eee50390530b21e40226f330f04e995da14e5eda734d1dd79593273acbbff38f`，官方演示站已部署仅修正公开说明的精确镜像 `v1.8.1-e48507d`，摘要为 `sha256:38d89a1d3a6c543674c944583d81e277b3531336d0dd1700ca0f4e79fc8d5d62`。GitHub Release、目标镜像仓库与线上容器仍是三个独立状态，每次部署都必须分别核对。
 
 ## 单镜像模式
 

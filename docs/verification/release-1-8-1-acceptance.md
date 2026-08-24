@@ -76,8 +76,9 @@
 - 2026-08-24：Trivy 原始扫描包含 14 个 HIGH、3 个 CRITICAL，均未提供 `FixedVersion`；发布门禁要求的“已有修复版本但未升级”的 HIGH/CRITICAL 为 0，继续作为上游待修风险跟踪，不将原始发现误写为零漏洞。
 - 2026-08-24：`aios-structural`、`aios-arch`、`aios-ceo` 独立复核均为 P0=0、P1=0；P2 不扩张为本版发布阻断。
 - 2026-08-24：`main` CI [32706385458](https://github.com/ArchSightLabs/archsight-solver/actions/runs/32706385458) 与 `v1.8.1` 发布工作流 [32707023176](https://github.com/ArchSightLabs/archsight-solver/actions/runs/32707023176) 全部通过；GitHub Release 已发布，tag 固定在 `007e745`。
-- 2026-08-24：GitHub Release 的 7 份制品已下载核对，`SHA256SUMS` 中 6 个受校验制品全部匹配；正式镜像 ID 为 `sha256:4369020584cb1cfb90e78fa937eeae346462ee700907ec2426d1444770d39306`，GHCR 与阿里云镜像摘要均为 `sha256:eee50390530b21e40226f330f04e995da14e5eda734d1dd79593273acbbff38f`。
-- 2026-08-24：阿里云精确标签 `v1.8.1-007e745` 与版本标签 `v1.8.1` 摘要一致；正式切换前，同一镜像在隔离临时端口 `28082` 完成健康检查与 HTTP 200 预检，临时容器随后自动删除。
-- 2026-08-24：正式站 `https://solver.archsight.cn/` 已切换到 `v1.8.1-007e745`，容器 `healthy`、重启计数为 0；Solver 端口保持 `18082 -> 6240` 不变，`18083` 为 Graphics 既有端口，未被占用或调整。
+- 2026-08-24：GitHub Release 的 7 份制品已下载核对，`SHA256SUMS` 中 6 个受校验制品全部匹配；正式镜像 ID 为 `sha256:4369020584cb1cfb90e78fa937eeae346462ee700907ec2426d1444770d39306`，GHCR、阿里云版本标签 `v1.8.1` 与首发精确标签 `v1.8.1-007e745` 的摘要均为 `sha256:eee50390530b21e40226f330f04e995da14e5eda734d1dd79593273acbbff38f`。
+- 2026-08-24：发布后发现公开说明残留候选措辞，提交 `e48507d` 仅修正文案并保留不可变 tag 与首发制品；修订镜像 ID 为 `sha256:542ac82541a8d664cff6a956d9d2adac257f8011824d7533dd4aef9a7b122866`，阿里云精确标签 `v1.8.1-e48507d` 的摘要为 `sha256:38d89a1d3a6c543674c944583d81e277b3531336d0dd1700ca0f4e79fc8d5d62`。
+- 2026-08-24：正式切换前，修订镜像在隔离临时端口 `28082` 完成健康检查、HTTP 200 与发布文案复核，临时容器随后自动删除；阿里云通用标签 `v1.8.1` 仍固定在首发摘要，避免文案修订覆盖正式制品谱系。
+- 2026-08-24：正式站 `https://solver.archsight.cn/` 已切换到 `v1.8.1-e48507d`，容器 `healthy`、重启计数为 0；Solver 端口保持 `18082 -> 6240` 不变，`18083` 为 Graphics 既有端口，未被占用或调整。
 - 2026-08-24：线上真实 GNA 教学链路 `2/2` 通过；梁系真实计算及 XLSX（33355 字节）、DOCX（304872 字节）、可信计算包（2264615 字节）导出通过。
-- 2026-08-24：上线前保留 v1.8.0 精确镜像 `v1.8.0-2f839f3`，并生成离线回滚归档 `/root/archsight-solver/backups/pre-v1.8.1-20260824T083534Z`；归档 SHA-256 为 `09f1fb39a824cbd1f233109b29848167e01ca70a83c3660beca6d38c2036006c`。
+- 2026-08-24：上线前保留 v1.8.0 精确镜像 `v1.8.0-2f839f3`，并生成离线回滚归档 `/root/archsight-solver/backups/pre-v1.8.1-20260824T083534Z`；归档 SHA-256 为 `09f1fb39a824cbd1f233109b29848167e01ca70a83c3660beca6d38c2036006c`。文案修订切换前另保留 `/root/archsight-solver/backups/pre-v1.8.1-docfix-e48507d`，首发精确镜像 `v1.8.1-007e745` 仍可直接回退。
