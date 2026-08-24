@@ -327,7 +327,7 @@ writeFileSync(releaseNotesHtmlPath, releaseNotesHtml, 'utf-8')
 
 for (const guide of publicGuideSpecs) {
   const markdown = normalizeMarkdown(readFileSync(path.join(repoRoot, guide.sourcePath), 'utf-8'))
-  const html = renderPublicGuideHtml(markdown, { ...guide, currentVersion: releaseNotes.releases[0]?.version ?? '1.8.1' })
+  const html = renderPublicGuideHtml(markdown, { ...guide, currentVersion: releaseNotes.releases[0]?.version ?? '1.8.2' })
   writeFileSync(path.join(publicDocsDir, guide.outputPath), html, 'utf-8')
 }
 

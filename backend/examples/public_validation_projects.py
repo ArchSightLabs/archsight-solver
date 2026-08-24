@@ -20,7 +20,7 @@ GROUPS = [
     {
         "id": "truss-public-validation",
         "title": "二维平面桁架公开验证工程",
-        "description": "由公开验证集中的桁架算例组成，覆盖 Pratt、Warren、Howe、悬挑桁架和杆件自重等场景。",
+        "description": "由公开验证集中的桁架算例组成，覆盖普拉特、沃伦、豪式、悬挑桁架和杆件自重等场景。",
         "analysisTypes": {"truss"},
         "caseCategories": {"truss", "truss-verify"},
         "projectType": "公开验证 / 平面桁架",
@@ -38,7 +38,7 @@ GROUPS = [
     {
         "id": "frame-nonlinear-public-validation",
         "title": "二维框架弹性几何非线性教学与验证工程",
-        "description": "由公开解析基准组成，专门展示共回转 Newton、固定预载—可变荷载路径、二阶放大以及平衡与稳定分离。",
+        "description": "由公开解析基准组成，专门展示共回转牛顿法、固定预载—可变荷载路径、二阶放大以及平衡与稳定分离。",
         "analysisTypes": {"frame"},
         "caseCategories": {"frame-nonlinear-verify"},
         "projectType": "公开验证 / 框架弹性几何非线性",
@@ -85,6 +85,45 @@ METRIC_UNITS = {
     "reactionKn": "kN",
     "reactionFyKn": "kN",
 }
+
+
+PUBLIC_TEXT_REPLACEMENTS = (
+    ("Euler-Bernoulli", "欧拉–伯努利"),
+    ("Timoshenko", "铁木辛柯"),
+    ("P-Delta", "P-Δ"),
+    ("共回转 Newton", "共回转牛顿法"),
+    ("Newton", "牛顿"),
+    ("Williams toggle frame", "Williams 浅拱翻转框架"),
+    ("Williams toggle", "Williams 浅拱翻转"),
+    ("toggle frame", "浅拱翻转框架"),
+    ("Lee frame", "Lee 框架"),
+    ("Pratt", "普拉特"),
+    ("Warren", "沃伦"),
+    ("Howe", "豪式"),
+    ("benchmark runner", "基准算例运行器"),
+    ("benchmark", "基准算例"),
+    ("cutback", "切步回退"),
+    ("unstable", "不稳定"),
+    ("Euler", "欧拉"),
+    ("cm^4", "cm⁴"),
+)
+
+
+def _public_text(value: Any) -> str:
+    text = str(value or "")
+    for source, target in PUBLIC_TEXT_REPLACEMENTS:
+        text = text.replace(source, target)
+    return text
+
+
+def _public_value(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {str(key): _public_value(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_public_value(item) for item in value]
+    if isinstance(value, str):
+        return _public_text(value)
+    return value
 
 
 def _now() -> str:
@@ -344,15 +383,15 @@ def _benchmark_meta(case: Mapping[str, Any]) -> Dict[str, Any]:
     metadata = {
         "caseId": case.get("id"),
         "category": case.get("category"),
-        "title": case.get("title"),
-        "purpose": case.get("purpose", ""),
+        "title": _public_text(case.get("title")),
+        "purpose": _public_text(case.get("purpose", "")),
         "sourceType": source_type,
         "sourceLabel": SOURCE_LABELS.get(source_type, source_type),
         "verificationLevel": verification.get("verificationLevel", "D") if isinstance(verification, Mapping) else "D",
         "verificationLevelLabel": verification.get("verificationLevelLabel", "D 级验证") if isinstance(verification, Mapping) else "D 级验证",
-        "verificationLevelDescription": verification.get("verificationLevelDescription", "") if isinstance(verification, Mapping) else "",
+        "verificationLevelDescription": _public_text(verification.get("verificationLevelDescription", "")) if isinstance(verification, Mapping) else "",
         "reference": verification.get("reference", "") if isinstance(verification, Mapping) else "",
-        "method": verification.get("method", "") if isinstance(verification, Mapping) else "",
+        "method": _public_text(verification.get("method", "")) if isinstance(verification, Mapping) else "",
         "sourceLinks": verification.get("sourceLinks", []) if isinstance(verification, Mapping) else [],
         "checkedMetrics": verification.get("checkedMetrics", []) if isinstance(verification, Mapping) else [],
         "metricSummary": _case_metric_summary(case),
@@ -363,18 +402,21 @@ def _benchmark_meta(case: Mapping[str, Any]) -> Dict[str, Any]:
     }
     learning = case.get("learning")
     if isinstance(learning, Mapping):
-        metadata["learning"] = dict(learning)
+        metadata["learning"] = _public_value(learning)
     return metadata
 
 
 def _object_from_case(case: Mapping[str, Any], index: int, timestamp: str) -> Dict[str, Any]:
     analysis_type = _analysis_type(case)
-    case_title = str(case.get("title") or case.get("id"))
+    case_title = _public_text(case.get("title") or case.get("id"))
+    display_case = {**case, "title": case_title}
+    state = _state_from_case(display_case)
+    state["projectName"] = case_title
     return {
         "id": f"{analysis_type}-{case['id']}",
         "name": f"{index + 1:02d} {case_title}",
         "type": analysis_type,
-        "state": _state_from_case(case),
+        "state": state,
         "results": None,
         "sensitivityResults": None,
         "workbenchView": "model",
@@ -408,7 +450,7 @@ def _project_from_group(group: Mapping[str, Any], cases: Iterable[Mapping[str, A
                 "projectManager": "ArchSight Solver 公开验证集",
                 "constructionUnit": "",
                 "developerUnit": "",
-                "supervisionUnit": f"benchmark_cases.json / {catalog_updated_at}",
+                "supervisionUnit": f"公开基准算例目录 · 更新于 {catalog_updated_at}",
             },
         },
         "createdAt": timestamp,

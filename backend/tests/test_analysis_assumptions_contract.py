@@ -36,7 +36,7 @@ def test_evidence_tables_use_shared_assumption_rows() -> None:
     rows = dict(zip(assumptions["项目"], assumptions["说明"]))
 
     assert rows["计算模型"] == analysis_assumption_rows("beam")[0].value
-    assert "I: cm4 -> m4" in rows["单位换算"]
+    assert "I：cm⁴ → m⁴" in rows["单位换算"]
     assert "不替代规范设计" in rows["适用边界"]
 
 

@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_PATHS = (
     ".github/workflows/release.yml",
     ".github/workflows/nightly-quality.yml",
+    "docs/verification/release-1-8-2-acceptance.md",
     "docs/verification/release-1-8-1-acceptance.md",
     "docs/verification/release-1-7-acceptance.md",
     "docs/verification/release-1-6-3-acceptance.md",
@@ -48,6 +49,32 @@ REQUIRED_MARKERS = {
         "不少于 24 小时",
         "同一天不得连续发布两个稳定次版本",
         "维护者明确说出要发布的版本号",
+    ),
+    "CHANGELOG.md": (
+        "## v1.8.2",
+        "中文工程表达统一",
+        "技术审计层",
+        "不改变数值结果",
+    ),
+    "docs/verification/release-1-8-2-acceptance.md": (
+        "页面中文工程语义",
+        "页面、计算书与证据一致",
+        "127.0.0.1:18082 -> app:6240",
+        "未完成项不得提前勾选",
+    ),
+    "frontend/src/lib/calculation-artifacts.ts": (
+        'max_displacement_mm: "最大位移"',
+        'critical_load_factor: "临界荷载因子"',
+        '["displayPoints", "points"]',
+        '["displayEntries", "entries"]',
+    ),
+    "frontend/src/components/WorkbenchCalculationArtifactPanels.tsx": (
+        "技术审计信息",
+        "页面仅展示受控清单",
+    ),
+    "frontend/src/components/FrameStabilityPanel.tsx": (
+        "荷载因子",
+        "技术审计信息",
     ),
     "app.py": ("ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS", 'Cache-Control', "frame-ancestors"),
     "Dockerfile": (
@@ -92,9 +119,9 @@ REQUIRED_MARKERS = {
         "late-save-snapshot",
     ),
     "frontend/tests/visual/release-1-8-stability-keypoints.spec.ts": (
-        "v1.8.1 几何非线性过程播放",
-        "canonical 关键点",
-        "corotational_newton_v1",
+        "几何非线性过程播放显示规范关键点、数值和分层解释",
+        "显示关键点类型",
+        "共回转牛顿法 · 最大位移",
     ),
     ".github/workflows/ci.yml": (
         "python scripts/check_versions.py",
@@ -195,35 +222,42 @@ def main() -> int:
     if build_script_path.is_file() and "DOCKER_BUILDKIT" in build_script_path.read_text(encoding="utf-8"):
         failures.append("scripts/build-image.ps1 不得回退到已弃用的 Legacy Builder")
 
-    current_acceptance_path = ROOT / "docs/verification/release-1-8-1-acceptance.md"
+    current_acceptance_path = ROOT / "docs/verification/release-1-8-2-acceptance.md"
     if current_acceptance_path.is_file():
         acceptance = current_acceptance_path.read_text(encoding="utf-8")
-        if not re.search(r"^> 状态：(发布候选就绪|已发布)\s*$", acceptance, flags=re.MULTILINE):
-            failures.append("v1.8.1 发布验收状态必须为‘发布候选就绪’或‘已发布’")
-        unchecked_items = re.findall(r"^- \[ \] ", acceptance, flags=re.MULTILINE)
+        status_match = re.search(r"^> 状态：(发布候选就绪|已发布)\s*$", acceptance, flags=re.MULTILINE)
+        if not status_match:
+            failures.append("v1.8.2 发布验收状态必须为‘发布候选就绪’或‘已发布’")
+        release_gate_heading = "## Gate F：正式发布与线上验收"
+        candidate_scope = acceptance.split(release_gate_heading, maxsplit=1)[0]
+        if release_gate_heading not in acceptance:
+            failures.append("v1.8.2 发布验收缺少 Gate F 正式发布与线上验收")
+        checked_scope = acceptance if status_match and status_match.group(1) == "已发布" else candidate_scope
+        unchecked_items = re.findall(r"^- \[ \] ", checked_scope, flags=re.MULTILINE)
         if unchecked_items:
-            failures.append(f"v1.8.1 发布验收仍有 {len(unchecked_items)} 项未完成")
+            phase = "正式发布" if status_match and status_match.group(1) == "已发布" else "发布候选"
+            failures.append(f"v1.8.2 {phase}范围仍有 {len(unchecked_items)} 项未完成")
 
     deploy_expectations = {
         "deploy/.env.example": (
-            "IMAGE_TAG=v1.8.1",
+            "IMAGE_TAG=v1.8.2",
             "NODE_IMAGE=public.ecr.aws/docker/library/node:22-bookworm-slim@sha256:",
             "PYTHON_IMAGE=public.ecr.aws/docker/library/python:3.13-slim@sha256:",
             "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS=",
         ),
         "deploy/docker-compose.yml.example": (
-            "${IMAGE_TAG:-v1.8.1}",
+            "${IMAGE_TAG:-v1.8.2}",
             "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS: ${ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS:-}",
         ),
         "deploy/deploy.sh": (
-            '${IMAGE_TAG:-v1.8.1}',
+            '${IMAGE_TAG:-v1.8.2}',
             'ps --all --quiet',
             "docker inspect --format",
             "DEPLOY_HEALTH_TIMEOUT_SECONDS",
             "logs --tail=100",
             "wait_for_services_healthy",
         ),
-        "docs/deployment.md": ("archsight-solver:v1.8.1", "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS", "VITE_UMAMI_WEBSITE_ID"),
+        "docs/deployment.md": ("archsight-solver:v1.8.2", "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS", "VITE_UMAMI_WEBSITE_ID"),
     }
     for relative_path, expected_markers in deploy_expectations.items():
         text = (ROOT / relative_path).read_text(encoding="utf-8")

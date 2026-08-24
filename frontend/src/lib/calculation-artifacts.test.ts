@@ -5,16 +5,20 @@ import {
   appendCalculationSnapshot,
   calculationCriticalPointKindTitle,
   calculationMetricTitle,
+  calculationObjectTitle,
   calculationSideTitle,
   calculationSourceIdTitle,
   calculationSourceLabelTitle,
   calculationSourceTypeTitle,
   calculationStatusTitle,
+  calculationTechnicalText,
   compareCalculationSnapshots,
   createCalculationSnapshotFromResult,
   MAX_SNAPSHOT_BYTES,
   normalizeCalculationSnapshot,
   normalizeCalculationTrace,
+  normalizeCriticalPoints,
+  normalizeGoverningEnvelope,
   normalizeReviewPoints,
 } from "./calculation-artifacts.ts";
 
@@ -66,6 +70,8 @@ test("计算过程与关键点使用工程中文展示并保留折叠审计原�
   assert.equal(calculationStatusTitle("PASS"), "通过");
   assert.equal(calculationStatusTitle("PENDING"), "待计算");
   assert.equal(calculationStatusTitle("maximum_iterations_exhausted"), "达到最大迭代次数");
+  assert.equal(calculationObjectTitle("endpoint", "beam"), "梁系对象");
+  assert.equal(calculationTechnicalText("Euler-Bernoulli 梁理论 + 共回转全 Newton P-Delta"), "欧拉–伯努利梁理论 + 共回转全量牛顿法 P-Δ");
   assert.equal(calculationMetricTitle("future_internal_metric"), "其他工程指标");
   assert.equal(calculationCriticalPointKindTitle("future_internal_kind"), "其他关键点");
   assert.equal(calculationSourceTypeTitle("future_internal_source"), "其他来源");
@@ -83,6 +89,27 @@ test("计算过程与关键点使用工程中文展示并保留折叠审计原�
   assert.equal(unknownProtocolTrace[0]?.title, "步骤 1");
   assert.equal(unknownProtocolTrace[0]?.detail, "计算方法：其他求解方法");
   assert.match(unknownProtocolTrace[0]?.technicalDetail ?? "", /INTERNAL_STAGE_TITLE/u);
+});
+
+test("结果页优先使用受控展示集合，用户复核点不混入系统采样点", () => {
+  const criticalPoints = normalizeCriticalPoints({
+    points: Array.from({ length: 80 }, (_, index) => ({ id: `all-${index}`, kind: "query", metric: "moment", value: index })),
+    displayPoints: [{ id: "display-1", kind: "absolute", metric: "moment", value: 12, unit: "kN.m", objectId: "B1" }],
+  });
+  const reviewPoints = normalizeReviewPoints({
+    points: [{ id: "system-1", sourceType: "system", object: "member", objectId: "B1" }],
+    requestedPoints: [{ id: "request-1", sourceType: "request", targetType: "member", targetId: "B1", label: "CUSTOM_STATION", note: "raw internal note" }],
+  });
+  const envelope = normalizeGoverningEnvelope({
+    entries: [{ id: "all-1", metric: "moment", value: 12 }],
+    displayEntries: [{ id: "display-1", metric: "moment", value: 12 }],
+  });
+
+  assert.deepEqual(criticalPoints.map((item) => item.id), ["display-1"]);
+  assert.deepEqual(reviewPoints.map((item) => item.id), ["request-1"]);
+  assert.equal(reviewPoints[0]?.label, "复核点 1");
+  assert.equal(reviewPoints[0]?.note, "用户指定的工程复核位置");
+  assert.deepEqual(envelope.map((item) => item.id), ["display-1"]);
 });
 
 test("canonical result snapshot keeps hashes and the same evidence collections", () => {
@@ -182,6 +209,7 @@ test("快照对比只展示中文工程字段和可读来源，同时保留数�
       unit: "mm",
       sourceType: "main",
       sourceId: "__primary__",
+      sourceLabel: "main",
       side: "exact",
       sourceHash: "left-source-hash",
     }],
@@ -202,6 +230,7 @@ test("快照对比只展示中文工程字段和可读来源，同时保留数�
       unit: "mm",
       sourceType: "main",
       sourceId: "__primary__",
+      sourceLabel: "main",
       side: "exact",
       sourceHash: "right-source-hash",
     }],

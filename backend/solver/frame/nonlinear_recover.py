@@ -113,7 +113,7 @@ def build_corotational_solution_response(
         "terminationReason": result.termination_reason,
         "mesh": result.path_trace.get("mesh", {}),
     }
-    response["summary"]["method"] = "二维框架共回转全 Newton 弹性几何非线性分析"
+    response["summary"]["method"] = "二维框架共回转全量牛顿弹性几何非线性分析"
     return response
 
 

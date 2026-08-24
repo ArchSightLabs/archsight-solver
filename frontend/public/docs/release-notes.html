@@ -116,11 +116,33 @@
       </button>
     </div>
     <header>
-      <span class="tag">当前版本 v1.8.1</span>
+      <span class="tag">当前版本 v1.8.2</span>
       <h1>版本发布记录</h1>
     </header>
 
     <section class="release-list" aria-label="版本发布记录">
+      <article class="release">
+        <div class="release-head">
+          <h2>v1.8.2</h2>
+          <span class="date">发布时间：2026-08-25</span>
+        </div>
+          <p class="section-label">重点改进</p>
+          <ul>
+            <li>中文工程表达统一：关键点的类型、指标、来源、状态、方法名称和单位优先显示中文；<code>loadFactor</code>、<code>max_displacement_mm</code> 等机器字段改为“荷载因子”“最大位移”等用户术语，必要的 GNA、GNIA、P-Δ 等专业缩写保留并解释。</li>
+            <li>计算过程可读：输入规范化、自由度映射、单元处理、整体装配、边界约化和求解步骤显示中文摘要；完整请求哈希、模型哈希、算法标识和内部状态码集中到可折叠的技术审计信息。</li>
+            <li>图形标注降噪：端点、反弯点、局部极值、全局极值等标注可按类别控制，默认优先保留控制性结论；图面与计算书使用同一显示策略，避免屏幕简化而导出重新堆满标注。</li>
+            <li>布局与避碰修复：修复受力变形、内力图、几何非线性过程播放和稳定审查中的裁切、文字重叠及无意义横向滚动；关键数值保持可见，完整数据仍可从点表、计算书和可信计算包复核。</li>
+            <li>结果证据分层：工作台优先显示有界的控制点、复核点和包络记录，避免数百行内部证据直接铺满页面；未经删减的 canonical 证据继续保留在 API、详细计算书和可信计算包中。</li>
+            <li>公开案例与模板本地化：公开工程名称、验证来源、结构形式、方法说明和教学提示统一中文化，不改变 <code>caseId</code>、算法 ID、Schema 和结果哈希等机器契约。</li>
+          </ul>
+          <p class="section-label">兼容边界</p>
+          <ul>
+            <li>v1.8.2 与 v1.8.1 使用相同的结构分析域、求解算法和公开契约，不改变数值结果，不新增数据库迁移。</li>
+            <li><code>corotational_newton_v1</code>、<code>initial_stress_v1</code>、<code>CalculationTrace@1</code>、<code>NonlinearPathTrace@1</code> 等标识继续作为可复算协议事实保留；只改变其面向用户的呈现方式。</li>
+            <li>完整验证、镜像、上线与回滚证据见 [v1.8.2 发布验收](docs/verification/release-1-8-2-acceptance.md)。</li>
+          </ul>
+      </article>
+
       <article class="release">
         <div class="release-head">
           <h2>v1.8.1</h2>

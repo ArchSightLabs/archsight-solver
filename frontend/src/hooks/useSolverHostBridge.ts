@@ -180,7 +180,7 @@ export function useSolverHostBridge({
         const errorNonce = isLaunchError ? messageNonce : nonce ?? messageNonce;
         if (errorSessionId && errorNonce) {
           postToHost(
-            buildSolverErrorMessage(errorSessionId, error instanceof Error ? error.message : "host bridge 处理失败。", errorNonce),
+            buildSolverErrorMessage(errorSessionId, error instanceof Error ? error.message : "宿主通信桥接处理失败。", errorNonce),
             hostOrigin ?? event.origin,
           );
         }

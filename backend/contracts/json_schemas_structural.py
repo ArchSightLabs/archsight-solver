@@ -382,7 +382,7 @@ LOAD_COMBINATION_SCHEMA: Dict[str, Any] = {
 FRAME_PDELTA_OPTIONS_SCHEMA: Dict[str, Any] = {
     "$id": _schema_id("frame-pdelta-options"),
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "框架 P-Delta 选项",
+    "title": "框架 P-Δ 选项",
     "type": "object",
     "properties": {
         "algorithm": {"type": "string", "enum": ["initial_stress_v1", "corotational_newton_v1"]},

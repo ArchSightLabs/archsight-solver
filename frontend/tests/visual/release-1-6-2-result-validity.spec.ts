@@ -90,7 +90,7 @@ for (const mode of ["beam", "frame", "truss"] as const) {
 
     await editModel(page, mode);
     await page.getByRole("tab", { name: /结构计算/ }).click();
-    await expect(page.getByText("结果已失效 (需重新计算)")).toBeVisible();
+    await expect(page.getByText("结果已失效（需重新计算）")).toBeVisible();
     await expect(page.getByRole("button", { name: "成果导出" })).toBeDisabled();
 
     await page.getByRole("button", { name: MODES[mode].run }).click();

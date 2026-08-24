@@ -176,7 +176,7 @@ export function AppHeader({
               <Button
                 variant="ghost"
                 disabled={isProjectReadOnly}
-                title="保存项目 (Ctrl+S)"
+                title="保存项目（Ctrl+S）"
                 onClick={() => onSaveProjectFile(false)}
                 className={`rounded-lg font-bold text-foreground hover:bg-primary/10 ${isCompactWorkbench ? "h-9 px-3 text-xs" : "h-10 px-3.5"}`}
               >

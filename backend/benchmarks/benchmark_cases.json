@@ -771,7 +771,7 @@
     {
       "id": "truss-pratt-roof",
       "category": "truss",
-      "title": "Pratt 型屋架",
+      "title": "普拉特型屋架",
       "purpose": "验证更接近工程高频场景的多节点屋架、上下弦杆、竖杆、斜腹杆及多节点竖向荷载回归。",
       "payload": {
         "analysisType": "truss",
@@ -2548,7 +2548,7 @@
     {
       "id": "truss-warren-roof",
       "category": "truss",
-      "title": "Warren 型屋架",
+      "title": "沃伦型屋架",
       "purpose": "补充 Warren 桁架多斜腹杆回归，覆盖等距上下弦与多节点竖向荷载。",
       "payload": {
         "analysisType": "truss",
@@ -2743,7 +2743,7 @@
     {
       "id": "truss-pratt-bridge",
       "category": "truss",
-      "title": "Pratt 桥式桁架",
+      "title": "普拉特桥式桁架",
       "purpose": "补充 Pratt 桥式桁架回归，覆盖竖杆、斜杆和多节点荷载。",
       "payload": {
         "analysisType": "truss",
@@ -2960,7 +2960,7 @@
     {
       "id": "truss-howe-roof",
       "category": "truss",
-      "title": "Howe 型屋架",
+      "title": "豪式屋架",
       "purpose": "补充 Howe 桁架回归，覆盖与 Pratt 相反方向的腹杆布置。",
       "payload": {
         "analysisType": "truss",
@@ -7198,8 +7198,8 @@
         "pathId": "frame-gna-beam-column-path",
         "featured": true,
         "durationMinutes": 5,
-        "title": "P-Delta：从首阶位移到真实平衡路径",
-        "objective": "先用 Euler 临界力和梁柱稳定函数预判，再对照首阶、兼容初始应力法与共回转 Newton 的响应和收敛路径。",
+        "title": "P-Δ：从首阶位移到真实平衡路径",
+        "objective": "先用欧拉临界力和梁柱稳定函数预判，再对照首阶、兼容初始应力法与共回转牛顿法的响应和收敛路径。",
         "modelFocus": [
           "4 m 等截面悬臂梁柱",
           "先施加 0.4Pcr 的固定轴压预载",
@@ -7604,7 +7604,7 @@
         "sourceLinks": [
           "https://2021.help.altair.com/2021/hwsolvers/os/topics/solvers/os/nafems_nonlinear_static_analysis_lee_frame_postbuckling_r.htm"
         ],
-        "method": "按 Altair OptiStruct 2021 NAFEMS 示例的平面 Euler-Bernoulli 梁柱假定建模；统一使用 m-kN-rad 单位制并由公开 cm/MPa 参数精确换算，采用公开 E/A/I、24 cm 加载位置、两端铰支与集中竖向荷载，以 6 段/输入构件网格校核三个极限点前荷载—位移点、最后收敛荷载、失败尝试和显式终止",
+        "method": "按 Altair OptiStruct 2021 NAFEMS 示例的平面欧拉–伯努利梁柱假定建模；统一使用 m–kN–rad 单位制并由公开 cm/MPa 参数精确换算，采用公开 E/A/I、24 cm 加载位置、两端铰支与集中竖向荷载，以 6 段/输入构件网格校核三个极限点前荷载—位移点、最后收敛荷载、失败尝试和显式终止",
         "checkedMetrics": ["节点位移", "荷载路径", "平衡状态", "稳定状态"],
         "verificationLevel": "C",
         "verificationLevelLabel": "C 级验证",

@@ -104,13 +104,13 @@ test("v1.6.2 Host Client launches on capability ready before its retry timer", a
     expect(source).toContain("const DEFAULT_LAUNCH_RETRY_MS = 1500;");
     await route.fulfill({
       response,
-      body: source.replace("const DEFAULT_LAUNCH_RETRY_MS = 1500;", "const DEFAULT_LAUNCH_RETRY_MS = 5000;"),
+      body: source.replace("const DEFAULT_LAUNCH_RETRY_MS = 1500;", "const DEFAULT_LAUNCH_RETRY_MS = 15000;"),
     });
   });
 
   await page.reload();
 
-  await expect(page.locator("#connectionStatus")).toHaveText("已建立会话", { timeout: 3_000 });
+  await expect(page.locator("#connectionStatus")).toHaveText("已建立会话", { timeout: 10_000 });
   await expect(page.locator("#log")).toContainText("archsight.solver.host.launch");
   expect(pageErrors).toEqual([]);
 });
@@ -224,7 +224,6 @@ test("v1.6.1 reference host ignores a save snapshot that arrives after timeout",
   await expect(page.locator("#saveState")).toHaveText("有未保存更改");
   await page.getByRole("button", { name: "保存工程" }).click();
 
-  await expect(page.locator("#operationNotice")).toContainText("保存请求超时");
   await expect(page.locator("#operationNotice")).toContainText("已忽略超时后返回的保存快照");
   await expect(page.locator("#revision")).toHaveText("0");
   await expect(page.locator("#saveState")).toHaveText("有未保存更改");

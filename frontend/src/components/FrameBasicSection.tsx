@@ -130,7 +130,7 @@ export function FrameBasicSection({
                 })}
                 options={[
                   { value: "initial_stress_v1", label: "兼容模式 · 初始应力迭代法" },
-                  { value: "corotational_newton_v1", label: "专业模式 · 共回转 Newton 法" },
+                  { value: "corotational_newton_v1", label: "专业模式 · 共回转牛顿法" },
                 ]}
                 ariaLabel="选择二维框架二阶分析方法"
                 compact={compact}
@@ -144,7 +144,7 @@ export function FrameBasicSection({
             </label>
             <div className="grid grid-cols-2 gap-3">
               <label className="space-y-1">
-                <span className={formLabelClass}>{isCorotational ? "初始荷载步" : "P-Delta 步数"}</span>
+                <span className={formLabelClass}>{isCorotational ? "初始荷载步" : "二阶荷载步数（P-Δ）"}</span>
                 <Input
                   compact={compact}
                   type="number"

@@ -82,7 +82,7 @@ def export_docx(
         *[(left, right) for left, right in material_report_rows(request.get("material_id"))],
         ("弹性模量 E", f"{request['E_gpa']} GPa"),
         ("截面惯性矩 I", f"{request['I_cm4']} cm^4"),
-        ("梁理论", request.get("beam_theory_label", "Euler-Bernoulli 梁理论")),
+        ("梁理论", request.get("beam_theory_label", "欧拉–伯努利梁理论")),
         ("跨度布置", " + ".join([str(s) for s in request["spans"]])),
         ("模拟时长", f"{request['duration']} s"),
         ("主频", f"{request['freq']} Hz"),

@@ -672,9 +672,9 @@ export const TRUSS_MODEL_TEMPLATES: TrussModelTemplate[] = withValidationRefs<Ra
   },
   {
     id: "pratt-truss",
-    title: "普拉特（Pratt）桁架",
+    title: "普拉特桁架",
     description: "下弦连续、腹杆向跨中倾斜，适合桥式桁架轴力教学。",
-    tags: ["Pratt", "桥式", "腹杆"],
+    tags: ["普拉特式", "桥式", "腹杆"],
     nodes: [
       { id: "N1", x: 0, y: 0, supportType: "pinned" },
       { id: "N2", x: 3, y: 0, supportType: "free" },
@@ -708,9 +708,9 @@ export const TRUSS_MODEL_TEMPLATES: TrussModelTemplate[] = withValidationRefs<Ra
   },
   {
     id: "warren-truss",
-    title: "沃伦（Warren）桁架",
+    title: "沃伦桁架",
     description: `等距三角腹杆布置，适合比较拉压${TRUSS_MEMBER_TERM}交替分布。`,
-    tags: ["Warren", "等距", "桥式"],
+    tags: ["沃伦式", "等距", "桥式"],
     nodes: [
       { id: "N1", x: 0, y: 0, supportType: "pinned" },
       { id: "N2", x: 4, y: 0, supportType: "free" },
@@ -741,9 +741,9 @@ export const TRUSS_MODEL_TEMPLATES: TrussModelTemplate[] = withValidationRefs<Ra
   },
   {
     id: "howe-roof-truss",
-    title: "豪式（Howe）屋架",
-    description: "竖杆配合反向斜腹杆布置，适合与普拉特（Pratt）屋架比较腹杆拉压分布。",
-    tags: ["Howe", "屋架", "腹杆"],
+    title: "豪式屋架",
+    description: "竖杆配合反向斜腹杆布置，适合与普拉特屋架比较腹杆拉压分布。",
+    tags: ["豪式", "屋架", "腹杆"],
     nodes: [
       { id: "N1", x: 0, y: 0, supportType: "pinned" },
       { id: "N2", x: 4, y: 0, supportType: "free" },

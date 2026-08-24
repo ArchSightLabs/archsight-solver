@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { BarChart3, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react";
 import { GlassCard } from "./ui/GlassCard";
 import { formatEngineeringValue } from "../lib/engineering-format";
-import { calculationMetricTitle, calculationStatusTitle } from "../lib/calculation-artifacts";
+import { calculationMetricTitle, calculationStatusTitle, calculationTechnicalText } from "../lib/calculation-artifacts";
 import { buildNonlinearPathKeyPoints, layoutNonlinearPathLabels, nonlinearPathPlotPoints } from "../lib/frame-nonlinear-path";
 import type {
   FrameBucklingMode,
@@ -33,18 +33,20 @@ type ModeCurve = {
 const STABILITY_METHOD_TITLES: Record<string, string> = {
   linear_first_order_v1: "首阶线性分析",
   initial_stress_v1: "初始应力迭代（兼容）",
-  corotational_newton_v1: "共回转 Newton 法",
+  corotational_newton_v1: "共回转牛顿法",
   linear_buckling_v1: "线性屈曲特征值法",
 };
 
 function stabilityMethodTitle(value: string | undefined | null) {
   if (!value) return "未提供方法";
-  return STABILITY_METHOD_TITLES[value] ?? (/[\u3400-\u9fff]/u.test(value) ? value : "其他求解方法");
+  const localized = calculationTechnicalText(value);
+  return STABILITY_METHOD_TITLES[value] ?? (/[\u3400-\u9fff]/u.test(localized) ? localized : "其他求解方法");
 }
 
 function engineeringExplanation(value: string | undefined | null, fallback: string) {
   if (!value) return fallback;
-  return /[㐀-鿿]/u.test(value) ? value : fallback;
+  const localized = calculationTechnicalText(value);
+  return /[㐀-鿿]/u.test(localized) ? localized : fallback;
 }
 
 function normalizeStatus(value: string | undefined | null): StabilityStatus {
@@ -270,13 +272,13 @@ function NonlinearPathPanel({ result, compact }: { result: FrameCalculationResul
   const methodLabels = Object.fromEntries(
     (result.secondOrder?.methodComparison?.methods ?? []).map((method) => [
       String(method.id ?? "unknown"),
-      String(method.label ?? STABILITY_METHOD_TITLES[String(method.id ?? "")] ?? "未提供方法"),
+      calculationTechnicalText(String(method.label ?? STABILITY_METHOD_TITLES[String(method.id ?? "")] ?? "未提供方法")),
     ]),
   );
   const explanations = {
     intro: "结构会在每个荷载步更新形状，再寻找内力与外力平衡；播放的是实际求解路径，不是动画插值。",
     engineering: "平衡收敛只说明该荷载点成立；切线稳定、接近临界或不稳定单独报告，不能把已收敛解释为安全。",
-    algorithm: "共回转 Newton 法使用共回转基本变形、解析一致切线、全 Newton、残差线搜索和自适应切步回退；荷载控制不追踪极限点后的分支。",
+    algorithm: "共回转牛顿法使用共回转基本变形、解析一致切线、全量牛顿迭代、残差线搜索和自适应切步回退；荷载控制不追踪极限点后的分支。",
   };
   return (
     <GlassCard className={compact ? "p-3 sm:p-4" : "p-4 sm:p-5"}>

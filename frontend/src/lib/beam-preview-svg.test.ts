@@ -33,6 +33,8 @@ test("formatEngineeringValue uses up to four decimals and trims trailing zeros",
   assert.equal(formatEngineeringValue(0.162, "mm"), "0.162 mm");
   assert.equal(formatEngineeringValue(1, "mm"), "1 mm");
   assert.equal(formatEngineeringValue(0.00001, "mm"), "<0.0001 mm");
+  assert.equal(formatEngineeringValue(12.5, "kN.m"), "12.5 kN·m");
+  assert.equal(formatEngineeringValue(2.4, "cm^4"), "2.4 cm⁴");
 });
 
 test("serviceability ratio formatting distinguishes limit ratio from utilization", () => {

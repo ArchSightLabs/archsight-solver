@@ -225,7 +225,7 @@ export function renderPublicGuideHtml(markdown, options) {
   const { body, headings } = renderMarkdown(markdown, sourcePath)
   const versionLabel = currentVersion
     ? (String(currentVersion).startsWith('v') ? String(currentVersion) : `v${currentVersion}`)
-    : 'v1.8.1'
+    : 'v1.8.2'
   const tableOfContents = headings.length > 1
     ? `
       <nav class="toc" aria-label="${escapeHtml(contentsLabel)}">

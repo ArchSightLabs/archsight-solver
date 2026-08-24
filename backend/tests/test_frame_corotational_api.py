@@ -73,7 +73,7 @@ def test_corotational_algorithm_returns_versioned_path_and_separate_stability(cl
     data = response.get_json()
     second_order = data["secondOrder"]
     assert second_order["algorithm"] == {"id": "corotational_newton_v1", "version": "1"}
-    assert second_order["method"] == "二维框架共回转全 Newton 弹性几何非线性分析"
+    assert second_order["method"] == "二维框架共回转全量牛顿弹性几何非线性分析"
     assert second_order["equilibriumStatus"] == "converged"
     assert second_order["stabilityStatus"] in {"stable", "near_critical", "unstable"}
     assert second_order["nonlinearPathTrace"]["schema"] == "NonlinearPathTrace@1"

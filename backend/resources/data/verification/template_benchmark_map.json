@@ -166,7 +166,7 @@
         {
           "caseId": "frame-inclined-member-load",
           "relation": "对应",
-          "note": "同为斜构件局部坐标分布荷载，主要复核 local_y 荷载转换和斜构件杆端力。"
+          "note": "同为斜构件局部坐标分布荷载，主要复核构件局部 y 方向荷载转换和斜构件杆端力。"
         }
       ]
     },
@@ -197,36 +197,36 @@
     {
       "module": "truss",
       "templateId": "pratt-truss",
-      "templateTitle": "普拉特（Pratt）桁架",
+      "templateTitle": "普拉特桁架",
       "validationRefs": [
         {
           "caseId": "truss-pratt-bridge",
           "relation": "对应",
-          "note": "同为普拉特（Pratt）桁架，主要复核节点位移、杆件轴力和控制杆件。"
+          "note": "同为普拉特桁架，主要复核节点位移、杆件轴力和控制杆件。"
         }
       ]
     },
     {
       "module": "truss",
       "templateId": "warren-truss",
-      "templateTitle": "沃伦（Warren）桁架",
+      "templateTitle": "沃伦桁架",
       "validationRefs": [
         {
           "caseId": "truss-warren-roof",
           "relation": "对应",
-          "note": "同为沃伦（Warren）桁架，主要复核节点位移与杆件轴力。"
+          "note": "同为沃伦桁架，主要复核节点位移与杆件轴力。"
         }
       ]
     },
     {
       "module": "truss",
       "templateId": "howe-roof-truss",
-      "templateTitle": "豪式（Howe）屋架",
+      "templateTitle": "豪式屋架",
       "validationRefs": [
         {
           "caseId": "truss-howe-roof",
           "relation": "对应",
-          "note": "同为豪式（Howe）屋架，主要复核反向斜腹杆布置下的节点位移与杆件轴力。"
+          "note": "同为豪式屋架，主要复核反向斜腹杆布置下的节点位移与杆件轴力。"
         }
       ]
     },

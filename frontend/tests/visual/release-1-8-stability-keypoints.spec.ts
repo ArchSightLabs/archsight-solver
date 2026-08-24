@@ -165,7 +165,7 @@ function beamCalculationEnvelope(payload: BeamPayload) {
         maxDeflectionPositionM: 3,
         status: "合格",
         statusCode: "PASS",
-        method: "浏览器验收 mock 梁系杆单元法",
+        method: "浏览器验收梁系杆单元法",
       },
       preview: beam,
       loadCaseResults: [],
@@ -305,7 +305,7 @@ function frameCalculationEnvelope(payload: FramePayload) {
       ],
       limitations: ["只比较当前模型的数值响应，不给出规范安全结论。"],
     },
-    limitations: "P-Delta 迭代 mock",
+    limitations: "P-Delta 迭代浏览器验收数据",
   };
   const buckling = {
     enabled: true,
@@ -319,7 +319,7 @@ function frameCalculationEnvelope(payload: FramePayload) {
         eulerCriticalLoadKn: 115.2,
         criticalLoadFactor: 4.8,
         utilizationRatio: 0.21,
-        screeningMethod: "mock",
+        screeningMethod: "浏览器验收初筛",
       },
     ],
     modes: [
@@ -364,7 +364,7 @@ function frameCalculationEnvelope(payload: FramePayload) {
         maxDisplacementNodeId: "N2",
         status: "合格",
         statusCode: "PASS",
-        method: "浏览器验收 mock 二维平面框架杆单元法",
+        method: "浏览器验收二维平面框架杆单元法",
       },
       preview: {
         analysisType: "frame" as const,
@@ -418,7 +418,7 @@ function frameCalculationEnvelope(payload: FramePayload) {
           maxDisplacementNodeId: "N2",
           status: "合格",
           statusCode: "PASS",
-          method: "浏览器验收 mock 二维平面框架杆单元法",
+          method: "浏览器验收二维平面框架杆单元法",
         },
         warnings: [],
       },
@@ -536,7 +536,7 @@ function trussCalculationEnvelope(payload: TrussPayload) {
         maxAxialForceMemberId: memberResults[1]?.memberId ?? memberResults[0]?.memberId ?? "M1",
         status: "合格",
         statusCode: "PASS",
-        method: "浏览器验收 mock 平面桁架杆单元法",
+        method: "浏览器验收平面桁架杆单元法",
       },
       preview: {
         analysisType: "truss" as const,
@@ -564,7 +564,7 @@ function trussCalculationEnvelope(payload: TrussPayload) {
           maxAxialForceMemberId: memberResults[1]?.memberId ?? memberResults[0]?.memberId ?? "M1",
           status: "合格",
           statusCode: "PASS",
-          method: "浏览器验收 mock 平面桁架杆单元法",
+          method: "浏览器验收平面桁架杆单元法",
         },
         warnings: [],
       },
@@ -692,7 +692,7 @@ test("几何非线性过程播放显示规范关键点、数值和分层解释",
   await expect(page.getByText(/最后收敛 · λ 0\.72/u).first()).toBeVisible();
   await expect(page.getByText(/终止 · λ 0\.8/u).first()).toBeVisible();
   await expect(page.getByText("方法比较", { exact: true })).toBeVisible();
-  await expect(page.getByText("共回转 Newton · 最大位移", { exact: true })).toBeVisible();
+  await expect(page.getByText("共回转牛顿法 · 最大位移", { exact: true })).toBeVisible();
   await expect(page.getByText("线性屈曲特征值 · 临界荷载因子", { exact: true })).toBeVisible();
   await expect(page.getByText("corotational_newton_v1", { exact: true })).toHaveCount(0);
 
@@ -724,7 +724,7 @@ test("几何非线性过程播放显示规范关键点、数值和分层解释",
   }
 
   await page.getByRole("button", { name: "算法", exact: true }).click();
-  await expect(page.getByText(/共回转基本变形.*一致切线.*全 Newton/u)).toBeVisible();
+  await expect(page.getByText(/共回转基本变形.*一致切线.*全量牛顿/u)).toBeVisible();
   await page.getByRole("button", { name: "入门", exact: true }).click();
   await expect(page.getByText(/播放的是实际求解路径/u)).toBeVisible();
 
@@ -767,14 +767,14 @@ test("桁架位移图暴露控制值、端点与真零节点标签", async ({ pa
   await expectVisibleKeyPointLabelsNotToOverlap(page.getByRole("tabpanel", { name: "工程图" }));
 });
 
-test("框架稳定审查面板暴露 P-Delta 轨迹、模态选择器与屈曲模态", async ({ page }) => {
+test("框架稳定审查面板暴露 P-Δ 轨迹、模态选择器与屈曲模态", async ({ page }) => {
   await openWorkbench(page);
   await page.locator("aside").filter({ hasText: "分析对象" }).getByRole("button", { name: /平面框架-1\s+(平面框架|框架)/ }).click();
   await runCalculation(page, "运行平面框架计算", "平面框架计算完成");
   await page.getByRole("tab", { name: "稳定审查", exact: true }).click();
 
   await expect(page.getByText("平衡状态", { exact: true })).toBeVisible();
-  await expect(page.getByText("共回转 Newton 法", { exact: true })).toBeVisible();
+  await expect(page.getByText("共回转牛顿法", { exact: true })).toBeVisible();
   await expect(page.getByText("稳定状态", { exact: true })).toBeVisible();
   await expect(page.getByText("收敛轨迹", { exact: true })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "荷载因子", exact: true })).toBeVisible();
@@ -788,5 +788,5 @@ test("框架稳定审查面板暴露 P-Delta 轨迹、模态选择器与屈曲�
   await expect(page.getByRole("cell", { name: "已收敛", exact: true })).toBeVisible();
   await expect(page.getByRole("row", { name: /1 1 0\.5 0\.0001/u })).toBeVisible();
   const stabilityPanel = page.getByRole("tabpanel", { name: "稳定审查" });
-  expect(await productTextWithoutTechnicalAudit(stabilityPanel)).not.toMatch(/corotational_newton_v1|initial_stress_v1|linear_buckling_v1|critical_load_factor|maximum_iterations_exhausted|\bloadFactor\b/iu);
+  expect(await productTextWithoutTechnicalAudit(stabilityPanel)).not.toMatch(/corotational_newton_v1|initial_stress_v1|linear_buckling_v1|critical_load_factor|maximum_iterations_exhausted|\bloadFactor\b|P-Delta|Euler-Bernoulli|Timoshenko|Newton/iu);
 });

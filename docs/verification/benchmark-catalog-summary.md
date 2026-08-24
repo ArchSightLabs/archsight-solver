@@ -13,10 +13,10 @@
 | Case ID | 名称 | 目的 | 验证等级 | 验证来源 | 校核指标 | 标准值 | 容许误差 |
 |---|---|---|---|---|---|---|---|
 | `truss-simple-roof` | 简单屋架 | 验证二维平面桁架求解、支座反力和轴力峰值。 | B 级验证 | 独立刚度法基准 | 节点位移、杆件轴力、节点数量、杆件数量 | statusCode=PASS；nodeCount=4；memberCount=5；maxDisplacementMm=8.8209；maxAxialForceKn=133.3333；maxDisplacementNodeId=N2；maxAxialForceMemberId=M2 | maxDisplacementMm=0.01；maxAxialForceKn=0.01 |
-| `truss-pratt-roof` | Pratt 型屋架 | 验证更接近工程高频场景的多节点屋架、上下弦杆、竖杆、斜腹杆及多节点竖向荷载回归。 | B 级验证 | 独立刚度法基准 | 节点位移、杆件轴力、节点数量、杆件数量 | statusCode=PASS；nodeCount=7；memberCount=11；maxDisplacementMm=1.4957；maxAxialForceKn=60.0925；maxDisplacementNodeId=N6；maxAxialForceMemberId=T4 | maxDisplacementMm=0.01；maxAxialForceKn=0.01 |
-| `truss-warren-roof` | Warren 型屋架 | 补充 Warren 桁架多斜腹杆回归，覆盖等距上下弦与多节点竖向荷载。 | B 级验证 | 独立刚度法基准 | 节点位移、杆件轴力、节点数量、杆件数量 | statusCode=PASS；nodeCount=7；memberCount=11；maxDisplacementMm=1.6771；maxAxialForceKn=43.3333；maxDisplacementNodeId=N6；maxAxialForceMemberId=L2 | maxDisplacementMm=0.01；maxAxialForceKn=0.01 |
-| `truss-pratt-bridge` | Pratt 桥式桁架 | 补充 Pratt 桥式桁架回归，覆盖竖杆、斜杆和多节点荷载。 | B 级验证 | 独立刚度法基准 | 节点位移、杆件轴力、节点数量、杆件数量 | statusCode=PASS；nodeCount=8；memberCount=13；maxDisplacementMm=2.2411；maxAxialForceKn=50.9117；maxDisplacementNodeId=N7；maxAxialForceMemberId=D1 | maxDisplacementMm=0.01；maxAxialForceKn=0.01 |
-| `truss-howe-roof` | Howe 型屋架 | 补充 Howe 桁架回归，覆盖与 Pratt 相反方向的腹杆布置。 | B 级验证 | 独立刚度法基准 | 节点位移、杆件轴力、节点数量、杆件数量 | statusCode=PASS；nodeCount=7；memberCount=11；maxDisplacementMm=2.0265；maxAxialForceKn=52.1429；maxDisplacementNodeId=N6；maxAxialForceMemberId=B2 | maxDisplacementMm=0.01；maxAxialForceKn=0.01 |
+| `truss-pratt-roof` | 普拉特型屋架 | 验证更接近工程高频场景的多节点屋架、上下弦杆、竖杆、斜腹杆及多节点竖向荷载回归。 | B 级验证 | 独立刚度法基准 | 节点位移、杆件轴力、节点数量、杆件数量 | statusCode=PASS；nodeCount=7；memberCount=11；maxDisplacementMm=1.4957；maxAxialForceKn=60.0925；maxDisplacementNodeId=N6；maxAxialForceMemberId=T4 | maxDisplacementMm=0.01；maxAxialForceKn=0.01 |
+| `truss-warren-roof` | 沃伦型屋架 | 补充 Warren 桁架多斜腹杆回归，覆盖等距上下弦与多节点竖向荷载。 | B 级验证 | 独立刚度法基准 | 节点位移、杆件轴力、节点数量、杆件数量 | statusCode=PASS；nodeCount=7；memberCount=11；maxDisplacementMm=1.6771；maxAxialForceKn=43.3333；maxDisplacementNodeId=N6；maxAxialForceMemberId=L2 | maxDisplacementMm=0.01；maxAxialForceKn=0.01 |
+| `truss-pratt-bridge` | 普拉特桥式桁架 | 补充 Pratt 桥式桁架回归，覆盖竖杆、斜杆和多节点荷载。 | B 级验证 | 独立刚度法基准 | 节点位移、杆件轴力、节点数量、杆件数量 | statusCode=PASS；nodeCount=8；memberCount=13；maxDisplacementMm=2.2411；maxAxialForceKn=50.9117；maxDisplacementNodeId=N7；maxAxialForceMemberId=D1 | maxDisplacementMm=0.01；maxAxialForceKn=0.01 |
+| `truss-howe-roof` | 豪式屋架 | 补充 Howe 桁架回归，覆盖与 Pratt 相反方向的腹杆布置。 | B 级验证 | 独立刚度法基准 | 节点位移、杆件轴力、节点数量、杆件数量 | statusCode=PASS；nodeCount=7；memberCount=11；maxDisplacementMm=2.0265；maxAxialForceKn=52.1429；maxDisplacementNodeId=N6；maxAxialForceMemberId=B2 | maxDisplacementMm=0.01；maxAxialForceKn=0.01 |
 | `truss-member-self-weight` | 桁架杆件自重等效节点荷载 | 覆盖桁架杆件自重荷载预处理为等效节点荷载的回归。 | D 级验证 | 内部回归算例 | 节点位移、杆件轴力、节点数量、杆件数量 | statusCode=PASS；nodeCount=3；memberCount=3；maxDisplacementMm=0.2775；maxAxialForceKn=17.7421；maxDisplacementNodeId=N3；maxAxialForceMemberId=M1 | maxDisplacementMm=0.01；maxAxialForceKn=0.01 |
 | `truss-cantilever-panel` | 悬挑平面桁架 | 补充悬挑桁架回归，覆盖双支座固定边界和端部竖向荷载。 | B 级验证 | 独立刚度法基准 | 节点位移、杆件轴力、节点数量、杆件数量 | statusCode=PASS；nodeCount=6；memberCount=9；maxDisplacementMm=7.4314；maxAxialForceKn=133.3333；maxDisplacementNodeId=N5；maxAxialForceMemberId=L1 | maxDisplacementMm=0.01；maxAxialForceKn=0.01 |
 | `truss-template-parallel-chord` | 平行弦桁架模板 | 为平行弦桁架模板建立直接 benchmark。 | B 级验证 | 独立刚度法基准 | 节点位移、杆件轴力、节点数量、杆件数量 | statusCode=PASS；nodeCount=8；memberCount=13；maxDisplacementMm=2.1479；maxAxialForceKn=50.0；maxDisplacementNodeId=N7；maxAxialForceMemberId=D1 | maxDisplacementMm=0.01；maxAxialForceKn=0.01 |
@@ -138,12 +138,12 @@
 | frame | `frame-two-bay` / 两跨单层框架 | `frame-explicit-two-bay` | 对应 | 同为显式两跨单层框架，主要复核节点位移、构件弯矩与对象数量。 |
 | frame | `frame-two-story` / 两层两跨框架 | `frame-template-two-story` | 对应 | 同为两层两跨规则框架模板，直接复核楼层节点位移、梁柱弯矩和对象数量。 |
 | frame | `braced-frame` / 带斜撑框架 | `frame-template-braced-frame` | 对应 | 同为带斜撑框架模板，直接复核斜撑端部释放、节点位移和构件弯矩。 |
-| frame | `inclined-member-local-load` / 斜梁门式刚架局部荷载 | `frame-inclined-member-load` | 对应 | 同为斜构件局部坐标分布荷载，主要复核 local_y 荷载转换和斜构件杆端力。 |
+| frame | `inclined-member-local-load` / 斜梁门式刚架局部荷载 | `frame-inclined-member-load` | 对应 | 同为斜构件局部坐标分布荷载，主要复核构件局部 y 方向荷载转换和斜构件杆端力。 |
 | frame | `frame-member-point-load` / 框架梁构件内集中荷载 | `frame-member-point-load` | 对应 | 同为框架梁构件内集中荷载，主要复核构件内集中力转换与杆端内力。 |
 | truss | `simple-roof-truss` / 简支三角屋架 | `truss-simple-roof` | 对应 | 同为简支屋架节点荷载，主要复核节点位移与杆件轴力。 |
-| truss | `pratt-truss` / 普拉特（Pratt）桁架 | `truss-pratt-bridge` | 对应 | 同为普拉特（Pratt）桁架，主要复核节点位移、杆件轴力和控制杆件。 |
-| truss | `warren-truss` / 沃伦（Warren）桁架 | `truss-warren-roof` | 对应 | 同为沃伦（Warren）桁架，主要复核节点位移与杆件轴力。 |
-| truss | `howe-roof-truss` / 豪式（Howe）屋架 | `truss-howe-roof` | 对应 | 同为豪式（Howe）屋架，主要复核反向斜腹杆布置下的节点位移与杆件轴力。 |
+| truss | `pratt-truss` / 普拉特桁架 | `truss-pratt-bridge` | 对应 | 同为普拉特桁架，主要复核节点位移、杆件轴力和控制杆件。 |
+| truss | `warren-truss` / 沃伦桁架 | `truss-warren-roof` | 对应 | 同为沃伦桁架，主要复核节点位移与杆件轴力。 |
+| truss | `howe-roof-truss` / 豪式屋架 | `truss-howe-roof` | 对应 | 同为豪式屋架，主要复核反向斜腹杆布置下的节点位移与杆件轴力。 |
 | truss | `cantilever-truss` / 悬臂桁架 | `truss-cantilever-panel` | 对应 | 同为悬挑桁架体系，主要复核自由端节点位移与杆件轴力。 |
 | beam | `fixed-fixed-uniform` / 两端固结均布荷载 | `beam-template-fixed-fixed-uniform` | 对应 | 同为两端固结单跨梁全跨均布荷载，直接复核固定端边界和跨中挠度。 |
 | beam | `propped-cantilever-point` / 一端固结一端简支 | `beam-template-propped-cantilever-point` | 对应 | 同为左端固结、右端滚动支座并承受跨中集中荷载，直接复核超静定边界。 |

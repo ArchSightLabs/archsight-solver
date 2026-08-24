@@ -39,7 +39,9 @@ test("v1.6.2 求解失败保留后端诊断代码、建议和对象引用", asyn
   await page.getByRole("button", { name: "运行梁系计算" }).click();
 
   await expect(page.getByText("结构约束不足", { exact: true })).toBeVisible();
+  await expect(page.getByText("STRUCTURE_UNSTABLE_CONSTRAINTS")).toBeHidden();
+  await page.getByText("技术诊断信息", { exact: true }).click();
   await expect(page.getByText("STRUCTURE_UNSTABLE_CONSTRAINTS")).toBeVisible();
-  await expect(page.getByText(/定位：support S1/)).toBeVisible();
+  await expect(page.getByText(/定位：支座 S1/)).toBeVisible();
   await expect(page.getByText("建议：检查支座约束。", { exact: true })).toBeVisible();
 });

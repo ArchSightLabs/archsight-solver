@@ -22,8 +22,21 @@ type RecordLike = Record<string, unknown>;
 type SnapshotLike = Partial<CalculationSnapshot> & RecordLike;
 const COLLECTION_KEYS = ["entries", "items", "trace", "stages", "steps", "timeline", "records", "events", "points"] as const;
 
+export function calculationTechnicalText(value: string): string {
+  return value
+    .replace(/Euler-Bernoulli 梁理论/gu, "欧拉–伯努利梁理论")
+    .replace(/Timoshenko 梁理论/gu, "铁木辛柯梁理论")
+    .replace(/共回转全 Newton/gu, "共回转全量牛顿法")
+    .replace(/共回转 Newton/gu, "共回转牛顿法")
+    .replace(/Euler-Bernoulli/gu, "欧拉–伯努利")
+    .replace(/Timoshenko/gu, "铁木辛柯")
+    .replace(/P-Delta/gu, "P-Δ")
+    .replace(/Newton/gu, "牛顿");
+}
+
 function readableChineseValue(value: string, fallback: string): string {
-  return /[\u3400-\u9fff]/u.test(value) ? value : fallback;
+  const localized = calculationTechnicalText(value);
+  return /[\u3400-\u9fff]/u.test(localized) ? localized : fallback;
 }
 
 const TRACE_STAGE_TITLES: Record<string, string> = {
@@ -263,6 +276,8 @@ export function calculationStatusTitle(status: string | undefined) {
 
 export function calculationObjectTitle(kind: string, objectId: string | undefined) {
   if (!objectId) return "";
+  const systemTitle = SOURCE_TYPE_TITLES[objectId.toLowerCase()];
+  if (systemTitle) return `${systemTitle}对象`;
   if (kind === "node") return `节点 ${objectId}`;
   if (kind === "member") return `构件 ${objectId}`;
   return `对象 ${objectId}`;
@@ -282,6 +297,17 @@ function collectionFrom(value: unknown): unknown[] {
     }
   }
   return [];
+}
+
+function preferredCollectionFrom(value: unknown, preferredKeys: readonly string[]): unknown[] {
+  if (Array.isArray(value)) return value;
+  if (isRecord(value)) {
+    for (const key of preferredKeys) {
+      const candidate = value[key];
+      if (Array.isArray(candidate)) return candidate;
+    }
+  }
+  return collectionFrom(value);
 }
 
 function normalizeId(value: unknown, fallback: string): string {
@@ -379,9 +405,9 @@ function summarizeTracePayload(value: unknown): string | undefined {
 
 function traceSummaryValue(key: string, value: unknown) {
   if (key === "solverBackend" || key === "method") {
-    if (value === "dense-corotational-newton") return "稠密矩阵共回转 Newton 法";
+    if (value === "dense-corotational-newton") return "稠密矩阵共回转牛顿法";
     if (value === "dense") return "稠密矩阵求解";
-    if (value === "corotational_newton_v1") return "共回转 Newton 法";
+    if (value === "corotational_newton_v1") return "共回转牛顿法";
     if (value === "initial_stress_v1") return "初始应力迭代法";
     if (value === "linear_buckling_v1") return "线性屈曲特征值法";
     return readableChineseValue(String(value), "其他求解方法");
@@ -453,7 +479,7 @@ function normalizeTraceEntries(rawTrace: unknown): CalculationTraceEntry[] {
 }
 
 function normalizeCriticalPointEntries(rawPoints: unknown): CalculationCriticalPoint[] {
-  return collectionFrom(rawPoints).flatMap((item, index) => {
+  return preferredCollectionFrom(rawPoints, ["displayPoints", "points"]).flatMap((item, index) => {
     if (!isRecord(item)) return [];
     const kind = normalizeText(item.kind ?? item.type, "critical");
     const metricKey = String(item.metricKey ?? item.metric ?? "").trim() || undefined;
@@ -472,29 +498,34 @@ function normalizeCriticalPointEntries(rawPoints: unknown): CalculationCriticalP
       objectId: String(item.objectId ?? item.memberId ?? item.nodeId ?? "").trim() || undefined,
       side: String(item.side ?? "").trim() || undefined,
     }];
-  });
+  }).slice(0, MAX_CRITICAL_POINTS);
 }
 
 function normalizeReviewPointEntries(rawPoints: unknown): CalculationReviewPoint[] {
-  return collectionFrom(rawPoints).flatMap((item, index) => {
+  return preferredCollectionFrom(rawPoints, ["requestedPoints", "displayPoints", "points"]).flatMap((item, index) => {
     if (!isRecord(item)) return [];
     const targetType = String(item.targetType ?? item.object ?? item.scope ?? "").trim();
+    const normalizedTargetType: CalculationReviewPoint["targetType"] =
+      targetType === "member" ? "member" : targetType === "station" ? "station" : "node";
+    const fallbackLabel = `复核点 ${index + 1}`;
+    const rawLabel = normalizeText(item.label ?? item.title ?? item.kind, fallbackLabel);
+    const rawNote = String(item.note ?? item.description ?? "").trim();
     return [{
       id: normalizeId(item.id ?? item.key ?? item.sourceId, `review-${index + 1}`),
       kind: normalizeText(item.kind ?? item.type, "custom"),
-      targetType: targetType === "member" ? "member" : targetType === "station" ? "station" : "node",
-      label: normalizeText(item.label ?? item.title ?? item.kind, `复核点 ${index + 1}`),
+      targetType: normalizedTargetType,
+      label: readableChineseValue(rawLabel, fallbackLabel),
       targetId: String(item.targetId ?? item.objectId ?? item.memberId ?? item.nodeId ?? "").trim() || undefined,
       metricKey: String(item.metricKey ?? item.metric ?? "").trim() || undefined,
       station: safeNumber(item.station ?? item.stationM ?? item.positionM),
       side: String(item.side ?? "").trim() || undefined,
-      note: String(item.note ?? item.description ?? "").trim() || undefined,
+      note: rawNote ? readableChineseValue(rawNote, "用户指定的工程复核位置") : undefined,
     }];
-  });
+  }).slice(0, MAX_REVIEW_POINTS);
 }
 
 function normalizeEnvelopeEntries(rawEnvelope: unknown): CalculationGoverningEnvelopeItem[] {
-  return collectionFrom(rawEnvelope).flatMap((item, index) => {
+  return preferredCollectionFrom(rawEnvelope, ["displayEntries", "entries"]).flatMap((item, index) => {
     if (!isRecord(item)) return [];
     const metricKey = normalizeText(item.metricKey ?? item.metric ?? item.name, `metric-${index + 1}`);
     const kind = String(item.kind ?? "").trim() || undefined;
@@ -518,7 +549,7 @@ function normalizeEnvelopeEntries(rawEnvelope: unknown): CalculationGoverningEnv
       scope: String(item.scope ?? "").trim() || undefined,
       kind,
     }];
-  });
+  }).slice(0, MAX_GOVERNING_ENVELOPE_ITEMS);
 }
 
 export function normalizeCalculationTrace(rawTrace: unknown): CalculationTraceEntry[] {
@@ -646,12 +677,12 @@ function summarizeEnvelopeItem(item: CalculationGoverningEnvelopeItem | undefine
   if (!item) return DEFAULT_TEXT;
   const segments = [
     calculationSourceTypeTitle(item.sourceType),
-    item.sourceLabel,
+    calculationSourceLabelTitle(item.sourceLabel),
     calculationSourceIdTitle(item.sourceId),
     calculationSideTitle(item.side),
   ]
     .map((segment) => String(segment ?? "").trim())
-    .filter(Boolean);
+    .filter((segment, index, all) => Boolean(segment) && all.indexOf(segment) === index);
   return segments.length > 0 ? `来源：${segments.join(" · ")}` : "未提供控制来源";
 }
 

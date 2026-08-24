@@ -79,7 +79,7 @@ def _second_order_result(
             "converged": False,
             "status": "not_enabled",
             "statusLabel": "未启用",
-            "method": "二维框架初始应力法 P-Delta 迭代",
+            "method": "二维框架初始应力法 P-Δ 迭代",
             "algorithm": {"id": algorithm_id, "version": "1"},
             "equilibriumStatus": "not_enabled",
             "stabilityStatus": "not_evaluated",
@@ -127,7 +127,7 @@ def _second_order_result(
         "converged": True,
         "status": "converged",
         "statusLabel": "已收敛",
-        "method": "二维框架初始应力法 P-Delta 迭代",
+        "method": "二维框架初始应力法 P-Δ 迭代",
         "algorithm": {"id": "initial_stress_v1", "version": "1"},
         "equilibriumStatus": "converged",
         "stabilityStatus": "not_evaluated",
@@ -207,7 +207,7 @@ def _corotational_second_order_result(
         "converged": path_result.success,
         "status": status,
         "statusLabel": "已收敛" if path_result.success else "未收敛，已保留最后收敛点",
-        "method": "二维框架共回转全 Newton 弹性几何非线性分析",
+        "method": "二维框架共回转全量牛顿弹性几何非线性分析",
         "algorithm": {"id": "corotational_newton_v1", "version": "1"},
         "equilibriumStatus": path_result.equilibrium_status,
         "stabilityStatus": path_result.stability_status,
@@ -237,8 +237,8 @@ def _corotational_second_order_result(
         "failureCode": _nonlinear_failure_code(path_result.termination_reason) if not path_result.success else None,
         "terminationReason": path_result.termination_reason,
         "limitations": (
-            "二维 Euler-Bernoulli 梁柱、材料线弹性、保守静力荷载的 GNA；"
-            "未包含材料非线性、塑性铰、局部/侧扭屈曲、施工阶段、弧长后屈曲或 GMNIA。"
+            "二维欧拉–伯努利梁柱、材料线弹性、保守静力荷载的几何非线性分析（GNA）；"
+            "未包含材料非线性、塑性铰、局部或侧扭屈曲、施工阶段、弧长后屈曲或几何与材料非线性分析（GMNIA）。"
         ),
         "stepCount": len(trace.get("steps", [])),
     }
@@ -321,7 +321,7 @@ def _corotational_method_comparison(
             legacy_method,
             {
                 "id": "corotational_newton_v1",
-                "label": "共回转全 Newton",
+                "label": "共回转全量牛顿法",
                 "equilibriumStatus": path_result.equilibrium_status,
                 "stabilityStatus": path_result.stability_status,
                 "targetLoadFactor": float(path_result.load_factor),
@@ -339,7 +339,7 @@ def _corotational_method_comparison(
         ],
         "limitations": [
             "方法比较只描述当前模型的数值响应差异，不给出规范安全结论。",
-            "initial_stress_v1 使用固定初始几何兼容算法；corotational_newton_v1 使用更新几何、完整残差和一致切线。",
+            "初始应力兼容算法使用固定初始几何；共回转牛顿法使用更新几何、完整残差和一致切线。",
         ],
     }
 
@@ -465,7 +465,7 @@ def _nonlinear_failure_message(reason: str | None) -> str:
         "maximum_cutbacks_exhausted": "自适应荷载步回退次数已用尽，仍未建立收敛平衡",
         "maximum_accepted_steps_exhausted": "已达到允许的最大收敛荷载步数，路径尚未完成",
     }
-    return labels.get(reason, "共回转 Newton 路径未完成，已保留最后收敛状态和失败尝试")
+    return labels.get(reason, "共回转牛顿路径未完成，已保留最后收敛状态和失败尝试")
 
 
 def _nonlinear_failure_code(reason: str | None) -> str:
@@ -518,7 +518,7 @@ def _solve_pdelta_path(
                 )
             except StructureStabilityError as exc:
                 raise FramePDeltaSingularError(
-                    f"P-Delta 荷载步 {step_index}/{load_steps} 的切线刚度无法求解：{exc}"
+                    f"P-Δ 荷载步 {step_index}/{load_steps} 的切线刚度无法求解：{exc}"
                 ) from exc
             step_member_records = _scale_member_records(assembly["member_records"], load_factor)
             step_node_results = recover_node_results(
@@ -587,14 +587,14 @@ def _solve_pdelta_path(
                 break
         else:
             raise FramePDeltaConvergenceError(
-                f"P-Delta 迭代未在荷载步 {step_index}/{load_steps} 的 {max_iterations} 次迭代内收敛，稳定分析失败"
+                f"P-Δ 迭代未在荷载步 {step_index}/{load_steps} 的 {max_iterations} 次迭代内收敛，稳定分析失败"
             )
 
         if converged_solution is None or step_member_results is None:
-            raise FramePDeltaSingularError(f"P-Delta 荷载步 {step_index}/{load_steps} 未生成有效二阶解")
+            raise FramePDeltaSingularError(f"P-Δ 荷载步 {step_index}/{load_steps} 未生成有效二阶解")
 
     if converged_solution is None:
-        raise FramePDeltaSingularError("P-Delta 求解未生成最终结果")
+        raise FramePDeltaSingularError("P-Δ 求解未生成最终结果")
     converged_solution["secondOrderAmplificationFactor"] = converged_solution["summary"].get("secondOrderAmplificationFactor", None)
     return converged_solution, history, last_step or load_steps
 
@@ -837,7 +837,7 @@ def _member_euler_screen(solution: Mapping[str, Any]) -> List[Dict[str, Any]]:
                 "eulerCriticalLoadKn": round(pcr_kn, 6),
                 "criticalLoadFactor": round(pcr_kn / axial, 6),
                 "utilizationRatio": round(axial / pcr_kn, 8),
-                "screeningMethod": "构件 Euler K=1 初筛",
+                "screeningMethod": "构件欧拉系数 K=1 初筛",
                 "screeningOnly": True,
             }
         )

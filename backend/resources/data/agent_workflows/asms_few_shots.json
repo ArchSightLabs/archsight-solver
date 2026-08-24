@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-05-28",
-  "title": "ArchSight Solver Agent 工程流 ASMS-JSON Few-shot 样例",
+  "title": "ArchSight Solver 智能工程流 ASMS-JSON 少样本示例",
   "scope": "自然语言工况到 ASMS-JSON、REST/CLI/MCP 调用、公开验证集复核和计算书导出的最小可执行样例。",
   "positioning": "本文件是 ASMS-JSON 的可测试样例库，不是普通静态示例。每条样例同时服务 Agent few-shot、CLI/MCP 调用模板、benchmark 引用、计算书导出验证和回归测试。",
   "contractMessage": "ASMS-JSON 是入口，JSON Schema 是契约，benchmark 是证据，REST/CLI/MCP 是同源执行面。",

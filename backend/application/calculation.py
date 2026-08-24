@@ -60,7 +60,7 @@ def _beam_summary(solution: Mapping[str, Any]) -> Dict[str, Any]:
         "maxDeflectionPositionM": float(solution["max_deflection_position_m"]),
         "status": solution["status"],
         "statusCode": "PASS" if solution["status"] == "合格" else "REVIEW",
-        "method": f"{solution.get('beamTheoryLabel', 'Euler-Bernoulli 梁理论')} + 梁单元法",
+        "method": f"{solution.get('beamTheoryLabel', '欧拉–伯努利梁理论')} + 梁单元法",
         **solution.get("controlValues", {}),
     }
 

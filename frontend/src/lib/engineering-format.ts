@@ -7,13 +7,29 @@ function positiveInt(value: string | undefined, fallback: number) {
 
 export const RESULT_DISPLAY_DECIMALS = positiveInt(viteEnv.VITE_RESULT_DISPLAY_DECIMALS, 4);
 
+const ENGINEERING_UNIT_TITLES: Record<string, string> = {
+  "N.m": "N·m",
+  "kN.m": "kN·m",
+  "N.m/rad": "N·m/rad",
+  "kN.m/rad": "kN·m/rad",
+  "cm^2": "cm²",
+  "cm^4": "cm⁴",
+  "m^2": "m²",
+  "m^4": "m⁴",
+};
+
+export function formatEngineeringUnit(unit: string) {
+  return ENGINEERING_UNIT_TITLES[unit.trim()] ?? unit.trim();
+}
+
 export function formatEngineeringNumber(value: number, decimals = RESULT_DISPLAY_DECIMALS) {
   return value.toFixed(decimals).replace(/(\.\d*?[1-9])0+$/, "$1").replace(/\.0+$/, "");
 }
 
 export function formatEngineeringValue(value: number | null | undefined, unit = "", decimals = RESULT_DISPLAY_DECIMALS) {
   const numeric = Number(value ?? 0);
-  const suffix = unit ? ` ${unit}` : "";
+  const displayUnit = formatEngineeringUnit(unit);
+  const suffix = displayUnit ? ` ${displayUnit}` : "";
   if (!Number.isFinite(numeric)) return `--${suffix}`;
   const threshold = 10 ** -decimals;
   const magnitude = Math.abs(numeric);

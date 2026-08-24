@@ -32,7 +32,7 @@ FRAME_MEMBER_KIND_LABELS = {
 
 FRAME_METHOD_LABELS = {
     "initial_stress_v1": "初始应力迭代法",
-    "corotational_newton_v1": "共回转 Newton 法",
+    "corotational_newton_v1": "共回转牛顿法",
     "linear_buckling_v1": "线性屈曲特征值法",
 }
 
@@ -264,7 +264,7 @@ def export_xlsx(solution: Dict[str, Any], material_name: str, report_options: Di
     df_stability = pd.DataFrame(
         [
             {
-                "类别": "二阶效应/P-Delta",
+                "类别": "二阶效应（P-Δ）",
                 "状态": _result_status_label(solution.get("secondOrder", {}).get("status", "disabled")),
                 "方法": _frame_method_label(solution.get("secondOrder", {}).get("method", "—")),
                 "放大系数": solution.get("secondOrder", {}).get("amplificationFactor", "—"),

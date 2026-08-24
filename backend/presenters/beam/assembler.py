@@ -123,7 +123,7 @@ def build_preview_beam(solution: Dict[str, Any]) -> Dict[str, Any]:
         ],
         "queryResults": solution.get("queryResults", []),
         "beamTheory": solution.get("beamTheory", "euler_bernoulli"),
-        "beamTheoryLabel": solution.get("beamTheoryLabel", "Euler-Bernoulli 梁理论"),
+        "beamTheoryLabel": solution.get("beamTheoryLabel", "欧拉–伯努利梁理论"),
         "warnings": solution.get("warnings", []),
         "teachingNotes": solution.get("teachingNotes", {}),
         "symbolicCheck": solution.get("symbolicCheck", {}),
@@ -147,7 +147,7 @@ def build_beam_solution_response(solution: Dict[str, Any]) -> Dict[str, Any]:
         "reactions": solution.get("reactions", []),
         "queryResults": solution.get("queryResults", []),
         "beamTheory": solution.get("beamTheory", "euler_bernoulli"),
-        "beamTheoryLabel": solution.get("beamTheoryLabel", "Euler-Bernoulli 梁理论"),
+        "beamTheoryLabel": solution.get("beamTheoryLabel", "欧拉–伯努利梁理论"),
         "teachingNotes": solution.get("teachingNotes", {}),
         "symbolicCheck": solution.get("symbolicCheck", {}),
     }

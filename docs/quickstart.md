@@ -57,12 +57,12 @@ npm --prefix frontend run build
 
 ## GitHub Release 五分钟路径
 
-如果只需要 CLI / MCP，不必克隆仓库。下载 v1.8.1 Release 的 `archsight_solver-1.8.1-py3-none-any.whl` 与 `SHA256SUMS`，校验后安装：
+如果只需要 CLI / MCP，不必克隆仓库。下载 v1.8.2 Release 的 `archsight_solver-1.8.2-py3-none-any.whl` 与 `SHA256SUMS`，校验后安装：
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install .\archsight_solver-1.8.1-py3-none-any.whl
+python -m pip install .\archsight_solver-1.8.2-py3-none-any.whl
 ```
 
 按[可信计算包指南](verification-package.md)准备 `create-request.json`；源码仓库可直接复制 `examples/verification-package/create-request.json`。然后生成并复算：

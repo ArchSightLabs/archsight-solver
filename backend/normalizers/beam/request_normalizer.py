@@ -587,7 +587,7 @@ def normalize_beam_request(data: Dict[str, Any]) -> Dict[str, Any]:
         "A_cm2": A_cm2,
         "shear_correction_factor": shear_correction_factor,
         "beam_theory": beam_theory,
-        "beam_theory_label": "Timoshenko 梁理论" if beam_theory == "timoshenko" else "Euler-Bernoulli 梁理论",
+        "beam_theory_label": "铁木辛柯梁理论" if beam_theory == "timoshenko" else "欧拉–伯努利梁理论",
         "supports": support_specs,
         "query_points_m": query_points_m,
         "duration": duration,

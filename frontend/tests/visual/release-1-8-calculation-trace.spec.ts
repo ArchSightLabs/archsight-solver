@@ -284,7 +284,7 @@ function beamCalculationEnvelope(payload: BeamPayload, summaryOverrides: Record<
     maxDeflectionPositionM: 3,
     status: "合格",
     statusCode: "PASS",
-    method: "浏览器验收 mock 梁系杆单元法",
+    method: "浏览器验收梁系杆单元法",
     ...summaryOverrides,
   };
   const reviewPoints = Array.isArray(payload.reviewPoints) ? payload.reviewPoints.map((point) => ({ ...(point as Record<string, unknown>) })) : [];
@@ -383,7 +383,7 @@ function frameCalculationEnvelope(payload: FramePayload, summaryOverrides: Recor
       { step: 1, iteration: 1, loadFactor: 0.5, residualNorm: 1e-4, displacementMm: 0.28, status: "iterating" },
       { step: 1, iteration: 2, loadFactor: 1, residualNorm: 8e-7, displacementMm: 0.92, status: "converged" },
     ],
-    limitations: "P-Delta 迭代 mock",
+    limitations: "P-Δ 迭代浏览器验收数据",
   };
   const buckling = {
     enabled: true,
@@ -397,7 +397,7 @@ function frameCalculationEnvelope(payload: FramePayload, summaryOverrides: Recor
         eulerCriticalLoadKn: 115.2,
         criticalLoadFactor: 4.8,
         utilizationRatio: 0.21,
-        screeningMethod: "mock",
+        screeningMethod: "浏览器验收初筛",
       },
     ],
     modes: [
@@ -432,7 +432,7 @@ function frameCalculationEnvelope(payload: FramePayload, summaryOverrides: Recor
     maxDisplacementNodeId: "N2",
     status: "合格",
     statusCode: "PASS",
-    method: "浏览器验收 mock 二维平面框架杆单元法",
+    method: "浏览器验收二维平面框架杆单元法",
     ...summaryOverrides,
   };
   const reviewPoints = Array.isArray(payload.reviewPoints) ? payload.reviewPoints.map((point) => ({ ...(point as Record<string, unknown>) })) : [];
@@ -500,7 +500,7 @@ function frameCalculationEnvelope(payload: FramePayload, summaryOverrides: Recor
           maxDisplacementNodeId: "N2",
           status: "合格",
           statusCode: "PASS",
-          method: "浏览器验收 mock 二维平面框架杆单元法",
+          method: "浏览器验收二维平面框架杆单元法",
         },
         warnings: [],
       },
@@ -614,7 +614,7 @@ function trussCalculationEnvelope(payload: TrussPayload, summaryOverrides: Recor
     maxAxialForceMemberId: memberResults[1]?.memberId ?? memberResults[0]?.memberId ?? "M1",
     status: "合格",
     statusCode: "PASS",
-    method: "浏览器验收 mock 平面桁架杆单元法",
+    method: "浏览器验收平面桁架杆单元法",
     ...summaryOverrides,
   };
   const reviewPoints = Array.isArray(payload.reviewPoints) ? payload.reviewPoints.map((point) => ({ ...(point as Record<string, unknown>) })) : [];
@@ -656,7 +656,7 @@ function trussCalculationEnvelope(payload: TrussPayload, summaryOverrides: Recor
           maxAxialForceMemberId: memberResults[1]?.memberId ?? memberResults[0]?.memberId ?? "M1",
           status: "合格",
           statusCode: "PASS",
-          method: "浏览器验收 mock 平面桁架杆单元法",
+          method: "浏览器验收平面桁架杆单元法",
         },
         warnings: [],
       },
@@ -811,6 +811,8 @@ async function productTextWithoutTechnicalAudit(panel: Locator) {
   });
 }
 
+const RAW_PROTOCOL_TEXT = /input_normalized|dof_mapping|availability=|analysisType=|modelHash|requestHash|sourceHash|allowableMm|maxDisplacementMm|maxMomentKnM|secondOrderAmplificationFactor|critical_load_factor|max_displacement_mm|corotational_newton_v1|initial_stress_v1|linear_buckling_v1|__primary__|\b(?:exact|absolute|beam|frame|truss|node|member|resultant|loadFactor)\b|P-Delta|Euler-Bernoulli|Timoshenko|Newton/iu;
+
 test("梁系、框架与桁架的计算过程都暴露 8 个阶段和关键点表", async ({ page }) => {
   await openWorkbench(page);
 
@@ -839,7 +841,7 @@ test("梁系、框架与桁架的计算过程都暴露 8 个阶段和关键点�
     await expect(page.getByText("input_normalized", { exact: true })).toHaveCount(0);
 
     const tracePanel = page.getByRole("tabpanel", { name: "计算过程" });
-    expect(await productTextWithoutTechnicalAudit(tracePanel)).not.toMatch(/input_normalized|dof_mapping|availability=|analysisType=|modelHash|requestHash/iu);
+    expect(await productTextWithoutTechnicalAudit(tracePanel)).not.toMatch(RAW_PROTOCOL_TEXT);
 
     const firstAuditDetails = tracePanel.locator("details").first();
     await firstAuditDetails.locator("summary").click();
@@ -855,11 +857,11 @@ test("梁系、框架与桁架的计算过程都暴露 8 个阶段和关键点�
     await expect(criticalPanel.getByText("axialForceKn", { exact: true })).toHaveCount(0);
     await expect(page.getByText("控制来源 1", { exact: true })).toBeVisible();
     await expect(page.getByText("控制来源与包络", { exact: true })).toBeVisible();
-    expect(await productTextWithoutTechnicalAudit(criticalPanel)).not.toMatch(/__primary__|\bexact\b|\bnode\b|\bmember\b|sourceHash/iu);
+    expect(await productTextWithoutTechnicalAudit(criticalPanel)).not.toMatch(RAW_PROTOCOL_TEXT);
 
     await openSnapshots(page);
     const snapshotPanel = page.getByRole("tabpanel", { name: "快照对比" });
-    expect(await productTextWithoutTechnicalAudit(snapshotPanel)).not.toMatch(/allowableMm|maxDisplacementMm|maxMomentKnM|secondOrderAmplificationFactor|__primary__|sourceHash|requestHash|modelHash/iu);
+    expect(await productTextWithoutTechnicalAudit(snapshotPanel)).not.toMatch(RAW_PROTOCOL_TEXT);
   }
 });
 
@@ -973,7 +975,7 @@ test("梁系命名快照可以保存且零基线相对差显示为不可比", as
       maxDeflectionPositionM: 0,
       status: "合格",
       statusCode: "PASS",
-      method: "浏览器验收 mock 梁系杆单元法",
+      method: "浏览器验收梁系杆单元法",
     } : {
       allowableMm: 18,
       allowableRatio: 250,
@@ -981,7 +983,7 @@ test("梁系命名快照可以保存且零基线相对差显示为不可比", as
       maxDeflectionPositionM: 3,
       status: "合格",
       statusCode: "PASS",
-      method: "浏览器验收 mock 梁系杆单元法",
+      method: "浏览器验收梁系杆单元法",
     });
     await route.fulfill({
       status: 200,

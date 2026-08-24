@@ -472,12 +472,14 @@ export function CriticalPointsPanel({ analysisMode, results, compact = false }: 
         <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
           <h3 className={`${compact ? "text-lg" : "text-xl"} font-black tracking-tight`}>工程关键点</h3>
           <span className="text-[11px] font-semibold text-muted-foreground">
-            {criticalPoints.length} 个关键点 · {governingEnvelope.length} 个控制来源
+            页面展示 {criticalPoints.length} 个关键点 · {governingEnvelope.length} 个控制来源
           </span>
         </div>
         {criticalPoints.length > 0 ? (
-          <div className="overflow-x-auto rounded-lg border border-white/10">
-            <table aria-label="工程关键点完整清单" className="w-full border-collapse text-left text-sm">
+          <>
+            <p className="mb-3 text-[11px] leading-relaxed text-muted-foreground">页面仅展示受控清单；完整关键点与来源证据保留在计算书和技术审计数据中。</p>
+            <div className="overflow-x-auto rounded-lg border border-white/10">
+              <table aria-label="工程关键点受控展示清单" className="w-full border-collapse text-left text-sm">
               <thead className="bg-white/[0.04] text-[11px] uppercase tracking-widest text-muted-foreground">
                 <tr>
                   <th className="px-3 py-2">名称</th>
@@ -507,8 +509,9 @@ export function CriticalPointsPanel({ analysisMode, results, compact = false }: 
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+              </table>
+            </div>
+          </>
         ) : (
           <p className="text-sm text-muted-foreground">当前结果未返回关键点清单。</p>
         )}
@@ -540,7 +543,7 @@ export function CriticalPointsPanel({ analysisMode, results, compact = false }: 
                   {item.sourceType ? <span>来源 {calculationSourceTypeTitle(item.sourceType)}</span> : null}
                   {item.sourceLabel ? <span>{calculationSourceLabelTitle(item.sourceLabel)}</span> : null}
                   {item.sourceId ? <span>{calculationSourceIdTitle(item.sourceId)}</span> : null}
-                  {item.objectId ? <span>对象 {item.objectId}</span> : null}
+                  {item.objectId ? <span>{calculationObjectTitle(item.kind ?? "", item.objectId)}</span> : null}
                   {item.station != null ? <span>位置 {formatEngineeringValue(item.station, "m")}</span> : null}
                   {item.scope ? <span>{item.scope === "location" ? "逐点包络" : "全局包络"}</span> : null}
                   {item.side ? <span>{calculationSideTitle(item.side)}</span> : null}

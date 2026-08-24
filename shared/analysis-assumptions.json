@@ -2,7 +2,7 @@
   "beam": [
     {
       "label": "计算模型",
-      "value": "Euler-Bernoulli / Timoshenko 梁单元，节点自由度为竖向位移 v 与转角 θz。"
+      "value": "欧拉–伯努利或铁木辛柯梁单元，节点自由度为竖向位移 v 与转角 θz。"
     },
     {
       "label": "支座约束",
@@ -14,7 +14,7 @@
     },
     {
       "label": "单位换算",
-      "value": "E: GPa -> Pa，I: cm4 -> m4，q: kN/m -> N/m，P: kN -> N。"
+      "value": "E：GPa → Pa，I：cm⁴ → m⁴，q：kN/m → N/m，P：kN → N。"
     },
     {
       "label": "适用边界",
@@ -36,7 +36,7 @@
     },
     {
       "label": "单位换算",
-      "value": "E: GPa，A: cm2，I: cm4；结果统一显示 kN、kN·m、mm。"
+      "value": "E：GPa，A：cm²，I：cm⁴；结果统一显示 kN、kN·m、mm。"
     },
     {
       "label": "适用边界",
@@ -58,7 +58,7 @@
     },
     {
       "label": "单位换算",
-      "value": "E: GPa，A: cm2；结果统一显示 kN、MPa、mm。"
+      "value": "E：GPa，A：cm²；结果统一显示 kN、MPa、mm。"
     },
     {
       "label": "适用边界",

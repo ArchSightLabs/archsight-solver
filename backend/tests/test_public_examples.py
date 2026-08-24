@@ -144,3 +144,36 @@ def test_public_examples_expose_five_featured_learning_paths_with_declared_evide
             assert len(option_ids) >= 2
             assert prediction["expectedOptionId"] in option_ids
             assert "freeText" not in prediction
+
+
+def test_public_examples_use_chinese_first_user_facing_text():
+    examples = build_public_validation_projects()
+    visible_text = "\n".join(
+        str(value)
+        for project in examples["projects"]
+        for obj in project["project"]["objects"]
+        for value in (
+            obj["name"],
+            obj["state"].get("projectName", ""),
+            obj["benchmark"].get("title", ""),
+            obj["benchmark"].get("purpose", ""),
+            obj["benchmark"].get("method", ""),
+            obj["benchmark"].get("learning", {}).get("title", ""),
+            obj["benchmark"].get("learning", {}).get("objective", ""),
+        )
+    )
+
+    for raw_term in (
+        "P-Delta",
+        "Newton",
+        "Euler-Bernoulli",
+        "Timoshenko",
+        "Pratt",
+        "Warren",
+        "Howe",
+        "toggle frame",
+        "benchmark runner",
+        "cutback",
+        "unstable",
+    ):
+        assert raw_term not in visible_text

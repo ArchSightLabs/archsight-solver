@@ -489,8 +489,8 @@ def finite_element_solution(
         "load_items": load_items,
         "solver": "finite_element",
         "beamTheory": beam_theory,
-        "beamTheoryLabel": "Timoshenko 梁理论" if beam_theory == "timoshenko" else "Euler-Bernoulli 梁理论",
-        "warnings": ["Timoshenko 选项采用一阶剪切变形梁单元近似，适用于短深梁趋势校核。"] if beam_theory == "timoshenko" else [],
+        "beamTheoryLabel": "铁木辛柯梁理论" if beam_theory == "timoshenko" else "欧拉–伯努利梁理论",
+        "warnings": ["铁木辛柯梁选项采用一阶剪切变形梁单元近似，适用于短深梁趋势校核。"] if beam_theory == "timoshenko" else [],
         "diagnostics": {
             "solver": solver_diagnostics,
             "outputPrecision": {
@@ -499,7 +499,7 @@ def finite_element_solution(
             },
         },
         "teachingNotes": {
-            "theory": "Euler-Bernoulli 梁理论忽略剪切变形；Timoshenko 梁理论近似考虑剪切变形。",
+            "theory": "欧拉–伯努利梁理论忽略剪切变形；铁木辛柯梁理论近似考虑剪切变形。",
             "resultMetrics": "梁系主控指标为挠度、弯矩、剪力和支座反力。",
             "signConvention": "计算内核采用 SI 单位，接口按 m、kN、kN·m、mm 输出。",
         },

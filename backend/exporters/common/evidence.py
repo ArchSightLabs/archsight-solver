@@ -20,10 +20,10 @@ REVIEW_STATUS_LABELS = {
 
 FRAME_STABILITY_STANDARD_TABLES = (
     "稳定审查摘要",
-    "P-Delta 路径控制",
-    "P-Delta 路径关键点",
-    "P-Delta 最后收敛点",
-    "P-Delta 失败尝试",
+    "P-Δ 路径控制",
+    "P-Δ 路径关键点",
+    "P-Δ 最后收敛点",
+    "P-Δ 失败尝试",
     "初始缺陷说明",
     "方法比较",
     "屈曲模态摘要",
@@ -32,7 +32,7 @@ FRAME_STABILITY_STANDARD_TABLES = (
 FRAME_STABILITY_FULL_TABLES = FRAME_STABILITY_STANDARD_TABLES + (
     "共回转计算原理",
     "共回转代表单元",
-    "P-Delta 收敛记录",
+    "P-Δ 收敛记录",
     "方法比较技术审计",
     "屈曲节点模态向量",
     "屈曲构件模态形状",
@@ -88,10 +88,10 @@ PATH_PHASE_LABELS = {
 }
 
 ALGORITHM_LABELS = {
-    "p-delta": "二阶效应分析（P-Delta）",
+    "p-delta": "二阶效应分析（P-Δ）",
     "linear_first_order_v1": "首阶线性分析",
     "initial_stress_v1": "初始应力迭代法",
-    "corotational_newton_v1": "共回转 Newton 法",
+    "corotational_newton_v1": "共回转牛顿法",
     "linear_buckling_v1": "线性屈曲特征值法",
 }
 
@@ -295,6 +295,19 @@ def _format_scalar(value: Any, default: str = "—") -> str:
     return str(value)
 
 
+def _format_unit(value: Any) -> str:
+    return {
+        "N.m": "N·m",
+        "kN.m": "kN·m",
+        "N.m/rad": "N·m/rad",
+        "kN.m/rad": "kN·m/rad",
+        "cm^2": "cm²",
+        "cm^4": "cm⁴",
+        "m^2": "m²",
+        "m^4": "m⁴",
+    }.get(str(value), _format_scalar(value))
+
+
 def build_evidence_tables(
     solution: Mapping[str, Any],
     analysis_type: str,
@@ -446,7 +459,7 @@ def _beam_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str,
                 *_learning_review_rows(solution),
                 ["标准/教学校核", _symbolic_check_text(solution), "有解析或教材公式时列出理论值、求解值和适用限制"],
                 ["控制挠度", f"{round(solution.get('max_deflection_mm', 0.0), 6)} mm @ x={round(solution.get('max_deflection_position_m', 0.0), 6)} m", f"允许值 {round(solution.get('allowable_mm', 0.0), 6)} mm"],
-                ["控制弯矩", f"{round(max_moment_value, 6)} kN.m @ x={round(max_moment_x, 6)} m", "按弯矩图绝对值最大点提取"],
+                ["控制弯矩", f"{round(max_moment_value, 6)} kN·m，位置 x={round(max_moment_x, 6)} m", "按弯矩图绝对值最大点提取"],
                 ["控制剪力", f"{round(max_shear_value, 6)} kN @ x={round(max_shear_x, 6)} m", "按剪力图绝对值最大点提取"],
             ],
             columns=["校核项", "求解证据", "说明"],
@@ -454,7 +467,7 @@ def _beam_evidence(solution: Mapping[str, Any], material_name: str) -> Dict[str,
         "关键控制项": pd.DataFrame(
             [
                 ["最大挠度", f"x={round(solution.get('max_deflection_position_m', 0.0), 6)} m", f"{round(solution.get('max_deflection_mm', 0.0), 6)} mm", "挠度绝对值最大"],
-                ["最大弯矩", f"x={round(max_moment_x, 6)} m", f"{round(max_moment_value, 6)} kN.m", "弯矩绝对值最大"],
+                ["最大弯矩", f"x={round(max_moment_x, 6)} m", f"{round(max_moment_value, 6)} kN·m", "弯矩绝对值最大"],
                 ["最大剪力", f"x={round(max_shear_x, 6)} m", f"{round(max_shear_value, 6)} kN", "剪力绝对值最大"],
             ],
             columns=["控制项", "位置/对象", "数值", "判定依据"],
@@ -498,7 +511,7 @@ def _frame_evidence(solution: Mapping[str, Any], material_name: str, report_opti
                 ["构件数量", len(structure.get("members", []))],
                 ["荷载数量", len(structure.get("loads", []))],
                 ["支座体系说明", support_system_note("frame")],
-                ["原始输入单位", "E: GPa；A: cm^2；I: cm^4；节点荷载: kN/kN.m；分布荷载: kN/m"],
+                ["原始输入单位", "弹性模量 E：GPa；截面面积 A：cm²；惯性矩 I：cm⁴；节点荷载：kN、kN·m；分布荷载：kN/m"],
             ],
             columns=["项目", "数值/说明"],
         ),
@@ -515,7 +528,7 @@ def _frame_evidence(solution: Mapping[str, Any], material_name: str, report_opti
                 ["3", "装配整体刚度矩阵 K 与荷载向量 F"],
                 ["4", "施加支座约束、弹性约束刚度、端部释放和内部铰"],
                 ["5", "求解节点位移，并恢复构件轴力、剪力、弯矩与支座反力"],
-                ["6", "若启用稳定分析，则按所选算法执行初始应力兼容 P-Delta 或共回转全 Newton GNA，并独立执行广义特征值屈曲求解"],
+                ["6", "若启用稳定分析，则按所选算法执行初始应力兼容二阶分析或共回转全量牛顿 GNA，并独立执行广义特征值屈曲求解"],
             ],
             columns=["步骤", "说明"],
         ),
@@ -535,8 +548,8 @@ def _frame_evidence(solution: Mapping[str, Any], material_name: str, report_opti
         "关键控制项": pd.DataFrame(
             [
                 ["最大节点位移", max_node.get("nodeId", "—"), f"{round(float(max_node.get('resultantMm', max_node.get('displacementMm', 0.0))), 6)} mm", "节点合位移最大"],
-                ["最大杆端弯矩", max_moment.get("location", "—"), f"{round(float(max_moment.get('value', 0.0)), 6)} kN.m", "杆端弯矩绝对值最大"],
-                ["最大二阶放大系数", "结构整体", _format_scalar(solution.get("secondOrder", {}).get("amplificationFactor")), _format_scalar(solution.get("secondOrder", {}).get("amplificationUnavailableReason"), "P-Delta 迭代结果")],
+                ["最大杆端弯矩", max_moment.get("location", "—"), f"{round(float(max_moment.get('value', 0.0)), 6)} kN·m", "杆端弯矩绝对值最大"],
+                ["最大二阶放大系数", "结构整体", _format_scalar(solution.get("secondOrder", {}).get("amplificationFactor")), _format_scalar(solution.get("secondOrder", {}).get("amplificationUnavailableReason"), "P-Δ 迭代结果")],
             ],
             columns=["控制项", "位置/对象", "数值", "判定依据"],
         ),
@@ -558,32 +571,32 @@ def _frame_stability_evidence(solution: Mapping[str, Any], report_options: Mappi
                 "最后收敛状态（部分结果）" if solution.get("partialResultSource") else "目标荷载状态",
                 "部分结果不表示目标荷载点已收敛" if solution.get("partialResultSource") else "节点与构件表对应当前结果来源",
             ],
-            ["P-Delta 状态", _status_text(second_order.get("status", "disabled")), "已启用" if second_order.get("enabled") else "未启用"],
-            ["P-Delta 方法", _algorithm_label(second_order.get("method", "—")), f"求解方法：{_control_algorithm_text(trace, second_order)}"],
+            ["P-Δ 状态", _status_text(second_order.get("status", "disabled")), "已启用" if second_order.get("enabled") else "未启用"],
+            ["P-Δ 方法", _algorithm_label(second_order.get("method", "—")), f"求解方法：{_control_algorithm_text(trace, second_order)}"],
             [
-                "P-Delta 路径控制",
+                "P-Δ 路径控制",
                 _control_summary_text(trace),
                 f"初始步长={_control_text(trace, 'initialStep')}；最小步长={_control_text(trace, 'minimumStep')}；最大步长={_control_text(trace, 'maximumStep')}；线搜索={_enabled_text(trace.get('lineSearch'))}",
             ],
             [
-                "P-Delta 收敛判据",
+                "P-Δ 收敛判据",
                 _convergence_summary_text(trace),
                 "按残差、位移增量与能量增量同时判定是否收敛",
             ],
-            ["P-Delta 放大系数", _format_scalar(second_order.get("amplificationFactor")), _human_explanation(second_order.get("amplificationUnavailableReason"), f"首阶={second_order.get('firstOrderMaxDisplacementMm', '—')} mm；二阶={second_order.get('maxDisplacementMm', '—')} mm")],
-            ["P-Delta 失败原因", _human_explanation(second_order.get("failureReason"), "—"), _human_explanation(second_order.get("limitations"), "—")],
-            ["P-Delta 最后收敛点", _last_converged_summary_text(trace), _last_converged_note_text(trace)],
-            ["P-Delta 失败尝试", _failed_attempt_count_text(trace), _failed_attempt_note_text(trace)],
+            ["P-Δ 放大系数", _format_scalar(second_order.get("amplificationFactor")), _human_explanation(second_order.get("amplificationUnavailableReason"), f"首阶={second_order.get('firstOrderMaxDisplacementMm', '—')} mm；二阶={second_order.get('maxDisplacementMm', '—')} mm")],
+            ["P-Δ 失败原因", _human_explanation(second_order.get("failureReason"), "—"), _human_explanation(second_order.get("limitations"), "—")],
+            ["P-Δ 最后收敛点", _last_converged_summary_text(trace), _last_converged_note_text(trace)],
+            ["P-Δ 失败尝试", _failed_attempt_count_text(trace), _failed_attempt_note_text(trace)],
             ["初始缺陷", _initial_imperfection_summary_text(second_order), _initial_imperfection_note_text(second_order)],
             ["方法比较", _method_comparison_summary_text(second_order), _method_comparison_note_text(second_order)],
-            ["P-Delta 参考来源", _source_summary_text(second_order.get("referenceSource")), _source_note_text(second_order.get("referenceSource"))],
-            ["P-Delta 控制来源", _source_summary_text(second_order.get("controlSource")), _source_note_text(second_order.get("controlSource"))],
+            ["P-Δ 参考来源", _source_summary_text(second_order.get("referenceSource")), _source_note_text(second_order.get("referenceSource"))],
+            ["P-Δ 控制来源", _source_summary_text(second_order.get("controlSource")), _source_note_text(second_order.get("controlSource"))],
             ["屈曲状态", _status_text(buckling.get("status", "disabled")), "已启用" if buckling.get("enabled") else "未启用"],
             ["屈曲方法", _algorithm_label(buckling.get("method", "—")), f"提取模态数={buckling.get('modeCount', '—')}"],
             [
                 "整体首阶临界系数",
                 buckling.get("criticalLoadFactor", "—"),
-                "来自约束空间广义特征值；构件 Euler K=1 初筛仅用于定位复核对象，不替代整体屈曲结论："
+                "来自约束空间广义特征值；构件欧拉临界力（K=1）初筛仅用于定位复核对象，不替代整体屈曲结论："
                 f"{_member_euler_screen_text(buckling.get('memberEulerScreen', buckling.get('controllingMembers', [])))}",
             ],
             ["屈曲失败原因", _human_explanation(buckling.get("failureReason"), "—"), _human_explanation(buckling.get("limitations"), "—")],
@@ -593,10 +606,10 @@ def _frame_stability_evidence(solution: Mapping[str, Any], report_options: Mappi
         columns=["项目", "结果", "说明"],
     )
 
-    tables["P-Delta 路径控制"] = _frame_path_control_table(second_order, trace)
-    tables["P-Delta 路径关键点"] = _frame_path_keypoints_table(trace)
-    tables["P-Delta 最后收敛点"] = _frame_last_converged_table(trace)
-    tables["P-Delta 失败尝试"] = _frame_failed_attempts_table(trace)
+    tables["P-Δ 路径控制"] = _frame_path_control_table(second_order, trace)
+    tables["P-Δ 路径关键点"] = _frame_path_keypoints_table(trace)
+    tables["P-Δ 最后收敛点"] = _frame_last_converged_table(trace)
+    tables["P-Δ 失败尝试"] = _frame_failed_attempts_table(trace)
     tables["初始缺陷说明"] = _frame_initial_imperfection_table(second_order)
     tables["方法比较"] = _frame_method_comparison_table(second_order)
     if template == "complete":
@@ -633,7 +646,7 @@ def _frame_stability_evidence(solution: Mapping[str, Any], report_options: Mappi
             }
         )
     if template != "standard":
-        tables["P-Delta 收敛记录"] = pd.DataFrame(
+        tables["P-Δ 收敛记录"] = pd.DataFrame(
             history_rows
             or [{
                 "荷载步": "—",
@@ -728,12 +741,12 @@ def _frame_corotational_equations_table(
     algorithm = _mapping(second_order.get("algorithm", {}))
     if algorithm.get("id") != "corotational_newton_v1":
         return pd.DataFrame(
-            [["适用算法", algorithm.get("id", "—"), "本节仅对共回转全 Newton 路径给出展开证据"]],
+            [["适用算法", algorithm.get("id", "—"), "本节仅对共回转全量牛顿路径给出展开证据"]],
             columns=["项目", "公式/口径", "说明"],
         )
     return pd.DataFrame(
         [
-            ["当前几何", "x_i = X_i + u_i；L = ||x_j - x_i||；β = atan2(Δy, Δx)", "每次 Newton 迭代均由当前弦重新建立局部随动坐标系"],
+            ["当前几何", "x_i = X_i + u_i；L = ||x_j - x_i||；β = atan2(Δy, Δx)", "每次牛顿迭代均由当前弦重新建立局部随动坐标系"],
             ["基本变形", "q = [L-L0-ε_th, θ_i-(β-β0), θ_j-(β-β0)]", "分离刚体平移/转动与轴向、端转角弹性变形"],
             ["单元恢复", "q_f = k_b q；f_int,e = B(q)^T q_f", "端释放在基本刚度中静力凝聚后再恢复内力"],
             ["平衡残差", "g(u, λ) = f_ext(λ) - f_int(u) = 0", "平衡状态与切线稳定状态分别判定"],
@@ -1247,7 +1260,7 @@ def _critical_point_table(result: Mapping[str, Any], analysis_type: str) -> pd.D
                 _control_entry_metric_text(row),
                 _control_entry_station_text(row),
                 _format_scalar(row["value"]),
-                _format_scalar(row["unit"]),
+                _format_unit(row["unit"]),
                 row["note"],
             ]
             for row in rows
@@ -1281,7 +1294,7 @@ def _review_point_table(result: Mapping[str, Any], analysis_type: str) -> pd.Dat
                 _control_entry_metric_text(row),
                 _control_entry_station_text(row),
                 _format_scalar(row["value"]),
-                _format_scalar(row["unit"]),
+                _format_unit(row["unit"]),
                 row["selector"],
             ]
             for row in rows
@@ -1307,7 +1320,7 @@ def _governing_envelope_table(result: Mapping[str, Any], analysis_type: str) -> 
                     _localized_value(entry.get("kind", "—"), KEY_POINT_KIND_LABELS, "其他控制类型"),
                     _control_entry_station_text(entry),
                     _format_scalar(entry.get("value")),
-                    _format_scalar(entry.get("unit")),
+                    _format_unit(entry.get("unit")),
                     str(entry.get("sourcePointId") or "—"),
                 ]
             )
@@ -1541,14 +1554,14 @@ def _truss_boundary_table(nodes: Iterable[Mapping[str, Any]]) -> pd.DataFrame:
 def _member_unit_table(*, include_inertia: bool) -> pd.DataFrame:
     rows = [
         ["弹性模量 E", "GPa", "Pa", "1 GPa = 1e9 Pa"],
-        ["截面面积 A", "cm^2", "m^2", "1 cm^2 = 1e-4 m^2"],
+        ["截面面积 A", "cm²", "m²", "1 cm² = 1e-4 m²"],
         ["节点荷载 P", "kN", "N", "1 kN = 1000 N"],
         ["长度 L", "m", "m", "输入单位与计算单位一致"],
     ]
     if include_inertia:
-        rows.insert(2, ["截面惯性矩 I", "cm^4", "m^4", "1 cm^4 = 1e-8 m^4"])
+        rows.insert(2, ["截面惯性矩 I", "cm⁴", "m⁴", "1 cm⁴ = 1e-8 m⁴"])
         rows.append(["构件分布荷载 q", "kN/m", "N/m", "1 kN/m = 1000 N/m"])
-        rows.append(["节点力矩 M", "kN.m", "N.m", "1 kN.m = 1000 N.m"])
+        rows.append(["节点力矩 M", "kN·m", "N·m", "1 kN·m = 1000 N·m"])
     return pd.DataFrame(rows, columns=["输入量", "原始单位", "计算单位", "换算关系"])
 
 
@@ -1704,7 +1717,7 @@ def _trace_summary_value(key: str, value: Any) -> Any:
         return _analysis_type_text(value)
     if key == "solverBackend":
         labels = {
-            "dense-corotational-newton": "稠密矩阵共回转 Newton 法",
+            "dense-corotational-newton": "稠密矩阵共回转牛顿法",
             "dense": "稠密矩阵求解",
             "sparse": "稀疏矩阵求解",
         }
@@ -1913,7 +1926,7 @@ def _symbolic_check_text(solution: Mapping[str, Any]) -> str:
     return (
         f"{symbolic.get('scope', '教学校核')}："
         f"反力 {symbolic.get('reactionKn', '—')} kN，"
-        f"最大弯矩 {symbolic.get('maxMomentKnM', '—')} kN.m，"
+        f"最大弯矩 {symbolic.get('maxMomentKnM', '—')} kN·m，"
         f"最大挠度 {symbolic.get('maxDeflectionMm', '—')} mm"
     )
 
@@ -1926,4 +1939,4 @@ def _node_control_text(node: Mapping[str, Any]) -> str:
 
 
 def _frame_moment_text(moment: Mapping[str, Any]) -> str:
-    return f"{moment.get('location', '—')}：{round(float(moment.get('value', 0.0)), 6)} kN.m"
+    return f"{moment.get('location', '—')}：{round(float(moment.get('value', 0.0)), 6)} kN·m"

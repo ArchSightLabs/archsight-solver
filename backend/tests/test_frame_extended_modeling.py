@@ -325,7 +325,7 @@ def test_frame_temperature_load_restrained_member_generates_compression_and_reac
     assert data["buckling"]["controllingMembers"][0]["compressionKn"] == pytest.approx(expected_compression_kn, rel=1e-6)
     assert data["buckling"]["memberEulerScreen"] == data["buckling"]["controllingMembers"]
     assert data["buckling"]["memberEulerScreen"][0]["screeningOnly"] is True
-    assert data["buckling"]["memberEulerScreen"][0]["screeningMethod"] == "构件 Euler K=1 初筛"
+    assert data["buckling"]["memberEulerScreen"][0]["screeningMethod"] == "构件欧拉系数 K=1 初筛"
     assert data["secondOrder"]["amplificationFactor"] == pytest.approx(1.0, abs=1e-8)
     assert data["diagnostics"]["equilibrium"]["rmsRelativeError"] < 1e-9
 

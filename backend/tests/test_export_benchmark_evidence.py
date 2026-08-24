@@ -495,19 +495,19 @@ def test_frame_export_templates_split_stability_summary_and_detail():
         + [cell.text for table in standard_docx.tables for row in table.rows for cell in row.cells]
     )
     assert "稳定审查摘要" in standard_text
-    assert "P-Delta 路径控制" in standard_text
-    assert "P-Delta 路径关键点" in standard_text
-    assert "P-Delta 最后收敛点" in standard_text
-    assert "P-Delta 失败尝试" in standard_text
+    assert "P-Δ 路径控制" in standard_text
+    assert "P-Δ 路径关键点" in standard_text
+    assert "P-Δ 最后收敛点" in standard_text
+    assert "P-Δ 失败尝试" in standard_text
     assert "初始缺陷说明" in standard_text
     assert "方法比较" in standard_text
-    assert "构件 Euler K=1 初筛仅用于定位复核对象，不替代整体屈曲结论" in standard_text
-    assert "共回转 Newton 法" in standard_text
+    assert "构件欧拉临界力（K=1）初筛仅用于定位复核对象，不替代整体屈曲结论" in standard_text
+    assert "共回转牛顿法" in standard_text
     assert "线性屈曲特征值" in standard_text
     assert "失败切步" in standard_text
     assert "显式节点初始缺陷" in standard_text
     assert not any(raw in standard_text for raw in ("corotational_newton_v1", "initial_stress_v1", "linear_buckling_v1", "sourceHash", "requestHash", "modelHash", "residual_reduction", "explicit"))
-    assert not any(reason in standard_text for reason in ("P-Delta 收敛记录", "线搜索尺度", "能量增量（J）"))
+    assert not any(reason in standard_text for reason in ("P-Δ 收敛记录", "线搜索尺度", "能量增量（J）"))
     assert "屈曲节点模态向量" not in standard_text
     assert "屈曲构件模态形状" not in standard_text
     assert "共回转计算原理" not in standard_text
@@ -518,7 +518,7 @@ def test_frame_export_templates_split_stability_summary_and_detail():
         + [cell.text for table in complete_docx.tables for row in table.rows for cell in row.cells]
     )
     assert "稳定审查摘要" in complete_text
-    assert "构件 Euler K=1 初筛仅用于定位复核对象，不替代整体屈曲结论" in complete_text
+    assert "构件欧拉临界力（K=1）初筛仅用于定位复核对象，不替代整体屈曲结论" in complete_text
     assert "稳定审查过程" in complete_text
     assert "线搜索尺度" in complete_text
     assert "能量增量（J）" in complete_text
@@ -527,7 +527,7 @@ def test_frame_export_templates_split_stability_summary_and_detail():
     assert "结果签名" in complete_text
     assert "请求签名" in complete_text
     assert "模型签名" in complete_text
-    assert "P-Delta 收敛记录" in complete_text
+    assert "P-Δ 收敛记录" in complete_text
     assert "屈曲节点模态向量" in complete_text
     assert "屈曲构件模态形状" in complete_text
     assert "共回转计算原理" in complete_text
@@ -538,15 +538,15 @@ def test_frame_export_templates_split_stability_summary_and_detail():
     standard_xlsx = pd.read_excel(export_report(standard_report, "xlsx").buffer, sheet_name=None, header=None)
     standard_xlsx_text = "\n".join(frame.astype(str).to_string() for frame in standard_xlsx.values())
     assert "稳定审查摘要" in standard_xlsx_text
-    assert "P-Delta 路径控制" in standard_xlsx_text
-    assert "P-Delta 路径关键点" in standard_xlsx_text
-    assert "P-Delta 最后收敛点" in standard_xlsx_text
-    assert "P-Delta 失败尝试" in standard_xlsx_text
+    assert "P-Δ 路径控制" in standard_xlsx_text
+    assert "P-Δ 路径关键点" in standard_xlsx_text
+    assert "P-Δ 最后收敛点" in standard_xlsx_text
+    assert "P-Δ 失败尝试" in standard_xlsx_text
     assert "初始缺陷说明" in standard_xlsx_text
     assert "方法比较" in standard_xlsx_text
     assert "方法比较技术审计" not in standard_xlsx_text
     assert not any(raw in standard_xlsx_text for raw in ("sourceHash", "requestHash", "modelHash"))
-    assert "P-Delta 收敛记录" not in standard_xlsx_text
+    assert "P-Δ 收敛记录" not in standard_xlsx_text
     assert "屈曲节点模态向量" not in standard_xlsx_text
 
     complete_xlsx = pd.read_excel(export_report(complete_report, "xlsx").buffer, sheet_name=None, header=None)
@@ -555,7 +555,7 @@ def test_frame_export_templates_split_stability_summary_and_detail():
     assert "线搜索次数" in complete_xlsx_text
     assert "能量增量（J）" in complete_xlsx_text
     assert "方法比较技术审计" in complete_xlsx_text
-    assert "P-Delta 收敛记录" in complete_xlsx_text
+    assert "P-Δ 收敛记录" in complete_xlsx_text
     assert "屈曲节点模态向量" in complete_xlsx_text
     assert "屈曲构件模态形状" in complete_xlsx_text
     assert "共回转计算原理" in complete_xlsx_text
@@ -624,8 +624,8 @@ def test_standard_and_complete_exports_diverge_by_analysis_type_for_docx_and_xls
         if analysis_type == "frame":
             standard_xlsx_text = _xlsx_text(export_report(standard_report_xlsx, "xlsx"))
             complete_xlsx_text = _xlsx_text(export_report(complete_report_xlsx, "xlsx"))
-            assert "P-Delta 收敛记录" not in standard_xlsx_text
-            assert "P-Delta 收敛记录" in complete_xlsx_text
+            assert "P-Δ 收敛记录" not in standard_xlsx_text
+            assert "P-Δ 收敛记录" in complete_xlsx_text
             assert "屈曲节点模态向量" in complete_xlsx_text
             assert "屈曲构件模态形状" in complete_xlsx_text
         else:

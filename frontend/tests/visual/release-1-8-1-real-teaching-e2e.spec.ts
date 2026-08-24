@@ -25,12 +25,12 @@ test.describe("v1.8.1 真实后端教学闭环", () => {
   const cases = [
     {
       caseId: "GNA-001",
-      title: "P-Delta：从首阶位移到真实平衡路径",
+      title: "P-Δ：从首阶位移到真实平衡路径",
       expectedStatus: "converged",
     },
     {
       caseId: "GNA-003",
-      title: "Williams toggle：为什么收敛失败也可能是正确结果",
+      title: "Williams 浅拱翻转：为什么收敛失败也可能是正确结果",
       expectedStatus: "not_converged",
     },
   ] as const;

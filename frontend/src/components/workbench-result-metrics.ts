@@ -1,7 +1,7 @@
 import type { BeamCalculationResults } from "../types/beam";
 import type { FrameCalculationResults, TrussCalculationResults } from "../types/structure";
 import { formatEngineeringValue, formatLimitRatio, formatUtilizationPercent } from "../lib/engineering-format.ts";
-import { calculationStatusTitle } from "../lib/calculation-artifacts.ts";
+import { calculationStatusTitle, calculationTechnicalText } from "../lib/calculation-artifacts.ts";
 import { modelObjectMemberTerm } from "../lib/model-object-vocabulary.ts";
 import { summaryMetricLabel } from "../lib/result-metrics.ts";
 
@@ -28,13 +28,14 @@ export type DataCurveOption = {
 const FRAME_METHOD_TITLES: Record<string, string> = {
   linear_first_order_v1: "首阶线性分析",
   initial_stress_v1: "初始应力迭代法",
-  corotational_newton_v1: "共回转 Newton 法",
+  corotational_newton_v1: "共回转牛顿法",
   linear_buckling_v1: "线性屈曲特征值法",
 };
 
 function frameMethodTitle(value: string | undefined | null): string {
   if (!value) return "未提供方法";
-  return FRAME_METHOD_TITLES[value] ?? (/[㐀-鿿]/u.test(value) ? value : "其他求解方法");
+  const localized = calculationTechnicalText(value);
+  return FRAME_METHOD_TITLES[value] ?? (/[㐀-鿿]/u.test(localized) ? localized : "其他求解方法");
 }
 
 export function beamDataCurveOptions(results: BeamCalculationResults): DataCurveOption[] {
@@ -251,7 +252,7 @@ export function frameSummaryRows(results: FrameCalculationResults): SummaryRow[]
       detail: frameStabilityDetail(results.secondOrder?.enabled, results.buckling?.enabled),
     },
     {
-      label: "二阶效应（P-Delta）",
+      label: "二阶效应（P-Δ）",
       value: frameStatusLabel(results.secondOrder?.status),
       detail: results.secondOrder ? `${formatEngineeringValue(results.secondOrder.amplificationFactor, "")} · ${frameMethodTitle(results.secondOrder.method)}` : "未提供",
     },

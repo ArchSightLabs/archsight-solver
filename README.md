@@ -67,21 +67,21 @@ npm --prefix frontend run test:unit
 
 详细功能边界见 [功能与适用边界](docs/capabilities.md)。
 
-## v1.8.1 版本主题
+## v1.8.2 版本主题
 
-v1.8.1 的重点是把二维框架弹性几何非线性做完整：无初始缺陷时为 GNA，配置显式或屈曲模态缺陷时为 GNIA。新增共回转全 Newton 路径、方法比较、过程播放、失败恢复、路径关键点和可信包同源证据，让计算书不仅能看到结果，也能复核过程与失败边界。
+v1.8.2 的重点是把 v1.8.1 已具备的专业计算能力变成普通用户真正读得懂、看得清、导得出的工程成果。页面与计算书优先使用中文工程术语，关键点和图形标注降低噪声，稳定审查与过程播放消除裁切和重叠；算法 ID、哈希和原始协议字段继续保留在技术审计层。
 
-当前状态：**已发布并上线（2026-08-24）**。GitHub Release、公开校验制品、GHCR 工作流镜像、阿里云正式镜像和官方演示站均已完成独立核对；上一正式镜像与离线归档保留为回滚基线。
+当前状态：**发布候选验证中**。v1.8.1 仍是正式线上基线，只有在代码、制品、阿里云镜像、Tag Release、线上计算与导出均完成独立验收后，才会把本段更新为已发布。
 
-- `CalculationTrace@1`、`NonlinearPathTrace@1`、关键点/复核点、控制包络和命名快照使用同一次 canonical result，不由前端或导出器二次求解。
-- 梁、平面桁架、平面框架的图形、点表、标准/详细计算书、XLSX 与可信计算包共享对象、测站、数值、单位和来源。
-- 二维框架共回转几何非线性与线性屈曲分别保留迭代、模态、残差、线搜索、cutback 和接近临界失败证据；`initial_stress_v1` 仅作为 v1.8.0 复算兼容算法保留。
-- 公开验证集达到 71 个通过算例，新增 Williams toggle、Lee frame 极限点前路径和 Euler 初始缺陷柱解析验证。
-- 失败计算可形成只包含已完成阶段与诊断证据的审查材料；不引入账号、云项目、规范设计或第四类分析域。
+- 关键点的类型、指标、来源、状态、方法名称和单位优先使用中文工程表达，机器字段只进入可折叠技术审计信息。
+- 计算过程按“输入规范化—自由度映射—整体装配—边界约化—求解与校核”显示中文摘要，仍保留完整哈希和可复算证据。
+- 端点、反弯点、局部极值和全局极值可按类别控制；工作台与计算书共享标注选择，图形默认优先显示控制性结论。
+- 受力变形、内力图、过程播放和稳定审查修复文字重叠、裁切与无意义滚动，同时保留点表、详细计算书和可信计算包中的完整数值。
+- 本补丁不改变 v1.8.1 的 GNA/GNIA、线性屈曲或一次分析数值，也不新增结构类型、账号、云项目或规范设计能力。
 
 直接开始：[公开案例与五分钟学习路径](https://solver.archsight.cn/) · [五分钟安装路径](docs/quickstart.md) · [可信计算包指南](docs/verification-package.md) · [English entry](README.en.md)
 
-完整验证证据、Tag Release 门禁与回滚边界见 [v1.8.1 发布验收](docs/verification/release-1-8-1-acceptance.md)。
+完整验证证据、Tag Release 门禁与回滚边界见 [v1.8.2 发布验收](docs/verification/release-1-8-2-acceptance.md)。
 
 ## v1.3.0 发布重点
 
@@ -197,7 +197,8 @@ uv run python -m backend.benchmarks.catalog_summary --output docs/verification/b
 | [Benchmark 算例目录摘要](docs/verification/benchmark-catalog-summary.md) | 按结构体系列出算例目的、来源、标准值、容差和模板映射 | 当前验证摘要 |
 | [跨浏览器视觉回归](docs/verification/visual-regression.md) | 前端工作台视觉回归说明 | 当前验证说明 |
 | [发布治理](docs/release-governance.md) | `x.y.0` 用户价值门槛、观察窗口、确认和不可变发布规则 | 当前发布规则 |
-| [v1.8.1 发布验收](docs/verification/release-1-8-1-acceptance.md) | 可复算几何非线性、过程播放、方法比较、失败证据与正式制品证据 | v1.8.1 发布收口 |
+| [v1.8.2 发布验收](docs/verification/release-1-8-2-acceptance.md) | 中文工程表达、图形可读性、计算书一致性、制品与线上发布证据 | 当前发布验收 |
+| [v1.8.1 发布验收](docs/verification/release-1-8-1-acceptance.md) | 可复算几何非线性、过程播放、方法比较、失败证据与正式制品证据 | v1.8.1 历史基线 |
 | [v1.7.0 发布验收](docs/verification/release-1-7-acceptance.md) | 可信计算包、开放分发、学习复核路径、三浏览器与正式制品证据 | v1.7.0 历史基线 |
 | [v1.6.3 发布验收](docs/verification/release-1-6-3-acceptance.md) | 可靠性补丁、验证证据、镜像与发布授权边界 | v1.6.3 发布基线 |
 | [v1.6.2 发布验收](docs/verification/release-1-6-2-acceptance.md) | 工作台与宿主接入统一验收、镜像门禁、升级与回滚 | v1.6.2 发布基线 |

@@ -10,7 +10,7 @@ function rowValue(mode: "beam" | "frame" | "truss", label: string) {
 test("梁系计算假定明确梁单元自由度、支座约束和单位换算", () => {
   assert.match(rowValue("beam", "计算模型"), /竖向位移 v 与转角 θz/u);
   assert.match(rowValue("beam", "支座约束"), /固结支座约束 v 与 θz/u);
-  assert.match(rowValue("beam", "单位换算"), /I: cm4 -> m4/u);
+  assert.match(rowValue("beam", "单位换算"), /I：cm⁴ → m⁴/u);
 });
 
 test("平面框架计算假定保留 ux uy rz 与构件内力口径", () => {

@@ -68,7 +68,7 @@ async function calculateEditInvalidateRecalculateAndExport(workbench: Page | Fra
   await loadInput.fill("18");
   await workbench.getByRole("button", { name: "生成连续梁" }).click();
   await workbench.getByRole("tab", { name: /结构计算/ }).click();
-  await expect(workbench.getByText("结果已失效 (需重新计算)")).toBeVisible();
+  await expect(workbench.getByText("结果已失效（需重新计算）")).toBeVisible();
   await expect(workbench.getByRole("button", { name: "成果导出" })).toBeDisabled();
 
   await workbench.getByRole("button", { name: "运行梁系计算" }).click();

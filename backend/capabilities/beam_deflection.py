@@ -136,7 +136,7 @@ def _formula_ref(solution: Mapping[str, Any]) -> str:
     if symbolic.get("available") and symbolic.get("equations"):
         return f"{symbolic.get('scope', '教材公式校核')}: {'; '.join(symbolic['equations'])}"
     summary = solution.get("summary") or {}
-    return str(summary.get("method") or "Euler-Bernoulli 梁单元法")
+    return str(summary.get("method") or "欧拉–伯努利梁单元法")
 
 
 def solve_beam_deflection_capability(payload: Mapping[str, Any]) -> Dict[str, Any]:
@@ -159,7 +159,7 @@ def solve_beam_deflection_capability(payload: Mapping[str, Any]) -> Dict[str, An
             "inputValidated": True,
             "formulaRef": _formula_ref(solution),
             "checkStatus": summary.get("status", "需校核"),
-            "method": summary.get("method", "Euler-Bernoulli 梁理论 + 梁单元法"),
+            "method": summary.get("method", "欧拉–伯努利梁理论 + 梁单元法"),
             "normalizedInput": {
                 "span": {"value": solver_payload["spans"][0], "unit": "m"},
                 "elasticModulus": {"value": solver_payload["E"], "unit": "GPa"},

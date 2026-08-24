@@ -146,10 +146,10 @@ class FramePDeltaConvergenceError(FrameStabilityError):
         super().__init__(
             message,
             code="FRAME_PDELTA_NOT_CONVERGED",
-            title="P-Delta 未收敛",
+            title="P-Δ 未收敛",
             detail="二阶迭代在给定荷载步与迭代上限内未达到收敛容差。",
             suggestions=(
-                "增加 loadSteps 或 maxIterations。",
+                "增加荷载步数或最大迭代次数。",
                 "检查初始刚度、支座约束和荷载规模是否导致强烈失稳。",
             ),
         )
@@ -160,7 +160,7 @@ class FramePDeltaSingularError(FrameStabilityError):
         super().__init__(
             message,
             code="FRAME_PDELTA_TANGENT_SINGULAR",
-            title="P-Delta 切线刚度奇异",
+            title="P-Δ 切线刚度奇异",
             detail="几何刚度迭代引起的切线刚度矩阵秩不足，无法继续求解二阶状态。",
             suggestions=(
                 "检查支座、侧向约束和构件连接关系。",

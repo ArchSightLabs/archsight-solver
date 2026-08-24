@@ -128,7 +128,7 @@ def _build_failure_review_model_from_job(job_id: str, data: Dict[str, Any]) -> D
     if nonlinear_partial:
         trace = second_order.get("nonlinearPathTrace") if isinstance(second_order.get("nonlinearPathTrace"), Mapping) else {}
         stable_error_code = str(second_order.get("failureCode") or "GNA_PATH_NOT_COMPLETED")
-        failure_reason = str(second_order.get("failureReason") or "共回转 Newton 路径未完成")
+        failure_reason = str(second_order.get("failureReason") or "共回转牛顿路径未完成")
         review = {
             "materialType": "failure-review",
             "format": str(data.get("format") or "docx"),
@@ -151,7 +151,7 @@ def _build_failure_review_model_from_job(job_id: str, data: Dict[str, Any]) -> D
             },
             "suggestedActions": [
                 "复核最后收敛荷载点与失败尝试，不得把部分结果解释为目标荷载点已收敛。",
-                "检查最小步长、最大迭代次数、cutback 记录与切线稳定状态后再决定调整路径控制。",
+                "检查最小步长、最大迭代次数、切步回退记录与切线稳定状态后再决定调整路径控制。",
             ],
             "nonlinearPartialEvidence": {
                 "algorithm": deepcopy(second_order.get("algorithm")),
