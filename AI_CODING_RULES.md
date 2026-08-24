@@ -91,13 +91,15 @@
   Constraint: <必须遵守的约束、契约或边界>
   Rejected: <被拒绝的替代方案 1> | <拒绝原因>
   Rejected: <被拒绝的替代方案 2> | <拒绝原因>
-  Confidence: <high/moderate/low>
-  Scope-risk: <high/moderate/low>
+  Confidence: <low/medium/high>
+  Scope-risk: <narrow/moderate/broad>
   Directive: <核心指导原则或注意事项>
   Tested: <具体的测试命令或手动验证动作 1>
   Tested: <具体的测试命令或手动验证动作 2>
   Not-tested: <未测试的范围及原因>
   ```
+- 本地 `commit-msg` 与 `pre-push`、GitHub CI 和 Release 必须调用同一组织级校验策略；本地 Hook 可用 `--no-verify` 绕过，因此不能替代服务端范围校验。
+- 不为修正文案而重写既有发布历史；新门禁只约束此后进入共享边界的提交。
 - **任务管理**: 所有代办事项（Task List / Markdown Checklist）必须使用中文描述。
 - **版本一致性**: 涉及项目发布号、展示版本或 Release/Changelog 时，必须同步检查并更新 `frontend/package.json`、`pyproject.toml`、`uv.lock`、`CHANGELOG.md` 以及 README/文档中的可见版本号；不得只更新单一入口导致前端包版本、Python 包元数据和发布说明不一致。
 - **Python 依赖管理**: 新增、删除或升级 Python 包时，必须先使用 `uv add` / `uv remove` / `uv lock` 写入 `pyproject.toml` 和 `uv.lock`，再执行 `uv sync`。

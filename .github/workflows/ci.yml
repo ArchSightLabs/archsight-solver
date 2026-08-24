@@ -9,6 +9,18 @@ permissions:
   contents: read
 
 jobs:
+  commit-governance:
+    name: 中文提交治理
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+
+      - name: Validate Chinese Conventional and Lore commits
+        uses: ArchSightLabs/archsight-aios/.github/actions/commit-governance@7eddd6915bdb79c0b32a8295c2bd55b31f3353d7
+
   backend:
     name: Backend Tests
     runs-on: ubuntu-latest
@@ -135,7 +147,7 @@ jobs:
 
   docker:
     name: Docker Release Gate
-    needs: [backend, frontend, frontend-windows]
+    needs: [commit-governance, backend, frontend, frontend-windows]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

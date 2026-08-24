@@ -22,6 +22,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+
+      - name: Validate Chinese Conventional and Lore commits
+        uses: ArchSightLabs/archsight-aios/.github/actions/commit-governance@7eddd6915bdb79c0b32a8295c2bd55b31f3353d7
 
       - name: Setup Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
