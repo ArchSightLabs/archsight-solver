@@ -23,9 +23,9 @@
 发布验证：
 
 - 后端全量 `736 passed, 2 skipped`，前端单元测试 `444/444`，lint、TypeScript、生产构建和生产依赖审计通过；公开 benchmark `71/71` 通过。
-- Chromium 发布闭环 `51/51`、三浏览器 DOCX 导出 `12/12`、三浏览器稳定与关键点矩阵 `15/15` 通过；候选镜像的真实 GNA 教学链路与 Host 集成通过。
+- Chromium 发布闭环 `51/51`、三浏览器 DOCX 导出 `12/12`、三浏览器稳定与关键点矩阵 `15/15` 通过；正式镜像的真实 GNA 教学链路与 Host 集成通过。
 - Trivy 中“已有修复版本但未升级”的 HIGH/CRITICAL 为 0；原始扫描仍有 14 个 HIGH、3 个 CRITICAL 未提供上游修复版本，已如实保留在验收记录。SPDX SBOM 包含 109 个包、2959 个文件。
-- 当前只达到发布候选：尚未创建 `v1.8.1` tag、未推送镜像仓库、未更新线上；完整证据见 [v1.8.1 发布验收](docs/verification/release-1-8-1-acceptance.md)。
+- `v1.8.1` GitHub Release 已发布，7 份公开制品及 `SHA256SUMS` 完成核对；GHCR 与阿里云镜像摘要一致，官方演示站已使用阿里云精确标签上线，v1.8.0 精确镜像与离线归档作为直接回滚点保留。完整证据见 [v1.8.1 发布验收](docs/verification/release-1-8-1-acceptance.md)。
 
 ## v1.8.0
 
