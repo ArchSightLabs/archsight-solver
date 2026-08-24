@@ -53,6 +53,8 @@ test("计算过程与关键点使用工程中文展示并保留折叠审计原�
   assert.equal(calculationMetricTitle("reactionMz"), "约束弯矩");
   assert.equal(calculationMetricTitle("momentKnM"), "弯矩");
   assert.equal(calculationMetricTitle("maxAxialForceKn"), "最大轴力");
+  assert.equal(calculationMetricTitle("max_displacement_mm"), "最大位移");
+  assert.equal(calculationMetricTitle("critical_load_factor"), "临界荷载因子");
   assert.equal(calculationSourceTypeTitle("main"), "主结果");
   assert.equal(calculationSourceTypeTitle("member"), "构件");
   assert.equal(calculationSourceIdTitle("__primary__"), "基本结果");
@@ -137,4 +139,60 @@ test("snapshot comparison does not invent a percentage from a zero baseline", ()
   const row = compareCalculationSnapshots(left, right).rows.find((item) => item.key === "maxMomentKnM");
   assert.equal(row?.relDiff, null);
   assert.match(row?.reason ?? "", /基线为 0/u);
+});
+
+test("快照对比只展示中文工程字段和可读来源，同时保留数值单位", () => {
+  const left = normalizeCalculationSnapshot({
+    resultHash: "left-result-hash",
+    summary: {
+      allowableMm: 24,
+      maxDisplacementMm: 0.0665,
+      maxMomentKnM: 42.9673,
+      secondOrderAmplificationFactor: 3.2972,
+    },
+    governingEnvelope: [{
+      id: "ux-control",
+      metricKey: "ux",
+      kind: "absolute",
+      value: 0.0665,
+      unit: "mm",
+      sourceType: "main",
+      sourceId: "__primary__",
+      side: "exact",
+      sourceHash: "left-source-hash",
+    }],
+  }, "frame");
+  const right = normalizeCalculationSnapshot({
+    resultHash: "right-result-hash",
+    summary: {
+      allowableMm: 24,
+      maxDisplacementMm: 0.07,
+      maxMomentKnM: 43.1,
+      secondOrderAmplificationFactor: 3.4,
+    },
+    governingEnvelope: [{
+      id: "ux-control",
+      metricKey: "ux",
+      kind: "absolute",
+      value: 0.07,
+      unit: "mm",
+      sourceType: "main",
+      sourceId: "__primary__",
+      side: "exact",
+      sourceHash: "right-source-hash",
+    }],
+  }, "frame");
+
+  const comparison = compareCalculationSnapshots(left, right);
+  const byKey = new Map(comparison.rows.map((row) => [row.key, row]));
+  assert.equal(byKey.get("allowableMm")?.label, "允许位移");
+  assert.equal(byKey.get("maxDisplacementMm")?.label, "最大位移");
+  assert.equal(byKey.get("maxMomentKnM")?.label, "最大弯矩");
+  assert.equal(byKey.get("secondOrderAmplificationFactor")?.label, "二阶放大系数");
+  assert.equal(byKey.get("maxDisplacementMm")?.unit, "mm");
+
+  const envelope = comparison.rows.find((row) => row.key.startsWith("governing:ux::"));
+  assert.equal(envelope?.label, "X 向位移 · 绝对控制值");
+  assert.equal(envelope?.leftText, "来源：主结果 · 基本结果 · 精确位置");
+  assert.doesNotMatch(envelope?.leftText ?? "", /__primary__|left-source-hash|absolute/u);
 });

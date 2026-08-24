@@ -253,9 +253,11 @@ function frameCalculationEnvelope(payload: FramePayload) {
         { id: "linear_first_order_v1", label: "首阶线性" },
         { id: "initial_stress_v1", label: "初始应力兼容" },
         { id: "corotational_newton_v1", label: "共回转 Newton" },
+        { id: "linear_buckling_v1", label: "线性屈曲特征值" },
       ],
       metrics: [
         { id: "max_displacement_mm", unit: "mm", comparable: true, values: { linear_first_order_v1: 0.78, initial_stress_v1: 0.96, corotational_newton_v1: 1.18 } },
+        { id: "critical_load_factor", unit: "", comparable: false, unavailableReason: "临界荷载因子不与位移响应作同量纲比较", values: { linear_buckling_v1: 4.8 } },
       ],
       limitations: ["只比较当前模型的数值响应，不给出规范安全结论。"],
     },
@@ -642,7 +644,16 @@ test("v1.8.1 几何非线性过程播放显示 canonical 关键点、数值和�
   await expect(page.getByText(/最后收敛 · λ 0\.72/u).first()).toBeVisible();
   await expect(page.getByText(/终止 · λ 0\.8/u).first()).toBeVisible();
   await expect(page.getByText("方法比较", { exact: true })).toBeVisible();
-  await expect(page.getByText("corotational_newton_v1", { exact: true })).toBeVisible();
+  await expect(page.getByText("共回转 Newton · 最大位移", { exact: true })).toBeVisible();
+  await expect(page.getByText("线性屈曲特征值 · 临界荷载因子", { exact: true })).toBeVisible();
+  await expect(page.getByText("corotational_newton_v1", { exact: true })).toHaveCount(0);
+
+  const pathChart = page.getByRole("img", { name: /几何非线性荷载路径.*残差峰值/u });
+  const chartOverflow = await pathChart.evaluate((chart) => {
+    const container = chart.parentElement!;
+    return { clientWidth: container.clientWidth, scrollWidth: container.scrollWidth };
+  });
+  expect(chartOverflow.scrollWidth).toBeLessThanOrEqual(chartOverflow.clientWidth + 1);
 
   const labelBounds = await page.locator('[data-keypoint-kind] text').evaluateAll((labels) => labels.map((label) => {
     const bounds = label.getBoundingClientRect();
@@ -655,6 +666,13 @@ test("v1.8.1 几何非线性过程播放显示 canonical 关键点、数值和�
       const overlaps = left.left < right.right && right.left < left.right && left.top < right.bottom && right.top < left.bottom;
       expect(overlaps, `关键点标签不应重叠：${left.text} / ${right.text}`).toBe(false);
     }
+  }
+
+  const chartBounds = await pathChart.boundingBox();
+  expect(chartBounds).not.toBeNull();
+  for (const label of labelBounds) {
+    expect(label.left, `关键点标签左侧不应被裁切：${label.text}`).toBeGreaterThanOrEqual((chartBounds?.x ?? 0) - 1);
+    expect(label.right, `关键点标签右侧不应被裁切：${label.text}`).toBeLessThanOrEqual((chartBounds?.x ?? 0) + (chartBounds?.width ?? 0) + 1);
   }
 
   await page.getByRole("button", { name: "算法", exact: true }).click();
@@ -707,9 +725,13 @@ test("框架稳定审查面板暴露 P-Delta 轨迹、模态选择器与屈曲�
   await page.getByRole("tab", { name: "稳定审查", exact: true }).click();
 
   await expect(page.getByText("平衡状态", { exact: true })).toBeVisible();
-  await expect(page.getByText("P-Delta · corotational_newton_v1", { exact: true })).toBeVisible();
+  await expect(page.getByText("P-Delta · 共回转 Newton 法", { exact: true })).toBeVisible();
   await expect(page.getByText("稳定状态", { exact: true })).toBeVisible();
   await expect(page.getByText("收敛轨迹", { exact: true })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "荷载因子", exact: true })).toBeVisible();
+  await expect(page.getByText("loadFactor", { exact: true })).toHaveCount(0);
+  const summaryWidths = await page.getByTestId("stability-summary-grid").locator(":scope > div").evaluateAll((cards) => cards.map((card) => card.getBoundingClientRect().width));
+  expect(Math.min(...summaryWidths)).toBeGreaterThan(140);
   await expect(page.getByText("模态选择器", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "屈曲模态" })).toBeVisible();
   await expect(page.getByRole("button", { name: /查看屈曲模态 1，临界因子 4.8/u })).toHaveAttribute("aria-pressed", "true");

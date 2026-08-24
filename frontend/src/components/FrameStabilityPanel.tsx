@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { BarChart3, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react";
 import { GlassCard } from "./ui/GlassCard";
 import { formatEngineeringValue } from "../lib/engineering-format";
+import { calculationMetricTitle } from "../lib/calculation-artifacts";
 import { buildNonlinearPathKeyPoints, layoutNonlinearPathLabels, nonlinearPathPlotPoints } from "../lib/frame-nonlinear-path";
 import type {
   FrameBucklingMode,
@@ -28,6 +29,18 @@ type ModeCurve = {
   basePoints: Point[];
   deformedPoints: Point[];
 };
+
+const STABILITY_METHOD_TITLES: Record<string, string> = {
+  linear_first_order_v1: "首阶线性分析",
+  initial_stress_v1: "初始应力迭代（兼容）",
+  corotational_newton_v1: "共回转 Newton 法",
+  linear_buckling_v1: "线性屈曲特征值法",
+};
+
+function stabilityMethodTitle(value: string | undefined | null) {
+  if (!value) return "未提供方法";
+  return STABILITY_METHOD_TITLES[value] ?? value;
+}
 
 function normalizeStatus(value: string | undefined | null): StabilityStatus {
   switch (value) {
@@ -113,10 +126,11 @@ function NonlinearPathChart({
   if (!points.length) return <div className="text-xs text-muted-foreground">尚无已收敛荷载步。</div>;
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-white/8 bg-slate-950/20 p-2">
+    <div className="min-w-0 overflow-hidden rounded-xl border border-white/8 bg-slate-950/20 p-2">
       <svg
         viewBox={`0 0 ${width} ${height}`}
-        className="min-w-[680px] w-full"
+        preserveAspectRatio="xMidYMid meet"
+        className="block h-auto min-w-0 w-full"
         role="img"
         aria-label={residualPeak ? `几何非线性荷载路径，当前残差峰值 ${residualPeak.label}` : "几何非线性荷载路径，关键点、拐点和残差峰值均标注数值"}
       >
@@ -251,19 +265,19 @@ function NonlinearPathPanel({ result, compact }: { result: FrameCalculationResul
   const methodLabels = Object.fromEntries(
     (result.secondOrder?.methodComparison?.methods ?? []).map((method) => [
       String(method.id ?? "unknown"),
-      String(method.label ?? method.id ?? "unknown"),
+      String(method.label ?? STABILITY_METHOD_TITLES[String(method.id ?? "")] ?? "未提供方法"),
     ]),
   );
   const explanations = {
     intro: "结构会在每个荷载步更新形状，再寻找内力与外力平衡；播放的是实际求解路径，不是动画插值。",
     engineering: "平衡收敛只说明该荷载点成立；切线稳定、接近临界或不稳定单独报告，不能把已收敛解释为安全。",
-    algorithm: "corotational_newton_v1 使用共回转基本变形、解析一致切线、全 Newton、残差线搜索和自适应 cutback；荷载控制不追踪极限点后的分支。",
+    algorithm: "共回转 Newton 法使用共回转基本变形、解析一致切线、全 Newton、残差线搜索和自适应切步回退；荷载控制不追踪极限点后的分支。",
   };
   return (
     <GlassCard className={compact ? "p-3 sm:p-4" : "p-4 sm:p-5"}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-[10px] font-black tracking-widest text-sky-500">NONLINEAR PATH · {trace.schema}</div>
+          <div className="text-[10px] font-black tracking-widest text-sky-500">非线性路径 · 专业求解轨迹</div>
           <h3 className={`${compact ? "text-lg" : "text-xl"} mt-1 font-black tracking-tight`}>几何非线性过程播放</h3>
           <p className="mt-1 text-xs text-muted-foreground">路径拐点、残差峰值、切步、最小稳定指标和终止点均保留数值标注。</p>
         </div>
@@ -293,13 +307,18 @@ function NonlinearPathPanel({ result, compact }: { result: FrameCalculationResul
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             {result.secondOrder.methodComparison.metrics.map((metric) => Object.entries(metric.values).map(([method, value]) => (
               <div key={`${metric.id}-${method}`} className={`rounded-lg border p-2 ${metric.comparable ? "border-white/8 bg-white/[0.02]" : "border-amber-400/20 bg-amber-400/[0.04]"}`}>
-                <div className="text-[10px] text-muted-foreground">{methodLabels[method] ?? method} · {metric.id}</div>
-                <div className="font-mono text-[9px] text-slate-500">{method}</div>
+                <div className="text-[10px] text-muted-foreground">{stabilityMethodTitle(methodLabels[method] ?? method)} · {calculationMetricTitle(metric.id)}</div>
                 <div className="font-mono text-sm font-bold text-primary">{formatEngineeringValue(value, metric.unit)}</div>
                 {!metric.comparable ? <div className="mt-1 text-[9px] leading-relaxed text-amber-300">参考项/不可直接比较：{metric.unavailableReason ?? "比较条件不一致"}</div> : null}
               </div>
             )))}
           </div>
+          <details className="mt-3 text-[10px] text-muted-foreground">
+            <summary className="cursor-pointer select-none font-semibold">技术审计信息</summary>
+            <div className="mt-1 break-all font-mono leading-relaxed">
+              轨迹协议：{trace.schema}；求解算法：{trace.algorithm.id} v{trace.algorithm.version}；比较指标：{result.secondOrder.methodComparison.metrics.map((metric) => metric.id).join("、")}
+            </div>
+          </details>
         </div>
       ) : null}
     </GlassCard>
@@ -606,9 +625,9 @@ function StabilityTracePanel({ result, compact = false }: { result: FrameCalcula
         <ShieldCheck className="h-4 w-4 text-sky-500" />
         <h3 className={`${compact ? "text-lg" : "text-xl"} font-black tracking-tight`}>稳定审查</h3>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <div data-testid="stability-summary-grid" className="grid gap-3 sm:grid-cols-2">
         {[
-          scalarSummary("平衡状态", secondStatus, `${secondOrder?.method ?? ""} · ${secondOrder?.algorithm?.id ?? "未版本化"}`),
+          scalarSummary("平衡状态", secondStatus, [secondOrder?.method, stabilityMethodTitle(secondOrder?.algorithm?.id)].filter(Boolean).join(" · ")),
           scalarSummary("稳定状态", nonlinearStabilityLabel(secondOrder?.stabilityStatus), "平衡收敛不等于稳定或安全"),
           scalarSummary("二阶放大", formatEngineeringValue(secondOrder?.amplificationFactor, ""), secondOrder?.amplificationUnavailableReason ?? secondOrder?.limitations),
           scalarSummary("首阶位移", formatEngineeringValue(firstOrder?.summary.maxDisplacementMm ?? result.summary.maxDisplacementMm, "mm"), "首阶对比"),
@@ -647,7 +666,7 @@ function StabilityTracePanel({ result, compact = false }: { result: FrameCalcula
               <tr>
                 <th className="py-1 pr-3">步</th>
                 <th className="py-1 pr-3">迭代</th>
-                <th className="py-1 pr-3">loadFactor</th>
+                <th className="py-1 pr-3">荷载因子</th>
                 <th className="py-1 pr-3">残差</th>
                 <th className="py-1 pr-3">位移增量</th>
                 <th className="py-1 pr-3">状态</th>
@@ -755,7 +774,10 @@ export function FrameStabilityPanel({ results, compact = false }: FrameStability
   return (
     <div className={`space-y-3 ${compact ? "" : "sm:space-y-4"}`}>
       {results.secondOrder?.nonlinearPathTrace ? <NonlinearPathPanel result={results} compact={compact} /> : null}
-      <div className="grid gap-3 xl:grid-cols-[1.2fr_0.8fr]">
+      <div
+        className="grid gap-3"
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 32rem), 1fr))" }}
+      >
         <GlassCard className={`${compact ? "p-3 sm:p-4" : "p-4 sm:p-5"}`}>
           <div className="mb-3 flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-sky-500" />

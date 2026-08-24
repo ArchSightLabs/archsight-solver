@@ -136,8 +136,8 @@ function formatComparisonValue(value: number | null, unit?: string) {
 }
 
 function renderComparisonRow(row: CalculationSnapshotComparison["rows"][number]) {
-  const leftText = row.leftText ?? formatComparisonValue(row.left, row.unit);
-  const rightText = row.rightText ?? formatComparisonValue(row.right, row.unit);
+  const leftText = formatComparisonValue(row.left, row.unit);
+  const rightText = formatComparisonValue(row.right, row.unit);
   const absDiff = row.absDiff == null ? "—" : formatComparisonValue(row.absDiff, row.unit);
   const relDiff = row.relDiff == null ? "—" : `${(row.relDiff * 100).toFixed(2)} %`;
   return { leftText, rightText, absDiff, relDiff };
@@ -709,13 +709,13 @@ export function SnapshotComparisonPanel({ analysisMode, results, workspace, upda
                         <div className="font-bold text-foreground">{row.label}</div>
                         {row.reason ? <div className="mt-1 text-[11px] leading-snug text-muted-foreground">{row.reason}</div> : null}
                       </td>
-                      <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
-                        <div>{texts.leftText}</div>
-                        {row.leftText ? <div className="mt-1 text-[11px] text-slate-400">{row.leftText}</div> : null}
+                      <td className="px-3 py-2 text-xs text-muted-foreground">
+                        <div className="font-mono font-semibold text-foreground">{texts.leftText}</div>
+                        {row.leftText ? <div className="mt-1 break-words text-[11px] leading-snug text-slate-400">{row.leftText}</div> : null}
                       </td>
-                      <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
-                        <div>{texts.rightText}</div>
-                        {row.rightText ? <div className="mt-1 text-[11px] text-slate-400">{row.rightText}</div> : null}
+                      <td className="px-3 py-2 text-xs text-muted-foreground">
+                        <div className="font-mono font-semibold text-foreground">{texts.rightText}</div>
+                        {row.rightText ? <div className="mt-1 break-words text-[11px] leading-snug text-slate-400">{row.rightText}</div> : null}
                       </td>
                       <td className="px-3 py-2 font-mono font-bold text-primary">{texts.absDiff}</td>
                       <td className="px-3 py-2 font-mono font-bold text-primary">{texts.relDiff}</td>

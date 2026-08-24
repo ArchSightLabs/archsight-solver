@@ -989,6 +989,9 @@ test("梁系命名快照可以保存且零基线相对差显示为不可比", as
 
   await expect(page.getByLabel("左侧快照")).toHaveValue("beam-snapshot-current");
   await expect(page.getByLabel("右侧快照")).toHaveValue("__current__");
-  await expect(page.getByText("maxDeflectionMm", { exact: true })).toBeVisible();
+  await expect(page.getByText("最大挠度", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("maxDeflectionMm", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("来源：梁系 · 主控梁跨 · B1 · 下侧", { exact: true })).toHaveCount(2);
+  await expect(page.getByText(/fnv1a64:beam-envelope/u)).toHaveCount(0);
   await expect(page.getByText("左侧基线为 0，无法计算相对差", { exact: true }).first()).toBeVisible();
 });

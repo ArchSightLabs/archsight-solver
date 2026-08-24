@@ -49,9 +49,12 @@ const CRITICAL_POINT_TITLES: Record<string, string> = {
 };
 
 const METRIC_TITLES: Record<string, string> = {
+  allowableMm: "允许位移",
+  allowableRatio: "允许挠跨比",
   deflection: "挠度",
   deflectionMm: "挠度",
   maxDeflectionMm: "最大挠度",
+  maxDeflectionPositionM: "最大挠度位置",
   moment: "弯矩",
   momentKnM: "弯矩",
   maxMomentKnM: "最大弯矩",
@@ -66,6 +69,7 @@ const METRIC_TITLES: Record<string, string> = {
   displacement: "位移",
   displacementMm: "位移",
   maxDisplacementMm: "最大位移",
+  max_displacement_mm: "最大位移",
   maxVerticalMm: "最大竖向位移",
   rotationDeg: "转角",
   maxRotationDeg: "最大转角",
@@ -81,6 +85,31 @@ const METRIC_TITLES: Record<string, string> = {
   reactionFyKn: "Y 向反力",
   reactionMz: "约束弯矩",
   reactionMzKnM: "约束弯矩",
+  criticalLoadFactor: "临界荷载因子",
+  critical_load_factor: "临界荷载因子",
+  secondOrderAmplificationFactor: "二阶放大系数",
+  second_order_amplification_factor: "二阶放大系数",
+};
+
+const METRIC_UNITS: Record<string, string> = {
+  allowableMm: "mm",
+  deflectionMm: "mm",
+  maxDeflectionMm: "mm",
+  maxDeflectionPositionM: "m",
+  displacementMm: "mm",
+  maxDisplacementMm: "mm",
+  max_displacement_mm: "mm",
+  maxVerticalMm: "mm",
+  momentKnM: "kN·m",
+  maxMomentKnM: "kN·m",
+  shearKn: "kN",
+  maxShearKn: "kN",
+  axialKn: "kN",
+  axialForceKn: "kN",
+  maxAxialKn: "kN",
+  maxAxialForceKn: "kN",
+  rotationDeg: "°",
+  maxRotationDeg: "°",
 };
 
 const CRITICAL_POINT_KIND_TITLES: Record<string, string> = {
@@ -123,8 +152,15 @@ const SOURCE_TYPE_TITLES: Record<string, string> = {
 
 const SIDE_TITLES: Record<string, string> = {
   exact: "精确位置",
+  absolute: "绝对控制位置",
   left: "左侧",
   right: "右侧",
+  top: "上侧",
+  bottom: "下侧",
+  upper: "上侧",
+  lower: "下侧",
+  上: "上侧",
+  下: "下侧",
   jump_left: "跳变左侧",
   jump_right: "跳变右侧",
 };
@@ -557,10 +593,22 @@ export function measureCalculationSnapshotBytes(snapshot: CalculationSnapshot): 
 
 function summarizeEnvelopeItem(item: CalculationGoverningEnvelopeItem | undefined): string {
   if (!item) return DEFAULT_TEXT;
-  const segments = [item.sourceType, item.sourceLabel, item.sourceId, item.side, item.sourceHash]
+  const segments = [
+    calculationSourceTypeTitle(item.sourceType),
+    item.sourceLabel,
+    calculationSourceIdTitle(item.sourceId),
+    calculationSideTitle(item.side),
+  ]
     .map((segment) => String(segment ?? "").trim())
     .filter(Boolean);
-  return segments.length > 0 ? segments.join(" · ") : item.metricKey;
+  return segments.length > 0 ? `来源：${segments.join(" · ")}` : "未提供控制来源";
+}
+
+function envelopeComparisonLabel(item: CalculationGoverningEnvelopeItem | undefined): string {
+  if (!item) return "控制来源";
+  const metric = calculationMetricTitle(item.metricKey);
+  const kind = item.kind ? calculationCriticalPointKindTitle(item.kind) : "控制来源";
+  return `${metric} · ${kind}`;
 }
 
 function comparisonRelativeDiff(leftValue: number | null, rightValue: number | null): { relDiff: number | null; reason?: string } {
@@ -640,11 +688,12 @@ export function compareCalculationSnapshots(left: CalculationSnapshot, right: Ca
     const relative = comparisonRelativeDiff(leftValue, rightValue);
     pushNumericRow(rows, {
       key,
-      label: String(key),
+      label: calculationMetricTitle(key),
       left: leftValue,
       right: rightValue,
       absDiff,
       relDiff: relative.relDiff,
+      unit: METRIC_UNITS[key],
       reason: relative.reason,
     });
   }
@@ -700,7 +749,7 @@ export function compareCalculationSnapshots(left: CalculationSnapshot, right: Ca
     ].filter(Boolean);
     pushTextRow(rows, {
       key: `governing:${key}`,
-      label: rightItem?.label ?? leftItem?.label ?? key,
+      label: envelopeComparisonLabel(rightItem ?? leftItem),
       left: leftValue,
       right: rightValue,
       absDiff: leftValue !== null && rightValue !== null ? rightValue - leftValue : null,
