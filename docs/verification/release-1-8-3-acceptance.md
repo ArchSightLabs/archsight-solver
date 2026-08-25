@@ -1,6 +1,6 @@
 # ArchSight Solver v1.8.3 发布验收记录
 
-> 状态：发布候选就绪
+> 状态：已发布
 > 目标版本：`v1.8.3`
 > 验收原则：v1.8.3 只收口中文阅读、公开内容层级和图形交付问题；仓库版本、Git Tag、GitHub Release、阿里云镜像与线上容器分别验收，未完成项不得提前勾选。
 
@@ -40,11 +40,11 @@
 
 ## Gate F：正式发布与线上验收
 
-- [ ] 发布提交已推送到 `main`，不可变 `v1.8.3` Tag 指向经验证的发布提交，GitHub Release 与制品校验通过。
-- [ ] 阿里云正式精确镜像 `v1.8.3-<commit>` 已推送并核对摘要；v1.8.2、v1.8.1、v1.8.0 和 v1.7.0 回滚镜像继续保留。
-- [ ] 正式部署继续使用 `127.0.0.1:18082 -> app:6240`，未占用或调整分配给 Graphics 的 `18083`。
-- [ ] `https://solver.archsight.cn/` 显示 v1.8.3，容器 healthy、重启计数为 0，梁、桁架、框架、GNA/GNIA、线性屈曲和导出链路通过线上复核。
-- [ ] 发布记录补充提交、Tag、CI、Release、镜像摘要、线上容器与直接回滚证据，且未修改历史 Tag。
+- [x] 发布提交已推送到 `main`，不可变 `v1.8.3` Tag 指向经验证的发布提交，GitHub Release 与制品校验通过。
+- [x] 阿里云正式精确镜像 `v1.8.3-5f4c544` 已推送并核对摘要；v1.8.2、v1.8.1、v1.8.0 和 v1.7.0 回滚镜像继续保留。
+- [x] 正式部署继续使用 `127.0.0.1:18082 -> app:6240`，未占用或调整分配给 Graphics 的 `18083`。
+- [x] `https://solver.archsight.cn/` 显示 v1.8.3，容器 healthy、重启计数为 0，梁、桁架、框架、GNA/GNIA、线性屈曲和导出链路通过线上复核。
+- [x] 发布记录补充提交、Tag、CI、Release、镜像摘要、线上容器与直接回滚证据，且未修改历史 Tag。
 
 ## 当前证据
 
@@ -54,3 +54,8 @@
 - 2026-08-25：npm 生产依赖与完整依赖审计均为 `0 vulnerabilities`；v1.8.3 wheel、sdist 和 Host Client tarball 构建成功，安装态检查得到 71 个 benchmark、24 个模板、12 个 MCP tools、可信计算包复算 `pass`。
 - 2026-08-25：阿里云候选镜像 `v1.8.3-candidate-20260825` 推送并回拉核对，digest 为 `sha256:e6209d13c2123592b0b2af728e6814f3fe02edf4347f8d18984c2085cde406de`；隔离容器使用 `127.0.0.1:6280 -> app:6240`，状态 `healthy`、重启计数 0。
 - 2026-08-25：候选镜像 Host 保存/重开/只读 `1/1`，GNA 教学与 GNA-003、BM-009、BM-010 图形 `5/5`；真实 DOCX/XLSX 分别返回 58,855/21,035 字节的合法 OpenXML 文件。
+- 2026-08-25：发布提交 `5f4c544ac7a2a55a81a81437117fc5100156f6e1` 已推送到 `main`；[main CI 32805387036](https://github.com/ArchSightLabs/archsight-solver/actions/runs/32805387036) 的后端、前端、Windows 原生构建、中文提交治理和 Docker 发布门禁全部通过。不可变 `v1.8.3` Tag 固定指向该提交，没有移动或重写历史 Tag。
+- 2026-08-25：[GitHub Release v1.8.3](https://github.com/ArchSightLabs/archsight-solver/releases/tag/v1.8.3) 已发布，发布工作流 [32805957159](https://github.com/ArchSightLabs/archsight-solver/actions/runs/32805957159) 全部通过；7 份资产包括 wheel、sdist、Host Client、离线镜像、SPDX SBOM、Trivy 报告和 `SHA256SUMS`。Trivy 门禁无可修复的 HIGH/CRITICAL 漏洞；GHCR 不可变标签 `v1.8.3` 的摘要为 `sha256:775d61f26ebaf8df57c65513740bc03fdcbbcb1f041625dfe0fb4cfa0633b6e0`。
+- 2026-08-25：正式阿里云镜像 `v1.8.3-5f4c544` 已推送并在本地、生产机分别回拉核对，仓库摘要为 `sha256:e6209d13c2123592b0b2af728e6814f3fe02edf4347f8d18984c2085cde406de`，镜像 ID 为 `sha256:c970190cd3a86649d0fb23e29c347857fb5485f418ab879f53d483507f1a70dd`。同一精确镜像在生产机 `28082` 隔离预检中达到 `healthy`、HTTP 200、重启 0，并确认前端 v1.8.3 后删除临时容器。
+- 2026-08-25：生产 `.env` 已备份为 `/root/archsight-solver/.env.pre-v1.8.3-20260825T035653Z`，持久镜像标签更新为 `v1.8.3-5f4c544`；正式容器继续使用 `127.0.0.1:18082 -> app:6240`，状态 `healthy`、重启 0。Graphics 继续使用 `127.0.0.1:18083 -> app:80`，未被 Solver 预检或发布占用。直接回滚镜像 `v1.8.2-1fdbf13` 及 v1.8.1、v1.8.0、v1.7.0 精确镜像均保留。
+- 2026-08-25：公网首页返回 HTTP 200，浏览器可见版本为 v1.8.3；线上 Chromium 验收 `16/16` 通过，覆盖 GNA-001/GNA-003 真实复算与可信证据下载、BM-009/BM-010/GNA-003 图形真实占幅、梁/框架/桁架计算过程、关键点、稳定审查、快照、受限 Umami 事件与可访问性。线上框架计算返回 `PASS`，DOCX/XLSX 分别为 47,373/29,115 字节的合法 OpenXML 文件；GNA-005 复核确认共回转 Newton 收敛、10 mm 首阶屈曲模态初始缺陷、GNIA 稳定、临界荷载因子 `2.500005` 和 3 个线性屈曲模态。

@@ -63,7 +63,7 @@ See the [English quickstart](docs/en/quickstart.md) for GitHub Release installat
 
 ## Open distribution
 
-The v1.8.3 release line provides the following public assets after its release workflow completes:
+The published v1.8.3 release provides the following public assets:
 
 - Python wheel `archsight_solver-1.8.3-py3-none-any.whl` and source distribution for the CLI and MCP server.
 - `archsight-solver-host-client-1.8.3.tgz` with zero runtime dependencies.
