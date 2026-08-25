@@ -5,7 +5,7 @@ import { buildFrameDimensionLegendRows, buildFrameGeometryDimensions, buildFrame
 import { formatEngineeringValue } from "../lib/engineering-format";
 import { modelObjectMemberTerm, modelObjectVocabulary } from "../lib/model-object-vocabulary";
 import { useCanvasDrag } from "../hooks/useModelCanvasZoom";
-import { RESULT_PREVIEW_BASE_SIZE, resultPreviewCanvasSize, resultPreviewSvgStyle } from "../lib/result-preview-sizing";
+import { RESULT_PREVIEW_BASE_SIZE, fitResultPreviewPoints, resultPreviewCanvasSize, resultPreviewSvgStyle } from "../lib/result-preview-sizing";
 import { summaryMetricLabel } from "../lib/result-metrics";
 import { STRUCTURE_NODE_RADII, STRUCTURE_STATE_COLORS, STRUCTURE_VISUAL_STROKES } from "../lib/structure-visual-tokens";
 import type { ResultViewSettings } from "../types/structure";
@@ -145,38 +145,15 @@ export function FramePreview({ frame, compact = false, viewSettings, modelLabelO
   const layout = useMemo(() => {
     if (!frame) return null;
 
-    const allPoints = frame.nodes;
-    const xs = allPoints.map((item) => item.x);
-    const ys = allPoints.map((item) => item.y);
-    const minX = Math.min(...xs, 0);
-    const maxX = Math.max(...xs, 1);
-    const minY = Math.min(...ys, 0);
-    const maxY = Math.max(...ys, 1);
-    const width = Math.max(1, maxX - minX);
-    const height = Math.max(1, maxY - minY);
-    const scale = Math.min(
-      (canvasSize.width - sidePadding * 2) / width,
-      (canvasSize.height - topPadding - bottomPadding) / height,
-    );
-
-    const map = (point: { x: number; y: number }) => ({
-      x: sidePadding + (point.x - minX) * scale,
-      y: topPadding + (maxY - point.y) * scale,
+    const fitted = fitResultPreviewPoints(frame.nodes, canvasSize, {
+      left: sidePadding,
+      right: sidePadding,
+      top: topPadding,
+      bottom: bottomPadding,
     });
+    const { map, scale, bounds, center } = fitted;
 
     const mappedNodes = frame.nodes.map((node) => map(node));
-    const mappedXs = mappedNodes.map((point) => point.x);
-    const mappedYs = mappedNodes.map((point) => point.y);
-    const bounds = {
-      left: Math.min(...mappedXs),
-      right: Math.max(...mappedXs),
-      top: Math.min(...mappedYs),
-      bottom: Math.max(...mappedYs),
-    };
-    const center = {
-      x: (bounds.left + bounds.right) / 2,
-      y: (bounds.top + bounds.bottom) / 2,
-    };
     const nodeMap = new Map(frame.nodes.map((node, index) => [node.id, mappedNodes[index]]));
     const dimensionLegendX = clamp(bounds.left - (compact ? 148 : 170), 8, canvasSize.width - 260);
     return { map, nodeMap, scale, center, bounds, dimensionLegendX };

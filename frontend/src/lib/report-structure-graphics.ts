@@ -6,6 +6,7 @@ import {
   clamp,
 } from "./report-rendering.ts";
 import { STRUCTURE_NODE_RADII, STRUCTURE_REPORT_COLORS } from "./structure-visual-tokens.ts";
+import { fitResultPreviewPoints } from "./result-preview-sizing.ts";
 
 export { REPORT_BG };
 
@@ -46,23 +47,13 @@ export function buildReportStructureLayout(
   height = REPORT_IMAGE_H,
 ): ReportStructureLayout {
   const all = [...nodes, ...extra];
-  const xs = all.map((node) => node.x);
-  const ys = all.map((node) => node.y);
-  const minX = Math.min(...xs, 0);
-  const maxX = Math.max(...xs, 1);
-  const minY = Math.min(...ys, 0);
-  const maxY = Math.max(...ys, 1);
-  const modelWidth = Math.max(1, maxX - minX);
-  const modelHeight = Math.max(1, maxY - minY);
-  const availableWidth = width - REPORT_PADDING_X * 2;
-  const availableHeight = height - REPORT_PADDING_TOP - REPORT_PADDING_BOTTOM;
-  const scale = Math.min(availableWidth / modelWidth, availableHeight / modelHeight);
-  const offsetX = (width - modelWidth * scale) / 2;
-  const offsetY = REPORT_PADDING_TOP + Math.max(0, (availableHeight - modelHeight * scale) / 2);
-  const map = (point: { x: number; y: number }) => ({
-    x: offsetX + (point.x - minX) * scale,
-    y: offsetY + (maxY - point.y) * scale,
+  const fitted = fitResultPreviewPoints(all, { width, height }, {
+    left: REPORT_PADDING_X,
+    right: REPORT_PADDING_X,
+    top: REPORT_PADDING_TOP,
+    bottom: REPORT_PADDING_BOTTOM,
   });
+  const { map, scale } = fitted;
   const mappedNodes = nodes.map((node) => map(node));
   const mappedXs = mappedNodes.map((point) => point.x);
   const mappedYs = mappedNodes.map((point) => point.y);

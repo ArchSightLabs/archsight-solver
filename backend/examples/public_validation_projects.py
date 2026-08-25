@@ -55,6 +55,21 @@ SOURCE_LABELS = {
 }
 
 METRIC_LABELS = {
+    "algorithmId": "求解方法",
+    "controlDof": "控制自由度",
+    "controlNodeDisplacementMm": "控制节点位移",
+    "controlNodeId": "控制节点",
+    "controlNodeTotalDisplacementMm": "控制节点总位移",
+    "controlNodeUxMm": "控制节点水平位移",
+    "criticalLoadFactor": "临界荷载系数",
+    "equilibriumStatus": "平衡状态",
+    "failedAttemptsMinimum": "最少失败尝试次数",
+    "initialImperfectionAmplitudeMm": "初始缺陷幅值",
+    "initialImperfectionModeNumber": "初始缺陷模态阶次",
+    "initialImperfectionSourceType": "初始缺陷来源",
+    "initialImperfectionType": "初始缺陷类型",
+    "lastConvergedLoadFactor": "最后收敛荷载系数",
+    "lastConvergedLoadKn": "最后收敛荷载",
     "supportCount": "支座数量",
     "nodeCount": "节点数量",
     "memberCount": "构件数量",
@@ -65,13 +80,29 @@ METRIC_LABELS = {
     "maxDisplacementMm": "最大节点位移",
     "maxDisplacementNodeId": "控制节点",
     "maxMomentKnM": "最大构件弯矩",
+    "maxShearKn": "最大剪力",
     "maxAxialForceKn": "最大杆件轴力",
     "maxAxialForceMemberId": "控制杆件",
     "supportReactions": "支座反力",
     "memberAxialForces": "杆件轴力明细",
     "memberAxialForceKn": "杆件轴力容差",
     "reactionKn": "支座反力容差",
+    "reactionFxKn": "水平反力容许误差",
     "reactionFyKn": "竖向反力容差",
+    "reactionMzKnM": "反力矩容许误差",
+    "rotationDeg": "转角容许误差",
+    "supportReactionKn": "支座反力容许误差",
+    "supportReactionMagnitudesKn": "支座反力幅值",
+    "reactionFyKn_node0": "节点 0 竖向反力",
+    "reactionFyKn_node2": "节点 2 竖向反力",
+    "referenceLoadKn": "参考荷载",
+    "pathControlType": "路径控制",
+    "pathPoints": "荷载路径校核点",
+    "stabilityStatus": "稳定状态",
+    "stabilityStatuses": "稳定状态序列",
+    "terminationReasons": "终止原因",
+    "nodeDisplacements": "节点位移校核项",
+    "nodeDisplacementMm": "节点位移容许误差",
 }
 
 METRIC_UNITS = {
@@ -79,15 +110,61 @@ METRIC_UNITS = {
     "maxDeflectionXM": "m",
     "midSpanDisplacementMm": "mm",
     "maxDisplacementMm": "mm",
-    "maxMomentKnM": "kN.m",
+    "maxMomentKnM": "kN·m",
+    "maxShearKn": "kN",
     "maxAxialForceKn": "kN",
     "memberAxialForceKn": "kN",
     "reactionKn": "kN",
     "reactionFyKn": "kN",
+    "reactionFxKn": "kN",
+    "reactionMzKnM": "kN·m",
+    "rotationDeg": "°",
+    "supportReactionKn": "kN",
+    "controlNodeDisplacementMm": "mm",
+    "controlNodeTotalDisplacementMm": "mm",
+    "controlNodeUxMm": "mm",
+    "initialImperfectionAmplitudeMm": "mm",
+    "lastConvergedLoadKn": "kN",
+    "reactionFyKn_node0": "kN",
+    "reactionFyKn_node2": "kN",
+    "referenceLoadKn": "kN",
+    "nodeDisplacementMm": "mm",
+}
+
+METRIC_VALUE_LABELS = {
+    "PASS": "校核通过",
+    "REVIEW": "需要复核",
+    "corotational_newton_v1": "共回转牛顿法",
+    "converged": "已收敛",
+    "not_converged": "未收敛",
+    "stable": "稳定",
+    "near_critical": "接近临界",
+    "unstable": "不稳定",
+    "adaptive_fixed_load_control": "自适应固定荷载控制",
+    "adaptive_load_control": "自适应荷载控制",
+    "fixed_preload_then_adaptive_variable_load": "固定预载—自适应可变荷载控制",
+    "linear_buckling_mode": "线性屈曲模态",
+    "explicit": "显式给定",
+    "ux": "水平位移（ux）",
+    "uy": "竖向位移（uy）",
+    "maximum_cutbacks_exhausted": "切步回退次数耗尽",
+    "minimum_step_exhausted": "最小荷载步耗尽",
 }
 
 
 PUBLIC_TEXT_REPLACEMENTS = (
+    ("Williams 浅拱 toggle frame 的 snap-through 前路径", "Williams 浅拱翻转框架的跳跃屈曲前路径"),
+    ("Williams 浅拱 toggle frame 极限点", "Williams 浅拱翻转框架极限点"),
+    ("Williams toggle frame 的 snap-through 前路径", "Williams 浅拱翻转框架的跳跃屈曲前路径"),
+    ("Williams toggle frame 极限点", "Williams 浅拱翻转框架极限点"),
+    ("Williams 浅拱 toggle frame", "Williams 浅拱翻转框架"),
+    ("Lee frame 极限点前路径", "Lee 框架极限点前路径"),
+    ("unstable 状态", "不稳定状态"),
+    ("cutback 与", "切步回退与"),
+    ("cutback 和", "切步回退和"),
+    ("Euler 临界点", "欧拉临界点"),
+    ("Euler 初始缺陷", "欧拉初始缺陷"),
+    ("按 Euler 缺陷柱", "按欧拉缺陷柱"),
     ("Euler-Bernoulli", "欧拉–伯努利"),
     ("Timoshenko", "铁木辛柯"),
     ("P-Delta", "P-Δ"),
@@ -96,6 +173,13 @@ PUBLIC_TEXT_REPLACEMENTS = (
     ("Williams toggle frame", "Williams 浅拱翻转框架"),
     ("Williams toggle", "Williams 浅拱翻转"),
     ("toggle frame", "浅拱翻转框架"),
+    ("snap-through", "跳跃屈曲"),
+    ("initial_stress_v1", "初始应力迭代法（兼容）"),
+    ("corotational_newton_v1", "共回转牛顿法"),
+    ("member_point", "构件内集中荷载"),
+    ("local_y", "局部 y 向"),
+    ("fixed_preload 阶段", "固定预载阶段"),
+    ("variable 阶段", "可变荷载阶段"),
     ("Lee frame", "Lee 框架"),
     ("Pratt", "普拉特"),
     ("Warren", "沃伦"),
@@ -168,13 +252,18 @@ def _format_numeric_value(value: Any, decimals: int = 4) -> str:
 
 
 def _format_metric_value(key: str, value: Any) -> str:
-    label = METRIC_LABELS.get(key, key)
+    label = METRIC_LABELS.get(key, "其他校核项")
     if isinstance(value, list):
         return f"{label} {len(value)} 项"
     if isinstance(value, Mapping):
         return f"{label} {len(value)} 项"
     unit = METRIC_UNITS.get(key, "")
-    formatted_value = _format_numeric_value(value)
+    if isinstance(value, bool):
+        formatted_value = "是" if value else "否"
+    elif isinstance(value, str):
+        formatted_value = METRIC_VALUE_LABELS.get(value, _public_text(value))
+    else:
+        formatted_value = _format_numeric_value(value)
     return f"{label} {formatted_value}{(' ' + unit) if unit else ''}"
 
 

@@ -36,14 +36,17 @@ function sourceTypeLabel(sourceType: string) {
   if (sourceType === "textbook-analytical") return "教材解析解";
   if (sourceType === "independent-stiffness-baseline") return "独立刚度法基准";
   if (sourceType === "published-benchmark") return "公开经典数值基准";
+  if (sourceType === "engineering-software") return "工程软件对标";
   if (sourceType === "internal-regression") return "内部回归";
-  return sourceType;
+  return "其他验证来源";
 }
 
 function objectTypeLabel(type: string) {
   if (type === "frame" || type === "truss" || type === "beam") return analysisVocabulary(type).systemLabel;
   return type;
 }
+
+type PublicExampleSection = "examples" | "learning";
 
 function verificationLevelLabel(level: string) {
   if (level === "A") return "A 级验证";
@@ -77,6 +80,7 @@ function createSelectedProject(project: SolverProject, selectedObjects: SolverPr
 
 export function PublicExamplesDialog({ onClose, onOpenProject }: PublicExamplesDialogProps) {
   const [catalog, setCatalog] = useState<PublicExampleCatalog | null>(null);
+  const [activeSection, setActiveSection] = useState<PublicExampleSection>("examples");
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedObjectIdsByProject, setSelectedObjectIdsByProject] = useState<Record<string, string[]>>({});
   const [error, setError] = useState<string | null>(null);
@@ -126,6 +130,18 @@ export function PublicExamplesDialog({ onClose, onOpenProject }: PublicExamplesD
       ? [{ project, object, learning: object.benchmark.learning }]
       : []),
   ) ?? [], [catalog]);
+  const learningPathGroups = useMemo(() => [
+    {
+      title: "基础力学",
+      description: "从受力、反力、内力和变形建立结构力学基本判断。",
+      paths: featuredLearningPaths.filter(({ object }) => object.benchmark?.category !== "frame-nonlinear-verify"),
+    },
+    {
+      title: "二阶效应与稳定",
+      description: "理解 P-Δ、平衡路径、临界状态以及收敛失败的工程含义。",
+      paths: featuredLearningPaths.filter(({ object }) => object.benchmark?.category === "frame-nonlinear-verify"),
+    },
+  ].filter((group) => group.paths.length), [featuredLearningPaths]);
   const defaultSelectedObjectIds = useMemo(() => {
     const firstObjectId = selectedProject?.project.objects[0]?.id;
     return firstObjectId ? [firstObjectId] : [];
@@ -179,10 +195,10 @@ export function PublicExamplesDialog({ onClose, onOpenProject }: PublicExamplesD
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/72 p-3 backdrop-blur-md sm:p-6">
-      <div className="flex max-h-[88vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-slate-300 bg-white text-slate-950 shadow-2xl shadow-black/35 dark:border-slate-600/80 dark:bg-slate-950 dark:text-slate-50">
+      <div role="dialog" aria-modal="true" aria-labelledby="public-examples-dialog-title" className="flex max-h-[88vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-slate-300 bg-white text-slate-950 shadow-2xl shadow-black/35 dark:border-slate-600/80 dark:bg-slate-950 dark:text-slate-50">
         <div className="flex items-start justify-between gap-4 border-b border-slate-300 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-950 sm:px-5">
           <div className="min-w-0">
-            <div className="flex items-center gap-2 text-base font-black">
+            <div id="public-examples-dialog-title" className="flex items-center gap-2 text-base font-black">
               <BookOpenCheck className="h-5 w-5 text-sky-600 dark:text-sky-300" />
               公开工程案例
             </div>
@@ -205,7 +221,30 @@ export function PublicExamplesDialog({ onClose, onOpenProject }: PublicExamplesD
             {error}
           </div>
         ) : catalog && selectedProject ? (
-          <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[20rem_minmax(0,1fr)]">
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="flex shrink-0 gap-2 border-b border-slate-300 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-950 sm:px-5" role="tablist" aria-label="公开内容分类">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeSection === "examples"}
+                onClick={() => setActiveSection("examples")}
+                className={`rounded-lg border px-4 py-2 text-sm font-black transition-colors ${activeSection === "examples" ? "border-sky-500 bg-sky-100 text-sky-950 dark:border-sky-400 dark:bg-sky-950 dark:text-sky-50" : "border-slate-300 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"}`}
+              >
+                验证算例 · {catalog.caseCount}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeSection === "learning"}
+                onClick={() => setActiveSection("learning")}
+                className={`rounded-lg border px-4 py-2 text-sm font-black transition-colors ${activeSection === "learning" ? "border-sky-500 bg-sky-100 text-sky-950 dark:border-sky-400 dark:bg-sky-950 dark:text-sky-50" : "border-slate-300 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"}`}
+              >
+                学习路径 · {featuredLearningPaths.length}
+              </button>
+            </div>
+
+            {activeSection === "examples" ? (
+              <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[20rem_minmax(0,1fr)]">
             <aside className="border-b border-slate-300 bg-slate-100/80 p-3 dark:border-slate-700 dark:bg-slate-900/70 lg:border-b-0 lg:border-r">
               <div className="space-y-2">
                 {catalog.projects.map((project) => {
@@ -230,38 +269,6 @@ export function PublicExamplesDialog({ onClose, onOpenProject }: PublicExamplesD
             </aside>
 
             <section className="min-h-0 overflow-auto bg-slate-50 p-4 dark:bg-slate-950 sm:p-5">
-              {featuredLearningPaths.length ? (
-                <div className="mb-5 rounded-xl border border-sky-300 bg-sky-50/80 p-3 dark:border-sky-800 dark:bg-sky-950/35">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <GraduationCap className="h-4 w-4 shrink-0 text-sky-700 dark:text-sky-300" />
-                      <div className="font-black">{featuredLearningPaths.length} 条五分钟学习路径</div>
-                    </div>
-                    <span className="text-xs font-bold text-muted-foreground">先预判，再计算并核对</span>
-                  </div>
-                  <div className="grid gap-2 md:grid-cols-3">
-                    {featuredLearningPaths.map(({ project, object, learning }) => (
-                      <button
-                        key={learning.pathId}
-                        type="button"
-                        onClick={() => openLearningPath(project, object)}
-                        className="group rounded-lg border border-slate-300 bg-white p-3 text-left transition-colors hover:border-sky-500 hover:bg-sky-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-sky-500 dark:hover:bg-slate-800"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="text-sm font-black leading-5">{learning.title}</div>
-                          <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-sky-600 transition-transform group-hover:translate-x-0.5 dark:text-sky-300" />
-                        </div>
-                        <div className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">{learning.objective}</div>
-                        <div className="mt-2 flex items-center gap-1 text-[11px] font-black text-sky-700 dark:text-sky-200">
-                          <Clock3 className="h-3 w-3" />
-                          {learning.durationMinutes} 分钟 · {object.benchmark?.verificationLevelLabel}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <h2 className="text-lg font-black tracking-tight">{selectedProject.title}</h2>
@@ -328,7 +335,6 @@ export function PublicExamplesDialog({ onClose, onOpenProject }: PublicExamplesD
                           />
                           <div className="min-w-0">
                             <div className="truncate text-sm font-black" title={displayName}>{displayName}</div>
-                            <div className="mt-1 font-mono text-[11px] font-bold text-muted-foreground">{object.benchmark?.caseId}</div>
                           </div>
                         </div>
                         <span className="shrink-0 rounded-md border border-sky-400/25 bg-sky-400/10 px-2 py-1 text-[11px] font-black text-sky-700 dark:text-sky-200">
@@ -366,6 +372,49 @@ export function PublicExamplesDialog({ onClose, onOpenProject }: PublicExamplesD
                 })}
               </div>
             </section>
+              </div>
+            ) : (
+              <section className="min-h-0 flex-1 overflow-auto bg-slate-50 p-4 dark:bg-slate-950 sm:p-5" aria-label="五分钟学习路径">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 text-lg font-black">
+                      <GraduationCap className="h-5 w-5 text-sky-700 dark:text-sky-300" />
+                      {featuredLearningPaths.length} 条五分钟学习路径
+                    </div>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">学习路径是基于公开验证算例组织的教学导航，不新增或复制计算模型。</p>
+                  </div>
+                  <span className="rounded-md border border-sky-300 bg-sky-50 px-2.5 py-1 text-xs font-bold text-sky-800 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-200">先预判，再计算并核对</span>
+                </div>
+                <div className="mt-5 space-y-5">
+                  {learningPathGroups.map((group) => (
+                    <section key={group.title} aria-label={group.title}>
+                      <h2 className="font-black">{group.title}</h2>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">{group.description}</p>
+                      <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                        {group.paths.map(({ project, object, learning }) => (
+                          <button
+                            key={learning.pathId}
+                            type="button"
+                            onClick={() => openLearningPath(project, object)}
+                            className="group rounded-lg border border-slate-300 bg-white p-3 text-left transition-colors hover:border-sky-500 hover:bg-sky-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-sky-500 dark:hover:bg-slate-800"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="text-sm font-black leading-5">{learning.title}</div>
+                              <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-sky-600 transition-transform group-hover:translate-x-0.5 dark:text-sky-300" />
+                            </div>
+                            <div className="mt-2 line-clamp-3 text-xs leading-5 text-muted-foreground">{learning.objective}</div>
+                            <div className="mt-2 flex items-center gap-1 text-[11px] font-black text-sky-700 dark:text-sky-200">
+                              <Clock3 className="h-3 w-3" />
+                              {learning.durationMinutes} 分钟 · 基于公开验证算例 · {object.benchmark?.verificationLevelLabel}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         ) : null}
       </div>

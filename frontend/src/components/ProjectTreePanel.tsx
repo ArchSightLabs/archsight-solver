@@ -1,7 +1,7 @@
 import { ExternalLink, Network, PencilLine, Plus, Ruler, ShieldCheck, Trash2, Triangle } from "lucide-react";
 import { motion } from "framer-motion";
 import { analysisVocabulary } from "../lib/analysis-vocabulary";
-import { getAnalysisObjectDisplayName, type AnalysisObject, type SolverProject } from "../lib/solver-project";
+import { getAnalysisObjectDisplayName, getPublicBenchmarkCaseReference, type AnalysisObject, type SolverProject } from "../lib/solver-project";
 import { Button } from "./ui/button";
 import { useDialogs } from "../contexts/DialogContext";
 
@@ -37,6 +37,9 @@ export function ProjectTreePanel({
   const { setIsNewAnalysisObjectDialogOpen, setProjectInfoDialogMode } = useDialogs();
 
   const activeObject = project.objects.find((object) => object.id === project.activeObjectId) ?? project.objects[0];
+  const benchmarkReferenceLabel = activeObject?.benchmark?.caseId
+    ? getPublicBenchmarkCaseReference(activeObject.benchmark.caseId)
+    : null;
   if (collapsed) {
     return (
       <div className="space-y-2">
@@ -115,12 +118,17 @@ export function ProjectTreePanel({
             公开验证算例
           </div>
           <div className="space-y-1.5 text-muted-foreground">
-            <div className="font-mono text-[11px] text-foreground">{activeObject.benchmark.caseId}</div>
+            {benchmarkReferenceLabel ? <div className="text-[11px] font-bold text-foreground">{benchmarkReferenceLabel}</div> : null}
             <div>{activeObject.benchmark.verificationLevelLabel} · {activeObject.benchmark.sourceLabel}</div>
             {activeObject.benchmark.metricSummary ? <div>{activeObject.benchmark.metricSummary}</div> : null}
             {activeObject.benchmark.expectedSummary ? <div>{activeObject.benchmark.expectedSummary}</div> : null}
             {activeObject.benchmark.toleranceSummary ? <div>{activeObject.benchmark.toleranceSummary}</div> : null}
-            {activeObject.benchmark.reference ? <div className="max-h-16 overflow-hidden">{activeObject.benchmark.reference}</div> : null}
+            {activeObject.benchmark.reference ? (
+              <details className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-1.5">
+                <summary className="cursor-pointer font-bold text-foreground">查看原始文献出处</summary>
+                <div className="mt-1.5 max-h-20 overflow-auto leading-5">{activeObject.benchmark.reference}</div>
+              </details>
+            ) : null}
             {activeObject.benchmark.sourceLinks.length ? (
               <div className="flex flex-wrap gap-2 pt-1">
                 {activeObject.benchmark.sourceLinks.slice(0, 3).map((link, index) => (

@@ -23,7 +23,7 @@ import {
   type DiagramPlacedLabel,
 } from "../lib/diagram-label-layout";
 import { formatEngineeringValue } from "../lib/engineering-format";
-import { resultPreviewCanvasSize, resultPreviewSvgStyle, type ResultPreviewCanvasSize } from "../lib/result-preview-sizing";
+import { fitResultPreviewPoints, resultPreviewCanvasSize, resultPreviewSvgStyle, type ResultPreviewCanvasSize } from "../lib/result-preview-sizing";
 import { clamp, svgAreaPath, svgPathFromPoints } from "../lib/result-diagram-geometry";
 import { modelObjectMemberTerm } from "../lib/model-object-vocabulary";
 import { summaryMetricLabel } from "../lib/result-metrics";
@@ -98,31 +98,13 @@ function supportMarker(type: SupportType, x: number, y: number, angleDeg?: numbe
 }
 
 function buildNodeLayout(frame: FramePreviewData, padding: number, canvasSize: ResultPreviewCanvasSize) {
-  const xs = frame.nodes.map((node) => node.x);
-  const ys = frame.nodes.map((node) => node.y);
-  const minX = Math.min(...xs, 0);
-  const maxX = Math.max(...xs, 1);
-  const minY = Math.min(...ys, 0);
-  const maxY = Math.max(...ys, 1);
-  const width = Math.max(1, maxX - minX);
-  const height = Math.max(1, maxY - minY);
-  const scale = Math.min((canvasSize.width - padding * 2) / width, (canvasSize.height - padding * 2) / height);
-  const map = (point: { x: number; y: number }) => ({
-    x: padding + (point.x - minX) * scale,
-    y: canvasSize.height - padding - (point.y - minY) * scale,
-  });
+  const fitted = fitResultPreviewPoints(frame.nodes, canvasSize, { left: padding, right: padding, top: padding, bottom: padding });
+  const { map, scale, bounds } = fitted;
   const mappedNodes = frame.nodes.map((node) => map(node));
-  const mappedXs = mappedNodes.map((point) => point.x);
-  const mappedYs = mappedNodes.map((point) => point.y);
   return {
     nodeMap: new Map(frame.nodes.map((node, index) => [node.id, mappedNodes[index]])),
     scale,
-    bounds: {
-      left: Math.min(...mappedXs),
-      right: Math.max(...mappedXs),
-      top: Math.min(...mappedYs),
-      bottom: Math.max(...mappedYs),
-    },
+    bounds,
   };
 }
 

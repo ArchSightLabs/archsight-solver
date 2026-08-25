@@ -100,6 +100,11 @@ export function getAnalysisObjectDisplayName(object: Pick<AnalysisObject, "name"
   return `${String(index + 1).padStart(2, "0")} ${name}`;
 }
 
+export function getPublicBenchmarkCaseReference(caseId: string): string | null {
+  const normalized = caseId.trim();
+  return /^[A-Z]{2,8}-\d{3,}$/u.test(normalized) ? `算例编号 ${normalized}` : null;
+}
+
 export interface ProjectSettings {
   activeModuleSection: string;
   modelPreviewStyle: ModelPreviewStyle;

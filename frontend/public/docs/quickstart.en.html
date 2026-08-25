@@ -77,7 +77,7 @@
       <button class="theme-toggle" type="button" data-theme-toggle>Switch to <span data-theme-label>light reading</span></button>
     </div>
     <header class="page-header">
-      <p>ArchSight Solver v1.8.2</p>
+      <p>ArchSight Solver v1.8.3</p>
       <h1>Five-minute quickstart</h1>
     </header>
       <nav class="toc" aria-label="On this page">
@@ -92,11 +92,11 @@
       <p>No account is required. The public site is a demonstration environment; save important work as a local <code>.slv</code> project file.</p>
       <h2 id="2.-install-the-cli-and-mcp-server-from-a-github-release">2. Install the CLI and MCP server from a GitHub Release</h2>
       <p>Requirements: Python <code>&gt;=3.13</code>.</p>
-      <p>Download <code>archsight_solver-1.8.2-py3-none-any.whl</code> from the <a href="https://github.com/ArchSightLabs/archsight-solver/releases/tag/v1.8.2">v1.8.2 GitHub Release</a>, then install it into a virtual environment:</p>
+      <p>After the workflow completes, download <code>archsight_solver-1.8.3-py3-none-any.whl</code> from the <a href="https://github.com/ArchSightLabs/archsight-solver/releases/tag/v1.8.3">v1.8.3 GitHub Release</a>, then install it into a virtual environment:</p>
       <pre><code class="language-bash">python -m venv .venv
 # Linux/macOS: source .venv/bin/activate
 # Windows PowerShell: .\.venv\Scripts\Activate.ps1
-python -m pip install ./archsight_solver-1.8.2-py3-none-any.whl</code></pre>
+python -m pip install ./archsight_solver-1.8.3-py3-none-any.whl</code></pre>
       <p>Create <code>create-request.json</code> (a source checkout also includes <code>examples/verification-package/create-request.json</code>):</p>
       <pre><code class="language-json">{
   &quot;payload&quot;: {
@@ -121,17 +121,17 @@ archsight-solver-tool verification_package_verify --input verify-request.json --
       <pre><code class="language-bash">archsight-solver-mcp</code></pre>
       <p>The installed distribution includes runtime schemas, benchmark data, templates, materials, supports, sections, and MCP documentation. It does not depend on a repository checkout or current working directory.</p>
       <h2 id="3.-run-the-complete-web-api-image">3. Run the complete Web/API image</h2>
-      <p>Download <code>archsight-solver-v1.8.2.tar.gz</code> and <code>SHA256SUMS</code> from the GitHub Release, verify the archive, and load it:</p>
+      <p>Download <code>archsight-solver-v1.8.3.tar.gz</code> and <code>SHA256SUMS</code> from the GitHub Release, verify the archive, and load it:</p>
       <pre><code class="language-bash">sha256sum --check SHA256SUMS --ignore-missing
-docker load --input archsight-solver-v1.8.2.tar.gz
+docker load --input archsight-solver-v1.8.3.tar.gz
 docker run --rm -p 127.0.0.1:6240:6240 archsight-solver:release</code></pre>
       <p>Open <code>http://127.0.0.1:6240</code>. The single image serves the frontend and <code>/api</code>. The public Release archive is the direct container distribution path. Callers with GitHub Packages access may instead authenticate and use the immutable workflow image:</p>
       <pre><code class="language-bash">docker login ghcr.io
-docker run --rm -p 127.0.0.1:6240:6240 ghcr.io/archsightlabs/archsight-solver:v1.8.2</code></pre>
+docker run --rm -p 127.0.0.1:6240:6240 ghcr.io/archsightlabs/archsight-solver:v1.8.3</code></pre>
       <p>Do not use <code>latest</code> as release evidence. Official production deployment uses its independently managed Alibaba Cloud Container Registry target rather than GHCR.</p>
       <h2 id="4.-install-the-framework-free-host-client">4. Install the framework-free Host Client</h2>
-      <p>Download <code>archsight-solver-host-client-1.8.2.tgz</code> from the GitHub Release:</p>
-      <pre><code class="language-bash">npm install ./archsight-solver-host-client-1.8.2.tgz</code></pre>
+      <p>Download <code>archsight-solver-host-client-1.8.3.tgz</code> from the GitHub Release:</p>
+      <pre><code class="language-bash">npm install ./archsight-solver-host-client-1.8.3.tgz</code></pre>
       <pre><code class="language-ts">import { SolverHostClient } from &quot;@archsight/solver-host-client&quot;;
 
 const client = new SolverHostClient({

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { RESULT_PREVIEW_BASE_SIZE, resultPreviewCanvasSize, resultPreviewSvgStyle } from "./result-preview-sizing.ts";
+import { RESULT_PREVIEW_BASE_SIZE, fitResultPreviewPoints, resultPreviewCanvasSize, resultPreviewSvgStyle } from "./result-preview-sizing.ts";
 
 test("默认结果预览画布保持基准尺寸", () => {
   const size = resultPreviewCanvasSize(
@@ -44,4 +44,38 @@ test("扩展结果预览 SVG 默认响应式完整适配避免内嵌滚动", () 
     maxWidth: "1800px",
     margin: "0 auto",
   });
+});
+
+test("短跨水平模型按真实边界铺满并在图面垂直居中", () => {
+  const layout = fitResultPreviewPoints(
+    [
+      { x: 0, y: 0 },
+      { x: 0.33, y: 0 },
+    ],
+    RESULT_PREVIEW_BASE_SIZE,
+    { left: 70, right: 70, top: 70, bottom: 70 },
+  );
+  const start = layout.map({ x: 0, y: 0 });
+  const end = layout.map({ x: 0.33, y: 0 });
+
+  assert.ok(end.x - start.x > 800);
+  assert.ok(Math.abs(start.y - RESULT_PREVIEW_BASE_SIZE.height / 2) < 1);
+  assert.ok(Math.abs(end.y - RESULT_PREVIEW_BASE_SIZE.height / 2) < 1);
+});
+
+test("纯竖向模型按真实边界铺满并在图面水平居中", () => {
+  const layout = fitResultPreviewPoints(
+    [
+      { x: 4, y: 0 },
+      { x: 4, y: 0.5 },
+    ],
+    RESULT_PREVIEW_BASE_SIZE,
+    { left: 70, right: 70, top: 70, bottom: 70 },
+  );
+  const bottom = layout.map({ x: 4, y: 0 });
+  const top = layout.map({ x: 4, y: 0.5 });
+
+  assert.ok(bottom.y - top.y > 390);
+  assert.ok(Math.abs(bottom.x - RESULT_PREVIEW_BASE_SIZE.width / 2) < 1);
+  assert.ok(Math.abs(top.x - RESULT_PREVIEW_BASE_SIZE.width / 2) < 1);
 });

@@ -43,10 +43,11 @@ test.describe("v1.8.1 真实后端教学闭环", () => {
       });
       await page.goto("/");
       await page.getByRole("button", { name: "公开案例", exact: true }).click();
+      await page.getByRole("tab", { name: /学习路径/u }).click();
       await page.getByRole("button", { name: new RegExp(benchmark.title, "u") }).click();
 
       const learning = page.getByRole("region", { name: "五分钟学习路径" });
-      await expect(learning.getByText(benchmark.caseId, { exact: true })).toBeVisible();
+      await expect(learning.getByText(`算例编号 ${benchmark.caseId}`, { exact: true })).toBeVisible();
       for (const fieldset of await learning.locator("fieldset").all()) {
         await fieldset.getByRole("radio").first().check();
       }

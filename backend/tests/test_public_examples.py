@@ -172,8 +172,62 @@ def test_public_examples_use_chinese_first_user_facing_text():
         "Warren",
         "Howe",
         "toggle frame",
+        "snap-through",
+        "initial_stress_v1",
+        "corotational_newton_v1",
+        "member_point",
+        "local_y",
+        "fixed_preload",
         "benchmark runner",
         "cutback",
         "unstable",
     ):
         assert raw_term not in visible_text
+
+    assert "Williams 浅拱翻转框架极限点" in visible_text
+    assert "Williams 浅拱翻转框架的跳跃屈曲前路径" in visible_text
+    assert "Lee 框架极限点前路径" in visible_text
+    assert "不稳定状态" in visible_text
+
+
+def test_public_example_summaries_do_not_expose_protocol_fields_or_enum_values():
+    catalog = load_benchmark_catalog()
+    examples = build_public_validation_projects()
+    visible_summaries = "\n".join(
+        str(value)
+        for project in examples["projects"]
+        for obj in project["project"]["objects"]
+        for value in (
+            obj["benchmark"].get("expectedSummary", ""),
+            obj["benchmark"].get("toleranceSummary", ""),
+        )
+    )
+    protocol_fields = {
+        key
+        for case in catalog["cases"]
+        for section_name in ("expected", "tolerances")
+        for key in case.get(section_name, {})
+    }
+
+    for protocol_field in protocol_fields:
+        assert protocol_field not in visible_summaries
+    for protocol_value in (
+        "corotational_newton_v1",
+        "converged",
+        "not_converged",
+        "stable",
+        "unstable",
+        "adaptive_fixed_load_control",
+        "adaptive_load_control",
+        "fixed_preload_then_adaptive_variable_load",
+        "linear_buckling_mode",
+        "explicit",
+        "PASS",
+        "REVIEW",
+    ):
+        assert protocol_value not in visible_summaries
+
+    assert "求解方法 共回转牛顿法" in visible_summaries
+    assert "平衡状态 已收敛" in visible_summaries
+    assert "路径控制 固定预载—自适应可变荷载控制" in visible_summaries
+    assert "节点位移容许误差 0.001 mm" in visible_summaries

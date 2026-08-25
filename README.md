@@ -67,21 +67,22 @@ npm --prefix frontend run test:unit
 
 详细功能边界见 [功能与适用边界](docs/capabilities.md)。
 
-## v1.8.2 版本主题
+## v1.8.3 版本主题
 
-v1.8.2 的重点是把 v1.8.1 已具备的专业计算能力变成普通用户真正读得懂、看得清、导得出的工程成果。页面与计算书优先使用中文工程术语，关键点和图形标注降低噪声，稳定审查与过程播放消除裁切和重叠；算法 ID、哈希和原始协议字段继续保留在技术审计层。
+v1.8.3 继续收口 Solver 1.8 的专业交付体验：公开验证工程与五分钟学习路径分层呈现，页面面向用户的摘要统一为中文工程表达；受力变形、弯矩、剪力、挠度和轴力图按真实模型范围自适应，并与计算书共享同一图形适配和关键点标注口径。
 
-当前状态：**已发布并上线（2026-08-25）**。`v1.8.2` Tag 固定在提交 `1fdbf13`，GitHub Release、GHCR 工作流镜像、阿里云精确镜像、官方演示站、真实计算与 DOCX/XLSX 导出均已完成独立验收；`v1.8.1-e48507d` 及更早精确镜像继续保留为回滚点。
+当前状态：**发布候选验证中（2026-08-25）**。官方演示站仍运行已验收的阿里云精确镜像 `v1.8.2-1fdbf13`；只有 v1.8.3 的 Tag Release、阿里云镜像、线上计算与导出验收全部完成后，本节才会更新为“已发布并上线”。`v1.8.2-1fdbf13` 将作为直接回滚点继续保留。
 
 - 关键点的类型、指标、来源、状态、方法名称和单位优先使用中文工程表达，机器字段只进入可折叠技术审计信息。
 - 计算过程按“输入规范化—自由度映射—整体装配—边界约化—求解与校核”显示中文摘要，仍保留完整哈希和可复算证据。
 - 端点、反弯点、局部极值和全局极值可按类别控制；工作台与计算书共享标注选择，图形默认优先显示控制性结论。
 - 受力变形、内力图、过程播放和稳定审查修复文字重叠、裁切与无意义滚动，同时保留点表、详细计算书和可信计算包中的完整数值。
-- 本补丁不改变 v1.8.1 的 GNA/GNIA、线性屈曲或一次分析数值，也不新增结构类型、账号、云项目或规范设计能力。
+- 公开工程案例与五分钟学习路径改为同一弹窗内的两个一级入口，避免把教学导航误认为新的验证工程。
+- 本补丁不改变 v1.8.1/v1.8.2 的 GNA/GNIA、线性屈曲或一次分析数值，也不新增结构类型、账号、云项目或规范设计能力。
 
 直接开始：[公开案例与五分钟学习路径](https://solver.archsight.cn/) · [五分钟安装路径](docs/quickstart.md) · [可信计算包指南](docs/verification-package.md) · [English entry](README.en.md)
 
-完整验证证据、Tag Release 门禁与回滚边界见 [v1.8.2 发布验收](docs/verification/release-1-8-2-acceptance.md)。
+完整验证证据、Tag Release 门禁与回滚边界见 [v1.8.3 发布验收](docs/verification/release-1-8-3-acceptance.md)。v1.8.2 的历史发布事实继续保留在 [v1.8.2 发布验收](docs/verification/release-1-8-2-acceptance.md)。
 
 ## v1.3.0 发布重点
 
@@ -197,7 +198,8 @@ uv run python -m backend.benchmarks.catalog_summary --output docs/verification/b
 | [Benchmark 算例目录摘要](docs/verification/benchmark-catalog-summary.md) | 按结构体系列出算例目的、来源、标准值、容差和模板映射 | 当前验证摘要 |
 | [跨浏览器视觉回归](docs/verification/visual-regression.md) | 前端工作台视觉回归说明 | 当前验证说明 |
 | [发布治理](docs/release-governance.md) | `x.y.0` 用户价值门槛、观察窗口、确认和不可变发布规则 | 当前发布规则 |
-| [v1.8.2 发布验收](docs/verification/release-1-8-2-acceptance.md) | 中文工程表达、图形可读性、计算书一致性、制品与线上发布证据 | 当前发布验收 |
+| [v1.8.3 发布验收](docs/verification/release-1-8-3-acceptance.md) | 公开内容分层、中文展示投影、真实几何适配、图形与计算书一致性 | 当前发布验收 |
+| [v1.8.2 发布验收](docs/verification/release-1-8-2-acceptance.md) | 中文工程表达、图形可读性、计算书一致性、制品与线上发布证据 | v1.8.2 历史基线 |
 | [v1.8.1 发布验收](docs/verification/release-1-8-1-acceptance.md) | 可复算几何非线性、过程播放、方法比较、失败证据与正式制品证据 | v1.8.1 历史基线 |
 | [v1.7.0 发布验收](docs/verification/release-1-7-acceptance.md) | 可信计算包、开放分发、学习复核路径、三浏览器与正式制品证据 | v1.7.0 历史基线 |
 | [v1.6.3 发布验收](docs/verification/release-1-6-3-acceptance.md) | 可靠性补丁、验证证据、镜像与发布授权边界 | v1.6.3 发布基线 |

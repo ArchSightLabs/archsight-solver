@@ -10,10 +10,25 @@ export interface ResultPreviewNodeLike {
   y: number;
 }
 
+export interface ResultPreviewInsets {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
+
+export interface ResultPreviewPointLayout {
+  map: (point: ResultPreviewNodeLike) => ResultPreviewNodeLike;
+  scale: number;
+  bounds: { left: number; right: number; top: number; bottom: number };
+  center: ResultPreviewNodeLike;
+}
+
 export const RESULT_PREVIEW_BASE_SIZE: ResultPreviewCanvasSize = { width: 1000, height: 540 };
 
 const RESULT_PREVIEW_MAX_WIDTH = 4200;
 const RESULT_PREVIEW_MAX_HEIGHT = 2200;
+const COORDINATE_EPSILON = 1e-9;
 
 function finiteValues(values: number[]) {
   return values.filter((value) => Number.isFinite(value));
@@ -31,6 +46,53 @@ function distinctCoordinateCount(values: number[]) {
 
 function clampCanvasDimension(value: number, min: number, max: number) {
   return Math.round(Math.min(max, Math.max(min, value)));
+}
+
+export function fitResultPreviewPoints(
+  points: ResultPreviewNodeLike[],
+  canvasSize: ResultPreviewCanvasSize,
+  insets: ResultPreviewInsets,
+): ResultPreviewPointLayout {
+  const finitePoints = points.filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y));
+  const sourcePoints = finitePoints.length ? finitePoints : [{ x: 0, y: 0 }];
+  const xs = sourcePoints.map((point) => point.x);
+  const ys = sourcePoints.map((point) => point.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const spanX = maxX - minX;
+  const spanY = maxY - minY;
+  const availableWidth = Math.max(1, canvasSize.width - insets.left - insets.right);
+  const availableHeight = Math.max(1, canvasSize.height - insets.top - insets.bottom);
+  const scaleCandidates = [
+    spanX > COORDINATE_EPSILON ? availableWidth / spanX : Number.POSITIVE_INFINITY,
+    spanY > COORDINATE_EPSILON ? availableHeight / spanY : Number.POSITIVE_INFINITY,
+  ].filter(Number.isFinite);
+  const scale = scaleCandidates.length ? Math.min(...scaleCandidates) : 1;
+  const renderedWidth = spanX * scale;
+  const renderedHeight = spanY * scale;
+  const offsetX = insets.left + (availableWidth - renderedWidth) / 2;
+  const offsetY = insets.top + (availableHeight - renderedHeight) / 2;
+  const map = (point: ResultPreviewNodeLike) => ({
+    x: offsetX + (point.x - minX) * scale,
+    y: offsetY + (maxY - point.y) * scale,
+  });
+
+  return {
+    map,
+    scale,
+    bounds: {
+      left: offsetX,
+      right: offsetX + renderedWidth,
+      top: offsetY,
+      bottom: offsetY + renderedHeight,
+    },
+    center: {
+      x: offsetX + renderedWidth / 2,
+      y: offsetY + renderedHeight / 2,
+    },
+  };
 }
 
 export function resultPreviewCanvasSize(nodes: ResultPreviewNodeLike[], memberCount: number): ResultPreviewCanvasSize {

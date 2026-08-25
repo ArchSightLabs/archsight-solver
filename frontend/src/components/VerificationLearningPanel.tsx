@@ -9,7 +9,7 @@ import {
   type LearningAnswers,
   type LearningReview,
 } from "../lib/learning-review";
-import type { BenchmarkCaseSource } from "../lib/solver-project";
+import { getPublicBenchmarkCaseReference, type BenchmarkCaseSource } from "../lib/solver-project";
 import type { ResultValidity } from "../lib/result-provenance";
 import type { AnalysisMode } from "../types/structure";
 import type { ExportFormat } from "../hooks/useWorkbenchActions";
@@ -51,6 +51,7 @@ export function VerificationLearningPanel({
     [answers, learning],
   );
   const currentEvidence = submitted && resultValidity.status === "current";
+  const benchmarkReference = getPublicBenchmarkCaseReference(benchmark.caseId);
 
   useEffect(() => {
     if (!learning || !currentEvidence) return;
@@ -95,9 +96,11 @@ export function VerificationLearningPanel({
           <h2 className="mt-1 text-lg font-black tracking-tight">{learning.title}</h2>
           <p className="mt-1 max-w-4xl text-sm leading-6 text-muted-foreground">{learning.objective}</p>
         </div>
-        <span className="rounded-md border border-sky-300 bg-white px-2.5 py-1 text-xs font-black text-sky-800 dark:border-sky-700 dark:bg-slate-900 dark:text-sky-200">
-          {benchmark.caseId}
-        </span>
+        {benchmarkReference ? (
+          <span className="rounded-md border border-sky-300 bg-white px-2.5 py-1 text-xs font-black text-sky-800 dark:border-sky-700 dark:bg-slate-900 dark:text-sky-200">
+            {benchmarkReference}
+          </span>
+        ) : null}
       </div>
 
       {!submitted ? (

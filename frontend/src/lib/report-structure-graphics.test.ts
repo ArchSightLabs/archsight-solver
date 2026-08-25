@@ -23,6 +23,19 @@ test("计算书结构图布局保持模型方向并留出票头空间", () => {
   assert.ok(layout.center.x > layout.bounds.left && layout.center.x < layout.bounds.right);
 });
 
+test("计算书短跨水平模型不被一米虚拟边界压缩并保持居中", () => {
+  const layout = buildReportStructureLayout([
+    { id: "N1", x: 0, y: 0 },
+    { id: "N2", x: 0.33, y: 0 },
+  ]);
+  const start = layout.map({ x: 0, y: 0 });
+  const end = layout.map({ x: 0.33, y: 0 });
+
+  assert.ok(end.x - start.x > 700);
+  assert.ok(start.y > 260 && start.y < 350);
+  assert.ok(Math.abs(start.y - end.y) < 1);
+});
+
 test("计算书控制值标注限制在图面可读范围内", () => {
   const graphics: ReportGraphic[] = [];
 

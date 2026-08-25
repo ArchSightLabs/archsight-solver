@@ -2,7 +2,7 @@
 
 本文说明 ArchSight Solver 的本地镜像构建、容器运行和 Docker Compose 入口。
 
-当前仓库版本事实源为 v1.8.2。官方演示站已于 2026-08-25 更新为阿里云精确镜像 `v1.8.2-1fdbf13`，仍使用 `127.0.0.1:18082 -> app:6240`；GitHub Release、GHCR 工作流镜像、阿里云镜像与线上容器已经分别核对，直接回滚基线 `v1.8.1-e48507d` 继续保留。本文件不把仓库版本、Tag Release、镜像推送或线上部署误写为同一状态。
+当前仓库版本事实源为 v1.8.3 发布候选。官方演示站仍运行已于 2026-08-25 验收的阿里云精确镜像 `v1.8.2-1fdbf13`，并保持 `127.0.0.1:18082 -> app:6240`；v1.8.3 的 GitHub Release、阿里云镜像和线上容器必须分别完成后才能记录为正式发布。`v1.8.2-1fdbf13` 作为直接回滚基线继续保留。本文件不把仓库版本、Tag Release、镜像推送或线上部署误写为同一状态。
 
 ## 单镜像模式
 
@@ -17,7 +17,7 @@ docker build -t archsight-solver:latest .
 Dockerfile 默认将 Node 22 与 Python 3.13 基础镜像固定到已验证 digest。若 Docker Hub 直连或本地 mirror 不稳定，推荐通过构建脚本和 `deploy/.env` 显式使用同 digest 的官方 Public ECR Docker Library 镜像：
 
 ```powershell
-.\scripts\build-image.ps1 -Tag v1.8.2
+.\scripts\build-image.ps1 -Tag v1.8.3
 ```
 
 脚本读取 `NODE_IMAGE` 与 `PYTHON_IMAGE`；`-RefreshBaseImages` 会先单独拉取两份固定基础镜像，用于主动刷新或诊断，不是每次构建的必要步骤。
@@ -69,13 +69,13 @@ docker login --username=<your-account> registry.example.com
 构建并打标签：
 
 ```powershell
-docker build -t archsight-solver:v1.8.2 -t registry.example.com/example-namespace/archsight-solver:v1.8.2 .
+docker build -t archsight-solver:v1.8.3 -t registry.example.com/example-namespace/archsight-solver:v1.8.3 .
 ```
 
 推送：
 
 ```powershell
-docker push registry.example.com/example-namespace/archsight-solver:v1.8.2
+docker push registry.example.com/example-namespace/archsight-solver:v1.8.3
 ```
 
 构建脚本只使用 BuildKit；不要通过 `DOCKER_BUILDKIT=0` 回退到已弃用的 Legacy Builder。镜像源异常应通过固定 digest、显式 `NODE_IMAGE` / `PYTHON_IMAGE` 和 `-RefreshBaseImages` 处理。
@@ -92,22 +92,22 @@ Compose 默认将容器内 `6240` 端口绑定到宿主机本地端口。如需�
 
 ## 正式发布制品
 
-推送 `v1.8.2` 形式的 Git tag 后，GitHub Actions 发布工作流会复跑版本、后端、前端、Playwright 和 Docker 门禁，并生成以下可追踪制品：
+推送 `v1.8.3` 形式的 Git tag 后，GitHub Actions 发布工作流会复跑版本、后端、前端、Playwright 和 Docker 门禁，并生成以下可追踪制品：
 
-- `ghcr.io/<owner>/archsight-solver:v1.8.2` 不可变工作流镜像；包可见性由 GitHub Packages 权限决定。
-- 公开 Docker 镜像归档 `archsight-solver-v1.8.2.tar.gz`，可从同一 GitHub Release 下载并离线加载。
+- `ghcr.io/<owner>/archsight-solver:v1.8.3` 不可变工作流镜像；包可见性由 GitHub Packages 权限决定。
+- 公开 Docker 镜像归档 `archsight-solver-v1.8.3.tar.gz`，可从同一 GitHub Release 下载并离线加载。
 - SPDX JSON SBOM、Trivy 高危/严重漏洞扫描报告和 `SHA256SUMS`。
 - 从 `CHANGELOG.md` 当前版本段提取的 GitHub Release 说明。
 
-发布工作流不会推送 `latest`，避免部署配置在未审阅时静默漂移。部署前应核对 tag、镜像摘要和 `SHA256SUMS`。v1.8.2 还会附带 Python wheel/sdist 与 Host Client tarball，供不克隆源码仓库的 CLI/MCP 和嵌入式宿主直接安装。
+发布工作流不会推送 `latest`，避免部署配置在未审阅时静默漂移。部署前应核对 tag、镜像摘要和 `SHA256SUMS`。v1.8.3 还会附带 Python wheel/sdist 与 Host Client tarball，供不克隆源码仓库的 CLI/MCP 和嵌入式宿主直接安装。
 
 ## 回滚
 
-升级前记录当前容器镜像标签与健康状态。先以即将上线的同一镜像启动隔离临时容器，完成健康检查和 HTTP/API 预检后删除，再切换正式容器。`deploy/deploy.sh` 会有界等待 Docker `HEALTHCHECK` 变为 `healthy`，失败时输出最近的容器日志并返回非零状态；脚本成功后仍需复核首页、典型求解和导出入口。若失败，重新以先前不可变标签执行部署；v1.8.2 的直接回滚基线是 v1.8.1 线上精确镜像：
+升级前记录当前容器镜像标签与健康状态。先以即将上线的同一镜像启动隔离临时容器，完成健康检查和 HTTP/API 预检后删除，再切换正式容器。`deploy/deploy.sh` 会有界等待 Docker `HEALTHCHECK` 变为 `healthy`，失败时输出最近的容器日志并返回非零状态；脚本成功后仍需复核首页、典型求解和导出入口。若失败，重新以先前不可变标签执行部署；v1.8.3 的直接回滚基线是 v1.8.2 线上精确镜像：
 
 ```bash
-./deploy/deploy.sh v1.8.1-e48507d
+./deploy/deploy.sh v1.8.2-1fdbf13
 docker inspect --format '{{.Config.Image}} {{if .State.Health}}{{.State.Health.Status}}{{end}}' archsight-solver-app
 ```
 
-当前镜像不包含数据库迁移；v1.8.2 的直接回滚基线是已保留的阿里云精确镜像 `v1.8.1-e48507d`。未来若加入持久化结构变化，必须在发布清单中单独声明备份、兼容和数据恢复步骤。
+当前镜像不包含数据库迁移；v1.8.3 的直接回滚基线是已保留的阿里云精确镜像 `v1.8.2-1fdbf13`。未来若加入持久化结构变化，必须在发布清单中单独声明备份、兼容和数据恢复步骤。

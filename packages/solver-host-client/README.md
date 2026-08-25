@@ -5,7 +5,7 @@ Framework-free, zero-runtime-dependency browser client for ArchSight Solver Host
 The package stays Apache-2.0 licensed and free. ArchSight Solver attaches the npm tarball to GitHub Releases, so a public npm registry is not required:
 
 ```bash
-npm install ./archsight-solver-host-client-1.8.2.tgz
+npm install ./archsight-solver-host-client-1.8.3.tgz
 ```
 
 ```ts

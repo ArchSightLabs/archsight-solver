@@ -140,6 +140,7 @@ jobs:
         run: >-
           npm --prefix frontend run test:visual --
           release-1-8-1-real-teaching-e2e.spec.ts
+          release-1-8-3-polish.spec.ts
           --project=chromium
           --workers=1
 

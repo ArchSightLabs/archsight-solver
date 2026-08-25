@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_PATHS = (
     ".github/workflows/release.yml",
     ".github/workflows/nightly-quality.yml",
+    "docs/verification/release-1-8-3-acceptance.md",
     "docs/verification/release-1-8-2-acceptance.md",
     "docs/verification/release-1-8-1-acceptance.md",
     "docs/verification/release-1-7-acceptance.md",
@@ -36,6 +37,7 @@ REQUIRED_PATHS = (
     "frontend/tests/visual/release-1-8-calculation-trace.spec.ts",
     "frontend/tests/visual/release-1-8-workbench-accessibility.spec.ts",
     "frontend/tests/visual/release-1-8-1-real-teaching-e2e.spec.ts",
+    "frontend/tests/visual/release-1-8-3-polish.spec.ts",
     "frontend/tests/visual/workbench-export-docx.spec.ts",
     "scripts/run_host_iframe_demo.py",
     "scripts/build-image.ps1",
@@ -51,14 +53,14 @@ REQUIRED_MARKERS = {
         "维护者明确说出要发布的版本号",
     ),
     "CHANGELOG.md": (
-        "## v1.8.2",
-        "中文工程表达统一",
-        "技术审计层",
+        "## v1.8.3",
+        "公开内容分层",
+        "图形真实边界适配",
         "不改变数值结果",
     ),
-    "docs/verification/release-1-8-2-acceptance.md": (
-        "页面中文工程语义",
-        "页面、计算书与证据一致",
+    "docs/verification/release-1-8-3-acceptance.md": (
+        "公开内容与中文展示",
+        "图形与计算书一致性",
         "127.0.0.1:18082 -> app:6240",
         "未完成项不得提前勾选",
     ),
@@ -139,6 +141,7 @@ REQUIRED_MARKERS = {
         "release-1-8-calculation-trace.spec.ts",
         "release-1-8-workbench-accessibility.spec.ts",
         "release-1-8-1-real-teaching-e2e.spec.ts",
+        "release-1-8-3-polish.spec.ts",
         "workbench-export-docx.spec.ts",
         "npm ci --include=optional",
         "npm --prefix frontend ci --include=optional",
@@ -172,6 +175,7 @@ REQUIRED_MARKERS = {
         "release-1-8-calculation-trace.spec.ts",
         "release-1-8-workbench-accessibility.spec.ts",
         "release-1-8-1-real-teaching-e2e.spec.ts",
+        "release-1-8-3-polish.spec.ts",
         "test:visual:export-docx",
         "npm --prefix frontend ci --include=optional",
         "npm --prefix frontend audit --omit=dev --audit-level=moderate",
@@ -222,42 +226,42 @@ def main() -> int:
     if build_script_path.is_file() and "DOCKER_BUILDKIT" in build_script_path.read_text(encoding="utf-8"):
         failures.append("scripts/build-image.ps1 不得回退到已弃用的 Legacy Builder")
 
-    current_acceptance_path = ROOT / "docs/verification/release-1-8-2-acceptance.md"
+    current_acceptance_path = ROOT / "docs/verification/release-1-8-3-acceptance.md"
     if current_acceptance_path.is_file():
         acceptance = current_acceptance_path.read_text(encoding="utf-8")
         status_match = re.search(r"^> 状态：(发布候选就绪|已发布)\s*$", acceptance, flags=re.MULTILINE)
         if not status_match:
-            failures.append("v1.8.2 发布验收状态必须为‘发布候选就绪’或‘已发布’")
+            failures.append("v1.8.3 发布验收状态必须为‘发布候选就绪’或‘已发布’")
         release_gate_heading = "## Gate F：正式发布与线上验收"
         candidate_scope = acceptance.split(release_gate_heading, maxsplit=1)[0]
         if release_gate_heading not in acceptance:
-            failures.append("v1.8.2 发布验收缺少 Gate F 正式发布与线上验收")
+            failures.append("v1.8.3 发布验收缺少 Gate F 正式发布与线上验收")
         checked_scope = acceptance if status_match and status_match.group(1) == "已发布" else candidate_scope
         unchecked_items = re.findall(r"^- \[ \] ", checked_scope, flags=re.MULTILINE)
         if unchecked_items:
             phase = "正式发布" if status_match and status_match.group(1) == "已发布" else "发布候选"
-            failures.append(f"v1.8.2 {phase}范围仍有 {len(unchecked_items)} 项未完成")
+            failures.append(f"v1.8.3 {phase}范围仍有 {len(unchecked_items)} 项未完成")
 
     deploy_expectations = {
         "deploy/.env.example": (
-            "IMAGE_TAG=v1.8.2",
+            "IMAGE_TAG=v1.8.3",
             "NODE_IMAGE=public.ecr.aws/docker/library/node:22-bookworm-slim@sha256:",
             "PYTHON_IMAGE=public.ecr.aws/docker/library/python:3.13-slim@sha256:",
             "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS=",
         ),
         "deploy/docker-compose.yml.example": (
-            "${IMAGE_TAG:-v1.8.2}",
+            "${IMAGE_TAG:-v1.8.3}",
             "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS: ${ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS:-}",
         ),
         "deploy/deploy.sh": (
-            '${IMAGE_TAG:-v1.8.2}',
+            '${IMAGE_TAG:-v1.8.3}',
             'ps --all --quiet',
             "docker inspect --format",
             "DEPLOY_HEALTH_TIMEOUT_SECONDS",
             "logs --tail=100",
             "wait_for_services_healthy",
         ),
-        "docs/deployment.md": ("archsight-solver:v1.8.2", "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS", "VITE_UMAMI_WEBSITE_ID"),
+        "docs/deployment.md": ("archsight-solver:v1.8.3", "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS", "VITE_UMAMI_WEBSITE_ID"),
     }
     for relative_path, expected_markers in deploy_expectations.items():
         text = (ROOT / relative_path).read_text(encoding="utf-8")

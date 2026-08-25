@@ -104,6 +104,28 @@ const learningPaths = [
   { title: "Williams 浅拱翻转：为什么收敛失败也可能是正确结果", caseId: "GNA-003", pathId: "williams-toggle-limit-path", analysisType: "frame" },
 ] as const;
 
+test("公开内容将验证算例与学习路径分层且主阅读区不泄露协议字段", async ({ page }) => {
+  await page.addInitScript(() => localStorage.clear());
+  await installApiMocks(page);
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "公开案例", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "公开工程案例" });
+  await expect(dialog.getByRole("tab", { name: /验证算例/u })).toHaveAttribute("aria-selected", "true");
+  await expect(dialog.getByRole("tab", { name: /学习路径/u })).toBeVisible();
+  await expect(dialog.getByText("基础力学", { exact: true })).toHaveCount(0);
+  await dialog.getByText("二维平面框架公开验证工程", { exact: true }).click();
+  await expect(dialog.getByText("工程软件对标", { exact: true })).toBeVisible();
+
+  const examplesText = await dialog.innerText();
+  expect(examplesText).not.toMatch(/algorithmId|equilibriumStatus|stabilityStatus|pathControlType|nodeDisplacementMm|reactionMzKnM|corotational_newton_v1|adaptive_load_control|\bPASS\b|\bREVIEW\b/u);
+
+  await dialog.getByRole("tab", { name: /学习路径/u }).click();
+  await expect(dialog.getByText("基础力学", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("二阶效应与稳定", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("梁系公开验证工程", { exact: true })).toHaveCount(0);
+});
+
 for (const learningPath of learningPaths) {
   test(`公开学习路径 ${learningPath.title} 完成预判、计算与可信证据导出`, async ({ page }) => {
     await page.addInitScript(() => localStorage.clear());
@@ -111,12 +133,17 @@ for (const learningPath of learningPaths) {
 
     await page.goto("/");
     await page.getByRole("button", { name: "公开案例", exact: true }).click();
+    await page.getByRole("tab", { name: new RegExp(`学习路径 · ${learningPaths.length}`, "u") }).click();
     await expect(page.getByText(`${learningPaths.length} 条五分钟学习路径`)).toBeVisible();
     await page.getByRole("button", { name: new RegExp(learningPath.title, "u") }).click();
 
     const panel = page.getByRole("region", { name: "五分钟学习路径" });
     await expect(panel.getByRole("heading", { name: learningPath.title })).toBeVisible();
-    await expect(panel.getByText(learningPath.caseId, { exact: true })).toBeVisible();
+    if (/^[A-Z]{2,8}-\d{3,}$/u.test(learningPath.caseId)) {
+      await expect(panel.getByText(`算例编号 ${learningPath.caseId}`, { exact: true })).toBeVisible();
+    } else {
+      await expect(panel.getByText(learningPath.caseId, { exact: true })).toHaveCount(0);
+    }
     await expect(panel.locator("textarea")).toHaveCount(0);
 
     for (const fieldset of await panel.locator("fieldset").all()) {
