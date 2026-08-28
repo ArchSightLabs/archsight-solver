@@ -105,7 +105,7 @@ export function GlobalDialogs({
         <ProjectInfoDialog
           initialValue={projectInfoDialogMode === "edit" ? project.settings.projectInfo : null}
           title={projectInfoDialogMode === "edit" ? "工程设置" : "新建结构分析项目"}
-          confirmLabel={projectInfoDialogMode === "edit" ? "保存工程设置" : "创建项目"}
+          confirmLabel={projectInfoDialogMode === "edit" ? "应用工程设置" : "创建项目"}
           customMaterials={projectInfoDialogMode === "edit" ? project.settings.customMaterials : undefined}
           projectContractSummary={projectInfoDialogMode === "edit" ? buildProjectContractSummary(project) : undefined}
           onSubmit={projectInfoDialogMode === "edit" ? handleUpdateProjectInfo : handleCreateProjectWithInfo}

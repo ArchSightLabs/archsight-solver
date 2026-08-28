@@ -324,7 +324,7 @@ export const ProjectMaterialPanel = forwardRef<ProjectMaterialPanelHandle, Proje
             </div>
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0 flex-1 text-[11px] font-semibold leading-5 text-muted-foreground">
-                {materialMessage ?? "编号只允许英文、数字、短横线和下划线。保存工程设置时也会先保存当前材料草稿。"}
+                {materialMessage ?? "编号只允许英文、数字、短横线和下划线。应用工程设置时也会先写入当前材料草稿。"}
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <Button type="button" variant="outline" onClick={resetDraft} className="h-9 rounded-lg px-4 text-xs font-semibold">
