@@ -1,7 +1,7 @@
 # ArchSight Solver v1.8.4 发布验收记录
 
-> 状态：发布候选就绪
-> 目标版本：`v1.8.4`
+> 状态：已发布
+> 目标版本：产品 SemVer `v1.8.4`；正式发行修订 `v1.8.4-r1`
 > 验收原则：v1.8.4 只收口 v1.8.3 发布后的低风险契约、依赖边界、保存语义与可选 Cloud 入口；仓库版本、Git Tag、GitHub Release、阿里云镜像与线上容器分别验收，未完成项不得提前勾选。
 
 ## 发布范围与兼容边界
@@ -48,12 +48,12 @@
 
 ## Gate F：正式发布与线上验收
 
-- [ ] 不可变 `v1.8.4` 首次 Tag 保持失败现场不移动；独立发行修订 Tag `v1.8.4-r1` 指向修复提交，GitHub Release 工作流成功，资产与 `SHA256SUMS` 核对通过。
-- [ ] GHCR `v1.8.4-r1` 与修复后的阿里云精确镜像摘要已记录，未推送或部署 `latest`。
-- [ ] 正式部署继续使用 `127.0.0.1:18082 -> app:6240`，未占用或调整 Graphics 的 `18083`；容器 healthy、重启计数 0。
-- [ ] `https://solver.archsight.cn/` 显示 v1.8.4，`runtime-config.js` 含 Cloud 工作区与宿主白名单，首页 CSP 允许 `https://cloud.archsight.cn`。
-- [ ] 线上梁、桁架、框架、GNA/GNIA、线性屈曲、DOCX/XLSX/可信计算包与 Cloud Host 保存链路通过复核。
-- [ ] v1.8.3 回滚镜像仍可拉取并完成隔离健康预检；生产 `.env` 备份和一条命令回滚路径已记录。
+- [x] 不可变 `v1.8.4` 首次 Tag 保持失败现场不移动；独立发行修订 Tag `v1.8.4-r1` 指向修复后的候选证据提交，GitHub Release 工作流成功，资产与 `SHA256SUMS` 核对通过。
+- [x] GHCR `v1.8.4-r1` 与修复后的阿里云精确镜像摘要已记录，未推送或部署 `latest`。
+- [x] 正式部署继续使用 `127.0.0.1:18082 -> app:6240`，未占用或调整 Graphics 的 `18083`；容器 healthy、重启计数 0。
+- [x] `https://solver.archsight.cn/` 显示 v1.8.4，`runtime-config.js` 含 Cloud 工作区与宿主白名单，首页 CSP 允许 `https://cloud.archsight.cn`。
+- [x] 线上梁、桁架、框架、GNA/GNIA、线性屈曲、DOCX/XLSX/可信计算包通过复核；Cloud 线上入口和 Host 配置可达，当前 Cloud 提交与同一 Solver 产品树的 Host 保存/重开链路已用精确归档完成跨仓复核。
+- [x] v1.8.3 回滚镜像仍可拉取并完成隔离健康预检；生产 `.env`/Compose 备份和一条命令回滚路径已记录。
 
 ## 验收证据
 
@@ -66,8 +66,15 @@
 - 首次不可变 Tag `v1.8.4` 指向 `fda91b591e8e7f65e54e819e31b24487d8f7dcad`，但 Release 工作流 [33482147849](https://github.com/ArchSightLabs/archsight-solver/actions/runs/33482147849) 被 Trivy 正确阻断：固定 Debian 基础镜像中的 `libssl3t64`、`openssl`、`openssl-provider-legacy` 为 `3.5.6-1~deb13u2`，已有修复版 `3.5.7-1~deb13u2`。该次运行未创建 GitHub Release、未推送 GHCR、未部署生产；已推送的阿里云标签 `v1.8.4-fda91b5` 与候选摘要相同但视为阻断制品，不得上线。`v1.8.4` Tag 不移动，修复通过独立 `v1.8.4-r1` 发行修订承载，产品 SemVer 仍为 `1.8.4`。
 - 发行恢复提交 `3d85db381f70a2174aa93d95dfe79b8781ba0482` 将三个 OpenSSL 包精确升级为 `3.5.7-1~deb13u2`；本地 Trivy 0.70.0 使用当前漏洞库复扫，Debian 13.6 与 Python 包均为 0 个可修复 HIGH/CRITICAL。该提交的精确 SHA CI [33485843601](https://github.com/ArchSightLabs/archsight-solver/actions/runs/33485843601) 已通过提交治理、后端、前端、Windows 原生构建与 Docker 发布门。
 - 修复后的阿里云精确镜像为 `v1.8.4-3d85db3@sha256:3d59fa029ea419b7e32614e5cb5c9f15e4039880af4738004ac88ed5e2348118`，镜像 ID `sha256:bff2e805a183bd716e99746e7de1a234753b659f4cf3c40f34a7584957b08feb`；本地推送后回拉一致，生产机回拉后在 `127.0.0.1:28082 -> app:6240` 隔离预检达到 healthy、重启 0，运行时 Cloud 地址、宿主白名单与 CSP 正确。临时容器已删除，现网 Solver `v1.8.3-8317ec9` 与 Graphics `v1.5.1` 均保持 healthy、重启 0。
+- 候选证据提交 `841cf49c46ce3f805eddf716976fb034365e4c19` 的精确 SHA CI [33486677219](https://github.com/ArchSightLabs/archsight-solver/actions/runs/33486677219) 全部通过；不可变 `v1.8.4-r1` Tag 固定指向该提交，原始 `v1.8.4` Tag 继续固定在失败现场 `fda91b591e8e7f65e54e819e31b24487d8f7dcad`，没有移动、删除或重建。
+- [GitHub Release v1.8.4-r1](https://github.com/ArchSightLabs/archsight-solver/releases/tag/v1.8.4-r1) 已发布，发布工作流 [33487495384](https://github.com/ArchSightLabs/archsight-solver/actions/runs/33487495384) 全部通过。7 份资产包括 wheel、sdist、Host Client、离线镜像、SPDX SBOM、Trivy 报告和 `SHA256SUMS`；清单保护的 6 份制品逐项核对一致。SBOM 记录 109 个包和 2,959 个文件，Trivy 报告覆盖 2 个目标且无发现；GHCR 不可变标签摘要为 `sha256:bfd4d07c1583563e2812aab45c33eb37517fddc781e8230ddcb5bcea4e1b1840`。本机凭据缺少 `read:packages`，无法额外回拉 GHCR 私有可见包，但工作流中的推送、摘要与 Release 均成功，该权限限制不改写为镜像失败。
+- 生产 `.env` 已备份为 `/root/archsight-solver/.env.pre-v1.8.4-r1-20260901T085115Z`（SHA256 `c1cb97093bbfd31a8ffea07d4b8826df920cf9ac9e614acf2dec8877297e1ac1`），Compose 已备份为 `/root/archsight-solver/docker-compose.yml.pre-v1.8.4-r1-20260901T085115Z`（SHA256 `a7bcd9b6e8ad85e8a315b944a06d8d1875fd97dd09c0e3267e547d1be2a168b5`）。正式容器已切换到阿里云精确镜像 `v1.8.4-3d85db3`，继续使用 `127.0.0.1:18082 -> app:6240`，状态 healthy、重启 0；Graphics `v1.5.1` 继续使用 `18083`，状态 healthy、重启 0。
+- 公网首页返回 HTTP 200，浏览器标题为“ArchSight 结构力学求解器”，可见版本 `v1.8.4`，无控制台错误；“前往云端保存”链接精确指向 `https://cloud.archsight.cn/solver`。`runtime-config.js` 精确投影 `cloudWorkspaceUrl=https://cloud.archsight.cn/solver` 与 `hostAllowedOrigins=https://cloud.archsight.cn`，首页 CSP 为 `frame-ancestors 'self' https://cloud.archsight.cn`。
+- 线上 Chromium 回归 `10/10` 通过：覆盖 canonical 独立工程计算、结果失效、重算、导出、保存与重开，GNA-001/GNA-003 真实复算与可信证据下载，BM-009/GNA-003/BM-010 图形真实页面，以及框架/桁架 DOCX 图形与数据曲线导出。另以 GNA-005 直接调用线上真实后端，确认共回转求解收敛、GNIA 稳定、10 mm 首阶线性屈曲模态初始缺陷、临界荷载因子 `2.500005` 和 3 个屈曲模态；梁 DOCX/XLSX 分别返回 55,584/19,579 字节、合法 OpenXML MIME 与 `PK` 文件头，可信计算包创建后完整性和复算均通过、SHA-256 长度为 64。
+- Cloud 线上 `/api/v1/solver/config` 返回 Host Protocol `1.0.0`、Solver 嵌入地址 `https://solver.archsight.cn/?embed=1&theme=light` 与五项所需 capability；从 Solver 点击“前往云端保存”可到达 `https://cloud.archsight.cn/solver` 登录工作台。Cloud 提交 `5e304825836da4e423843b0a407cb97cdd1cb762` 的登录续接和 Host 保存/重开此前已对功能候选 `8bdd706` 精确归档完成三浏览器跨仓门禁；发行恢复只改 Docker OpenSSL 与发行工程，不改变该 Solver 产品树。此次没有部署 Cloud，也没有使用真实用户账号制造线上云项目，因此不把“已登录线上写入”写成执行证据。
+- 直接回滚镜像 `v1.8.3-8317ec9@sha256:53130c2a3f237e825f98f421a855b78e8c5e77b59e4954f320294ad7e09fd017`（镜像 ID `sha256:203ac8239b46d03fc251eb7be356871819969cd44ff7bf5b0de2cd2dce51b83c`）已在生产机 `127.0.0.1:28082 -> app:6240` 隔离启动，达到 running/healthy、HTTP 200、重启 0 后删除；演练前后正式 v1.8.4 与 Graphics 均保持 healthy、重启 0。一条命令回滚路径为 `cd /root/archsight-solver && cp .env.pre-v1.8.4-r1-20260901T085115Z .env && cp docker-compose.yml.pre-v1.8.4-r1-20260901T085115Z docker-compose.yml && ./deploy.sh v1.8.3-8317ec9`。
 
-候选和正式发布证据在对应门禁实际完成后逐项追加；任何未运行项保持未勾选并明确记录 `NOT RUN`，不得用历史 v1.8.3 证据替代 v1.8.4 自身的构建、制品、镜像或线上验收。
+本记录只把实际执行的 v1.8.4-r1 构建、制品、镜像、线上复核与回滚演练写为完成；Cloud 真实账号线上保存未执行，继续由已完成的精确归档跨仓门禁与当前线上只读配置证据界定，不使用历史 v1.8.3 证据替代。
 
 ## 延期与 HOLD
 
