@@ -2,6 +2,7 @@ import type { Dispatch, RefObject, SetStateAction } from "react";
 import {
   BookOpenCheck,
   ChevronDown,
+  CloudUpload,
   FileDown,
   FileJson,
   FilePlus,
@@ -16,6 +17,7 @@ import { useDialogs } from "../contexts/DialogContext";
 
 interface AppHeaderProps {
   appVersion: string;
+  cloudWorkspaceUrl: string | null;
   fileDisplayName: string;
   fileMenuRef: RefObject<HTMLDivElement | null>;
   fileStateLabel: string;
@@ -36,6 +38,7 @@ interface AppHeaderProps {
 
 export function AppHeader({
   appVersion,
+  cloudWorkspaceUrl,
   fileDisplayName,
   fileMenuRef,
   fileStateLabel,
@@ -183,6 +186,21 @@ export function AppHeader({
                 <Save className={`mr-2 ${isCompactWorkbench ? "h-3.5 w-3.5" : "h-4 w-4"}`} />
                 保存
               </Button>
+              {cloudWorkspaceUrl ? (
+                <Button
+                  asChild
+                  variant="ghost"
+                  className={`rounded-lg font-bold text-sky-700 hover:bg-sky-500/10 hover:text-sky-800 dark:text-sky-200 dark:hover:text-sky-100 ${isCompactWorkbench ? "h-9 px-3 text-xs" : "h-10 px-3.5"}`}
+                >
+                  <a
+                    href={cloudWorkspaceUrl}
+                    title="登录云空间后创建或打开云项目；当前本地工程不会自动上传"
+                  >
+                    <CloudUpload className={`mr-2 ${isCompactWorkbench ? "h-3.5 w-3.5" : "h-4 w-4"}`} />
+                    前往云端保存
+                  </a>
+                </Button>
+              ) : null}
               <Button
                 variant="ghost"
                 disabled={isProjectReadOnly}

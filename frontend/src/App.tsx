@@ -33,7 +33,16 @@ import {
 import type { AnalysisMode } from "./types/structure";
 import type { WorkspaceState } from "./lib/workspace-state";
 import { buildModelDiagnostics } from "./lib/model-diagnostics";
-import { resolveHostAllowedOrigins, resolveWorkbenchPresentation } from "./lib/workbench-presentation";
+import {
+  resolveCloudWorkspaceUrl,
+  resolveHostAllowedOrigins,
+  resolveWorkbenchPresentation,
+} from "./lib/workbench-presentation";
+
+const SOLVER_CLOUD_WORKSPACE_URL = resolveCloudWorkspaceUrl(
+  typeof window !== "undefined" ? window.__ARCHSIGHT_SOLVER_RUNTIME_CONFIG__?.cloudWorkspaceUrl : "",
+  import.meta.env.VITE_SOLVER_CLOUD_WORKSPACE_URL,
+);
 
 const LazyBeamForm = lazy(() => import("./components/BeamForm").then((module) => ({ default: module.BeamForm })));
 const LazyFrameForm = lazy(() => import("./components/FrameForm").then((module) => ({ default: module.FrameForm })));
@@ -450,6 +459,7 @@ function AppContent() {
       {!isEmbeddedWorkbench ? (
         <AppHeader
           appVersion={APP_VERSION}
+          cloudWorkspaceUrl={SOLVER_CLOUD_WORKSPACE_URL}
           fileDisplayName={fileDisplayName}
           fileMenuRef={fileMenuRef}
           fileStateLabel={fileStateLabel}

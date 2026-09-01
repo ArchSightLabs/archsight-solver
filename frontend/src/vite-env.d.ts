@@ -11,11 +11,13 @@ interface ImportMetaEnv {
   readonly VITE_UMAMI_WEBSITE_ID?: string;
   readonly VITE_UMAMI_DOMAINS?: string;
   readonly VITE_UMAMI_TAG?: string;
+  readonly VITE_SOLVER_CLOUD_WORKSPACE_URL?: string;
   readonly VITE_SOLVER_HOST_ALLOWED_ORIGINS?: string;
 }
 
 interface Window {
   __ARCHSIGHT_SOLVER_RUNTIME_CONFIG__?: {
+    cloudWorkspaceUrl?: string;
     hostAllowedOrigins?: string;
   };
 }

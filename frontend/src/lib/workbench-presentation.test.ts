@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { resolveHostAllowedOrigins, resolveWorkbenchPresentation } from "./workbench-presentation.ts";
+import {
+  resolveCloudWorkspaceUrl,
+  resolveHostAllowedOrigins,
+  resolveWorkbenchPresentation,
+} from "./workbench-presentation.ts";
 
 test("embedded presentation is opt-in and accepts a host-owned theme", () => {
   assert.deepEqual(resolveWorkbenchPresentation("?embed=1&theme=light"), {
@@ -31,4 +35,20 @@ test("runtime host allowlist overrides the static build fallback", () => {
     "https://host.example.edu",
   );
   assert.equal(resolveHostAllowedOrigins("", "https://build.example.edu"), "https://build.example.edu");
+});
+
+test("cloud workspace entry is optional and runtime-configurable", () => {
+  assert.equal(
+    resolveCloudWorkspaceUrl(" https://cloud.archsight.cn/solver ", "https://build.example.edu/solver"),
+    "https://cloud.archsight.cn/solver",
+  );
+  assert.equal(resolveCloudWorkspaceUrl("", "https://build.example.edu/solver"), "https://build.example.edu/solver");
+  assert.equal(resolveCloudWorkspaceUrl("", ""), null);
+});
+
+test("cloud workspace entry rejects unsafe outbound URLs", () => {
+  assert.equal(resolveCloudWorkspaceUrl("javascript:alert(1)", ""), null);
+  assert.equal(resolveCloudWorkspaceUrl("https://user:secret@cloud.example/solver", ""), null);
+  assert.equal(resolveCloudWorkspaceUrl("https://cloud.example/solver?token=secret", ""), null);
+  assert.equal(resolveCloudWorkspaceUrl("https://cloud.example/solver#token", ""), null);
 });

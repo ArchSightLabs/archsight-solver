@@ -39,6 +39,7 @@ cp docker-compose.yml.example docker-compose.yml
 - `APP_HOST_PORT`：宿主机本地监听端口，默认 `6280`，仅绑定 `127.0.0.1`，供公共 Nginx 反向代理。
 - `ARCHSIGHT_GUNICORN_WORKERS`：Gunicorn worker 数量，默认 `4`。
 - `ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS`：运行时允许嵌入 Solver 的宿主 origin，多个值使用逗号分隔；必须填写完整 `http/https origin`，不接受 `*` 或子域通配。
+- `ARCHSIGHT_SOLVER_CLOUD_WORKSPACE_URL`：独立 Solver 顶栏的可选云空间入口；官方部署使用 `https://cloud.archsight.cn/solver`，留空则不显示。
 - `DEPLOY_HEALTH_TIMEOUT_SECONDS`：部署脚本等待容器健康检查的最长时间，默认 `120` 秒。
 - `DEPLOY_HEALTH_POLL_SECONDS`：部署脚本轮询容器健康状态的间隔，默认 `2` 秒。
 

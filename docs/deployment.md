@@ -58,6 +58,16 @@ docker run --rm -p 127.0.0.1:6280:6240 `
 
 该配置只接受完整的 `http/https origin`，不接受 `*`、子域通配、路径或 query。未配置时只允许同 origin 宿主。
 
+独立工作台可通过运行时环境变量提供可选的云空间入口；未配置时不显示，嵌入模式也不会重复显示：
+
+```powershell
+docker run --rm -p 127.0.0.1:6280:6240 `
+  -e ARCHSIGHT_SOLVER_CLOUD_WORKSPACE_URL=https://cloud.archsight.cn/solver `
+  archsight-solver:latest
+```
+
+该入口只负责跳转到外部云工作区，不会把当前本地工程静默上传。登录并进入宿主工作台后，后续保存由 Host Protocol 交给宿主处理。纯静态部署可使用 `VITE_SOLVER_CLOUD_WORKSPACE_URL` 作为构建期回退。
+
 ## 远程镜像标签
 
 如需推送远程镜像，先登录镜像仓库：
@@ -86,7 +96,7 @@ docker push registry.example.com/example-namespace/archsight-solver:v1.8.3
 docker compose up -d --build
 ```
 
-Compose 默认将容器内 `6240` 端口绑定到宿主机本地端口。如需调整宿主机端口，可设置 `APP_HOST_PORT`；外部宿主接入使用 `ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS` 配置运行时白名单。官方服务器的 Solver 已固定使用 `18082 -> 6240`，`18083` 已分配给 Graphics；正式发布和临时预检均不得改变或占用这两个服务的既有分配。
+Compose 默认将容器内 `6240` 端口绑定到宿主机本地端口。如需调整宿主机端口，可设置 `APP_HOST_PORT`；外部宿主接入使用 `ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS` 配置运行时白名单，可选云空间入口使用 `ARCHSIGHT_SOLVER_CLOUD_WORKSPACE_URL`。官方服务器的 Solver 已固定使用 `18082 -> 6240`，`18083` 已分配给 Graphics；正式发布和临时预检均不得改变或占用这两个服务的既有分配。
 
 公网部署时建议只通过外层 Nginx、Caddy 或同类网关暴露 `80/443`，并由网关负责 TLS、访问控制、请求体限制和审计策略。应用会把 `ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS` 同时投影为 Host Protocol 白名单和 HTML `Content-Security-Policy: frame-ancestors ...`；若网关覆盖 CSP，必须保留同等或更严格的 `frame-ancestors`，否则会重新放开未授权的视觉嵌入。
 

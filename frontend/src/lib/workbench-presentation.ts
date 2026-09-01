@@ -9,6 +9,30 @@ export function resolveHostAllowedOrigins(runtimeValue: string | null | undefine
   return runtimeValue?.trim() || buildValue?.trim() || "";
 }
 
+export function resolveCloudWorkspaceUrl(
+  runtimeValue: string | null | undefined,
+  buildValue: string | null | undefined,
+) {
+  const candidate = runtimeValue?.trim() || buildValue?.trim() || "";
+  if (!candidate) return null;
+  try {
+    const url = new globalThis.URL(candidate);
+    if (
+      (url.protocol !== "http:" && url.protocol !== "https:")
+      || !url.hostname
+      || url.username
+      || url.password
+      || url.search
+      || url.hash
+    ) {
+      return null;
+    }
+    return url.href;
+  } catch {
+    return null;
+  }
+}
+
 export function resolveWorkbenchPresentation(search: string): WorkbenchPresentation {
   const params = new globalThis.URLSearchParams(search);
   const embedValue = params.get("embed")?.trim().toLowerCase();

@@ -14,6 +14,7 @@ services:
     restart: always
     environment:
       - BEAM_SOLVER_BACKEND_PORT=6240
+      - ARCHSIGHT_SOLVER_CLOUD_WORKSPACE_URL=${ARCHSIGHT_SOLVER_CLOUD_WORKSPACE_URL:-}
     # 公共 Nginx 反向代理到宿主机本地端口；app 容器内部仍监听 6240。
     ports:
       - "127.0.0.1:${APP_HOST_PORT:-6280}:6240"

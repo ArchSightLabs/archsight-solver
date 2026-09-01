@@ -79,6 +79,10 @@ def get_host_allowed_origins() -> list[str]:
     return normalize_host_allowed_origins(os.environ.get("ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS"))
 
 
+def get_cloud_workspace_url() -> str:
+    return os.environ.get("ARCHSIGHT_SOLVER_CLOUD_WORKSPACE_URL", "").strip()
+
+
 def is_debug_enabled() -> bool:
     return os.environ.get("FLASK_DEBUG", "1").strip().lower() in {"1", "true", "yes", "on"}
 
@@ -164,6 +168,7 @@ def register_static_routes(flask_app: Flask) -> None:
     @flask_app.get("/runtime-config.js")
     def runtime_config():
         config = {
+            "cloudWorkspaceUrl": get_cloud_workspace_url(),
             "hostAllowedOrigins": ",".join(get_host_allowed_origins()),
         }
         response = flask_app.response_class(
