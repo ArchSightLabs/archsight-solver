@@ -116,11 +116,34 @@
       </button>
     </div>
     <header>
-      <span class="tag">当前版本 v1.8.3</span>
+      <span class="tag">当前版本 v1.8.4</span>
       <h1>版本发布记录</h1>
     </header>
 
     <section class="release-list" aria-label="版本发布记录">
+      <article class="release">
+        <div class="release-head">
+          <h2>v1.8.4</h2>
+          <span class="date">发布时间：2026-09-01</span>
+        </div>
+          <p class="section-label">重点改进</p>
+          <ul>
+            <li>云端入口保持可选：独立 Solver 可按部署配置显示“前往云端保存”，跳转 <code>cloud.archsight.cn/solver</code> 登录和管理云项目；嵌入模式不重复显示入口，当前本地工程不会静默上传。</li>
+            <li>保存语义更清楚：工作台把仅作用于当前模型的修改统一称为“应用工程设置”，避免与本地文件保存、宿主保存请求或未来云端保存混淆。</li>
+            <li>错误契约更稳定：未知服务端异常统一返回 HTTP 500；敏感性分析的配置错误继续使用稳定客户端错误，前端先检查 HTTP 状态再消费 JSON。</li>
+            <li>复核数据跨栈对齐：框架与桁架请求的 <code>reviewPoints</code> 进入 JSON Schema、OpenAPI、生成 DTO 和 canonical 请求回显，外部调用方不再依赖未声明字段。</li>
+            <li>依赖边界收口：计算与敏感性应用编排直接依赖分析能力，移除经由工作台服务层的反向依赖；README、路线图和架构文档同步明确开源核心与可选 Cloud 宿主边界。</li>
+          </ul>
+          <p class="section-label">兼容边界</p>
+          <ul>
+            <li>v1.8.4 与 v1.8.3 使用相同的求解算法、项目文件、Host Protocol 1.0 和数值结果契约，不新增数据库迁移。</li>
+            <li>未预期的服务端异常由 HTTP 400 修正为 HTTP 500；调用方应继续按 4xx 表示请求问题、5xx 表示服务端问题处理，不应依赖旧的错误分类。</li>
+            <li>未配置云空间地址时入口保持隐藏；开源核心不包含账号、订阅、租户或云项目存储，相关能力仍由可选 Cloud 宿主提供。</li>
+            <li>CalculationTrace canonical hash 语义迁移与共回转固定端非零指定位移的 Level 3 数值工作继续 HOLD，不纳入本补丁版本。</li>
+            <li>完整候选验证、镜像、上线与回滚证据见 [v1.8.4 发布验收](docs/verification/release-1-8-4-acceptance.md)。</li>
+          </ul>
+      </article>
+
       <article class="release">
         <div class="release-head">
           <h2>v1.8.3</h2>

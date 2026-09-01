@@ -35,7 +35,7 @@ def test_solver_version_falls_back_to_source_project_metadata(monkeypatch):
 
     monkeypatch.setattr(verification_package.metadata, "version", missing_distribution)
 
-    assert _solver_version() == "1.8.3"
+    assert _solver_version() == "1.8.4"
 
 
 def test_verification_package_replays_and_validates_integrity():

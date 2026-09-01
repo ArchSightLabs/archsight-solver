@@ -47,7 +47,7 @@ jobs:
         shell: bash
         run: |
           python scripts/check_versions.py --expected-version "${VERSION#v}"
-          python scripts/check_release_gate.py
+          python scripts/check_release_gate.py --phase release
           python scripts/generate_contract_types.py --check
 
       - name: Install dependencies
@@ -93,6 +93,7 @@ jobs:
           npm --prefix frontend run test:visual -- release-1-6-host-integration.spec.ts --project=chromium --workers=1
           npm --prefix frontend run test:visual -- release-1-5-quick-modeling.spec.ts --project=chromium --workers=1
           npm --prefix frontend run test:visual -- release-1-5-load-scenarios.spec.ts --project=chromium --workers=1
+          npm --prefix frontend run test:visual -- cloud-workspace-entry.spec.ts --project=chromium --project=firefox --project=webkit --workers=1
           npm --prefix frontend run test:visual:export-docx
 
       - name: Build release image
@@ -105,7 +106,8 @@ jobs:
         run: |
           docker run --detach --name solver-release \
             --publish 127.0.0.1:6280:6240 \
-            --env ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS=http://127.0.0.1:6250 \
+            --env ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS=http://127.0.0.1:6250,https://cloud.archsight.cn \
+            --env ARCHSIGHT_SOLVER_CLOUD_WORKSPACE_URL=https://cloud.archsight.cn/solver \
             "$LOCAL_IMAGE"
           for attempt in $(seq 1 20); do
             status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}' solver-release)"
@@ -132,6 +134,17 @@ jobs:
           --project=chromium
           --workers=1
           --grep "同一 canonical 工程在嵌入工作台"
+
+      - name: Run built image Cloud workspace entry
+        env:
+          ARCHSIGHT_SOLVER_E2E_URL: http://127.0.0.1:6280
+          ARCHSIGHT_SOLVER_E2E_CLOUD_WORKSPACE_URL: https://cloud.archsight.cn/solver
+        run: >-
+          npm --prefix frontend run test:visual --
+          cloud-workspace-entry.spec.ts
+          --project=chromium
+          --workers=1
+          --grep "正式容器"
 
       - name: Run built image real GNA teaching evidence gate
         env:

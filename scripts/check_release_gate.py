@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import sys
@@ -10,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_PATHS = (
     ".github/workflows/release.yml",
     ".github/workflows/nightly-quality.yml",
+    "docs/verification/release-1-8-4-acceptance.md",
     "docs/verification/release-1-8-3-acceptance.md",
     "docs/verification/release-1-8-2-acceptance.md",
     "docs/verification/release-1-8-1-acceptance.md",
@@ -38,6 +40,7 @@ REQUIRED_PATHS = (
     "frontend/tests/visual/release-1-8-workbench-accessibility.spec.ts",
     "frontend/tests/visual/release-1-8-1-real-teaching-e2e.spec.ts",
     "frontend/tests/visual/release-1-8-3-polish.spec.ts",
+    "frontend/tests/visual/cloud-workspace-entry.spec.ts",
     "frontend/tests/visual/workbench-export-docx.spec.ts",
     "scripts/run_host_iframe_demo.py",
     "scripts/build-image.ps1",
@@ -53,14 +56,14 @@ REQUIRED_MARKERS = {
         "维护者明确说出要发布的版本号",
     ),
     "CHANGELOG.md": (
-        "## v1.8.3",
-        "公开内容分层",
-        "图形真实边界适配",
-        "不改变数值结果",
+        "## v1.8.4",
+        "云端入口保持可选",
+        "错误契约更稳定",
+        "HTTP 400 修正为 HTTP 500",
     ),
-    "docs/verification/release-1-8-3-acceptance.md": (
-        "公开内容与中文展示",
-        "图形与计算书一致性",
+    "docs/verification/release-1-8-4-acceptance.md": (
+        "可选 Cloud 入口",
+        "HTTP 400 → 500",
         "127.0.0.1:18082 -> app:6240",
         "未完成项不得提前勾选",
     ),
@@ -78,7 +81,12 @@ REQUIRED_MARKERS = {
         "荷载因子",
         "技术审计信息",
     ),
-    "app.py": ("ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS", 'Cache-Control', "frame-ancestors"),
+    "app.py": (
+        "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS",
+        "ARCHSIGHT_SOLVER_CLOUD_WORKSPACE_URL",
+        'Cache-Control',
+        "frame-ancestors",
+    ),
     "Dockerfile": (
         "USER app",
         "HEALTHCHECK",
@@ -142,6 +150,7 @@ REQUIRED_MARKERS = {
         "release-1-8-workbench-accessibility.spec.ts",
         "release-1-8-1-real-teaching-e2e.spec.ts",
         "release-1-8-3-polish.spec.ts",
+        "cloud-workspace-entry.spec.ts",
         "workbench-export-docx.spec.ts",
         "npm ci --include=optional",
         "npm --prefix frontend ci --include=optional",
@@ -176,6 +185,7 @@ REQUIRED_MARKERS = {
         "release-1-8-workbench-accessibility.spec.ts",
         "release-1-8-1-real-teaching-e2e.spec.ts",
         "release-1-8-3-polish.spec.ts",
+        "cloud-workspace-entry.spec.ts",
         "test:visual:export-docx",
         "npm --prefix frontend ci --include=optional",
         "npm --prefix frontend audit --omit=dev --audit-level=moderate",
@@ -194,13 +204,26 @@ REQUIRED_MARKERS = {
         "release-1-8-stability-keypoints.spec.ts",
         "release-1-8-calculation-trace.spec.ts",
         "release-1-8-workbench-accessibility.spec.ts",
+        "cloud-workspace-entry.spec.ts",
         "browser: [chromium, firefox, webkit]",
         "npm --prefix frontend ci --include=optional",
     ),
 }
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="检查 Solver 发布工程门禁。")
+    parser.add_argument(
+        "--phase",
+        choices=("candidate", "release"),
+        default="candidate",
+        help="candidate 允许准备中的候选只完成 Gate A-C；release 要求 Gate A-E 全部完成。",
+    )
+    return parser.parse_args()
+
+
 def main() -> int:
+    args = parse_args()
     failures: list[str] = []
     for relative_path in REQUIRED_PATHS:
         if not (ROOT / relative_path).is_file():
@@ -226,42 +249,66 @@ def main() -> int:
     if build_script_path.is_file() and "DOCKER_BUILDKIT" in build_script_path.read_text(encoding="utf-8"):
         failures.append("scripts/build-image.ps1 不得回退到已弃用的 Legacy Builder")
 
-    current_acceptance_path = ROOT / "docs/verification/release-1-8-3-acceptance.md"
+    current_acceptance_path = ROOT / "docs/verification/release-1-8-4-acceptance.md"
     if current_acceptance_path.is_file():
         acceptance = current_acceptance_path.read_text(encoding="utf-8")
-        status_match = re.search(r"^> 状态：(发布候选就绪|已发布)\s*$", acceptance, flags=re.MULTILINE)
+        status_match = re.search(
+            r"^> 状态：(发布候选准备中|发布候选就绪|已发布)\s*$",
+            acceptance,
+            flags=re.MULTILINE,
+        )
         if not status_match:
-            failures.append("v1.8.3 发布验收状态必须为‘发布候选就绪’或‘已发布’")
+            failures.append("v1.8.4 发布验收状态必须为‘发布候选准备中’、‘发布候选就绪’或‘已发布’")
+        candidate_gate_heading = "## Gate D：候选制品与回滚准备"
         release_gate_heading = "## Gate F：正式发布与线上验收"
+        if candidate_gate_heading not in acceptance:
+            failures.append("v1.8.4 发布验收缺少 Gate D 候选制品与回滚准备")
         candidate_scope = acceptance.split(release_gate_heading, maxsplit=1)[0]
         if release_gate_heading not in acceptance:
-            failures.append("v1.8.3 发布验收缺少 Gate F 正式发布与线上验收")
-        checked_scope = acceptance if status_match and status_match.group(1) == "已发布" else candidate_scope
+            failures.append("v1.8.4 发布验收缺少 Gate F 正式发布与线上验收")
+        status = status_match.group(1) if status_match else None
+        if args.phase == "release" and status not in {"发布候选就绪", "已发布"}:
+            failures.append("v1.8.4 Tag 发布前验收状态必须为‘发布候选就绪’或‘已发布’")
+        if status == "已发布":
+            checked_scope = acceptance
+            phase = "正式发布"
+        elif status == "发布候选就绪" or args.phase == "release":
+            checked_scope = candidate_scope
+            phase = "发布候选"
+        else:
+            checked_scope = acceptance.split(candidate_gate_heading, maxsplit=1)[0]
+            phase = "候选准备"
         unchecked_items = re.findall(r"^- \[ \] ", checked_scope, flags=re.MULTILINE)
         if unchecked_items:
-            phase = "正式发布" if status_match and status_match.group(1) == "已发布" else "发布候选"
-            failures.append(f"v1.8.3 {phase}范围仍有 {len(unchecked_items)} 项未完成")
+            failures.append(f"v1.8.4 {phase}范围仍有 {len(unchecked_items)} 项未完成")
 
     deploy_expectations = {
         "deploy/.env.example": (
-            "IMAGE_TAG=v1.8.3",
+            "IMAGE_TAG=v1.8.4",
             "NODE_IMAGE=public.ecr.aws/docker/library/node:22-bookworm-slim@sha256:",
             "PYTHON_IMAGE=public.ecr.aws/docker/library/python:3.13-slim@sha256:",
             "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS=",
+            "ARCHSIGHT_SOLVER_CLOUD_WORKSPACE_URL=https://cloud.archsight.cn/solver",
         ),
         "deploy/docker-compose.yml.example": (
-            "${IMAGE_TAG:-v1.8.3}",
+            "${IMAGE_TAG:-v1.8.4}",
             "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS: ${ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS:-}",
+            "ARCHSIGHT_SOLVER_CLOUD_WORKSPACE_URL: ${ARCHSIGHT_SOLVER_CLOUD_WORKSPACE_URL:-}",
         ),
         "deploy/deploy.sh": (
-            '${IMAGE_TAG:-v1.8.3}',
+            '${IMAGE_TAG:-v1.8.4}',
             'ps --all --quiet',
             "docker inspect --format",
             "DEPLOY_HEALTH_TIMEOUT_SECONDS",
             "logs --tail=100",
             "wait_for_services_healthy",
         ),
-        "docs/deployment.md": ("archsight-solver:v1.8.3", "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS", "VITE_UMAMI_WEBSITE_ID"),
+        "docs/deployment.md": (
+            "archsight-solver:v1.8.4",
+            "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS",
+            "ARCHSIGHT_SOLVER_CLOUD_WORKSPACE_URL",
+            "VITE_UMAMI_WEBSITE_ID",
+        ),
     }
     for relative_path, expected_markers in deploy_expectations.items():
         text = (ROOT / relative_path).read_text(encoding="utf-8")

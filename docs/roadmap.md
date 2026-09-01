@@ -97,7 +97,7 @@ ArchSight Solver 是面向结构工程师、高校教师和进阶学习者的开
 
 ## 版本历史边界
 
-- 当前稳定版本为 v1.8.3；当前发布事实见 [v1.8.3 发布验收](verification/release-1-8-3-acceptance.md)。
+- 当前稳定版本为 v1.8.4；当前发布事实见 [v1.8.4 发布验收](verification/release-1-8-4-acceptance.md)。
 - v1.8.0 的 P-Delta 与线性屈曲发布门禁已经完成，历史验收口径见 [v1.8.0 发布验收](verification/release-1-8-acceptance.md)，不得继续描述为待发布能力。
 - v1.7.x 及更早版本的功能变化统一查阅 [CHANGELOG](../CHANGELOG.md) 和相应发布验收记录，不在本路线图重复逐版叙述。
 

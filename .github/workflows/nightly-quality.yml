@@ -87,6 +87,7 @@ jobs:
           npm --prefix frontend run test:visual -- release-1-7-learning-paths.spec.ts --project=${{ matrix.browser }} --workers=1 --reporter=list
           npm --prefix frontend run test:visual -- release-1-8-stability-keypoints.spec.ts --project=${{ matrix.browser }} --workers=1 --reporter=list
           npm --prefix frontend run test:visual -- release-1-8-calculation-trace.spec.ts --project=${{ matrix.browser }} --workers=1 --reporter=list
+          npm --prefix frontend run test:visual -- cloud-workspace-entry.spec.ts --project=${{ matrix.browser }} --workers=1 --reporter=list
           npm --prefix frontend run test:visual -- release-1-8-workbench-accessibility.spec.ts --project=${{ matrix.browser }} --workers=1 --reporter=list
 
       - name: Upload browser evidence on failure
