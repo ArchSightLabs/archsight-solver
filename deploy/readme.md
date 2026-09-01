@@ -2,7 +2,7 @@
 
 本目录用于服务器生产部署，部署方式为：拉取已构建好的应用镜像，将应用容器绑定到宿主机本地端口，再由公共 Nginx 反向代理。
 
-本目录默认配置已对齐 v1.8.4；候选、Tag Release、正式镜像和线上状态分别以 [v1.8.4 发布验收](../docs/verification/release-1-8-4-acceptance.md) 为准。升级前的正式基线为阿里云精确标签 `v1.8.3-5f4c544`，固定绑定发布提交 `5f4c544`；该标签及更早精确镜像继续作为回滚资产保留。
+本目录默认配置已对齐 v1.8.4；候选、Tag Release、正式镜像和线上状态分别以 [v1.8.4 发布验收](../docs/verification/release-1-8-4-acceptance.md) 为准。升级前的现网基线为阿里云精确修订标签 `v1.8.3-8317ec9`；不可变 v1.8.3 发布基线 `v1.8.3-5f4c544` 及更早精确镜像继续作为回滚资产保留。
 
 ## 目录结构
 
@@ -114,7 +114,7 @@ docker compose logs --tail=200 app
 若健康检查失败、核心求解不可用或导出链路异常，使用更新前记录的不可变标签重新执行部署。以下示例回退到上一正式版本；实际标签以发布记录为准：
 
 ```bash
-./deploy.sh v1.8.3-5f4c544
+./deploy.sh v1.8.3-8317ec9
 docker inspect --format '{{.Config.Image}} {{if .State.Health}}{{.State.Health.Status}}{{end}}' archsight-solver-app
 ```
 

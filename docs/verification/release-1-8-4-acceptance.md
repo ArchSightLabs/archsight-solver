@@ -1,6 +1,6 @@
 # ArchSight Solver v1.8.4 发布验收记录
 
-> 状态：发布候选准备中
+> 状态：发布候选就绪
 > 目标版本：`v1.8.4`
 > 验收原则：v1.8.4 只收口 v1.8.3 发布后的低风险契约、依赖边界、保存语义与可选 Cloud 入口；仓库版本、Git Tag、GitHub Release、阿里云镜像与线上容器分别验收，未完成项不得提前勾选。
 
@@ -34,16 +34,16 @@
 
 ## Gate D：候选制品与回滚准备
 
-- [ ] 阿里云候选/正式精确镜像绑定发布提交，推送后回拉核对 digest，并在不占用 `18082/18083` 的隔离端口预检。
-- [ ] 升级前记录生产镜像、端口、健康状态与 `.env` 备份路径；直接回滚镜像固定为 `v1.8.3-5f4c544`。
+- [x] 阿里云候选/正式精确镜像绑定发布提交，推送后回拉核对 digest，并在不占用 `18082/18083` 的隔离端口预检。
+- [x] 升级前记录生产镜像、端口、健康状态与 `.env` 备份路径；直接回滚镜像固定为现网已验证修订 `v1.8.3-8317ec9`，不可变发布基线 `v1.8.3-5f4c544` 同时保留。
 - [x] v1.8.4 不含数据库迁移；镜像回滚不会产生数据格式恢复步骤。
 
 ## Gate E：候选确认与发布授权
 
-- [ ] 功能候选提交推送到 `main`，精确 SHA 的后端、前端、Windows 原生构建、提交治理和 Docker 发布门禁全部通过；后续只记录发布证据的文档提交不得改变候选产品树。
-- [ ] Cloud 提交 `5e304825836da4e423843b0a407cb97cdd1cb762` 使用 `--solver-ref <精确候选 SHA>` 完成 Chromium、Firefox、WebKit 全门禁，且 `solverWorktreeUnchanged=true`。
+- [x] 功能候选提交推送到 `main`，精确 SHA 的后端、前端、Windows 原生构建、提交治理和 Docker 发布门禁全部通过；后续只记录发布证据的文档提交不得改变候选产品树。
+- [x] Cloud 提交 `5e304825836da4e423843b0a407cb97cdd1cb762` 使用 `--solver-ref <精确候选 SHA>` 完成 Chromium、Firefox、WebKit 全门禁，且 `solverWorktreeUnchanged=true`。
 - [x] 维护者已明确授权“上线 v1.8.4”，版本号和外部状态变更边界清楚。
-- [ ] 本次同日上线按补丁发布处理：没有新的数值或持久化范围，使用完整本地门禁、精确 SHA CI、隔离镜像预检与可回滚部署替代默认 24 小时候选观察；该例外不得解释为已完成 24 小时观察。
+- [x] 本次同日上线按补丁发布处理：没有新的数值或持久化范围，使用完整本地门禁、精确 SHA CI、隔离镜像预检与可回滚部署替代默认 24 小时候选观察；该例外不得解释为已完成 24 小时观察。
 
 ## Gate F：正式发布与线上验收
 
@@ -56,7 +56,12 @@
 
 ## 验收证据
 
-截至 2026-09-01 的候选证据：后端 `748 passed, 2 skipped`；前端 `458 passed`，lint（含 `tsc --noEmit`）、生产构建与两档 npm audit 通过；三浏览器 Cloud 入口 `9 passed, 3 skipped`，其中 3 项为只在正式容器启用的预期跳过；wheel、sdist、Host Client tarball 的构建、安装态与内容检查通过；候选容器 `healthy`，正式容器 Cloud 入口 `1 passed`，真实 Host canonical 保存/重开 `1 passed`，真实 GNA 与图形路径 `5 passed`。Cloud 提交 `5e304825836da4e423843b0a407cb97cdd1cb762` 对当前 Solver 工作树完成登录续接、项目保存/打开、修订恢复和 Chromium/Firefox/WebKit 全门禁，且未放宽 600 秒上限；Cloud 提交保持本地未推送、未部署。
+截至 2026-09-01 的候选证据：后端 `748 passed, 2 skipped`；前端 `458 passed`，lint（含 `tsc --noEmit`）、生产构建与两档 npm audit 通过；三浏览器 Cloud 入口 `9 passed, 3 skipped`，其中 3 项为只在正式容器启用的预期跳过；wheel、sdist、Host Client tarball 的构建、安装态与内容检查通过；候选容器 `healthy`，正式容器 Cloud 入口 `1 passed`，真实 Host canonical 保存/重开 `1 passed`，真实 GNA 与图形路径 `5 passed`。
+
+- 功能候选提交 `8bdd706fc0ce1ea78242922a604a078f0134ef9c` 已推送；[main CI 33480197675](https://github.com/ArchSightLabs/archsight-solver/actions/runs/33480197675) 的提交治理、后端、前端、Windows 原生构建和 Docker 发布门禁全部通过。
+- Cloud 提交 `5e304825836da4e423843b0a407cb97cdd1cb762` 使用 `--solver-ref 8bdd706fc0ce1ea78242922a604a078f0134ef9c` 完成精确归档门禁：Chromium、Firefox、WebKit 全通过，耗时 318.939 秒，归档 SHA256 为 `92c0f4fbdaeaf7ccd9074d7807ed16b29c94dad49760964ec12d29d6335e5621`，`solverWorktreeUnchanged=true`；该 Cloud 提交已按 Cloud 任务中的独立用户授权推送，但未部署 Cloud。
+- 阿里云候选镜像 `v1.8.4-8bdd706` 已推送并在本地、生产机回拉核对，仓库摘要为 `sha256:bf7538572f2f5c28e50740580c13ecc598afe97f1b51544569e0eca7b727bf29`，镜像 ID 为 `sha256:f2f712836017bd0b1367abc8e4af0a57b55b5d61100d918a7c7fe102c8e27b91`。同一镜像在生产机 `28082` 隔离预检达到 `healthy`、HTTP 200、重启 0，运行时 Cloud 地址、宿主白名单和 CSP 正确，临时容器随后删除；现网 `18082` 全程保持 `v1.8.3-8317ec9` healthy、重启 0。
+- 升级前生产事实已冻结：`127.0.0.1:18082 -> app:6240`，当前镜像 `v1.8.3-8317ec9@sha256:53130c2a3f237e825f98f421a855b78e8c5e77b59e4954f320294ad7e09fd017`，环境备份 `/root/archsight-solver/.env.pre-v1.8.4-20260901T071130Z` 与原文件 SHA256 同为 `c1cb97093bbfd31a8ffea07d4b8826df920cf9ac9e614acf2dec8877297e1ac1`；`v1.8.3-5f4c544` 仍在生产机保留。
 
 候选和正式发布证据在对应门禁实际完成后逐项追加；任何未运行项保持未勾选并明确记录 `NOT RUN`，不得用历史 v1.8.3 证据替代 v1.8.4 自身的构建、制品、镜像或线上验收。
 
