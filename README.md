@@ -67,88 +67,15 @@ npm --prefix frontend run test:unit
 
 详细功能边界见 [功能与适用边界](docs/capabilities.md)。
 
-## v1.8.3 版本主题
+## 当前版本：v1.8.3
 
-v1.8.3 继续收口 Solver 1.8 的专业交付体验：公开验证工程与五分钟学习路径分层呈现，页面面向用户的摘要统一为中文工程表达；受力变形、弯矩、剪力、挠度和轴力图按真实模型范围自适应，并与计算书共享同一图形适配和关键点标注口径。
+v1.8.3 已于 2026-08-25 发布，继续收口 Solver 1.8 的专业交付体验：公开验证工程与五分钟学习路径分层呈现，面向用户的摘要统一为中文工程表达，图形与计算书共享真实模型范围适配和关键点标注口径。
 
-当前状态：**已发布并上线（2026-08-25）**。不可变 `v1.8.3` Tag 固定发布提交，GitHub Release 提供 7 份可校验制品；官方演示站运行阿里云精确镜像 `v1.8.3-5f4c544`。线上真实复算、GNA/GNIA、线性屈曲、关键图形及 DOCX/XLSX 导出均已通过，`v1.8.2-1fdbf13` 作为直接回滚点继续保留。
-
-- 关键点的类型、指标、来源、状态、方法名称和单位优先使用中文工程表达，机器字段只进入可折叠技术审计信息。
-- 计算过程按“输入规范化—自由度映射—整体装配—边界约化—求解与校核”显示中文摘要，仍保留完整哈希和可复算证据。
-- 端点、反弯点、局部极值和全局极值可按类别控制；工作台与计算书共享标注选择，图形默认优先显示控制性结论。
-- 受力变形、内力图、过程播放和稳定审查修复文字重叠、裁切与无意义滚动，同时保留点表、详细计算书和可信计算包中的完整数值。
-- 公开工程案例与五分钟学习路径改为同一弹窗内的两个一级入口，避免把教学导航误认为新的验证工程。
-- 本补丁不改变 v1.8.1/v1.8.2 的 GNA/GNIA、线性屈曲或一次分析数值，也不新增结构类型、账号、云项目或规范设计能力。
+- 仓库、发行包和 Host Client 的稳定版本为 `1.8.3`，发布容器标签为 `v1.8.3`。
+- 本补丁不改变既有 GNA/GNIA、线性屈曲或一次分析数值，也不新增结构类型、账号、云项目或规范设计能力。
+- 完整发布事实、验证证据和回滚边界见 [v1.8.3 发布验收](docs/verification/release-1-8-3-acceptance.md)；历次版本变化统一查阅 [CHANGELOG](CHANGELOG.md)。
 
 直接开始：[公开案例与五分钟学习路径](https://solver.archsight.cn/) · [五分钟安装路径](docs/quickstart.md) · [可信计算包指南](docs/verification-package.md) · [English entry](README.en.md)
-
-完整验证证据、Tag Release 门禁与回滚边界见 [v1.8.3 发布验收](docs/verification/release-1-8-3-acceptance.md)。v1.8.2 的历史发布事实继续保留在 [v1.8.2 发布验收](docs/verification/release-1-8-2-acceptance.md)。
-
-## v1.3.0 发布重点
-
-相对 v1.2.0，v1.3.0 的重点是把工作台从“可验证、可查看”推进到“更适合交付计算书”的专业闭环：
-
-- 框架与桁架计算书改用前端同源工程图，修复旧版本 DOCX 中框架、桁架图形口径不一致、不够可信的问题。
-- 工作台统一为“模板 / 基本 / 对象 / 文本 / 表格”五页签，框架对象入口补齐荷载工况与荷载组合。
-- 新增“两端固结均布荷载”“一端固结一端简支”“坡屋面门式刚架”“平行弦桁架”等高频模板。
-- 修复常规模型默认预览出现不必要内嵌滚动条的问题，并用三浏览器视觉回归锁定桌面工作台高度。
-
-## v1.5.0 发布目标
-
-v1.5.0 跳过 v1.4.1，直接收口 v1.4.0 发布后的遗留事项，重点是把“三类分析对象的荷载工况、结果来源和导出记录”做成一致闭环：
-
-- 梁系和平面桁架补齐荷载工况 / 荷载组合编辑入口，达到平面框架同等级的可视化编辑能力。
-- 结果页统一显示“主结果 / 工况 / 组合”来源，受力变形、工程图、数据曲线和摘要随当前来源一致切换。
-- 结构模型诊断中心在求解前提示支座约束不足、孤立节点/杆件、组合引用丢失、刚度异常和桁架不适用字段。
-- DOCX / XLSX 导出记录当前结果来源和“草稿 / 可审阅”状态，避免计算书读者混淆基本荷载、指定工况和指定组合。
-- ASMS-JSON、项目文件、JSON Schema、OpenAPI 和导出证据统一记录 `schemaVersion`，降低 Agent、CLI、MCP 和公开贡献者的字段漂移风险。
-- v1.4.0 后的 esbuild 二进制完整性告警修复纳入 v1.5.0 发布基线，不再单独发布 v1.4.1。
-- 温度作用仍限定为“线弹性静力 + 平面框架构件均匀温差”；截面温度梯度、瞬态热传导、混凝土徐变松弛和桥梁专用温度场分析不进入 v1.5.0 承诺范围。
-
-发布范围、验收口径和后续质量路线见 [路线图](docs/roadmap.md)。
-
-## v1.6.3 发布重点
-
-v1.6.3 是 v1.6.2 的可靠性与专业验证补丁，于 2026-08-07 发布。`v1.6.3` tag 与 GitHub Release 固定本次代码基线，发布工作流生成不可变 GHCR 镜像、离线镜像归档、漏洞报告、SBOM 与校验和；其他镜像仓库推送和线上服务器更新仍由维护者独立执行。
-
-- 修复前端依赖风险并加强生产依赖、构建工具链与 Windows 原生可选绑定门禁。
-- 部署脚本等待全部容器进入 `healthy` 后才返回成功，Docker 构建继续使用固定 digest，并支持同 digest 的备用官方镜像源。
-- `/api/jobs` 的 `X-Tenant-Id` 可通过 OpenAPI 与 CORS 预检发现，但仍只用于 `clientJobId` 幂等命名空间，不是认证或访问隔离字段。
-- 公开验证集达到 66 个通过算例；26 个 B 级算例均由仓库内独立刚度法基线复跑，坐标变换、全局竖向荷载和轴向斜撑获得更直接的交叉验证。
-- nightly 持续复跑三类结构规模基线和三浏览器计算书导出，不把单次性能结果包装为线上承诺。
-
-完整候选证据、Tag Release 门禁与回滚边界见 [v1.6.3 发布验收](docs/verification/release-1-6-3-acceptance.md)。
-
-## v1.6.2 发布重点
-
-v1.6.2 的统一主题是“Solver 工作台与宿主接入成熟度”：先让工程生命周期、诊断、结果来源和导出边界可持续使用，再让 Host Protocol、轻量 Client 和 Reference Host 稳定复用同一套能力。
-
-当前状态：**已发布（2026-07-21）**。`v1.6.2` tag 与 GitHub Release 固定本次代码基线，发布工作流生成不可变 GHCR 镜像、离线镜像归档、漏洞报告、SBOM 与校验和；其他镜像仓库推送和服务器更新仍由维护者独立执行。
-
-- 独立模式与嵌入模式共享工程打开、修改、保存、恢复、只读和结果有效性契约。
-- 结构化诊断提供对象定位、原因和处理建议；结果记录模型签名与请求来源，陈旧结果不能导出。
-- [Host Protocol 1.0](docs/host-protocol-1.md) 明确状态机、错误、兼容和弃用规则，[Solver Host Client](docs/host-client.md) 减少宿主直接处理 `postMessage`。
-- 同一份 canonical `.slv` 在本仓库 Reference Host 和独立工作台中完成基础全链路，不修改或依赖 `archsight-solver-platform`。
-
-完整门禁与从线上 v1.6.0 直接升级、回滚的操作边界见 [v1.6.2 发布验收](docs/verification/release-1-6-2-acceptance.md)。
-
-## v1.6.1 发布重点
-
-v1.6.1 的发布方向是“仓库内置 Reference Host 验证 + 项目契约可靠性”，不是把开源核心做成商业平台。本版直接服务需要把 Solver 嵌入现有业务页面的前端接入开发者，并用本仓库配套 DEMO 证明最基础的加载、修改、保存、刷新重开和只读审阅闭环，不依赖 `archsight-solver-platform` 或其他外部项目完成验收，也不以第三方团队数量或商业试点作为发布门槛。
-
-当前状态：**已发布（2026-07-16）**。`v1.6.1` tag 与 GitHub Release 固定本次代码基线；线上镜像可由维护者另行手动构建和推送，运行中部署是否更新独立安排。
-
-- `uv run python scripts/run_host_iframe_demo.py` 一条命令启动两个真实 origin，演示 launch、项目变更、托管保存和刷新重开。
-- Reference Host 由宿主管理工程新建、打开、保存和只读审阅；Solver 使用 `embed=1` 仅呈现结构分析工作台，不重复平台级文件、案例、投稿、主题和系统设置入口。
-- Host iframe 消息协议继续使用精确 origin allowlist、sessionId、nonce 和父窗口来源约束，不向 `*` 发送 ready 或项目文档。
-- Reference Host 在 launch 前检查 Solver 的必要 capabilities，并为宿主发起的保存请求提供超时失败反馈，避免旧实现被误判为可接入。
-- 正式镜像同时使用运行时 allowlist 和 CSP `frame-ancestors` 限制宿主来源；CI 会对构建后的镜像运行真实跨域保存与重开测试。
-- `.slv` 项目文件 manifest、导出 artifact manifest、稳定 integration API 错误码和 JSON Schema registry。
-- `project_document_health` CLI / MCP 工具，检查项目文件版本、manifest、对象分布、活动对象、迁移诊断和托管就绪状态。
-- 工作台“项目契约”面板，直接展示项目文档、schema、manifest、host readiness 和导出证据链摘要。
-- `project_template_registry` CLI / MCP 工具，公开内置模板的结构体系、主要结果指标、可用入口、支持动作和 benchmark 映射。
-
-完整任务边界见 [路线图](docs/roadmap.md)，参考接入见 [Host iframe Reference](examples/host-iframe-demo/README.md)，发布复核见 [v1.6.1 发布验收清单](docs/verification/release-1-6-1-acceptance.md)。
 
 ## 公开数据协议
 
@@ -159,6 +86,8 @@ ArchSight Solver 使用 **ASMS-JSON** 作为结构模型入口标准，让 Web�
 - Agent 集成指南：[Agent 集成指南](docs/agent-integration.md)
 - Agent 调用闭环：[Agent 工程流样例](docs/agent-engineering-workflow.md)
 - MCP 资源清单：[MCP Resources 清单与生成口径](docs/mcp-resources.md)
+
+面向前端接入开发者，仓库提供 [Host Protocol 1.0](docs/host-protocol-1.md)、[Solver Host Client](docs/host-client.md) 和 [Reference Host](examples/host-iframe-demo/README.md)。该接入闭环不依赖 `archsight-solver-platform` 或其他外部项目完成验收，开源核心也不包含账号、租户、订阅或云端项目存储。
 
 ## 公开验证
 
@@ -174,39 +103,40 @@ uv run python -m backend.benchmarks.catalog_summary --output docs/verification/b
 
 ## 文档入口
 
-| 文档 | 用途 | 状态 |
-|---|---|---|
-| [快速开始与本地工具](docs/quickstart.md) | 本地启动、测试、CLI、MCP 与公开案例接口 | 当前快速开始 |
-| [功能与适用边界](docs/capabilities.md) | 功能范围、适用人群、身份边界与非目标 | 当前能力说明 |
-| [可信计算包指南](docs/verification-package.md) | 工作台、REST、CLI、MCP 的生成、完整性校验与复算 | 当前证据契约 |
-| [三条黄金流程](docs/golden-flows.md) | 工程师、教师/学习者、开发者的可复跑成功路径 | 当前验收入口 |
-| [English README](README.en.md) | English quickstart, capabilities, verification, and boundaries | Current English entry |
-| [结构力学入门](docs/learning/README.md) | 梁系、平面桁架、平面框架的概念、术语和图形入门 | 当前学习入口 |
-| [源码目录说明](docs/source-layout.md) | 后端、前端、数据、测试和本地忽略目录说明 | 当前源码导航 |
-| [版本发布记录](CHANGELOG.md) | 仓库级发布记录；前端发布记录页面由该文件同步生成 | 当前发布记录 |
-| [部署说明](docs/deployment.md) | Docker 单镜像、远程镜像标签与 Compose 部署 | 当前部署说明 |
-| [访问统计与隐私边界](docs/analytics-and-privacy.md) | Busuanzi 公开 PV/UV、Umami 匿名事件及非采集字段 | 当前统计契约 |
-| [路线图](docs/roadmap.md) | 开源路线、三模块边界、v1.5 发布范围与后续质量路线 | 当前主路线 |
-| [ArchSight Structural Solver API Reference](docs/api-reference.md) | REST API、CLI、MCP 与错误码 | 当前 API 参考 |
-| [MCP Resources 清单与生成口径](docs/mcp-resources.md) | MCP Resources URI、仓库事实源、更新责任和验收检查 | 当前 MCP 资源清单 |
-| [Agent 集成指南](docs/agent-integration.md) | REST API、CLI、MCP 三类 Agent/自动化集成入口 | 当前集成指南 |
-| [Agent 工程流样例](docs/agent-engineering-workflow.md) | 自然语言工况到 ASMS-JSON、REST/CLI/MCP、benchmark 与计算书的 Agent 调用闭环 | 当前集成样例 |
-| [ASMS-JSON / Model Schema](docs/asms-json-schema.md) | Web/API/CLI/MCP/benchmark 的共同模型入口 | 当前数据协议 |
-| [工程文本模型规范](docs/text-model-spec.md) | 梁、框架、桁架文本模型导入导出口径 | 当前工程契约 |
-| [Benchmark 方法论](docs/verification/benchmark-methodology.md) | 公开验证集分层、指标选择、投稿校验和宣传边界 | 当前验证方法 |
-| [公开验证集报告](docs/verification/benchmark-validation-report.md) | 当前公开验证集自动生成报告 | 当前验证报告 |
-| [Benchmark 算例目录摘要](docs/verification/benchmark-catalog-summary.md) | 按结构体系列出算例目的、来源、标准值、容差和模板映射 | 当前验证摘要 |
-| [跨浏览器视觉回归](docs/verification/visual-regression.md) | 前端工作台视觉回归说明 | 当前验证说明 |
-| [发布治理](docs/release-governance.md) | `x.y.0` 用户价值门槛、观察窗口、确认和不可变发布规则 | 当前发布规则 |
-| [v1.8.3 发布验收](docs/verification/release-1-8-3-acceptance.md) | 公开内容分层、中文展示投影、真实几何适配、图形与计算书一致性 | 当前发布验收 |
-| [v1.8.2 发布验收](docs/verification/release-1-8-2-acceptance.md) | 中文工程表达、图形可读性、计算书一致性、制品与线上发布证据 | v1.8.2 历史基线 |
-| [v1.8.1 发布验收](docs/verification/release-1-8-1-acceptance.md) | 可复算几何非线性、过程播放、方法比较、失败证据与正式制品证据 | v1.8.1 历史基线 |
-| [v1.7.0 发布验收](docs/verification/release-1-7-acceptance.md) | 可信计算包、开放分发、学习复核路径、三浏览器与正式制品证据 | v1.7.0 历史基线 |
-| [v1.6.3 发布验收](docs/verification/release-1-6-3-acceptance.md) | 可靠性补丁、验证证据、镜像与发布授权边界 | v1.6.3 发布基线 |
-| [v1.6.2 发布验收](docs/verification/release-1-6-2-acceptance.md) | 工作台与宿主接入统一验收、镜像门禁、升级与回滚 | v1.6.2 发布基线 |
-| [v1.6.1 发布验收清单](docs/verification/release-1-6-1-acceptance.md) | 真实双 origin Reference Host、项目契约、版本与发布门禁 | v1.6.1 发布基线 |
-| [温度作用后续评估](docs/temperature-action-evaluation.md) | 平面框架均匀温差边界与后续温度扩展评估矩阵 | v1.5.0 边界材料 |
-| [规模与性能基线](docs/verification/performance-baseline.md) | 三类分析对象的可复跑规模基线脚本和发布口径 | v1.5.0 质量材料 |
+### 使用与理解
+
+| 文档 | 用途 |
+|---|---|
+| [快速开始与本地工具](docs/quickstart.md) | 本地启动、测试、CLI、MCP 与公开案例接口 |
+| [功能与适用边界](docs/capabilities.md) | 当前功能范围、适用人群与明确非目标 |
+| [三条黄金流程](docs/golden-flows.md) | 工程师、教师/学习者、开发者的可复跑成功路径 |
+| [结构力学入门](docs/learning/README.md) | 梁系、平面桁架、平面框架的概念、术语和图形入门 |
+| [English README](README.en.md) | English quickstart, capabilities, verification, and boundaries |
+
+### 开发与集成
+
+| 文档 | 用途 |
+|---|---|
+| [API Reference](docs/api-reference.md) | REST API、CLI、MCP 与错误码 |
+| [ASMS-JSON / Model Schema](docs/asms-json-schema.md) | Web、API、CLI、MCP 与 benchmark 的共同模型入口 |
+| [可信计算包指南](docs/verification-package.md) | 生成、完整性校验与独立复算 |
+| [Agent 集成指南](docs/agent-integration.md) | REST API、CLI、MCP 三类集成入口 |
+| [Host Protocol 1.0](docs/host-protocol-1.md) | iframe 宿主协议、状态机与安全边界 |
+| [系统架构导读](docs/architecture.md) | 模块边界、核心数据流、架构不变量与整改优先级 |
+| [部署说明](docs/deployment.md) | Docker 单镜像、远程镜像标签与 Compose 部署 |
+| [源码目录说明](docs/source-layout.md) | 后端、前端、数据、测试和本地忽略目录导航 |
+
+### 验证、治理与版本历史
+
+| 文档 | 用途 |
+|---|---|
+| [Benchmark 方法论](docs/verification/benchmark-methodology.md) | 验证分层、指标、来源与宣传边界 |
+| [公开验证集报告](docs/verification/benchmark-validation-report.md) | 当前公开算例的自动生成结果 |
+| [访问统计与隐私边界](docs/analytics-and-privacy.md) | 公开统计事件、匿名边界与明确非采集字段 |
+| [发布治理](docs/release-governance.md) | 版本价值、观察窗口、确认与不可变发布规则 |
+| [开源路线图](docs/roadmap.md) | 当前基线、近期方向、能力边界与维护规则 |
+| [CHANGELOG](CHANGELOG.md) | 历次版本变化的唯一汇总入口 |
+| [v1.8.3 发布验收](docs/verification/release-1-8-3-acceptance.md) | 当前版本的制品、验证、上线与回滚证据 |
 
 ## 贡献方式
 
