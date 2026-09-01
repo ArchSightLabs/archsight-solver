@@ -5,12 +5,12 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Mapping
 
 from backend.common.analysis_types import get_analysis_type, get_material_name
+from backend.application.beam_analysis import build_beam_solution
+from backend.application.frame_analysis import build_frame_solution
+from backend.application.truss_analysis import build_truss_solution
 from backend.contracts.calculation_evidence import build_calculation_evidence
 from backend.contracts.calculation_response import CALCULATION_RESULT_SCHEMA
 from backend.contracts.response_envelope import _stable_hash
-from backend.services.beam_workbench import build_solution as build_beam_solution
-from backend.services.frame_workbench import build_solution as build_frame_solution
-from backend.services.truss_workbench import build_solution as build_truss_solution
 
 
 def _beam_load_echo(request_data: Mapping[str, Any]) -> tuple[float, float]:

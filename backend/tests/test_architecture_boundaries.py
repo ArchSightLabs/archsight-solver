@@ -27,7 +27,7 @@ def test_backend_dependencies_point_inward():
     boundaries = {
         "backend/solver": ("backend.normalizers", "backend.api", "backend.services", "backend.application"),
         "backend/normalizers": ("backend.solver", "backend.api"),
-        "backend/application": ("backend.api", "backend.capabilities", "backend.benchmarks"),
+        "backend/application": ("backend.api", "backend.capabilities", "backend.benchmarks", "backend.services"),
         "backend/services": ("backend.api",),
         "backend/benchmarks": ("backend.api",),
         "backend/capabilities": ("backend.api",),
