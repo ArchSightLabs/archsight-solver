@@ -73,6 +73,9 @@ test("嵌入页头只向已协商的 Host Client 请求云端动作", async ({ p
   await solver.getByRole("button", { name: "保存云端工程" }).click();
   await expect(solver.getByRole("button", { name: "保存云端工程" })).toBeEnabled();
 
+  await expect.poll(async () => (await hostMessages(page)).findLast((message) => (
+    message.type === "archsight.solver.portal.actionRequested" && message.payload?.action === "save"
+  ))?.payload?.requestId).toBeTruthy();
   const savePortalAction = (await hostMessages(page)).findLast((message) => (
     message.type === "archsight.solver.portal.actionRequested" && message.payload?.action === "save"
   ));
