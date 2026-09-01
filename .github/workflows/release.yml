@@ -25,6 +25,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Resolve immutable release and package versions
+        shell: bash
+        run: |
+          if [[ "$VERSION" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)(-r[1-9][0-9]*)?$ ]]; then
+            echo "PACKAGE_VERSION=${BASH_REMATCH[1]}" >> "$GITHUB_ENV"
+          else
+            echo "Unsupported release tag: $VERSION" >&2
+            exit 1
+          fi
+
       - name: Validate Chinese Conventional and Lore commits
         uses: ArchSightLabs/archsight-aios/.github/actions/commit-governance@7eddd6915bdb79c0b32a8295c2bd55b31f3353d7
 
@@ -46,7 +56,7 @@ jobs:
       - name: Validate tag and release metadata
         shell: bash
         run: |
-          python scripts/check_versions.py --expected-version "${VERSION#v}"
+          python scripts/check_versions.py --expected-version "$PACKAGE_VERSION"
           python scripts/check_release_gate.py --phase release
           python scripts/generate_contract_types.py --check
 
@@ -73,7 +83,7 @@ jobs:
           python scripts/sync_runtime_resources.py --check
           uv build --wheel --sdist --out-dir dist
           npm pack ./packages/solver-host-client --pack-destination dist
-          python_version="${VERSION#v}"
+          python_version="$PACKAGE_VERSION"
           python scripts/check_python_distribution.py "dist/archsight_solver-${python_version}-py3-none-any.whl"
           node frontend/scripts/check-host-client-package.mjs "dist/archsight-solver-host-client-${python_version}.tgz"
 
@@ -223,7 +233,7 @@ jobs:
           import re
           from pathlib import Path
 
-          version = os.environ["VERSION"]
+          version = f"v{os.environ['PACKAGE_VERSION']}"
           changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
           match = re.search(rf"^## {re.escape(version)}\s*$\n(.*?)(?=^## |\Z)", changelog, re.MULTILINE | re.DOTALL)
           if not match:

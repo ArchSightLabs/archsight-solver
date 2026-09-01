@@ -98,6 +98,9 @@ REQUIRED_MARKERS = {
         "COPY pyproject.toml ./pyproject.toml",
         "node:22-bookworm-slim@sha256:6c74791e557ce11fc957704f6d4fe134a7bc8d6f5ca4403205b2966bd488f6b3",
         "python:3.13-slim@sha256:6771159cd4fa5d9bba1258caf0b82e6b73458c694d178ad97c5e925c2d0e1a91",
+        "libssl3t64=3.5.7-1~deb13u2",
+        "openssl=3.5.7-1~deb13u2",
+        "openssl-provider-legacy=3.5.7-1~deb13u2",
     ),
     "scripts/build-image.ps1": (
         '"NODE_IMAGE"',
@@ -192,6 +195,7 @@ REQUIRED_MARKERS = {
         "npm --prefix frontend audit --audit-level=high",
         "ArchSightLabs/archsight-aios/.github/actions/commit-governance@7eddd6915bdb79c0b32a8295c2bd55b31f3353d7",
         "fetch-depth: 0",
+        "PACKAGE_VERSION=",
     ),
     ".github/workflows/nightly-quality.yml": (
         'cron: "0 20 * * 0"',

@@ -14,7 +14,7 @@ No account is required. The public site is a demonstration environment; save imp
 
 Requirements: Python `>=3.13`.
 
-After the workflow completes, download `archsight_solver-1.8.4-py3-none-any.whl` from the [v1.8.4 GitHub Release](https://github.com/ArchSightLabs/archsight-solver/releases/tag/v1.8.4), then install it into a virtual environment:
+After the workflow completes, download `archsight_solver-1.8.4-py3-none-any.whl` from the [v1.8.4-r1 GitHub Release](https://github.com/ArchSightLabs/archsight-solver/releases/tag/v1.8.4-r1), then install it into a virtual environment. The `-r1` suffix is the immutable distribution revision; the package version remains `1.8.4`:
 
 ```bash
 python -m venv .venv
@@ -62,11 +62,11 @@ The installed distribution includes runtime schemas, benchmark data, templates, 
 
 ## 3. Run the complete Web/API image
 
-Download `archsight-solver-v1.8.4.tar.gz` and `SHA256SUMS` from the GitHub Release, verify the archive, and load it:
+Download `archsight-solver-v1.8.4-r1.tar.gz` and `SHA256SUMS` from the GitHub Release, verify the archive, and load it:
 
 ```bash
 sha256sum --check SHA256SUMS --ignore-missing
-docker load --input archsight-solver-v1.8.4.tar.gz
+docker load --input archsight-solver-v1.8.4-r1.tar.gz
 docker run --rm -p 127.0.0.1:6240:6240 archsight-solver:release
 ```
 
@@ -74,7 +74,7 @@ Open `http://127.0.0.1:6240`. The single image serves the frontend and `/api`. T
 
 ```bash
 docker login ghcr.io
-docker run --rm -p 127.0.0.1:6240:6240 ghcr.io/archsightlabs/archsight-solver:v1.8.4
+docker run --rm -p 127.0.0.1:6240:6240 ghcr.io/archsightlabs/archsight-solver:v1.8.4-r1
 ```
 
 Do not use `latest` as release evidence. Official production deployment uses its independently managed Alibaba Cloud Container Registry target rather than GHCR.

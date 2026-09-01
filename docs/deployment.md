@@ -102,10 +102,10 @@ Compose 默认将容器内 `6240` 端口绑定到宿主机本地端口。如需�
 
 ## 正式发布制品
 
-推送 `v1.8.4` 形式的 Git tag 后，GitHub Actions 发布工作流会复跑版本、后端、前端、Playwright 和 Docker 门禁，并生成以下可追踪制品：
+推送 `v1.8.4-r1` 形式的不可变发行修订 Tag 后，GitHub Actions 发布工作流会把包版本解析为 `1.8.4`，复跑版本、后端、前端、Playwright 和 Docker 门禁，并生成以下可追踪制品：
 
-- `ghcr.io/<owner>/archsight-solver:v1.8.4` 不可变工作流镜像；包可见性由 GitHub Packages 权限决定。
-- 公开 Docker 镜像归档 `archsight-solver-v1.8.4.tar.gz`，可从同一 GitHub Release 下载并离线加载。
+- `ghcr.io/<owner>/archsight-solver:v1.8.4-r1` 不可变工作流镜像；包可见性由 GitHub Packages 权限决定。
+- 公开 Docker 镜像归档 `archsight-solver-v1.8.4-r1.tar.gz`，可从同一 GitHub Release 下载并离线加载。
 - SPDX JSON SBOM、Trivy 高危/严重漏洞扫描报告和 `SHA256SUMS`。
 - 从 `CHANGELOG.md` 当前版本段提取的 GitHub Release 说明。
 

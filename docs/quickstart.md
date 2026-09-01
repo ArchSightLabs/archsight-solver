@@ -57,7 +57,7 @@ npm --prefix frontend run build
 
 ## GitHub Release 五分钟路径
 
-如果只需要 CLI / MCP，不必克隆仓库。v1.8.4 Release 完成后，下载 `archsight_solver-1.8.4-py3-none-any.whl` 与 `SHA256SUMS`，校验后安装：
+如果只需要 CLI / MCP，不必克隆仓库。从 v1.8.4 的不可变发行修订 `v1.8.4-r1` 下载 `archsight_solver-1.8.4-py3-none-any.whl` 与 `SHA256SUMS`，校验后安装：
 
 ```powershell
 python -m venv .venv

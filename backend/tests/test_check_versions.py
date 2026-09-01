@@ -1,4 +1,9 @@
-from scripts.check_versions import _first_release_from_text
+from scripts.check_versions import _distribution_tag, _first_release_from_text
+
+
+def test_distribution_tag_preserves_product_version_and_uses_recorded_revision():
+    assert _distribution_tag("1.8.4") == "v1.8.4-r1"
+    assert _distribution_tag("1.8.5") == "v1.8.5"
 
 
 def test_first_release_parses_formal_release_date():

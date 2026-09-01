@@ -126,6 +126,11 @@
           <h2>v1.8.4</h2>
           <span class="date">发布时间：2026-09-01</span>
         </div>
+          <p class="section-label">发行修订</p>
+          <ul>
+            <li>首次不可变 <code>v1.8.4</code> Tag 的 Release 工作流在公开制品创建前被 Trivy 正确阻断，未创建 GitHub Release、未推送 GHCR、未部署生产；公开制品改由不可变发行修订 <code>v1.8.4-r1</code> 承载，产品与 Python/npm 包版本仍为 <code>1.8.4</code>。</li>
+            <li><code>v1.8.4-r1</code> 仅把 Debian <code>libssl3t64</code>、<code>openssl</code>、<code>openssl-provider-legacy</code> 升级到修复 CVE-2026-14456 的 <code>3.5.7-1~deb13u2</code>，不改变 Solver 功能、数值结果、项目格式或 Host Protocol 契约。</li>
+          </ul>
           <p class="section-label">重点改进</p>
           <ul>
             <li>云端入口保持可选：独立 Solver 可按部署配置显示“前往云端保存”，跳转 <code>cloud.archsight.cn/solver</code> 登录和管理云项目；嵌入模式不重复显示入口，当前本地工程不会静默上传。</li>

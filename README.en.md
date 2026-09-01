@@ -63,11 +63,11 @@ See the [English quickstart](docs/en/quickstart.md) for GitHub Release installat
 
 ## Open distribution
 
-The published v1.8.4 release provides the following public assets:
+The published v1.8.4 release revision provides the following public assets:
 
 - Python wheel `archsight_solver-1.8.4-py3-none-any.whl` and source distribution for the CLI and MCP server.
 - `archsight-solver-host-client-1.8.4.tgz` with zero runtime dependencies.
-- A public offline Docker image archive, plus the immutable workflow image `ghcr.io/archsightlabs/archsight-solver:v1.8.4` for callers with GitHub Packages access.
+- A public offline Docker image archive, plus the immutable workflow image `ghcr.io/archsightlabs/archsight-solver:v1.8.4-r1` for callers with GitHub Packages access. The `-r1` suffix identifies the immutable distribution revision; the product and package version remains `1.8.4`.
 - SPDX SBOM, Trivy report, and `SHA256SUMS`.
 
 PyPI and npm registry publication are not required. The versioned assets attached to the GitHub Release are the direct distribution path.

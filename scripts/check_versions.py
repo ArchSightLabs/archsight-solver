@@ -10,6 +10,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION_PATTERN = re.compile(r"^\d+\.\d+\.\d+$")
+RELEASE_DISTRIBUTION_REVISIONS = {"1.8.4": "r1"}
+
+
+def _distribution_tag(version: str) -> str:
+    revision = RELEASE_DISTRIBUTION_REVISIONS.get(version)
+    return f"v{version}-{revision}" if revision else f"v{version}"
 
 
 def _read_json(path: str) -> dict[str, object]:
@@ -84,16 +90,17 @@ def main() -> int:
             f"{notes_state!r} / {notes_state_value!r}"
         )
 
+    distribution_tag = _distribution_tag(expected)
     release_markers = {
         "README.en.md": (
             f"archsight_solver-{expected}-py3-none-any.whl",
-            f"ghcr.io/archsightlabs/archsight-solver:v{expected}",
+            f"ghcr.io/archsightlabs/archsight-solver:{distribution_tag}",
             f"archsight-solver-host-client-{expected}.tgz",
         ),
         "docs/en/quickstart.md": (
             f"archsight_solver-{expected}-py3-none-any.whl",
-            f"archsight-solver-v{expected}.tar.gz",
-            f"ghcr.io/archsightlabs/archsight-solver:v{expected}",
+            f"archsight-solver-{distribution_tag}.tar.gz",
+            f"ghcr.io/archsightlabs/archsight-solver:{distribution_tag}",
             f"archsight-solver-host-client-{expected}.tgz",
         ),
         "docs/quickstart.md": (f"archsight_solver-{expected}-py3-none-any.whl",),
