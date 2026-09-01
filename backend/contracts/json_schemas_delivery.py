@@ -58,6 +58,7 @@ HOST_MESSAGE_SCHEMA: Dict[str, Any] = {
                 "archsight.solver.ready",
                 "archsight.solver.project.changed",
                 "archsight.solver.project.saveRequest",
+                "archsight.solver.portal.actionRequested",
                 "archsight.solver.error",
             ],
         },
@@ -89,6 +90,11 @@ HOST_MESSAGE_SCHEMA: Dict[str, Any] = {
                         "properties": {
                             "projectDocument": {"type": ["object", "string"]},
                             "mode": {"type": "string", "enum": ["editable", "readonly"]},
+                            "hostUiActions": {
+                                "type": "array",
+                                "items": {"type": "string", "enum": ["project", "save", "versions", "share"]},
+                                "uniqueItems": True,
+                            },
                         },
                         "additionalProperties": True,
                     },
@@ -163,12 +169,29 @@ HOST_MESSAGE_SCHEMA: Dict[str, Any] = {
                                     "acceptHostSaveRequest": {"const": True},
                                     "emitSaveRequest": {"const": True},
                                     "acceptSaveResult": {"const": True},
+                                    "requestPortalAction": {"const": True},
                                 },
                                 "additionalProperties": {"type": "boolean"},
                             }
                         },
                     }
                 }
+            },
+        },
+        {
+            "if": {"properties": {"type": {"const": "archsight.solver.portal.actionRequested"}}, "required": ["type"]},
+            "then": {
+                "properties": {
+                    "payload": {
+                        "type": "object",
+                        "required": ["action", "requestId"],
+                        "properties": {
+                            "action": {"type": "string", "enum": ["project", "save", "versions", "share"]},
+                            "requestId": {"type": "string", "minLength": 1},
+                        },
+                        "additionalProperties": False,
+                    },
+                },
             },
         },
         {

@@ -7,7 +7,7 @@ import {
   resolveWorkbenchPresentation,
 } from "./workbench-presentation.ts";
 
-test("embedded presentation is opt-in and accepts a host-owned theme", () => {
+test("embedded presentation is opt-in and accepts a host-provided initial theme", () => {
   assert.deepEqual(resolveWorkbenchPresentation("?embed=1&theme=light"), {
     embedded: true,
     theme: "light",

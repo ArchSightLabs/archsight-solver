@@ -116,11 +116,34 @@
       </button>
     </div>
     <header>
-      <span class="tag">当前版本 v1.8.4</span>
+      <span class="tag">当前版本 v1.9.0</span>
       <h1>版本发布记录</h1>
     </header>
 
     <section class="release-list" aria-label="版本发布记录">
+      <article class="release">
+        <div class="release-head">
+          <h2>v1.9.0</h2>
+          <span class="date"></span>
+        </div>
+          <p class="section-label">重点改进</p>
+          <ul>
+            <li>嵌入页头单一化：<code>embed=1</code> 使用 Solver 原生的 Host Portal 顶栏，保留真实 Solver 版本、验证投稿、主题和系统设置；文件与云端保存动作通过 Host Protocol 交给宿主。</li>
+            <li>工作区最大化：嵌入态不再叠加独立应用文件菜单，结构建模、计算和结果区获得完整可用高度与宽度。</li>
+            <li>宿主动作为可选能力：Protocol 1.0 新增可选 <code>requestPortalAction</code> capability 和 <code>hostUiActions</code> allowlist；旧 Host 与旧 Solver 仍可独立回滚。</li>
+            <li>保存闭环保持单一事实：顶栏保存继续复用 <code>requestSave -&gt; project.saveRequest -&gt; saveResult</code>，同一 <code>requestId</code> 贯穿快照、Cloud revision 与最终回执；只读、重复、保存中和非法动作在协议层拒绝。</li>
+            <li>公开案例边界更安全：嵌入页头从独立 Solver 新标签页打开案例库，避免用公开案例替换并误保存当前 host-managed 云工程。</li>
+            <li>主题与设置归属明确：宿主主题参数只作为初始值，用户可以继续切换主题；系统设置仍由 Solver 自己呈现，不在 Cloud 形成第二套配置源。</li>
+          </ul>
+          <p class="section-label">兼容边界</p>
+          <ul>
+            <li>Host Protocol 版本仍为 <code>1.0.0</code>；新能力是可选加法扩展，原五项 required capabilities 不变。</li>
+            <li>不改变结构求解算法、数值结果、项目文件 Schema、计算书或可信计算包格式，不新增数据库。</li>
+            <li>Solver 不接触 Cloud token、IAM、租户授权、工程 API 或远程存储；这些职责仍由宿主拥有。</li>
+            <li>完整候选、上线、回滚与公网联调证据见 [v1.9.0 发布验收](docs/verification/release-1-9-0-acceptance.md)。</li>
+          </ul>
+      </article>
+
       <article class="release">
         <div class="release-head">
           <h2>v1.8.4</h2>

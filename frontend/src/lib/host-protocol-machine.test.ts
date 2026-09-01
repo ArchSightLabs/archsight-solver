@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   createHostProtocolState,
+  canRequestHostUiAction,
   transitionHostProtocol,
 } from "./host-protocol-machine.ts";
 
@@ -19,6 +20,15 @@ test("host protocol negotiates capabilities before activating an editable sessio
   assert.equal(active.accepted, true);
   assert.equal(active.state.phase, "active-editable");
   assert.equal(active.state.condition, "healthy");
+  assert.equal(canRequestHostUiAction(active.state), true);
+});
+
+test("portal actions require an active bound host session", () => {
+  assert.equal(canRequestHostUiAction(createHostProtocolState()), false);
+  const readonly = transitionHostProtocol(createHostProtocolState(), { type: "launch", ...binding, mode: "readonly" }).state;
+  assert.equal(canRequestHostUiAction(readonly), true);
+  const closed = transitionHostProtocol(readonly, { type: "close" }).state;
+  assert.equal(canRequestHostUiAction(closed), false);
 });
 
 test("duplicate launch is idempotent while a new binding replaces the session", () => {

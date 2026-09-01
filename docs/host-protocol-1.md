@@ -26,6 +26,7 @@ ArchSight Solver Host Protocol 1.0 用于把本仓库的结构分析工作台嵌
 | Solver -> Host | `archsight.solver.project.changed` | `sessionId + nonce` | 仅 editable；saving 期间的后续编辑仍正常发出 |
 | Host -> Solver | `archsight.solver.host.requestSave` | `sessionId + nonce + requestId` | 仅 active-editable；进入 saving；重复或并发请求被拒绝 |
 | Solver -> Host | `archsight.solver.project.saveRequest` | `sessionId + nonce + requestId` | 返回该请求时刻的确定工程快照 |
+| Solver -> Host | `archsight.solver.portal.actionRequested` | `sessionId + nonce + requestId` | 可选宿主导航或保存动作；只在 host launch 明确允许的动作集合内发出 |
 | Host -> Solver | `archsight.solver.host.saveResult` | `sessionId + nonce + requestId` | 只接受当前 pending request；陈旧回执不清除未保存状态 |
 | Solver -> Host | `archsight.solver.error` | 可确定会话时带 `sessionId + nonce` | 回传可解释的协议拒绝原因，当前有效会话保留 |
 
@@ -38,6 +39,8 @@ Protocol 1.0 的 `solver.ready` 必须声明以下五项能力均为 `true`：
 - `acceptSaveResult`
 
 宿主不能只比较 `protocolVersion`；缺少任一必要能力时不得发送 launch。
+
+`requestPortalAction` 是可选 capability。声明该能力的 Solver 可以在嵌入页头请求 `project`、`save`、`versions` 或 `share`；Host 必须在 `host.launch.payload.hostUiActions` 显式列出允许动作。动作消息的 `payload` 固定为 `{ action, requestId }`：Host Client 负责 source、origin、协议版本、会话绑定、能力、allowlist 与重复 requestId 校验，再交给宿主回调。`save` 回调必须使用同一 `requestId` 调用既有保存闭环，不能把页面动作直接当作已保存。
 
 ## 确定行为
 

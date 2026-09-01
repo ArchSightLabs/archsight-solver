@@ -63,9 +63,9 @@ test("v1.6.1 reference host completes cross-origin save and reopen", async ({ pa
   await expect(page.locator("#hostOrigin")).toHaveText("http://127.0.0.1:6250");
   await expect(page.locator("#solverOrigin")).toHaveText(solverOrigin);
   await expect(page.locator("#connectionStatus")).toHaveText("已建立会话", { timeout: 20_000 });
-  await expect(solver.getByRole("banner")).toHaveCount(0);
+  await expect(solver.getByRole("banner")).toHaveCount(1);
   await expect(solver.getByRole("button", { name: "文件菜单" })).toHaveCount(0);
-  await expect(solver.getByRole("button", { name: "系统设置" })).toHaveCount(0);
+  await expect(solver.getByRole("button", { name: "系统设置" })).toHaveCount(1);
   await expect(page.getByRole("button", { name: "新建工程" })).toBeVisible();
   await expect(page.getByRole("button", { name: "打开工程" })).toBeVisible();
   await expect(page.getByRole("button", { name: "保存工程" })).toBeVisible();
@@ -174,7 +174,7 @@ test("v1.6.1 solver rejects a reference host served from an unlisted origin", as
   const solver = page.frameLocator("#solverFrame");
 
   await expect(solver.getByRole("tab", { name: "参数建模" })).toBeVisible({ timeout: 20_000 });
-  await expect(solver.getByRole("banner")).toHaveCount(0);
+  await expect(solver.getByRole("banner")).toHaveCount(1);
   await expect(page.locator("#connectionStatus")).toHaveText("等待 Solver");
 });
 

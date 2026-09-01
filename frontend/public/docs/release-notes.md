@@ -2,6 +2,28 @@
 
 <!-- 本文件由根目录 CHANGELOG.md 生成，请勿直接编辑；运行 npm --prefix frontend run sync:release-notes 更新。 -->
 
+## v1.9.0
+
+状态：发布候选（Cloud 嵌入工作台验收中）
+
+本版让 Solver 在保持独立、开源和本地优先的同时，成为可被 Cloud 完整嵌入的结构计算工作台。嵌入模式由 Solver 自己呈现 Host Portal 顶栏，Cloud 只管理工程、保存、版本和分享，不复制 Solver 的版本、案例、投稿、主题或系统设置。
+
+重点改进：
+
+- 嵌入页头单一化：`embed=1` 使用 Solver 原生的 Host Portal 顶栏，保留真实 Solver 版本、验证投稿、主题和系统设置；文件与云端保存动作通过 Host Protocol 交给宿主。
+- 工作区最大化：嵌入态不再叠加独立应用文件菜单，结构建模、计算和结果区获得完整可用高度与宽度。
+- 宿主动作为可选能力：Protocol 1.0 新增可选 `requestPortalAction` capability 和 `hostUiActions` allowlist；旧 Host 与旧 Solver 仍可独立回滚。
+- 保存闭环保持单一事实：顶栏保存继续复用 `requestSave -> project.saveRequest -> saveResult`，同一 `requestId` 贯穿快照、Cloud revision 与最终回执；只读、重复、保存中和非法动作在协议层拒绝。
+- 公开案例边界更安全：嵌入页头从独立 Solver 新标签页打开案例库，避免用公开案例替换并误保存当前 host-managed 云工程。
+- 主题与设置归属明确：宿主主题参数只作为初始值，用户可以继续切换主题；系统设置仍由 Solver 自己呈现，不在 Cloud 形成第二套配置源。
+
+兼容边界：
+
+- Host Protocol 版本仍为 `1.0.0`；新能力是可选加法扩展，原五项 required capabilities 不变。
+- 不改变结构求解算法、数值结果、项目文件 Schema、计算书或可信计算包格式，不新增数据库。
+- Solver 不接触 Cloud token、IAM、租户授权、工程 API 或远程存储；这些职责仍由宿主拥有。
+- 完整候选、上线、回滚与公网联调证据见 [v1.9.0 发布验收](docs/verification/release-1-9-0-acceptance.md)。
+
 ## v1.8.4
 
 发布时间：2026-09-01

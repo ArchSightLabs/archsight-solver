@@ -7,18 +7,23 @@ import {
 import type { SolverProject } from "./solver-project.ts";
 import {
   SOLVER_HOST_CAPABILITIES,
+  SOLVER_HOST_OPTIONAL_CAPABILITIES,
   SOLVER_HOST_PROTOCOL_VERSION,
 } from "./generated/solver-contract-runtime.ts";
 import type { SolverHostMessageDto } from "./generated/solver-contract-dto.ts";
 
-export { SOLVER_HOST_CAPABILITIES, SOLVER_HOST_PROTOCOL_VERSION };
+export { SOLVER_HOST_CAPABILITIES, SOLVER_HOST_OPTIONAL_CAPABILITIES, SOLVER_HOST_PROTOCOL_VERSION };
 export const HOST_LAUNCH_MESSAGE = "archsight.solver.host.launch";
 export const HOST_REQUEST_SAVE_MESSAGE = "archsight.solver.host.requestSave";
 export const HOST_SAVE_RESULT_MESSAGE = "archsight.solver.host.saveResult";
 export const SOLVER_READY_MESSAGE = "archsight.solver.ready";
 export const SOLVER_PROJECT_CHANGED_MESSAGE = "archsight.solver.project.changed";
 export const SOLVER_SAVE_REQUEST_MESSAGE = "archsight.solver.project.saveRequest";
+export const SOLVER_PORTAL_ACTION_REQUESTED_MESSAGE = "archsight.solver.portal.actionRequested";
 export const SOLVER_ERROR_MESSAGE = "archsight.solver.error";
+
+export const HOST_PORTAL_ACTIONS = ["project", "save", "versions", "share"] as const;
+export type HostPortalAction = (typeof HOST_PORTAL_ACTIONS)[number];
 export interface SolverHostMessage<TPayload = unknown>
   extends Partial<Omit<SolverHostMessageDto, "type" | "payload">> {
   type: string;
@@ -30,6 +35,7 @@ export interface HostLaunchPayload {
   mode?: "editable" | "readonly";
   fileName?: string;
   nonce?: string;
+  hostUiActions?: HostPortalAction[];
 }
 
 export interface HostLaunchResult {
@@ -38,6 +44,14 @@ export interface HostLaunchResult {
   mode: "editable" | "readonly";
   projectFile: ArchSightSolverProjectFile;
   fileName: string | null;
+  portalActions: HostPortalAction[];
+}
+
+function parseHostPortalActions(value: unknown): HostPortalAction[] {
+  if (!Array.isArray(value)) return [];
+  return Array.from(new Set(value.filter((action): action is HostPortalAction => (
+    typeof action === "string" && (HOST_PORTAL_ACTIONS as readonly string[]).includes(action)
+  ))));
 }
 
 export interface HostRequestSaveCommand {
@@ -146,6 +160,7 @@ export function parseHostLaunchMessage(value: unknown): HostLaunchResult | null 
     mode: payload.mode === "readonly" ? "readonly" : "editable",
     projectFile: parsed.value,
     fileName: payload.fileName || null,
+    portalActions: parseHostPortalActions(payload.hostUiActions),
   };
 }
 
@@ -195,8 +210,26 @@ export function buildSolverReadyMessage(sessionId: string | null, nonce: string 
     protocolVersion: SOLVER_HOST_PROTOCOL_VERSION,
     ...sessionBinding,
     payload: {
-      capabilities: SOLVER_HOST_CAPABILITIES,
+      capabilities: {
+        ...SOLVER_HOST_CAPABILITIES,
+        ...SOLVER_HOST_OPTIONAL_CAPABILITIES,
+      },
     },
+  };
+}
+
+export function buildPortalActionRequestedMessage(
+  sessionId: string,
+  nonce: string,
+  action: HostPortalAction,
+  requestId: string,
+): SolverHostMessage {
+  return {
+    type: SOLVER_PORTAL_ACTION_REQUESTED_MESSAGE,
+    protocolVersion: SOLVER_HOST_PROTOCOL_VERSION,
+    sessionId,
+    nonce,
+    payload: { action, requestId },
   };
 }
 

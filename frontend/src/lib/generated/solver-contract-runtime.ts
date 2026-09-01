@@ -2,7 +2,7 @@
 // Do not edit by hand; update the schema and regenerate this file.
 
 export const SOLVER_HOST_PROTOCOL_VERSION = "1.0.0" as const;
-export const SOLVER_HOST_MESSAGE_TYPES = ["archsight.solver.host.launch", "archsight.solver.host.requestSave", "archsight.solver.host.saveResult", "archsight.solver.ready", "archsight.solver.project.changed", "archsight.solver.project.saveRequest", "archsight.solver.error"] as const;
+export const SOLVER_HOST_MESSAGE_TYPES = ["archsight.solver.host.launch", "archsight.solver.host.requestSave", "archsight.solver.host.saveResult", "archsight.solver.ready", "archsight.solver.project.changed", "archsight.solver.project.saveRequest", "archsight.solver.portal.actionRequested", "archsight.solver.error"] as const;
 export type SolverHostMessageType = (typeof SOLVER_HOST_MESSAGE_TYPES)[number];
 
 export const SOLVER_SCHEMA_IDS = ["asms-model", "asms-beam-model", "asms-frame-model", "asms-truss-model", "beam-deflection-input", "beam-serviceability-input", "calculate-payload", "job-request", "capability-result", "frame-tool-input", "truss-tool-input", "calculate-tool-input", "sensitivity-tool-input", "empty-tool-input", "project-document-tool-input", "benchmark-case-list-input", "benchmark-case-run-input", "benchmark-submission-input", "benchmark-submission-response", "benchmark-submission-package", "benchmark-submission-package-response", "project-file-manifest", "solver-host-message", "solver-artifact-manifest", "solver-template-registry", "solver-verification-package", "verification-package-create-input", "verification-package-verify-input", "verification-package-report", "verification-package-create-response", "verification-package-verify-response"] as const;
@@ -16,6 +16,11 @@ export const SOLVER_HOST_CAPABILITIES = Object.freeze({
   acceptSaveResult: true,
 } as const);
 export type SolverHostCapability = keyof typeof SOLVER_HOST_CAPABILITIES;
+
+export const SOLVER_HOST_OPTIONAL_CAPABILITIES = Object.freeze({
+  requestPortalAction: true,
+} as const);
+export type SolverHostOptionalCapability = keyof typeof SOLVER_HOST_OPTIONAL_CAPABILITIES;
 
 export const SOLVER_JOB_OPERATION_VALUES = ["calculate", "preview", "sensitivity"] as const;
 export type SolverJobOperation = (typeof SOLVER_JOB_OPERATION_VALUES)[number];

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   buildProjectChangedMessage,
+  buildPortalActionRequestedMessage,
   buildSaveRequestMessage,
   buildSolverErrorMessage,
   buildSolverReadyMessage,
@@ -12,8 +13,10 @@ import {
   parseHostSaveResultMessage,
   resolveBootstrapHostOrigin,
   type SolverHostMessage,
+  type HostPortalAction,
 } from "../lib/host-bridge.ts";
 import {
+  canRequestHostUiAction,
   createHostProtocolState,
   hostProtocolIssueMessage,
   transitionHostProtocol,
@@ -57,6 +60,8 @@ export function useSolverHostBridge({
   const [nonce, setNonce] = useState<string | null>(null);
   const [mode, setMode] = useState<"editable" | "readonly">("editable");
   const [hostOrigin, setHostOrigin] = useState<string | null>(null);
+  const [portalActions, setPortalActions] = useState<HostPortalAction[]>([]);
+  const [isHostSavePending, setIsHostSavePending] = useState(false);
   const projectRef = useRef(project);
   const protocolStateRef = useRef(createHostProtocolState());
   const pendingSaveRequestsRef = useRef(new Map<string, number>());
@@ -96,6 +101,7 @@ export function useSolverHostBridge({
       if (transition.code) setFileStatusMessage(hostProtocolIssueMessage(transition.code));
       return false;
     }
+    setIsHostSavePending(true);
     pendingSaveRequestsRef.current.set(requestId, getProjectRevision());
     postToHost(
       buildSaveRequestMessage(protocolState.sessionId, projectRef.current, protocolState.nonce, requestId),
@@ -103,6 +109,19 @@ export function useSolverHostBridge({
     );
     return true;
   }, [getProjectRevision, hostOrigin, setFileStatusMessage]);
+
+  const requestPortalAction = useCallback((action: HostPortalAction) => {
+    const protocolState = protocolStateRef.current;
+    if (!portalActions.includes(action) || !hostOrigin || !canRequestHostUiAction(protocolState)) {
+      return false;
+    }
+    const requestId = globalThis.crypto.randomUUID();
+    postToHost(
+      buildPortalActionRequestedMessage(protocolState.sessionId!, protocolState.nonce!, action, requestId),
+      hostOrigin,
+    );
+    return true;
+  }, [hostOrigin, portalActions]);
 
   useEffect(() => {
     const handleMessage = (event: globalThis.MessageEvent) => {
@@ -131,9 +150,11 @@ export function useSolverHostBridge({
             return;
           }
           pendingSaveRequestsRef.current.clear();
+          setIsHostSavePending(false);
           setSessionId(launch.sessionId);
           setNonce(launch.nonce);
           setMode(launch.mode);
+          setPortalActions(launch.portalActions);
           onHostModeChange?.(launch.mode);
           setHostOrigin(event.origin);
           replaceProject(
@@ -169,6 +190,7 @@ export function useSolverHostBridge({
           }
           const projectRevision = pendingSaveRequestsRef.current.get(saveResult.requestId) ?? null;
           pendingSaveRequestsRef.current.delete(saveResult.requestId);
+          setIsHostSavePending(false);
           setFileStatusMessage(saveResult.status === "saved" ? "外部宿主已保存工程。" : `外部宿主保存结果：${saveResult.status}`);
           onHostSaveResult?.(saveResult.status, projectRevision);
         }
@@ -225,7 +247,10 @@ export function useSolverHostBridge({
     hostMode: mode,
     hostOrigin,
     hostNonce: nonce,
+    portalActions,
+    isHostSavePending,
     emitProjectChanged,
     requestHostSave,
+    requestPortalAction,
   };
 }

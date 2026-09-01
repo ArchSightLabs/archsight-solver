@@ -4,6 +4,7 @@ import type { NewAnalysisObjectStartMode } from "./components/NewAnalysisObjectD
 import { GlobalDialogs } from "./components/GlobalDialogs";
 import { DialogProvider, useDialogs } from "./contexts/DialogContext";
 import { AppHeader } from "./components/AppHeader";
+import { EmbeddedHostHeader } from "./components/EmbeddedHostHeader";
 import type { WorkbenchModelCanvasController } from "./components/WorkbenchModelCanvas";
 import { LoadingPanel } from "./components/workbench-result-panels";
 import { WorkbenchMainArea } from "./components/WorkbenchMainArea";
@@ -287,7 +288,10 @@ function AppContent() {
     hostMode,
     hostOrigin,
     hostSessionId,
+    isHostSavePending,
+    portalActions,
     requestHostSave,
+    requestPortalAction,
   } = useSolverHostBridge({
     allowedOrigins: SOLVER_HOST_ALLOWED_ORIGINS,
     getProjectRevision,
@@ -297,6 +301,21 @@ function AppContent() {
     replaceProject,
     setFileStatusMessage,
   });
+  const standaloneExamplesHref = useMemo(() => {
+    if (typeof window === "undefined") return "?examples=1";
+    const url = new URL(window.location.href);
+    url.searchParams.delete("embed");
+    url.searchParams.delete("hostOrigin");
+    url.searchParams.delete("theme");
+    url.searchParams.set("examples", "1");
+    return url.toString();
+  }, []);
+  useEffect(() => {
+    if (isEmbeddedWorkbench || typeof window === "undefined") return;
+    if (new globalThis.URLSearchParams(window.location.search).get("examples") === "1") {
+      setIsPublicExamplesOpen(true);
+    }
+  }, [isEmbeddedWorkbench, setIsPublicExamplesOpen]);
   const handleSaveProject = useCallback((forceSaveAs = false) => {
     if (isProjectReadOnly) {
       setFileStatusMessage("外部宿主只读模式下不能保存工程。");
@@ -306,8 +325,12 @@ function AppContent() {
       setFileStatusMessage("已向外部宿主请求保存工程。");
       return;
     }
+    if (isEmbeddedWorkbench) {
+      setFileStatusMessage("云端工程会话尚未建立，无法保存。");
+      return;
+    }
     void handleSaveProjectFile(forceSaveAs);
-  }, [handleSaveProjectFile, isProjectReadOnly, requestHostSave, setFileStatusMessage]);
+  }, [handleSaveProjectFile, isEmbeddedWorkbench, isProjectReadOnly, requestHostSave, setFileStatusMessage]);
   useEffect(() => {
     if (isProjectDirty) {
       emitProjectChanged();
@@ -477,7 +500,20 @@ function AppContent() {
           setIsDark={setIsDark}
           setIsFileMenuOpen={setIsFileMenuOpen}
         />
-      ) : null}
+      ) : (
+        <EmbeddedHostHeader
+          appVersion={APP_VERSION}
+          standaloneExamplesHref={standaloneExamplesHref}
+          portalActions={portalActions}
+          isDark={isDark}
+          isProjectDirty={isProjectDirty}
+          isProjectReadOnly={isProjectReadOnly}
+          isHostSavePending={isHostSavePending}
+          onRequestPortalAction={requestPortalAction}
+          releaseNotesHref={RELEASE_NOTES_HREF}
+          setIsDark={setIsDark}
+        />
+      )}
 
       <WorkbenchMainArea
         analysisMode={analysisMode}

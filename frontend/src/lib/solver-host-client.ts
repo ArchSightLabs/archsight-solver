@@ -40,12 +40,22 @@ export interface SolverHostClientMessageTarget {
 
 export interface SolverHostClientWindow {
   postMessage(message: unknown, targetOrigin: string): void;
+  focus?(): void;
 }
+
+export const SOLVER_HOST_PORTAL_ACTIONS = ["project", "save", "versions", "share"] as const;
+export type SolverHostPortalAction = (typeof SOLVER_HOST_PORTAL_ACTIONS)[number];
 
 export interface SolverHostClientLaunchOptions {
   projectDocument: unknown;
   mode?: "editable" | "readonly";
   fileName?: string;
+  hostUiActions?: readonly SolverHostPortalAction[];
+}
+
+export interface SolverHostClientPortalActionRequest {
+  action: SolverHostPortalAction;
+  requestId: string;
 }
 
 export interface SolverHostClientSaveSnapshot {
@@ -69,6 +79,7 @@ export interface SolverHostClientOptions {
   launchRetryMs?: number;
   saveTimeoutMs?: number;
   onProjectChanged?: (projectDocument: unknown) => void;
+  onPortalActionRequested?: (request: SolverHostClientPortalActionRequest) => void;
   onStateChange?: (snapshot: SolverHostClientSnapshot) => void;
   onMessage?: (direction: "host.out" | "solver.in", message: Record<string, unknown>) => void;
   onError?: (error: SolverHostClientError) => void;
@@ -135,8 +146,16 @@ function defaultId(): string {
   return globalThis.crypto.randomUUID();
 }
 
+function normalizeHostUiActions(value: unknown): SolverHostPortalAction[] {
+  if (!Array.isArray(value)) return [];
+  return Array.from(new Set(value.filter((action): action is SolverHostPortalAction => (
+    typeof action === "string" && (SOLVER_HOST_PORTAL_ACTIONS as readonly string[]).includes(action)
+  ))));
+}
+
 export class SolverHostClient {
   onProjectChanged?: (projectDocument: unknown) => void;
+  onPortalActionRequested?: (request: SolverHostClientPortalActionRequest) => void;
   onStateChange?: (snapshot: SolverHostClientSnapshot) => void;
   onMessage?: (direction: "host.out" | "solver.in", message: Record<string, unknown>) => void;
   onError?: (error: SolverHostClientError) => void;
@@ -160,6 +179,9 @@ export class SolverHostClient {
   private pendingLaunch: PendingLaunch | null = null;
   private pendingSave: PendingSave | null = null;
   private readonly expiredSaveRequestIds = new Set<string>();
+  private readonly consumedPortalActionRequestIds = new Set<string>();
+  private activeHostUiActions = new Set<SolverHostPortalAction>();
+  private portalActionsSupported = false;
 
   constructor(options: SolverHostClientOptions) {
     this.getSolverWindow = options.getSolverWindow;
@@ -171,6 +193,7 @@ export class SolverHostClient {
     this.launchRetryMs = options.launchRetryMs ?? DEFAULT_LAUNCH_RETRY_MS;
     this.saveTimeoutMs = options.saveTimeoutMs ?? DEFAULT_SAVE_TIMEOUT_MS;
     this.onProjectChanged = options.onProjectChanged;
+    this.onPortalActionRequested = options.onPortalActionRequested;
     this.onStateChange = options.onStateChange;
     this.onMessage = options.onMessage;
     this.onError = options.onError;
@@ -181,6 +204,10 @@ export class SolverHostClient {
     return { ...this.state };
   }
 
+  get supportsPortalActions(): boolean {
+    return this.portalActionsSupported;
+  }
+
   launch(input: SolverHostClientLaunchOptions): Promise<void> {
     if (this.state.phase === "disposed") return Promise.reject(this.error("disposed", "Host Client 已释放。"));
     if (!input.projectDocument || typeof input.projectDocument !== "object") {
@@ -188,6 +215,9 @@ export class SolverHostClient {
     }
     this.rejectPendingLaunch(this.error("launch-replaced", "新的 launch 已替换上一条待处理请求。"));
     this.rejectPendingSave(this.error("launch-replaced", "新的 launch 已取消待处理保存请求。"));
+    const hostUiActions = normalizeHostUiActions(input.hostUiActions);
+    this.activeHostUiActions = new Set(hostUiActions);
+    this.consumedPortalActionRequestIds.clear();
     const mode = input.mode === "readonly" ? "readonly" : "editable";
     this.setState({
       phase: this.state.compatible === true ? "launching" : "negotiating",
@@ -203,37 +233,40 @@ export class SolverHostClient {
         this.setState({ phase: "error" });
         this.onError?.(error);
       }, this.launchTimeoutMs);
-      this.pendingLaunch = { input: { ...input, mode }, resolve, reject, timeout, retry: null };
+      this.pendingLaunch = { input: { ...input, mode, hostUiActions }, resolve, reject, timeout, retry: null };
       if (this.state.compatible === true) this.sendPendingLaunch();
     });
   }
 
-  requestSave(reason = "host-managed-persistence"): Promise<SolverHostClientSaveSnapshot> {
+  requestSave(reason = "host-managed-persistence", requestId = `host-save-${this.createId()}`): Promise<SolverHostClientSaveSnapshot> {
     if (this.state.phase === "disposed") return Promise.reject(this.error("disposed", "Host Client 已释放。"));
     if (this.state.phase === "active-readonly") return Promise.reject(this.error("readonly-operation", "只读会话不能保存工程。"));
     if (this.state.phase === "saving" || this.pendingSave) return Promise.reject(this.error("save-in-progress", "已有保存请求正在处理。"));
     if (this.state.phase !== "active-editable" || !this.state.sessionId || !this.state.nonce) {
       return Promise.reject(this.error("session-not-active", "Host Client 尚未建立可编辑会话。"));
     }
-    const requestId = `host-save-${this.createId()}`;
-    this.setState({ phase: "saving", pendingRequestId: requestId });
+    const normalizedRequestId = requestId.trim();
+    if (!normalizedRequestId || normalizedRequestId.length > 200) {
+      return Promise.reject(this.error("invalid-request-id", "保存请求必须提供不超过 200 字符的非空 requestId。"));
+    }
+    this.setState({ phase: "saving", pendingRequestId: normalizedRequestId });
     return new Promise<SolverHostClientSaveSnapshot>((resolve, reject) => {
       const timeout = setTimeout(() => {
-        if (this.pendingSave?.requestId !== requestId) return;
+        if (this.pendingSave?.requestId !== normalizedRequestId) return;
         const error = this.error("save-timeout", "保存请求超时，Solver 未返回工程快照。");
-        this.expireSaveRequest(requestId);
+        this.expireSaveRequest(normalizedRequestId);
         this.pendingSave = null;
         this.setState({ phase: "active-editable", pendingRequestId: null });
         reject(error);
         this.onError?.(error);
       }, this.saveTimeoutMs);
-      this.pendingSave = { requestId, resolve, reject, timeout, snapshotReceived: false };
+      this.pendingSave = { requestId: normalizedRequestId, resolve, reject, timeout, snapshotReceived: false };
       this.post({
         type: "archsight.solver.host.requestSave",
         protocolVersion: SOLVER_HOST_CLIENT_PROTOCOL_VERSION,
         sessionId: this.state.sessionId,
         nonce: this.state.nonce,
-        payload: { requestId, reason },
+        payload: { requestId: normalizedRequestId, reason },
       });
     });
   }
@@ -275,6 +308,10 @@ export class SolverHostClient {
     });
   }
 
+  focusSolver(): void {
+    this.getSolverWindow()?.focus?.();
+  }
+
   private readonly handleMessage = (event: SolverHostClientMessageEvent) => {
     const solverWindow = this.getSolverWindow();
     if (!solverWindow || event.source !== solverWindow || event.origin !== this.solverOrigin) return;
@@ -302,6 +339,10 @@ export class SolverHostClient {
       this.handleSaveSnapshot(message);
       return;
     }
+    if (message.type === "archsight.solver.portal.actionRequested") {
+      this.handlePortalAction(message);
+      return;
+    }
     if (message.type === "archsight.solver.error") {
       const error = this.error("solver-error", String(message.payload?.message || "Solver 拒绝了宿主操作。"));
       this.failPending(error);
@@ -322,6 +363,7 @@ export class SolverHostClient {
       this.failPending(this.error("incompatible-capabilities", `Solver 缺少必要接入能力：${missing.join(", ")}`));
       return;
     }
+    this.portalActionsSupported = capabilities.requestPortalAction === true;
     if (!hasSessionId) {
       this.setState({ compatible: true });
       if (this.pendingLaunch) {
@@ -360,6 +402,25 @@ export class SolverHostClient {
     this.pendingSave.resolve({ requestId, projectDocument });
   }
 
+  private handlePortalAction(message: ProtocolMessage): void {
+    if (
+      !this.portalActionsSupported
+      || (this.state.phase !== "active-editable" && this.state.phase !== "active-readonly" && this.state.phase !== "saving")
+    ) return;
+    const action = String(message.payload?.action ?? "").trim();
+    const requestId = String(message.payload?.requestId ?? "").trim();
+    if (!requestId || !this.activeHostUiActions.has(action as SolverHostPortalAction)) return;
+    if (action === "save" && (this.state.phase === "active-readonly" || this.state.phase === "saving")) return;
+    if (this.consumedPortalActionRequestIds.has(requestId)) return;
+    this.consumedPortalActionRequestIds.add(requestId);
+    while (this.consumedPortalActionRequestIds.size > 50) {
+      const oldest = this.consumedPortalActionRequestIds.values().next().value;
+      if (typeof oldest !== "string") break;
+      this.consumedPortalActionRequestIds.delete(oldest);
+    }
+    this.onPortalActionRequested?.({ action: action as SolverHostPortalAction, requestId });
+  }
+
   private sendPendingLaunch(): void {
     if (!this.pendingLaunch || !this.state.sessionId || !this.state.nonce) return;
     const send = () => {
@@ -372,6 +433,7 @@ export class SolverHostClient {
         payload: {
           mode: this.state.mode,
           ...(this.pendingLaunch.input.fileName ? { fileName: this.pendingLaunch.input.fileName } : {}),
+          ...(this.pendingLaunch.input.hostUiActions?.length ? { hostUiActions: this.pendingLaunch.input.hostUiActions } : {}),
           projectDocument: this.pendingLaunch.input.projectDocument,
         },
       });

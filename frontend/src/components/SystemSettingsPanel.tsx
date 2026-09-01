@@ -18,6 +18,7 @@ interface SystemSettingsPanelProps {
   visitStats: VisitStats;
   onModelPreviewStyleChange: (style: ModelPreviewStyle) => void;
   onOpenTemplateLibrary: () => void;
+  showTemplateLibrary?: boolean;
   onClose: () => void;
 }
 
@@ -118,6 +119,7 @@ export function SystemSettingsPanel({
   visitStats,
   onModelPreviewStyleChange,
   onOpenTemplateLibrary,
+  showTemplateLibrary = true,
   onClose,
 }: SystemSettingsPanelProps) {
   const panel = (
@@ -239,7 +241,7 @@ export function SystemSettingsPanel({
                 </span>
                 <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" />
               </a>
-              <button
+              {showTemplateLibrary ? <button
                 type="button"
                 className={settingButtonClass(compact)}
                 onClick={() => {
@@ -255,7 +257,7 @@ export function SystemSettingsPanel({
                     <span className="block truncate font-bold">模板库</span>
                   </span>
                 </span>
-              </button>
+              </button> : null}
             </div>
           </CollapsibleSettingsSection>
 

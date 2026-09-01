@@ -47,6 +47,14 @@ export interface HostProtocolTransition {
   state: HostProtocolState;
 }
 
+export function canRequestHostUiAction(state: HostProtocolState): boolean {
+  return Boolean(
+    state.sessionId
+    && state.nonce
+    && (state.phase === "active-editable" || state.phase === "active-readonly" || state.phase === "saving"),
+  );
+}
+
 export function createHostProtocolState(): HostProtocolState {
   return {
     phase: "bootstrap",

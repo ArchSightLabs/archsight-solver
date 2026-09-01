@@ -5,10 +5,13 @@ import {
   HOST_REQUEST_SAVE_MESSAGE,
   HOST_SAVE_RESULT_MESSAGE,
   SOLVER_HOST_CAPABILITIES,
+  SOLVER_HOST_OPTIONAL_CAPABILITIES,
+  SOLVER_PORTAL_ACTION_REQUESTED_MESSAGE,
   SOLVER_PROJECT_CHANGED_MESSAGE,
   SOLVER_READY_MESSAGE,
   SOLVER_SAVE_REQUEST_MESSAGE,
   buildProjectChangedMessage,
+  buildPortalActionRequestedMessage,
   buildSaveRequestMessage,
   buildSolverReadyMessage,
   isHostOriginAllowed,
@@ -58,7 +61,33 @@ test("host bridge emits ready and changed messages without platform concepts", (
   assert.equal((changed.payload as { projectDocument: { manifest: { projectFileKind: string } } }).projectDocument.manifest.projectFileKind, "single-json");
   assert.equal(JSON.stringify(changed).includes("tenant"), false);
   assert.equal(JSON.stringify(changed).includes("license"), false);
-  assert.deepEqual((ready.payload as { capabilities: unknown }).capabilities, SOLVER_HOST_CAPABILITIES);
+  assert.deepEqual((ready.payload as { capabilities: unknown }).capabilities, {
+    ...SOLVER_HOST_CAPABILITIES,
+    ...SOLVER_HOST_OPTIONAL_CAPABILITIES,
+  });
+});
+
+test("host launch limits portal actions and portal action carries the exact session binding", () => {
+  const project = createDefaultSolverProject(new Date("2026-07-04T00:00:00.000Z"));
+  const projectDocument = createArchSightSolverProjectFile(project, new Date("2026-07-04T00:01:00.000Z"));
+  const launch = parseHostLaunchMessage({
+    type: HOST_LAUNCH_MESSAGE,
+    protocolVersion: "1.0.0",
+    sessionId: "session-1",
+    nonce: "nonce-1",
+    payload: {
+      mode: "editable",
+      projectDocument,
+      hostUiActions: ["project", "save", "versions", "share", "unsupported", "save"],
+    },
+  });
+  assert.deepEqual(launch?.portalActions, ["project", "save", "versions", "share"]);
+
+  const action = buildPortalActionRequestedMessage("session-1", "nonce-1", "save", "portal-save-1");
+  assert.equal(action.type, SOLVER_PORTAL_ACTION_REQUESTED_MESSAGE);
+  assert.equal(action.sessionId, "session-1");
+  assert.equal(action.nonce, "nonce-1");
+  assert.deepEqual(action.payload, { action: "save", requestId: "portal-save-1" });
 });
 
 test("bound host save commands require exact protocol correlation fields", () => {

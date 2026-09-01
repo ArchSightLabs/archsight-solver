@@ -77,10 +77,11 @@ export function GlobalDialogs({
     isBenchmarkSubmissionOpen, setIsBenchmarkSubmissionOpen,
     isTemplateLibraryOpen, setIsTemplateLibraryOpen
   } = useDialogs();
+  const isSystemSettingsDockedForPresentation = isSystemSettingsDocked && !hostManagedProject;
 
   return (
     <>
-      {!hostManagedProject && isSystemSettingsOpen && !isSystemSettingsDocked && (
+      {isSystemSettingsOpen && !isSystemSettingsDockedForPresentation && (
         <SystemSettingsPanel
           compact={isCompactWorkbench}
           releaseNotesHref={RELEASE_NOTES_HREF}
@@ -89,6 +90,7 @@ export function GlobalDialogs({
           visitStats={visitStats}
           onModelPreviewStyleChange={setModelPreviewStyle}
           onOpenTemplateLibrary={() => setIsTemplateLibraryOpen(true)}
+          showTemplateLibrary={!hostManagedProject}
           onClose={() => setIsSystemSettingsOpen(false)}
         />
       )}
@@ -114,14 +116,14 @@ export function GlobalDialogs({
         />
       )}
 
-      {!hostManagedProject && isPublicExamplesOpen && !isProjectReadOnly && (
+      {isPublicExamplesOpen && !isProjectReadOnly && (
         <PublicExamplesDialog
           onClose={() => setIsPublicExamplesOpen(false)}
           onOpenProject={handleOpenPublicExampleProject}
         />
       )}
 
-      {!hostManagedProject && isBenchmarkSubmissionOpen && (
+      {isBenchmarkSubmissionOpen && (
         <BenchmarkSubmissionDialog
           category={benchmarkSubmissionContext.category}
           payload={benchmarkSubmissionContext.payload}

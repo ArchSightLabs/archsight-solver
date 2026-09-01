@@ -36,6 +36,28 @@ test("嵌入 Solver 不重复显示云空间入口", async ({ page }) => {
   await expect(page.getByRole("link", { name: "前往云端保存" })).toHaveCount(0);
 });
 
+test("嵌入 Solver 用宿主工作栏替换本地文件工具栏", async ({ page }) => {
+  await page.goto("/?embed=1");
+
+  await expect(page.getByRole("banner")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "ArchSight 结构力学求解器" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "文件菜单" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "保存", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /云端工程/u })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "公开案例" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "验证投稿" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "系统设置" })).toBeVisible();
+});
+
+test("嵌入页头将 URL theme 仅作为初始主题，用户仍可切换", async ({ page }) => {
+  await page.goto("/?embed=1&theme=light");
+
+  await expect(page.locator("html")).not.toHaveClass(/dark/u);
+  await page.getByRole("button", { name: "切换到深色主题" }).click();
+  await expect(page.locator("html")).toHaveClass(/dark/u);
+  await expect(page.getByRole("button", { name: "切换到浅色主题" })).toBeVisible();
+});
+
 test("正式容器投影 Cloud 入口与精确宿主白名单", async ({ page, request }) => {
   const expectedCloudWorkspaceUrl =
     process.env.ARCHSIGHT_SOLVER_E2E_CLOUD_WORKSPACE_URL;

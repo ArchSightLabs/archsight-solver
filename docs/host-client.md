@@ -51,6 +51,12 @@ try {
 
 `requestSave()` 只在 editable active 状态可用，并在收到匹配 `project.saveRequest` 前保持超时。超时快照、错误来源、错误 origin、错误会话或不匹配的 `requestId` 不会交给持久化回调。宿主完成或放弃持久化后必须调用一次匹配的 `sendSaveResult()`。
 
+## 嵌入页头动作
+
+支持嵌入页头的 Solver 会在 ready capability 中额外声明可选的 `requestPortalAction: true`。宿主可在 `launch()` 中用 `hostUiActions` 允许 `project`、`save`、`versions`、`share` 的子集，并通过 `onPortalActionRequested` 接收经过 source、origin、会话绑定、allowlist 与重复 requestId 校验的请求。
+
+`save` 不是保存完成回执。宿主收到它后必须使用同一 requestId 调用 `requestSave("portal-header", requestId)`，持久化快照后再发送 `sendSaveResult()`。只读或正在保存的会话不会转发新的 save 动作。旧 Solver 不声明该可选能力时，宿主应保留自己的最小工程操作入口。
+
 ## 状态与清理
 
 `client.snapshot.phase` 可能为 `idle`、`negotiating`、`launching`、`active-editable`、`active-readonly`、`saving`、`error` 或 `disposed`。可通过 `onStateChange` 驱动按钮禁用和状态提示，通过 `onMessage` 记录接入诊断，通过 `onError` 处理 capability 不兼容、launch/save 超时和迟到快照。

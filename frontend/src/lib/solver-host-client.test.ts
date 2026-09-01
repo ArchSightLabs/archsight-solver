@@ -91,6 +91,52 @@ test("Host Client negotiates capabilities and binds launch to the exact solver o
   context.client.dispose();
 });
 
+test("Host Client forwards only negotiated, allowlisted and unique portal actions", async () => {
+  const context = setup();
+  const portalActions: Array<{ action: string; requestId: string }> = [];
+  context.client.onPortalActionRequested = (request) => portalActions.push(request);
+  const launchPromise = context.client.launch({
+    projectDocument: { schema: "archsight-solver.project" },
+    hostUiActions: ["project", "save", "save", "unsupported"] as unknown as Array<"project" | "save">,
+  });
+  context.emit({
+    type: "archsight.solver.ready",
+    protocolVersion: "1.0.0",
+    payload: { capabilities: { ...SOLVER_HOST_CLIENT_REQUIRED_CAPABILITIES, requestPortalAction: true } },
+  });
+  const launch = context.outgoing.at(-1)!.message as { sessionId: string; nonce: string; payload: { hostUiActions?: string[] } };
+  assert.deepEqual(launch.payload.hostUiActions, ["project", "save"]);
+  context.emit({
+    type: "archsight.solver.ready",
+    protocolVersion: "1.0.0",
+    sessionId: launch.sessionId,
+    nonce: launch.nonce,
+    payload: { capabilities: { ...SOLVER_HOST_CLIENT_REQUIRED_CAPABILITIES, requestPortalAction: true } },
+  });
+  await launchPromise;
+
+  const action = {
+    type: "archsight.solver.portal.actionRequested",
+    protocolVersion: "1.0.0",
+    sessionId: launch.sessionId,
+    nonce: launch.nonce,
+    payload: { action: "save", requestId: "portal-save-1" },
+  };
+  context.emit(action);
+  context.emit(action);
+  context.emit({ ...action, payload: { action: "share", requestId: "portal-share-1" } });
+  context.emit({ ...action, nonce: "wrong-nonce", payload: { action: "project", requestId: "portal-project-1" } });
+  assert.deepEqual(portalActions, [{ action: "save", requestId: "portal-save-1" }]);
+
+  const snapshot = context.client.requestSave("portal-header", "portal-save-1");
+  const saveRequest = context.outgoing.at(-1)!.message as { payload: { requestId: string; reason: string } };
+  assert.deepEqual(saveRequest.payload, { requestId: "portal-save-1", reason: "portal-header" });
+  context.emit({ ...action, payload: { action: "save", requestId: "portal-save-2" } });
+  assert.deepEqual(portalActions, [{ action: "save", requestId: "portal-save-1" }]);
+  context.client.dispose();
+  await assert.rejects(snapshot, (error: unknown) => error instanceof SolverHostClientError && error.code === "disposed");
+});
+
 test("Host Client reports launch timeout when Solver never announces capabilities", async () => {
   const context = setup({ launchTimeoutMs: 10 });
   await assert.rejects(
@@ -101,11 +147,12 @@ test("Host Client reports launch timeout when Solver never announces capabilitie
   context.client.dispose();
 });
 
-test("Host Client owns requestSave, snapshot correlation and saveResult", async () => {
+test("Host Client owns requestSave, normalizes snapshot correlation and saveResult", async () => {
   const context = setup();
   const binding = await launchEditable(context);
-  const snapshotPromise = context.client.requestSave("host-toolbar");
+  const snapshotPromise = context.client.requestSave("host-toolbar", "  custom-save-1  ");
   const request = context.outgoing.at(-1)!.message as { payload: { requestId: string } };
+  assert.equal(request.payload.requestId, "custom-save-1");
   assert.equal(context.client.snapshot.phase, "saving");
 
   context.emit({
@@ -141,11 +188,31 @@ test("Host Client rejects incompatible capabilities, readonly save and invalid p
   incompatible.client.dispose();
 
   const readonly = setup();
-  const readonlyLaunch = readonly.client.launch({ projectDocument: {}, mode: "readonly" });
-  emitReady(readonly.emit);
+  const readonlyPortalActions: Array<{ action: string; requestId: string }> = [];
+  readonly.client.onPortalActionRequested = (request) => readonlyPortalActions.push(request);
+  const readonlyLaunch = readonly.client.launch({ projectDocument: {}, mode: "readonly", hostUiActions: ["save"] });
+  readonly.emit({
+    type: "archsight.solver.ready",
+    protocolVersion: "1.0.0",
+    payload: { capabilities: { ...SOLVER_HOST_CLIENT_REQUIRED_CAPABILITIES, requestPortalAction: true } },
+  });
   const readonlyLaunchMessage = readonly.outgoing.at(-1)!.message as { sessionId: string; nonce: string };
-  emitReady(readonly.emit, { sessionId: readonlyLaunchMessage.sessionId, nonce: readonlyLaunchMessage.nonce });
+  readonly.emit({
+    type: "archsight.solver.ready",
+    protocolVersion: "1.0.0",
+    sessionId: readonlyLaunchMessage.sessionId,
+    nonce: readonlyLaunchMessage.nonce,
+    payload: { capabilities: { ...SOLVER_HOST_CLIENT_REQUIRED_CAPABILITIES, requestPortalAction: true } },
+  });
   await readonlyLaunch;
+  readonly.emit({
+    type: "archsight.solver.portal.actionRequested",
+    protocolVersion: "1.0.0",
+    sessionId: readonlyLaunchMessage.sessionId,
+    nonce: readonlyLaunchMessage.nonce,
+    payload: { action: "save", requestId: "readonly-save-1" },
+  });
+  assert.deepEqual(readonlyPortalActions, []);
   await assert.rejects(readonly.client.requestSave(), (error: unknown) => (
     error instanceof SolverHostClientError && error.code === "readonly-operation"
   ));

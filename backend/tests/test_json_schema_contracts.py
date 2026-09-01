@@ -75,9 +75,14 @@ class _FallbackContractValidator:
                     self._validate(child, properties[key], f"{path}.{key}")
                 elif schema.get("additionalProperties") is False:
                     raise _FallbackValidationError(f"{path}.{key} is not allowed")
-        if isinstance(value, list) and isinstance(schema.get("items"), dict):
-            for index, item in enumerate(value):
-                self._validate(item, schema["items"], f"{path}[{index}]")
+        if isinstance(value, list):
+            if schema.get("uniqueItems") is True:
+                for index, item in enumerate(value):
+                    if item in value[:index]:
+                        raise _FallbackValidationError(f"{path}[{index}] duplicates an earlier item")
+            if isinstance(schema.get("items"), dict):
+                for index, item in enumerate(value):
+                    self._validate(item, schema["items"], f"{path}[{index}]")
         negated = schema.get("not")
         if isinstance(negated, dict):
             try:
@@ -429,6 +434,13 @@ def test_host_message_schema_rejects_partial_ready_session_binding(invalid_ready
             "payload": {"status": "saved", "revision": "local-1", "requestId": "request-1"},
         },
         {
+            "type": "archsight.solver.portal.actionRequested",
+            "protocolVersion": "1.0.0",
+            "sessionId": "session-1",
+            "nonce": "nonce-1",
+            "payload": {"action": "versions", "requestId": "portal-1"},
+        },
+        {
             "type": "archsight.solver.error",
             "protocolVersion": "1.0.0",
             "sessionId": "session-1",
@@ -454,6 +466,32 @@ def test_host_request_save_requires_request_id():
                 "sessionId": "session-1",
                 "nonce": "nonce-1",
                 "payload": {},
+            }
+        )
+
+
+@pytest.mark.parametrize(
+    "host_ui_actions",
+    [
+        ["save", "save"],
+        ["save", "unsupported"],
+    ],
+)
+def test_host_launch_rejects_duplicate_or_unknown_portal_actions(host_ui_actions):
+    validator, validation_error = _runtime_contract_validator(schema_registry()["solver-host-message"])
+
+    with pytest.raises(validation_error):
+        validator.validate(
+            {
+                "type": "archsight.solver.host.launch",
+                "protocolVersion": "1.0.0",
+                "sessionId": "session-1",
+                "nonce": "nonce-1",
+                "payload": {
+                    "projectDocument": {},
+                    "mode": "editable",
+                    "hostUiActions": host_ui_actions,
+                },
             }
         )
 

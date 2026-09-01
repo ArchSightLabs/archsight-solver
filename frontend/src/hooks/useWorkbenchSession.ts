@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 
 import type { HostTheme } from "../lib/workbench-presentation";
 
-export function useWorkbenchSession(forcedTheme: HostTheme = null) {
+export function useWorkbenchSession(initialTheme: HostTheme = null) {
   const [isDark, setIsDark] = useState(() => {
-    if (forcedTheme) return forcedTheme === "dark";
+    if (initialTheme) return initialTheme === "dark";
     if (typeof window === "undefined") return true;
     const storedTheme = window.localStorage.getItem("archsight:theme");
     return storedTheme ? storedTheme === "dark" : true;
@@ -21,12 +21,9 @@ export function useWorkbenchSession(forcedTheme: HostTheme = null) {
   });
 
   useEffect(() => {
-    const nextIsDark = forcedTheme ? forcedTheme === "dark" : isDark;
-    document.documentElement.classList.toggle("dark", nextIsDark);
-    if (!forcedTheme) {
-      window.localStorage.setItem("archsight:theme", nextIsDark ? "dark" : "light");
-    }
-  }, [forcedTheme, isDark]);
+    document.documentElement.classList.toggle("dark", isDark);
+    window.localStorage.setItem("archsight:theme", isDark ? "dark" : "light");
+  }, [isDark]);
 
   return {
     isDark,
