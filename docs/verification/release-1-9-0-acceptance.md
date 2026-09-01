@@ -1,46 +1,61 @@
-# ArchSight Solver v1.9.0 发布验收
+# ArchSight Solver v1.9.0 发布验收记录
 
-## 发布边界
+> 状态：发布候选就绪
+> 目标版本：产品 SemVer 与首次正式发行 Tag 均为 `v1.9.0`
+> 验收原则：v1.9.0 只扩展可嵌入产品外壳与 Host Protocol 可选能力；仓库版本、部署源码提交、镜像 revision、线上容器、公网验收与 annotated Tag 分别核对，未完成项不得提前勾选。
 
-v1.9.0 只扩展 Solver 的可嵌入产品外壳与 Host Protocol 可选能力，不改变结构求解算法、数值结果、项目文件 Schema 或导出格式。Cloud 继续拥有身份、租户、远程工程、revision 与分享；Solver 不持有 Cloud token，也不调用 Cloud 存储 API。
+## 发布范围与兼容边界
 
-## 候选状态
+- 不新增结构类型、求解算法、数据库迁移、项目文件格式或 Host Protocol 主版本，不改变既有一次分析、GNA/GNIA、线性屈曲和导出数值。
+- 独立 Solver 继续使用完整原生页头；`embed=1` 由 Solver 自己呈现唯一的 Host Portal 页头，保留真实版本、公开案例、验证投稿、主题与系统设置。
+- Cloud 只管理工程、保存、版本和分享。Solver 不接收 Cloud 凭据，不调用 Cloud 存储 API，也不拥有用户、租户或订阅。
+- Host Protocol 保持 `1.0.0`，只新增可选 capability `requestPortalAction` 与受 allowlist 约束的 portal action；新旧 Host/Solver 必须可回退互操作。
 
-| 项目 | 状态 | 证据 |
-| --- | --- | --- |
-| 前端 lint / TypeScript | PASS | `npm --prefix frontend run lint` |
-| 前端单元测试 | PASS | 461 / 461 |
-| Host Protocol JSON Schema | PASS | `backend/tests/test_json_schema_contracts.py` 41 / 41 |
-| 契约生成一致性 | PASS | `uv run python scripts/generate_contract_types.py --check` |
-| 前端生产构建与 Host Client dist | PASS | `npm --prefix frontend run build` |
-| 独立 Solver 与 Host 集成浏览器回归 | PASS | Chromium Host 相关用例 18 项通过，1 项按候选容器条件跳过 |
-| Cloud 双域本地工作台 | NOT RUN | 待使用当前 Solver 与 Cloud 精确源码完成 Chrome 验收 |
-| 正式 Git 提交与 annotated tag | NOT RUN | tag 只能在实际部署与公网验收一致后创建 |
-| GHCR 镜像 / 生产部署 | NOT RUN | 待候选提交和 Cloud 联调通过 |
-| 公网 `solver.archsight.cn` 验收 | NOT RUN | 待部署后核对版本、revision、Host capability 与页面行为 |
-| 回滚验证 | NOT RUN | 待验证 v1.8.4-r1 独立回滚与 Cloud fallback |
+## Gate A：范围与版本事实源
 
-## 必须验收的用户路径
+- [x] `pyproject.toml`、`uv.lock`、前端包、Host Client、CHANGELOG、公开发布说明与生成契约统一为 `1.9.0`。
+- [x] Host Protocol 主版本保持 `1.0.0`，portal action 只作为可选加法能力，不形成第二套保存协议。
+- [x] `scripts/check_versions.py --expected-version 1.9.0` 与当前版本发布工程门禁通过。
 
-1. 独立 Solver 保持原文件菜单、本地保存、公开案例、验证投稿、主题和系统设置。
-2. `embed=1` 只显示一排 Solver Host Portal 顶栏与完整工作台，不叠加 Cloud 左侧菜单或第二排文件菜单。
-3. 顶栏显示 Solver 自己的 `v1.9.0`；Cloud 版本与 revision 不进入 Solver 事实源。
-4. 工程、保存、版本、分享动作只在 Host allowlist 中出现；只读与匿名分享不能请求保存。
-5. 保存动作使用同一 requestId 完成快照、Cloud revision 和 saveResult；保存期间继续编辑后仍保持 dirty。
-6. 公开案例从独立 Solver 新标签页打开，不替换当前 Cloud 工程。
-7. 主题可切换，系统设置和验证投稿继续使用 Solver 原生实现。
-8. 旧 Solver 不声明可选 portal capability 时，Cloud 的最小 fallback 仍可完成工程与保存；新 Solver 遇到旧 Host 时不发送 portal action。
+## Gate B：代码、契约与回归
 
-## 发布顺序
+- [x] 前端 lint / TypeScript、461 项单元测试、生产构建与 Host Client dist 通过。
+- [x] Host Protocol JSON Schema 41 项通过，生成契约无漂移；保存继续复用 `requestSave -> saveRequest -> createRevision -> saveResult`。
+- [x] 本版本未修改核心求解矩阵、边界条件、收敛算法、项目文件 Schema 或导出格式。
 
-1. 提交并推送 Solver v1.9.0 候选源码。
-2. 构建、部署并公网验收 Solver；确认原五项 capability 不变且额外声明可选 `requestPortalAction`。
-3. 从精确 Solver 提交同步官方 Host Client dist、类型声明、许可证、NOTICE、SHA-256 与 source commit 到 Cloud。
-4. 提交、推送并部署 Cloud v1.4.0；完成双域保存、版本、分享、主题、设置和旧能力 fallback 验收。
-5. 只有当线上源码、镜像 revision、公网验收和版本号一致后，分别创建并推送对应 annotated tag。
+## Gate C：浏览器与 Cloud 双域工作台
 
-## 回滚边界
+- [x] 独立 Solver 保留文件、本地保存、公开案例、验证投稿、主题和系统设置；嵌入模式只显示一排 Solver Host Portal 页头与完整工作台。
+- [x] Chromium Host/embed 回归 18 项通过，1 项按候选容器条件跳过；Cloud 双域本地工作台的编辑、保存、版本、恢复、分享、主题、设置与刷新恢复通过。
+- [x] 新 Solver 遇到旧 Host 不发送 portal action；Cloud 检测不到 `requestPortalAction` 时显示不遮挡工作台的最小 fallback。
 
-- Solver 可独立回滚到 `v1.8.4-r1`；Cloud 必须检测缺少可选 portal capability，并显示不遮挡 Solver 的最小工程工具条。
-- Cloud 可回滚到上一稳定版本；新 Solver 因旧 Host 不发送 `hostUiActions`，不会发出 portal action，独立计算功能仍可用。
-- 不允许复用或移动历史 tag；回滚后再次发布必须使用新的不可变发布提交和标签。
+## Gate D：候选制品与回滚准备
+
+- [x] 精确镜像采用 `v1.9.0-<sourceCommit>`，构建脚本只推送不可变标签；不使用或部署 `latest`。
+- [x] 生产现状已只读冻结：Solver 使用 `127.0.0.1:18082 -> app:6240`，Graphics 继续使用 `18083`，正式切换前必须备份 `.env` 与 Compose。
+- [x] v1.9.0 不含数据库迁移；直接回滚基线为现网已验证镜像 `v1.8.4-3d85db3`，回滚不需要数据格式恢复。
+
+## Gate E：候选确认与发布授权
+
+- [x] Solver 与 Cloud 的实现提交均已推送到各自 `main`，工作树干净，当前候选的相关单元、构建、契约和本地双域浏览器门禁通过。
+- [x] 维护者已明确授权提交、推送、按 Solver 后 Cloud 的顺序上线并创建对应精确版本 Tag。
+- [x] 发布顺序固定为：Solver 精确镜像预检与上线、公网验收、Solver annotated Tag；随后 Cloud 精确镜像上线、公网验收、Cloud annotated Tag。
+
+## Gate F：正式发布与线上验收
+
+- [ ] 阿里云精确镜像已绑定最终发布源码提交，推送后回拉核对 digest，并在不占用 `18082/18083` 的隔离端口达到 healthy、HTTP 200、重启 0。
+- [ ] 正式 Solver 容器已切换到同一精确镜像，继续使用 `127.0.0.1:18082 -> app:6240`；Graphics、Cloud、IAM 等同机服务未被改动且保持 healthy。
+- [ ] `https://solver.archsight.cn/` 显示 v1.9.0，运行时 Cloud 地址、宿主白名单、CSP、独立页头与嵌入 Host Portal 行为通过公网复核。
+- [ ] Cloud v1.4.0 已使用同一 Solver source provenance 上线，公网 `/solver` 完成工程、保存、版本、分享、主题、设置与旧 capability fallback 验收。
+- [ ] annotated `v1.9.0` Tag 精确指向线上部署源码提交并已推送；GitHub Release 工作流与资产校验通过，历史 Tag 未移动。
+- [ ] `v1.8.4-3d85db3` 回滚镜像仍可拉取并完成隔离健康预检；生产备份和一条命令回滚路径已记录。
+
+## 候选证据
+
+- Solver 实现提交 `f9276435f0ca5d79f902073dab5bf520ed26ec12` 已推送到 `main`；前端 lint / TypeScript、461 项单元测试、生产构建、版本检查、Host Schema 41 项和 Host/embed Chromium 回归通过。
+- Cloud 实现提交 `e09961f905d57a8ed6196528214a55590ee91175` 已推送到 `main`；前端 lint / typecheck、41 项单元测试、7 项后端纵向测试、生产构建、4 条关键 Chromium E2E 与 v1.4.0 源码门禁通过。
+- Chrome 人工验收确认 `cloud.archsight.cn/solver` 的本地同构页面只有一排 Solver 页头、显示 v1.9.0 且完整画布可用；编辑、保存、版本恢复、刷新恢复、主题、系统设置和公开案例通过。
+
+## 发布后记录边界
+
+Gate F 只在镜像、容器、公网、Tag、GitHub Release 和回滚事实实际发生后勾选。后续证据提交不得移动 `v1.9.0`，也不得把仅更新文档的提交表述为线上源码。
