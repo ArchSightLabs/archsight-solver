@@ -60,3 +60,17 @@ test("P1 hotspot facade 不得重新吸收已拆出的 Implementation", () => {
 
   assert.deepEqual(violations, []);
 });
+
+test("敏感性请求先检查 HTTP 状态，再解析成功 JSON", () => {
+  const actions = source("./useWorkbenchActions.ts");
+  const start = actions.indexOf("const handleSensitivity");
+  const end = actions.indexOf("const handleExport", start);
+  const sensitivity = actions.slice(start, end);
+  const statusCheck = sensitivity.indexOf("if (!res.ok)");
+  const successJsonRead = sensitivity.indexOf("const data = await res.json()");
+
+  assert.ok(start >= 0 && end > start);
+  assert.ok(statusCheck >= 0);
+  assert.ok(successJsonRead > statusCheck);
+  assert.match(sensitivity, /readApiError\(res, "敏感性分析失败"\)/u);
+});

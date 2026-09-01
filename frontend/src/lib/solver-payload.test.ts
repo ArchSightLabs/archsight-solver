@@ -142,6 +142,29 @@ test("buildTrussPayload serializes the default truss workspace", () => {
   assert.equal(payload?.structure.members[0]?.elementType, "truss");
 });
 
+test("buildTrussPayload keeps review points at the request root", () => {
+  const workspace = createDefaultTrussWorkspaceState();
+  workspace.reviewPoints = [{
+    id: "node-n2",
+    kind: "custom",
+    targetType: "node",
+    label: "节点 N2",
+    targetId: "N2",
+    metricKey: "resultant",
+  }];
+
+  const payload = buildTrussPayload(workspace);
+
+  assert.ok(payload);
+  assert.deepEqual(payload.reviewPoints, [{
+    ...workspace.reviewPoints[0],
+    station: null,
+    side: undefined,
+    note: undefined,
+  }]);
+  assert.equal("reviewPoints" in payload.structure, false);
+});
+
 test("buildTrussPayload preserves member self weight for equivalent nodal preprocessing", () => {
   const workspace = createDefaultTrussWorkspaceState();
   workspace.customLoads = [{ type: "distributed", member: "M2", direction: "global_y", selfWeightKnPerM: 2.0 }];
@@ -244,6 +267,30 @@ test("buildFramePayload preserves advanced frame modeling fields", () => {
   assert.deepEqual(payload.structure.loadCases?.[2]?.loads[0], { type: "temperature", member: "B1", deltaTempC: 20, alphaPerC: 1.2e-5, pathRole: "variable" });
   assert.deepEqual(payload.structure.loadCombinations?.[0]?.factors, { DL: 1.2, WL: 1.5, TL: 1.0 });
   assert.deepEqual(payload.structure.loadCombinations?.[0]?.tags, ["ULS", "包络"]);
+});
+
+test("buildFramePayload keeps custom-model review points at the request root", () => {
+  const workspace = createDefaultFrameWorkspaceState();
+  workspace.frameMode = "custom";
+  workspace.reviewPoints = [{
+    id: "beam-mid",
+    kind: "custom",
+    targetType: "station",
+    label: "梁中点",
+    targetId: "B1",
+    metricKey: "moment",
+    station: 2,
+    side: "exact",
+  }];
+
+  const payload = buildFramePayload(workspace);
+
+  assert.ok(payload);
+  assert.deepEqual(payload.reviewPoints, [{
+    ...workspace.reviewPoints[0],
+    note: undefined,
+  }]);
+  assert.equal("reviewPoints" in payload.structure, false);
 });
 
 test("normalizeFrameWorkspaceState backfills and clamps legacy analysis options", () => {

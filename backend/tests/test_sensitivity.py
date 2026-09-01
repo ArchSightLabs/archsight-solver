@@ -213,3 +213,18 @@ def test_sensitivity_rejects_unbounded_variation_range(client):
     assert data["success"] is False
     assert data["operation"] == "sensitivity"
     assert data["error"]["message"] == "敏感性分析扰动范围必须位于 0 到 80% 之间"
+
+
+def test_sensitivity_rejects_malformed_numeric_config_as_a_stable_client_error(client):
+    payload = _frame_payload()
+    payload["config"] = {"range": "not-a-number", "steps": 2}
+
+    response = client.post("/api/sensitivity", json=payload)
+
+    assert response.status_code == 400
+    data = response.get_json()
+    assert data["error"] == {
+        "code": "COMMON_INVALID_SENSITIVITY_CONFIG",
+        "message": "敏感性分析 range 和 steps 必须为有效数值",
+    }
+    assert "could not convert" not in response.get_data(as_text=True)

@@ -1,5 +1,6 @@
+import logging
+
 from flask import Blueprint, request, jsonify, send_file
-import traceback
 from backend.api.errors import ApiError, error_payload
 from backend.exporters.common.artifact import ExportArtifact
 from backend.api.analysis_types import get_analysis_type, get_material_name
@@ -8,6 +9,7 @@ from backend.contracts.calculation_evidence import EVIDENCE_FIELDS
 from backend.services.export_service import build_failure_review_model, build_report_model, export_failure_review, export_report
 
 export_bp = Blueprint('export', __name__)
+logger = logging.getLogger(__name__)
 
 
 def _send_export_artifact(artifact: ExportArtifact):
@@ -107,9 +109,9 @@ def export():
         return jsonify(error_payload(e, operation='export', data=data, code=code)), 400
     except RuntimeError as e:
         return jsonify(error_payload(e, operation='export', data=data, code='COMMON_EXPORT_FAILED')), 500
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify(error_payload(f'导出失败: {str(e)}', operation='export', data=data, code='COMMON_INTERNAL_ERROR')), 400
+    except Exception:
+        logger.exception("导出计算书时发生未处理异常")
+        return jsonify(error_payload('导出服务内部失败，请稍后重试', operation='export', data=data, code='COMMON_INTERNAL_ERROR')), 500
 
 
 @export_bp.route('/export/failure', methods=['POST'])
@@ -123,6 +125,6 @@ def export_failure():
         return jsonify(error_payload(e, operation='export', data=data, code='FAILURE_REVIEW_INVALID_REQUEST')), 400
     except RuntimeError as e:
         return jsonify(error_payload(e, operation='export', data=data, code='COMMON_EXPORT_FAILED')), 500
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify(error_payload(f'导出失败: {str(e)}', operation='export', data=data, code='COMMON_INTERNAL_ERROR')), 400
+    except Exception:
+        logger.exception("导出失败审查材料时发生未处理异常")
+        return jsonify(error_payload('导出服务内部失败，请稍后重试', operation='export', data=data, code='COMMON_INTERNAL_ERROR')), 500

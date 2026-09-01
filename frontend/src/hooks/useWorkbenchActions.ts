@@ -323,10 +323,10 @@ export function useWorkbenchActions({
         mode: "cors",
         body: JSON.stringify(requestBody),
       });
-      const data = await res.json();
       if (!res.ok) {
-        throw new WorkbenchApiError(apiErrorDetails(data, "敏感性分析失败"));
+        throw new WorkbenchApiError(await readApiError(res, "敏感性分析失败"));
       }
+      const data = await res.json();
       if (sensitivityRequestSequenceRef.current !== requestSequence) {
         return;
       }

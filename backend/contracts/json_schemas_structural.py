@@ -718,6 +718,46 @@ FRAME_BUCKLING_RESULT_SCHEMA: Dict[str, Any] = {
     "additionalProperties": True,
 }
 
+REVIEW_POINT_SELECTOR_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "id": {"type": "string"},
+        "sourceId": {"type": "string"},
+        "targetId": {"type": "string"},
+        "objectId": {"type": "string"},
+        "nodeId": {"type": "string"},
+        "memberId": {"type": "string"},
+        "targetType": {"type": "string", "enum": ["node", "member", "station"]},
+        "metric": {"type": "string"},
+        "metricKey": {"type": "string"},
+        "kind": {"type": "string"},
+        "label": {"type": "string"},
+        "note": {"type": "string"},
+        "station": {"type": "number"},
+        "stationRatio": {"type": "number", "minimum": 0, "maximum": 1},
+        "side": {"type": "string", "enum": ["exact", "left", "right", "jump_left", "jump_right"]},
+    },
+    "allOf": [
+        {
+            "anyOf": [
+                {"required": ["targetId"]},
+                {"required": ["objectId"]},
+                {"required": ["nodeId"]},
+                {"required": ["memberId"]},
+                {"required": ["station"]},
+                {"required": ["stationRatio"]},
+            ],
+        },
+    ],
+    "additionalProperties": True,
+}
+
+REVIEW_POINTS_SCHEMA: Dict[str, Any] = {
+    "type": "array",
+    "maxItems": 32,
+    "items": REVIEW_POINT_SELECTOR_SCHEMA,
+}
+
 ASMS_BEAM_MODEL_SCHEMA: Dict[str, Any] = {
     "$id": _schema_id("asms-beam-model"),
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -758,6 +798,7 @@ ASMS_BEAM_MODEL_SCHEMA: Dict[str, Any] = {
         "uniformLoadEndM": {"type": "number", "description": "局部均布荷载终点，单位 m。"},
         "supports": {"type": "array", "items": BEAM_SUPPORT_SCHEMA},
         "loads": {"type": "array", "items": {"type": "object"}},
+        "reviewPoints": REVIEW_POINTS_SCHEMA,
     },
     "additionalProperties": True,
 }
@@ -774,6 +815,7 @@ ASMS_FRAME_MODEL_SCHEMA: Dict[str, Any] = {
         "projectName": {"type": "string"},
         "materialId": {"type": "string"},
         "analysisOptions": FRAME_ANALYSIS_OPTIONS_SCHEMA,
+        "reviewPoints": REVIEW_POINTS_SCHEMA,
         "structure": {
             "type": "object",
             "required": ["nodes", "members"],
@@ -802,6 +844,7 @@ ASMS_TRUSS_MODEL_SCHEMA: Dict[str, Any] = {
         "schemaVersion": ASMS_SCHEMA_VERSION_PROPERTY,
         "projectName": {"type": "string"},
         "materialId": {"type": "string"},
+        "reviewPoints": REVIEW_POINTS_SCHEMA,
         "structure": {
             "type": "object",
             "required": ["nodes", "members"],
@@ -876,6 +919,7 @@ SOLVER_PAYLOAD_SCHEMA: Dict[str, Any] = {
         "beamType": {"type": "string"},
         "loadType": {"type": "string"},
         "spans": {"type": "array", "items": {"type": "number"}},
+        "reviewPoints": REVIEW_POINTS_SCHEMA,
         "structure": {"type": "object"},
     },
     "oneOf": [ASMS_BEAM_MODEL_SCHEMA, ASMS_FRAME_MODEL_SCHEMA, ASMS_TRUSS_MODEL_SCHEMA],

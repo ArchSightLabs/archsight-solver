@@ -40,6 +40,23 @@ export type SolverJobRequestDto = {
       }>;
     }>;
     loads?: Array<Record<string, unknown>>;
+    reviewPoints?: Array<{
+      id?: string;
+      sourceId?: string;
+      targetId?: string;
+      objectId?: string;
+      nodeId?: string;
+      memberId?: string;
+      targetType?: "node" | "member" | "station";
+      metric?: string;
+      metricKey?: string;
+      kind?: string;
+      label?: string;
+      note?: string;
+      station?: number;
+      stationRatio?: number;
+      side?: "exact" | "left" | "right" | "jump_left" | "jump_right";
+    }>;
   } | {
     analysisType : "frame" | "frame2d" | "portal_frame";
     schemaVersion?: "2026-05-30";
@@ -84,6 +101,23 @@ export type SolverJobRequestDto = {
         modeCount?: number;
       };
     };
+    reviewPoints?: Array<{
+      id?: string;
+      sourceId?: string;
+      targetId?: string;
+      objectId?: string;
+      nodeId?: string;
+      memberId?: string;
+      targetType?: "node" | "member" | "station";
+      metric?: string;
+      metricKey?: string;
+      kind?: string;
+      label?: string;
+      note?: string;
+      station?: number;
+      stationRatio?: number;
+      side?: "exact" | "left" | "right" | "jump_left" | "jump_right";
+    }>;
     structure : {
       template?: string;
       nodes : Array<{
@@ -203,6 +237,23 @@ export type SolverJobRequestDto = {
     schemaVersion?: "2026-05-30";
     projectName?: string;
     materialId?: string;
+    reviewPoints?: Array<{
+      id?: string;
+      sourceId?: string;
+      targetId?: string;
+      objectId?: string;
+      nodeId?: string;
+      memberId?: string;
+      targetType?: "node" | "member" | "station";
+      metric?: string;
+      metricKey?: string;
+      kind?: string;
+      label?: string;
+      note?: string;
+      station?: number;
+      stationRatio?: number;
+      side?: "exact" | "left" | "right" | "jump_left" | "jump_right";
+    }>;
     structure : {
       template?: string;
       nodes : Array<{

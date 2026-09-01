@@ -1,3 +1,5 @@
+import importlib
+import logging
 import os
 import sys
 
@@ -386,3 +388,35 @@ def test_unknown_analysis_type_returns_structured_error(client):
 
     assert response.status_code == 400
     assert_error_response(response, "不支持的分析对象: plate", "COMMON_UNSUPPORTED_ANALYSIS_TYPE")
+
+
+@pytest.mark.parametrize(
+    ("module_name", "builder_name", "endpoint"),
+    [
+        ("backend.api.calculate", "build_calculation_result", "/api/calculate"),
+        ("backend.api.preview", "build_calculation_response", "/api/preview"),
+        ("backend.api.sensitivity", "build_sensitivity_response", "/api/sensitivity"),
+    ],
+)
+def test_unknown_api_failures_are_logged_and_return_sanitized_500(
+    client, monkeypatch, caplog, module_name, builder_name, endpoint
+):
+    module = importlib.import_module(module_name)
+
+    def fail_with_private_detail(*_args, **_kwargs):
+        raise OSError("sentinel-private-service-detail")
+
+    monkeypatch.setattr(module, builder_name, fail_with_private_detail)
+    with caplog.at_level(logging.ERROR, logger=module_name):
+        response = client.post(endpoint, json=_beam_base_payload())
+
+    assert response.status_code == 500
+    data = response.get_json()
+    assert data["error"] == {
+        "code": "COMMON_INTERNAL_ERROR",
+        "message": "服务内部错误，请稍后重试。",
+    }
+    assert "sentinel-private-service-detail" not in response.get_data(as_text=True)
+    assert data["diagnostics"]["issues"][0]["code"] == "COMMON_INTERNAL_ERROR"
+    assert data["diagnostics"]["issues"][0]["category"] == "system"
+    assert any(record.exc_info for record in caplog.records if record.name == module_name)

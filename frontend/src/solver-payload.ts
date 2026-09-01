@@ -394,6 +394,7 @@ function normalizeCustomFrameCollections(value: FrameWorkspaceState) {
       springs: node.springs?.length ? node.springs.map((spring) => ({ ...spring })) : undefined,
       supportDisplacements: normalizeFrameSupportDisplacements(node),
     })),
+    reviewPoints: normalizeReviewPoints(value.reviewPoints),
     members: value.customMembers.map((member, index) => ({
       id: String(member.id ?? `M${index + 1}`).trim() || `M${index + 1}`,
       start: String(member.start ?? "N1").trim() || "N1",
@@ -688,6 +689,7 @@ export function buildFramePayload(value: FrameWorkspaceState, projectName = valu
       pDeltaOptions: { ...value.analysisOptions.pDeltaOptions },
       bucklingOptions: { ...value.analysisOptions.bucklingOptions },
     },
+    reviewPoints: custom.reviewPoints,
     structure: {
       template: "explicit",
       nodes: custom.nodes,
@@ -789,6 +791,7 @@ export function buildTrussPayload(value: TrussWorkspaceState, projectName = valu
     schemaVersion: ARCHSIGHT_SOLVER_ASMS_SCHEMA_VERSION,
     projectName,
     materialId: value.materialId,
+    reviewPoints: custom.reviewPoints,
     structure: {
       template: "explicit",
       nodes: custom.nodes,

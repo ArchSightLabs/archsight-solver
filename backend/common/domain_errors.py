@@ -34,6 +34,22 @@ class SolverDomainError(ValueError):
         )
 
 
+class InternalServiceError(SolverDomainError):
+    """Sanitized public representation for an unexpected server-side failure."""
+
+    def __init__(self, message: str = "服务内部错误，请稍后重试。") -> None:
+        super().__init__(
+            message,
+            code="COMMON_INTERNAL_ERROR",
+            title="服务内部错误",
+            detail="服务处理请求时发生未预期错误，内部异常细节已隐藏。",
+            category="system",
+            suggestions=("稍后重试；若问题持续，请向维护者提供请求时间和操作类型。",),
+            action_id="retry_operation",
+            action_label="稍后重试",
+        )
+
+
 class DuplicateStructureIdError(SolverDomainError):
     def __init__(self, object_kind: str, object_id: str, message: str) -> None:
         super().__init__(

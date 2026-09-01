@@ -134,6 +134,44 @@ def _structure_collection_properties(schema, collection_name):
     return schema["properties"]["structure"]["properties"][collection_name]
 
 
+@pytest.mark.parametrize(
+    "schema_id",
+    ["asms-beam-model", "asms-frame-model", "asms-truss-model", "calculate-payload"],
+)
+def test_review_points_are_a_bounded_top_level_request_contract(schema_id):
+    schema = schema_by_id(schema_id)
+    assert schema is not None
+    review_points = schema["properties"]["reviewPoints"]
+    selector = review_points["items"]
+
+    assert review_points["type"] == "array"
+    assert review_points["maxItems"] == 32
+    assert selector["properties"]["targetType"]["enum"] == ["node", "member", "station"]
+    assert selector["properties"]["side"]["enum"] == ["exact", "left", "right", "jump_left", "jump_right"]
+    assert selector["properties"]["stationRatio"]["minimum"] == 0
+    assert selector["properties"]["stationRatio"]["maximum"] == 1
+
+    validator, validation_error = _runtime_contract_validator(review_points)
+    validator.validate([
+        {
+            "id": "beam-mid",
+            "targetType": "station",
+            "targetId": "B1",
+            "stationRatio": 0.5,
+            "metricKey": "moment",
+            "side": "exact",
+        }
+    ])
+    for invalid in ({}, [None], [{}], [{"targetId": "B1", "side": "inside"}]):
+        with pytest.raises(validation_error):
+            validator.validate(invalid)
+
+    openapi_schema = build_openapi_document()["components"]["schemas"][schema_id]
+    assert openapi_schema["properties"]["reviewPoints"] == review_points
+    if "structure" in schema["properties"]:
+        assert "reviewPoints" not in schema["properties"]["structure"].get("properties", {})
+
+
 def _one_of_branch_by_type(schema, type_name):
     for branch in schema.get("oneOf", []):
         type_schema = branch.get("properties", {}).get("type", {})
@@ -651,6 +689,10 @@ def test_openapi_document_reuses_schema_registry():
     assert document["paths"]["/api/sensitivity"]["post"]["requestBody"]["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/sensitivity-payload"
     }
+    for path in ("/api/calculate", "/api/preview", "/api/sensitivity"):
+        assert document["paths"][path]["post"]["responses"]["500"]["content"]["application/json"]["schema"] == {
+            "$ref": "#/components/schemas/api-error"
+        }
     assert document["components"]["schemas"]["sensitivity-payload"]["properties"]["config"]["properties"]["steps"]["maximum"] == 50
     assert document["paths"]["/api/verification-packages"]["post"]["requestBody"]["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/verification-package-create-input"

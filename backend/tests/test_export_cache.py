@@ -180,3 +180,34 @@ def test_export_rejects_cached_job_without_reusable_solution_facts(client, monke
     assert data["success"] is False
     assert data["error"]["code"] == "COMMON_EXPORT_CACHE_MISS"
     assert "可复用的求解事实" in data["error"]["message"]
+
+
+@pytest.mark.parametrize(
+    ("path", "patched_name", "payload"),
+    [
+        (
+            "/api/export",
+            "build_report_model",
+            {"analysisType": "beam", "beamType": "simply_supported", "spans": [6], "format": "xlsx"},
+        ),
+        (
+            "/api/export/failure",
+            "build_failure_review_model",
+            {"analysisType": "beam", "format": "xlsx"},
+        ),
+    ],
+)
+def test_export_unexpected_exception_is_500_without_internal_details(client, monkeypatch, path, patched_name, payload):
+    import backend.api.export
+
+    def fail_with_internal_detail(*args, **kwargs):
+        raise OSError("sentinel-private-export-detail")
+
+    monkeypatch.setattr(backend.api.export, patched_name, fail_with_internal_detail)
+
+    response = client.post(path, json=payload)
+
+    assert response.status_code == 500
+    body = response.get_json()
+    assert body["error"]["code"] == "COMMON_INTERNAL_ERROR"
+    assert "sentinel-private-export-detail" not in response.get_data(as_text=True)

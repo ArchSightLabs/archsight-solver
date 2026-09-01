@@ -1,4 +1,5 @@
 import copy
+from collections.abc import Mapping
 
 import numpy as np
 
@@ -206,8 +207,19 @@ def _truss_metric_value(payload, response_metric):
 def build_sensitivity_response(data):
     analysis_type = get_analysis_type(data)
     config = data.get("config", {})
-    range_percent = float(config.get("range", 20))
-    steps = int(config.get("steps", 10))
+    if not isinstance(config, Mapping):
+        raise ApiError(
+            "敏感性分析 config 必须为对象",
+            code="COMMON_INVALID_SENSITIVITY_CONFIG",
+        )
+    try:
+        range_percent = float(config.get("range", 20))
+        steps = int(config.get("steps", 10))
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ApiError(
+            "敏感性分析 range 和 steps 必须为有效数值",
+            code="COMMON_INVALID_SENSITIVITY_CONFIG",
+        ) from exc
     if range_percent < 0 or range_percent > MAX_VARIATION_RANGE_PERCENT:
         raise ApiError(
             f"敏感性分析扰动范围必须位于 0 到 {int(MAX_VARIATION_RANGE_PERCENT)}% 之间",
@@ -264,7 +276,13 @@ def build_sensitivity_response(data):
             values_by_key=values_by_key,
         )
 
-    target_span_index = int(data.get("targetSpanIndex", 0))
+    try:
+        target_span_index = int(data.get("targetSpanIndex", 0))
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ApiError(
+            "敏感性分析 targetSpanIndex 必须为整数",
+            code="COMMON_INVALID_SENSITIVITY_CONFIG",
+        ) from exc
     response_metric, response_label, response_unit = _resolve_response_meta(
         metric=requested_metric,
         mapping=BEAM_RESPONSE_META,

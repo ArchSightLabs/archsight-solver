@@ -134,7 +134,11 @@ def _paths() -> Dict[str, Any]:
                 "tags": ["analysis"],
                 "summary": "执行结构求解",
                 "requestBody": _json_request("calculate-payload"),
-                "responses": {**_json_response("api-envelope"), **_error_response()},
+                "responses": {
+                    **_json_response("api-envelope"),
+                    **_error_response(),
+                    **_error_response("500", "服务内部错误"),
+                },
             }
         },
         "/api/preview": {
@@ -142,7 +146,11 @@ def _paths() -> Dict[str, Any]:
                 "tags": ["analysis"],
                 "summary": "生成模型预览",
                 "requestBody": _json_request("calculate-payload"),
-                "responses": {**_json_response("api-envelope"), **_error_response()},
+                "responses": {
+                    **_json_response("api-envelope"),
+                    **_error_response(),
+                    **_error_response("500", "服务内部错误"),
+                },
             }
         },
         "/api/sensitivity": {
@@ -153,6 +161,7 @@ def _paths() -> Dict[str, Any]:
                 "responses": {
                     **_json_response("sensitivity-response"),
                     **_error_response(),
+                    **_error_response("500", "服务内部错误"),
                 },
             }
         },

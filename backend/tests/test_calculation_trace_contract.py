@@ -110,13 +110,18 @@ def test_user_review_points_resolve_for_beam_frame_and_truss():
     truss = truss_payload()
     truss["reviewPoints"] = [{"id": "node-n2", "targetType": "node", "targetId": "N2"}]
 
-    resolved = [build_calculation_result(payload)["reviewPoints"] for payload in (beam, frame, truss)]
+    payloads = (beam, frame, truss)
+    results = [build_calculation_result(payload) for payload in payloads]
+    resolved = [result["reviewPoints"] for result in results]
     assert [(item["requestedCount"], item["requestedPoints"][0]["metric"]) for item in resolved] == [
         (1, "deflection"),
         (1, "moment"),
         (1, "resultant"),
     ]
     assert all(item["requestedPoints"][0]["sourceType"] == "request" for item in resolved)
+    assert [result["request"]["reviewPoints"] for result in results] == [
+        payload["reviewPoints"] for payload in payloads
+    ]
 
 
 def test_invalid_review_station_is_rejected_instead_of_silently_clamped():
