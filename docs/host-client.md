@@ -53,9 +53,9 @@ try {
 
 ## 嵌入页头动作
 
-支持嵌入页头的 Solver 会在 ready capability 中额外声明可选的 `requestPortalAction: true`。宿主可在 `launch()` 中用 `hostUiActions` 允许 `project`、`save`、`versions`、`share` 的子集，并通过 `onPortalActionRequested` 接收经过 source、origin、会话绑定、allowlist 与重复 requestId 校验的请求。
+支持嵌入页头的 Solver 会在 ready capability 中额外声明可选的 `requestPortalAction: true`。宿主可在 `launch()` 中用 `hostUiActions` 允许 `project`、`new`、`open`、`save`、`saveAs`、`versions`、`share` 的子集，并通过 `onPortalActionRequested` 接收经过 source、origin、会话绑定、allowlist 与重复 requestId 校验的请求。
 
-`save` 不是保存完成回执。宿主收到它后必须使用同一 requestId 调用 `requestSave("portal-header", requestId)`，持久化快照后再发送 `sendSaveResult()`。只读或正在保存的会话不会转发新的 save 动作。旧 Solver 不声明该可选能力时，宿主应保留自己的最小工程操作入口。
+`save` 与 `saveAs` 都不是保存完成回执。宿主收到任一动作后必须使用同一 requestId 调用 `requestSave("portal-header", requestId)`，持久化快照后再发送 `sendSaveResult()`；`saveAs` 可以把快照存为新工程及其首个 revision。`new` 与 `open` 只请求宿主打开带未保存保护的工程流程，不包含工程正文。只读或正在保存的会话不会转发新的 save 动作。旧 Solver 不声明该可选能力时，宿主应保留自己的最小工程操作入口。
 
 ## 状态与清理
 

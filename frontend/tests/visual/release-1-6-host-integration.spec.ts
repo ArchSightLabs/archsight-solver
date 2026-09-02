@@ -56,22 +56,29 @@ async function postLaunch(page: Page, mode: "editable" | "readonly", hostUiActio
   throw new Error(`Solver 未在重试窗口内确认 Host launch：${JSON.stringify(await hostMessages(page))}`);
 }
 
-test("嵌入页头只向已协商的 Host Client 请求云端动作", async ({ page }) => {
+test("嵌入页头只向已协商的 Host Client 请求云端文件与工程动作", async ({ page }) => {
   const solver = await mountSameOriginHost(page, true);
-  await postLaunch(page, "editable", ["project", "save", "versions", "share"]);
+  await postLaunch(page, "editable", ["project", "new", "open", "save", "saveAs", "versions", "share"]);
 
   await expect(solver.getByRole("heading", { name: "ArchSight 结构力学求解器" })).toBeVisible();
-  await expect(solver.getByRole("button", { name: "文件菜单" })).toHaveCount(0);
-  await expect(solver.getByRole("button", { name: "云端工程已保存" })).toBeDisabled();
+  await expect(solver.getByRole("button", { name: "文件菜单", exact: true })).toHaveCount(0);
+  await expect(solver.getByRole("button", { name: "云端文件菜单" })).toBeVisible();
+  await expect(solver.getByRole("button", { name: "已保存", exact: true })).toBeDisabled();
 
   const loadInput = solver.getByLabel("均布荷载 kN/m").first();
   await loadInput.fill("18");
   await solver.getByRole("button", { name: "生成连续梁" }).click();
-  await expect(solver.getByRole("button", { name: "保存云端工程" })).toBeEnabled();
+  await expect(solver.getByRole("button", { name: "保存", exact: true })).toBeEnabled();
 
+  await solver.getByRole("button", { name: "云端文件菜单" }).click();
+  await solver.getByRole("menuitem", { name: "新建", exact: true }).click();
+  await solver.getByRole("button", { name: "云端文件菜单" }).click();
+  await solver.getByRole("menuitem", { name: "打开", exact: true }).click();
+  await solver.getByRole("button", { name: "云端文件菜单" }).click();
+  await solver.getByRole("menuitem", { name: "另存为", exact: true }).click();
   await solver.getByRole("button", { name: "工程", exact: true }).click();
-  await solver.getByRole("button", { name: "保存云端工程" }).click();
-  await expect(solver.getByRole("button", { name: "保存云端工程" })).toBeEnabled();
+  await solver.getByRole("button", { name: "保存", exact: true }).click();
+  await expect(solver.getByRole("button", { name: "保存", exact: true })).toBeEnabled();
 
   await expect.poll(async () => (await hostMessages(page)).findLast((message) => (
     message.type === "archsight.solver.portal.actionRequested" && message.payload?.action === "save"
@@ -96,16 +103,16 @@ test("嵌入页头只向已协商的 Host Client 请求云端动作", async ({ p
     requestId: savePortalAction?.payload?.requestId,
   });
   await expect(solver.getByRole("button", { name: "正在保存" })).toBeDisabled();
-  await solver.getByRole("button", { name: "版本", exact: true }).click();
+  await solver.getByRole("button", { name: "历史", exact: true }).click();
   await solver.getByRole("button", { name: "分享", exact: true }).click();
 
   await expect.poll(async () => (await hostMessages(page)).filter((message) => (
     message.type === "archsight.solver.portal.actionRequested"
-  )).length).toBe(4);
+  )).length).toBe(7);
   const actions = (await hostMessages(page)).filter((message) => (
     message.type === "archsight.solver.portal.actionRequested"
   ));
-  expect(actions.map((message) => message.payload?.action)).toEqual(["project", "save", "versions", "share"]);
+  expect(actions.map((message) => message.payload?.action)).toEqual(["new", "open", "saveAs", "project", "save", "versions", "share"]);
   expect(actions.every((message) => message.sessionId === sessionId && message.nonce === nonce && message.payload?.requestId)).toBe(true);
 });
 
@@ -166,13 +173,18 @@ test("v1.6 editable host completes launch, change, save request and save result"
   await expect(solver.getByText("已保存", { exact: true })).toBeVisible();
 });
 
-test("v1.6 readonly host locks model, project replacement and save operations", async ({ page }) => {
+test("v1.6 readonly host locks model and save while allowing host-authorized open", async ({ page }) => {
   const solver = await mountSameOriginHost(page);
-  await postLaunch(page, "readonly");
+  await postLaunch(page, "readonly", ["new", "open", "save", "saveAs"]);
 
   await expect(solver.getByText(/外部宿主：只读/u)).toBeVisible();
   await expect(solver.getByLabel("只读建模区域")).toHaveAttribute("disabled", "");
   await expect(solver.getByRole("button", { name: "保存", exact: true })).toBeDisabled();
+  await solver.getByRole("button", { name: "云端文件菜单" }).click();
+  await expect(solver.getByRole("menuitem", { name: "新建", exact: true })).toBeDisabled();
+  await expect(solver.getByRole("menuitem", { name: "打开", exact: true })).toBeEnabled();
+  await expect(solver.getByRole("menuitem", { name: "另存为", exact: true })).toBeDisabled();
+  await expect(solver.getByRole("button", { name: "公开案例", exact: true })).toBeDisabled();
   await expect(solver.getByRole("button", { name: "新建分析对象" }).first()).toBeDisabled();
   await page.waitForTimeout(300);
   expect((await hostMessages(page)).some((message) => message.type === SOLVER_PROJECT_CHANGED_MESSAGE)).toBe(false);

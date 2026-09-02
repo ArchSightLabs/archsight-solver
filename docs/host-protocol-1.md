@@ -40,7 +40,11 @@ Protocol 1.0 的 `solver.ready` 必须声明以下五项能力均为 `true`：
 
 宿主不能只比较 `protocolVersion`；缺少任一必要能力时不得发送 launch。
 
-`requestPortalAction` 是可选 capability。声明该能力的 Solver 可以在嵌入页头请求 `project`、`save`、`versions` 或 `share`；Host 必须在 `host.launch.payload.hostUiActions` 显式列出允许动作。动作消息的 `payload` 固定为 `{ action, requestId }`：Host Client 负责 source、origin、协议版本、会话绑定、能力、allowlist 与重复 requestId 校验，再交给宿主回调。`save` 回调必须使用同一 `requestId` 调用既有保存闭环，不能把页面动作直接当作已保存。
+`requestPortalAction` 是可选 capability。声明该能力的 Solver 可以在嵌入页头请求 `project`、`new`、`open`、`save`、`saveAs`、`versions` 或 `share`；Host 必须在 `host.launch.payload.hostUiActions` 显式列出允许动作。动作消息的 `payload` 固定为 `{ action, requestId }`：Host Client 负责 source、origin、协议版本、会话绑定、能力、allowlist 与重复 requestId 校验，再交给宿主回调。
+
+- `new`、`open` 与 `project` 只请求宿主呈现工程工作流；Host 必须在替换当前工程前自行处理保存、放弃或取消确认。
+- `save` 与 `saveAs` 都必须使用同一 `requestId` 调用既有 `requestSave -> project.saveRequest -> saveResult` 保存闭环；`saveAs` 的宿主可以先创建新工程和首个 revision，再把保存结果回传给当前 iframe，不能把页面动作直接当作已保存。
+- 不在 allowlist 的动作不得渲染或发送。readonly 会话不得新建、另存或保存；Host 可以显式允许 `open`，并负责以只读 launch 替换当前工程。
 
 ## 确定行为
 

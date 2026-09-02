@@ -78,10 +78,10 @@ test("host launch limits portal actions and portal action carries the exact sess
     payload: {
       mode: "editable",
       projectDocument,
-      hostUiActions: ["project", "save", "versions", "share", "unsupported", "save"],
+      hostUiActions: ["project", "new", "open", "save", "saveAs", "versions", "share", "unsupported", "save"],
     },
   });
-  assert.deepEqual(launch?.portalActions, ["project", "save", "versions", "share"]);
+  assert.deepEqual(launch?.portalActions, ["project", "new", "open", "save", "saveAs", "versions", "share"]);
 
   const action = buildPortalActionRequestedMessage("session-1", "nonce-1", "save", "portal-save-1");
   assert.equal(action.type, SOLVER_PORTAL_ACTION_REQUESTED_MESSAGE);

@@ -29,7 +29,7 @@ export interface SolverHostClientWindow {
     postMessage(message: unknown, targetOrigin: string): void;
     focus?(): void;
 }
-export declare const SOLVER_HOST_PORTAL_ACTIONS: readonly ["project", "save", "versions", "share"];
+export declare const SOLVER_HOST_PORTAL_ACTIONS: readonly ["project", "new", "open", "save", "saveAs", "versions", "share"];
 export type SolverHostPortalAction = (typeof SOLVER_HOST_PORTAL_ACTIONS)[number];
 export interface SolverHostClientLaunchOptions {
     projectDocument: unknown;

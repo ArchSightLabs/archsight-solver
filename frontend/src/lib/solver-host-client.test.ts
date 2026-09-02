@@ -97,7 +97,7 @@ test("Host Client forwards only negotiated, allowlisted and unique portal action
   context.client.onPortalActionRequested = (request) => portalActions.push(request);
   const launchPromise = context.client.launch({
     projectDocument: { schema: "archsight-solver.project" },
-    hostUiActions: ["project", "save", "save", "unsupported"] as unknown as Array<"project" | "save">,
+    hostUiActions: ["project", "new", "open", "save", "saveAs", "save", "unsupported"] as unknown as Array<"project" | "new" | "open" | "save" | "saveAs">,
   });
   context.emit({
     type: "archsight.solver.ready",
@@ -105,7 +105,7 @@ test("Host Client forwards only negotiated, allowlisted and unique portal action
     payload: { capabilities: { ...SOLVER_HOST_CLIENT_REQUIRED_CAPABILITIES, requestPortalAction: true } },
   });
   const launch = context.outgoing.at(-1)!.message as { sessionId: string; nonce: string; payload: { hostUiActions?: string[] } };
-  assert.deepEqual(launch.payload.hostUiActions, ["project", "save"]);
+  assert.deepEqual(launch.payload.hostUiActions, ["project", "new", "open", "save", "saveAs"]);
   context.emit({
     type: "archsight.solver.ready",
     protocolVersion: "1.0.0",
@@ -123,16 +123,23 @@ test("Host Client forwards only negotiated, allowlisted and unique portal action
     payload: { action: "save", requestId: "portal-save-1" },
   };
   context.emit(action);
+  context.emit({ ...action, payload: { action: "saveAs", requestId: "portal-save-as-1" } });
   context.emit(action);
   context.emit({ ...action, payload: { action: "share", requestId: "portal-share-1" } });
   context.emit({ ...action, nonce: "wrong-nonce", payload: { action: "project", requestId: "portal-project-1" } });
-  assert.deepEqual(portalActions, [{ action: "save", requestId: "portal-save-1" }]);
+  assert.deepEqual(portalActions, [
+    { action: "save", requestId: "portal-save-1" },
+    { action: "saveAs", requestId: "portal-save-as-1" },
+  ]);
 
   const snapshot = context.client.requestSave("portal-header", "portal-save-1");
   const saveRequest = context.outgoing.at(-1)!.message as { payload: { requestId: string; reason: string } };
   assert.deepEqual(saveRequest.payload, { requestId: "portal-save-1", reason: "portal-header" });
   context.emit({ ...action, payload: { action: "save", requestId: "portal-save-2" } });
-  assert.deepEqual(portalActions, [{ action: "save", requestId: "portal-save-1" }]);
+  assert.deepEqual(portalActions, [
+    { action: "save", requestId: "portal-save-1" },
+    { action: "saveAs", requestId: "portal-save-as-1" },
+  ]);
   context.client.dispose();
   await assert.rejects(snapshot, (error: unknown) => error instanceof SolverHostClientError && error.code === "disposed");
 });

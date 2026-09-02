@@ -301,15 +301,6 @@ function AppContent() {
     replaceProject,
     setFileStatusMessage,
   });
-  const standaloneExamplesHref = useMemo(() => {
-    if (typeof window === "undefined") return "?examples=1";
-    const url = new URL(window.location.href);
-    url.searchParams.delete("embed");
-    url.searchParams.delete("hostOrigin");
-    url.searchParams.delete("theme");
-    url.searchParams.set("examples", "1");
-    return url.toString();
-  }, []);
   useEffect(() => {
     if (isEmbeddedWorkbench || typeof window === "undefined") return;
     if (new globalThis.URLSearchParams(window.location.search).get("examples") === "1") {
@@ -503,7 +494,6 @@ function AppContent() {
       ) : (
         <EmbeddedHostHeader
           appVersion={APP_VERSION}
-          standaloneExamplesHref={standaloneExamplesHref}
           portalActions={portalActions}
           isDark={isDark}
           isProjectDirty={isProjectDirty}

@@ -92,7 +92,7 @@ HOST_MESSAGE_SCHEMA: Dict[str, Any] = {
                             "mode": {"type": "string", "enum": ["editable", "readonly"]},
                             "hostUiActions": {
                                 "type": "array",
-                                "items": {"type": "string", "enum": ["project", "save", "versions", "share"]},
+                                "items": {"type": "string", "enum": ["project", "new", "open", "save", "saveAs", "versions", "share"]},
                                 "uniqueItems": True,
                             },
                         },
@@ -186,7 +186,7 @@ HOST_MESSAGE_SCHEMA: Dict[str, Any] = {
                         "type": "object",
                         "required": ["action", "requestId"],
                         "properties": {
-                            "action": {"type": "string", "enum": ["project", "save", "versions", "share"]},
+                            "action": {"type": "string", "enum": ["project", "new", "open", "save", "saveAs", "versions", "share"]},
                             "requestId": {"type": "string", "minLength": 1},
                         },
                         "additionalProperties": False,

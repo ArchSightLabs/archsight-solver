@@ -44,7 +44,7 @@ test("嵌入 Solver 用宿主工作栏替换本地文件工具栏", async ({ pag
   await expect(page.getByRole("button", { name: "文件菜单" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "保存", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /云端工程/u })).toHaveCount(0);
-  await expect(page.getByRole("link", { name: "公开案例" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "公开案例" })).toBeVisible();
   await expect(page.getByRole("button", { name: "验证投稿" })).toBeVisible();
   await expect(page.getByRole("button", { name: "系统设置" })).toBeVisible();
 });

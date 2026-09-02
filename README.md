@@ -69,7 +69,7 @@ npm --prefix frontend run test:unit
 
 ## 当前候选版本：v1.9.0
 
-v1.9.0 让 Solver 能以完整工作台嵌入 Cloud：Solver 自己呈现唯一的 Host Portal 顶栏并保留真实版本、案例、投稿、主题和系统设置；Cloud 只管理工程、保存、版本和分享。账号、订阅和云项目存储仍由 Cloud 宿主负责，不进入开源求解核心。
+v1.9.0 让 Solver 能以完整工作台嵌入 Cloud：Solver 自己呈现唯一的 Host Portal 顶栏并保留真实版本、案例、投稿、主题和系统设置；Cloud 通过经协商的文件动作管理工程的新建、打开、保存、另存、版本和分享。账号、订阅和云项目存储仍由 Cloud 宿主负责，不进入开源求解核心。
 
 - 仓库、发行包和 Host Client 的候选版本为 `1.9.0`；Host Protocol 保持 `1.0.0`，portal action 是可选、可回滚的加法能力。
 - 本候选不改变既有 GNA/GNIA、线性屈曲或一次分析数值，也不新增结构类型、账号、云项目存储或规范设计能力。

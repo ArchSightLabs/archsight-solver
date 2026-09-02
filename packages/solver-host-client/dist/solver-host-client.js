@@ -7,7 +7,9 @@ export const SOLVER_HOST_CLIENT_REQUIRED_CAPABILITIES = Object.freeze({
     emitSaveRequest: true,
     acceptSaveResult: true,
 });
-export const SOLVER_HOST_PORTAL_ACTIONS = ["project", "save", "versions", "share"];
+// Keep this list in lockstep with Solver's Host Portal allowlist.  Actions
+// carry no document body; persistence still uses requestSave/saveResult.
+export const SOLVER_HOST_PORTAL_ACTIONS = ["project", "new", "open", "save", "saveAs", "versions", "share"];
 export class SolverHostClientError extends Error {
     constructor(code, message) {
         super(message);

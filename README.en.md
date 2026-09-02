@@ -17,7 +17,7 @@ The workbench reports reactions, displacements, member forces, shear, bending mo
 
 ## Why v1.9.0 matters
 
-v1.9.0 makes Solver a complete embeddable workbench. Solver owns the single Host Portal header and its real version, examples, validation submission, theme, and settings, while a host such as ArchSight Cloud owns projects, revisions, sharing, identity, and remote storage.
+v1.9.0 makes Solver a complete embeddable workbench. Solver owns the single Host Portal header and its real version, examples, validation submission, theme, and settings, while a host such as ArchSight Cloud owns negotiated new, open, save, save-as, project, revision, and sharing workflows plus identity and remote storage.
 
 Screen results, standard or detailed DOCX, XLSX, and the portable verification package reuse the same canonical evidence. Failed validation, singular systems, and incomplete nonlinear paths preserve explicit review evidence without fabricating final displacements or forces. Corotational GNA/GNIA and linear buckling remain separate verified gates. The legacy initial-stress iteration remains available only for v1.8.0 replay compatibility. v1.8 does not add accounts, cloud project storage, code design, or another analysis domain.
 

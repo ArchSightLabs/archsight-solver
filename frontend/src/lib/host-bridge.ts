@@ -22,7 +22,9 @@ export const SOLVER_SAVE_REQUEST_MESSAGE = "archsight.solver.project.saveRequest
 export const SOLVER_PORTAL_ACTION_REQUESTED_MESSAGE = "archsight.solver.portal.actionRequested";
 export const SOLVER_ERROR_MESSAGE = "archsight.solver.error";
 
-export const HOST_PORTAL_ACTIONS = ["project", "save", "versions", "share"] as const;
+// Portal actions are advisory navigation commands.  Project documents continue
+// to travel only through the existing launch/save messages.
+export const HOST_PORTAL_ACTIONS = ["project", "new", "open", "save", "saveAs", "versions", "share"] as const;
 export type HostPortalAction = (typeof HOST_PORTAL_ACTIONS)[number];
 export interface SolverHostMessage<TPayload = unknown>
   extends Partial<Omit<SolverHostMessageDto, "type" | "payload">> {
