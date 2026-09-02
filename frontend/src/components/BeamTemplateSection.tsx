@@ -10,7 +10,7 @@ interface BeamTemplateSectionProps {
   onGenerateQuickModelAndRun: (input: BeamQuickModelInput) => void;
 }
 
-const numberFieldClass = "h-8 rounded-md border border-white/10 bg-slate-950/20 px-2 text-xs font-semibold outline-none transition-colors focus:border-primary/50";
+const numberFieldClass = "h-8 w-full min-w-0 rounded-md border border-white/10 bg-slate-950/20 px-2 text-xs font-semibold outline-none transition-colors focus:border-primary/50";
 const selectFieldClass = "h-8 rounded-md border border-white/10 bg-slate-950/20 px-2 text-xs font-semibold outline-none transition-colors focus:border-primary/50";
 const quickLabelClass = "text-[10px] font-black tracking-widest text-muted-foreground";
 const beamQuickPresets = [

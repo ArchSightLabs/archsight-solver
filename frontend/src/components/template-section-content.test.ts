@@ -6,6 +6,14 @@ function componentSource(path: string) {
   return readFileSync(new URL(path, import.meta.url), "utf-8");
 }
 
+test("模板数字输入框随参数网格收缩，不撑出横向滚动", () => {
+  for (const module of ["Beam", "Frame", "Truss"]) {
+    const source = componentSource(`./${module}TemplateSection.tsx`);
+    assert.match(source, /const numberFieldClass = "[^"\n]*\bw-full\b/u);
+    assert.match(source, /const numberFieldClass = "[^"\n]*\bmin-w-0\b/u);
+  }
+});
+
 test("模板卡片整体可点击时不再显示套用伪按钮", () => {
   const sources = [
     componentSource("./BeamTemplateSection.tsx"),
