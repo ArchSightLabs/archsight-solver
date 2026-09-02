@@ -173,20 +173,33 @@ test("v1.6 editable host completes launch, change, save request and save result"
   await expect(solver.getByText("已保存", { exact: true })).toBeVisible();
 });
 
-test("v1.6 readonly host locks model and save while allowing host-authorized open", async ({ page }) => {
+test("v1.6 readonly standalone host locks model and local save", async ({ page }) => {
   const solver = await mountSameOriginHost(page);
-  await postLaunch(page, "readonly", ["new", "open", "save", "saveAs"]);
+  await postLaunch(page, "readonly");
 
   await expect(solver.getByText(/外部宿主：只读/u)).toBeVisible();
   await expect(solver.getByLabel("只读建模区域")).toHaveAttribute("disabled", "");
   await expect(solver.getByRole("button", { name: "保存", exact: true })).toBeDisabled();
+  await expect(solver.getByRole("button", { name: "新建分析对象" }).first()).toBeDisabled();
+  await page.waitForTimeout(300);
+  expect((await hostMessages(page)).some((message) => message.type === SOLVER_PROJECT_CHANGED_MESSAGE)).toBe(false);
+});
+
+test("v1.6 readonly embedded host disables cloud file mutations while allowing open", async ({ page }) => {
+  const solver = await mountSameOriginHost(page, true);
+  await postLaunch(page, "readonly", ["new", "open", "save", "saveAs"]);
+
+  await expect(solver.getByLabel("只读建模区域")).toHaveAttribute("disabled", "");
+  await expect(solver.getByRole("button", { name: "只读", exact: true })).toBeDisabled();
   await solver.getByRole("button", { name: "云端文件菜单" }).click();
   await expect(solver.getByRole("menuitem", { name: "新建", exact: true })).toBeDisabled();
   await expect(solver.getByRole("menuitem", { name: "打开", exact: true })).toBeEnabled();
   await expect(solver.getByRole("menuitem", { name: "另存为", exact: true })).toBeDisabled();
   await expect(solver.getByRole("button", { name: "公开案例", exact: true })).toBeDisabled();
-  await expect(solver.getByRole("button", { name: "新建分析对象" }).first()).toBeDisabled();
-  await page.waitForTimeout(300);
+  await solver.getByRole("menuitem", { name: "打开", exact: true }).click();
+  await expect.poll(async () => (await hostMessages(page)).some((message) => (
+    message.type === "archsight.solver.portal.actionRequested" && message.payload?.action === "open"
+  ))).toBe(true);
   expect((await hostMessages(page)).some((message) => message.type === SOLVER_PROJECT_CHANGED_MESSAGE)).toBe(false);
 });
 
