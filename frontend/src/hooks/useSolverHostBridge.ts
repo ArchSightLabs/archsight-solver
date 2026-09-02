@@ -5,6 +5,7 @@ import {
   buildSaveRequestMessage,
   buildSolverErrorMessage,
   buildSolverReadyMessage,
+  buildSolverThemeChangedMessage,
   HOST_LAUNCH_MESSAGE,
   isHostOriginAllowed,
   normalizeHostOriginList,
@@ -14,6 +15,7 @@ import {
   resolveBootstrapHostOrigin,
   type SolverHostMessage,
   type HostPortalAction,
+  type SolverHostTheme,
 } from "../lib/host-bridge.ts";
 import {
   canRequestHostUiAction,
@@ -38,6 +40,7 @@ interface UseSolverHostBridgeOptions {
   getProjectRevision: () => number;
   onHostSaveResult?: (status: string, projectRevision: number | null) => void;
   allowedOrigins?: string | readonly string[] | null;
+  theme: SolverHostTheme;
 }
 
 function postToHost(message: SolverHostMessage, targetOrigin: string) {
@@ -55,6 +58,7 @@ export function useSolverHostBridge({
   getProjectRevision,
   onHostSaveResult,
   allowedOrigins,
+  theme,
 }: UseSolverHostBridgeOptions) {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [nonce, setNonce] = useState<string | null>(null);
@@ -65,6 +69,8 @@ export function useSolverHostBridge({
   const projectRef = useRef(project);
   const protocolStateRef = useRef(createHostProtocolState());
   const pendingSaveRequestsRef = useRef(new Map<string, number>());
+  const announcedThemeRef = useRef<SolverHostTheme | null>(null);
+  const themeRef = useRef(theme);
   const allowedOriginList = useMemo(() => normalizeHostOriginList(allowedOrigins), [allowedOrigins]);
   const bootstrapHostOrigin = useMemo(() => {
     if (typeof window === "undefined") {
@@ -76,6 +82,10 @@ export function useSolverHostBridge({
   useEffect(() => {
     projectRef.current = project;
   }, [project]);
+
+  useEffect(() => {
+    themeRef.current = theme;
+  }, [theme]);
 
   useEffect(() => {
     protocolStateRef.current = createHostProtocolState();
@@ -146,7 +156,8 @@ export function useSolverHostBridge({
             throw new Error(transition.code ? hostProtocolIssueMessage(transition.code) : "Host Protocol launch 被拒绝。");
           }
           if (transition.idempotent) {
-            postToHost(buildSolverReadyMessage(launch.sessionId, launch.nonce), event.origin);
+            postToHost(buildSolverReadyMessage(launch.sessionId, launch.nonce, themeRef.current), event.origin);
+            announcedThemeRef.current = themeRef.current;
             return;
           }
           pendingSaveRequestsRef.current.clear();
@@ -217,14 +228,24 @@ export function useSolverHostBridge({
     // 否则宿主同步回发 launch 时，WebKit 可能在监听器安装前丢失该消息。
     if (sessionId && nonce && hostOrigin) {
       protocolStateRef.current = transitionHostProtocol(protocolStateRef.current, { type: "announce-ready" }).state;
-      postToHost(buildSolverReadyMessage(sessionId, nonce), hostOrigin);
+      postToHost(buildSolverReadyMessage(sessionId, nonce, themeRef.current), hostOrigin);
+      announcedThemeRef.current = themeRef.current;
       return;
     }
     if (bootstrapHostOrigin) {
       protocolStateRef.current = transitionHostProtocol(protocolStateRef.current, { type: "announce-ready" }).state;
-      postToHost(buildSolverReadyMessage(null), bootstrapHostOrigin);
+      postToHost(buildSolverReadyMessage(null, null, themeRef.current), bootstrapHostOrigin);
+      announcedThemeRef.current = themeRef.current;
     }
   }, [bootstrapHostOrigin, hostOrigin, nonce, sessionId]);
+
+  useEffect(() => {
+    const protocolState = protocolStateRef.current;
+    if (!hostOrigin || !protocolState.sessionId || !protocolState.nonce || announcedThemeRef.current === theme) return;
+    if (!canRequestHostUiAction(protocolState)) return;
+    postToHost(buildSolverThemeChangedMessage(protocolState.sessionId, protocolState.nonce, theme), hostOrigin);
+    announcedThemeRef.current = theme;
+  }, [hostOrigin, theme]);
 
   const emitProjectChanged = useCallback(() => {
     const protocolState = protocolStateRef.current;

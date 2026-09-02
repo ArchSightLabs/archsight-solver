@@ -379,7 +379,7 @@ export type SolverCapabilityResultDto = {
 };
 
 export type SolverHostMessageDto = {
-  type : "archsight.solver.host.launch" | "archsight.solver.host.requestSave" | "archsight.solver.host.saveResult" | "archsight.solver.ready" | "archsight.solver.project.changed" | "archsight.solver.project.saveRequest" | "archsight.solver.portal.actionRequested" | "archsight.solver.error";
+  type : "archsight.solver.host.launch" | "archsight.solver.host.requestSave" | "archsight.solver.host.saveResult" | "archsight.solver.ready" | "archsight.solver.project.changed" | "archsight.solver.project.saveRequest" | "archsight.solver.portal.actionRequested" | "archsight.solver.theme.changed" | "archsight.solver.error";
   protocolVersion : "1.0.0";
   sessionId?: string;
   nonce?: string;

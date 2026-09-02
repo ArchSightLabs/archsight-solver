@@ -20,7 +20,10 @@ export const SOLVER_READY_MESSAGE = "archsight.solver.ready";
 export const SOLVER_PROJECT_CHANGED_MESSAGE = "archsight.solver.project.changed";
 export const SOLVER_SAVE_REQUEST_MESSAGE = "archsight.solver.project.saveRequest";
 export const SOLVER_PORTAL_ACTION_REQUESTED_MESSAGE = "archsight.solver.portal.actionRequested";
+export const SOLVER_THEME_CHANGED_MESSAGE = "archsight.solver.theme.changed";
 export const SOLVER_ERROR_MESSAGE = "archsight.solver.error";
+
+export type SolverHostTheme = "light" | "dark";
 
 // Portal actions are advisory navigation commands.  Project documents continue
 // to travel only through the existing launch/save messages.
@@ -203,7 +206,11 @@ export function parseHostSaveResultMessage(value: unknown): HostSaveResultComman
   return { sessionId: command.sessionId, nonce: command.nonce, requestId: command.requestId, status: rawStatus };
 }
 
-export function buildSolverReadyMessage(sessionId: string | null, nonce: string | null = null): SolverHostMessage {
+export function buildSolverReadyMessage(
+  sessionId: string | null,
+  nonce: string | null = null,
+  theme: SolverHostTheme | null = null,
+): SolverHostMessage {
   const sessionBinding = sessionId?.trim() && nonce?.trim()
     ? { sessionId: sessionId.trim(), nonce: nonce.trim() }
     : {};
@@ -216,7 +223,22 @@ export function buildSolverReadyMessage(sessionId: string | null, nonce: string 
         ...SOLVER_HOST_CAPABILITIES,
         ...SOLVER_HOST_OPTIONAL_CAPABILITIES,
       },
+      ...(theme ? { theme } : {}),
     },
+  };
+}
+
+export function buildSolverThemeChangedMessage(
+  sessionId: string,
+  nonce: string,
+  theme: SolverHostTheme,
+): SolverHostMessage<{ theme: SolverHostTheme }> {
+  return {
+    type: SOLVER_THEME_CHANGED_MESSAGE,
+    protocolVersion: SOLVER_HOST_PROTOCOL_VERSION,
+    sessionId,
+    nonce,
+    payload: { theme },
   };
 }
 

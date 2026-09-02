@@ -44,6 +44,9 @@ function normalizeHostUiActions(value) {
         return [];
     return Array.from(new Set(value.filter((action) => (typeof action === "string" && SOLVER_HOST_PORTAL_ACTIONS.includes(action)))));
 }
+function parseTheme(value) {
+    return value === "light" || value === "dark" ? value : null;
+}
 export class SolverHostClient {
     constructor(options) {
         this.state = {
@@ -53,6 +56,7 @@ export class SolverHostClient {
             mode: null,
             pendingRequestId: null,
             compatible: null,
+            theme: null,
         };
         this.pendingLaunch = null;
         this.pendingSave = null;
@@ -60,6 +64,7 @@ export class SolverHostClient {
         this.consumedPortalActionRequestIds = new Set();
         this.activeHostUiActions = new Set();
         this.portalActionsSupported = false;
+        this.themeStateSupported = false;
         this.handleMessage = (event) => {
             const solverWindow = this.getSolverWindow();
             if (!solverWindow || event.source !== solverWindow || event.origin !== this.solverOrigin)
@@ -92,6 +97,10 @@ export class SolverHostClient {
             }
             if (message.type === "archsight.solver.portal.actionRequested") {
                 this.handlePortalAction(message);
+                return;
+            }
+            if (message.type === "archsight.solver.theme.changed") {
+                this.handleThemeChanged(message);
                 return;
             }
             if (message.type === "archsight.solver.error") {
@@ -131,6 +140,7 @@ export class SolverHostClient {
         const hostUiActions = normalizeHostUiActions(input.hostUiActions);
         this.activeHostUiActions = new Set(hostUiActions);
         this.consumedPortalActionRequestIds.clear();
+        this.themeStateSupported = false;
         const mode = input.mode === "readonly" ? "readonly" : "editable";
         this.setState({
             phase: this.state.compatible === true ? "launching" : "negotiating",
@@ -138,6 +148,7 @@ export class SolverHostClient {
             nonce: `host-nonce-${this.createId()}`,
             mode,
             pendingRequestId: null,
+            theme: null,
         });
         return new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
@@ -223,6 +234,7 @@ export class SolverHostClient {
             nonce: null,
             mode: null,
             pendingRequestId: null,
+            theme: null,
         });
     }
     focusSolver() {
@@ -242,16 +254,29 @@ export class SolverHostClient {
             this.failPending(this.error("incompatible-capabilities", `Solver 缺少必要接入能力：${missing.join(", ")}`));
             return;
         }
-        this.portalActionsSupported = capabilities.requestPortalAction === true;
         if (!hasSessionId) {
-            this.setState({ compatible: true });
+            // A delayed bootstrap ready must not replace the capability/theme state
+            // of an established (or replacement-pending) bound session.
+            if (this.state.sessionId || this.state.nonce)
+                return;
+            this.portalActionsSupported = capabilities.requestPortalAction === true;
+            this.themeStateSupported = capabilities.emitThemeChanged === true;
+            const theme = parseTheme(message.payload?.theme);
+            this.setState({ compatible: true, ...(theme ? { theme } : {}) });
             if (this.pendingLaunch) {
                 this.setState({ phase: "launching" });
                 this.sendPendingLaunch();
             }
             return;
         }
-        if (!this.pendingLaunch || !this.isCurrentBinding(message))
+        if (!this.isCurrentBinding(message))
+            return;
+        this.portalActionsSupported = capabilities.requestPortalAction === true;
+        this.themeStateSupported = capabilities.emitThemeChanged === true;
+        const theme = parseTheme(message.payload?.theme);
+        if (theme)
+            this.setState({ theme });
+        if (!this.pendingLaunch)
             return;
         const pending = this.pendingLaunch;
         this.pendingLaunch = null;
@@ -260,6 +285,13 @@ export class SolverHostClient {
             clearInterval(pending.retry);
         this.setState({ phase: this.state.mode === "readonly" ? "active-readonly" : "active-editable", compatible: true });
         pending.resolve();
+    }
+    handleThemeChanged(message) {
+        if (!this.themeStateSupported)
+            return;
+        const theme = parseTheme(message.payload?.theme);
+        if (theme)
+            this.setState({ theme });
     }
     handleSaveSnapshot(message) {
         const requestId = String(message.payload?.requestId ?? "").trim();

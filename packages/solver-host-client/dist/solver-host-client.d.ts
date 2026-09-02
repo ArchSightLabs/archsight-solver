@@ -15,6 +15,8 @@ export interface SolverHostClientSnapshot {
     mode: "editable" | "readonly" | null;
     pendingRequestId: string | null;
     compatible: boolean | null;
+    /** Solver 嵌入工作台当前主题；旧 Solver 不声明时保持 null。 */
+    theme: "light" | "dark" | null;
 }
 export interface SolverHostClientMessageEvent {
     data: unknown;
@@ -90,6 +92,7 @@ export declare class SolverHostClient {
     private readonly consumedPortalActionRequestIds;
     private activeHostUiActions;
     private portalActionsSupported;
+    private themeStateSupported;
     constructor(options: SolverHostClientOptions);
     get snapshot(): SolverHostClientSnapshot;
     get supportsPortalActions(): boolean;
@@ -100,6 +103,7 @@ export declare class SolverHostClient {
     focusSolver(): void;
     private readonly handleMessage;
     private handleReady;
+    private handleThemeChanged;
     private handleSaveSnapshot;
     private handlePortalAction;
     private sendPendingLaunch;

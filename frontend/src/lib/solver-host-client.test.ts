@@ -48,12 +48,22 @@ function setup(options: { launchTimeoutMs?: number; saveTimeoutMs?: number } = {
   return { client, emit, outgoing, solverWindow };
 }
 
-function emitReady(emit: (data: Record<string, unknown>) => void, binding?: { sessionId: string; nonce: string }) {
+function emitReady(
+  emit: (data: Record<string, unknown>) => void,
+  binding?: { sessionId: string; nonce: string },
+  options: { theme?: "light" | "dark"; themeCapability?: boolean } = {},
+) {
   emit({
     type: "archsight.solver.ready",
     protocolVersion: "1.0.0",
     ...binding,
-    payload: { capabilities: SOLVER_HOST_CLIENT_REQUIRED_CAPABILITIES },
+    payload: {
+      capabilities: {
+        ...SOLVER_HOST_CLIENT_REQUIRED_CAPABILITIES,
+        ...(options.themeCapability ? { emitThemeChanged: true } : {}),
+      },
+      ...(options.theme ? { theme: options.theme } : {}),
+    },
   });
 }
 
@@ -88,6 +98,63 @@ test("Host Client negotiates capabilities and binds launch to the exact solver o
   await launchPromise;
   assert.equal(context.client.snapshot.phase, "active-editable");
   assert.equal(context.client.snapshot.sessionId, launch.message.sessionId);
+  context.client.dispose();
+});
+
+test("Host Client keeps theme optional and accepts only bound Solver theme updates", async () => {
+  const context = setup();
+  const launchPromise = context.client.launch({ projectDocument: { schema: "archsight-solver.project" } });
+  emitReady(context.emit, undefined, { theme: "light", themeCapability: true });
+  assert.equal(context.client.snapshot.theme, "light");
+  const launch = context.outgoing.at(-1)!.message as { sessionId: string; nonce: string };
+  emitReady(context.emit, { sessionId: launch.sessionId, nonce: launch.nonce }, { theme: "dark", themeCapability: true });
+  await launchPromise;
+  assert.equal(context.client.snapshot.theme, "dark");
+
+  const changed = {
+    type: "archsight.solver.theme.changed",
+    protocolVersion: "1.0.0",
+    sessionId: launch.sessionId,
+    nonce: launch.nonce,
+    payload: { theme: "light" },
+  };
+  context.emit(changed, {});
+  context.emit(changed, context.solverWindow, "https://evil.example.cn");
+  context.emit({ ...changed, nonce: "stale-nonce" });
+  context.emit({ ...changed, payload: { theme: "neon" } });
+  assert.equal(context.client.snapshot.theme, "dark", "forged source/origin, stale binding and invalid theme must not mutate state");
+  context.emit(changed);
+  assert.equal(context.client.snapshot.theme, "light");
+
+  const replacement = context.client.launch({ projectDocument: { schema: "archsight-solver.project" } });
+  const replacementLaunch = context.outgoing.at(-1)!.message as { sessionId: string; nonce: string };
+  assert.equal(context.client.snapshot.theme, null, "reconnect must not expose the previous session theme");
+  context.emit({ ...changed, sessionId: replacementLaunch.sessionId, nonce: replacementLaunch.nonce });
+  assert.equal(context.client.snapshot.theme, null, "theme update before replacement ready is ignored");
+  emitReady(context.emit, { sessionId: replacementLaunch.sessionId, nonce: replacementLaunch.nonce }, { theme: "dark", themeCapability: true });
+  await replacement;
+  assert.equal(context.client.snapshot.theme, "dark");
+  context.emit({
+    type: "archsight.solver.ready",
+    protocolVersion: "1.0.0",
+    payload: { capabilities: { ...SOLVER_HOST_CLIENT_REQUIRED_CAPABILITIES, emitThemeChanged: true }, theme: "light" },
+  });
+  assert.equal(context.client.snapshot.theme, "dark", "late bootstrap ready must not overwrite a bound session theme");
+  context.client.dispose();
+  assert.equal(context.client.snapshot.theme, null, "dispose clears theme belonging to the iframe session");
+});
+
+test("Host Client remains compatible with an older Solver that has no theme state", async () => {
+  const context = setup();
+  const binding = await launchEditable(context);
+  assert.equal(context.client.snapshot.theme, null);
+  context.emit({
+    type: "archsight.solver.theme.changed",
+    protocolVersion: "1.0.0",
+    ...binding,
+    payload: { theme: "light" },
+  });
+  assert.equal(context.client.snapshot.theme, null);
   context.client.dispose();
 });
 

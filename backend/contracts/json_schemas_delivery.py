@@ -59,6 +59,7 @@ HOST_MESSAGE_SCHEMA: Dict[str, Any] = {
                 "archsight.solver.project.changed",
                 "archsight.solver.project.saveRequest",
                 "archsight.solver.portal.actionRequested",
+                "archsight.solver.theme.changed",
                 "archsight.solver.error",
             ],
         },
@@ -154,6 +155,7 @@ HOST_MESSAGE_SCHEMA: Dict[str, Any] = {
                         "type": "object",
                         "required": ["capabilities"],
                         "properties": {
+                            "theme": {"type": "string", "enum": ["light", "dark"]},
                             "capabilities": {
                                 "type": "object",
                                 "required": [
@@ -170,6 +172,7 @@ HOST_MESSAGE_SCHEMA: Dict[str, Any] = {
                                     "emitSaveRequest": {"const": True},
                                     "acceptSaveResult": {"const": True},
                                     "requestPortalAction": {"const": True},
+                                    "emitThemeChanged": {"const": True},
                                 },
                                 "additionalProperties": {"type": "boolean"},
                             }
@@ -189,6 +192,19 @@ HOST_MESSAGE_SCHEMA: Dict[str, Any] = {
                             "action": {"type": "string", "enum": ["project", "new", "open", "save", "saveAs", "versions", "share"]},
                             "requestId": {"type": "string", "minLength": 1},
                         },
+                        "additionalProperties": False,
+                    },
+                },
+            },
+        },
+        {
+            "if": {"properties": {"type": {"const": "archsight.solver.theme.changed"}}, "required": ["type"]},
+            "then": {
+                "properties": {
+                    "payload": {
+                        "type": "object",
+                        "required": ["theme"],
+                        "properties": {"theme": {"type": "string", "enum": ["light", "dark"]}},
                         "additionalProperties": False,
                     },
                 },

@@ -57,6 +57,10 @@ try {
 
 `save` 与 `saveAs` 都不是保存完成回执。宿主收到任一动作后必须使用同一 requestId 调用 `requestSave("portal-header", requestId)`，持久化快照后再发送 `sendSaveResult()`；`saveAs` 可以把快照存为新工程及其首个 revision。`new` 与 `open` 只请求宿主打开带未保存保护的工程流程，不包含工程正文。只读或正在保存的会话不会转发新的 save 动作。旧 Solver 不声明该可选能力时，宿主应保留自己的最小工程操作入口。
 
+## 嵌入主题
+
+若 Solver 的 ready capability 声明可选 `emitThemeChanged: true`，`client.snapshot.theme` 会在握手后提供 `"light" | "dark"`，并在 Solver 内切换主题时实时更新。主题字段不是 launch 前置条件：旧 Solver、无主题字段或不声明能力时它为 `null`。宿主应采用自己的稳定默认值，例如 `const theme = client.snapshot.theme ?? "dark"`；不得从跨域 iframe DOM 读取主题。只有精确 Solver origin/source 与当前 session/nonce 的主题消息才会更新该字段，新的 `launch()` 和 `dispose()` 会将其清回 `null`。
+
 ## 状态与清理
 
 `client.snapshot.phase` 可能为 `idle`、`negotiating`、`launching`、`active-editable`、`active-readonly`、`saving`、`error` 或 `disposed`。可通过 `onStateChange` 驱动按钮禁用和状态提示，通过 `onMessage` 记录接入诊断，通过 `onError` 处理 capability 不兼容、launch/save 超时和迟到快照。

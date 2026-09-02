@@ -300,6 +300,7 @@ function AppContent() {
     onHostSaveResult: handleHostSaveResult,
     replaceProject,
     setFileStatusMessage,
+    theme: isDark ? "dark" : "light",
   });
   useEffect(() => {
     if (isEmbeddedWorkbench || typeof window === "undefined") return;

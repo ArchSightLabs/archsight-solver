@@ -10,10 +10,12 @@ import {
   SOLVER_PROJECT_CHANGED_MESSAGE,
   SOLVER_READY_MESSAGE,
   SOLVER_SAVE_REQUEST_MESSAGE,
+  SOLVER_THEME_CHANGED_MESSAGE,
   buildProjectChangedMessage,
   buildPortalActionRequestedMessage,
   buildSaveRequestMessage,
   buildSolverReadyMessage,
+  buildSolverThemeChangedMessage,
   isHostOriginAllowed,
   normalizeHostOriginList,
   parseHostLaunchMessage,
@@ -49,7 +51,7 @@ test("parseHostLaunchMessage accepts a neutral host project document", () => {
 
 test("host bridge emits ready and changed messages without platform concepts", () => {
   const project = createDefaultSolverProject(new Date("2026-07-04T00:00:00.000Z"));
-  const ready = buildSolverReadyMessage("session-1", "nonce-1");
+  const ready = buildSolverReadyMessage("session-1", "nonce-1", "light");
   const changed = buildProjectChangedMessage("session-1", project, "nonce-1");
 
   assert.equal(ready.type, SOLVER_READY_MESSAGE);
@@ -65,6 +67,15 @@ test("host bridge emits ready and changed messages without platform concepts", (
     ...SOLVER_HOST_CAPABILITIES,
     ...SOLVER_HOST_OPTIONAL_CAPABILITIES,
   });
+  assert.equal((ready.payload as { theme?: string }).theme, "light");
+});
+
+test("host bridge emits a bound theme update without a parallel message channel", () => {
+  const message = buildSolverThemeChangedMessage("session-1", "nonce-1", "dark");
+  assert.equal(message.type, SOLVER_THEME_CHANGED_MESSAGE);
+  assert.equal(message.sessionId, "session-1");
+  assert.equal(message.nonce, "nonce-1");
+  assert.deepEqual(message.payload, { theme: "dark" });
 });
 
 test("host launch limits portal actions and portal action carries the exact session binding", () => {

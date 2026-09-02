@@ -27,6 +27,7 @@ ArchSight Solver Host Protocol 1.0 用于把本仓库的结构分析工作台嵌
 | Host -> Solver | `archsight.solver.host.requestSave` | `sessionId + nonce + requestId` | 仅 active-editable；进入 saving；重复或并发请求被拒绝 |
 | Solver -> Host | `archsight.solver.project.saveRequest` | `sessionId + nonce + requestId` | 返回该请求时刻的确定工程快照 |
 | Solver -> Host | `archsight.solver.portal.actionRequested` | `sessionId + nonce + requestId` | 可选宿主导航或保存动作；只在 host launch 明确允许的动作集合内发出 |
+| Solver -> Host | `archsight.solver.theme.changed` | `sessionId + nonce` | 可选主题状态更新；只通知当前已绑定会话 |
 | Host -> Solver | `archsight.solver.host.saveResult` | `sessionId + nonce + requestId` | 只接受当前 pending request；陈旧回执不清除未保存状态 |
 | Solver -> Host | `archsight.solver.error` | 可确定会话时带 `sessionId + nonce` | 回传可解释的协议拒绝原因，当前有效会话保留 |
 
@@ -46,12 +47,15 @@ Protocol 1.0 的 `solver.ready` 必须声明以下五项能力均为 `true`：
 - `save` 与 `saveAs` 都必须使用同一 `requestId` 调用既有 `requestSave -> project.saveRequest -> saveResult` 保存闭环；`saveAs` 的宿主可以先创建新工程和首个 revision，再把保存结果回传给当前 iframe，不能把页面动作直接当作已保存。
 - 不在 allowlist 的动作不得渲染或发送。readonly 会话不得新建、另存或保存；Host 可以显式允许 `open`，并负责以只读 launch 替换当前工程。
 
+`emitThemeChanged` 也是可选 capability，不属于五项必需能力。声明它的 Solver 会在 bootstrap ready 和带绑定的 session ready 的 `payload.theme` 可选返回当前 `"light" | "dark"`，之后主题切换通过 `archsight.solver.theme.changed` 发送严格 `{ theme }`。Host Client 只接收精确 Solver source/origin、当前 `sessionId + nonce` 绑定且 capability 已声明的更新；旧 Solver 或缺少主题字段时 `snapshot.theme` 保持 `null`，宿主自行使用其安全默认主题。
+
 ## 确定行为
 
 - 重复 `launch`：相同 `sessionId + nonce + mode` 只重发 ready，不再次覆盖当前工作区；打开另一工程或切换只读模式必须生成新绑定。
 - 重复保存：同一 `requestId` 或保存尚未结束时的另一 `requestId` 均被拒绝，不生成第二份不确定快照。
 - 陈旧回执：不匹配当前 pending `requestId` 的 `saveResult` 被标记为 invalid；当前保存仍可由正确回执完成。
 - 会话替换：使用新的 `sessionId + nonce` launch 会清除旧会话的 pending 保存关联，旧回执随后无效。
+- 主题替换：新的 launch 或 `dispose()` 会清除旧会话主题；旧绑定、错误 origin/source 或非法主题值不能改变宿主已知主题。
 - 协议错误：错误 `protocolVersion`、空绑定、空 `requestId` 或未知保存状态会产生协议错误，不执行部分操作。
 
 ## 兼容与弃用承诺
