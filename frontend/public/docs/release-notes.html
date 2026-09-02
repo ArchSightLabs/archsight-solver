@@ -116,11 +116,31 @@
       </button>
     </div>
     <header>
-      <span class="tag">当前版本 v1.9.0</span>
+      <span class="tag">当前版本 v1.9.1</span>
       <h1>版本发布记录</h1>
     </header>
 
     <section class="release-list" aria-label="版本发布记录">
+      <article class="release">
+        <div class="release-head">
+          <h2>v1.9.1</h2>
+          <span class="date">发布时间：2026-09-02</span>
+        </div>
+          <p class="section-label">重点修正</p>
+          <ul>
+            <li>首轮嵌入握手在宿主已加载时仍可可靠抵达，避免 Cloud 已准备而 Solver 未收到握手。</li>
+            <li>宿主主题只在受信握手后同步，Solver 仍保留用户主动切换主题与系统设置的归属。</li>
+            <li>Cloud 协商的文件菜单继续承载新建、打开、保存、另存、工程、版本和分享；已保存、保存中、只读与待保存状态使用清晰且可访问的视觉反馈。</li>
+            <li>修复嵌入工作台右侧参数面板在聚焦输入时的内容裁切，不改动任何结构模型或计算结果。</li>
+          </ul>
+          <p class="section-label">兼容边界</p>
+          <ul>
+            <li>Host Protocol 仍为 <code>1.0.0</code>；所有新行为均是已有协议上的兼容性修正，不引入账号、云存储、数据库迁移或新的求解域。</li>
+            <li>不修改梁系、平面桁架、平面框架、GNA/GNIA、线性屈曲、项目文件或导出数值。</li>
+            <li>候选、镜像、线上部署、annotated Tag 与公网验收分别记录在 [v1.9.1 发布验收](docs/verification/release-1-9-1-acceptance.md)；未完成项不提前表述为已发布。</li>
+          </ul>
+      </article>
+
       <article class="release">
         <div class="release-head">
           <h2>v1.9.0</h2>

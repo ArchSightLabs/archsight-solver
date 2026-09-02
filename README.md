@@ -67,13 +67,13 @@ npm --prefix frontend run test:unit
 
 详细功能边界见 [功能与适用边界](docs/capabilities.md)。
 
-## 当前候选版本：v1.9.0
+## 当前候选版本：v1.9.1
 
-v1.9.0 让 Solver 能以完整工作台嵌入 Cloud：Solver 自己呈现唯一的 Host Portal 顶栏并保留真实版本、案例、投稿、主题和系统设置；Cloud 通过经协商的文件动作管理工程的新建、打开、保存、另存、版本和分享。账号、订阅和云项目存储仍由 Cloud 宿主负责，不进入开源求解核心。
+v1.9.1 将 v1.9.0 之后的嵌入联调修正收口为补丁：首次 Host 握手、主题同步、云端文件菜单、保存状态和参数面板聚焦在不改变求解核心的前提下稳定协作。Solver 继续呈现唯一的 Host Portal 顶栏并保留真实版本、案例、投稿、主题和系统设置；Cloud 通过经协商的文件动作管理工程的新建、打开、保存、另存、版本和分享。账号、订阅和云项目存储仍由 Cloud 宿主负责，不进入开源求解核心。
 
-- 仓库、发行包和 Host Client 的候选版本为 `1.9.0`；Host Protocol 保持 `1.0.0`，portal action 是可选、可回滚的加法能力。
+- 仓库、发行包和 Host Client 的候选版本为 `1.9.1`；Host Protocol 保持 `1.0.0`，portal action 是可选、可回滚的加法能力。
 - 本候选不改变既有 GNA/GNIA、线性屈曲或一次分析数值，也不新增结构类型、账号、云项目存储或规范设计能力。
-- 完整候选、上线、验证和回滚边界见 [v1.9.0 发布验收](docs/verification/release-1-9-0-acceptance.md)；历次版本变化统一查阅 [CHANGELOG](CHANGELOG.md)。
+- 完整候选、上线、验证和回滚边界见 [v1.9.1 发布验收](docs/verification/release-1-9-1-acceptance.md)；历次版本变化统一查阅 [CHANGELOG](CHANGELOG.md)。
 
 直接开始：[公开案例与五分钟学习路径](https://solver.archsight.cn/) · [五分钟安装路径](docs/quickstart.md) · [可信计算包指南](docs/verification-package.md) · [English entry](README.en.md)
 
@@ -136,7 +136,7 @@ uv run python -m backend.benchmarks.catalog_summary --output docs/verification/b
 | [发布治理](docs/release-governance.md) | 版本价值、观察窗口、确认与不可变发布规则 |
 | [开源路线图](docs/roadmap.md) | 当前基线、近期方向、能力边界与维护规则 |
 | [CHANGELOG](CHANGELOG.md) | 历次版本变化的唯一汇总入口 |
-| [v1.9.0 发布验收](docs/verification/release-1-9-0-acceptance.md) | 当前候选的制品、验证、上线与回滚证据 |
+| [v1.9.1 发布验收](docs/verification/release-1-9-1-acceptance.md) | 当前候选的制品、验证、上线与回滚证据 |
 
 ## 贡献方式
 

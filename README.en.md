@@ -15,9 +15,9 @@ ArchSight Solver is an Apache-2.0, web-native structural mechanics workbench for
 
 The workbench reports reactions, displacements, member forces, shear, bending moment, deflection, diagnostics, and result provenance as appropriate for each system. It also supports load cases and combinations, public benchmark projects, DOCX/XLSX reports, ASMS-JSON, REST, CLI, MCP, and Host Protocol 1.0.
 
-## Why v1.9.0 matters
+## Why v1.9.1 matters
 
-v1.9.0 makes Solver a complete embeddable workbench. Solver owns the single Host Portal header and its real version, examples, validation submission, theme, and settings, while a host such as ArchSight Cloud owns negotiated new, open, save, save-as, project, revision, and sharing workflows plus identity and remote storage.
+v1.9.1 is a patch release that stabilizes the v1.9.0 embedded-workbench integration: first Host handshake, host theme synchronization, Cloud file actions, saved-state feedback, and focused parameter panels. Solver owns the single Host Portal header and its real version, examples, validation submission, theme, and settings, while a host such as ArchSight Cloud owns negotiated new, open, save, save-as, project, revision, and sharing workflows plus identity and remote storage.
 
 Screen results, standard or detailed DOCX, XLSX, and the portable verification package reuse the same canonical evidence. Failed validation, singular systems, and incomplete nonlinear paths preserve explicit review evidence without fabricating final displacements or forces. Corotational GNA/GNIA and linear buckling remain separate verified gates. The legacy initial-stress iteration remains available only for v1.8.0 replay compatibility. v1.8 does not add accounts, cloud project storage, code design, or another analysis domain.
 
@@ -63,11 +63,11 @@ See the [English quickstart](docs/en/quickstart.md) for GitHub Release installat
 
 ## Open distribution
 
-The v1.9.0 release provides the following public assets:
+The v1.9.1 release provides the following public assets:
 
-- Python wheel `archsight_solver-1.9.0-py3-none-any.whl` and source distribution for the CLI and MCP server.
-- `archsight-solver-host-client-1.9.0.tgz` with zero runtime dependencies.
-- A public offline Docker image archive, plus the immutable workflow image `ghcr.io/archsightlabs/archsight-solver:v1.9.0` for callers with GitHub Packages access.
+- Python wheel `archsight_solver-1.9.1-py3-none-any.whl` and source distribution for the CLI and MCP server.
+- `archsight-solver-host-client-1.9.1.tgz` with zero runtime dependencies.
+- A public offline Docker image archive, plus the immutable workflow image `ghcr.io/archsightlabs/archsight-solver:v1.9.1` for callers with GitHub Packages access.
 - SPDX SBOM, Trivy report, and `SHA256SUMS`.
 
 PyPI and npm registry publication are not required. The versioned assets attached to the GitHub Release are the direct distribution path.

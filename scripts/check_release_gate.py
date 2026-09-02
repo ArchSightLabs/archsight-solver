@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_PATHS = (
     ".github/workflows/release.yml",
     ".github/workflows/nightly-quality.yml",
-    "docs/verification/release-1-9-0-acceptance.md",
+    "docs/verification/release-1-9-1-acceptance.md",
     "docs/verification/release-1-8-4-acceptance.md",
     "docs/verification/release-1-8-3-acceptance.md",
     "docs/verification/release-1-8-2-acceptance.md",
@@ -57,12 +57,12 @@ REQUIRED_MARKERS = {
         "维护者明确说出要发布的版本号",
     ),
     "CHANGELOG.md": (
-        "## v1.9.0",
+        "## v1.9.1",
         "Host Portal",
         "requestPortalAction",
         "Solver 不接触 Cloud token",
     ),
-    "docs/verification/release-1-9-0-acceptance.md": (
+    "docs/verification/release-1-9-1-acceptance.md": (
         "Host Portal",
         "requestPortalAction",
         "127.0.0.1:18082 -> app:6240",
@@ -254,7 +254,7 @@ def main() -> int:
     if build_script_path.is_file() and "DOCKER_BUILDKIT" in build_script_path.read_text(encoding="utf-8"):
         failures.append("scripts/build-image.ps1 不得回退到已弃用的 Legacy Builder")
 
-    current_acceptance_path = ROOT / "docs/verification/release-1-9-0-acceptance.md"
+    current_acceptance_path = ROOT / "docs/verification/release-1-9-1-acceptance.md"
     if current_acceptance_path.is_file():
         acceptance = current_acceptance_path.read_text(encoding="utf-8")
         status_match = re.search(
@@ -263,17 +263,17 @@ def main() -> int:
             flags=re.MULTILINE,
         )
         if not status_match:
-            failures.append("v1.9.0 发布验收状态必须为‘发布候选准备中’、‘发布候选就绪’或‘已发布’")
+            failures.append("v1.9.1 发布验收状态必须为‘发布候选准备中’、‘发布候选就绪’或‘已发布’")
         candidate_gate_heading = "## Gate D：候选制品与回滚准备"
         release_gate_heading = "## Gate F：正式发布与线上验收"
         if candidate_gate_heading not in acceptance:
-            failures.append("v1.9.0 发布验收缺少 Gate D 候选制品与回滚准备")
+            failures.append("v1.9.1 发布验收缺少 Gate D 候选制品与回滚准备")
         candidate_scope = acceptance.split(release_gate_heading, maxsplit=1)[0]
         if release_gate_heading not in acceptance:
-            failures.append("v1.9.0 发布验收缺少 Gate F 正式发布与线上验收")
+            failures.append("v1.9.1 发布验收缺少 Gate F 正式发布与线上验收")
         status = status_match.group(1) if status_match else None
         if args.phase == "release" and status not in {"发布候选就绪", "已发布"}:
-            failures.append("v1.9.0 Tag 发布前验收状态必须为‘发布候选就绪’或‘已发布’")
+            failures.append("v1.9.1 Tag 发布前验收状态必须为‘发布候选就绪’或‘已发布’")
         if status == "已发布":
             checked_scope = acceptance
             phase = "正式发布"
@@ -285,23 +285,23 @@ def main() -> int:
             phase = "候选准备"
         unchecked_items = re.findall(r"^- \[ \] ", checked_scope, flags=re.MULTILINE)
         if unchecked_items:
-            failures.append(f"v1.9.0 {phase}范围仍有 {len(unchecked_items)} 项未完成")
+            failures.append(f"v1.9.1 {phase}范围仍有 {len(unchecked_items)} 项未完成")
 
     deploy_expectations = {
         "deploy/.env.example": (
-            "IMAGE_TAG=v1.9.0",
+            "IMAGE_TAG=v1.9.1",
             "NODE_IMAGE=public.ecr.aws/docker/library/node:22-bookworm-slim@sha256:",
             "PYTHON_IMAGE=public.ecr.aws/docker/library/python:3.13-slim@sha256:",
             "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS=",
             "ARCHSIGHT_SOLVER_CLOUD_WORKSPACE_URL=https://cloud.archsight.cn/solver",
         ),
         "deploy/docker-compose.yml.example": (
-            "${IMAGE_TAG:-v1.9.0}",
+            "${IMAGE_TAG:-v1.9.1}",
             "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS: ${ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS:-}",
             "ARCHSIGHT_SOLVER_CLOUD_WORKSPACE_URL: ${ARCHSIGHT_SOLVER_CLOUD_WORKSPACE_URL:-}",
         ),
         "deploy/deploy.sh": (
-            '${IMAGE_TAG:-v1.9.0}',
+            '${IMAGE_TAG:-v1.9.1}',
             'ps --all --quiet',
             "docker inspect --format",
             "DEPLOY_HEALTH_TIMEOUT_SECONDS",
@@ -309,7 +309,7 @@ def main() -> int:
             "wait_for_services_healthy",
         ),
         "docs/deployment.md": (
-            "archsight-solver:v1.9.0",
+            "archsight-solver:v1.9.1",
             "ARCHSIGHT_SOLVER_HOST_ALLOWED_ORIGINS",
             "ARCHSIGHT_SOLVER_CLOUD_WORKSPACE_URL",
             "VITE_UMAMI_WEBSITE_ID",

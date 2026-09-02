@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
 import {
   BookOpenCheck,
+  Check,
   ChevronDown,
   FileDown,
   FileJson,
@@ -9,6 +10,7 @@ import {
   FileUp,
   FolderKanban,
   History,
+  LoaderCircle,
   Moon,
   Save,
   Settings,
@@ -60,6 +62,7 @@ export function EmbeddedHostHeader({
   const { setIsBenchmarkSubmissionOpen, setIsPublicExamplesOpen, setIsSystemSettingsOpen } = useDialogs();
   const fileActions = FILE_ACTIONS.filter(({ action }) => portalActions.includes(action));
   const projectActions = PROJECT_ACTIONS.filter(({ action }) => portalActions.includes(action));
+  const isSaved = !isProjectReadOnly && !isHostSavePending && !isProjectDirty;
 
   const requestFileAction = (action: HostPortalAction) => {
     setIsFileMenuOpen(false);
@@ -124,12 +127,21 @@ export function EmbeddedHostHeader({
             <Button
               size="sm"
               disabled={isProjectReadOnly || !isProjectDirty || isHostSavePending}
+              aria-busy={isHostSavePending}
               onClick={() => onRequestPortalAction("save")}
-              title={isProjectReadOnly ? "外部宿主只读模式下不能保存工程" : !isProjectDirty ? "云端工程已保存" : isHostSavePending ? "云端工程正在保存" : "保存当前云端工程"}
-              className="h-9 gap-1.5 rounded-lg bg-sky-500 px-3 text-xs font-black text-slate-950 hover:bg-sky-400 disabled:bg-sky-500/30 disabled:text-slate-700"
+              title={isProjectReadOnly ? "外部宿主只读模式下不能保存工程" : isHostSavePending ? "云端工程正在保存" : isSaved ? "云端工程已保存" : "保存当前云端工程"}
+              className={`h-9 min-w-24 gap-1.5 rounded-lg border px-3 text-xs font-bold shadow-none disabled:opacity-100 ${
+                isProjectReadOnly
+                  ? "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                  : isHostSavePending
+                    ? "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-200"
+                    : isSaved
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                      : "border-sky-500 bg-sky-500 text-slate-950 hover:bg-sky-400"
+              }`}
             >
-              <Save className="h-3.5 w-3.5" />
-              {isHostSavePending ? "正在保存" : isProjectDirty ? "保存" : "已保存"}
+              {isHostSavePending ? <LoaderCircle className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" /> : isSaved ? <Check className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
+              <span aria-live="polite">{isProjectReadOnly ? "只读" : isHostSavePending ? "正在保存" : isSaved ? "已保存" : "保存"}</span>
             </Button>
           ) : null}
           {projectActions.map(({ action, label, icon: Icon }) => (
