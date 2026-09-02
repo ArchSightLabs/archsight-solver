@@ -255,9 +255,12 @@ export class SolverHostClient {
             return;
         }
         if (!hasSessionId) {
-            // A delayed bootstrap ready must not replace the capability/theme state
-            // of an established (or replacement-pending) bound session.
-            if (this.state.sessionId || this.state.nonce)
+            // launch() generates the next binding before the unbound bootstrap ready
+            // arrives. Only a bootstrap ready received after that launch has settled
+            // is stale; pending launches must still negotiate and send launch.
+            if (!this.pendingLaunch && (this.state.phase === "active-editable"
+                || this.state.phase === "active-readonly"
+                || this.state.phase === "saving"))
                 return;
             this.portalActionsSupported = capabilities.requestPortalAction === true;
             this.themeStateSupported = capabilities.emitThemeChanged === true;

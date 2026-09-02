@@ -101,6 +101,22 @@ test("Host Client negotiates capabilities and binds launch to the exact solver o
   context.client.dispose();
 });
 
+test("Host Client accepts bootstrap ready after launch has reserved its next binding", async () => {
+  const context = setup({ launchTimeoutMs: 100 });
+  const launchPromise = context.client.launch({ projectDocument: { schema: "archsight-solver.project" } });
+  assert.equal(context.client.snapshot.phase, "negotiating");
+  assert.ok(context.client.snapshot.sessionId, "launch reserves a binding before bootstrap ready");
+
+  emitReady(context.emit, undefined, { theme: "light", themeCapability: true });
+  const launch = context.outgoing.at(-1)?.message as { type: string; sessionId: string; nonce: string } | undefined;
+  assert.equal(launch?.type, "archsight.solver.host.launch");
+  assert.equal(context.client.snapshot.theme, "light");
+  emitReady(context.emit, { sessionId: launch!.sessionId, nonce: launch!.nonce }, { theme: "light", themeCapability: true });
+  await launchPromise;
+  assert.equal(context.client.snapshot.phase, "active-editable");
+  context.client.dispose();
+});
+
 test("Host Client keeps theme optional and accepts only bound Solver theme updates", async () => {
   const context = setup();
   const launchPromise = context.client.launch({ projectDocument: { schema: "archsight-solver.project" } });
